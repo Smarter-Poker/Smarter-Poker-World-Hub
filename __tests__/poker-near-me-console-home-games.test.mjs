@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import vm from 'node:vm';
 
 /**
  * Source contracts for the Home Games surfaces of Poker Near Me.
@@ -20,6 +22,7 @@ import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
+const nodeRequire = createRequire(import.meta.url);
 
 const PUBLIC_INDEX = 'pages/hub/home-games.js';
 const NEAR_ME = 'pages/hub/home-games/near-me.js';
@@ -36,6 +39,9 @@ const CMD_MANAGE = 'pages/hub/commander/home-games/[id]/manage.js';
 const CMD_DETAIL = 'pages/hub/commander/home-games/[id].js';
 const CMD_ROSTER = 'pages/hub/commander/home-games/[id]/roster.js';
 const HOST_BUTTON = 'src/components/poker-near-me/HostHomeGameButton.jsx';
+const HOME_GAME_CONSOLE_CSS = 'src/components/poker-near-me/PokerNearMeHomeGameConsole.module.css';
+const HOME_GAME_DIRECTORY_CSS = 'src/styles/worlds/poker-near-me-home-games-directory.css';
+const DISCOVER_API = 'pages/api/public/home-games/discover.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    1. RESTORATION — what this pass fixed
@@ -133,6 +139,182 @@ test('near-me is dressed as Poker Near Me, not as Club Commander', () => {
   }
 });
 
+test('the public directory and its companion states load painted route-owned chrome', () => {
+  const app = read('pages/_app.js');
+  const index = read(PUBLIC_INDEX);
+  const directoryCss = read(HOME_GAME_DIRECTORY_CSS);
+  const companionCss = read(HOME_GAME_CONSOLE_CSS);
+
+  assert.ok(app.includes("import '../src/styles/worlds/poker-near-me-home-games-directory.css';"));
+  assert.match(index, /PokerNearMeConsole/);
+  assert.match(index, /PokerNearMePanelShell/);
+  assert.match(index, /className="hgd-search-well"/);
+  assert.match(index, /className="hgd-select-well"/);
+  assert.match(directoryCss, /painted-controls-v1\/search-well\.webp/);
+  assert.match(directoryCss, /painted-controls-v1\/button-primary\.png/);
+  assert.match(companionCss, /painted-controls-v1\/button-secondary\.png/);
+  for (const source of [index, directoryCss, companionCss]) {
+    assert.doesNotMatch(source, /<svg|(?:linear|radial|conic)-gradient\(/);
+  }
+});
+
+test('the public directory pages every result and keeps its distance promises', () => {
+  const index = read(PUBLIC_INDEX);
+  const api = read(DISCOVER_API);
+
+  assert.match(index, /while \(hasMore && pageCount < 501\)/, 'the directory consumes every API page');
+  assert.match(index, /params\.set\('offset', String\(offset\)\)/);
+  assert.match(index, /json\?\.pagination\?\.has_more === true/);
+  assert.match(index, /Math\.min\(Number\(filters\.radius\) \|\| 100, 500\)/);
+  assert.doesNotMatch(index, /Math\.min\(Number\(filters\.radius\)[^)]*, 150\)/);
+  assert.match(index, /filters\.radius !== 'Any'/, 'Any is nationwide rather than a hidden 150-mile radius');
+  assert.match(index, /Object\.keys\(US_STATES_BY_CODE\)\.sort\(\)/, 'every state remains selectable');
+
+  assert.match(api, /const rawOffset = safeQ\(req\.query\.offset\)/);
+  assert.match(api, /\.range\(offset, offset \+ limit\)/, 'non-GPS queries expose stable paging');
+  assert.match(api, /\.order\('id', \{ ascending: true \}\)/, 'equal member counts have a stable tiebreaker');
+  assert.match(api, /has_more: hasMore/);
+  assert.match(api, /next_offset: hasMore \? offset \+ limit : null/);
+});
+
+test('GPS discovery behavior pages and returns more than 500 in-radius groups', async () => {
+  const babel = nodeRequire('@babel/core');
+  const compiled = babel.transformSync(read(DISCOVER_API), {
+    babelrc: false,
+    configFile: false,
+    plugins: [nodeRequire.resolve('@babel/plugin-transform-modules-commonjs')],
+  }).code;
+  const rows = Array.from({ length: 650 }, (_, index) => ({
+    id: `group-${String(index).padStart(4, '0')}`,
+    name: `Home Game ${index}`,
+    description: '',
+    tagline: '',
+    city: 'Tucson',
+    state: 'AZ',
+    latitude: 32.2 + index * 0.000001,
+    longitude: -110.9,
+    default_game_type: 'nlh',
+    default_stakes: '1/2',
+    typical_buyin_min: 100,
+    typical_buyin_max: 300,
+    frequency: 'weekly',
+    typical_day: 'friday',
+    typical_time: '19:00',
+    member_count: 650 - index,
+    games_hosted: 1,
+    cover_photo_url: null,
+    profile_photo_url: null,
+    club_code: null,
+    owner_id: null,
+    profiles: null,
+  }));
+  const groupRanges = [];
+
+  class Query {
+    constructor(table) {
+      this.table = table;
+      this.start = 0;
+      this.end = null;
+      this.rowLimit = null;
+    }
+    select() { return this; }
+    eq() { return this; }
+    or() { return this; }
+    gte() { return this; }
+    lte() { return this; }
+    not() { return this; }
+    ilike() { return this; }
+    in() { return this; }
+    order() { return this; }
+    range(start, end) {
+      this.start = start;
+      this.end = end;
+      if (this.table === 'commander_home_groups') groupRanges.push([start, end]);
+      return this;
+    }
+    limit(value) {
+      this.rowLimit = value;
+      return this;
+    }
+    then(resolve, reject) {
+      let data = [];
+      if (this.table === 'commander_home_groups') {
+        const end = this.end == null ? rows.length : this.end + 1;
+        data = rows.slice(this.start, end);
+        if (this.rowLimit != null) data = data.slice(0, this.rowLimit);
+      }
+      return Promise.resolve({ data, error: null }).then(resolve, reject);
+    }
+  }
+
+  const supabase = { from: (table) => new Query(table) };
+  const module = { exports: {} };
+  const context = {
+    module,
+    exports: module.exports,
+    require(specifier) {
+      if (specifier.endsWith('/supabaseServerClient')) return { createClient: () => supabase };
+      if (specifier.endsWith('/apiRateLimit')) return { applyRateLimit: () => true, LIMITS: { read: {} } };
+      if (specifier.endsWith('/apiErrorHandler')) return { reportApiError: () => undefined };
+      throw new Error(`Unexpected import in discover handler: ${specifier}`);
+    },
+    console,
+    process: { env: {} },
+    setTimeout,
+    clearTimeout,
+  };
+  vm.runInNewContext(compiled, context, { filename: DISCOVER_API });
+  const handler = module.exports.default;
+
+  const foundIds = [];
+  let offset = 0;
+  let pageCount = 0;
+  for (;;) {
+    let body = null;
+    const res = {
+      headersSent: false,
+      setHeader() {},
+      status() { return this; },
+      json(value) { body = value; return this; },
+    };
+    await handler({
+      method: 'GET',
+      query: {
+        lat: '32.2',
+        lng: '-110.9',
+        radius_miles: '500',
+        limit: '100',
+        offset: String(offset),
+      },
+    }, res);
+    assert.equal(body?.success, true);
+    foundIds.push(...body.groups.map((group) => group.id));
+    pageCount += 1;
+    if (!body.pagination.has_more) break;
+    offset = body.pagination.next_offset;
+  }
+
+  assert.equal(pageCount, 7);
+  assert.equal(foundIds.length, 650);
+  assert.equal(new Set(foundIds).size, 650);
+  assert.ok(groupRanges.some(([start, end]) => start === 0 && end === 499));
+  assert.ok(groupRanges.some(([start, end]) => start === 500 && end === 999));
+});
+
+test('Home Game cards always navigate, isolate nested keys, and explain signed-out saving', () => {
+  const index = read(PUBLIC_INDEX);
+
+  assert.ok(
+    (index.match(/router\.push\(homeGameUrl\(venue\)\)/g) || []).length >= 2,
+    'map markers and cards both use the UUID-safe canonical URL builder',
+  );
+  assert.match(index, /role="link"/);
+  assert.match(index, /e\.target === e\.currentTarget && e\.key === 'Enter'/);
+  assert.match(index, /favoriteRequiresSignIn=\{!userId\}/);
+  assert.match(index, /aria-label=\{favoriteRequiresSignIn[\s\S]*?'Sign In To Save Home Game'/);
+  assert.match(index, /router\.push\(`\/auth\/login\?redirect=\$\{encodeURIComponent\('\/hub\/home-games'\)\}`\)/);
+});
+
 test('the kit never paints a bell where a page means a warning', () => {
   // painted-controls-v1/icon-alert.png is a notification bell. Using it for a
   // denied permission or a failed search said the wrong thing in chrome.
@@ -153,12 +335,18 @@ test('no Home Games surface moves a control on hover alone', () => {
   }
 });
 
-test('the loudest control on the public index is not CSS-drawn chrome', () => {
+test('the loudest control on the public index delegates to the painted host action', () => {
   const src = read(PUBLIC_INDEX);
-  const rule = src.slice(src.indexOf('.hg-host-btn {'), src.indexOf('.hg-host-btn:active'));
+  const button = read(HOST_BUTTON);
+  const css = read(HOME_GAME_CONSOLE_CSS);
+  assert.ok(src.includes('<HostHomeGameButton className="hgd-host-action" />'));
+  assert.match(button, /styles\.paintedActionPrimary/);
+  assert.match(button, /styles\.hostAction/);
+  const rule = css.slice(css.indexOf('.hostAction.hostAction {'), css.indexOf('.geofencePosition'));
   assert.ok(!/linear-gradient/.test(rule), 'the host CTA must not be a CSS gradient');
-  assert.ok(/min-height:\s*44px/.test(rule), 'the host CTA keeps the 44px floor');
-  assert.ok(src.includes('.hg-host-btn:focus-visible'), 'and is visible to a keyboard');
+  assert.match(rule, /min-height:\s*44px !important/);
+  assert.match(rule, /button-primary\.png/);
+  assert.match(css, /\.paintedAction:focus-visible/);
 });
 
 test('a button that can land inside a form declares its type', () => {

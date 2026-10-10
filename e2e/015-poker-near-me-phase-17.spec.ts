@@ -223,7 +223,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await expect(page.locator('body')).toHaveClass(/world-poker-near-me/);
     await expect(page.locator('[data-footer-world="poker-near-me"]')).toHaveCount(1);
 
-    const panel = page.locator('[data-pnm-secondary-foundation] .cmd-panel').first();
+    const panel = page.locator('[data-pnm-secondary-foundation] [data-pnm-console="painted-panel-v1"]').first();
     // In local WebKit the dev server can briefly detach/re-attach the global
     // stylesheet while a newly compiled route receives HMR. Poll the complete
     // frame atomically so the assertion cannot land inside that dev-only swap.
@@ -232,16 +232,22 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       const before = getComputedStyle(element, '::before');
       return {
         widths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
-        styles: [style.borderTopStyle, style.borderRightStyle, style.borderBottomStyle, style.borderLeftStyle],
         radius: style.borderRadius,
         decoration: before.content,
       };
     }), { timeout: 15_000 }).toEqual({
-      widths: ['1px', '1px', '1px', '1px'],
-      styles: ['solid', 'solid', 'solid', 'solid'],
-      radius: '3px',
+      widths: ['0px', '0px', '0px', '0px'],
+      radius: '0px',
       decoration: 'none',
     });
+    // The complete frame is painted in three slices; CSS must not draw a
+    // second frame over it. Check each slice, not merely the absence of borders.
+    for (const part of ['head', 'body', 'foot']) {
+      const slice = panel.locator(`.pnc-panel__${part}`);
+      await expect(slice).toBeVisible();
+      await expect.poll(() => slice.evaluate((element) => getComputedStyle(element).backgroundImage))
+        .toContain('/images/pnm-console/');
+    }
 
     const hostBox = await page.getByRole('link', { name: 'Host A Game' }).boundingBox();
     expect(hostBox?.height).toBeGreaterThanOrEqual(44);
@@ -433,16 +439,18 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       const after = getComputedStyle(element, '::after');
       return {
         widths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
-        color: style.borderTopColor,
+        artwork: style.backgroundImage,
         radius: style.borderRadius,
         clipPath: style.clipPath,
         decoration: after.content,
       };
     });
     expect(new Set(frame.widths).size).toBe(1);
-    expect(frame.widths[0]).toBe('1px');
-    expect(frame.color).toBe('rgb(72, 199, 255)');
-    expect(frame.radius).toBe('3px');
+    // The selected state is one complete painted primary plate. A second CSS
+    // border or radius would stack a generic frame over its intact corners.
+    expect(frame.widths[0]).toBe('0px');
+    expect(frame.artwork).toContain('button-primary.png');
+    expect(frame.radius).toBe('0px');
     expect(frame.clipPath).toBe('none');
     expect(frame.decoration).toBe('none');
     await expectNoOverflow(page, 'open Poker Near Me command menu');

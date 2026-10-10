@@ -13,6 +13,7 @@
  *    game_type=nlh    — filter by default_game_type
  *    frequency=weekly — filter by frequency
  *    limit=50         — page size (max 100, default 50)
+ *    offset=0         — stable result offset for complete directory paging
  *
  *  Shape per result:
  *    { id, slug, name, city, state, country,
@@ -115,8 +116,13 @@ export default async function handler(req, res) {
     const userLng = safeQ(req.query.lng);
     const radiusMiles = safeQ(req.query.radius_miles);
     const rawLimit = safeQ(req.query.limit) || '50';
+    const rawOffset = safeQ(req.query.offset) || '0';
 
     const limit = Math.min(Math.max(parseInt(rawLimit, 10) || 50, 1), 100);
+    const parsedOffset = parseInt(rawOffset, 10);
+    const offset = Number.isFinite(parsedOffset)
+      ? Math.min(Math.max(parsedOffset, 0), 50000)
+      : 0;
     const supabase = getSupabase();
 
     // ── PHASE 21 — GEO PARAMS ─────────────────────────────────────────
@@ -157,9 +163,7 @@ export default async function handler(req, res) {
     //      We go group-first because commander_home_groups holds the live
     //      member_count / frequency / lat-lng / owner_id. social_pages
     //      contributes slug + follower_count + avatar/cover (sync'd by trigger).
-    let q = supabase
-      .from('commander_home_groups')
-      .select(`
+    const groupSelect = `
         id,
         name,
         description,
@@ -188,9 +192,7 @@ export default async function handler(req, res) {
         last_activity_at,
         visibility_override_until,
         profiles:owner_id (id, display_name, avatar_url)
-      `)
-      .eq('is_active', true)
-      .eq('is_private', false);
+      `;
 
     // ── PHASE 18 — 45-DAY AUTO-HIDE FILTER ────────────────────────────
     //
@@ -215,7 +217,7 @@ export default async function handler(req, res) {
     const HOME_GROUP_INACTIVITY_DAYS = 45;
     const inactivityCutoffIso = new Date(Date.now() - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const nowIso              = new Date().toISOString();
-    q = q.or(
+    const visibilityFilter = (
       `last_activity_at.gte.${inactivityCutoffIso},` +
       `created_at.gte.${inactivityCutoffIso},` +
       `visibility_override_until.gt.${nowIso}`
@@ -239,7 +241,7 @@ export default async function handler(req, res) {
     // 10 miles", and rendered with no distance chip. A group we cannot place is
     // not a group we can honestly claim is nearby. Non-GPS requests are
     // unaffected — they never had a radius to lie about.
-    let dbLimit = limit;
+    let geoBounds = null;
     if (hasGps) {
       // Pad by 1 mile: the distance we filter on is measured from the
       // privacy-jittered coordinate, which sits up to ~0.35 mi from the real
@@ -253,56 +255,102 @@ export default async function handler(req, res) {
       const lngMin = parsedLng - dLng;
       const lngMax = parsedLng + dLng;
 
-      // Plain range predicates (not an OR block): NULL latitude/longitude
-      // fails `gte`/`lte`, so ungeocoded groups drop out here exactly as
-      // intended.
-      q = q.gte('latitude', latMin).lte('latitude', latMax);
-      // Skip the longitude half of the box near the antimeridian rather than
-      // emitting an out-of-range window that would match nothing. Rows still
-      // need a non-null longitude to be considered locatable.
-      if (lngMin >= -180 && lngMax <= 180) {
-        q = q.gte('longitude', lngMin).lte('longitude', lngMax);
-      } else {
-        q = q.not('longitude', 'is', null);
-      }
-
-      // Fetch ceiling for GPS mode. The caller's `limit` is applied AFTER the
-      // radius filter + distance sort (see below) so it means "closest N",
-      // not "N of the biggest groups that happen to be nearby".
-      dbLimit = 500;
+      geoBounds = { latMin, latMax, lngMin, lngMax };
     }
 
-    q = q.order('member_count', { ascending: false })
-         .limit(dbLimit);
-
-    if (state) q = q.eq('state', state);
-    if (city) q = q.ilike('city', `%${escapeIlike(city)}%`);
-    if (game_type) q = q.eq('default_game_type', game_type);
-    if (frequency) q = q.eq('frequency', frequency);
     // Free-text search across name, city, state — used by the PNM lobby tab.
     // Cap at 200 chars: anything longer is almost certainly a DoS probe
     // (8KB+ URL fails at the edge before reaching this handler anyway, but
     // giving a clean 400 for anything plausibly long is better UX).
+    let escapedSearch = null;
     if (search != null) {
       if (typeof search !== 'string' || search.length > 200) {
         return res.status(400).json({ success: false, error: 'search too long (max 200 chars)' });
       }
       if (search.trim().length > 0) {
-        const s = escapeIlike(search.trim());
-        q = q.or(`name.ilike.%${s}%,city.ilike.%${s}%,state.ilike.%${s}%`);
+        escapedSearch = escapeIlike(search.trim());
       }
     }
 
-    const { data: groups, error } = await q;
-    if (error) throw error;
+    const buildGroupQuery = () => {
+      let query = supabase
+        .from('commander_home_groups')
+        .select(groupSelect)
+        .eq('is_active', true)
+        .eq('is_private', false)
+        .or(visibilityFilter);
+
+      if (geoBounds) {
+        // Plain range predicates (not an OR block): NULL latitude/longitude
+        // fails `gte`/`lte`, so ungeocoded groups drop out here exactly as
+        // intended.
+        query = query
+          .gte('latitude', geoBounds.latMin)
+          .lte('latitude', geoBounds.latMax);
+        // Skip the longitude half of the box near the antimeridian rather than
+        // emitting an out-of-range window that would match nothing. Rows still
+        // need a non-null longitude to be considered locatable.
+        if (geoBounds.lngMin >= -180 && geoBounds.lngMax <= 180) {
+          query = query
+            .gte('longitude', geoBounds.lngMin)
+            .lte('longitude', geoBounds.lngMax);
+        } else {
+          query = query.not('longitude', 'is', null);
+        }
+      }
+      if (state) query = query.eq('state', state);
+      if (city) query = query.ilike('city', `%${escapeIlike(city)}%`);
+      if (game_type) query = query.eq('default_game_type', game_type);
+      if (frequency) query = query.eq('frequency', frequency);
+      if (escapedSearch) {
+        query = query.or(
+          `name.ilike.%${escapedSearch}%,city.ilike.%${escapedSearch}%,state.ilike.%${escapedSearch}%`
+        );
+      }
+      // The id tiebreaker makes offset paging stable when groups share the
+      // same member count.
+      return query
+        .order('member_count', { ascending: false })
+        .order('id', { ascending: true });
+    };
+
+    let groups = [];
+    if (hasGps) {
+      // Radius ordering is computed after privacy-safe coordinates are made,
+      // so the entire bounding-box candidate set must be read before slicing.
+      // Page internally instead of silently discarding everything after 500.
+      // The safety bound fails loudly rather than publishing an incomplete
+      // "all nearby games" answer if the data volume ever exceeds it.
+      const INTERNAL_PAGE_SIZE = 500;
+      const MAX_GPS_CANDIDATES = 50000;
+      for (let start = 0; start < MAX_GPS_CANDIDATES; start += INTERNAL_PAGE_SIZE) {
+        const { data: page, error: pageError } = await buildGroupQuery()
+          .range(start, start + INTERNAL_PAGE_SIZE - 1);
+        if (pageError) throw pageError;
+        const pageRows = page || [];
+        groups.push(...pageRows);
+        if (pageRows.length < INTERNAL_PAGE_SIZE) break;
+        if (start + INTERNAL_PAGE_SIZE >= MAX_GPS_CANDIDATES) {
+          throw new Error('Home Games radius search exceeded its safe candidate bound');
+        }
+      }
+    } else {
+      // One extra row lets the response report has_more without a second count
+      // query. The extra row is removed before any follow-up lookup or output.
+      const { data: page, error: pageError } = await buildGroupQuery()
+        .range(offset, offset + limit);
+      if (pageError) throw pageError;
+      groups = page || [];
+    }
 
     // ── GEO NARROWING ─────────────────────────────────────────────────
     // Apply the radius filter + distance sort + the caller's page size HERE,
     // before the follow-up social_pages / upcoming-games lookups, so those
     // queries only ever run against the groups we're actually returning.
     let groupList = groups || [];
+    let hasMore = false;
     if (hasGps) {
-      groupList = groupList
+      const distanceSorted = groupList
         .map((g) => {
           const j = jitterCoord(g.id, g.latitude, g.longitude);
           const raw =
@@ -316,14 +364,28 @@ export default async function handler(req, res) {
         // nearby. (The bounding box above already excludes them at the DB
         // level; this is the app-side backstop.)
         .filter((e) => e.raw != null && e.raw <= parsedRadius)
-        .sort((a, b) => a.raw - b.raw)
-        .slice(0, limit)
-        .map((e) => e.g);
+        .sort((a, b) => a.raw - b.raw);
+      hasMore = distanceSorted.length > offset + limit;
+      groupList = distanceSorted.slice(offset, offset + limit).map((e) => e.g);
+    } else {
+      hasMore = groupList.length > limit;
+      groupList = groupList.slice(0, limit);
     }
 
     const groupIds = groupList.map((g) => g.id);
     if (!groupIds.length) {
-      return res.status(200).json({ success: true, groups: [], filters: { state, city, game_type, frequency } });
+      return res.status(200).json({
+        success: true,
+        groups: [],
+        filters: { state, city, game_type, frequency },
+        count: 0,
+        pagination: {
+          limit,
+          offset,
+          has_more: false,
+          next_offset: null,
+        },
+      });
     }
 
     // ── 2. Pull the matching social_pages for each group (slug, counts, avatar/cover).
@@ -481,6 +543,12 @@ export default async function handler(req, res) {
       groups: out,
       filters: { state, city, game_type, frequency },
       count: out.length,
+      pagination: {
+        limit,
+        offset,
+        has_more: hasMore,
+        next_offset: hasMore ? offset + limit : null,
+      },
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }

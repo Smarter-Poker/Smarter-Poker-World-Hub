@@ -192,6 +192,9 @@ jobs:
           __tests__/correction-accounting-display.test.mjs
           __tests__/credit-change-accounting-display.test.mjs
 
+      - name: Phone Verification Artwork And Welcome Guards
+        run: node --test __tests__/phone-verification-console.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs
+
       - name: Messenger Live Probe Safety
         run: node scripts/ci/messenger-live-check.mjs --self-test
 
@@ -276,6 +279,14 @@ jobs:
 
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
+
+      - name: Caption Model Budget PostgreSQL 17 Contracts
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+          CAPTION_BUDGET_POSTGRES_ROOT: ${{ runner.temp }}/caption-model-budget
+        run: |
+          mkdir -p "$CAPTION_BUDGET_POSTGRES_ROOT"
+          node --test __tests__/caption-model-budget-migration.test.mjs
 
       # Reuse the already-resolved PG17 binaries. Each authority gate owns one
       # disposable local cluster, removes it on every exit, and applies the

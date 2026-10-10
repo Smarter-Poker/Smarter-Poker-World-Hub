@@ -5,6 +5,12 @@ import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { React, cardImages, elements, inert, loadSurface, render, textOf } from './social-poker-card-harness.mjs';
+import {
+  RECENT_CLUB_ARENA_HAND_LIMIT,
+  clubArenaHandForComposer,
+  fetchRecentClubArenaHands,
+  normalizeClubArenaCard,
+} from '../src/lib/clubArenaHandImport.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
@@ -67,6 +73,144 @@ test('hostile or stale selections are normalized at the data boundary', () => {
   assert.equal((formatted.match(/\[\[sp-card:/g) || []).length, 11);
   assert.deepEqual(markup.parsePokerCards(formatted), markup.normalizePokerCardSelection(hand, board));
   assert.equal(markup.normalizePokerCardMarkup(`${formatted}[[sp-card:As]]`), formatted);
+});
+
+test('saved card presets persist in separate account-owned browser caches', () => {
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  };
+  const hand = 'Hand [[sp-card:As]][[sp-card:Kh]]';
+  const dan = markup.createPokerCardPreset([], ' Big Slick ', hand, 'preset-1');
+  assert.equal(markup.persistPokerCardPresets(storage, 'account-a', dan), true);
+  assert.deepEqual(markup.loadPokerCardPresets(storage, 'account-a'), [{ id: 'preset-1', name: 'Big Slick', markup: hand }]);
+  assert.deepEqual(markup.loadPokerCardPresets(storage, 'account-b'), []);
+  assert.notEqual(markup.pokerCardPresetStorageKey('account-a'), markup.pokerCardPresetStorageKey('account-b'));
+});
+
+test('saved card preset create, rename, use and delete data stays canonical', () => {
+  const flop = 'Hand [[sp-card:As]][[sp-card:Kh]] | Board [[sp-card:Qd]][[sp-card:Jc]][[sp-card:2s]]';
+  const created = markup.createPokerCardPreset([], 'Tournament Hand', flop, 'preset-2');
+  const renamed = markup.renamePokerCardPreset(created, 'preset-2', 'Final Table');
+  assert.deepEqual(markup.parsePokerCards(renamed[0].markup), markup.parsePokerCards(flop));
+  assert.equal(renamed[0].name, 'Final Table');
+  assert.deepEqual(markup.deletePokerCardPreset(renamed, 'preset-2'), []);
+  assert.throws(() => markup.createPokerCardPreset(renamed, 'final table', flop, 'preset-3'), /Already Exists/);
+});
+
+test('saved card presets reject partial boards and discard corrupt persisted entries', () => {
+  assert.throws(
+    () => markup.createPokerCardPreset([], 'Broken Flop', 'Board [[sp-card:As]][[sp-card:Kh]]', 'preset-4'),
+    /Complete Hand Or Board/
+  );
+  const storage = {
+    getItem: () => '{not-json',
+    setItem: () => { throw new Error('storage unavailable'); },
+  };
+  assert.deepEqual(markup.loadPokerCardPresets(storage, 'account-a'), []);
+  assert.equal(markup.persistPokerCardPresets(storage, 'account-a', []), false);
+  assert.deepEqual(markup.normalizePokerCardPresets([
+    { id: 'bad', name: '', markup: 'Hand [[sp-card:As]]' },
+    { id: 'good', name: 'Aces', markup: 'Hand [[sp-card:As]][[sp-card:Ah]]' },
+    { id: 'duplicate-name', name: 'aces', markup: 'Hand [[sp-card:Ks]][[sp-card:Kh]]' },
+  ]), [{ id: 'good', name: 'Aces', markup: 'Hand [[sp-card:As]][[sp-card:Ah]]' }]);
+});
+
+test('Club Arena import normalizes production card objects and long board strings without exposing opponents', () => {
+  const hero = '11111111-1111-4111-8111-111111111111';
+  const opponent = '22222222-2222-4222-8222-222222222222';
+  const imported = clubArenaHandForComposer({
+    id: 'hand-1',
+    hand_number: 712,
+    created_at: '2026-10-08T12:00:00.000Z',
+    hole_cards: {
+      [hero]: [{ rank: 'A', suit: 'spades' }, { rank: 'K', suit: 'hearts' }],
+      [opponent]: [{ rank: 'K', suit: 'clubs' }, { rank: 'K', suit: 'diamonds' }],
+    },
+    community_cards: ['2clubs', '7diamonds', 'Thearts', 'Jspades', 'Qclubs'],
+  }, hero);
+  assert.deepEqual(imported.hand, [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }]);
+  assert.deepEqual(imported.board, [
+    { rank: '2', suit: 'c' }, { rank: '7', suit: 'd' }, { rank: 'T', suit: 'h' },
+    { rank: 'J', suit: 's' }, { rank: 'Q', suit: 'c' },
+  ]);
+  assert.deepEqual(Object.keys(imported).sort(), ['board', 'hand', 'id', 'label']);
+  assert.doesNotMatch(JSON.stringify(imported), new RegExp(opponent));
+  assert.deepEqual(normalizeClubArenaCard({ rank: 'K', suit: 'diamonds' }), { rank: 'K', suit: 'd' });
+  assert.deepEqual(normalizeClubArenaCard('Thearts'), { rank: 'T', suit: 'h' });
+});
+
+test('Club Arena import rejects malformed cards, duplicates and incomplete streets', () => {
+  const owner = 'owner';
+  const base = { id: 'h', hole_cards: { owner: [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }] } };
+  assert.equal(clubArenaHandForComposer({ ...base, community_cards: ['2c', '7d'] }, owner), null);
+  assert.equal(clubArenaHandForComposer({ ...base, community_cards: ['2c', '7d', 'broken'] }, owner), null);
+  assert.equal(clubArenaHandForComposer({ ...base, community_cards: ['As', '7d', 'Th'] }, owner), null);
+  assert.equal(clubArenaHandForComposer({ ...base, hole_cards: { owner: [{ rank: 'A', suit: 's' }] } }, owner), null);
+  assert.equal(clubArenaHandForComposer({ ...base, hole_cards: { stranger: [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }] } }, owner), null);
+});
+
+test('recent Club Arena import uses participant RLS plus own-row facts and returns a bounded safe DTO', async () => {
+  const owner = '11111111-1111-4111-8111-111111111111';
+  const calls = [];
+  const handRows = [{
+    id: 'hand-1', hand_number: 4, created_at: '2026-10-08T12:00:00Z',
+    community_cards: ['2clubs', '7diamonds', 'Thearts'], board: null,
+  }];
+  const db = {
+    from(table) {
+      calls.push(['from', table]);
+      const chain = {
+        select(columns) { calls.push([table, 'select', columns]); return this; },
+        filter(column, operator, value) { calls.push([table, 'filter', column, operator, value]); return this; },
+        order(column, options) { calls.push([table, 'order', column, options]); return this; },
+        in(column, value) { calls.push([table, 'in', column, value]); return this; },
+        async limit(value) {
+          calls.push([table, 'limit', value]);
+          if (table === 'ca_hand_facts') return {
+            data: [
+              { hand_id: 'hand-1', user_id: 'attacker', hole_cards: [{ rank: 'Q', suit: 's' }, { rank: 'Q', suit: 'h' }] },
+              { hand_id: 'hand-1', user_id: owner, played_at: '2026-10-08T12:00:00Z', hole_cards: [{ rank: 'A', suit: 'spades' }, { rank: 'K', suit: 'hearts' }] },
+            ],
+            error: null,
+          };
+          return { data: handRows, error: null };
+        },
+      };
+      return chain;
+    },
+  };
+  const result = await fetchRecentClubArenaHands(db, owner, 500);
+  assert.equal(result.hands.length, 1);
+  assert.deepEqual(result.hands[0].hand, [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }]);
+  assert.equal(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'limit')[2], RECENT_CLUB_ARENA_HAND_LIMIT);
+  assert.deepEqual(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'order').slice(2), [
+    'played_at', { ascending: false },
+  ]);
+  const handSelect = calls.find((call) => call[0] === 'hand_history' && call[1] === 'select')[2];
+  assert.doesNotMatch(handSelect, /players|hole_cards/);
+  assert.deepEqual(calls.find((call) => call[0] === 'hand_history' && call[1] === 'in').slice(2), ['id', ['hand-1']]);
+  assert.equal(calls.some((call) => call[1] === 'filter'), false);
+  assert.doesNotMatch(JSON.stringify(result), /attacker/);
+});
+
+test('the picker wires a one-tap, mobile-safe Club Arena importer with explicit states', () => {
+  const picker = read('src/components/social/PokerCardPicker.jsx');
+  const importer = read('src/lib/clubArenaHandImport.mjs');
+  const composer = read('src/components/social/SharedPostCreator.jsx');
+  assert.match(picker, /fetchRecentClubArenaHands\(supabase, accountId\)/);
+  assert.match(picker, /onClick=\{\(\) => importRecentHand\(recentHand\)\}/);
+  assert.match(picker, /aria-label=\{`Import \$\{recentHand\.label\}`\}/);
+  assert.match(picker, /Recent Club Arena Hands/);
+  assert.match(picker, /role="status"/);
+  assert.match(picker, /role="alert"/);
+  assert.match(picker, /minHeight: 52/);
+  assert.match(composer, /accountId=\{user\?\.id \|\| null\}/);
+  assert.match(importer, /\.from\('hand_history'\)/);
+  assert.match(importer, /\.from\('ca_hand_facts'\)/);
+  assert.doesNotMatch(importer, /\.eq\(['"]user_id/);
+  assert.doesNotMatch(importer, /service[_-]?role|\/api\/club-arena\/my-hands/i);
 });
 
 test('feed truncation never exposes or splits card storage tokens', () => {
@@ -151,6 +295,21 @@ test('primary social surfaces render card tokens as cards', () => {
   assert.match(uploadGhost, /<PokerCardText text=\{displayContent\.text\} \/>/);
 });
 
+test('every enumerated raw social-content surface routes its body through PokerCardText', () => {
+  const contracts = new Map([
+    ['pages/hub/home-games/[slug].js', /<PokerCardText text=\{p\.content\} \/>/],
+    ['pages/hub/reels.js', /<PokerCardText text=\{comment\.content\} \/>/],
+    ['src/components/social/Reels.jsx', /<PokerCardText text=\{comment\.content\} \/>/],
+    ['src/components/social/ReelsFeedCarousel.jsx', /<ConsoleCopy><PokerCardText text=\{comment\.content\} \/><\/ConsoleCopy>/],
+    ['src/components/social/SmarterPokerStyleCard.jsx', /<PokerCardText text=\{comment\.text \|\| comment\.content\} \/>/],
+  ]);
+  for (const [file, contract] of contracts) {
+    const source = read(file);
+    assert.match(source, /import PokerCardText/);
+    assert.match(source, contract, `${file} still renders raw social content`);
+  }
+});
+
 test('the surfaces removed from the card list really render no post body', () => {
   let checked = 0;
   const offenders = [];
@@ -190,6 +349,9 @@ test('picker forbids duplicates and respects hand and board limits', () => {
   assert.match(source, /if \(choose\(card\)\) setQuickRank\(null\)/);
   assert.match(source, /repeat\(auto-fit, minmax\(44px, 1fr\)\)/);
   assert.doesNotMatch(source, /<span[\s\S]{0,160}role="button"/);
+  assert.match(source, /loadAppSettings\(accountId\)/);
+  assert.match(source, /saveAppSetting\('poker_card_presets'/);
+  assert.match(source, /minHeight: 44/);
 });
 
 test('SmarterPokerStyleCard stays off the card list only while nothing mounts it', () => {

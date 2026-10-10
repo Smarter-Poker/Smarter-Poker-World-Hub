@@ -86,5 +86,16 @@ test('events calendar SSR uses the bounded helper and preserves its empty fallba
   const source = await readFile(pageUrl, 'utf8');
 
   assert.match(source, /fetchJsonWithDeadline\(url, \{ timeoutMs: 5_000 \}\)/);
-  assert.match(source, /catch \(err\) \{\s*return \{ props: \{ fallbackData: null \} \};\s*\}/);
+  assert.match(source, /const initialDateKey = new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/);
+  assert.match(source, /fallbackData: null, initialDateKey/);
+});
+
+test('events calendar hydrates date-dependent controls from the server date key', async () => {
+  const source = await readFile(pageUrl, 'utf8');
+
+  assert.match(source, /EventsCalendarPage\(\{ fallbackData, initialDateKey \}\)/);
+  assert.match(source, /useState\(initialDate\.key\)/);
+  assert.match(source, /useState\(initialDate\.dayIndex\)/);
+  assert.match(source, /const todayIdx = todayDayIndex/);
+  assert.doesNotMatch(source, /const todayIdx = new Date\(\)\.getDay\(\)/);
 });

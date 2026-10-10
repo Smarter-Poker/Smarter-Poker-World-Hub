@@ -15,7 +15,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -65,4 +65,20 @@ test('a muted author is not given a new face, and a closed profile never gets on
   assert.match(remaining, /\.eq\('is_active', true\)/);
   const [mirror] = chain(src, 'profiles', 'avatar_url: permanentUrl');
   assert.match(mirror, /\.neq\('status', 'deleted'\)/);
+});
+
+test('fleet readiness excludes closed horses without hiding live author drift', () => {
+  const migrations = resolve(ROOT, 'supabase/migrations');
+  const names = readdirSync(migrations)
+    .filter((name) => /^\d{14}_fleet_readiness_excludes_closed_horses\.sql$/.test(name));
+  assert.equal(names.length, 1, 'one timestamped readiness tombstone migration');
+  const sql = read(`supabase/migrations/${names[0]}`);
+  const body = sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION'), sql.indexOf('COMMENT ON FUNCTION'));
+
+  assert.match(body, /p\.status IS DISTINCT FROM 'deleted'/);
+  assert.match(body, /p\.horse_status IS DISTINCT FROM 'disabled'/);
+  assert.match(body, /LEFT JOIN public\.content_authors ca ON ca\.profile_id = p\.id/);
+  assert.match(body, /ca\.profile_id IS NULL OR NOT ca\.is_active/);
+  assert.doesNotMatch(body, /ca\.is_active IS TRUE/,
+    'an inactive author is drift for a live horse, not a reason to hide it');
 });

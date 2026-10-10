@@ -32,6 +32,19 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   box-shadow: none !important;
 }
 
+/* The console reset above deliberately removes the shared drawer frame. Put
+   back one continuous inward edge after that reset so the sheet terminates in
+   a crisp machined line instead of an unbounded or clipped-looking seam. */
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'][data-direction='left'] {
+  box-sizing: border-box;
+  border-right: 1px solid rgba(170, 184, 196, 0.38) !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'][data-direction='right'] {
+  box-sizing: border-box;
+  border-left: 1px solid rgba(170, 184, 196, 0.38) !important;
+}
+
 /* One frame per control: the painted art. No CSS border, radius, shadow or
    blur is drawn over it, and the generic decorative fragments are removed. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
@@ -563,7 +576,19 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   }
 
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon {
-    --pnm-icon-size: 30px;
+    --pnm-icon-size: 26px;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile {
+    padding: 0 3% 0 5% !important;
+    gap: 4px !important;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile > span:last-child > span:first-child {
+    font-size: 12px !important;
+    line-height: 1.05 !important;
+    white-space: normal;
+    text-wrap: balance;
   }
 
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row span[style*='font-size: 15px'] {

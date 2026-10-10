@@ -121,6 +121,9 @@ import './page-preferences-merge-before-save.test.mjs';
 // function, service_role only, whose feed denominator keeps horses in it; the
 // analytics route and the Stats tab read that function and nothing else.
 import './fleet-content-metrics.test.mjs';
+// Phase 10 follow-up: the permanent repeated-grounded-post cleanup stays
+// bounded to horse-authored fleet posts while preserving refusal ledgers.
+import './repeated-grounded-post-cleanup.test.mjs';
 import './horse-hand-reviews-panel.test.mjs';
 import './horses-console-phase1.test.mjs';
 import './horses-libs-review.test.mjs';
@@ -393,6 +396,7 @@ import './video-reels-phase8-learning-loop.test.mjs';
 import './video-reels-ui-integrity.test.mjs';
 import './video-reels-youtube-sql-security.test.mjs';
 import './video-operations-live-safety.test.mjs';
+import './social-card-live-safety.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -

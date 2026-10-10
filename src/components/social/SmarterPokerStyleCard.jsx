@@ -900,7 +900,7 @@ export const SPPostCard = ({
                 <span className="sp-comment-author">
                   {getAuthorDisplayName(comment.user || comment.author)}
                 </span>
-                <span className="sp-comment-text">{comment.text || comment.content}</span>
+                <span className="sp-comment-text"><PokerCardText text={comment.text || comment.content} /></span>
               </div>
             </div>
           ))}

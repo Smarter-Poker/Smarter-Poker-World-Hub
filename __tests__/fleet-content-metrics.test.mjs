@@ -30,6 +30,11 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relative) => fs.readFileSync(path.join(ROOT, relative), 'utf8');
 const stripSqlComments = (sql) => sql.replace(/--[^\n]*/g, '');
+const sourceFiles = (relative) => fs.readdirSync(path.join(ROOT, relative), { withFileTypes: true })
+  .flatMap((entry) => {
+    const child = path.join(relative, entry.name);
+    return entry.isDirectory() ? sourceFiles(child) : [child];
+  });
 
 const MIGRATION_DIR = 'supabase/migrations';
 const migrationFiles = fs
@@ -39,6 +44,18 @@ assert.equal(migrationFiles.length, 1, 'exactly one fleet_content_metrics migrat
 const MIGRATION = `${MIGRATION_DIR}/${migrationFiles[0]}`;
 const migration = read(MIGRATION);
 const sql = stripSqlComments(migration);
+const readinessMigrationFiles = fs
+  .readdirSync(path.join(ROOT, MIGRATION_DIR))
+  .filter((name) => /^\d{14}_fleet_readiness_excludes_closed_horses\.sql$/.test(name));
+assert.equal(readinessMigrationFiles.length, 1, 'exactly one timestamped readiness tombstone migration');
+const readinessMigration = read(`${MIGRATION_DIR}/${readinessMigrationFiles[0]}`);
+const readinessSql = stripSqlComments(readinessMigration);
+const seededContentRetirementFiles = fs
+  .readdirSync(path.join(ROOT, MIGRATION_DIR))
+  .filter((name) => /^\d{14}_retire_seeded_content_orphan\.sql$/.test(name));
+assert.equal(seededContentRetirementFiles.length, 1, 'exactly one timestamped seeded_content retirement migration');
+const seededContentRetirement = read(`${MIGRATION_DIR}/${seededContentRetirementFiles[0]}`);
+const seededContentRetirementSql = stripSqlComments(seededContentRetirement);
 
 const ROUTE = 'pages/api/horses/analytics.js';
 const PANEL = 'src/components/horses/StatsPanel.jsx';
@@ -169,6 +186,46 @@ test('the function never writes and the owner holds stay untouched', () => {
   assert.match(sql, /content_settings must hold exactly one row/);
   assert.equal((sql.match(/content_settings/g) || []).length, 3, 'pre-flight column check, the count and its message');
   assert.match(sql, /FROM public\.fn_horses_not_social_ready\(\);/, 'readiness is the raw count of the drift detector');
+});
+
+test('the readiness count excludes retired tombstones and preserves live drift', () => {
+  const body = readinessSql.slice(
+    readinessSql.indexOf('CREATE OR REPLACE FUNCTION public.fn_horses_not_social_ready()'),
+    readinessSql.indexOf('COMMENT ON FUNCTION public.fn_horses_not_social_ready()')
+  );
+  assert.match(body, /p\.status IS DISTINCT FROM 'deleted'/);
+  assert.match(body, /p\.horse_status IS DISTINCT FROM 'disabled'/);
+  assert.match(body, /ca\.profile_id IS NULL OR NOT ca\.is_active/);
+  assert.doesNotMatch(body, /ca\.is_active IS TRUE/);
+  assert.match(readinessSql, /SECURITY INVOKER/);
+  assert.match(readinessSql, /ALTER FUNCTION public\.fn_horses_not_social_ready\(\) OWNER TO postgres;/);
+  assert.match(readinessSql, /GRANT EXECUTE ON FUNCTION public\.fn_horses_not_social_ready\(\)\s+TO service_role;/);
+  assert.match(readinessSql, /has_function_privilege\('authenticated', 'public\.fn_horses_not_social_ready\(\)', 'EXECUTE'\)/);
+});
+
+test('Phase 10 retires only the audited seeded_content orphan and preserves its rows', () => {
+  assert.match(seededContentRetirement, /^-- TIER:\s+3\b/m);
+  assert.match(seededContentRetirement, /^-- IRREVERSIBLE:\s+no\b/m);
+  assert.match(seededContentRetirementSql, /v_rows IS DISTINCT FROM 18/);
+  assert.match(seededContentRetirementSql, /2026-01-13 00:00:00\+00/);
+  assert.match(seededContentRetirementSql, /2026-01-15 00:00:00\+00/);
+  assert.match(seededContentRetirementSql, /fk\.confrelid = 'public\.seeded_content'::regclass/);
+  assert.match(seededContentRetirementSql, /view_rel\.relkind IN \('v', 'm'\)/);
+  assert.match(seededContentRetirementSql, /pg_get_functiondef\(p\.oid\) ILIKE '%seeded_content%'/);
+  assert.match(seededContentRetirementSql, /ALTER TABLE public\.seeded_content\s+RENAME TO seeded_content_retired_20261009;/);
+  assert.match(seededContentRetirementSql, /SELECT count\(\*\) INTO v_rows\s+FROM public\.seeded_content_retired_20261009;/);
+  assert.doesNotMatch(seededContentRetirementSql, /DROP TABLE/i);
+  assert.doesNotMatch(seededContentRetirementSql, /ALTER TABLE public\.(?:content_authors|content_schedule)/i);
+  assert.equal(
+    fs.existsSync(path.join(ROOT, 'supabase/migrations/archive/008_seeded_content.sql')),
+    true,
+    'the historical migration remains intact'
+  );
+  const runtimeReferences = ['pages', 'src', 'scripts']
+    .flatMap(sourceFiles)
+    .filter((file) => /\.(?:js|jsx|mjs|cjs|ts|tsx|py)$/.test(file))
+    .filter((file) => read(file).includes('seeded_content'));
+  assert.deepEqual(runtimeReferences, [], 'active runtime source does not revive the retired table');
 });
 
 test('the migration follows the safety template', () => {

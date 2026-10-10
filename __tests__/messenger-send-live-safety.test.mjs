@@ -81,7 +81,7 @@ test('persisted proof rejects duplicates, mismatched senders, wrong identity and
 
 test('hosted suite uses existing configured credential store with explicit isolated-send inputs', () => {
   const source = readFileSync('.github/workflows/e2e-tests.yml', 'utf8');
-  assert.match(source, /options: \[full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, reels-reconciliation-audit, reels-reconciliation-apply\]/);
+  assert.match(source, /options: \[full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, social-card-live, reels-reconciliation-audit, reels-reconciliation-apply\]/);
   assert.match(source, /if: \$\{\{ inputs\.suite == 'full' \|\| inputs\.suite == '' \}\}/);
   assert.match(source, /MESSENGER_FIXTURE_CONVERSATION_ID: \$\{\{ inputs\.messenger_fixture_conversation_id \}\}/);
   assert.match(source, /MESSENGER_REQUEST_ID: \$\{\{ inputs\.messenger_request_id \}\}/);

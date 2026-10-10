@@ -35,6 +35,42 @@ the same local Club Arena art library as reference-derived controls. They
 contain no dynamic text; all labels remain DOM content. Their checksums are
 covered by `__tests__/poker-near-me-console-contract.test.mjs`.
 
+## 2026-10-08 button silhouette alpha repair
+
+The approved 348 x 114 primary and secondary button plates shipped with the
+finished chamfered steel holder over an opaque rectangular black matte. The
+matte made the four outside corners read as broken boxes wherever the plate
+was seated on a non-identical surface. `scripts/art/clean-pnm-button-alpha.py`
+removes only that export matte. It refuses any input other than the two
+approved source hashes, preserves every RGB pixel and every alpha pixel at or
+inside the existing steel silhouette, and changes alpha only in the four
+corner triangles outside the master's own 23 px chamfer. The four-pixel edge
+transition retains the master's antialias. Dimensions and native ratio do not
+change; labels and state remain live DOM content.
+
+Approved pre-repair sources:
+
+- `button-primary.png`: SHA-256 `6b2cdb78bd430ebb5f7b5bade442829ae4f3b7865d9545168c8992ed3e6f1162`
+- `button-secondary.png`: SHA-256 `67d0f61e1a15288b0eafc32e13ff2b3094881a4307d01af627f3c65fdd2f4677`
+
+Runtime alpha-clean derivatives:
+
+- `button-primary.png`: SHA-256 `612777b4518ef8c731c495e84f683a927a420b23c5cb63af3fd4f0f1d8f45a59`
+- `button-secondary.png`: SHA-256 `bcdb0a6999c94233b85b2053dd119f1bb93a5c7d487d122f4f99d2c990d397b1`
+
+Verify/copy the current alpha-clean masters into a review directory:
+
+```sh
+python3 scripts/art/clean-pnm-button-alpha.py \
+  public/images/pnm-console/painted-controls-v1 \
+  /path/to/review-output
+```
+
+The script is idempotent for the two clean hashes above. To reconstruct the
+derivatives from the opaque sources, run the same command against those two
+pre-repair blobs from repository history; the script accepts only the pinned
+source and clean hashes.
+
 ## Poker Near Me command-drawer extension
 
 `icon-sheet-command.png` is a second built-in OpenAI image-generation master,
