@@ -1298,19 +1298,35 @@ async function verifySignedInBrowser(browser, session, article, report) {
     report.signedInBrowserStage = 'ordinary-article-card';
     const articleLabel = page.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
     await articleLabel.waitFor();
-    report.signedInBrowserStage = 'ordinary-article-click';
-    readerSandboxOpen = true;
-    await articleLabel.click();
-    report.signedInBrowserStage = 'ordinary-article-reader';
-    const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
-    const reader = readerDialog.locator('iframe[src*="/api/proxy?url="]');
-    await reader.waitFor();
-    assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
-    report.signedInBrowserStage = 'ordinary-article-close';
-    await readerDialog.getByRole('button', { name: 'Close' }).click();
-    report.signedInBrowserStage = 'ordinary-article-detached';
-    await reader.waitFor({ state: 'detached' });
-    readerSandboxOpen = false;
+    const proxyPattern = '**/api/proxy?url=*';
+    let releaseHeldProxy;
+    const heldProxyRelease = new Promise((resolve) => { releaseHeldProxy = resolve; });
+    const holdProxyRequest = async (route) => {
+      await heldProxyRelease;
+      await route.abort('aborted').catch(() => {});
+    };
+    await page.route(proxyPattern, holdProxyRequest);
+    try {
+      report.signedInBrowserStage = 'ordinary-article-click';
+      readerSandboxOpen = true;
+      const proxyRequest = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/proxy');
+      await articleLabel.click();
+      await proxyRequest;
+      report.signedInBrowserStage = 'ordinary-article-reader';
+      const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
+      const reader = readerDialog.locator('iframe[src*="/api/proxy?url="]');
+      await reader.waitFor();
+      await readerDialog.locator('[data-reader-loading-overlay="true"]').waitFor({ state: 'visible' });
+      assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
+      report.signedInBrowserStage = 'ordinary-article-close';
+      await readerDialog.getByRole('button', { name: 'Close' }).click();
+      report.signedInBrowserStage = 'ordinary-article-detached';
+      await reader.waitFor({ state: 'detached' });
+    } finally {
+      releaseHeldProxy();
+      await page.unroute(proxyPattern, holdProxyRequest);
+      readerSandboxOpen = false;
+    }
     assert.deepEqual(pageErrors, [], 'Ordinary article reader raised a first-party browser error');
     report.articleReaderSandboxErrors = articleReaderErrors.length;
 
@@ -1352,6 +1368,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
     report.coverage.signedInMobile = {
       followingAuthorized: true,
       ordinaryArticleReaderPreserved: true,
+      ordinaryArticleCloseWhileLoading: true,
       myReels,
       savedReels,
       browserErrors: pageErrors.length,
@@ -1567,6 +1584,7 @@ export function validateReceipt(report) {
   validateReadOnlyGuardProof(report.coverage?.slotsDesktop, 'Slots desktop verification');
   assert.equal(report.coverage?.signedInMobile?.followingAuthorized, true, 'Following was not verified with the designated identity');
   assert.equal(report.coverage?.signedInMobile?.ordinaryArticleReaderPreserved, true, 'Ordinary article reader was not preserved');
+  assert.equal(report.coverage?.signedInMobile?.ordinaryArticleCloseWhileLoading, true, 'Ordinary article Back control was not verified while the iframe request was held pending');
   assert.equal(report.coverage?.signedInMobile?.browserErrors, 0, 'Signed-in mobile verification raised a browser error');
   validateReadOnlyGuardProof(report.coverage?.signedInMobile, 'Signed-in mobile verification');
   assert.equal(report.coverage?.healthStable, true, 'Production identity changed during the Reels verification');

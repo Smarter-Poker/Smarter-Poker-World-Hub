@@ -120,8 +120,20 @@ test('public mobile proof counts each media DOM node once inside the standalone 
 
 test('ordinary article live proof is scoped to the requested post and its reader dialog', () => {
   assert.match(ARTICLE_READER, /role="dialog"[\s\S]*aria-label="Article Reader"/);
+  assert.match(
+    ARTICLE_READER,
+    /position: 'relative',[\s\S]*zIndex: 1,[\s\S]*aria-label="Close"/,
+    'the reader header and Back control must remain above the loading layer',
+  );
+  assert.match(
+    ARTICLE_READER,
+    /data-reader-loading-overlay="true"[\s\S]*pointerEvents: 'none'/,
+    'the loading skeleton must never intercept the reader controls',
+  );
   assert.match(REELS_LIVE_CHECK, /page\.getByText\(\/Click To Read Full Article\/i\)\.filter\(\{ visible: true \}\)/);
   assert.match(REELS_LIVE_CHECK, /page\.getByRole\('dialog', \{ name: 'Article Reader' \}\)/);
+  assert.match(REELS_LIVE_CHECK, /page\.route\(proxyPattern, holdProxyRequest\)[\s\S]*waitForRequest[\s\S]*data-reader-loading-overlay="true"[\s\S]*getByRole\('button', \{ name: 'Close' \}\)\.click\(\)[\s\S]*waitFor\(\{ state: 'detached' \}\)[\s\S]*releaseHeldProxy\(\)[\s\S]*page\.unroute\(proxyPattern, holdProxyRequest\)/);
+  assert.match(REELS_LIVE_CHECK, /ordinaryArticleCloseWhileLoading: true/);
   assert.match(REELS_LIVE_CHECK, /const target = readerSandboxOpen \? articleReaderErrors : pageErrors;/);
   assert.match(REELS_LIVE_CHECK, /readerSandboxOpen = true;[\s\S]*articleLabel\.click\(\);[\s\S]*readerSandboxOpen = false;/);
   assert.doesNotMatch(REELS_LIVE_CHECK, /unexpectedReaderErrors|sandboxed\|service worker is disabled/);
@@ -611,6 +623,7 @@ test('workflow retains and independently asserts the complete sanitized receipt'
       signedInMobile: {
         followingAuthorized: true,
         ordinaryArticleReaderPreserved: true,
+        ordinaryArticleCloseWhileLoading: true,
         myReels: { synchronized: true, state: 'empty' },
         savedReels: { synchronized: true, state: 'empty' },
         browserErrors: 0,
