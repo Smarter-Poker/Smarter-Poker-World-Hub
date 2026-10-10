@@ -180,7 +180,8 @@ test('post deep links pin the target through the caller-scoped post API without 
   assert.match(social, /\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[1-5\]\[0-9a-f\]\{3\}/);
   assert.match(social, /const linkedPost = await fetchBrowserPost\(String\(requestedPostId\)\)/);
   assert.match(social, /deepLinkPostRef\.current = formatted;/);
-  assert.match(deepLink, /return;\s*\}\s*router\.replace\('\/hub\/social-media'/);
+  assert.doesNotMatch(deepLink, /router\.replace\('\/hub\/social-media'/);
+  assert.match(deepLink, /Keep \?post= in the URL until the initial feed load has completed/);
 });
 
 test('video realtime changes update or remove only the mounted card', () => {
