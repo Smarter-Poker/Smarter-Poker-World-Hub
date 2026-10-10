@@ -762,3 +762,36 @@ Agent default11scenarios/169invariants passed; root independent run was invalid
 when supporting harness bytes changed during bash execution, never a pass.
 Final quiescent harness root repeat and explicitP13chain are running. No new
 production matcher migration installed; hourlyDDLwindow is now active.
+
+### Final matcher qualification and inventory recovery, 05:59 UTC
+
+Canonical four policies fully emitted/read at2026-10-10T05:54:48.240Z,
+version2.9, manifest and source hashes above unchanged. Repository instructions,
+publishing, CLAUDE, migration/path/storage and complete owning maintenance
+references freshly read; existing checkpoint recovered atWH0b8e9df11f and
+CA67904f71a2. ExternalSSD mounted with free space.
+
+Exact matcher forwardSHA256b56aea27caf66d304b213790368c30d19d12817370f60cda76025afa0b71115a
+is qualified by both full native chains and root independent final repeat,
+11 scenarios/169 invariants each. The original stale-first-group countercase
+formszero hands; the repair forms16 through unchanged real validators and
+1500ms budget, with exact duplicate replay. Five security/grant/preimage/
+rollback drift controls and exact rollback/reapply pass; final706 contracts
+and TypeScript pass. Normal push first refused omitted current cash workflow
+fingerprint; reviewed additive selection now has exact active binding with
+history/status/financial inputs unchanged. Binding6/6 andregression10/10 pass.
+CA6a354f1bc2c04409416566a8253e1cd332c41e94 ordinary push passed;
+currentCI38029324298 is running. Installed six dependencies are not replayed.
+New matcher installation awaits after06:03UTC protectedDDLwindow.
+
+WH0b8 safety38028954573 failed only generated Training inventory: new
+shared serverAuth session checks add playerSessionAccess to its actual
+Training dependency graph. Maintained generator refresh changes only those
+two source rows and their derived edges/counts/classifications; Training game,
+route, CTA and coverage definitions are intact. Existing assertion remains.
+Final local generator/contract proof and ordinary submission precede hosted
+required checks. Protected merges, normal publication, sealed engine activation,
+realO7download and genuine scoped production certificate remain pending.
+
+Exact generated inventory plus classifier/certificate/export/documentation
+contracts passed24/24 locally with zero skips; diff whitespace check passed.
