@@ -1317,9 +1317,21 @@ async function verifySignedInBrowser(browser, session, article, report) {
       const reader = readerDialog.locator('iframe[src*="/api/proxy?url="]');
       await reader.waitFor();
       await readerDialog.locator('[data-reader-loading-overlay="true"]').waitFor({ state: 'visible' });
+      const closeButton = readerDialog.getByRole('button', { name: 'Close' });
+      const closeHitTarget = await closeButton.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(rect.left + (rect.width / 2), rect.top + (rect.height / 2));
+        return {
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          hitIsClose: hit === element || element.contains(hit),
+        };
+      });
+      assert.ok(closeHitTarget.width >= 44 && closeHitTarget.height >= 44, 'Ordinary article Back control is smaller than 44 by 44 CSS pixels');
+      assert.equal(closeHitTarget.hitIsClose, true, 'Ordinary article Back control is covered by another layer');
       assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
       report.signedInBrowserStage = 'ordinary-article-close';
-      await readerDialog.getByRole('button', { name: 'Close' }).click();
+      await closeButton.click();
       report.signedInBrowserStage = 'ordinary-article-detached';
       await reader.waitFor({ state: 'detached' });
     } finally {

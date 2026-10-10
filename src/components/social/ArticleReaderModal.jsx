@@ -78,7 +78,9 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     right: 0,
                     bottom: 0,
                     background: 'rgba(0,0,0,0.95)',
-                    zIndex: 9999,
+                    // Full-screen readers share the maintained overlay layer so
+                    // global navigation cannot sit above and intercept Back.
+                    zIndex: 99999,
                     display: 'flex',
                     flexDirection: 'column',
                 }}
@@ -100,7 +102,6 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     <button
                         onClick={onClose}
                         aria-label="Close"
-                        className="sp-icon-btn"
                         style={{
                             background: 'rgba(255,255,255,0.1)',
                             border: 'none',
