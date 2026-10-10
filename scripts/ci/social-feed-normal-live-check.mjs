@@ -13,6 +13,26 @@ const ARTICLES = [
 ];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function waitForRequestSettle(requests, { quietMs = 1_500, timeoutMs = 10_000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let length = requests.length;
+  let quietSince = Date.now();
+  while (Date.now() < deadline) {
+    await sleep(200);
+    if (requests.length !== length) {
+      length = requests.length;
+      quietSince = Date.now();
+    } else if (Date.now() - quietSince >= quietMs) {
+      return;
+    }
+  }
+  assert.fail('Initial feed requests did not settle before stability verification');
+}
+
+function rootFeedRequestCount(requests) {
+  return requests.filter((value) => Number(new URL(value).searchParams.get('offset') || 0) === 0).length;
+}
+
 export function validateReceipt(receipt, expectedSha) {
   assert.equal(receipt.status, 'passed');
   assert.equal(receipt.expectedSha, expectedSha);
@@ -247,13 +267,30 @@ async function run(env) {
 
     receipt.stage = 'desktop-stability';
     await page.setViewportSize({ width: 1440, height: 1000 });
-    const automaticBaseline = feedRequests.length;
+    await waitForRequestSettle(feedRequests);
+    await page.evaluate(() => window.scrollTo(0, Math.min(600, Math.max(0, document.documentElement.scrollHeight - innerHeight))));
+    const automaticBaseline = rootFeedRequestCount(feedRequests);
+    const beforeStability = await page.evaluate(() => ({
+      scrollY,
+      order: [...document.querySelectorAll('[data-post-card="true"]')]
+        .slice(0, 5)
+        .map((card) => card.getAttribute('data-post-id')),
+    }));
+    assert.ok(beforeStability.order.length > 0, 'No rendered post order was available for stability proof');
     await page.evaluate(() => {
       window.dispatchEvent(new Event('focus'));
       document.dispatchEvent(new Event('visibilitychange'));
     });
     await sleep(65_000);
-    assert.equal(feedRequests.length, automaticBaseline, 'The feed reloaded automatically');
+    const afterStability = await page.evaluate(() => ({
+      scrollY,
+      order: [...document.querySelectorAll('[data-post-card="true"]')]
+        .slice(0, 5)
+        .map((card) => card.getAttribute('data-post-id')),
+    }));
+    assert.equal(rootFeedRequestCount(feedRequests), automaticBaseline, 'The feed made an automatic offset-zero reset request');
+    assert.deepEqual(afterStability.order, beforeStability.order, 'The rendered feed reordered automatically');
+    assert.equal(afterStability.scrollY, beforeStability.scrollY, 'The feed changed the reader scroll position automatically');
     receipt.checks.noAutomaticFeedReset = true;
     assert.ok(await page.getByRole('button', { name: /like/i }).first().isVisible(), 'Reaction control missing');
     receipt.checks.reactionsPresent = true;
@@ -262,7 +299,7 @@ async function run(env) {
 
     receipt.stage = 'manual-refresh';
     await page.setViewportSize({ width: 390, height: 844 });
-    const manualBaseline = feedRequests.length;
+    const manualBaseline = rootFeedRequestCount(feedRequests);
     await page.evaluate(() => {
       window.scrollTo(0, 0);
       const touch = (y) => new Touch({ identifier: 1, target: document.body, clientX: 20, clientY: y });
@@ -271,8 +308,8 @@ async function run(env) {
       window.dispatchEvent(new TouchEvent('touchend', { bubbles: true, changedTouches: [touch(190)] }));
     });
     const deadline = Date.now() + 20_000;
-    while (feedRequests.length === manualBaseline && Date.now() < deadline) await sleep(200);
-    assert.ok(feedRequests.length > manualBaseline, 'Manual pull refresh did not request the feed');
+    while (rootFeedRequestCount(feedRequests) === manualBaseline && Date.now() < deadline) await sleep(200);
+    assert.ok(rootFeedRequestCount(feedRequests) > manualBaseline, 'Manual pull refresh did not request an offset-zero feed reload');
     receipt.checks.manualRefresh = true;
     // The route guard aborts every unlisted write before dispatch. Playback
     // may attempt counters; those remain visible as blocked classes rather

@@ -134,6 +134,7 @@ test('Social Media contains no Video Library decorative console', () => {
 });
 
 test('feed never resets itself on a timer, focus, or new-content signal', () => {
+  assert.match(social, /data-post-id=\{post\.id\}/);
   assert.doesNotMatch(social, /setInterval\(revalidateVisibleFeed,\s*60_000\)/);
   assert.doesNotMatch(social, /addEventListener\('focus',\s*revalidateVisibleFeed\)/);
   assert.doesNotMatch(reels, /addEventListener\('focus',\s*revalidateVisibleFeed\)/);

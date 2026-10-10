@@ -692,7 +692,8 @@ jobs:
             src/lib/canonicalBrowserPost.mjs \
             src/lib/reelCreatorName.mjs \
             src/lib/reelsRealtimeRefresh.mjs \
-            src/lib/socialAuthorityBroadcast.mjs
+            src/lib/socialAuthorityBroadcast.mjs \
+            src/lib/socialPostClient.js
       - name: Restore locked dependencies
         id: social-feed-normal-live-nm-cache
         uses: actions/cache@v4
