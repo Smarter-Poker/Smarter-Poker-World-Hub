@@ -663,6 +663,29 @@ pass; required safety also runs the new regression. Existing strict read-only
 certificate is unchanged. No production export has run. All publication/live
 acceptance remains pending.
 
+### All six database dependencies installed, 05:40 UTC
+
+Final P3 foundation installed once asprovider20261010053645; enforcement once
+asprovider20261010053702. Ledger stores each full reviewed source with exact
+SHA78d77b8a3eec8fd1ece1ee71b4d6d8ec0239fd634ca20114444d162fd68dc077
+and16ef33428ff616cc88d013c6da3bbc0ef09b06df939187163f82560fa1a002b2.
+All six installed source hashes match qualified files; four earlier installations
+were not replayed. Independent P3 readback matches all8 function body/owner/path/
+privilege records,40 enabled newtriggerdefinitions,3 retained entryguards and
+hookb799597b6f91d7e59688bff5d1fa9c5a. Enforcement remainsfalse; ledgers empty.
+Final security WARN counts unchanged; one additional intentional RLS deny-all
+operations table produces INFO723. Exact source, metadata and independent
+readback are archived; no production player/financial/control probe used.
+
+WHcaedeee6b ordinary push passed and final hosted checks are running.
+CA67904 allclient,engine,native-service,build and3 accounting shards passed;
+accounting1 failed LightningPhase12 invariant pass_starved_by_its_budget.
+Failure remains visible and is being diagnosed; no unchanged rerun or softened
+assertion supplies success. Protected merges/publication/liveproof remain pending.
+Two obsolete product descriptions now state implemented original-owner controls
+and their cash-only/hand-boundary/hourly bounds. Final integration checks50/50
+passed, including incoming Messenger lifecycle and affected control contracts.
+
 ### Cold foundation and atomic enforcement, 05:36 UTC
 
 Canonical policies fully emitted/read at2026-10-10T05:34:26.489Z, v2.9;

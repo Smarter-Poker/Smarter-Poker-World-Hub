@@ -108,7 +108,7 @@ export default function FloorPanel({ authFetch, permissions = [] }) {
     <section className={styles.panel} aria-labelledby="floor-title">
       <EngineControlPanel authFetch={authFetch} domain="floor" permissions={permissions} />
       <div className={styles.panelHead}>
-        <div><h2 id="floor-title" className={styles.panelTitle}>Live Floor</h2><p className={styles.panelIntro}>A Read-Only View Of Every Live Table. Owner Pause, Resume And Empty-Table Close Stay In Club Arena. Platform Park And Occupied-Table Boundary Close Are Not Available.</p></div>
+        <div><h2 id="floor-title" className={styles.panelTitle}>Live Floor</h2><p className={styles.panelIntro}>Live Table Evidence With Global Pause, Park, Resume And Cash-Table Closure. Current Hands Settle Before Parking Or Closure. Tournament Cancellation Uses Its Own Authority.</p></div>
         <button type="button" className={styles.btn} onClick={load} disabled={loading}>Refresh</button>
       </div>
       <div className={styles.opsDisclosure} role={disclosure.tone === 'danger' ? 'alert' : 'status'}><strong>{disclosure.title}</strong><span>{disclosure.body}</span></div>
