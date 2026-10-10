@@ -1347,9 +1347,14 @@ function MessengerPage() {
         const boundary = visibleMessageBoundary(messagesContainerRef.current);
         if (!boundary || !messages.some(message => message.id === boundary.last && message.conversation_id === conversationId)) return;
         const key = `${workspaceRef.current}:${conversationId}:${boundary.last}`;
-        if (lastVisibleReadRef.current === key) return;
-        lastVisibleReadRef.current = key;
-        markConversationReadRef.current?.(conversationId, boundary.last);
+        if (lastVisibleReadRef.current?.key === key) return;
+        const attempt = { key };
+        lastVisibleReadRef.current = attempt;
+        Promise.resolve(markConversationReadRef.current?.(conversationId, boundary.last)).then(saved => {
+            // A failed request is not a read receipt. Release only this attempt;
+            // a late failure must never unlock a newer displayed boundary.
+            if (saved !== true && lastVisibleReadRef.current === attempt) lastVisibleReadRef.current = null;
+        });
     };
     useEffect(() => {
         if (!incomingRead || incomingRead.scope !== workspaceRef.current) return;
@@ -1773,7 +1778,7 @@ function MessengerPage() {
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
         try {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(throughMessageId || '')
-                || !current() || document.visibilityState === 'hidden') return;
+                || !current() || document.visibilityState === 'hidden') return false;
             // Do not clear local/global badges or emit a read receipt on failure.
             const readResponse = await authedFetch('/api/messenger/mark-read', {
                 method: 'POST',
@@ -1783,7 +1788,7 @@ function MessengerPage() {
             const readResult = await readResponse.json();
             if (!readResponse.ok || readResult.success !== true) {
                 if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
-                return;
+                return false;
             }
             if (current()) {
                 loadConversationsRef.current?.(user.id, { invalidate: true });
@@ -1804,14 +1809,16 @@ function MessengerPage() {
             }
 
             //  Immediately refresh global unread count to clear header badge
-            if (workspaceRef.current !== requestScope) return;
+            if (workspaceRef.current !== requestScope) return false;
             if (refreshUnread) refreshUnread();
             // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
             broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
+            return true;
 
         } catch (error) {
             console.warn('[Messenger] Read persistence failed:', error);
             if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+            return false;
         }
     };
     markConversationReadRef.current = markConversationRead;
