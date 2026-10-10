@@ -113,3 +113,64 @@ END $repair$;
 SELECT id,name,address,city,state,latitude,longitude,location_integrity_revision FROM public.poker_venues WHERE id IN (${plans.map((plan) => plan.id).join(',')}) ORDER BY id;
 COMMIT;`;
 }
+
+/** Exact identity retirement keeps the alias row and all dependent history. */
+export function qualifyDuplicateRetirement(loser, target, evidence, schedules = [], reviewed = {}, now = Date.now()) {
+  const refuse = (reason) => ({ id: loser?.id, accepted: false, reason });
+  if (!Number.isInteger(loser?.id) || !Number.isInteger(target?.id) || loser.id === target.id) return refuse('invalid_duplicate_pair');
+  for (const row of [loser, target]) {
+    if (row.is_active !== true || row.is_suppressed === true || row.canonical_venue_id != null) return refuse('not_active_canonical');
+    if (row.source === 'self_registration' || ['home_game', 'charity', 'series', 'tour'].includes(row.venue_type)) return refuse('private_or_traveling_identity');
+  }
+  if (loser.state !== target.state || !roomUrl(evidence?.final_url) || evidence.id !== loser.id) return refuse('unmatched_duplicate_source');
+  const source = qualifyCoordinateRepair({ ...target, latitude: null, longitude: null, lat: null, lng: null }, { ...evidence, id: target.id }, reviewed, now);
+  if (!source.accepted || Number(target.latitude) !== source.latitude || Number(target.longitude) !== source.longitude || !target.address) return refuse('unverified_canonical_physical_identity');
+  const targetUrl = text(target.pokeratlas_url).replace(/\/tournaments\/?$/, '');
+  if (roomUrl(targetUrl) !== source.source_url) return refuse('unmatched_canonical_source_url');
+  if (!Array.isArray(schedules) || schedules.some((s) => s.venue_id !== loser.id || !/^[a-f0-9-]{36}$/.test(s.id))) return refuse('invalid_schedule_preimages');
+  if (new Set(schedules.map((s) => s.id)).size !== schedules.length) return refuse('duplicate_schedule_preimages');
+  return { accepted: true, id: loser.id, canonical_id: target.id, before_record: loser, canonical_record: target, schedules, source_url: source.source_url, source_sha256: source.source_sha256, source_observed_at: source.source_observed_at };
+}
+
+export function duplicateRetirementSql(plans) {
+  if (!Array.isArray(plans) || !plans.length || plans.length > 20 || new Set(plans.map((p) => p.id)).size !== plans.length) throw new Error('A bounded unique duplicate plan is required');
+  for (const p of plans) {
+    if (p.accepted !== true || p.before_record?.id !== p.id || p.canonical_record?.id !== p.canonical_id || p.id === p.canonical_id || !roomUrl(p.source_url) || !/^[a-f0-9]{64}$/.test(p.source_sha256) || !Array.isArray(p.schedules)) throw new Error('Unqualified duplicate retirement');
+  }
+  const payload = JSON.stringify(plans).replace(/'/g, "''");
+  return `BEGIN;
+SET LOCAL lock_timeout='10s';
+SET LOCAL statement_timeout='120s';
+LOCK TABLE public.venue_daily_tournaments IN SHARE ROW EXCLUSIVE MODE;
+DO $duplicates$
+DECLARE p jsonb; s jsonb; actual jsonb; n integer; expected integer;
+BEGIN
+  FOR p IN SELECT value FROM jsonb_array_elements('${payload}'::jsonb) LOOP
+    SELECT to_jsonb(v) INTO actual FROM public.poker_venues v WHERE id=(p->>'id')::integer FOR UPDATE;
+    IF actual IS DISTINCT FROM p->'before_record' THEN RAISE EXCEPTION 'Duplicate venue preimage changed'; END IF;
+    SELECT to_jsonb(v) INTO actual FROM public.poker_venues v WHERE id=(p->>'canonical_id')::integer FOR UPDATE;
+    IF actual IS DISTINCT FROM p->'canonical_record' THEN RAISE EXCEPTION 'Canonical venue preimage changed'; END IF;
+    IF EXISTS(SELECT 1 FROM public.venue_duplicate_retirement_log WHERE retired_venue_id=(p->>'id')::integer OR canonical_venue_id=(p->>'id')::integer) THEN RAISE EXCEPTION 'Retirement already recorded'; END IF;
+    SELECT count(*) INTO n FROM public.venue_daily_tournaments WHERE venue_id=(p->>'id')::integer;
+    IF n<>jsonb_array_length(p->'schedules') THEN RAISE EXCEPTION 'Schedule cohort changed'; END IF;
+    FOR s IN SELECT value FROM jsonb_array_elements(p->'schedules') LOOP
+      SELECT to_jsonb(d) INTO actual FROM public.venue_daily_tournaments d WHERE id=(s->>'id')::uuid FOR UPDATE;
+      IF actual IS DISTINCT FROM s THEN RAISE EXCEPTION 'Schedule preimage changed'; END IF;
+    END LOOP;
+  END LOOP;
+  FOR p IN SELECT value FROM jsonb_array_elements('${payload}'::jsonb) LOOP
+    INSERT INTO public.venue_duplicate_retirement_log(retired_venue_id,canonical_venue_id,actor_id,reason,before_record)
+    VALUES((p->>'id')::integer,(p->>'canonical_id')::integer,NULL,'Exact physical source identity duplicate: '||(p->>'source_url')||' observed '||(p->>'source_observed_at')||' SHA256 '||(p->>'source_sha256'),(p->'before_record')||jsonb_build_object('_duplicate_schedule_preimages',p->'schedules','_canonical_preimage',p->'canonical_record'));
+    SELECT count(*) INTO expected FROM jsonb_array_elements(p->'schedules') AS e(value) WHERE e.value->>'is_active'='true' AND coalesce(e.value->>'is_suppressed','false')<>'true';
+    UPDATE public.venue_daily_tournaments SET is_active=false,is_suppressed=true,data_quality='stale',flags=coalesce(flags,'[]'::jsonb)||'["pnm_duplicate_venue_schedule_quarantine_20261010"]'::jsonb
+      WHERE venue_id=(p->>'id')::integer AND is_active IS TRUE AND is_suppressed IS NOT TRUE;
+    GET DIAGNOSTICS n=ROW_COUNT;
+    IF n<>expected THEN RAISE EXCEPTION 'Schedule quarantine count mismatch'; END IF;
+    UPDATE public.poker_venues SET canonical_venue_id=(p->>'canonical_id')::integer,is_active=false,is_suppressed=true,retired_at=now(),retired_by=NULL,retired_reason='Exact physical source identity duplicate; history and alias URL retained.',location_integrity_revision=clock_timestamp() WHERE id=(p->>'id')::integer;
+    GET DIAGNOSTICS n=ROW_COUNT;
+    IF n<>1 THEN RAISE EXCEPTION 'Venue retirement count mismatch'; END IF;
+  END LOOP;
+END $duplicates$;
+SELECT id,canonical_venue_id,is_active,is_suppressed,retired_at FROM public.poker_venues WHERE id IN (${plans.map((p) => p.id).join(',')}) ORDER BY id;
+COMMIT;`;
+}

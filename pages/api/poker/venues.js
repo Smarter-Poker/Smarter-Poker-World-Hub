@@ -27,6 +27,7 @@ import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/lib/poker-near-me/mapBounds';
 import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
 import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
+import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, dailyTournamentDedupKey, isRecurringScheduleRow } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -1883,52 +1884,16 @@ export default async function handler(req, res) {
                       .order('day_of_week')
                       .limit(100);
 
-                  if (!ltErr && liveTourn && liveTourn.length > 0) {
+                  const safeTourn = qualifyVenueTournamentRows(liveTourn);
+                  if (!ltErr && safeTourn.length > 0) {
                       // Transform flat DB rows into the grouped format the frontend expects
                       // Frontend expects: venue.daily_tournaments = [{ source_url, schedules: [{day_of_week, start_time, buy_in, ...}] }]
-                      const sourceUrl = liveTourn[0].source_url || null;
+                      const sourceUrl = safeTourn[0].source_url || null;
                       
-                      const seenKeys = new Set();
-                      const dedupedSchedules = [];
-                      for (const t of liveTourn) {
-                          let normGame = (t.game_type || t.tournament_name || 'nlh').toLowerCase().trim();
-                          if (normGame.includes('nlh') || normGame.includes('no limit') || normGame.includes('holdem') || normGame.includes("hold'em")) {
-                              normGame = 'nlh';
-                          } else if (normGame.includes('plo') || normGame.includes('omaha')) {
-                              normGame = 'omaha';
-                          } else if (normGame.includes('mixed') || normGame.includes('horse')) {
-                              normGame = 'mixed';
-                          }
-                          
-                          const key = [
-                              (t.start_time || '').toLowerCase().trim(),
-                              normGame,
-                              (t.buy_in || 0).toString()
-                          ].join('|');
-                          
-                          if (!seenKeys.has(key)) {
-                              seenKeys.add(key);
-                              dedupedSchedules.push({
-                                  day_of_week: t.day_of_week,
-                                  start_time: t.start_time,
-                                  tournament_name: t.tournament_name,
-                                  buy_in: t.buy_in,
-                                  rebuy_addon: t.rebuy_addon,
-                                  starting_stack: t.starting_stack,
-                                  blind_levels: t.blind_levels,
-                                  game_type: t.game_type,
-                                  format: t.format,
-                                  guaranteed: t.guaranteed,
-                              });
-                          }
-                      }
                       
-                      venue.daily_tournaments = [{
-                          source_url: sourceUrl,
-                          schedules: dedupedSchedules,
-                      }];
+                      venue.daily_tournaments = groupVenueDailyTournamentRows(safeTourn);
                       venue.daily_tournaments_source = sourceUrl;
-                      venue.last_scraped = liveTourn[0].last_scraped || null;
+                      venue.last_scraped = safeTourn[0].last_scraped || null;
                       usedLiveData = true;
                   }
               } catch (dbErr) {
@@ -2249,14 +2214,13 @@ export default async function handler(req, res) {
                   const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
                   const todayIdx = new Date(localCurrentTime).getDay();
                   const DAYS_LOWER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                  const todayStr = DAYS_LOWER[todayIdx];
 
                   const regularIds = regularTournamentVenues.map(v => v.id).filter(id => typeof id === 'number');
                   if (regularIds.length > 0) {
                       // Fetch all active tournament rows for these venues in one query
                       const { data: regTours } = await getSupabase()
                           .from('venue_daily_tournaments')
-                          .select('venue_id, day_of_week, start_time, buy_in, tournament_name, game_type, guaranteed')
+                          .select('*')
                           .in('venue_id', regularIds)
                           .eq('is_active', true)
                           .in('data_quality', ['scraped_verified', 'scraped_inferred'])
@@ -2266,19 +2230,26 @@ export default async function handler(req, res) {
                       if (regTours && regTours.length > 0) {
                           // Group by venue_id
                           const byVenue = {};
-                          regTours.forEach(t => {
+                          qualifyVenueTournamentRows(regTours).forEach(t => {
                               if (!byVenue[t.venue_id]) byVenue[t.venue_id] = [];
-                              byVenue[t.venue_id].push(t);
+                              if (!byVenue[t.venue_id].some(existing => dailyTournamentDedupKey(existing) === dailyTournamentDedupKey(t))) byVenue[t.venue_id].push(t);
                           });
 
                           venues.forEach(v => {
                               if (!byVenue[v.id]) return;
                               const tours = byVenue[v.id];
+                              const matchesDay = (t, offset) => {
+                                  if (isRecurringScheduleRow(t)) return t.day_of_week?.toLowerCase() === DAYS_LOWER[(todayIdx + offset) % 7];
+                                  const target = new Date(localCurrentTime);
+                                  target.setDate(target.getDate() + offset);
+                                  const date = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+                                  return String(t.event_date).slice(0, 10) === date;
+                              };
                               // Does THIS venue have any tournament today?
-                              const hasToday = tours.some(t => t.day_of_week && t.day_of_week.toLowerCase() === todayStr);
+                              const hasToday = tours.some(t => matchesDay(t, 0));
                               if (hasToday) {
                                   // Already has today's data — inject today_tournaments for the card
-                                  const todayTours = tours.filter(t => t.day_of_week && t.day_of_week.toLowerCase() === todayStr);
+                                  const todayTours = tours.filter(t => matchesDay(t, 0));
                                   v.daily_tournaments = todayTours.map(t => ({
                                       start_time: t.start_time || null,
                                       tournament_name: t.tournament_name || null,
@@ -2291,7 +2262,7 @@ export default async function handler(req, res) {
                                   for (let i = 1; i <= 7; i++) {
                                       const nextIdx = (todayIdx + i) % 7;
                                       const nextDayStr = DAYS_LOWER[nextIdx];
-                                      const nextDayTours = tours.filter(t => t.day_of_week && t.day_of_week.toLowerCase() === nextDayStr);
+                                      const nextDayTours = tours.filter(t => matchesDay(t, i));
                                       if (nextDayTours.length > 0) {
                                           const first = nextDayTours[0];
                                           const dayLabel = nextDayStr.charAt(0).toUpperCase() + nextDayStr.slice(1);
