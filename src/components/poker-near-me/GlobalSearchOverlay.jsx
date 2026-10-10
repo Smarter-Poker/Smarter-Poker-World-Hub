@@ -150,6 +150,15 @@ function venueMatchesStakes(venue, stakes) {
   });
 }
 
+function tourMatchesDiscoveryFilters(tour, stateCode, range) {
+  if (!stateCode && !range) return true;
+  const stops = ['upcoming_series', 'stops_2026', 'series_2026']
+    .flatMap(key => Array.isArray(tour?.[key]) ? tour[key] : []);
+  if (!stops.length) return !range && tour?.state === stateCode;
+  return stops.some(stop => (!stateCode || (stop.state || tour.state) === stateCode)
+    && (!range || overlapsWindow(stop, range)));
+}
+
 async function collectSearchVenuePages(first, url, readPage, isCurrent) {
   const rows = [];
   const seen = new Set();
@@ -157,17 +166,21 @@ async function collectSearchVenuePages(first, url, readPage, isCurrent) {
   for (let offset = 0; offset < 10000; offset += 200) {
     if (!isCurrent()) return null;
     const values = page?.data || page?.venues || (Array.isArray(page) ? page : null);
-    if (page?.success === false || !Array.isArray(values)) throw new Error('Venue Search Unavailable');
+    if (page?.success === false || page?.degraded === true || !Array.isArray(values)) throw new Error('Venue Search Unavailable');
+    if (first?.paging_source && page?.paging_source !== first.paging_source) throw new Error('Venue Search Source Changed');
     let added = 0;
     for (const value of values) {
       const key = value?.id == null ? value : String(value.id);
       if (!seen.has(key)) { seen.add(key); rows.push(value); added += 1; }
     }
-    const total = Number(page?.total);
-    if (!Number.isFinite(total) || rows.length >= total) return rows;
-    if (!values.length || !added) throw new Error('Venue Search Incomplete');
+    // `total` counts this projected page, not the national inventory. The
+    // API owns exhaustion before social merges and visibility projections.
+    if (page?.has_more === false) return rows;
+    if (page?.has_more !== true && !values.length) return rows;
+    if (values.length && !added) throw new Error('Venue Search Incomplete');
     const next = new URLSearchParams(url.split('?')[1]);
     next.set('offset', String(offset + 200));
+    if (page?.paging_source === 'snapshot') next.set('listing_source', 'snapshot');
     page = await readPage(`/api/poker/venues?${next.toString()}`);
   }
   throw new Error('Venue Search Exceeds Complete Read Limit');
@@ -748,6 +761,7 @@ export default function GlobalSearchOverlay({
 
   // In-memory fuzzy match tours
   const matchTours = useCallback((q, limit = 8) => {
+    if (!q.trim()) return allTours.slice(0, limit);
     return allTours
       .map(t => {
         const score = Math.min(
@@ -766,6 +780,7 @@ export default function GlobalSearchOverlay({
 
   // In-memory fuzzy match series
   const matchSeries = useCallback((q, limit = 8) => {
+    if (!q.trim()) return allSeries.slice(0, limit);
     return allSeries
       .map(s => {
         const score = Math.min(
@@ -952,16 +967,16 @@ export default function GlobalSearchOverlay({
 
     if (!isCurrentSubmit()) return;
 
-    // For tours/series — use the full raw query for broader matching
+    // For tours/series, filter-only queries are not literal event names.
     const range = timeWindowRange(intent.timeWindow);
-    const keyword = apiQuery || intent.location || rawQuery;
+    const keyword = apiQuery || '';
     let matchedSeries = matchSeries(keyword, Infinity);
     if (intent.stateCode) matchedSeries = matchedSeries.filter(s => s.state === intent.stateCode);
     if (range) {
       matchedSeries = matchedSeries.filter(s => overlapsWindow(s, range));
       applied.timeWindow = true;
     }
-    setTourResults(matchTours(keyword, Infinity));
+    setTourResults(matchTours(keyword, Infinity).filter(t => tourMatchesDiscoveryFilters(t, intent.stateCode, range)));
     setSeriesResults(matchedSeries);
     setNlIntent(intent.isNaturalLanguage && (applied.stateCode || applied.timeWindow || applied.gameType || applied.stakes)
       ? { ...intent, applied }

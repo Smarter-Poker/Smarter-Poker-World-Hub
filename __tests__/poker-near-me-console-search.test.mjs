@@ -42,7 +42,7 @@ function searchHelpers() {
   const src = read(SEARCH);
   const scope = vm.createContext({ Date, URLSearchParams });
   vm.runInContext(src.slice(src.indexOf('const US_STATES ='), src.indexOf('// ─── Painted system'))
-    + ';this.helpers={parseNaturalLanguageQuery,overlapsWindow,timeWindowRange,venueMatchesStakes,collectSearchVenuePages};', scope);
+    + ';this.helpers={parseNaturalLanguageQuery,overlapsWindow,timeWindowRange,venueMatchesStakes,collectSearchVenuePages,tourMatchesDiscoveryFilters};', scope);
   return scope.helpers;
 }
 
@@ -108,7 +108,7 @@ test('the actual submit callback refuses an older cached failure after a newer r
     + ';this.submit=handleSubmit;', scope);
   const older = scope.submit(null, 'old venue');
   const newer = scope.submit(null, 'new venue');
-  pending[1].resolve({ data: [{ id: 2, name: 'New Venue' }] });
+  pending[1].resolve({ data: [{ id: 2, name: 'New Venue' }], has_more: false });
   await newer;
   pending[0].reject(new Error('Late Old Failure'));
   await older;
@@ -119,18 +119,56 @@ test('the actual submit callback refuses an older cached failure after a newer r
 
 test('search exhausts published result pages before stakes filtering and refuses incomplete pages', async () => {
   const { collectSearchVenuePages } = searchHelpers();
-  const first = { data: Array.from({ length: 200 }, (_, id) => ({ id })), total: 201 };
+  const first = { data: Array.from({ length: 200 }, (_, id) => ({ id })), total: 200, has_more: true };
   const calls = [];
   const rows = await collectSearchVenuePages(first, '/api/poker/venues?limit=200&offset=0&state=TX', async url => {
     calls.push(url);
-    return { data: [{ id: 200, stakes_cash: ['1/2'] }], total: 201 };
+    return { data: [{ id: 200, stakes_cash: ['1/2'] }], total: 1, has_more: false };
   }, () => true);
   assert.equal(rows.length, 201);
   assert.match(calls[0], /offset=200/);
   assert.match(calls[0], /state=TX/);
-  await assert.rejects(() => collectSearchVenuePages(first, '/api/poker/venues?limit=200', async () => ({ data: [], total: 201 }), () => true), /Incomplete/);
+  await assert.rejects(() => collectSearchVenuePages(first, '/api/poker/venues?limit=200', async () => ({ success: false }), () => true), /Unavailable/);
   await assert.rejects(() => collectSearchVenuePages(first, '/api/poker/venues?limit=200', async () => first, () => true), /Incomplete/);
   assert.equal(await collectSearchVenuePages(first, '/api/poker/venues', async () => { throw new Error('Must Not Read'); }, () => false), null);
+  const projected = await collectSearchVenuePages({ data: [], total: 0, has_more: true }, '/api/poker/venues?limit=200', async () => ({ data: [{ id: 201 }], total: 1, has_more: false }), () => true);
+  assert.equal(projected[0].id, 201, 'an empty projected page is not underlying exhaustion');
+  const legacyCalls = [];
+  const legacy = await collectSearchVenuePages({ ...first, has_more: undefined }, '/api/poker/venues?limit=200', async url => { legacyCalls.push(url); return { data: [], total: 0 }; }, () => true);
+  assert.equal(legacy.length, 200);
+  assert.equal(legacyCalls.length, 1, 'legacy page-local totals never imply complete inventory');
+  const fallbackCalls = [];
+  const fallbackFirst = { ...first, paging_source: 'snapshot' };
+  const fallback = await collectSearchVenuePages(fallbackFirst, '/api/poker/venues?limit=200', async url => {
+    fallbackCalls.push(url);
+    return { data: [{ id: 200 }], total: 1, has_more: false, paging_source: 'snapshot' };
+  }, () => true);
+  assert.equal(fallback.length, 201);
+  assert.match(fallbackCalls[0], /listing_source=snapshot/);
+  await assert.rejects(() => collectSearchVenuePages(fallbackFirst, '/api/poker/venues?limit=200', async () => ({ data: [], has_more: false, paging_source: 'database' }), () => true), /Source Changed/);
+  await assert.rejects(() => collectSearchVenuePages({ data: [], degraded: true }, '/api/poker/venues', async () => null, () => true), /Unavailable/);
+});
+
+test('filter-only queries search the full event collection before applying dates', () => {
+  const src = read(SEARCH);
+  const scope = vm.createContext({ useCallback: fn => fn, allSeries: [{ id: 1, name: 'Venetian DeepStack', start_date: '2026-10-10' }], allTours: [{ id: 2 }], fuzzyMatchScore: () => 99 });
+  vm.runInContext(src.slice(src.indexOf('const matchTours ='), src.indexOf('// Handle typing')) + ';this.matches={matchTours,matchSeries};', scope);
+  assert.equal(scope.matches.matchSeries('', Infinity)[0].id, 1);
+  assert.equal(scope.matches.matchTours('', Infinity)[0].id, 2);
+  assert.match(src, /const keyword = apiQuery \|\| '';/);
+  const { parseNaturalLanguageQuery, tourMatchesDiscoveryFilters } = searchHelpers();
+  assert.equal(parseNaturalLanguageQuery('tournaments tonight in Nevada').cleanQuery, '');
+  const range = { start: new Date(2026, 9, 10), end: new Date(2026, 9, 11) };
+  assert.equal(tourMatchesDiscoveryFilters({ stops_2026: [{ state: 'NV', start_date: '2026-10-10' }] }, 'NV', range), true);
+  assert.equal(tourMatchesDiscoveryFilters({ stops_2026: [{ state: 'TX', start_date: '2026-10-10' }] }, 'NV', range), false);
+  assert.equal(tourMatchesDiscoveryFilters({ stops_2026: [{ state: 'NV' }] }, 'NV', range), false);
+  const api = read('pages/api/poker/venues.js');
+  assert.match(api, /hasMore = \(dbVenues \|\| \[\]\)\.length === maxResults/);
+  assert.match(api, /hasMore = venues\.length > offset \+ maxResults/);
+  assert.match(api, /has_more: hasMore/);
+  assert.match(api, /if \(req\.query\.listing_source !== 'snapshot'\) \{/);
+  assert.match(api, /paging_source: pagingSource/);
+  assert.match(api, /order\('id', \{ ascending: true \}\)/);
 });
 
 const GENERIC_CHROME = /<svg\b|(?:linear|radial|conic)-gradient\(|borderRadius|boxShadow|backdropFilter|WebkitBackdropFilter/;
