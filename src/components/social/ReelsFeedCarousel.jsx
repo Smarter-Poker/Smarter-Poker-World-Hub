@@ -3441,6 +3441,10 @@ export function ReelsFeedCarousel() {
           ? { replacements: [], removeIds: [] }
           : await resolveStaleReels({
             ids: flaggedIds.filter((id) => mountedIds.has(id) && !windowIds.has(id)),
+            // The mounted list is already capped at 180. A source-authority
+            // broadcast deliberately flags that whole bounded set because its
+            // source id is not necessarily the social_reels row id.
+            max: flaggedIds.length,
             isCurrent: reelsRequest.isCurrent,
             fetchDetail: async (id) => (await fetchPokerReels({
               limit: 1,
@@ -3744,6 +3748,11 @@ export function ReelsFeedCarousel() {
       .subscribe();
 
     let authoritySubscribedOnce = false;
+    const markMountedReelsStale = () => {
+      reelsRef.current.forEach((reel) => {
+        if (reel?.id) staleReelIdsRef.current.add(reel.id);
+      });
+    };
     const unsubscribeAuthority = subscribeSocialAuthority(supabase, (event) => {
       if (event.type === 'broadcast') {
         const notice = event.payload;
@@ -3752,11 +3761,17 @@ export function ReelsFeedCarousel() {
           keys.join(',') === 'id,kind'
           && notice.kind === 'reel'
           && /^[0-9a-f-]{36}$/i.test(String(notice.id || ''))
-        ) scheduleBackgroundReelsRefresh();
+        ) {
+          markMountedReelsStale();
+          scheduleBackgroundReelsRefresh();
+        }
         return;
       }
       if (event.type === 'status' && event.status === 'SUBSCRIBED') {
-        if (authoritySubscribedOnce) scheduleBackgroundReelsRefresh();
+        if (authoritySubscribedOnce) {
+          markMountedReelsStale();
+          scheduleBackgroundReelsRefresh();
+        }
         authoritySubscribedOnce = true;
       }
     });
