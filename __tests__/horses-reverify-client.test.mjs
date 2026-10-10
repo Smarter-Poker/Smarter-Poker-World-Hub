@@ -253,8 +253,9 @@ test('M-1: index.js keeps no role list and asks section=policy on both sign-in p
   const code = codeOnly(src);
   assert.ok(!code.includes('ADMIN_ROLES'), 'ADMIN_ROLES is gone from index.js');
   assert.ok(!code.includes(".from('profiles')"), 'the browser no longer reads profiles.role to decide access');
-  const reader = block(src, 'const readOperatorContext = useCallback(async (authUser) => {', 600);
-  assert.match(reader, /const body = await authFetch\(policyUrl\(\)\);/);
+  const reader = block(src, 'const readOperatorContext = useCallback(async (authUser) => {', 1000);
+  assert.match(reader, /const body = await authFetch\(policyUrl\(\), \{ expectedOperatorId: authUser\?\.id, isCurrent: sameIdentity \}\);/);
+  assert.match(reader, /if \(!sameIdentity\(\)\) return \{ ok: false, stale: true \};[\s\S]*applyPolicyEnvelope\(body, authUser\)/);
   assert.match(reader, /applyPolicyEnvelope\(body, authUser\)/);
   const check = block(src, 'const checkAuth = useCallback(async () => {', 900);
   assert.match(check, /const answer = await readOperatorContext\(authUser\);/);
@@ -265,7 +266,7 @@ test('M-1: index.js keeps no role list and asks section=policy on both sign-in p
   assert.match(src, /const ACCESS_DENIED_MESSAGE = 'Access Denied\. This Account Is Not An Operator\.';/);
   // One read per sign-in: the old bootstrap effect keyed on `user` is gone,
   // so the context is not fetched twice.
-  assert.equal((code.match(/authFetch\(policyUrl\(\)\)/g) || []).length, 1);
+  assert.equal((code.match(/authFetch\(policyUrl\(\),/g) || []).length, 1);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

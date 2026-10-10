@@ -1100,9 +1100,9 @@ test('the operator context is cleared on logout', async () => {
 
 test('a failed operator-context read clears the context rather than keeping a stale one', async () => {
   const src = await readFile(new URL(INDEX, ROOT), 'utf8');
-  const start = src.indexOf('const body = await authFetch(policyUrl());');
+  const start = src.indexOf('const body = await authFetch(policyUrl(),');
   assert.ok(start > 0, 'the console must read the policy section');
-  const block = src.slice(start, start + 400);
+  const block = src.slice(start, src.indexOf('}, [applyPolicyEnvelope', start));
   // The read and its failure path are one function now (readOperatorContext),
   // and the failure path clears through clearOperatorContext, which sets the
   // four fields to their "nobody has told us" values.

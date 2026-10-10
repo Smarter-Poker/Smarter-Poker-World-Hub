@@ -33,7 +33,7 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
                 {!complete && !checking && <input id={isCode ? 'vp-code' : 'vp-phone'} ref={isCode ? codeRef : undefined}
                     className={`${styles.input} ${isCode ? styles.codeInput : ''}`} type={isCode ? 'text' : 'tel'} inputMode={isCode ? 'numeric' : 'tel'}
                     autoComplete={isCode ? 'one-time-code' : 'tel-national'} maxLength={isCode ? 4 : 14}
-                    placeholder={isCode ? '4-Digit Code' : '(555) 555-5555'} value={isCode ? code : formatPhone(phone)}
+                    placeholder={isCode ? '4-Digit Code' : ''} value={isCode ? code : formatPhone(phone)}
                     aria-describedby={error ? 'verification-error' : undefined} disabled={busy} onChange={isCode ? onCodeChange : onPhoneChange} />}
                 {complete && <p className={styles.completion}>{alreadyVerified ? 'Already Verified On This Account.' : doneLead}</p>}
                 <button type="submit" className={`${styles.hitbox} ${styles.send}`} aria-label={actionLabel}

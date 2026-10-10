@@ -5,7 +5,7 @@
 .hitbox:focus-visible, .input:focus-visible { outline: 2px solid #45adff; outline-offset: -3px; }
 .hitbox:disabled { cursor: not-allowed; }
 .close { left: 80.5%; top: 7.5%; width: 8%; height: 5.5%; }
-.input { box-sizing: border-box; position: absolute; left: 29%; top: 58.1%; width: 52%; height: 4.3%; padding: 0 2%; background: transparent; border: 0; color: #f4f7fb; font-size: clamp(16px, 3.1cqw, 21px); min-width: 0; }
+.console .input { box-sizing: border-box; position: absolute; left: 27.8%; top: 57.9%; width: 54%; height: 4.7%; min-height: 0; margin: 0; padding: 0 2%; text-align: center; line-height: normal; appearance: none; background: transparent; border: 0; color: #f4f7fb; font-size: clamp(16px, 3.1cqw, 21px); min-width: 0; }
 .input::placeholder { color: #9aa5b3; }
 .send { left: 18.5%; top: 64.7%; width: 62%; height: 5.4%; font-size: 3.9cqw; font-weight: 700; }
 .send:disabled .liveAction { color: #9aa5b3; }

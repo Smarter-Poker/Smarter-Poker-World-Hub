@@ -10,7 +10,8 @@ const EMAIL = process.env.TEST_USER_EMAIL || '';
 const PASSWORD = process.env.TEST_USER_PASSWORD || '';
 const PRODUCTION_ORIGIN = 'https://smarter.poker';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const REQUIRED_TABS = ['floor', 'tournaments', 'integrity', 'platform', 'economy'];
+const REQUIRED_TABS = ['floor', 'tournaments', 'integrity', 'platform', 'economy', 'players', 'geeves', 'scrapers'];
+const AUDIT_API_PATHS = ['/api/geeves/analytics', '/api/admin/scraper-health'];
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'mobile-375', width: 375, height: 812 },
@@ -163,6 +164,28 @@ async function waitForApi(apiStatuses, path, afterCount = 0) {
   throw new CertificateFailure(`${path.split('/').at(-1)}_not_observed`);
 }
 
+async function waitForAuditRead(apiStatuses, path, readAction = null) {
+  const deadline = Date.now() + 20_000;
+  while (Date.now() < deadline) {
+    const matches = apiStatuses.filter((entry) => entry.path === path && (!readAction || entry.readAction === readAction));
+    if (matches.length > 0) {
+      requireCondition(matches.every((entry) => entry.method === 'GET' && entry.status >= 200 && entry.status < 300), `${path.split('/').at(-1)}_audit_read_not_2xx`);
+      return;
+    }
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  }
+  throw new CertificateFailure(`${path.split('/').at(-1)}_audit_read_not_observed`);
+}
+
+async function assertAuditPanelSettled(page, tabId, loadingLabel) {
+  const panel = page.locator('main[role="tabpanel"]');
+  await panel.getByText(loadingLabel, { exact: true }).waitFor({ state: 'detached', timeout: 20_000 });
+  requireCondition(await panel.getByText(loadingLabel, { exact: true }).count() === 0, `panel_${tabId}_still_loading`);
+  // Players renders list errors without role=alert; the canonical error classes
+  // cover that branch as well as Geeves and Scrapers' explicit error alerts.
+  requireCondition(await panel.locator('[class*="errorNote"], [class*="errorState"], [role="alert"]').count() === 0, `panel_${tabId}_audit_read_failure`);
+}
+
 async function probeViewport(browser, storageState, viewport) {
   const context = await browser.newContext({
     baseURL: BASE_URL,
@@ -190,8 +213,10 @@ async function probeViewport(browser, storageState, viewport) {
     if ((response.request().resourceType() === 'script' || /\/_next\/static\/chunks\//.test(path)) && response.status() >= 400) {
       chunkFailures.push(`http_${response.status()}`);
     }
-    if (responseUrl.origin === PRODUCTION_ORIGIN && path.startsWith('/api/horses/')) {
-      apiStatuses.push({ method: response.request().method(), path, status: response.status() });
+    if (responseUrl.origin === PRODUCTION_ORIGIN && (path.startsWith('/api/horses/') || AUDIT_API_PATHS.includes(path))) {
+      const readAction = path === '/api/geeves/analytics' && ['summary', 'top_missed'].includes(responseUrl.searchParams.get('action'))
+        ? responseUrl.searchParams.get('action') : null;
+      apiStatuses.push({ method: response.request().method(), path, status: response.status(), ...(readAction ? { readAction } : {}) });
     }
     // Evidence only: the seated-humans count the console served, so it can be
     // compared with a direct database count taken at the same moment.
@@ -299,6 +324,32 @@ async function probeViewport(browser, storageState, viewport) {
     requireCondition(await page.getByText('Pipeline Runs Unavailable:', { exact: false }).count() === 0, `${viewport.name}_pipeline_unavailable`);
     await assertNoOverflow(page, viewport, 'pipeline', overflowSamples);
 
+    // Changed audit consumers use read-only entry surfaces only. Never open a
+    // player, resolve a question, or invoke scraper/control mutations.
+    await waitForPanel(page, 'players', 'Players');
+    await waitForAuditRead(apiStatuses, '/api/horses/player-admin');
+    await page.getByRole('heading', { name: 'Find A Player', exact: true }).waitFor({ state: 'visible' });
+    await page.locator('main[role="tabpanel"]').getByText('Enter A Search Above.', { exact: true }).waitFor({ state: 'detached', timeout: 20_000 });
+    await assertAuditPanelSettled(page, 'players', 'Loading Players');
+    await assertNoOverflow(page, viewport, 'players', overflowSamples);
+
+    await waitForPanel(page, 'geeves', 'Geeves Knowledge Base');
+    await waitForAuditRead(apiStatuses, '/api/geeves/analytics', 'summary');
+    await waitForAuditRead(apiStatuses, '/api/geeves/analytics', 'top_missed');
+    await page.locator('main[role="tabpanel"]').getByRole('button', { name: 'Refresh', exact: true }).waitFor({ state: 'visible' });
+    await page.waitForFunction(() => [...document.querySelectorAll('main[role="tabpanel"] button')].some((button) => button.textContent === 'Refresh' && !button.disabled), null, { timeout: 20_000 });
+    await assertAuditPanelSettled(page, 'geeves', 'Loading Geeves Analytics');
+    await assertNoOverflow(page, viewport, 'geeves', overflowSamples);
+
+    await waitForPanel(page, 'scrapers', 'Scraper Health');
+    await waitForAuditRead(apiStatuses, '/api/admin/scraper-health');
+    await page.locator('main[role="tabpanel"]').getByRole('button', { name: 'Refresh', exact: true }).waitFor({ state: 'visible' });
+    await page.waitForFunction(() => [...document.querySelectorAll('main[role="tabpanel"] button')].some((button) => button.textContent === 'Refresh' && !button.disabled), null, { timeout: 20_000 });
+    await assertAuditPanelSettled(page, 'scrapers', 'Loading Scraper Status');
+    await page.getByText('No Scraper Data Available.', { exact: true }).waitFor({ state: 'detached', timeout: 20_000 });
+    requireCondition(await page.getByText('No Scraper Data Available.', { exact: true }).count() === 0, `${viewport.name}_scrapers_not_loaded`);
+    await assertNoOverflow(page, viewport, 'scrapers', overflowSamples);
+
     const requiredApiPaths = [
       '/api/horses/floor-admin',
       '/api/horses/engine-control',
@@ -307,9 +358,12 @@ async function probeViewport(browser, storageState, viewport) {
       '/api/horses/economy-admin',
       '/api/horses/analytics',
       '/api/horses/stable-admin',
+      '/api/horses/player-admin',
+      ...AUDIT_API_PATHS,
     ];
     for (const path of requiredApiPaths) {
       const matches = apiStatuses.filter((entry) => entry.path === path);
+      requireCondition(matches.length > 0, `${viewport.name}_${path.split('/').at(-1)}_not_observed`);
       requireCondition(matches.every((entry) => entry.status >= 200 && entry.status < 300), `${viewport.name}_${path.split('/').at(-1)}_not_2xx`);
     }
     requireCondition(mutationAttempts.length === 0, `${viewport.name}_mutation_attempted`);
@@ -325,6 +379,7 @@ async function probeViewport(browser, storageState, viewport) {
       requiredTabs: true,
       phase11Surfaces: true,
       laterConsumers: ['statistics', 'settings', 'pipeline'],
+      auditConsumers: ['players', 'geeves', 'scrapers'],
       overflowPx: overflowSamples,
       pageErrorCount: pageErrors.length,
       chunkFailureCount: chunkFailures.length,

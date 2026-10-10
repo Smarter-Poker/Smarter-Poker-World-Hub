@@ -117,3 +117,63 @@ test('live floor proof follows the shipped control disclosure and reads its actu
   assert.match(verifier, /engine_contract_unverified/);
   assert.match(verifier, /SAFE_METHODS = new Set\(\['GET', 'HEAD', 'OPTIONS'\]\)/);
 });
+
+test('audit certificate visits all three changed read consumers inside each viewport and records fixed metadata only', async () => {
+  const consumers = [
+    ['players', 'Players', 'Loading Players', '/api/horses/player-admin'],
+    ['geeves', 'Geeves Knowledge Base', 'Loading Geeves Analytics', '/api/geeves/analytics'],
+    ['scrapers', 'Scraper Health', 'Loading Scraper Status', '/api/admin/scraper-health'],
+  ];
+  const probe = verifier.slice(verifier.indexOf('async function probeViewport'), verifier.indexOf('let browser;'));
+  for (const [tab, heading, loading, path] of consumers) {
+    assert.ok(probe.includes(`waitForPanel(page, '${tab}', '${heading}')`));
+    assert.ok(probe.includes(`waitForAuditRead(apiStatuses, '${path}'`));
+    assert.ok(probe.includes(`assertAuditPanelSettled(page, '${tab}', '${loading}')`));
+    assert.ok(probe.includes(`assertNoOverflow(page, viewport, '${tab}'`));
+    const component = await readFile(new URL(`../src/components/horses/${tab === 'players' ? 'Players' : tab === 'geeves' ? 'Geeves' : 'Scrapers'}Panel.jsx`, import.meta.url), 'utf8');
+    assert.ok(component.includes(heading));
+    assert.ok(component.includes(loading));
+  }
+  assert.match(verifier, /AUDIT_API_PATHS = \['\/api\/geeves\/analytics', '\/api\/admin\/scraper-health'\]/);
+  assert.match(probe, /waitForAuditRead\(apiStatuses, '\/api\/geeves\/analytics', 'summary'\)/);
+  assert.match(probe, /waitForAuditRead\(apiStatuses, '\/api\/geeves\/analytics', 'top_missed'\)/);
+  assert.match(probe, /auditConsumers: \['players', 'geeves', 'scrapers'\]/);
+  assert.match(verifier, /for \(const viewport of VIEWPORTS\)[\s\S]*probeViewport\(browser, storageState, viewport\)/);
+  assert.doesNotMatch(probe, /openPlayer|mark_resolved|page\.getByRole\('button', \{ name: 'Search'/);
+  assert.match(verifier, /matches.length > 0,.*not_observed/);
+});
+
+function auditHelpers(clock = Date) {
+  const start = verifier.indexOf('async function waitForAuditRead(');
+  const end = verifier.indexOf('async function probeViewport(', start);
+  assert.ok(start >= 0 && end > start, 'maintained verifier owns the audit helpers');
+  return new Function('requireCondition', 'CertificateFailure', 'Date', 'setTimeout', `${verifier.slice(start, end)}; return { waitForAuditRead, assertAuditPanelSettled };`)(
+    (value, code) => { if (!value) throw new Error(code); }, Error, clock, (resolveWait) => resolveWait(),
+  );
+}
+
+test('audit API observations refuse missing reads, wrong action, non-GET and non-2xx instead of empty success', async () => {
+  let time = 0;
+  const { waitForAuditRead } = auditHelpers({ now: () => { time += 10_001; return time; } });
+  await assert.rejects(waitForAuditRead([], '/api/admin/scraper-health'), /not_observed/);
+  await assert.rejects(waitForAuditRead([{ path: '/api/geeves/analytics', readAction: 'summary', method: 'GET', status: 200 }], '/api/geeves/analytics', 'top_missed'), /not_observed/);
+  for (const entry of [{ method: 'POST', status: 200 }, { method: 'GET', status: 403 }, { method: 'GET', status: 503 }]) {
+    await assert.rejects(waitForAuditRead([{ path: '/api/admin/scraper-health', ...entry }], '/api/admin/scraper-health'), /not_2xx/);
+  }
+  await waitForAuditRead([{ path: '/api/geeves/analytics', readAction: 'top_missed', method: 'GET', status: 200 }], '/api/geeves/analytics', 'top_missed');
+});
+
+test('audit panel settlement refuses lingering loading, raw list errors, alerts and failed waits', async () => {
+  const { assertAuditPanelSettled } = auditHelpers();
+  const page = (loadingCount, errorCount, waitError = null) => ({ locator: () => ({
+    getByText: () => ({ waitFor: async () => { if (waitError) throw waitError; }, count: async () => loadingCount }),
+    locator: (selector) => {
+      assert.ok(selector.includes('errorNote') && selector.includes('errorState') && selector.includes('role="alert"'));
+      return { count: async () => errorCount };
+    },
+  }) });
+  await assert.rejects(assertAuditPanelSettled(page(1, 0), 'players', 'Loading Players'), /still_loading/);
+  await assert.rejects(assertAuditPanelSettled(page(0, 1), 'players', 'Loading Players'), /audit_read_failure/);
+  await assert.rejects(assertAuditPanelSettled(page(0, 0, new Error('loading wait failed')), 'geeves', 'Loading Geeves Analytics'), /loading wait failed/);
+  await assertAuditPanelSettled(page(0, 0), 'scrapers', 'Loading Scraper Status');
+});

@@ -89,6 +89,7 @@ const SECTIONS = [
   'observations',
   'tickets',
   'reports',
+  'control_outcome',
 ];
 
 const ACTIONS = [
@@ -1159,6 +1160,26 @@ export async function handle({ req, res, op, db, body, query, method, requestId 
   if (!section) throw badRequest('Unknown Section');
 
   if (section === 'search') return sectionSearch(db, op, query, requestId);
+  if (section === 'control_outcome') {
+    const opId = text(query.opId, { min: 1, max: 200 });
+    if (!opId) throw badRequest('An Operation Id Is Required');
+    const action = query.action === undefined ? 'force_logout' : enumOf(query.action, ['force_logout', 'restrict']);
+    if (!action) throw badRequest('Unknown Control Action');
+    const { data, error } = await db.from('ca_player_control_operations')
+      .select('op_id,action,payload,result').eq('op_id', opId)
+      .eq('actor_id', op.user.id).eq('action', action).maybeSingle();
+    if (error) throw new ApiError(503, 'The Original Logout Outcome Could Not Be Read', 'outcome_unknown');
+    let approval;
+    if (action === 'restrict' && query.includeApproval === '1' && !data) {
+      const read = await db.from('ca_operator_approvals').select('op_id,requested_by,kind,status,payload')
+        .eq('op_id', opId).eq('requested_by', op.user.id).eq('kind', 'sanction').maybeSingle();
+      if (read.error) throw new ApiError(503, 'The Original Approval Could Not Be Read', 'outcome_unknown');
+      approval = read.data || null;
+    }
+    return { actorId: op.user.id, operation: data || null, ...(approval !== undefined ? { approval } : {}),
+      writable: hasPermission(op.permissions, PERMISSIONS.PLAYERS_WRITE)
+        && hasPermission(op.permissions, PERMISSIONS.MODERATION_WRITE) };
+  }
   if (section === 'player') return sectionPlayer(db, op, query, requestId);
   if (section === 'restrictions') return sectionRestrictions(db, query, requestId);
   if (section === 'observations') return sectionObservations(db, query, requestId);

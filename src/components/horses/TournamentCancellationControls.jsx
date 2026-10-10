@@ -18,6 +18,7 @@ export default function TournamentCancellationControls({ authFetch, event, onCom
 }
 function AccountTournamentCancellationControls({ authFetch, event, onCompleted, accountScope }) {
   const [eligibility, setEligibility] = useState(null), [reason, setReason] = useState('');
+  const [retryReady, setRetryReady] = useState(false);
   const [intent, setIntent] = useState(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState('');
   const epoch = useRef(0), storageKey = useRef(null);
   const alive = useRef(true);
@@ -35,34 +36,55 @@ function AccountTournamentCancellationControls({ authFetch, event, onCompleted, 
   useEffect(() => {
     const active = ++epoch.current;
     setEligibility(null); setIntent(null); setReason(''); setError(''); setMessage(''); setBusy(false); storageKey.current = null;
-    scopedFetch(`/api/horses/tournament-admin?tournamentId=${event.id}`).then((r) => {
-      if (!current(active)) return;
-      setEligibility(r);
-      if (!UUID.test(r.actorId || '')) throw new Error('actor_unknown');
-      const key = `stable-tournament-cancel:${r.actorId}:${event.id}`;
+    setRetryReady(false);
+    try {
+      const actorId = accountScope.options.expectedOperatorId;
+      if (!UUID.test(actorId || '')) throw new Error('actor_unknown');
+      const key = `stable-tournament-cancel:${actorId}:${event.id}`;
+      const stored = localStorage.getItem(key);
+      const prior = stored === null ? null : JSON.parse(stored);
+      if (stored !== null && !(prior?.tournamentId === event.id && UUID.test(prior.opId || '') && prior.action === 'cancel_refund' && typeof prior.reason === 'string' && prior.reason.trim().length >= 10 && prior.reason.length <= 500)) throw new Error('stored_operation_invalid');
+      // Publish dispatch state only after durable storage has been read safely.
       storageKey.current = key;
-      const prior = JSON.parse(localStorage.getItem(key) || 'null');
-      if (prior?.tournamentId === event.id && UUID.test(prior.opId || '') && prior.action === 'cancel_refund' && typeof prior.reason === 'string' && prior.reason.length >= 10 && prior.reason.length <= 500) { setIntent(prior); setReason(prior.reason); setMessage('A Previous Operation Is Retained. Read Its Outcome Before Continuing.'); }
-    }).catch(() => { if (current(active)) setError('Cancellation Eligibility Or Durable Operation Storage Is Unavailable. No New Request Can Be Sent.'); });
+      if (prior) { setIntent(prior); setReason(prior.reason); setMessage('A Previous Operation Is Retained. Read Its Outcome Before Continuing.'); }
+    } catch {
+      setError('Durable Operation Storage Is Unavailable Or Invalid. Its Contents Are Preserved. No New Request Can Be Sent.');
+      return () => { epoch.current += 1; };
+    }
+    scopedFetch(`/api/horses/tournament-admin?tournamentId=${event.id}`).then((r) => {
+      if (current(active)) setEligibility(r);
+    }).catch(() => { if (current(active)) setError('Cancellation Eligibility Is Unavailable. Read Any Retained Outcome Before Retrying.'); });
     return () => { epoch.current += 1; };
   }, [authFetch, event.id, accountScope]);
   const clear = () => { accountScope.assertCurrent(); if (!alive.current) return; localStorage.removeItem(storageKey.current); setIntent(null); };
+  const readOutcome = async () => {
+    if (busy || !intent || !storageKey.current || !accountScope.isCurrent() || !alive.current) return;
+    const active = epoch.current;
+    setBusy(true); setError(''); setRetryReady(false);
+    try {
+      const prior = await scopedFetch(`/api/horses/tournament-admin?opId=${intent.opId}`);
+      if (!current(active)) return;
+      const operation = prior.operation;
+      if (operation && (operation.op_id !== intent.opId || operation.tournament_id !== event.id)) throw new Error('Stored Operation Identity Could Not Be Confirmed.');
+      if (operation?.state === 'completed') {
+        if (operation.result?.receipt?.fully_settled !== true || operation.result?.receipt?.tournament_id !== event.id) throw new Error('Stored Refund Evidence Could Not Be Confirmed. Keep This Operation ID.');
+        clear(); setMessage('Cancellation And Refunds Are Recorded. Event Evidence Has Been Refreshed.'); await onCompleted?.(); return;
+      }
+      if (operation !== null && operation?.state !== 'pending') throw new Error('Cancellation Outcome Is Unknown. Keep This Operation ID.');
+      setRetryReady(true);
+      setMessage(operation ? 'The Operation Is Pending. A Retry Requires Current Write Permission And Rechecks Its Approval.' : 'No Operation Receipt Is Recorded. A Retry Must Keep The Same Operation ID.');
+    } catch (failure) {
+      if (current(active)) setError(failure?.message || 'Cancellation Outcome Is Unknown. Keep This Operation ID.');
+    } finally { if (current(active)) setBusy(false); }
+  };
   const submit = async () => {
-    if (busy || !storageKey.current || !alive.current || !accountScope.isCurrent()) return;
+    if (busy || !storageKey.current || !alive.current || !accountScope.isCurrent() || !eligibility?.writable || (intent && !retryReady)) return;
     const active = epoch.current;
     const request = intent || { action: 'cancel_refund', tournamentId: event.id, reason: reason.trim(), opId: crypto.randomUUID() };
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setRetryReady(false);
     try {
       // Persist before dispatch. Lost responses and a closed tab keep identity.
       localStorage.setItem(storageKey.current, JSON.stringify(request)); setIntent(request);
-      if (intent) {
-        const prior = await scopedFetch(`/api/horses/tournament-admin?opId=${request.opId}`);
-        if (!current(active)) return;
-        if (prior.operation?.state === 'completed') {
-          if (prior.operation.op_id !== request.opId || prior.operation.tournament_id !== event.id || prior.operation.result?.receipt?.fully_settled !== true) throw new Error('Stored Refund Evidence Could Not Be Confirmed. Keep This Operation ID.');
-          clear(); setMessage('Cancellation And Refunds Are Recorded. Event Evidence Has Been Refreshed.'); await onCompleted?.(); return;
-        }
-      }
       const r = await scopedFetch('/api/horses/tournament-admin', { method: 'POST', body: JSON.stringify(request) });
       if (!current(active)) return;
       const operation = r.operation;
@@ -72,7 +94,7 @@ function AccountTournamentCancellationControls({ authFetch, event, onCompleted, 
       clear(); setMessage('Cancelled And Fully Refunded Through The Authoritative Receipt. Event Evidence Has Been Refreshed.'); await onCompleted?.();
     } catch (failure) {
       if (!current(active)) return;
-      if (['cancel_review_changed', 'cancel_operation_conflict', 'cancel_ineligible', 'cancel_approval_refused'].includes(failure?.code) || failure?.status === 403 || failure?.status === 400) {
+      if (['cancel_review_changed', 'cancel_operation_conflict', 'cancel_ineligible', 'cancel_approval_refused'].includes(failure?.code)) {
         try { clear(); } catch { /* Preserve the old durable identity if storage fails. */ }
       }
       setError(failure?.message || 'Cancellation Outcome Is Unknown. Read This Operation Before Retrying.');
@@ -84,6 +106,7 @@ function AccountTournamentCancellationControls({ authFetch, event, onCompleted, 
     {error ? <p className={styles.errorNote} role="alert">{error}</p> : null}{message ? <p className={styles.stateNote} role="status">{message}</p> : null}
     {intent ? <p className={styles.fieldHint}>Retained Operation: {intent.opId}</p> : null}
     <label className={styles.field}><span className={styles.fieldLabel}>Required Cancellation Reason</span><input className={styles.input} maxLength={500} value={reason} disabled={busy || !!intent} onChange={(e) => setReason(e.target.value)} /></label>
-    <button type="button" className={styles.btn} disabled={busy || !eligibility?.writable || (!intent && (!eligibility?.eligible || reason.trim().length < 10)) || !storageKey.current} onClick={submit}>{busy ? 'Reading Authoritative Outcome...' : intent ? 'Read Outcome And Retry Same Operation' : 'Cancel And Refund This Event'}</button>
+    {intent ? <button type="button" className={styles.btn} disabled={busy || !storageKey.current} onClick={readOutcome}>Read Outcome</button> : null}
+    <button type="button" className={styles.btn} disabled={busy || !eligibility?.writable || (!!intent && !retryReady) || (!intent && (!eligibility?.eligible || reason.trim().length < 10)) || !storageKey.current} onClick={submit}>{busy ? 'Reading Authoritative Outcome...' : intent ? 'Retry Same Operation' : 'Cancel And Refund This Event'}</button>
   </section>;
 }
