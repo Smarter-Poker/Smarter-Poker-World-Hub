@@ -384,10 +384,14 @@ class PokerAtlasPersistenceTests(unittest.TestCase):
             with mock.patch.object(daemon, "_network_available", return_value=True):
                 with mock.patch.object(daemon, "_kill_zombie_browsers"):
                     with mock.patch.object(daemon.threading, "Timer", return_value=timer):
-                        with mock.patch(
-                            "scrapling.fetchers.StealthySession",
-                            return_value=recovered_session,
-                        ):
+                        # This retry test already substitutes the session; inject
+                        # its import boundary too, rather than requiring the full
+                        # unrelated scraper/browser dependency tree in unit CI.
+                        with mock.patch.dict(sys.modules, {
+                            "scrapling.fetchers": types.SimpleNamespace(
+                                StealthySession=mock.Mock(return_value=recovered_session),
+                            ),
+                        }):
                             with mock.patch.object(
                                 daemon, "fallback_fetch_playwright",
                             ) as playwright_fallback:
