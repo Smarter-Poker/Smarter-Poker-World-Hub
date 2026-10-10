@@ -5,6 +5,7 @@ cannot prevent its supervisor from recording the startup failure. This module
 uses only the Python standard library; it never installs dependencies.
 """
 import argparse
+import contextlib
 import fcntl
 import hashlib
 import json
@@ -333,7 +334,45 @@ def supervise(argv, cwd, env, grace_seconds=10):
         signal.signal(signal.SIGINT, old_int)
 
 
+@contextlib.contextmanager
+def runtime_output(root):
+    """Python owns SSD logging; launchd never opens removable-volume paths.
+
+    Capture native child output and runner failures in the same durable log.
+    Restore descriptors for callers/tests; never launch a collector if its
+    diagnostic destination cannot be opened.
+    """
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    try:
+        destination = os.open(root / 'runtime.log', os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    except OSError:
+        raise RuntimeFault('runtime_log_unavailable') from None
+    original = []
+    try:
+        for stream, descriptor in ((sys.stdout, 1), (sys.stderr, 2)):
+            stream.flush()
+            original.append((descriptor, os.dup(descriptor)))
+            os.dup2(destination, descriptor)
+        yield
+    finally:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        for descriptor, saved in original:
+            os.dup2(saved, descriptor)
+            os.close(saved)
+        os.close(destination)
+
+
 def run(root):
+    try:
+        with runtime_output(root):
+            return run_logged(root)
+    except (OSError, RuntimeFault):
+        print('runtime_log_unavailable', file=sys.stderr, flush=True)
+        return 1
+
+
+def run_logged(root):
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (root / 'run.lock').open('a') as lock:
         try:

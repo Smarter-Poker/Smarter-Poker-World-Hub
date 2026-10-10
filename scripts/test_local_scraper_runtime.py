@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import os
+import plistlib
 from pathlib import Path
 import subprocess
 import sys
@@ -104,6 +105,8 @@ class RuntimeProof(unittest.TestCase):
         self.assertFalse((tour_root / 'auth.json').exists())
         self.assertEqual(runtime.credential_root(tour_root), self.root)
         self.assertEqual(runtime.run(tour_root), 0)
+        self.assertTrue((tour_root / 'runtime.log').is_file())
+        self.assertFalse((self.root / 'runtime.log').exists())
         self.assertFalse((tour_root / 'outbox').exists())
         self.assertFalse(self.requests)
 
@@ -115,6 +118,39 @@ class RuntimeProof(unittest.TestCase):
         runtime.atomic_write(manifest_path, runtime.json_bytes(value))
         with self.assertRaisesRegex(runtime.RuntimeFault, 'manifest_file_set_mismatch'):
             runtime.inspect_release(self.root)
+
+    def test_runner_owns_ssd_log_for_native_collector_and_startup_failures(self):
+        self.install()
+        with runtime.runtime_output(self.root):
+            subprocess.run([sys.executable, '-c', 'import sys; print("collector-output", flush=True); print("collector-error", file=sys.stderr, flush=True)'], check=True)
+        contents = (self.root / 'runtime.log').read_text()
+        self.assertIn('collector-output', contents)
+        self.assertIn('collector-error', contents)
+        (self.root / 'current').unlink()
+        self.assertEqual(runtime.run(self.root), 1)
+        self.assertIn('release_missing', (self.root / 'runtime.log').read_text())
+
+    def test_unavailable_runtime_log_prevents_collector_start(self):
+        self.install()
+        (self.root / 'runtime.log').mkdir()
+        with patch.object(runtime.subprocess, 'Popen') as child, contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(self.root), 1)
+        child.assert_not_called()
+
+    def test_launchd_plists_leave_ssd_io_to_the_python_runner(self):
+        scripts = Path(runtime.__file__).parent
+        for suffix in ('tour-scraper', 'series-scraper', 'tournament-schedule-daemon'):
+            with self.subTest(component=suffix):
+                with (scripts / ('com.smarter-poker.' + suffix + '.plist')).open('rb') as source:
+                    value = plistlib.load(source)
+                self.assertNotIn('WorkingDirectory', value)
+                self.assertEqual(value['StandardOutPath'], '/dev/null')
+                self.assertEqual(value['StandardErrorPath'], '/dev/null')
+                self.assertTrue(value['RunAtLoad'])
+                if suffix == 'tour-scraper':
+                    self.assertEqual(value['StartInterval'], 259200)
+                else:
+                    self.assertTrue(value['KeepAlive'])
 
     def test_series_runtime_preserves_daemon_mode_and_catalog_inputs(self):
         files, inputs = runtime.COMPONENTS['series']
