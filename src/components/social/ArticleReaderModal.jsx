@@ -86,6 +86,8 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                 {/* Header Bar. Padded below the status bar so the Back control
                     is never under the clock on a phone (mobile phase 0b). */}
                 <div style={{
+                    position: 'relative',
+                    zIndex: 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -137,7 +139,18 @@ export default function ArticleReaderModal({ url, title, onClose }) {
 
                 {/* Loading State — animated progress bar + shimmer skeleton */}
                 {loading && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div
+                        aria-hidden="true"
+                        data-reader-loading-overlay="true"
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            pointerEvents: 'none',
+                        }}
+                    >
                         {/* Progress bar */}
                         <style>{`
                             @keyframes sp-progress {
