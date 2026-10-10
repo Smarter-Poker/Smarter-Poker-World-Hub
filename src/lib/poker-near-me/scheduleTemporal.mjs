@@ -57,7 +57,12 @@ export function scheduleDateStatus(start, end, timezone, now = new Date()) {
 }
 
 export function sourceVerificationTime(value, now = new Date()) {
-  if (typeof value !== 'string' || !/T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return null;
+  if (typeof value !== 'string') return null;
+  const parts = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/);
+  // Date.parse normalizes impossible days and 24:00 into another calendar day.
+  // Such a timestamp cannot establish when a source was actually verified.
+  if (!parts || !isValidIsoDate(parts[1]) || Number(parts[2]) > 23
+    || Number(parts[3]) > 59 || Number(parts[4]) > 59) return null;
   const ms = Date.parse(value);
   return Number.isFinite(ms) && ms <= now.getTime() ? new Date(ms).toISOString() : null;
 }

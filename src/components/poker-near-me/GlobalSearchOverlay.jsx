@@ -79,9 +79,9 @@ const GAME_TYPE_PATTERNS = {
   Mixed: /mixed|horse|stud|dealer/i,
 };
 const GAME_TYPE_LABELS = {
-  tournament: 'Tournaments',
-  cash: 'Cash Games',
-  live: 'Live Games',
+  tournament: 'Tournament Venues',
+  cash: 'Published Cash Games',
+  live: 'Published Cash Games',
   PLO: 'PLO',
   NLH: "Hold'em",
   Mixed: 'Mixed Games',
@@ -92,7 +92,11 @@ const GAME_TYPE_LABELS = {
 function parseLocalDate(value) {
   if (!value) return null;
   const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return d.getFullYear() === Number(m[1]) && d.getMonth() === Number(m[2]) - 1
+      && d.getDate() === Number(m[3]) ? d : null;
+  }
   const d = new Date(value);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -112,8 +116,8 @@ function timeWindowRange(timeWindow) {
       return { start, end: addDays(start, 7) };
     }
     case 'this_weekend': {
-      const start = addDays(today, (6 - today.getDay() + 7) % 7);
-      return { start, end: addDays(start, 2) };
+      const start = today.getDay() === 0 ? today : addDays(today, (6 - today.getDay() + 7) % 7);
+      return { start, end: addDays(start, today.getDay() === 0 ? 1 : 2) };
     }
     case 'next_month': {
       return { start: new Date(now.getFullYear(), now.getMonth() + 1, 1), end: new Date(now.getFullYear(), now.getMonth() + 2, 1) };
@@ -122,11 +126,11 @@ function timeWindowRange(timeWindow) {
   }
 }
 
-// Undated items are kept — we cannot judge them, and dropping them would hide results
+// An explicit date filter requires published date evidence, not an unknown date.
 function overlapsWindow(item, range) {
   if (!range) return true;
   const start = parseLocalDate(item?.start_date);
-  if (!start) return true;
+  if (!start) return false;
   const end = parseLocalDate(item?.end_date) || start;
   return start < range.end && end >= range.start;
 }
@@ -138,30 +142,107 @@ function venueMatchesGameType(venue, gameType) {
   return games.some(g => pattern.test(String(g)));
 }
 
+function venueMatchesStakes(venue, stakes) {
+  if (!stakes) return true;
+  return (Array.isArray(venue?.stakes_cash) ? venue.stakes_cash : []).some(value => {
+    const match = String(value).match(/\$?(\d+(?:\.\d+)?)\s*\/\s*\$?(\d+(?:\.\d+)?)/);
+    return match && Number(match[1]) === stakes[0] && Number(match[2]) === stakes[1];
+  });
+}
+
+// A fallback is a name/location suggestion, never evidence of current games.
+// Require every query word to match a different published word so a single
+// similar city token cannot turn an unrelated venue into a result.
+function venueNameMatchScore(query, venue) {
+  const words = String(query || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+  const targets = [venue?.name, venue?.city].filter(Boolean).join(' ').toLowerCase().match(/[a-z0-9]+/g) || [];
+  if (!words.length || words.length > 12 || !targets.length) return Infinity;
+  const used = new Set();
+  let score = 0;
+  for (const word of words) {
+    let best = Infinity;
+    let selected = -1;
+    targets.forEach((target, index) => {
+      if (used.has(index)) return;
+      const value = word.length < 3 ? (word === target ? 0 : Infinity) : fuzzyMatchScore(word, target);
+      if (value <= (word.length >= 5 ? 2 : 1) && value < best) { best = value; selected = index; }
+    });
+    if (selected < 0) return Infinity;
+    used.add(selected);
+    score += best;
+  }
+  return score;
+}
+
+function tourMatchesDiscoveryFilters(tour, stateCode, range) {
+  if (!stateCode && !range) return true;
+  const stops = ['upcoming_series', 'stops_2026', 'series_2026']
+    .flatMap(key => Array.isArray(tour?.[key]) ? tour[key] : []);
+  if (!stops.length) return !range && tour?.state === stateCode;
+  return stops.some(stop => (!stateCode || (stop.state || tour.state) === stateCode)
+    && (!range || overlapsWindow(stop, range)));
+}
+
+async function collectSearchVenuePages(first, url, readPage, isCurrent) {
+  const rows = [];
+  const seen = new Set();
+  let page = first;
+  for (let offset = 0; offset < 10000; offset += 200) {
+    if (!isCurrent()) return null;
+    const values = page?.data || page?.venues || (Array.isArray(page) ? page : null);
+    if (page?.success === false || page?.degraded === true || !Array.isArray(values)) throw new Error('Venue Search Unavailable');
+    if (first?.paging_source && page?.paging_source !== first.paging_source) throw new Error('Venue Search Source Changed');
+    let added = 0;
+    for (const value of values) {
+      const key = value?.id == null ? value : String(value.id);
+      if (!seen.has(key)) { seen.add(key); rows.push(value); added += 1; }
+    }
+    // `total` counts this projected page, not the national inventory. The
+    // API owns exhaustion before social merges and visibility projections.
+    if (page?.has_more === false) return rows;
+    if (page?.has_more !== true && !values.length) return rows;
+    if (values.length && !added) throw new Error('Venue Search Incomplete');
+    const next = new URLSearchParams(url.split('?')[1]);
+    next.set('offset', String(offset + 200));
+    if (page?.paging_source === 'snapshot') next.set('listing_source', 'snapshot');
+    page = await readPage(`/api/poker/venues?${next.toString()}`);
+  }
+  throw new Error('Venue Search Exceeds Complete Read Limit');
+}
+
 function parseNaturalLanguageQuery(raw) {
   const q = (raw || '').toLowerCase().trim();
-  const result = { location: null, stateCode: null, timeWindow: null, gameType: null, isNaturalLanguage: false, cleanQuery: raw };
+  const result = { location: null, stateCode: null, timeWindow: null, gameType: null, tournament: false, stakes: null, isNaturalLanguage: false, cleanQuery: raw };
   if (!q) return result;
 
   // Detect game type intent
   if (/\bplo8?\b|\bomaha\b/.test(q)) { result.gameType = 'PLO'; result.isNaturalLanguage = true; }
-  else if (/\bnlh\b|\bt[exas ]*holdem\b|\bno limit\b/.test(q)) { result.gameType = 'NLH'; result.isNaturalLanguage = true; }
+  else if (/\bnlh\b|\b(?:texas\s+)?hold\s*'?\s*em\b|\bno[\s-]?limit\b/.test(q)) { result.gameType = 'NLH'; result.isNaturalLanguage = true; }
   else if (/\bmixed\b|\bhorse\b/.test(q)) { result.gameType = 'Mixed'; result.isNaturalLanguage = true; }
   else if (/\btournament[s]?\b|\btourney[s]?\b/.test(q)) { result.gameType = 'tournament'; result.isNaturalLanguage = true; }
   else if (/\bcash\s+game[s]?\b/.test(q)) { result.gameType = 'cash'; result.isNaturalLanguage = true; }
   else if (/\blive\s+game[s]?\b/.test(q)) { result.gameType = 'live'; result.isNaturalLanguage = true; }
+  result.tournament = /\btournaments?\b|\btourneys?\b/.test(q);
+
+  const stakes = q.match(/\$?(\d+(?:\.\d+)?)\s*\/\s*\$?(\d+(?:\.\d+)?)/);
+  if (stakes && Number(stakes[1]) > 0 && Number(stakes[2]) >= Number(stakes[1])) {
+    result.stakes = [Number(stakes[1]), Number(stakes[2])]; result.isNaturalLanguage = true;
+  }
 
   // Detect time window
   if (/\bnext\s+month\b/.test(q)) { result.timeWindow = 'next_month'; result.isNaturalLanguage = true; }
   else if (/\bthis\s+week\b/.test(q)) { result.timeWindow = 'this_week'; result.isNaturalLanguage = true; }
   else if (/\bnext\s+week\b/.test(q)) { result.timeWindow = 'next_week'; result.isNaturalLanguage = true; }
   else if (/\bthis\s+weekend\b|\bweekend\b/.test(q)) { result.timeWindow = 'this_weekend'; result.isNaturalLanguage = true; }
-  else if (/\btoday\b/.test(q)) { result.timeWindow = 'today'; result.isNaturalLanguage = true; }
+  else if (/\btoday\b|\btonight\b/.test(q)) { result.timeWindow = 'today'; result.isNaturalLanguage = true; }
   else if (/\btomorrow\b/.test(q)) { result.timeWindow = 'tomorrow'; result.isNaturalLanguage = true; }
 
   // Detect location — full state name first
-  for (const [name, code] of Object.entries(US_STATES || {})) {
-    if (q.includes(name)) { result.stateCode = code; result.location = name; result.isNaturalLanguage = true; break; }
+  const explicitState = (String(raw || '').match(/\b[A-Z]{2}\b/g) || []).find(code => STATE_ABBREVS.includes(code));
+  if (explicitState) { result.stateCode = explicitState; result.location = explicitState; result.isNaturalLanguage = true; }
+  const locationQuery = q.replace(/\btexas\s+hold\s*'?\s*em\b/g, '');
+  for (const [name, code] of result.stateCode ? [] : Object.entries(US_STATES || {}).sort((a, b) => b[0].length - a[0].length)) {
+    if (new RegExp(`\\b${name}\\b`).test(locationQuery)) { result.stateCode = code; result.location = name; result.isNaturalLanguage = true; break; }
   }
   // Then 2-letter abbreviation (e.g. "in IL", " IL ")
   // Matching ANY bare 2-letter token turned everyday words into states:
@@ -188,13 +269,15 @@ function parseNaturalLanguageQuery(raw) {
   // Build a clean keyword-only query for the API (strip NL words)
   if (result.isNaturalLanguage) {
     let clean = q
-      .replace(/\bnext\s+month\b|\bthis\s+week\b|\bnext\s+week\b|\bthis\s+weekend\b|\bweekend\b|\btoday\b|\btomorrow\b/g, '')
-      .replace(/\btournament[s]?\b|\btourney\b|\bcash\s+games?\b|\blive\s+games?\b/g, '')
+      .replace(/\bnext\s+month\b|\bthis\s+week\b|\bnext\s+week\b|\bthis\s+weekend\b|\bweekend\b|\btoday\b|\btonight\b|\btomorrow\b/g, '')
+      .replace(/\$?\d+(?:\.\d+)?\s*\/\s*\$?\d+(?:\.\d+)?/g, '')
+      .replace(/\bplo8?\b|\bomaha\b|\bnlh\b|\b(?:texas\s+)?hold\s*'?\s*em\b|\bno[\s-]?limit\b|\bmixed\b|\bhorse\b/g, '')
+      .replace(/\btournament[s]?\b|\btourneys?\b|\bcash\s+games?\b|\blive\s+games?\b/g, '')
       .replace(/\b(in|at|near|around|for|the|show|me|all|find|with)\b/g, '')
       .replace(/\s+/g, ' ').trim();
     // Remove the state name from the clean query too (it gets passed as a separate filter)
-    if (result.location && result.location.length > 2) clean = clean.replace(new RegExp(result.location, 'gi'), '').trim();
-    result.cleanQuery = clean || (result.stateCode || '');
+    if (result.location) clean = clean.replace(new RegExp(`\\b${result.location}\\b`, 'gi'), '').trim();
+    result.cleanQuery = clean;
   }
 
   return result;
@@ -533,6 +616,9 @@ export default function GlobalSearchOverlay({
   const [userLocation, setUserLocation] = useState(null);
   // A failed venue request is an error state, never an empty result set.
   const [searchError, setSearchError] = useState(false);
+  const [missingFilterCoverage, setMissingFilterCoverage] = useState(0);
+  const [visibleResultCount, setVisibleResultCount] = useState(20);
+  const [nameMatchFallback, setNameMatchFallback] = useState(false);
   const debounceRef = useRef(null);
   // [BUG FIX] AbortController ref — cancels stale in-flight venue suggestion fetches
   const abortControllerRef = useRef(null);
@@ -588,11 +674,13 @@ export default function GlobalSearchOverlay({
 
   // Reset & focus when opened; abort in-flight fetches when closed
   useEffect(() => {
+    let submitTimer;
+    let focusTimer;
     if (isOpen) {
       setLocalQuery(searchQuery || '');
       if (searchQuery) {
         setPhase('results');
-        setTimeout(() => handleSubmit(null, searchQuery), 10);
+        submitTimer = setTimeout(() => handleSubmit(null, searchQuery), 10);
       } else {
         setPhase('input');
         setVenueResults([]); setTourResults([]); setSeriesResults([]);
@@ -600,7 +688,8 @@ export default function GlobalSearchOverlay({
       }
       setDetailItem(null);
       setSearchError(false);
-      setTimeout(() => inputRef.current?.focus(), 120);
+      setNameMatchFallback(false);
+      focusTimer = setTimeout(() => inputRef.current?.focus(), 120);
     } else {
       // [BUG FIX] Cancel any pending debounce + in-flight fetch when overlay closes
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -611,6 +700,13 @@ export default function GlobalSearchOverlay({
           trackSearchEvent('abandoned_search_query', { query: localQuery, timestamp: Date.now() });
       }
     }
+    return () => {
+      clearTimeout(submitTimer);
+      clearTimeout(focusTimer);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      ++submitSeqRef.current;
+      abortControllerRef.current?.abort();
+    };
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ESC key
@@ -690,7 +786,8 @@ export default function GlobalSearchOverlay({
   }, [isOpen]);
 
   // In-memory fuzzy match tours
-  const matchTours = useCallback((q) => {
+  const matchTours = useCallback((q, limit = 8) => {
+    if (!q.trim()) return allTours.slice(0, limit);
     return allTours
       .map(t => {
         const score = Math.min(
@@ -704,11 +801,12 @@ export default function GlobalSearchOverlay({
       .filter(t => t.score <= 2) // Threshold
       .sort((a, b) => a.score - b.score)
       .map(t => t.item)
-      .slice(0, 8);
+      .slice(0, limit);
   }, [allTours]);
 
   // In-memory fuzzy match series
-  const matchSeries = useCallback((q) => {
+  const matchSeries = useCallback((q, limit = 8) => {
+    if (!q.trim()) return allSeries.slice(0, limit);
     return allSeries
       .map(s => {
         const score = Math.min(
@@ -723,7 +821,7 @@ export default function GlobalSearchOverlay({
       .filter(s => s.score <= 2) // Threshold
       .sort((a, b) => a.score - b.score)
       .map(s => s.item)
-      .slice(0, 8);
+      .slice(0, limit);
   }, [allSeries]);
 
   // Handle typing — live suggestions for ALL types
@@ -734,6 +832,15 @@ export default function GlobalSearchOverlay({
     // Typing invalidates any arrowed-to row — Enter must not fire a stale selection
     setSelectedIndex(-1);
     setSearchError(false);
+    setMissingFilterCoverage(0);
+    setVisibleResultCount(20);
+    setNameMatchFallback(false);
+    // A keystroke invalidates both submit and typeahead ownership immediately.
+    // Debouncing a replacement request must not leave the old one authoritative.
+    ++submitSeqRef.current;
+    setIsLoading(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
 
     if (!val.trim()) {
       setPhase('input');
@@ -793,6 +900,10 @@ export default function GlobalSearchOverlay({
     setPhase('results');
     setIsLoading(true);
     setSearchError(false);
+    setMissingFilterCoverage(0);
+    setVisibleResultCount(20);
+    setNameMatchFallback(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     // BUG FIX: an aborted search used to `return` from inside the try block, skipping
     // setIsLoading(false) — the skeleton loaders then spun forever (typing one more
     // character after submitting aborts the submit's controller via the input debounce).
@@ -810,14 +921,14 @@ export default function GlobalSearchOverlay({
 
     // Track which detected intents actually shaped the results — only those get a chip,
     // so the header never claims a filter that was never applied.
-    const applied = { stateCode: !!intent.stateCode, timeWindow: false, gameType: false };
+    const applied = { stateCode: !!intent.stateCode, timeWindow: false, gameType: false, stakes: false };
 
     // Build venue API URL — inject state filter if detected
     const params = new URLSearchParams({ limit: '200', offset: '0', sort: 'trust' });
     if (apiQuery) params.set('search', apiQuery);
     if (intent.stateCode) params.set('state', intent.stateCode);
     // The venues API supports tournaments=true — honour a "tournaments" intent server-side
-    if (intent.gameType === 'tournament') { params.set('tournaments', 'true'); applied.gameType = true; }
+    if (intent.tournament) { params.set('tournaments', 'true'); applied.tournament = true; if (intent.gameType === 'tournament') applied.gameType = true; }
     if (userLocation?.lat && userLocation?.lng) {
       params.set('lat', userLocation.lat);
       params.set('lng', userLocation.lng);
@@ -838,22 +949,51 @@ export default function GlobalSearchOverlay({
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         data = await r.json();
       }
-      if (signal.aborted) {
+      if (signal.aborted || !isCurrentSubmit()) {
         // Stale response — drop the results, but never strand the loading flag.
         if (isCurrentSubmit()) setIsLoading(false);
         return;
       }
-      const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-      // Apply a specific game-type intent (PLO / Hold'em / Mixed) against games_offered.
-      // Only keep the narrowed list when it still has results — sparse game data must not
-      // wipe out an otherwise good search.
+      const readVenuePage = async url => {
+        if (cachedFetch) return cachedFetch(url);
+        const response = await fetch(url, { signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      };
+      let venues = await collectSearchVenuePages(data, venueUrl, readVenuePage, () => isCurrentSubmit() && !signal.aborted);
+      if (!venues || !isCurrentSubmit()) return;
+      if (!venues.length && apiQuery.trim().length >= 3) {
+        const fallbackParams = new URLSearchParams(params);
+        fallbackParams.delete('search');
+        const fallbackUrl = `/api/poker/venues?${fallbackParams.toString()}`;
+        const fallback = await collectSearchVenuePages(await readVenuePage(fallbackUrl), fallbackUrl, readVenuePage, () => isCurrentSubmit() && !signal.aborted);
+        if (!fallback || !isCurrentSubmit() || signal.aborted) return;
+        venues = fallback.map((venue, index) => ({ venue, index, score: venueNameMatchScore(apiQuery, venue) }))
+          .filter(result => Number.isFinite(result.score))
+          .sort((a, b) => a.score - b.score || a.index - b.index).map(result => result.venue);
+        setNameMatchFallback(venues.length > 0);
+      }
+      // Missing catalogue fields are not confirmed game/stakes matches. Surface
+      // that coverage gap separately instead of silently removing the filter.
       let list = venues;
+      const needsGames = intent.gameType === 'cash' || intent.gameType === 'live' || !!GAME_TYPE_PATTERNS[intent.gameType];
+      setMissingFilterCoverage(venues.filter(v => (needsGames && (!Array.isArray(v.games_offered) || !v.games_offered.length))
+        || (intent.stakes && (!Array.isArray(v.stakes_cash) || !v.stakes_cash.length))).length);
+      if (intent.gameType === 'cash' || intent.gameType === 'live') {
+        list = list.filter(v => Array.isArray(v.games_offered) && v.games_offered.length > 0);
+        applied.gameType = true;
+      }
       if (GAME_TYPE_PATTERNS[intent.gameType]) {
-        const narrowed = list.filter(v => venueMatchesGameType(v, intent.gameType));
-        if (narrowed.length > 0) { list = narrowed; applied.gameType = true; }
+        list = list.filter(v => venueMatchesGameType(v, intent.gameType));
+        applied.gameType = true;
+      }
+      if (intent.stakes) {
+        list = list.filter(v => venueMatchesStakes(v, intent.stakes));
+        applied.stakes = true;
       }
       setVenueResults(list);
     } catch (err) {
+      if (!isCurrentSubmit()) return;
       if (err?.name !== 'AbortError') {
         console.warn('[GlobalSearch] Venue search failed:', err);
         setVenueResults([]);
@@ -865,16 +1005,20 @@ export default function GlobalSearchOverlay({
       }
     }
 
-    // For tours/series — use the full raw query for broader matching
+    if (!isCurrentSubmit()) return;
+
+    // For tours/series, filter-only queries are not literal event names.
     const range = timeWindowRange(intent.timeWindow);
-    let matchedSeries = matchSeries(rawQuery);
+    const keyword = apiQuery || '';
+    let matchedSeries = matchSeries(keyword, Infinity);
+    if (intent.stateCode) matchedSeries = matchedSeries.filter(s => s.state === intent.stateCode);
     if (range) {
       matchedSeries = matchedSeries.filter(s => overlapsWindow(s, range));
       applied.timeWindow = true;
     }
-    setTourResults(matchTours(rawQuery));
+    setTourResults(matchTours(keyword, Infinity).filter(t => tourMatchesDiscoveryFilters(t, intent.stateCode, range)));
     setSeriesResults(matchedSeries);
-    setNlIntent(intent.isNaturalLanguage && (applied.stateCode || applied.timeWindow || applied.gameType)
+    setNlIntent(intent.isNaturalLanguage && (applied.stateCode || applied.timeWindow || applied.gameType || applied.stakes)
       ? { ...intent, applied }
       : null);
     if (isCurrentSubmit()) setIsLoading(false);
@@ -985,6 +1129,10 @@ export default function GlobalSearchOverlay({
   const totalResults = venueResults.length + tourResults.length + seriesResults.length;
   const hasResults = totalResults > 0;
 
+  useEffect(() => {
+    if (phase === 'results' && selectedIndex >= visibleResultCount) setVisibleResultCount(selectedIndex + 1);
+  }, [phase, selectedIndex, visibleResultCount]);
+
   // UX FIX: this panel used to render TWO sections both headed "Recent Searches" — the local
   // `pnm_recent_searches` list and the account-backed `searchHistory` prop — with overlapping
   // entries, and only the first was keyboard-selectable. The account list is now deduped
@@ -1017,7 +1165,9 @@ export default function GlobalSearchOverlay({
   const appliedIntentLabels = nlIntent
     ? [
       nlIntent.applied?.gameType && (GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType),
-      nlIntent.applied?.timeWindow && (TIME_WINDOW_LABELS[nlIntent.timeWindow] || nlIntent.timeWindow),
+      nlIntent.applied?.tournament && nlIntent.gameType !== 'tournament' && 'Tournament Venues',
+      nlIntent.applied?.timeWindow && `Series Dates: ${TIME_WINDOW_LABELS[nlIntent.timeWindow] || nlIntent.timeWindow}`,
+      nlIntent.applied?.stakes && `$${nlIntent.stakes[0]}/$${nlIntent.stakes[1]} Published Stakes`,
       nlIntent.applied?.stateCode && `In ${nlIntent.stateCode}`,
     ].filter(Boolean)
     : [];
@@ -1188,6 +1338,10 @@ export default function GlobalSearchOverlay({
           {phase === 'results' && (
             <div className="gso-console-list">
 
+              {!isLoading && !searchError && nameMatchFallback && (
+                <p className="gso-empty__copy" role="status">Closest Published Venue And City Name Matches. Confirm The Venue Before Planning Your Visit.</p>
+              )}
+
               {isLoading && <SearchSkeletons />}
 
               {/* A failed venue request is not an empty directory: say so, and
@@ -1212,6 +1366,13 @@ export default function GlobalSearchOverlay({
                   <PokerNearMeConsoleIcon name="search" className="gso-empty__icon" />
                   <p className="gso-empty__title">No Results Found</p>
                   <p className="gso-empty__copy">Try A Different City, Venue Name, Or Tour</p>
+                </div>
+              )}
+
+              {!isLoading && !searchError && missingFilterCoverage > 0 && (
+                <div className="gso-empty" role="status">
+                  <p className="gso-empty__title">Incomplete Game Coverage</p>
+                  <p className="gso-empty__copy">{missingFilterCoverage} Venues Have Missing Game Or Stakes Information. Unknown Listings Are Not Confirmed Matches. Availability Is Not A Live Table Count.</p>
                 </div>
               )}
 
@@ -1276,7 +1437,7 @@ export default function GlobalSearchOverlay({
                 <div className="gso-section">
                   <SectionHeader icon="home" label="Venues" count={venueResults.length} />
                   <div className="gso-result-list">
-                    {venueResults.map(v => <VenueResultCard key={v.id} venue={v} onClick={(venue, e) => openDetail(venue, 'venue', e?.currentTarget)} />)}
+                    {venueResults.slice(0, phase === 'results' ? visibleResultCount : 5).map(v => <VenueResultCard key={v.id} venue={v} onClick={(venue, e) => openDetail(venue, 'venue', e?.currentTarget)} />)}
                   </div>
                 </div>
               )}
@@ -1286,7 +1447,7 @@ export default function GlobalSearchOverlay({
                 <div className="gso-section">
                   <SectionHeader icon="trophy" label="Poker Tours" count={tourResults.length} />
                   <div className="gso-result-list">
-                    {tourResults.map(t => <TourResultCard key={t.id || t.tour_code} tour={t} onClick={(tour, e) => openDetail(tour, 'tour', e?.currentTarget)} />)}
+                    {tourResults.slice(0, phase === 'results' ? visibleResultCount : 8).map(t => <TourResultCard key={t.id || t.tour_code} tour={t} onClick={(tour, e) => openDetail(tour, 'tour', e?.currentTarget)} />)}
                   </div>
                 </div>
               )}
@@ -1296,9 +1457,14 @@ export default function GlobalSearchOverlay({
                 <div className="gso-section">
                   <SectionHeader icon="calendar" label="Poker Series" count={seriesResults.length} />
                   <div className="gso-result-list">
-                    {seriesResults.map(s => <SeriesResultCard key={s.id || s.name} series={s} onClick={(series, e) => openDetail(series, 'series', e?.currentTarget)} />)}
+                    {seriesResults.slice(0, phase === 'results' ? visibleResultCount : 8).map(s => <SeriesResultCard key={s.id || s.name} series={s} onClick={(series, e) => openDetail(series, 'series', e?.currentTarget)} />)}
                   </div>
                 </div>
+              )}
+              {!isLoading && phase === 'results' && Math.max(venueResults.length, tourResults.length, seriesResults.length) > visibleResultCount && (
+                <button type="button" className="gso-retry" onClick={() => setVisibleResultCount(count => count + 20)}>
+                  <span className="gso-retry__label">Show More Results</span>
+                </button>
               )}
             </div>
           )}

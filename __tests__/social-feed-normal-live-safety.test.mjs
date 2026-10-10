@@ -64,6 +64,8 @@ test('the probe uses the reported articles, waits through the removed timer, and
   ]) assert.match(source, new RegExp(id));
   assert.match(source, /sleep\(65_000\)/);
   assert.match(source, /rootFeedRequestCount\(feedRequests\)/);
+  assert.match(source, /waitForFunction\(\(\) => window\.scrollY < 10/);
+  assert.match(source, /requestAnimationFrame/);
   assert.match(source, /data-post-card="true"\]\[data-post-id=/);
   assert.match(source, /getAttribute\('data-post-id'\)/);
   assert.match(source, /The rendered feed reordered automatically/);
@@ -79,4 +81,6 @@ test('the probe uses the reported articles, waits through the removed timer, and
   assert.match(source, /route\.abort\('blockedbyclient'\)/);
   assert.doesNotMatch(source, /\.click\(\{\s*force:\s*true/);
   assert.match(workflow, /src\/lib\/socialPostClient\.js/);
+  assert.match(workflow, /src\/components\/social\/SharedLinkPreviewCard\.jsx/);
+  assert.match(workflow, /pages\/hub\/social-pages\/\[pageId\]\.js/);
 });

@@ -317,11 +317,16 @@ async function run(env) {
     receipt.stage = 'manual-refresh';
     await page.setViewportSize({ width: 390, height: 844 });
     const manualBaseline = rootFeedRequestCount(feedRequests);
-    await page.evaluate(() => {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForFunction(() => window.scrollY < 10, null, { timeout: 10_000 });
+    await page.evaluate(async () => {
+      const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
       window.scrollTo(0, 0);
       const touch = (y) => new Touch({ identifier: 1, target: document.body, clientX: 20, clientY: y });
       window.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [touch(100)] }));
+      await nextFrame();
       window.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: [touch(190)] }));
+      await nextFrame();
       window.dispatchEvent(new TouchEvent('touchend', { bubbles: true, changedTouches: [touch(190)] }));
     });
     const deadline = Date.now() + 20_000;

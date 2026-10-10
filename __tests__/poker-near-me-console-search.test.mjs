@@ -25,9 +25,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
+import { execFileSync } from 'node:child_process';
+import { fuzzyMatchScore } from '../src/components/poker-near-me/pnm-utils.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const read = (rel) => process.env.PNM_SEARCH_SOURCE_REV && rel === 'src/components/poker-near-me/GlobalSearchOverlay.jsx'
+  ? execFileSync('git', ['show', `${process.env.PNM_SEARCH_SOURCE_REV}:${rel}`], { cwd: ROOT, encoding: 'utf8' })
+  : fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 const SEARCH = 'src/components/poker-near-me/GlobalSearchOverlay.jsx';
@@ -36,6 +41,188 @@ const OVERLAY = 'src/components/poker-near-me/lobby/LobbyOverlay.jsx';
 const LOBBY = 'pages/hub/poker-near-me/lobby.js';
 const LOBBY_CSS = 'src/styles/worlds/poker-near-me-lobby.css';
 const VOICE = 'src/components/poker-near-me/VoiceSearch.jsx';
+
+function searchHelpers() {
+  const src = read(SEARCH);
+  const scope = vm.createContext({ Date, URLSearchParams, fuzzyMatchScore });
+  vm.runInContext(src.slice(src.indexOf('const US_STATES ='), src.indexOf('// ─── Painted system'))
+    + ';this.helpers={parseNaturalLanguageQuery,overlapsWindow,timeWindowRange,venueMatchesStakes,collectSearchVenuePages,tourMatchesDiscoveryFilters,venueNameMatchScore};', scope);
+  return scope.helpers;
+}
+
+test('actual search parser keeps stakes, cities and longest state identity without keyword pollution', () => {
+  const { parseNaturalLanguageQuery: parse } = searchHelpers();
+  const intent = parse('1/2 PLO tonight in West Virginia');
+  assert.equal(intent.stateCode, 'WV');
+  assert.equal(intent.cleanQuery, '');
+  assert.equal(intent.timeWindow, 'today');
+  assert.equal(intent.gameType, 'PLO');
+  assert.deepEqual(Array.from(intent.stakes), [1, 2]);
+  assert.equal(parse('Texas Holdem in Las Vegas').stateCode, null);
+  assert.equal(parse('Texas Holdem in Las Vegas').cleanQuery, 'las vegas');
+  assert.equal(parse('cash games in IL').cleanQuery, '');
+  assert.equal(parse('poker near me').stateCode, null);
+  assert.equal(parse('Virginia City NV').stateCode, 'NV');
+  assert.equal(parse('Virginia City NV').cleanQuery, 'virginia city');
+  assert.equal(parse("Hold'em tournaments in Chicago").gameType, 'NLH');
+  assert.equal(parse("Hold'em tournaments in Chicago").tournament, true);
+  assert.equal(parse("Hold'em tournaments in Chicago").cleanQuery, 'chicago');
+});
+
+test('date and stake filters require actual published evidence, never unknown or normalized dates', () => {
+  const { overlapsWindow, venueMatchesStakes } = searchHelpers();
+  const range = { start: new Date(2026, 2, 1), end: new Date(2026, 2, 3) };
+  assert.equal(overlapsWindow({}, range), false);
+  assert.equal(overlapsWindow({ start_date: '2026-02-30' }, range), false);
+  assert.equal(overlapsWindow({ start_date: '2026-03-01' }, range), true);
+  assert.equal(venueMatchesStakes({ stakes_cash: ['$1/$2', '$2/$5'] }, [1, 2]), true);
+  assert.equal(venueMatchesStakes({ stakes_cash: ['$1/$3'] }, [1, 2]), false);
+  assert.equal(venueMatchesStakes({}, [1, 2]), false);
+});
+
+test('typing and stale submit errors cannot overwrite the newest search or revive cleared suggestions', () => {
+  const src = read(SEARCH);
+  const typing = src.slice(src.indexOf('const handleInputChange ='), src.indexOf('// Full search on submit'));
+  assert.ok(typing.indexOf('clearTimeout(debounceRef.current)') < typing.indexOf('if (!val.trim())'));
+  assert.match(typing, /\+\+submitSeqRef\.current/);
+  assert.match(typing, /abortControllerRef\.current\.abort\(\)/);
+  const submit = src.slice(src.indexOf('const handleSubmit ='), src.indexOf('const handleHistoryClick'));
+  assert.match(submit, /signal\.aborted \|\| !isCurrentSubmit\(\)/);
+  assert.match(submit, /catch \(err\) \{\s*if \(!isCurrentSubmit\(\)\) return;/);
+  assert.match(submit, /if \(!isCurrentSubmit\(\)\) return;\s*\/\/ For tours/);
+});
+
+test('the actual submit callback refuses an older cached failure after a newer result', async () => {
+  const src = read(SEARCH);
+  const scope = vm.createContext({ Date, URLSearchParams, AbortController, console, clearTimeout, fuzzyMatchScore });
+  const pending = [];
+  const state = {};
+  Object.assign(scope, {
+    localQuery: '', userLocation: null, inputRef: { current: null },
+    submitSeqRef: { current: 0 }, debounceRef: { current: null }, abortControllerRef: { current: null },
+    cachedFetch: url => new Promise((resolve, reject) => pending.push({ url, resolve, reject })),
+    matchTours: () => [], matchSeries: () => [], useCallback: fn => fn,
+    setRecentSearches: () => {},
+  });
+  for (const name of ['Phase', 'IsLoading', 'SearchError', 'MissingFilterCoverage', 'VisibleResultCount', 'NameMatchFallback', 'CitySuggestions', 'DetailItem', 'NlIntent', 'SelectedIndex', 'VenueResults', 'TourResults', 'SeriesResults']) {
+    scope[`set${name}`] = value => { state[name] = value; };
+  }
+  vm.runInContext(src.slice(src.indexOf('const US_STATES ='), src.indexOf('// ─── Painted system'))
+    + src.slice(src.indexOf('const handleSubmit ='), src.indexOf('const handleSuggestionClick ='))
+    + ';this.submit=handleSubmit;', scope);
+  const older = scope.submit(null, 'old venue');
+  const newer = scope.submit(null, 'new venue');
+  pending[1].resolve({ data: [{ id: 2, name: 'New Venue' }], has_more: false });
+  await newer;
+  pending[0].reject(new Error('Late Old Failure'));
+  await older;
+  assert.equal(state.SearchError, false);
+  assert.equal(state.IsLoading, false);
+  assert.equal(state.VenueResults[0].id, 2);
+  const filtered = scope.submit(null, '1/2 PLO');
+  pending[2].resolve({ data: [
+    { id: 3, games_offered: ['PLO'], stakes_cash: ['$1/$2'] },
+    { id: 4, games_offered: [], stakes_cash: ['$1/$2'] },
+    { id: 5, games_offered: ['PLO'], stakes_cash: [] },
+  ], has_more: false });
+  await filtered;
+  assert.equal(state.VenueResults.length, 1);
+  assert.equal(state.MissingFilterCoverage, 2, 'combined filters retain the union of missing published evidence');
+
+  const typo = scope.submit(null, '1/2 PLO Bellago in NV');
+  pending[3].resolve({ data: [], has_more: false });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(pending.length, 5, 'an empty exact name search must read the filtered published directory for typo suggestions');
+  assert.match(pending[4].url, /state=NV/);
+  assert.doesNotMatch(pending[4].url, /search=/);
+  pending[4].resolve({ data: Array.from({ length: 200 }, (_, id) => ({ id, name: `Unrelated Room ${id}`, city: 'Reno' })), has_more: true, paging_source: 'database' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(pending[5].url, /offset=200/);
+  pending[5].resolve({ data: [{ id: 201, name: 'Bellagio', city: 'Las Vegas', games_offered: ['PLO'], stakes_cash: ['$1/$2'] }, { id: 202, name: 'Bellagio High Stakes', games_offered: ['PLO'], stakes_cash: ['$5/$10'] }], has_more: false, paging_source: 'database' });
+  await typo;
+  assert.equal(state.VenueResults.length, 1, 'a similar name never overrides the requested stakes or game type');
+  assert.equal(state.VenueResults[0].id, 201);
+  assert.equal(state.NameMatchFallback, true);
+
+  const invalidated = scope.submit(null, 'Bellago');
+  pending[6].resolve({ data: [], has_more: false });
+  await new Promise(resolve => setImmediate(resolve));
+  const latest = scope.submit(null, 'New Venue');
+  pending[8].resolve({ data: [{ id: 999, name: 'New Venue' }], has_more: false });
+  await latest;
+  pending[7].reject(new Error('Late Fuzzy Fallback Failure'));
+  await invalidated;
+  assert.equal(state.SearchError, false);
+  assert.equal(state.VenueResults[0].id, 999);
+  assert.equal(state.NameMatchFallback, false);
+});
+
+test('venue typo suggestions require every published name or city word and remain labelled', () => {
+  const { venueNameMatchScore: score } = searchHelpers();
+  assert.ok(Number.isFinite(score('Bellago Las Vgas', { name: 'Bellagio', city: 'Las Vegas' })));
+  assert.equal(score('Bellago Chicago', { name: 'Bellagio', city: 'Las Vegas' }), Infinity);
+  assert.equal(score('Las Las', { city: 'Las Vegas' }), Infinity);
+  assert.equal(score('Unpublished Room', {}), Infinity);
+  assert.equal(score('In', { name: 'Indianapolis Club' }), Infinity);
+  const src = read(SEARCH);
+  assert.match(src, /!venues\.length && apiQuery\.trim\(\)\.length >= 3/);
+  assert.match(src, /Closest Published Venue And City Name Matches/);
+  assert.match(src, /!isLoading && !searchError && nameMatchFallback/);
+});
+
+test('search exhausts published result pages before stakes filtering and refuses incomplete pages', async () => {
+  const { collectSearchVenuePages } = searchHelpers();
+  const first = { data: Array.from({ length: 200 }, (_, id) => ({ id })), total: 200, has_more: true };
+  const calls = [];
+  const rows = await collectSearchVenuePages(first, '/api/poker/venues?limit=200&offset=0&state=TX', async url => {
+    calls.push(url);
+    return { data: [{ id: 200, stakes_cash: ['1/2'] }], total: 1, has_more: false };
+  }, () => true);
+  assert.equal(rows.length, 201);
+  assert.match(calls[0], /offset=200/);
+  assert.match(calls[0], /state=TX/);
+  await assert.rejects(() => collectSearchVenuePages(first, '/api/poker/venues?limit=200', async () => ({ success: false }), () => true), /Unavailable/);
+  await assert.rejects(() => collectSearchVenuePages(first, '/api/poker/venues?limit=200', async () => first, () => true), /Incomplete/);
+  assert.equal(await collectSearchVenuePages(first, '/api/poker/venues', async () => { throw new Error('Must Not Read'); }, () => false), null);
+  const projected = await collectSearchVenuePages({ data: [], total: 0, has_more: true }, '/api/poker/venues?limit=200', async () => ({ data: [{ id: 201 }], total: 1, has_more: false }), () => true);
+  assert.equal(projected[0].id, 201, 'an empty projected page is not underlying exhaustion');
+  const legacyCalls = [];
+  const legacy = await collectSearchVenuePages({ ...first, has_more: undefined }, '/api/poker/venues?limit=200', async url => { legacyCalls.push(url); return { data: [], total: 0 }; }, () => true);
+  assert.equal(legacy.length, 200);
+  assert.equal(legacyCalls.length, 1, 'legacy page-local totals never imply complete inventory');
+  const fallbackCalls = [];
+  const fallbackFirst = { ...first, paging_source: 'snapshot' };
+  const fallback = await collectSearchVenuePages(fallbackFirst, '/api/poker/venues?limit=200', async url => {
+    fallbackCalls.push(url);
+    return { data: [{ id: 200 }], total: 1, has_more: false, paging_source: 'snapshot' };
+  }, () => true);
+  assert.equal(fallback.length, 201);
+  assert.match(fallbackCalls[0], /listing_source=snapshot/);
+  await assert.rejects(() => collectSearchVenuePages(fallbackFirst, '/api/poker/venues?limit=200', async () => ({ data: [], has_more: false, paging_source: 'database' }), () => true), /Source Changed/);
+  await assert.rejects(() => collectSearchVenuePages({ data: [], degraded: true }, '/api/poker/venues', async () => null, () => true), /Unavailable/);
+});
+
+test('filter-only queries search the full event collection before applying dates', () => {
+  const src = read(SEARCH);
+  const scope = vm.createContext({ useCallback: fn => fn, allSeries: [{ id: 1, name: 'Venetian DeepStack', start_date: '2026-10-10' }], allTours: [{ id: 2 }], fuzzyMatchScore: () => 99 });
+  vm.runInContext(src.slice(src.indexOf('const matchTours ='), src.indexOf('// Handle typing')) + ';this.matches={matchTours,matchSeries};', scope);
+  assert.equal(scope.matches.matchSeries('', Infinity)[0].id, 1);
+  assert.equal(scope.matches.matchTours('', Infinity)[0].id, 2);
+  assert.match(src, /const keyword = apiQuery \|\| '';/);
+  const { parseNaturalLanguageQuery, tourMatchesDiscoveryFilters } = searchHelpers();
+  assert.equal(parseNaturalLanguageQuery('tournaments tonight in Nevada').cleanQuery, '');
+  const range = { start: new Date(2026, 9, 10), end: new Date(2026, 9, 11) };
+  assert.equal(tourMatchesDiscoveryFilters({ stops_2026: [{ state: 'NV', start_date: '2026-10-10' }] }, 'NV', range), true);
+  assert.equal(tourMatchesDiscoveryFilters({ stops_2026: [{ state: 'TX', start_date: '2026-10-10' }] }, 'NV', range), false);
+  assert.equal(tourMatchesDiscoveryFilters({ stops_2026: [{ state: 'NV' }] }, 'NV', range), false);
+  const api = read('pages/api/poker/venues.js');
+  assert.match(api, /hasMore = \(dbVenues \|\| \[\]\)\.length === maxResults/);
+  assert.match(api, /hasMore = venues\.length > offset \+ maxResults/);
+  assert.match(api, /has_more: hasMore/);
+  assert.match(api, /if \(req\.query\.listing_source !== 'snapshot'\) \{/);
+  assert.match(api, /paging_source: pagingSource/);
+  assert.match(api, /order\('id', \{ ascending: true \}\)/);
+});
 
 const GENERIC_CHROME = /<svg\b|(?:linear|radial|conic)-gradient\(|borderRadius|boxShadow|backdropFilter|WebkitBackdropFilter/;
 

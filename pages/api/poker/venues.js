@@ -834,6 +834,8 @@ export default async function handler(req, res) {
           requestMaxResults = maxResults;
           requestFilters = { id, state, city, type: effectiveType, tournaments, search, featured };
           let venues = [];
+          let hasMore = false;
+          let pagingSource = 'database';
 
           if (id) {
               const sb = getSupabase();
@@ -1074,6 +1076,7 @@ export default async function handler(req, res) {
           } else {
               // --- Venue listing: Supabase-first (live 500+ venue dataset) ---
               let usedSupabase = false;
+              if (req.query.listing_source !== 'snapshot') {
               try {
                   let q = getSupabase()
                       .from('poker_venues')
@@ -1172,6 +1175,7 @@ export default async function handler(req, res) {
 
                   // No artificial cap — return ALL venues
                   q = q.order('trust_score', { ascending: false, nullsFirst: false }).range(offset, offset + maxResults - 1);
+                  q = q.order('id', { ascending: true });
                   const { data: dbVenues, error: dbErr, count: dbCount } = await q;
 
                   // A successful query is authoritative even when it returns 0 rows for a
@@ -1182,12 +1186,14 @@ export default async function handler(req, res) {
                   // dataset — that fallback covers venues the DB does not carry, and
                   // removing it would blank out the listing entirely.
                   if (!dbErr && (offset > 0 || (dbVenues && dbVenues.length > 0))) {
+                      hasMore = (dbVenues || []).length === maxResults;
                       // Exclude "Harrahs Joliet" — confirmed no poker room at this location
                       venues = (dbVenues || []).filter(v => !(v.name?.toLowerCase().includes('harrah') && v.name?.toLowerCase().includes('joliet')));
                       usedSupabase = true;
                   }
               } catch (dbErr) {
                   console.warn('[venues] Supabase query failed, falling back to JSON:', dbErr.message);
+              }
               }
 
               // JSON fallback if Supabase returned nothing
@@ -1206,6 +1212,8 @@ export default async function handler(req, res) {
               // the whole nationwide file on every request. Page it the same way the
               // Supabase branch is paged (which happens in .range()).
               if (!usedSupabase) {
+                  pagingSource = 'snapshot';
+                  hasMore = venues.length > offset + maxResults;
                   venues = venues.slice(offset, offset + maxResults);
               }
 
@@ -2303,6 +2311,8 @@ export default async function handler(req, res) {
               hasGpsData: hasGps,
               viewport: viewportBounds,
               offset,
+              has_more: hasMore,
+              paging_source: pagingSource,
               data_integrity: integritySummary,
           });
       } catch (error) {

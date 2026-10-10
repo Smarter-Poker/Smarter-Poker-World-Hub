@@ -3874,10 +3874,14 @@ function SocialMediaPage() {
     const onTouchMove = (e) => {
       if (!startY || window.scrollY > 10) return;
       const dy = e.touches[0].clientY - startY;
-      if (dy > 60 && pullRefreshStateRef.current === 'idle') setPullRefreshState('pulling');
+      if (dy > 60 && pullRefreshStateRef.current === 'idle') {
+        pullRefreshStateRef.current = 'pulling';
+        setPullRefreshState('pulling');
+      }
     };
     const onTouchEnd = async () => {
       if (pullRefreshStateRef.current === 'pulling') {
+        pullRefreshStateRef.current = 'refreshing';
         setPullRefreshState('refreshing');
         // BUG-02 FIX: use loadFeedRef so we always call the latest closure (not mount-time stale capture)
         try {
@@ -3885,6 +3889,7 @@ function SocialMediaPage() {
         } catch (e) {
           console.warn('[App] Handled exception:', e);
         }
+        pullRefreshStateRef.current = 'idle';
         setPullRefreshState('idle');
       }
       startY = 0;

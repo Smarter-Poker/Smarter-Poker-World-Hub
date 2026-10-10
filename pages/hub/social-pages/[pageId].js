@@ -462,12 +462,14 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
             {/* Link Preview — upgraded to SharedLinkPreviewCard from social-media */}
             {post.link_preview && post.link_preview.url && (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={spKeyActivate} onClick={() => onOpenArticle?.({ open: true, url: post.link_preview.url, title: post.link_preview.title || 'Article' })} style={{ cursor: 'pointer' }}>
-                    <SharedLinkPreviewCard url={post.link_preview.url} />
-                </div>
+                <SharedLinkPreviewCard
+                    url={post.link_preview.url}
+                    title={post.link_preview.title}
+                    description={post.link_preview.description}
+                    image={post.link_preview.image}
+                    siteName={post.link_preview.siteName || post.link_preview.site_name}
+                    onClick={onOpenArticle ? (url, title) => onOpenArticle({ open: true, url, title }) : undefined}
+                />
             )}
 
             {/* Check-in venue badge (feature parity with social-media) */}

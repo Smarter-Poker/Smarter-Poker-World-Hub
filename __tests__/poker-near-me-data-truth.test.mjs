@@ -35,6 +35,10 @@ test('point-date series remains scheduled until the venue calendar day ends', ()
 test('schedule verification never substitutes request generation for source evidence', () => {
   assert.equal(sourceVerificationTime(null), null);
   assert.equal(sourceVerificationTime('invalid'), null);
+  assert.equal(sourceVerificationTime('2026-02-30T00:00:00Z'), null);
+  assert.equal(sourceVerificationTime('2025-02-29T00:00:00Z'), null);
+  assert.equal(sourceVerificationTime('2026-10-10T24:00:00Z'), null);
+  assert.equal(sourceVerificationTime('2024-02-29T23:59:59Z'), '2024-02-29T23:59:59.000Z');
   assert.equal(sourceVerificationTime('2026-10-10T00:00:00'), null);
   assert.equal(sourceVerificationTime('2026-10-10T00:00:00-07:00', new Date('2026-10-10T08:00:00Z')), '2026-10-10T07:00:00.000Z');
   assert.equal(sourceVerificationTime('2099-01-01T00:00:00Z'), null);
