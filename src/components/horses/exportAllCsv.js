@@ -12,6 +12,7 @@
  * download is the only side effect and it lives in the wrapper.
  */
 import { toCsv, downloadCsv, stampedName } from '../../lib/horsesAdminTokens.js';
+import { requestExportArtifact } from './exportArtifactClient.js';
 
 /**
  * Walk fetchPage(offset, limit) until every row is collected.
@@ -71,7 +72,11 @@ export default async function exportAllCsv({
   onProgress,
   jsonColumns = [],
   recordCompletion,
+  authFetch,
+  artifactSurface,
+  artifactFilters = {},
 }) {
+  if (artifactSurface) return requestExportArtifact(authFetch, artifactSurface, artifactFilters);
   const jsonKeys = new Set(jsonColumns);
   const { rows, total, complete } = await collectAllRows(fetchPage, { limit, maxPages, onProgress });
 

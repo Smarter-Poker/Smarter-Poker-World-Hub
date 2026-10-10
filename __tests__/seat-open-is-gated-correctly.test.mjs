@@ -33,7 +33,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -167,27 +167,30 @@ test('an unknown push type is refused, not silently discarded', () => {
     );
 });
 
-test('the engine still writes the event this file is built around', () => {
-    // The single assumption everything above rests on. Club Arena is a
-    // separate repo and a separate runtime, so nothing else here would notice
-    // if that string were renamed -- it would just quietly stop being gated
-    // again. Skipped rather than failed when the sibling checkout is absent,
-    // because CI clones only this repo.
-    const enginePath = join(
-        ROOT,
-        '..',
-        'club-arena',
-        'server/src/services/supabase/seats.ts'
-    );
+test('the engine reaches the current database owner that writes the seat-open event', () => {
+    const sibling = join(ROOT, '..', 'club-arena');
     let engine;
-    try {
-        engine = readFileSync(enginePath, 'utf8');
-    } catch {
-        return; // sibling repo not checked out -- nothing to assert against
+    try { engine = readFileSync(join(sibling, 'server/src/services/supabase/seats.ts'), 'utf8'); }
+    catch { return; } // The hosted World Hub checkout has no sibling runtime.
+    assert.match(engine, /supabase\.rpc\('fn_offer_open_seat'/,
+        'the engine no longer reaches the canonical offer transaction');
+    const candidates = readdirSync(join(sibling, 'supabase/migrations')).filter((name) => name.endsWith('.sql')).sort().reverse();
+    let owner;
+    for (const name of candidates) {
+        const sql = readFileSync(join(sibling, 'supabase/migrations', name), 'utf8');
+        const match = /CREATE(?: OR REPLACE)? FUNCTION public\.fn_offer_open_seat\s*\(/i.exec(sql);
+        if (!match) continue;
+        const tail = sql.slice(match.index);
+        const delimiter = /\bAS\s+(\$\w*\$)/i.exec(tail);
+        assert.ok(delimiter, 'offer owner has no inspectable function body');
+        const end = tail.indexOf(delimiter[1], delimiter.index + delimiter[0].length);
+        assert.ok(end >= 0, 'offer owner function body is incomplete');
+        owner = tail.slice(0, end + delimiter[1].length);
+        break;
     }
-    assert.match(
-        engine,
-        new RegExp(`['"]${ENGINE_EVENT}['"]`),
-        'the engine no longer writes waitlist_seat_open -- update EVENT_ALIASES'
-    );
+    assert.ok(owner, 'the canonical offer transaction definition is missing');
+    assert.match(owner, new RegExp(`['"]${ENGINE_EVENT}['"]`),
+        'the canonical offer transaction no longer writes the gated event');
+    assert.match(owner, /notifications|fn_enqueue_notification/i,
+        'the event is not connected to a notification owner');
 });

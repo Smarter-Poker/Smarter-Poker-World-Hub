@@ -1,50 +1,21 @@
 import React, { useState } from 'react';
 import styles from './shared.module.css';
-import { downloadCsv, stampedName, toCsv } from '../../lib/horsesAdminTokens';
+import { requestExportArtifact } from './exportArtifactClient';
 
-async function sha256(value) {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-export default function EconomyExport({
-  rows = [], columns = [], label = 'Export Report', filenamePrefix = 'economy-report',
-  cap = 100000, complete = true, total = null, authFetch, filters = {},
-}) {
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [state, setState] = useState({ busy: false, error: '', receipt: null });
-  const truncated = complete === false;
-  const download = async () => {
-    if (truncated && !acknowledged) { setAcknowledged(true); return; }
-    if (!authFetch) { setState({ busy: false, error: 'A Recorded Export Path Is Not Available', receipt: null }); return; }
-    setState({ busy: true, error: '', receipt: null });
-    const knownTotal = Number.isFinite(Number(total)) ? ` TOTAL ROWS REPORTED ${Number(total)}.` : ' TOTAL ROWS UNKNOWN.';
-    const marker = truncated ? [{ __report_state: `TRUNCATED EXPORT. ${rows.length} ROWS EXPORTED.${knownTotal} SAFETY CAP ${cap}.` }] : [];
-    const exportColumns = truncated ? [['__report_state', 'Report State'], ...columns] : columns;
-    const name = stampedName(`${filenamePrefix}-${truncated ? 'truncated' : 'complete'}`);
-    const csv = toCsv([...marker, ...rows], exportColumns);
+export default function EconomyExport({ rows = [], label = 'Export Report', filenamePrefix = 'economy-report', authFetch, filters = {} }) {
+  const [state, setState] = useState({ busy: false, error: '', job: null });
+  const request = async () => {
+    setState({ busy: true, error: '', job: null });
     try {
-      const answer = await authFetch('/api/horses/economy-admin', { method: 'POST', body: JSON.stringify({
-        action: 'record_export_prepared', opId: globalThis.crypto.randomUUID(), surface: filenamePrefix,
-        filters, rowCount: rows.length, complete: !truncated, contentSha256: await sha256(csv), byteSize: new TextEncoder().encode(csv).byteLength,
-      }) });
-      downloadCsv(name, csv);
-      setState({ busy: false, error: '', receipt: answer?.receipt?.id || 'Recorded' });
-    } catch (error) {
-      setState({ busy: false, error: error?.message || 'The Export Receipt Could Not Be Recorded', receipt: null });
-    }
+      const result = await requestExportArtifact(authFetch, filenamePrefix, filters);
+      setState({ busy: false, error: '', job: result.jobId });
+    } catch (error) { setState({ busy: false, error: error?.message || 'The Export Outcome Could Not Be Confirmed', job: null }); }
   };
-  return (
-    <div className={styles.opsExportBox}>
-      <div className={styles.infoNote}>A Durable Prepared Receipt Is Recorded Before The Browser Download Is Requested.</div>
-      {state.error ? <div className={styles.errorNote} role="alert">{state.error}</div> : null}
-      {state.receipt ? <div className={styles.goodNote} role="status">Prepared Receipt Recorded: {state.receipt}. Browser Download Requested.</div> : null}
-      {truncated && !acknowledged ? <div className={styles.errorNote} role="alert">This Export Is Incomplete. Confirm Once To Prepare The Truncated File.</div> : null}
-      <button type="button" className={styles.btn} onClick={download} disabled={!rows.length || state.busy}>
-        {truncated && !acknowledged ? 'Acknowledge Truncated Export' : `${label} (${rows.length} Rows)`}
-      </button>
-      <div className={styles.fieldHint}>Safety Cap: {cap.toLocaleString()} Rows. {total === null ? 'Total Rows Unknown.' : `${Number(total).toLocaleString()} Total Rows Reported.`}</div>
-    </div>
-  );
+  return <div className={styles.opsExportBox}>
+    <div className={styles.infoNote}>Generate A Private Server Report From The Authoritative Source. Its SHA-256, Completeness And Expiry Are Recorded.</div>
+    {state.error ? <div className={styles.errorNote} role="alert">{state.error}</div> : null}
+    {state.job ? <div className={styles.infoNote} role="status">Export Job Recorded: {state.job}. Open Export Files To Read Status And Download.</div> : null}
+    <button type="button" className={styles.btn} onClick={request} disabled={state.busy}>{state.busy ? 'Recording Export Request' : label}</button>
+    <div className={styles.fieldHint}>{rows.length} Rows On Screen. Server Safety Cap: 20,000 Rows And 16 MB. Incomplete Files Require Acknowledgement.</div>
+  </div>;
 }

@@ -257,6 +257,7 @@ export default function FleetPanel({
     try {
       const result = await exportAllCsv({
         filenamePrefix: 'fleet-roster',
+        authFetch, artifactSurface: 'fleet-roster', artifactFilters: roster.filters,
         limit: EXPORT_PAGE_SIZE,
         onProgress: (p) => setExporting(p),
         // THE WHOLE FILTERED SET, not the page on screen. The filters are the
@@ -291,7 +292,7 @@ export default function FleetPanel({
         ],
       });
       showNotification(
-        result.complete
+        result.queued ? `Export Job ${result.jobId} Recorded. Open Export Files For Status And Download.` : result.complete
           ? `Exported ${num(result.exported)} Roster Rows`
           : `Exported ${num(result.exported)} Roster Rows. The Export Stopped At Its Page Cap And Is Incomplete.`,
         result.complete ? 'success' : 'info',

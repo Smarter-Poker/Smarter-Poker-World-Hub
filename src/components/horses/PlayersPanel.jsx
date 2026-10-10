@@ -56,6 +56,7 @@ import {
   ticketsUrl,
   enforcedOf,
   liftBody,
+  forceLogoutBody,
   newRestrictionOpId,
   noteAddBody,
   noteDeleteBody,
@@ -723,6 +724,7 @@ export default function PlayersPanel({
                   expiresAt: '',
                   opId: newRestrictionOpId(),
                 })}
+              onForceLogout={(draft) => post(forceLogoutBody({ userId: player.profile.id, ...draft }), 'Session Control Applied')}
               onLift={(id) => post(liftBody({ restrictionId: id }), 'Restriction Lifted')
                 .then((ok) => { if (ok && restrictionList.loaded) restrictionList.refresh(); })}
               onNoteAdd={(text) => post(noteAddBody({ userId: player.profile.id, body: text }), 'Note Saved')}
@@ -1211,6 +1213,7 @@ function Player360({
   canWritePlayers,
   busy,
   onRestrict,
+  onForceLogout,
   onLift,
   onNoteAdd,
   onNoteDelete,
@@ -1219,6 +1222,7 @@ function Player360({
   onRgSet,
 }) {
   const p = player.profile;
+  const [logoutDraft, setLogoutDraft] = useState(null);
   const [noteDraft, setNoteDraft] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const [liftTarget, setLiftTarget] = useState(null);
@@ -1247,6 +1251,20 @@ function Player360({
             </button>
           )}
         </div>
+
+        {canModerate && <button type="button" className={styles.btnDanger} disabled={busy}
+          onClick={() => setLogoutDraft({ note: '', opId: newRestrictionOpId() })}>End Existing Sessions</button>}
+        {logoutDraft && <div className={styles.card} role="group" aria-label="End Existing Sessions">
+          <EnforcementBanner enforced={enforced} />
+          <p className={styles.cardNote}>Ends Existing Sessions On Every Device. Current Hands Finish Safely. The Player Can Sign In Again.</p>
+          <label className={styles.fieldLabel} htmlFor="logout-reason">Reason</label>
+          <textarea id="logout-reason" className={styles.input} value={logoutDraft.note} maxLength={2000}
+            onChange={(e) => setLogoutDraft({ ...logoutDraft, note: e.target.value })} />
+          <button type="button" className={styles.btnDanger} disabled={busy || !logoutDraft.note.trim()}
+            onClick={async () => { const result = await onForceLogout(logoutDraft); if (result) setLogoutDraft(null); }}>
+            {enforced === true ? 'End Existing Sessions' : 'Record Logout Request'}</button>
+          <button type="button" className={styles.btn} disabled={busy} onClick={() => setLogoutDraft(null)}>Cancel</button>
+        </div>}
 
         <div className={styles.kpiGrid}>
           <KpiTile label="Clubs" value={num(clubs.length)} />

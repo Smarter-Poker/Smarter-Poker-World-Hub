@@ -46,6 +46,7 @@ export const APPROVAL_KINDS = [
   ['cashout', 'Cashout'],
   ['fleet_policy', 'Fleet Policy'],
   ['sanction', 'Sanction'],
+  ['tournament_cancel', 'Tournament Cancellation And Refund'],
 ];
 
 export const APPROVAL_STATUSES = [
@@ -86,6 +87,7 @@ export const KIND_PERMISSIONS = {
   fleet_policy: 'fleet.write',
   sanction: 'moderation.write',
   daily_close: 'money.write',
+  tournament_cancel: 'money.write',
 };
 
 export function permissionForKind(kind) {

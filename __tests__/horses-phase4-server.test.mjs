@@ -199,15 +199,11 @@ test('the scopes that claim to be enforced are the ones with a guard', () => {
     'SCOPE_META.enforced and ENFORCED_SCOPES must agree, or the panel tells an operator a '
       + 'scope bites when no guard watches it'
   );
-  // transfers and social are recorded only, and the panel must say so.
-  assert.equal(SCOPE_META.transfers.enforced, false);
-  assert.equal(SCOPE_META.social.enforced, false);
-  assert.equal(SCOPE_META.account.enforced, false);
-  assert.equal(SCOPE_META.account.partial, true);
-  assert.match(SCOPE_META.account.blurb, /Cash And Tournament Entry Are Guarded/);
-  assert.match(SCOPE_META.account.blurb, /Transfers And Social Are Recorded Only/);
-  assert.match(SCOPE_META.transfers.blurb, /Recorded Only/);
-  assert.match(SCOPE_META.social.blurb, /Recorded Only/);
+  for (const scope of RESTRICTION_SCOPES) assert.equal(SCOPE_META[scope].enforced, true);
+  assert.equal(SCOPE_META.account.partial, false);
+  assert.match(SCOPE_META.account.blurb, /Transfers And Social Actions Are Guarded/);
+  assert.match(SCOPE_META.transfers.blurb, /Send Chips, Diamonds Or Stream Gifts/);
+  assert.match(SCOPE_META.social.blurb, /Publish, Comment, React, Message/);
 });
 
 test('every responsible-gaming field declares which direction is tighter', () => {
@@ -260,7 +256,7 @@ test('the route declares its floor and each action asks for its own', () => {
 test('the approval gate runs BEFORE the write it gates', () => {
   const body = route.slice(route.indexOf('async function actionRestrict'));
   const gateAt = body.indexOf('requireApproval(');
-  const writeAt = body.indexOf("'fn_ca_player_restrict'");
+  const writeAt = body.indexOf("'fn_ca_player_control_once'");
   assert.ok(gateAt > -1, 'actionRestrict does not call requireApproval');
   assert.ok(writeAt > -1, 'actionRestrict does not call fn_ca_player_restrict');
   assert.ok(
@@ -300,10 +296,10 @@ test('what the operator is told is derived from the LIVE switch', () => {
     /Recorded And Observed, Not Refused/,
     'with enforcement off the operator must be told the restriction refuses nothing'
   );
-  assert.match(fn, /scope === 'cash' \|\| scope === 'tournaments'/,
-    'only the two concrete guarded surfaces may promise that new entries are refused');
-  assert.match(fn, /Transfers And Social Are Recorded Only/,
-    'whole-account copy must disclose its partial enforcement coverage');
+  assert.match(fn, /RESTRICTION_SCOPES.includes\(scope\)/,
+    'only maintained guarded scopes may promise enforcement');
+  assert.match(fn, /New Cash And Tournament Entries, Transfers And Social Actions/,
+    'whole-account copy discloses concrete coverage');
   assert.match(
     fn,
     /Could Not Be Read, So Assume Nothing/,
@@ -463,7 +459,7 @@ test('an approved sanction is recorded on the row and closed in the queue', () =
     'approval_id was hardcoded null, so the one link between a sanction and the second '
       + 'pair of eyes that authorised it was never written'
   );
-  assert.match(body, /p_approval_id: gate\.required \? \(approvalIdOf\(approvalRef\)/);
+  assert.match(body, /approvalId: gate\.required \? \(approvalIdOf\(approvalRef\)/);
   assert.match(
     body,
     /markApprovalExecuted\(op, approvalRef\.approvalId/,
@@ -519,8 +515,8 @@ test('a note that is too long says so, instead of reading as absent', () => {
   // Every note field goes through it.
   assert.equal(
     (routeCode.match(/noteOrThrow\(/g) || []).length,
-    4,
-    'the helper plus its three call sites: restrict, lift and report_review'
+    5,
+    'the helper plus restrict, lift, report_review and force_logout'
   );
 });
 

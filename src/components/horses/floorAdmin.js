@@ -124,6 +124,7 @@ export function floorDisclosure(body) {
 
 export function exportState(result) {
   if (!result) return { state: 'export.idle', message: '' };
+  if (result.queued) return { state: 'export.queued', message: `Export Job ${result.jobId} Recorded. Open Export Files For Status And Download.` };
   if (result.running) return { state: 'export.running', message: `${result.fetched ?? 0} Of ${result.total ?? 'Unknown'} Rows Collected` };
   if (result.error) return { state: 'export.failed', message: 'The Export Could Not Be Completed.' };
   if (result.complete === false) return { state: 'export.truncated', message: `The Export Hit Its Safety Cap After ${result.exported ?? 0} Rows. The File Is Incomplete.` };

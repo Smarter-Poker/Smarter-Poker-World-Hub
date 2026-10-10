@@ -1,5 +1,94 @@
 # Stable Admin Phase 11 Closeout
 
+## Authorized Remaining-Capability Continuation, October 9, 2026
+
+Owner instruction: "YES, GET ALL 6 OF THESE BUILT AND FINISHED SO WE CAN LAUNCH".
+This explicitly expands the completed oversight assignment to P3, O1, O2, O7,
+C2 and C4. The prior protected delivery and installed migrations remain intact.
+No capability is re-scored from this authorization alone.
+
+Operation owner: this continuation chat. Fresh owned SSD checkouts:
+`/Volumes/SmarterWork/agent-work/stable-admin-six-20261009/world-hub` at
+`77c4e5965a85deb5de82dff65ff505f6c125bf7c` and sibling `club-arena` at
+`00703e4dea878d70ab3835c9555bd60c88267358`.
+Both branches are `agent/codex/stable-admin-six-20261009`.
+Evidence: `/Volumes/SmarterArchives/agent-evidence/stable-admin-six-20261009`.
+The original dirty worktree is preserved; the completed continuation was
+already removed by its owner. No existing release operation is retried.
+
+Canonical policies freshly emitted and read at `2026-10-10T04:52:27.953Z`,
+version 2.9, manifest and source hashes match the recorded receipt below.
+Storage was read and both SSD volumes verified mounted with free space.
+Both repository AGENTS, CLAUDE, AGENT-PLAYBOOK and PUBLISHING references,
+the current checkpoint, migration-safety and installation mechanism were read.
+Phase 1-10 reference recovery is complete, including the Phase 7 and permission
+matrix gaps. The complete maintenance programme handoff, engine programme and owning
+deployment references were freshly read on this resumption. Historical
+scheduler and autopilot procedures remain superseded by current owner policy.
+
+| Subphase | Contract | Current State | Required Completion Evidence |
+| --- | --- | --- | --- |
+| R1 / P3 | Restriction and forced-logout enforcement in owning transactions, sessions and consumers; preserve enforcement policy | Investigation / Implementation | Isolated allowed/refused, expiry/lift, duplicate/race, session/reconnect tests; exact migration and client/engine/API live proof |
+| R2 / O1 | Durable floor pause, park and eligible cash-table boundary close through engine owner | Investigation / Implementation | Safe hand/stack preservation and durable recovery, authenticated command/status tests; engine and console delivery |
+| R3 / O2 | Existing-owner tournament cancel/refund workflow within its eligibility policy | Investigation / Implementation | Atomic refund/idempotency, running/settled refusal, approval and returned receipt; installation and live consumer proof |
+| R4 / O7 | Private durable asynchronously generated export artifacts with authorized download/status/cancel and honest bounds | Investigation / Implementation | Stable data/cap/hash, failed upload/crash/resume, duplicate/IDOR/expiry/revocation tests; private storage and live artifact proof |
+| R5 / C2 | Authenticated commands in existing global maintenance owner/state machine | Investigation / Implementation | Announce/drain/freeze/thaw and durable safe cancellation/refusal/recovery; isolated tests and sealed engine publication |
+| R6 / C4 | Registration, positive-issuance and dedicated cashout stops in every original consumer | Investigation / Implementation | Full consumer inventory, fail-closed/race/idempotency/audit/permission tests; refunds/recovery retained; exact installed and live guards |
+| R7 | Integrated console, 83-gap score and delivery | Pending Product Qualification | Required checks, protected merges, exact installed/provider/live proof, affected 375px/desktop catalogue, honest final documentation and owned cleanup |
+
+Changes use existing canonical services. No watcher, scheduled repair, alternate
+publisher, duplicate money writer, production control toggle or active player
+fixture supplies correctness or certification. Existing policy-controlled
+enforcement remains unchanged. Deployment components are classified separately;
+only actual engine replacement uses certified maintenance activation.
+
+### Six-Capability Candidate Qualification, 2026-10-10 04:47 UTC
+
+All six have connected candidate implementations. Club Arena candidate
+`87b75a340d` integrated current protected main `e057b9d71b` as
+`ba2557a2b6`, preserving its funding qualification and theme changes.
+Neither repository candidate is pushed, protected-merged, installed, published
+or certified live yet. Earlier records below describe the oversight release.
+
+- World Hub affected suite: 1,233 passed and one documentation punctuation
+  failure. That documentation was corrected; its six-case group now passes.
+  Final source build passed all 507 pages and bundle budgets. The new control
+  browser suite is still under qualification at desktop and 375px.
+- Club Arena broad client suite: 35,021 passed, three failed, one existing
+  skipped case. All three affected files now pass 23/23 after the actual
+  post-rest engine timing correction and reviewed additive workflow pin.
+  Required accounting routing passed 690/690; all 821 binding pins validate;
+  cash manifest contracts pass 6/6. Client build and server typecheck passed.
+- The first full engine run had 64 failures, including database fixtures that
+  omitted the new floor-state read and the local native host limitation.
+  Nine connected fixtures were repaired without changing fail-closed source;
+  the affected group passes 115/115. The native rebuy runner now uses caller
+  SSD scratch and passes all 15 real money scenarios. Final full run pending.
+- Native PostgreSQL 17 exact-source qualifications now pass locally:
+  player restriction commit/admission ordering and duplicate logout;
+  private export schema/privacy/transitions and concurrent claims;
+  floor original-owner, admission/park and cashout races;
+  tournament cancellation and emergency stops, 101 assertion groups,
+  actual chip/Diamond refund owners, late-fault rollback, maker-checker,
+  both real-session stop orderings and duplicate refund exactly once.
+  Initial shared-memory exhaustion is retained as a failed environment attempt;
+  sequential native execution succeeded without touching foreign clusters.
+- Existing required hosted PostgreSQL accounting shards and World Hub safety
+  checks enforce the same native qualifications. Hosted results, protected
+  merges, exact migration installation, normal component publication and
+  genuine live proof remain required.
+
+Evidence is under the assigned external archive. Source fingerprint updates
+preserve prior assertions, authorities, fixtures and qualification statuses.
+No alternate publisher, production fixture, financial write or control toggle
+supplied qualification. PGlite remains provisional evidence only.
+
+### Final candidate blocker recovery, 2026-10-10 04:56 UTC
+
+Full World Hub affected suite passes 1,246/1,246. Full engine suite passes 21,952 tests with 168 existing skipped cases (1,267 passed files, one skipped). CA ordinary push of 6d594fb2b9 was correctly refused: two actual floor migration omissions and one stale active cash manifest pin. Resume now targets its singleton hold by id; the same uninstalled migration declares its seat guard with prerequisite/postflight checks. Native PG17 floor original-owner/admission/cashout-race qualification passes again after those changes. Cash manifest 6/6 and 821 source bindings pass after refreshing only the actual formatted active test fingerprint, retaining historical records. Failed trusted money-trigger recovery run 38025342420 remains failed; no recovery-policy change supplies correctness.
+
+Desktop browser diagnosis proved the emergency-stop state and DOM persisted but the shared mobile-only opsCards CSS hid commands above 768px. Its owning grid now uses the existing opsCardsAlways class. Eight scope/layout regressions and lint pass; production rebuild and final desktop/375px 30-case suite are running. No browser pass or launch verdict is claimed until they complete. Canonical repository, storage, migration and complete maintenance references freshly reread at this resumption; all canonical hashes remain unchanged.
+
 Status: Runtime repair is protected-merged, published and verified live within
 the declared oversight scope. Final documentation protected integration is
 pending; this draft does not claim that documentation has merged.

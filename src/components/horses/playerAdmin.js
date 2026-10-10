@@ -179,8 +179,8 @@ export function restrictBody({ userId, scope, reasonCode, note, expiresAt, opId 
   };
 }
 
-export function liftBody({ restrictionId, note }) {
-  return { action: 'lift', restrictionId, note: note ? String(note).trim() : null };
+export function liftBody({ restrictionId, note, opId }) {
+  return { action: 'lift', restrictionId, note: note ? String(note).trim() : null, opId: opId || `lift-${restrictionId}` };
 }
 
 export function noteAddBody({ userId, body, pinned }) {
@@ -242,4 +242,8 @@ export function enforcedOf(payload) {
   if (payload?.enforced === true) return true;
   if (payload?.enforced === false) return false;
   return null;
+}
+
+export function forceLogoutBody({ userId, note, opId }) {
+  return { action: 'force_logout', userId, note: String(note || '').trim(), opId };
 }

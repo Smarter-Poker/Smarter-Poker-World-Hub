@@ -294,6 +294,15 @@ jobs:
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
 
+      - name: Stable Admin Restrictions And Private Exports Native PostgreSQL 17
+        env:
+          PLAYER_CONTROL_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+          PG_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          node scripts/qualify-player-control-pg17.mjs
+          node scripts/qualify-operator-export-artifacts-pg17.mjs
+
       - name: Caption Model Budget PostgreSQL 17 Contracts
         env:
           PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
@@ -1227,6 +1236,15 @@ jobs:
             __tests__/horses-phase8-server.test.mjs \
             __tests__/horses-phase8-the-console-never-invents-authority.law.test.mjs \
             __tests__/horses-phase10-documentation.test.mjs \
+            __tests__/horses-export-artifacts.test.mjs \
+            __tests__/horses-export-artifacts-review.test.mjs \
+            __tests__/horses-export-worker.test.mjs \
+            __tests__/horses-export-api.test.mjs \
+            __tests__/horses-engine-control.test.mjs \
+            __tests__/horses-engine-control-scope.test.mjs \
+            __tests__/horses-transaction-controls-scope.test.mjs \
+            __tests__/player-session-access.test.mjs \
+            __tests__/stable-admin-cancel-stops.test.mjs \
             __tests__/horses-phase11-finance-records.test.mjs \
             __tests__/horses-phase11-identity-links.test.mjs \
             __tests__/horses-phase11-incident-acknowledgement.test.mjs \

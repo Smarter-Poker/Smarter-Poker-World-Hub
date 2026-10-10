@@ -1,3 +1,4 @@
+import EngineControlPanel from './EngineControlPanel';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import DataTable from './DataTable';
 import Pager from './Pager';
@@ -15,7 +16,7 @@ function scopeText(row = {}) {
   return row.union_name ? `${row.union_name} / ${club}` : club;
 }
 
-export default function FloorPanel({ authFetch }) {
+export default function FloorPanel({ authFetch, permissions = [] }) {
   const [body, setBody] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,6 +54,7 @@ export default function FloorPanel({ authFetch }) {
     try {
       const result = await exportAllCsv({
         filenamePrefix: 'stable-live-floor',
+        authFetch, artifactSurface: 'stable-live-floor', artifactFilters: {},
         columns: FLOOR_COLUMNS,
         fetchPage: async (offset, limit) => {
           const page = await authFetch(floorUrl({ tablesLimit: limit, tablesOffset: offset }));
@@ -104,6 +106,7 @@ export default function FloorPanel({ authFetch }) {
 
   return (
     <section className={styles.panel} aria-labelledby="floor-title">
+      <EngineControlPanel authFetch={authFetch} domain="floor" permissions={permissions} />
       <div className={styles.panelHead}>
         <div><h2 id="floor-title" className={styles.panelTitle}>Live Floor</h2><p className={styles.panelIntro}>A Read-Only View Of Every Live Table. Owner Pause, Resume And Empty-Table Close Stay In Club Arena. Platform Park And Occupied-Table Boundary Close Are Not Available.</p></div>
         <button type="button" className={styles.btn} onClick={load} disabled={loading}>Refresh</button>

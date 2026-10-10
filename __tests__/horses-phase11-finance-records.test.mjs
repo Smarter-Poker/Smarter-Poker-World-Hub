@@ -24,14 +24,17 @@ test('daily closes bind an exact manifest and use maker-checker without moving c
   assert.doesNotMatch(sql, /fn_ca_(mint|burn|fund_club)|chip_ledger\s*\(/i);
 });
 
-test('browser exports record a hash-bound receipt before requesting a download', async () => {
-  const source = await read('src/components/horses/EconomyExport.jsx');
-  const recordAt = source.indexOf("action: 'record_export_prepared'");
-  const downloadAt = source.indexOf('downloadCsv(name, csv)');
-  assert.ok(recordAt > 0);
-  assert.ok(downloadAt > recordAt);
-  assert.match(source, /SHA-256/);
-  assert.match(source, /Browser Download Requested/);
+test('private exports record a durable operation before offering a hash-verified download', async () => {
+  const component = await read('src/components/horses/EconomyExport.jsx');
+  const client = await read('src/components/horses/exportArtifactClient.js');
+  const route = await read('pages/api/horses/export-artifacts.js');
+  assert.match(component, /requestExportArtifact/);
+  assert.doesNotMatch(component, /downloadCsv/);
+  assert.match(component, /SHA-256/);
+  assert.match(client, /Operation ID/);
+  assert.match(client, /hash !== job.content_sha256/);
+  assert.match(route, /export_not_downloadable/);
+  assert.match(route, /export_truncation_ack_required/);
 });
 
 test('economy write actions are bounded, idempotent and audited', async () => {

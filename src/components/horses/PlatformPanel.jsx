@@ -1,3 +1,5 @@
+import EmergencyStopControls from './EmergencyStopControls';
+import EngineControlPanel from './EngineControlPanel';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OPERATOR_TIMEOUT_MS } from './useOperatorFetch';
 import Pager from './Pager';
@@ -75,7 +77,7 @@ function MaintenanceSection({ value, error }) {
     <div className={styles.platformSplit}>
       <section className={styles.platformFrame}><div className={styles.platformFrameHead}><h3>Runtime Maintenance</h3><span>Engine Health</span></div><div className={styles.platformFacts}><Fact label="Active" value={error ? 'Unknown' : booleanState(runtime.active ?? runtime.enabled)} /><Fact label="Phase" value={error ? 'Unknown' : runtime.phase} /><Fact label="Durable Confirmed" value={error ? 'Unknown' : booleanState(runtime.durableConfirmed ?? runtime.durable_confirmed)} /><Fact label="Break Ends" value={error ? 'Unknown' : timestamp(runtime.breakEndsAt ?? runtime.break_ends_at)} /><Fact label="Remaining" value={error || runtime.remainingMs == null ? 'Unknown' : `${numberText(runtime.remainingMs)} ms`} /><Fact label="Unparked Tables" value={error ? 'Unknown' : numberText(runtime.unparkedTables ?? runtime.unparked_tables)} /><Fact label="Ready For Restart" value={error ? 'Unknown' : booleanState(runtime.readyForRestart ?? runtime.ready_for_restart)} /></div></section>
       <section className={styles.platformFrame}><div className={styles.platformFrameHead}><h3>Durable Break Authority</h3><span>Database Singleton</span></div><div className={styles.platformFacts}><Fact label="Active" value={error ? 'Unknown' : booleanState(durable.active ?? durable.enabled)} /><Fact label="Declared By" value={error ? 'Unknown' : durable.declaredBy ?? durable.declared_by} /><Fact label="Ownership Token" value={error ? 'Unknown' : durable.ownershipToken ?? durable.ownership_token} /><Fact label="Freeze Enforced" value={error ? 'Unknown' : booleanState(durable.freezeEnforced ?? durable.enforce_freeze)} /><Fact label="Latest Thaw" value={error ? 'Unknown' : timestamp(model.thaw?.created_at ?? model.thaw?.thawed_at)} /></div></section>
-    </div><Note tone="warn">{model.authorityGap || 'No Safe Authenticated Contract Exists Here To Start, Cancel Or End A Global Break. Status Is Read-Only.'}</Note></>;
+    </div><Note tone="warn">{model.authorityGap || 'Commands Retain Their Original Announcement And Deadline. A Queued Request Is Not An Active Freeze.'}</Note></>;
 }
 
 function BreaksSection({ value, error }) {
@@ -204,7 +206,7 @@ function IncidentsSection({ alerts, incidents, alertError, incidentError, authFe
     <Note tone="warn">Acknowledgement Means Seen And Owned. It Never Resolves A Drift, Clears An Alert, Repairs A Break Or Makes Health Green.</Note></>;
 }
 
-export default function PlatformPanel({ authFetch }) {
+export default function PlatformPanel({ authFetch, permissions = [] }) {
   const [active, setActive] = useState('engine');
   const [offset, setOffset] = useState(0);
   const [state, setState] = useState({ loading: false, data: {}, errors: {} });
@@ -228,10 +230,10 @@ export default function PlatformPanel({ authFetch }) {
 
   let content = null;
   if (active === 'engine') content = <EngineSection value={state.data.engine} error={state.errors.engine} />;
-  if (active === 'maintenance') content = <MaintenanceSection value={state.data.maintenance} error={state.errors.maintenance} />;
+  if (active === 'maintenance') content = <><MaintenanceSection value={state.data.maintenance} error={state.errors.maintenance} /><EngineControlPanel authFetch={authFetch} domain="maintenance" permissions={permissions} /></>;
   if (active === 'breaks') content = <BreaksSection value={state.data.breaks} error={state.errors.breaks} />;
   if (active === 'releases') content = <ReleasesSection value={state.data.releases} error={state.errors.releases} />;
-  if (active === 'registry') content = <RegistrySection value={state.data.registry} error={state.errors.registry} />;
+  if (active === 'registry') content = <><RegistrySection value={state.data.registry} error={state.errors.registry} /><EmergencyStopControls authFetch={authFetch} /></>;
   if (active === 'crons') content = <JobsSection value={state.data.crons} error={state.errors.crons} />;
   if (active === 'incidents') content = <IncidentsSection alerts={state.data.alerts} incidents={state.data.incidents} alertError={state.errors.alerts} incidentError={state.errors.incidents} authFetch={authFetch} reload={load} />;
 

@@ -98,6 +98,7 @@ const MIGRATIONS = [
   'supabase/migrations/20260904183000_ca_the_restriction_guard_can_actually_be_reached.sql',
   'supabase/migrations/20260904183500_ca_the_seat_guard_sees_a_revived_seat.sql',
   'supabase/migrations/20260904193000_ca_creating_rg_limits_must_not_loosen_one.sql',
+  'supabase/migrations/20261010035338_player_restrictions_converge_and_logout_is_durable.sql',
 ];
 /** The first one, where the tables and the vocabulary are declared. */
 const MIGRATION = MIGRATIONS[0];
@@ -223,17 +224,17 @@ test('a horse can be restricted through the same path a human is', async () => {
 });
 
 test('enforcement binds a horse by construction, not by a second code path', async () => {
-  // THREE attachments across the migrations that create them: the seat
+  // FOUR attachments across the migrations that create them: the seat
   // insert, the seat REVIVE (almost every seating on this platform is an
   // UPDATE of a vacated row, which the first version of this law asserted
-  // must not exist), and the tournament insert. One trigger FUNCTION for all
-  // three, so there is no second code path to keep in step - including for
+  // must not exist), tournament insert and paid/re-entry update. One trigger FUNCTION for all
+  // four, so there is no second code path to keep in step - including for
   // the fleet, which seats through atomic_table_buyin exactly as a browser
   // does.
   let attachments = 0;
   for (const file of MIGRATIONS) {
     const body = await read(file);
-    attachments += (body.match(/execute function public\.fn_ca_refuse_restricted_entry\(/g) || []).length;
+    attachments += (code(body).toLowerCase().match(/execute function public\.fn_ca_refuse_restricted_entry\(/g) || []).length;
     assert.ok(
       !/if .*is_horse.*then[\s\S]{0,200}return new/i.test(code(body)),
       `${file}: the guard must not let a horse through a check a human fails, or the reverse`
@@ -241,9 +242,9 @@ test('enforcement binds a horse by construction, not by a second code path', asy
   }
   assert.equal(
     attachments,
-    3,
-    'exactly three attachments: table_seats INSERT, table_seats seat-revive UPDATE, and '
-      + 'tournament_players INSERT. Fewer leaves an entry route unguarded - a BEFORE '
+    4,
+    'four attachments: table_seats INSERT, table_seats seat-revive UPDATE, '
+      + 'tournament_players INSERT and paid purchase/re-entry UPDATE. Fewer leaves an entry route unguarded - a BEFORE '
       + 'INSERT-only guard was unreachable for 99.7% of seats.'
   );
 
@@ -312,31 +313,25 @@ test('an UNKNOWN switch is never reported as off', async () => {
   );
 });
 
-test('a scope with no guard is labelled as recorded only', () => {
-  const fullyGuarded = ['cash', 'tournaments'];
-  for (const scope of RESTRICTION_SCOPES) {
-    const meta = SCOPE_META[scope];
-    if (scope === 'account') {
-      assert.equal(meta.enforced, false, 'account is not fully guarded while two child scopes remain unguarded');
-      assert.equal(meta.partial, true, 'account must be represented as partial rather than unguarded');
-      assert.match(meta.blurb, /Cash And Tournament Entry Are Guarded/);
-      assert.match(meta.blurb, /Transfers And Social Are Recorded Only/);
-    } else {
-      assert.equal(
-        meta.enforced,
-        fullyGuarded.includes(scope),
-        `${scope}: SCOPE_META.enforced must match whether a guard actually watches it`
-      );
-    }
-    if (!meta.enforced && !meta.partial) {
-      assert.match(
-        meta.blurb,
-        /Recorded Only/,
-        `${scope} has no guard, so its description must say the decision is recorded and `
-          + 'stops nothing'
-      );
-    }
+test('scope claims match all authoritative guards and never hide unknown policy', async () => {
+  const sql = code(await read(MIGRATIONS[5]));
+  for (const scope of RESTRICTION_SCOPES) assert.equal(SCOPE_META[scope].enforced, true, scope);
+  assert.equal(SCOPE_META.account.partial, false);
+  assert.match(sql, /scope IN \('account',p_scope\)/, 'account must imply each concrete scope');
+  assert.match(sql, /fn_ca_assert_player_action\(NEW.user_id,v_scope,TG_TABLE_NAME\)/);
+  assert.match(sql, /v_tourney IS NULL THEN 'cash' ELSE 'tournaments'/);
+  assert.match(sql, /zz_restriction_tourney_paid_guard BEFORE UPDATE OF user_id,rebuys,add_on,status/);
+  for (const table of ['chip_transactions', 'wallet_transactions', 'diamond_transactions']) {
+    assert.ok(sql.includes(`zz_restriction_transfer_guard BEFORE INSERT ON public.${table}`), `${table} must converge inside its original transaction`);
   }
+  assert.equal((sql.match(/zz_restriction_social_guard BEFORE INSERT ON public\./g) || []).length, 22,
+    'every inventoried social writer must have its own authoritative guard');
+  assert.match(sql, /fn_ca_assert_player_action\(v_user,'social',TG_TABLE_NAME\)/);
+  assert.match(SCOPE_META.account.blurb, /Transfers And Social Actions Are Guarded/);
+  assert.equal(enforcementNotice(null).tone, 'unknown');
+  assert.match(enforcementNotice(null).body, /Assume Nothing/);
+  assert.equal(enforcementNotice(false).tone, 'observing');
+  assert.match(enforcementNotice(false).body, /Recorded And Observed, Not Refused/);
 });
 
 // ══ NOTHING IRREVERSIBLE ═══════════════════════════════════════════════════
