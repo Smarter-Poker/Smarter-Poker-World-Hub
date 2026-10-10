@@ -43,7 +43,7 @@ test('daily schedules use complete paged queries, state-first filtering, and tru
 
   const page = read('pages/hub/daily-tournaments.js');
   assert.match(page, /data-source-state=\{scheduleState\}/);
-  assert.match(page, /Partial live coverage/);
+  assert.match(page, /Partial schedule coverage/);
   assert.match(page, /if \(!r\.ok\) throw new Error/);
   assert.match(page, /homeGameUrl\(t\)/);
 });

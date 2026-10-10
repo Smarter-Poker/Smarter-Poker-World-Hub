@@ -22,6 +22,20 @@ test('recorded source dates become one stop, not invented granular events or cur
   for (const forbidden of ['buy_in', 'event_name', 'events_count', 'game_type']) assert.equal(forbidden in result[0], false);
 });
 
+test('physical stop projection folds typographic duplicates using the newest recorded source', () => {
+  const older = { ...row, stop_name: 'Festival \u2014 Championship', scrape_timestamp: '2026-08-01T12:00:00Z' };
+  const newer = { ...row, stop_name: 'Festival - Championship', scrape_timestamp: '2026-08-02T12:00:00Z' };
+  const inputs = [older, newer];
+  const before = JSON.stringify(inputs);
+  const result = databaseTourStops(inputs, tours);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].name, newer.stop_name);
+  assert.equal(result[0].scrape_timestamp, '2026-08-02T12:00:00.000Z');
+  assert.equal(JSON.stringify(inputs), before);
+  assert.equal(databaseTourStops([older, { ...newer, stop_venue: 'Another room' }], tours).length, 2);
+  assert.equal(databaseTourStops([older, { ...newer, stop_end_date: '2026-10-23' }], tours).length, 2);
+});
+
 test('reject stale, inferred, malformed dates, missing provenance and other publishers', () => {
   const badRows = [
     { ...row, data_quality: 'stale' }, { ...row, data_quality: 'scraped_inferred' },

@@ -1,6 +1,70 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { qualifiedScheduleZone, scheduleClock, scheduleCountdown, scheduleDateStatus, sourceVerificationTime } from '../src/lib/poker-near-me/scheduleTemporal.mjs';
+
+test('countdowns qualify the venue date, explicit zone, midnight and DST', () => {
+  const now = new Date('2026-10-10T06:30:00Z');
+  const row = { start_time: '10:00AM', event_date: '2026-10-10' };
+  assert.equal(scheduleCountdown(row, 'Saturday', 'America/Los_Angeles', now), null);
+  assert.equal(scheduleCountdown({ ...row, event_date: '2026-10-09', start_time: '11:45PM' }, 'Friday', 'America/Los_Angeles', now), 15);
+  assert.equal(scheduleCountdown(row, 'Saturday', null, now), null);
+  assert.equal(scheduleCountdown({ start_time: '10:00AM' }, 'Saturday', 'America/Los_Angeles', now), null);
+  assert.equal(scheduleCountdown({ start_time: '2:30AM' }, 'Sunday', 'America/New_York', new Date('2026-03-08T05:30:00Z')), null);
+  assert.equal(scheduleCountdown({ start_time: '1:30AM' }, 'Sunday', 'America/New_York', new Date('2026-11-01T04:30:00Z')), null);
+  assert.equal(scheduleCountdown({ start_time: '3:30AM' }, 'Sunday', 'America/New_York', new Date('2026-03-08T05:30:00Z')), 120);
+  assert.equal(scheduleCountdown({ start_time: '10:00AM', status: 'cancelled' }, 'Saturday', 'America/New_York', now), null);
+  assert.equal(scheduleClock(new Date('2026-10-10T04:00:00Z'), 'America/New_York').minutes, 0);
+  assert.equal(qualifiedScheduleZone({ state: 'FL' }, () => 'America/New_York'), null);
+  assert.equal(qualifiedScheduleZone({ state: 'AZ' }, () => 'America/Phoenix'), null);
+  assert.equal(qualifiedScheduleZone({ state: 'AZ', timezone: 'America/Denver' }, () => 'America/Phoenix'), 'America/Denver');
+  assert.equal(qualifiedScheduleZone({ state: 'FL', timezone: 'America/Chicago' }, () => 'America/New_York'), 'America/Chicago');
+  assert.equal(qualifiedScheduleZone({ state: 'CA' }, () => 'America/Los_Angeles'), 'America/Los_Angeles');
+});
+
+test('point-date series remains scheduled until the venue calendar day ends', () => {
+  assert.equal(scheduleDateStatus('2026-10-09', null, 'America/Los_Angeles', new Date('2026-10-10T06:59:59Z')).label, 'Scheduled Today');
+  assert.equal(scheduleDateStatus('2026-10-09', null, 'America/Los_Angeles', new Date('2026-10-10T07:00:00Z')).label, 'Past Schedule');
+  assert.equal(scheduleDateStatus('2026-10-09', null, null).label, 'Schedule Published');
+  assert.equal(scheduleDateStatus('2026-02-30', null, 'UTC').label, 'Date TBD');
+  assert.equal(scheduleDateStatus('2026-10-09', '2026-10-08', 'UTC').label, 'Date TBD');
+  const series = fs.readFileSync(new URL('../pages/hub/series/[id].js', import.meta.url), 'utf8');
+  assert.match(series, /hasMounted \? qualifiedScheduleZone\(series, resolveVenueTimeZone\) : null/);
+});
+
+test('schedule verification never substitutes request generation for source evidence', () => {
+  assert.equal(sourceVerificationTime(null), null);
+  assert.equal(sourceVerificationTime('invalid'), null);
+  assert.equal(sourceVerificationTime('2026-10-10T00:00:00'), null);
+  assert.equal(sourceVerificationTime('2026-10-10T00:00:00-07:00', new Date('2026-10-10T08:00:00Z')), '2026-10-10T07:00:00.000Z');
+  assert.equal(sourceVerificationTime('2099-01-01T00:00:00Z'), null);
+  const daily = fs.readFileSync(new URL('../pages/hub/daily-tournaments.js', import.meta.url), 'utf8');
+  assert.match(daily, /sourceVerificationTime\(swrData\?\.lastUpdated\)/);
+  assert.doesNotMatch(daily, /scheduleFreshness\s*=.*generatedAt/);
+});
+
+test('daily producer preserves authoritative venue zones through the actual enrichment mapper', () => {
+  const api = fs.readFileSync(new URL('../pages/api/poker/daily-tournaments.js', import.meta.url), 'utf8');
+  assert.match(api, /\.select\('id, state, city, timezone'\)/);
+  const start = api.indexOf('tournaments = clusteredTournaments.map(t => {');
+  const end = api.indexOf('}).filter(Boolean);', start) + '}).filter(Boolean);'.length;
+  assert.ok(start >= 0 && end > start);
+  const enrich = new Function('clusteredTournaments', 'dbVenueInfoById', 'venueMap', 'decodeScrapedTournamentText',
+    `let tournaments; ${api.slice(start, end)} return tournaments;`);
+  const rows = enrich([
+    { venue_id: 1, venue_name: 'Florida West Room', tournament_name: 'NLH', start_time: '10:00AM' },
+    { venue_id: 2, venue_name: 'Unknown Florida Room', tournament_name: 'NLH', start_time: '10:00AM' },
+  ], new Map([[1, { state: 'FL', city: 'Pensacola', timezone: 'America/Chicago' }],
+    [2, { state: 'FL', city: 'Unknown' }]]), new Map(), decodeScrapedTournamentText);
+  const zone = qualifiedScheduleZone(rows[0], () => 'America/New_York');
+  assert.equal(zone, 'America/Chicago');
+  assert.equal(scheduleCountdown(rows[0], 'Saturday', zone, new Date('2026-10-10T14:30:00Z')), 30);
+  assert.equal(rows[1].venue_timezone, null);
+  assert.equal(qualifiedScheduleZone(rows[1], () => 'America/New_York'), null);
+  const panel = fs.readFileSync(new URL('../src/components/poker-near-me/DailyTournamentsPanel.jsx', import.meta.url), 'utf8');
+  assert.match(panel, /qualifiedScheduleZone\(t, resolveVenueTimeZone\)/);
+  assert.match(panel, /scheduleCountdown\(t, selectedDay, tz, nowTick\)/);
+});
 
 import {
   DAILY_RECURRING_MAX_AGE_MS,

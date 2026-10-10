@@ -6,6 +6,8 @@
  */
 
 import Head from 'next/head';
+import { resolveVenueTimeZone } from '../../../src/components/poker-near-me/pnm-utils';
+import { qualifiedScheduleZone, scheduleDateStatus } from '../../../src/lib/poker-near-me/scheduleTemporal.mjs';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import useHasMounted from '../../../src/hooks/useHasMounted';
@@ -241,25 +243,6 @@ function timeAgo(dateStr) {
   if (diffDays < 30) return diffDays + 'd ago';
   const diffMonths = Math.floor(diffDays / 30);
   return diffMonths + 'mo ago';
-}
-
-function getSeriesStatus(startDate, endDate) {
-  // BUG FIX: null/missing date → don't show 'Completed' (Invalid Date comparisons all false)
-  if (!startDate) return { label: 'Date TBD', color: '#94a3b8' };
-  const now = new Date();
-  const start = new Date(startDate + 'T00:00:00');
-  // Guard against unparseable dates (e.g. 'nullT00:00:00')
-  if (isNaN(start.getTime())) return { label: 'Date TBD', color: '#94a3b8' };
-  const end = endDate ? new Date(endDate + 'T23:59:59') : start;
-
-  if (now < start) {
-    const diffMs = start - now;
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays <= 30) return { label: 'Starts In ' + diffDays + ' day' + (diffDays === 1 ? '' : 's'), color: '#fbbf24' };
-    return { label: 'Upcoming', color: '#60a5fa' };
-  }
-  if (now <= end) return { label: 'In Progress', color: '#4ade80' };
-  return { label: 'Completed', color: '#94a3b8' };
 }
 
 function getLocationParts(series) {
@@ -530,6 +513,11 @@ export default function SeriesDetailPage({ seoSeries = null }) {
   const router = useRouter();
   const { id } = router.query;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scheduleNow, setScheduleNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setScheduleNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const [isFollowing, setIsFollowing] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [expandedEvent, setExpandedEvent] = useState(null);
@@ -849,7 +837,11 @@ export default function SeriesDetailPage({ seoSeries = null }) {
 
   const tourStyle = TOUR_COLORS[series.short_name] || TOUR_COLORS[series.tour_code] || TOUR_COLORS.default;
   const typeStyle = SERIES_TYPE_COLORS[series.series_type] || SERIES_TYPE_COLORS.regional;
-  const status = getSeriesStatus(series.start_date, series.end_date);
+  const status = /^(cancelled|canceled)$/i.test(series.status || '')
+    ? { label: 'Cancelled', color: '#94a3b8' }
+    // Server and first client paint agree even across venue midnight. The
+    // source schedule stays rendered; only the date-relative label waits.
+    : scheduleDateStatus(series.start_date, series.end_date, hasMounted ? qualifiedScheduleZone(series, resolveVenueTimeZone) : null, scheduleNow);
   const location = getLocationParts(series);
   const venueName = series.venue_name || series.venue || '';
   // BUG FIX: compute once — was called 7x per render (3 callsites × color + 2 × category text)
