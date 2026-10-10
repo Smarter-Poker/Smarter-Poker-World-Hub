@@ -278,3 +278,14 @@ test('duplicate deletion is bounded and late acknowledgement never changes anoth
  assert.deepEqual(f.state.rows,[f.arrival]);assert.deepEqual(f.cache.get('conversation-a'),[f.arrival]);assert.equal(f.state.toasts.length,0);
  assert.equal(f.state.writes[0][0],'sp-hidden-messages:account-a');
 });
+
+test('existing browser deletions migrate once and do not bleed into the next account',()=>{
+ const user={id:'account-a'},values=new Map([['sp-hidden-messages',JSON.stringify([readMessageId])]]);
+ const reader=evaluate(slice(messenger,'    const getHiddenMessageIds =','    const deletionFlightsRef ='),{
+  user,deletedMessageIdsRef:{current:new Map()},legacyDeletionOwnerRef:{current:null},isMessageId,
+  localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)},
+ },'getHiddenMessageIds');
+ assert.equal(reader().has(readMessageId),true);assert.equal(values.has('sp-hidden-messages'),false);
+ assert.deepEqual(JSON.parse(values.get('sp-hidden-messages:account-a')),[readMessageId]);
+ user.id='account-b';assert.equal(reader().size,0);
+});

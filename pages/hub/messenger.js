@@ -442,6 +442,7 @@ function MessengerPage() {
     const [blockedUserIds, setBlockedUserIds] = useState([]);
     // Account-scoped tombstones also protect cached and already-running reads.
     const deletedMessageIdsRef = useRef(new Map());
+    const legacyDeletionOwnerRef = useRef(null);
     const getHiddenMessageIds = () => {
         const account = user?.id;
         if (!account) return new Set();
@@ -449,6 +450,19 @@ function MessengerPage() {
         if (!ids) {
             try { ids = new Set(JSON.parse(localStorage.getItem(`sp-hidden-messages:${account}`) || '[]')); }
             catch { ids = new Set(); }
+            // Preserve existing browser deletions during the account-scoping upgrade.
+            // Claim the legacy browser state once; subsequent accounts use their own key.
+            if (!legacyDeletionOwnerRef.current) legacyDeletionOwnerRef.current = account;
+            if (legacyDeletionOwnerRef.current === account) {
+                try {
+                    const legacy = JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]');
+                    if (Array.isArray(legacy) && legacy.length) {
+                        for (const id of legacy) if (isMessageId(id)) ids.add(id);
+                        localStorage.setItem(`sp-hidden-messages:${account}`, JSON.stringify([...ids]));
+                        localStorage.removeItem('sp-hidden-messages');
+                    }
+                } catch { /* Retain the legacy ids in this account's in-memory set. */ }
+            }
             deletedMessageIdsRef.current.set(account, ids);
         }
         return ids;
