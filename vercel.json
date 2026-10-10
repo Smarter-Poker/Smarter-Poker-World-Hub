@@ -793,6 +793,10 @@
       "destination": "https://commander.smarter.poker/commander/:path*"
     },
     {
+      "source": "/api/commander/home-games/groups/:id/posts",
+      "destination": "/api/home-games/groups/:id/posts"
+    },
+    {
       "source": "/api/commander/:path*",
       "destination": "https://commander.smarter.poker/api/:path*"
     },

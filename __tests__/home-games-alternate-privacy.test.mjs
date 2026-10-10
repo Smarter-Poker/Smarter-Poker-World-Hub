@@ -227,6 +227,42 @@ async function runModeration(client, userId = 'host', method = 'PATCH') {
   return res;
 }
 
+test('deployed Home Games moderation rewrite selects the local authoritative alias before Commander catch-all', async () => {
+  const { match, compile } = require('next/dist/compiled/path-to-regexp');
+  const rules = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8')).rewrites;
+  const route = (path) => {
+    for (const rule of rules) {
+      const result = match(rule.source)(path);
+      if (!result) continue;
+      return rule.destination.startsWith('https:')
+        ? 'https://commander.smarter.poker' + compile(new URL(rule.destination).pathname)(result.params)
+        : compile(rule.destination)(result.params);
+    }
+    return null;
+  };
+  const publicPath = `/api/commander/home-games/groups/${GROUP_ID}/posts`;
+  assert.equal(route(publicPath), `/api/home-games/groups/${GROUP_ID}/posts`);
+  for (const path of [`/api/commander/home-games/${GROUP_ID}/posts`, `/api/commander/home-games/groups/${GROUP_ID}`, '/api/commander/home-games/join/code', '/api/commander/activity']) {
+    assert.equal(route(path), `https://commander.smarter.poker/api/${path.slice('/api/commander/'.length)}`, 'all unrelated canonical Commander paths retain external ownership');
+  }
+  const sb = moderationFixture();
+  const actual = loadModeration(sb, 'host');
+  const aliasPath = new URL('../pages/api/home-games/groups/[id]/posts.js', import.meta.url);
+  const alias = fs.readFileSync(aliasPath, 'utf8');
+  const code = ts.transpileModule(alias, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const mod = { exports: {} };
+  new Function('require', 'module', 'exports', code)(name => {
+    const target = new URL(name + '.js', aliasPath);
+    assert.equal(target.pathname, new URL('../pages/api/commander/home-games/groups/[id]/posts.js', import.meta.url).pathname);
+    return { default: actual, __esModule: true };
+  }, mod, mod.exports);
+  assert.equal(mod.exports.default, actual, 'alias is the same handler, no copied auth/write logic');
+  const res = { headers: {}, setHeader(k,v){this.headers[k]=v;}, status(n){this.statusCode=n;return this;}, json(body){this.body=body;return this;} };
+  await mod.exports.default({ method:'GET', headers:{authorization:'Bearer fixture'}, query:{id:GROUP_ID,moderation:'1',limit:'50',offset:'0'} },res);
+  assert.equal(res.statusCode,200); assert.equal(res.body.reports[0].id,REPORT_ID);
+  assert.match(res.headers['Cache-Control'],/no-store/);
+});
+
 test('native host moderation hides the reported post once without resolving the report', async () => {
   const sb = moderationFixture();
   const hidden = await runModeration(sb);
