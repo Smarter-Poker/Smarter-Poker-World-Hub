@@ -34,6 +34,9 @@ function clampInt(raw, defaultVal, min, max) {
 }
 
 export default async function handler(req, res) {
+    // Publication and moderation are immediately revocable. An old public
+    // projection must not survive an unlisting or hide decision in the CDN.
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     try {
         if (req.method !== 'GET') {
             res.setHeader('Allow', ['GET']);
@@ -44,10 +47,6 @@ export default async function handler(req, res) {
         }
 
         if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-        // Cache headers must be set AFTER the rate-limit check so we never
-        // cache a 429 as a 200.
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
         const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const code = safeQ(req.query.code);
@@ -72,7 +71,24 @@ export default async function handler(req, res) {
             .eq('is_private', false)
             .maybeSingle();
 
-        if (groupError || !group) {
+        if (groupError) throw groupError;
+        if (!group) {
+            return res.status(404).json({
+                success: false,
+                error: { code: 'NOT_FOUND', message: 'Group not found' }
+            });
+        }
+
+        // Match the sibling public profile's current linked-page decision,
+        // not merely the group's historical public flag. Read failure is not
+        // permission to expose posts from an unlisted Home Game.
+        const { data: linkedPages, error: pageError } = await getSupabase()
+            .from('social_pages')
+            .select('id, is_public')
+            .eq('linked_entity_type', 'home_group')
+            .eq('linked_entity_id', group.id);
+        if (pageError) throw pageError;
+        if ((linkedPages || []).some(page => page.is_public === false)) {
             return res.status(404).json({
                 success: false,
                 error: { code: 'NOT_FOUND', message: 'Group not found' }
@@ -100,8 +116,10 @@ export default async function handler(req, res) {
             .eq('group_id', group.id)
             .eq('is_published', true)
             .eq('visible_to', 'public')
+            .or('is_hidden.is.null,is_hidden.eq.false')
             .order('is_pinned', { ascending: false })
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .range(offset, offset + limit - 1);
 
         if (error) throw error;
