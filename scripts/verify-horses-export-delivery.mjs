@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { admitExportRequest, confirmJob, verifyDownloadedStream } from './lib/horses-export-delivery-contract.mjs';
+import { admitExportRequest, admitDownload, confirmJob, recoveryOptions, observeJob, verifyDownloadedStream } from './lib/horses-export-delivery-contract.mjs';
 const BASE_URL = process.env.HORSES_VERIFY_BASE_URL || '';
 const EXPECTED_SHA = process.env.HORSES_VERIFY_EXPECTED_SHA || '';
 const EMAIL = process.env.TEST_USER_EMAIL || '', PASSWORD = process.env.TEST_USER_PASSWORD || '';
@@ -62,19 +62,23 @@ async function authenticate(browser) {
 }
 
 
-let browser, context;
+let browser, context, downloadJob;
 try {
   requireCondition(BASE_URL === PRODUCTION_ORIGIN && /^[0-9a-f]{40}$/.test(EXPECTED_SHA), 'target_invalid');
   requireCondition(EMAIL && PASSWORD, 'configured_test_identity_missing');
+  const recovery = recoveryOptions(process.env.HORSES_VERIFY_JOB_ID, process.env.HORSES_VERIFY_OP_ID, process.env.HORSES_VERIFY_ACKNOWLEDGE_BOUNDED === 'true');
+  receipt.mode = recovery.jobId ? 'original_job_download' : 'new_complete_report';
+  receipt.operationId = recovery.opId; receipt.jobId = recovery.jobId;
+  receipt.reportComplete = null; receipt.deliveryVerified = false;
   const before = await health(); receipt.target.before = before;
   browser = await chromium.launch();
   const storageState = await authenticate(browser);
   context = await browser.newContext({ baseURL: BASE_URL, storageState, acceptDownloads: true, serviceWorkers: 'block', viewport: { width: 1440, height: 900 } });
   await context.route('**/*', async route => {
-    const admission = admitExportRequest(route.request(), receipt.admittedExportRequests > 0);
+    const admission = admitExportRequest(route.request(), Boolean(recovery.jobId) || receipt.admittedExportRequests > 0);
     if (admission === 'read') {
       const url = new URL(route.request().url());
-      if (url.pathname === '/api/horses/export-artifacts' && url.searchParams.has('download') && (url.searchParams.get('id') !== receipt.jobId || url.searchParams.get('download') !== '1' || url.searchParams.has('acknowledge'))) { receipt.blockedMutations++; return route.abort('blockedbyclient'); }
+      if (url.pathname === '/api/horses/export-artifacts' && url.searchParams.has('download') && !admitDownload(route.request(), downloadJob, recovery.bounded)) { receipt.blockedMutations++; return route.abort('blockedbyclient'); }
       return route.continue();
     }
     if (admission) { receipt.operationId = admission.opId; receipt.admittedExportRequests++; return route.continue(); }
@@ -85,13 +89,20 @@ try {
   await page.goto('/horses?tab=floor', { waitUntil: 'domcontentloaded', timeout: 45000 });
   requireCondition(new URL(page.url()).origin === PRODUCTION_ORIGIN, 'page_left_origin');
   await page.getByRole('heading', { name: 'Live Floor', exact: true }).waitFor({ timeout: 30000 });
-  const acceptedResponse = page.waitForResponse(r => new URL(r.url()).pathname === '/api/horses/export-artifacts' && r.request().method() === 'POST', { timeout: 30000 });
-  await page.getByRole('button', { name: 'Export Full Floor', exact: true }).click();
-  const accepted = await acceptedResponse;
-  requireCondition(accepted.status() === 202, 'export_request_not_accepted');
-  const answer = await accepted.json(), job = (answer.data || answer).job;
-  confirmJob(job, receipt.operationId); receipt.jobId = job.id;
   const center = page.getByRole('region', { name: 'Private export files', exact: true });
+  let job;
+  if (recovery.jobId) {
+    job = { id: recovery.jobId };
+    await center.getByRole('button', { name: 'Export Files', exact: true }).click();
+  } else {
+    const acceptedResponse = page.waitForResponse(r => new URL(r.url()).pathname === '/api/horses/export-artifacts' && r.request().method() === 'POST', { timeout: 30000 });
+    await page.getByRole('button', { name: 'Export Full Floor', exact: true }).click();
+    const accepted = await acceptedResponse;
+    requireCondition(accepted.status() === 202, 'export_request_not_accepted');
+    const answer = await accepted.json(); job = (answer.data || answer).job;
+    observeJob(receipt, job);
+    confirmJob(job, receipt.operationId); receipt.jobId = job.id;
+  }
   await center.getByRole('heading', { name: 'Private Export Files', exact: true }).waitFor({ timeout: 30000 });
   let ready;
   // Finite explicit status reads through the owning console; never resume/retry a write.
@@ -101,13 +112,19 @@ try {
     await center.getByRole('button', { name: 'Refresh Export Status', exact: true }).click();
     const read = await response; requireCondition(read.ok(), 'export_status_unavailable');
     const body = await read.json();
-    ready = confirmJob(((body.data || body).jobs || []).find(candidate => candidate.id === job.id), receipt.operationId, job.id);
+    ready = observeJob(receipt, ((body.data || body).jobs || []).find(candidate => candidate.id === job.id));
+    confirmJob(ready, receipt.operationId, job.id, recovery);
     receipt.state = ready.state;
-    if (ready.state === 'ready') break;
+    if (ready.state === 'ready' || ready.state === 'truncated' && recovery.bounded) break;
     await page.waitForTimeout(2000);
   }
-  requireCondition(ready?.state === 'ready', 'export_status_deadline');
+  requireCondition(ready?.state === 'ready' || ready?.state === 'truncated' && recovery.bounded, 'export_status_deadline');
+  downloadJob = ready;
   const article = center.locator('article').filter({ hasText: `Job ${job.id}.` });
+  if (ready.state === 'truncated') {
+    await article.getByRole('checkbox', { name: 'I Acknowledge This Is An Incomplete Bounded Report.', exact: true }).check();
+    receipt.boundedReportAcknowledged = true;
+  }
   const downloaded = page.waitForEvent('download', { timeout: 30000 });
   const fileResponse = page.waitForResponse(r => new URL(r.url()).pathname === '/api/horses/export-artifacts' && new URL(r.url()).searchParams.get('id') === job.id && new URL(r.url()).searchParams.get('download') === '1', { timeout: 30000 });
   await article.getByRole('button', { name: 'Download Verified CSV', exact: true }).click();
@@ -115,10 +132,10 @@ try {
   requireCondition(file.status() === 200 && !await download.failure(), 'export_download_failed');
   receipt.download = await verifyDownloadedStream(await download.createReadStream(), ready, file.headers()['x-content-sha256']);
   receipt.rows = ready.progress; receipt.state = ready.state;
-  requireCondition(receipt.admittedExportRequests === 1 && receipt.blockedMutations === 0 && pageErrors === 0, 'export_unexpected_mutation_or_error');
+  requireCondition(receipt.admittedExportRequests === (recovery.jobId ? 0 : 1) && receipt.blockedMutations === 0 && pageErrors === 0, 'export_unexpected_mutation_or_error');
   const after = await health(); receipt.target.after = after;
   requireCondition(before.sha === after.sha && before.deploymentId === after.deploymentId, 'deployment_changed_during_export');
-  receipt.target.stableAcrossRun = true; receipt.status = 'passed';
+  receipt.target.stableAcrossRun = true; receipt.deliveryVerified = true; receipt.status = 'passed';
 } catch (error) {
   receipt.status = 'failed';
   // Unknown exception messages can contain provider details: retain only known code vocabulary.

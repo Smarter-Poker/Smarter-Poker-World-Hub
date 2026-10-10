@@ -7,6 +7,19 @@ on:
         description: Full production commit SHA reported by /api/health
         required: true
         type: string
+      original_job_id:
+        description: Existing job UUID for read-only delivery recovery (requires original_op_id)
+        required: false
+        type: string
+      original_op_id:
+        description: Original operation UUID paired with existing job
+        required: false
+        type: string
+      acknowledge_bounded_report:
+        description: Explicitly acknowledge an incomplete bounded original report
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -66,6 +79,9 @@ jobs:
         env:
           HORSES_VERIFY_BASE_URL: https://smarter.poker
           HORSES_VERIFY_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          HORSES_VERIFY_JOB_ID: ${{ inputs.original_job_id }}
+          HORSES_VERIFY_OP_ID: ${{ inputs.original_op_id }}
+          HORSES_VERIFY_ACKNOWLEDGE_BOUNDED: ${{ inputs.acknowledge_bounded_report }}
           HORSES_VERIFY_RECEIPT: ${{ runner.temp }}/horses-export-delivery.json
           TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
