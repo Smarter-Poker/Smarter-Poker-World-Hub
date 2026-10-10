@@ -64,6 +64,8 @@ test('the probe uses the reported articles, waits through the removed timer, and
   ]) assert.match(source, new RegExp(id));
   assert.match(source, /sleep\(65_000\)/);
   assert.match(source, /rootFeedRequestCount\(feedRequests\)/);
+  assert.match(source, /waitForFunction\(\(\) => window\.scrollY < 10/);
+  assert.match(source, /requestAnimationFrame/);
   assert.match(source, /data-post-card="true"\]\[data-post-id=/);
   assert.match(source, /getAttribute\('data-post-id'\)/);
   assert.match(source, /The rendered feed reordered automatically/);
