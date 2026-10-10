@@ -149,7 +149,7 @@ test('every public page title fits a search result once SEOHead has added the si
  * six, and the Poker Near Me grid to 0.267 on every single load.
  */
 const SIZED_IMAGES = [
-  { file: 'pages/index.js', asset: 'public/images/landing-hero-v2.webp', needle: 'src="/images/landing-hero-v2.webp"' },
+  { file: 'pages/index.js', asset: 'public/images/landing-hero-v3.webp', needle: 'src="/images/landing-hero-v3.webp"' },
   {
     file: 'src/components/poker-near-me/lobby/LobbyOverlay.jsx',
     asset: 'public/images/lobby-pods/poker-near-me-grid.webp',
