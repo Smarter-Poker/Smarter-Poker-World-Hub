@@ -9,6 +9,7 @@
  */
 import { createClient } from '../supabaseServerClient';
 import { toBrowserReel } from '../socialReelShape';
+import { selectLearningRows } from '../reelsLearningRanking.mjs';
 import {
     BLOCKED_VIDEO_LIBRARY_IDS,
     VIDEO_LIBRARY_ALLOWED_TYPES,
@@ -28,6 +29,8 @@ const MAX_OWNED_SCAN_ROWS = 500;
 const MAX_SAVED_SCAN_ROWS = 500;
 const MAX_RELATED_SCAN_ROWS = 5_000;
 const MAX_CURSOR_LENGTH = 1_024;
+const MAX_LEARNING_CURSOR_LENGTH = 8_192;
+const LEARNING_COHORT_SIZE = 240;
 const IN_FILTER_CHUNK_SIZE = 180;
 const IN_FILTER_PAGE_SIZE = 1_000;
 const FOLLOWING_PAGE_SIZE = 1_000;
@@ -213,6 +216,7 @@ function clampCollectionLimit(value) {
 function normaliseSort(value) {
     const sort = String(value || 'recent').trim().toLowerCase();
     if (sort === 'popular' || sort === 'trending') return 'popular';
+    if (sort === 'learning') return 'learning';
     if (sort === 'recent' || sort === 'latest' || sort === 'random') return 'recent';
     throw new ReelsFeedInputError('Invalid Reels sort');
 }
@@ -401,11 +405,50 @@ function inferRights(row, youtubeId, originType) {
 
 function parseCursor(value, sort) {
     if (!value) return null;
-    if (typeof value !== 'string' || value.length > MAX_CURSOR_LENGTH) {
+    const maxLength = sort === 'learning' ? MAX_LEARNING_CURSOR_LENGTH : MAX_CURSOR_LENGTH;
+    if (typeof value !== 'string' || value.length > maxLength) {
         throw new ReelsFeedInputError('Invalid Reels cursor');
     }
     try {
         const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
+        if (parsed?.v === 2 && sort === 'learning' && parsed.sort === sort && parsed.start === true) {
+            return { learning: true, start: true, consumed_ids: [], after_source: '' };
+        }
+        if (parsed?.v === 2 && sort === 'learning' && parsed.sort === sort) {
+            const consumedIds = unpackLearningCursorIds(parsed.consumed);
+            const hasFloor = parsed.floor_id != null || parsed.floor_created_at != null;
+            const hasNext = parsed.next_anchor_id != null || parsed.next_anchor_created_at != null;
+            if (
+                !UUID_RE.test(String(parsed.anchor_id || ''))
+                || !CURSOR_TIMESTAMP_RE.test(String(parsed.anchor_created_at || ''))
+                || Number.isNaN(Date.parse(parsed.anchor_created_at))
+                || (hasFloor && (
+                    !UUID_RE.test(String(parsed.floor_id || ''))
+                    || !CURSOR_TIMESTAMP_RE.test(String(parsed.floor_created_at || ''))
+                    || Number.isNaN(Date.parse(parsed.floor_created_at))
+                ))
+                || (hasNext && (
+                    !UUID_RE.test(String(parsed.next_anchor_id || ''))
+                    || !CURSOR_TIMESTAMP_RE.test(String(parsed.next_anchor_created_at || ''))
+                    || Number.isNaN(Date.parse(parsed.next_anchor_created_at))
+                ))
+                || typeof parsed.after_source !== 'string'
+                || parsed.after_source.length > 22
+                || !/^[A-Za-z0-9_-]*$/.test(parsed.after_source)
+            ) throw new Error('invalid');
+            return {
+                learning: true,
+                anchor_id: String(parsed.anchor_id),
+                anchor_created_at: String(parsed.anchor_created_at),
+                floor_id: hasFloor ? String(parsed.floor_id) : null,
+                floor_created_at: hasFloor ? String(parsed.floor_created_at) : null,
+                next_anchor_id: hasNext ? String(parsed.next_anchor_id) : null,
+                next_anchor_created_at: hasNext ? String(parsed.next_anchor_created_at) : null,
+                after_source: parsed.after_source,
+                consumed_ids: consumedIds,
+            };
+        }
+        if (sort === 'learning') throw new Error('invalid');
         if (parsed?.v === 1 && parsed.sort === sort && parsed.start === true) {
             return { start: true };
         }
@@ -429,6 +472,29 @@ function parseCursor(value, sort) {
     }
 }
 
+function packLearningCursorIds(ids) {
+    const values = [...new Set(Array.isArray(ids) ? ids : [])];
+    if (values.length > LEARNING_COHORT_SIZE || values.some((id) => !UUID_RE.test(String(id)))) {
+        throw new Error('Invalid Learning cursor state');
+    }
+    return Buffer.concat(values.map((id) => Buffer.from(String(id).replaceAll('-', ''), 'hex')))
+        .toString('base64url');
+}
+
+function unpackLearningCursorIds(value) {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_-]*$/.test(value)) throw new Error('invalid');
+    const packed = Buffer.from(value, 'base64url');
+    if (packed.length % 16 !== 0 || packed.length / 16 > LEARNING_COHORT_SIZE) throw new Error('invalid');
+    const ids = [];
+    for (let offset = 0; offset < packed.length; offset += 16) {
+        const hex = packed.subarray(offset, offset + 16).toString('hex');
+        const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+        if (!UUID_RE.test(id)) throw new Error('invalid');
+        ids.push(id);
+    }
+    return ids;
+}
+
 function cursorForRow(row, sort) {
     return {
         id: String(row.id),
@@ -441,6 +507,21 @@ function cursorForRow(row, sort) {
 function encodeCursor(position) {
     if (!position) return null;
     return Buffer.from(JSON.stringify({ v: 1, ...position }), 'utf8').toString('base64url');
+}
+
+function encodeLearningCursor(position) {
+    const encoded = Buffer.from(JSON.stringify({
+        v: 2,
+        sort: 'learning',
+        ...position,
+        consumed: packLearningCursorIds(position.consumed_ids),
+        consumed_ids: undefined,
+    }), 'utf8')
+        .toString('base64url');
+    if (encoded.length > MAX_LEARNING_CURSOR_LENGTH) {
+        throw new Error('Learning cursor exceeded its bounded transport contract');
+    }
+    return encoded;
 }
 
 function parseCollectionCursor(value, collection) {
@@ -535,6 +616,28 @@ async function readCandidateChunk(client, {
             .order('id', { ascending: false });
     }
     const { data, error } = await query.limit(limit);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+async function readLearningCohort(client, { cursor, scope, category }) {
+    let query = client.from('social_reels').select(REEL_SELECT);
+    query = applyPublicReadyFilters(query, category, false);
+    query = applyScopeFilter(query, scope);
+    if (cursor?.learning && cursor.start !== true) {
+        query = query.or(
+            `created_at.lt.${cursor.anchor_created_at},and(created_at.eq.${cursor.anchor_created_at},id.lte.${cursor.anchor_id})`
+        );
+        if (cursor.floor_id) {
+            query = query.or(
+                `created_at.gt.${cursor.floor_created_at},and(created_at.eq.${cursor.floor_created_at},id.gte.${cursor.floor_id})`
+            );
+        }
+    }
+    query = query
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
+    const { data, error } = await query.limit(LEARNING_COHORT_SIZE + 1);
     if (error) throw error;
     return Array.isArray(data) ? data : [];
 }
@@ -1156,6 +1259,78 @@ async function attachProfiles(client, rows) {
 }
 
 async function readPage(client, { limit, cursor, sort, scope, category, followedAuthorIds = null }) {
+    if (sort === 'learning') {
+        const rawRows = await readLearningCohort(client, { cursor, scope, category });
+        if (!rawRows.length) {
+            if (cursor?.next_anchor_id) {
+                return {
+                    rows: [],
+                    hasMore: true,
+                    nextCursor: encodeLearningCursor({
+                        anchor_id: cursor.next_anchor_id,
+                        anchor_created_at: cursor.next_anchor_created_at,
+                        after_source: '',
+                        consumed_ids: [],
+                    }),
+                    partial: false,
+                };
+            }
+            return { rows: [], hasMore: false, nextCursor: null, partial: false };
+        }
+        const cohort = rawRows.slice(0, LEARNING_COHORT_SIZE);
+        const fetchedLookahead = rawRows[LEARNING_COHORT_SIZE] || null;
+        const eligibilityOptions = { category, allowUnknownNativeUpload: false };
+        const candidateEligible = await eligibleRows(client, cohort, scope, eligibilityOptions);
+        const winnerByKey = await canonicalWinners(client, cohort, scope, eligibilityOptions);
+        const canonicalRows = candidateEligible.filter((row) => (
+            winnerByKey.get(row.canonical_asset_key)?.id === row.id
+        ));
+        const anchor = cursor?.learning && cursor.start !== true
+            ? { id: cursor.anchor_id, created_at: cursor.anchor_created_at }
+            : cohort[0];
+        const floor = cursor?.floor_id
+            ? { id: cursor.floor_id, created_at: cursor.floor_created_at }
+            : cohort[cohort.length - 1];
+        const nextAnchor = cursor?.next_anchor_id
+            ? { id: cursor.next_anchor_id, created_at: cursor.next_anchor_created_at }
+            : fetchedLookahead;
+        const ranked = selectLearningRows(canonicalRows, {
+            consumedIds: cursor?.consumed_ids,
+            afterSource: cursor?.after_source,
+            limit,
+        });
+        let nextPosition = null;
+        if (ranked.remaining > 0) {
+            nextPosition = {
+                anchor_id: String(anchor.id),
+                anchor_created_at: String(anchor.created_at),
+                floor_id: String(floor.id),
+                floor_created_at: String(floor.created_at),
+                next_anchor_id: nextAnchor ? String(nextAnchor.id) : null,
+                next_anchor_created_at: nextAnchor ? String(nextAnchor.created_at) : null,
+                after_source: ranked.afterSource,
+                consumed_ids: ranked.consumedIds,
+            };
+        } else if (nextAnchor) {
+            nextPosition = {
+                anchor_id: String(nextAnchor.id),
+                anchor_created_at: String(nextAnchor.created_at),
+                after_source: '',
+                consumed_ids: [],
+            };
+        }
+        const nextCursor = nextPosition ? encodeLearningCursor(nextPosition) : null;
+        const pageRows = ranked.rows.map((row) => ({
+            ...row,
+            _cursor: cursorForRow(row, 'learning'),
+        }));
+        return {
+            rows: pageRows,
+            hasMore: Boolean(nextPosition),
+            nextCursor,
+            partial: false,
+        };
+    }
     const selected = [];
     const selectedKeys = new Set();
     let scanCursor = cursor;
@@ -1822,6 +1997,9 @@ export async function readPokerReelsFeed(options = {}) {
     const sort = normaliseSort(options.sort);
     const scope = normaliseScope(options.scope);
     const category = normaliseCategory(options.category, scope);
+    if (sort === 'learning' && (category !== 'poker' || scope === 'following')) {
+        throw new ReelsFeedInputError('Learning sort requires the public Poker category');
+    }
     const cursor = parseCursor(options.cursor, sort);
     const id = String(options.id || '').trim();
     const viewerId = String(options.viewerId || '').trim();
@@ -1832,8 +2010,18 @@ export async function readPokerReelsFeed(options = {}) {
         ? await readAllFollowedAuthorIds(client, viewerId)
         : null;
 
+    const learningPinnedLimit = sort === 'learning' && id && !cursor && limit > 1
+        ? limit - 1
+        : limit;
     const [page, detail] = await Promise.all([
-        readPage(client, { limit, cursor, sort, scope, category, followedAuthorIds }),
+        readPage(client, {
+            limit: learningPinnedLimit,
+            cursor,
+            sort,
+            scope,
+            category,
+            followedAuthorIds,
+        }),
         // A cursor always denotes continuation. In particular the explicit
         // start sentinel lets a pinned limit=1 response continue from the
         // first natural feed row without pinning the detail again.
@@ -1871,8 +2059,12 @@ export async function readPokerReelsFeed(options = {}) {
                 // for limit=1 emit an explicit start sentinel so the first
                 // natural feed row is still reachable on the next request.
                 nextCursor = paginatedRows.length
-                    ? encodeCursor(paginatedRows[paginatedRows.length - 1]._cursor)
-                    : encodeCursor({ sort, start: true });
+                    ? (sort === 'learning'
+                        ? page.nextCursor
+                        : encodeCursor(paginatedRows[paginatedRows.length - 1]._cursor))
+                    : (sort === 'learning'
+                        ? encodeLearningCursor({ start: true })
+                        : encodeCursor({ sort, start: true }));
                 hasMore = true;
             }
         }

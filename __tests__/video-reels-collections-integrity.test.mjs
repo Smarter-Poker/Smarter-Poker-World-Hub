@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { selectLearningRows } from '../src/lib/reelsLearningRanking.mjs';
 
 const read = path => {
   const url = new URL(path, import.meta.url);
@@ -46,6 +47,7 @@ function loadEligibilityHarness() {
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
     .replace(/import \{ toBrowserReel \} from '\.\.\/socialReelShape';\n/, '')
+    .replace(/import \{ selectLearningRows \} from '\.\.\/reelsLearningRanking\.mjs';\n/, '')
     .replace(/export class /g, 'class ')
     .replace(/export async function /g, 'async function ')
     .replace(/export const /g, 'const ');
@@ -55,6 +57,7 @@ function loadEligibilityHarness() {
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
     toBrowserReel,
+    selectLearningRows,
     Buffer,
     Date,
     Error,
@@ -137,6 +140,7 @@ function emptyContext() {
 function loadCollectionReaderHarness(client, { scanChunkSize = 240, followingPageSize = 1_000 } = {}) {
   const transformed = SERVER
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
+    .replace(/import \{ selectLearningRows \} from '\.\.\/reelsLearningRanking\.mjs';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
     .replace(/import \{ toBrowserReel \} from '\.\.\/socialReelShape';\n/, '')
     .replace('const SCAN_CHUNK_SIZE = 240;', `const SCAN_CHUNK_SIZE = ${scanChunkSize};`)
@@ -150,6 +154,7 @@ function loadCollectionReaderHarness(client, { scanChunkSize = 240, followingPag
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
     toBrowserReel,
+    selectLearningRows,
     Buffer,
     Date,
     Error,
@@ -226,6 +231,28 @@ function createMemoryClient(tables, { validNativeStorage = true, queryResponses 
       if (directMatch) {
         const [, reelId, sourcePostId] = directMatch;
         this.predicates.push(row => row?.id === reelId || row?.source_post_id === sourcePostId);
+        return this;
+      }
+      const inclusiveAnchor = expression.match(
+        /^created_at\.lt\.([^,]+),and\(created_at\.eq\.([^,]+),id\.lte\.([^)]+)\)$/,
+      );
+      if (inclusiveAnchor) {
+        const [, lessThan, equalTo, idLessThanOrEqual] = inclusiveAnchor;
+        this.predicates.push(row => (
+          String(row?.created_at) < lessThan
+          || (String(row?.created_at) === equalTo && String(row?.id) <= idLessThanOrEqual)
+        ));
+        return this;
+      }
+      const inclusiveFloor = expression.match(
+        /^created_at\.gt\.([^,]+),and\(created_at\.eq\.([^,]+),id\.gte\.([^)]+)\)$/,
+      );
+      if (inclusiveFloor) {
+        const [, greaterThan, equalTo, idGreaterThanOrEqual] = inclusiveFloor;
+        this.predicates.push(row => (
+          String(row?.created_at) > greaterThan
+          || (String(row?.created_at) === equalTo && String(row?.id) >= idGreaterThanOrEqual)
+        ));
         return this;
       }
       const match = expression.match(
@@ -318,6 +345,94 @@ function createMemoryClient(tables, { validNativeStorage = true, queryResponses 
     },
   };
 }
+
+test('Learning server pagination is bounded, lossless, mutation-stable, and pin-safe', async () => {
+  const reelId = (index) => `${(index + 1).toString(16).padStart(8, '0')}-0000-4000-8000-${(index + 1).toString(16).padStart(12, '0')}`;
+  const authorId = (index) => `${(index + 1001).toString(16).padStart(8, '0')}-0000-4000-8000-${(index + 1001).toString(16).padStart(12, '0')}`;
+  const socialReels = Array.from({ length: 241 }, (_, index) => {
+    const id = reelId(index);
+    const author = authorId(index);
+    return nativeRow({
+      id,
+      author_id: author,
+      canonical_asset_key: `native:learning-${index}`,
+      publication_key: `user-reel:learning-${index}`,
+      video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${author}/${id}.mp4`,
+      created_at: new Date(Date.UTC(2026, 9, 9, 12, 0, -index)).toISOString(),
+    });
+  });
+  const expectedInitialIds = new Set(socialReels.map((row) => row.id));
+  const tables = {
+    social_reels: socialReels,
+    social_posts: [],
+    saved_reels: [],
+    profiles: [],
+    social_follows: [],
+    video_library_videos: [],
+    youtube_embed_failures: [],
+  };
+  const client = createMemoryClient(tables);
+  const { readFeed } = loadCollectionReaderHarness(client);
+  const seen = [];
+  let cursor = null;
+  let firstCursorLength = 0;
+  for (let pageNumber = 0; pageNumber < 20; pageNumber += 1) {
+    const page = await readFeed({
+      client,
+      category: 'poker',
+      scope: 'all',
+      sort: 'learning',
+      cursor,
+      limit: 20,
+    });
+    if (pageNumber === 0) {
+      assert.equal(new Set(page.data.map((row) => row.author_id)).size, 20);
+      firstCursorLength = page.nextCursor.length;
+      const arrival = nativeRow({
+        id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        author_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+        canonical_asset_key: 'native:post-snapshot-arrival',
+        publication_key: 'user-reel:post-snapshot-arrival',
+        video_url: 'https://test-project.supabase.co/storage/v1/object/public/social-media/reels/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/new.mp4',
+        created_at: '2026-10-09T12:01:00.000Z',
+      });
+      tables.social_reels.unshift(arrival);
+    }
+    seen.push(...page.data.map((row) => row.id));
+    for (const returned of page.data) {
+      const stored = tables.social_reels.find((row) => row.id === returned.id);
+      if (stored) stored.is_deleted = true;
+    }
+    cursor = page.nextCursor;
+    if (!page.hasMore) break;
+  }
+  assert.equal(firstCursorLength < 8192, true);
+  assert.equal(new Set(seen).size, seen.length);
+  assert.deepEqual(new Set(seen), expectedInitialIds);
+  assert.equal(seen.includes('ffffffff-ffff-4fff-8fff-ffffffffffff'), false,
+    'a post-snapshot arrival must not shift an anchored continuation');
+
+  for (const row of socialReels) row.is_deleted = false;
+  const pinned = await readFeed({
+    client,
+    category: 'poker',
+    scope: 'all',
+    sort: 'learning',
+    id: reelId(240),
+    limit: 1,
+  });
+  assert.equal(pinned.data[0].id, reelId(240));
+  assert.ok(pinned.nextCursor);
+  const afterPin = await readFeed({
+    client,
+    category: 'poker',
+    scope: 'all',
+    sort: 'learning',
+    cursor: pinned.nextCursor,
+    limit: 20,
+  });
+  assert.equal(afterPin.data.some((row) => row.id === reelId(240)), false);
+});
 
 function loadSavedService(fetchImpl) {
   const transformed = PREFERENCES

@@ -2,7 +2,7 @@ export const REELS_FEED_MODES = Object.freeze([
   Object.freeze({ id: 'for-you', label: 'For You', category: 'for-you', sort: 'popular' }),
   Object.freeze({ id: 'following', label: 'Following', category: 'following', sort: 'recent', requiresAccount: true }),
   Object.freeze({ id: 'latest', label: 'Latest', category: 'for-you', sort: 'recent' }),
-  Object.freeze({ id: 'learning', label: 'Learning', category: 'poker', sort: 'recent' }),
+  Object.freeze({ id: 'learning', label: 'Learning', category: 'poker', sort: 'learning' }),
   Object.freeze({ id: 'shorts', label: 'Shorts', category: 'for-you', sort: 'recent' }),
 ]);
 

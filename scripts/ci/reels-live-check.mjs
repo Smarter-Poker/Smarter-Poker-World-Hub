@@ -745,7 +745,7 @@ async function collectCategory(category, admin) {
       category,
       scope: 'all',
       limit: String(requestedLimit),
-      sort: 'recent',
+      sort: category === 'poker' ? 'learning' : 'recent',
     });
     if (cursor) params.set('cursor', cursor);
     return readJson(`/api/reels/feed?${params.toString()}`);
