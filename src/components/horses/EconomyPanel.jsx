@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './shared.module.css';
 import { when } from '../../lib/horsesAdminTokens';
 import { OPERATOR_TIMEOUT_MS } from './useOperatorFetch';
@@ -19,18 +19,21 @@ function exportComplete(page) { return page?.hasMore !== true && page?.truncated
 
 function useEconomyRead(authFetch, sections, active = true, sectionParams = {}) {
   const [state, setState] = useState({ loading: true, data: {}, errors: {} });
+  const sequence = useRef(0);
   const load = useCallback(async () => {
     if (!active) return;
+    const request = ++sequence.current;
     setState((old) => ({ ...old, loading: true }));
     const settled = await Promise.all(sections.map(async (section) => {
         try { return [section, dataOf(await authFetch(section === 'diamonds' ? '/api/horses/economy-stats' : economyAdminUrl(section, sectionParams[section]), { timeoutMs: OPERATOR_TIMEOUT_MS })), null]; }
       catch (error) { return [section, null, error?.message || 'Read Failed']; }
     }));
+    if (request !== sequence.current) return;
     const data = {}; const errors = {};
     for (const [section, value, error] of settled) { if (error) errors[section] = error; else data[section] = value; }
     setState({ loading: false, data, errors });
   }, [active, authFetch, sectionParams, sections]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); return () => { sequence.current += 1; }; }, [load]);
   return { ...state, load };
 }
 

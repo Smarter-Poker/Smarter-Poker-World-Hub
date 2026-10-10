@@ -42,6 +42,7 @@ export async function recoverSanction(authFetch, scope, entry, retry = false) {
       || ['userId','scope','reasonCode','note','expiresAt'].some(key => row.payload?.[key] !== expected[key])) throw new Error('The Original Sanction Receipt Did Not Match');
     return { ...row.result, replayed: true };
   }
+  if (prior.operation !== null) throw new Error('The Sanction Outcome Is Unknown. Keep The Original Operation Id');
   if (!retry) return { pending: true, writable: prior.writable === true };
   if (prior.writable !== true) throw new Error('Sanction Write Permission Is Not Available. The Original Decision Is Retained');
   let result;

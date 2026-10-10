@@ -119,9 +119,11 @@ function AccountEngineControl({ authFetch, domain, accountScope, permissions = [
         scope.options
       );
       if (!scope.isCurrent()) return;
+      const absent = value.command === null && value.absent === true && value.operationId === operationId;
+      if (!absent && (value.command?.id !== operationId || value.command?.domain !== domain || typeof value.command?.status !== 'string' || !value.command.status)) throw new Error('The Original Engine Receipt Could Not Be Confirmed');
       setReceipt(value.command);
       setUnknown(value.command?.status === 'unknown');
-      if (value.absent)
+      if (absent)
         setError('This Operation Has No Durable Receipt. A New Operation Can Be Submitted.');
     } catch (failure) {
       if (!scope.isCurrent()) return;
@@ -163,6 +165,7 @@ function AccountEngineControl({ authFetch, domain, accountScope, permissions = [
         timeoutMs: 25000,
       });
       if (!scope.isCurrent()) return;
+      if (value.command?.id !== id || value.command?.domain !== domain || typeof value.command?.status !== 'string' || !value.command.status) throw new Error('The Submitted Engine Receipt Could Not Be Confirmed');
       setReceipt(value.command);
       setUnknown(value.command?.status === 'unknown');
     } catch (failure) {

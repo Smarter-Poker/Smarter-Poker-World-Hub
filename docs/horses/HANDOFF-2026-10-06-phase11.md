@@ -2041,3 +2041,38 @@ check PASS. Original83IDs/79Resolved/4ResolvedElsewhere/0Partial/0Open,
 FAILED/UNKNOWN, complete=false and currentpolicy defaults retained. Normal
 hooks/push and exacthead protected integration remain required; the external
 receipt records their actual results after completion.
+
+
+### Second connected audit, 2026-10-10
+
+The owner reopened the whole 28-tab Stable Admin and six-capability connected
+launch audit. This second audit is ACTIVE; the dated prior closeout above is
+preserved. Root owns World Hub integration and the existing external closeout
+receipt's secondAudit section. The tournament_stops helper owns the independent
+Club Arena engine candidate and its normal protected delivery. Both owned
+checkouts are under /Volumes/SmarterWork/agent-work/stable-admin-second-audit-20261010
+on branch agent/codex/stable-admin-second-audit-20261010. World Hub base is
+f479337e95536781056422059f348dcfdf44285d; Club Arena base is
+441f4766d902284ff361fc2df418eff5ffd31222. Existing migrations are not replayed;
+manual Pipeline trigger remains deferred and policy defaults remain off.
+
+Confirmed original-owner repairs: serialized Settings saves and authoritative
+save receipts, Settings/mode stale reads, Statistics/Economy stale responses,
+persistent truthful Audit read failures, malformed logout/sanction/engine/stop
+outcome recovery retaining the original identity, and O7 permission-filtered
+history paging plus direct original-job recovery. Mounted failure-before and
+passing-after cases are retained in the same directly triggered required checks.
+The strict read-only production verifier preserves all eleven prior surfaces
+and adds Audit and Export Files at desktop and 375px; it issues no new export,
+control, player or financial mutation. Club Arena private replay, wake, original
+fanout and send-boundary session checks are separately qualified, including
+Unknown refusal, connection/subscription fencing, ordered bounded delivery and
+actual acknowledgment retention. Public data and money writers retain owners.
+
+Canonical four-policy reader was fully emitted/read at2026-10-10T22:03:52.382Z,
+version2.9, manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b;
+all previously recorded source hashes unchanged. Actual repository/publishing/
+CLAUDE/storage/checkpoint, Phase1/2/3/4/9/10 and permission references reread.
+Final integrated checks, protected merges, normal component publication, actual
+new affected production proof and owned cleanup remain pending. The existing
+external receipt records actual later results; no candidate prose claims them.

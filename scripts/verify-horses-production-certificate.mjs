@@ -10,7 +10,7 @@ const EMAIL = process.env.TEST_USER_EMAIL || '';
 const PASSWORD = process.env.TEST_USER_PASSWORD || '';
 const PRODUCTION_ORIGIN = 'https://smarter.poker';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const REQUIRED_TABS = ['floor', 'tournaments', 'integrity', 'platform', 'economy', 'players', 'geeves', 'scrapers'];
+const REQUIRED_TABS = ['floor', 'tournaments', 'integrity', 'platform', 'economy', 'players', 'geeves', 'scrapers', 'audit'];
 const AUDIT_API_PATHS = ['/api/geeves/analytics', '/api/admin/scraper-health'];
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
@@ -164,12 +164,12 @@ async function waitForApi(apiStatuses, path, afterCount = 0) {
   throw new CertificateFailure(`${path.split('/').at(-1)}_not_observed`);
 }
 
-async function waitForAuditRead(apiStatuses, path, readAction = null) {
+async function waitForAuditRead(apiStatuses, path, readAction = null, afterCount = 0) {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
     const matches = apiStatuses.filter((entry) => entry.path === path && (!readAction || entry.readAction === readAction));
-    if (matches.length > 0) {
-      requireCondition(matches.every((entry) => entry.method === 'GET' && entry.status >= 200 && entry.status < 300), `${path.split('/').at(-1)}_audit_read_not_2xx`);
+    if (matches.length > afterCount) {
+      requireCondition(matches.slice(afterCount).every((entry) => entry.method === 'GET' && entry.status >= 200 && entry.status < 300), `${path.split('/').at(-1)}_audit_read_not_2xx`);
       return;
     }
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
@@ -184,6 +184,16 @@ async function assertAuditPanelSettled(page, tabId, loadingLabel) {
   // Players renders list errors without role=alert; the canonical error classes
   // cover that branch as well as Geeves and Scrapers' explicit error alerts.
   requireCondition(await panel.locator('[class*="errorNote"], [class*="errorState"], [role="alert"]').count() === 0, `panel_${tabId}_audit_read_failure`);
+}
+
+async function assertExportListSettled(page) {
+  const center = page.getByRole('region', { name: 'Private export files', exact: true });
+  await center.getByText('Loading Export Files', { exact: true }).waitFor({ state: 'detached', timeout: 20_000 });
+  requireCondition(await center.getByText('Loading Export Files', { exact: true }).count() === 0, 'export_files_still_loading');
+  requireCondition(await center.locator('[class*="errorNote"]').count() === 0, 'export_files_read_failure');
+  requireCondition(await center.getByRole('button', { name: 'Refresh Export Status', exact: true }).isEnabled(), 'export_files_refresh_busy');
+  await center.getByText(/^Showing .* Jobs$/).waitFor({ state: 'visible', timeout: 20_000 });
+  return center;
 }
 
 async function probeViewport(browser, storageState, viewport) {
@@ -214,9 +224,12 @@ async function probeViewport(browser, storageState, viewport) {
       chunkFailures.push(`http_${response.status()}`);
     }
     if (responseUrl.origin === PRODUCTION_ORIGIN && (path.startsWith('/api/horses/') || AUDIT_API_PATHS.includes(path))) {
-      const readAction = path === '/api/geeves/analytics' && ['summary', 'top_missed'].includes(responseUrl.searchParams.get('action'))
-        ? responseUrl.searchParams.get('action') : null;
-      apiStatuses.push({ method: response.request().method(), path, status: response.status(), ...(readAction ? { readAction } : {}) });
+      const action = responseUrl.searchParams.get('action');
+      const readAction = path === '/api/geeves/analytics' && ['summary', 'top_missed'].includes(action)
+        || path === '/api/horses/stable-admin' && action === 'audit_log'
+        ? action : path === '/api/horses/export-artifacts' && !responseUrl.searchParams.has('id') && !responseUrl.searchParams.has('download') ? 'list' : null;
+      const listOffset = readAction === 'list' ? Number(responseUrl.searchParams.get('offset') || 0) : null;
+      apiStatuses.push({ method: response.request().method(), path, status: response.status(), ...(readAction ? { readAction } : {}), ...(Number.isSafeInteger(listOffset) && listOffset >= 0 ? { listOffset } : {}) });
     }
     // Evidence only: the seated-humans count the console served, so it can be
     // compared with a direct database count taken at the same moment.
@@ -301,6 +314,27 @@ async function probeViewport(browser, storageState, viewport) {
 
     await page.waitForFunction(() => !document.body.innerText.includes('Reading Economy Evidence...'), null, { timeout: 20_000 });
     await assertNoOverflow(page, viewport, 'close-and-jobs', overflowSamples);
+    // Open only stored history. Never create, resume, cancel, purge or download a report.
+    const exportReadsBefore = apiStatuses.filter((entry) => entry.path === '/api/horses/export-artifacts' && entry.readAction === 'list').length;
+    await page.getByRole('button', { name: 'Export Files', exact: true }).click();
+    await waitForAuditRead(apiStatuses, '/api/horses/export-artifacts', 'list', exportReadsBefore);
+    const exportCenter = await assertExportListSettled(page);
+    const exportReadsBeforeRefresh = apiStatuses.filter((entry) => entry.path === '/api/horses/export-artifacts' && entry.readAction === 'list').length;
+    await exportCenter.getByRole('button', { name: 'Refresh Export Status', exact: true }).click();
+    await waitForAuditRead(apiStatuses, '/api/horses/export-artifacts', 'list', exportReadsBeforeRefresh);
+    await assertExportListSettled(page);
+    const exportHistoryHasNext = await exportCenter.getByRole('button', { name: 'Next', exact: true }).isEnabled();
+    if (exportHistoryHasNext) {
+      const exportReadsBeforeNext = apiStatuses.filter((entry) => entry.path === '/api/horses/export-artifacts' && entry.readAction === 'list').length;
+      await exportCenter.getByRole('button', { name: 'Next', exact: true }).click();
+      await waitForAuditRead(apiStatuses, '/api/horses/export-artifacts', 'list', exportReadsBeforeNext);
+      const selectedPageReads = apiStatuses.filter((entry) => entry.path === '/api/horses/export-artifacts' && entry.readAction === 'list').slice(exportReadsBeforeNext);
+      requireCondition(selectedPageReads.some((entry) => entry.listOffset === 25), 'export_files_next_page_not_observed');
+      await assertExportListSettled(page);
+    }
+    await assertNoOverflow(page, viewport, 'export-files', overflowSamples);
+    await exportCenter.getByRole('button', { name: 'Hide Export Files', exact: true }).click();
+
     // Later merged consumers are part of this same read-only certification.
     await waitForPanel(page, 'stats', 'Platform Statistics');
     await waitForApi(apiStatuses, '/api/horses/analytics');
@@ -323,6 +357,12 @@ async function probeViewport(browser, storageState, viewport) {
     await page.getByText('Loading Pipeline Runs', { exact: true }).waitFor({ state: 'detached', timeout: 20_000 });
     requireCondition(await page.getByText('Pipeline Runs Unavailable:', { exact: false }).count() === 0, `${viewport.name}_pipeline_unavailable`);
     await assertNoOverflow(page, viewport, 'pipeline', overflowSamples);
+
+    const auditReadsBefore = apiStatuses.filter((entry) => entry.path === '/api/horses/stable-admin' && entry.readAction === 'audit_log').length;
+    await waitForPanel(page, 'audit', 'Admin Audit Log');
+    await waitForAuditRead(apiStatuses, '/api/horses/stable-admin', 'audit_log', auditReadsBefore);
+    await assertAuditPanelSettled(page, 'audit', 'Loading Audit Log');
+    await assertNoOverflow(page, viewport, 'audit-log', overflowSamples);
 
     // Changed audit consumers use read-only entry surfaces only. Never open a
     // player, resolve a question, or invoke scraper/control mutations.
@@ -359,6 +399,7 @@ async function probeViewport(browser, storageState, viewport) {
       '/api/horses/analytics',
       '/api/horses/stable-admin',
       '/api/horses/player-admin',
+      '/api/horses/export-artifacts',
       ...AUDIT_API_PATHS,
     ];
     for (const path of requiredApiPaths) {
@@ -380,6 +421,9 @@ async function probeViewport(browser, storageState, viewport) {
       phase11Surfaces: true,
       laterConsumers: ['statistics', 'settings', 'pipeline'],
       auditConsumers: ['players', 'geeves', 'scrapers'],
+      additionalReadSurfaces: ['audit-log', 'export-files'],
+      exportHistoryHasNext,
+      exportHistoryNextPageObserved: exportHistoryHasNext,
       overflowPx: overflowSamples,
       pageErrorCount: pageErrors.length,
       chunkFailureCount: chunkFailures.length,

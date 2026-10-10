@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { listenBroadcast } from '../../lib/broadcastSync';
 import { num, T } from '../../lib/horsesAdminTokens';
 import {
@@ -82,14 +82,17 @@ export default function StatsPanel({ authFetch, onNavigate }) {
   const [analytics, setAnalytics] = useState(null);
   const [analyticsError, setAnalyticsError] = useState('');
   const [loading, setLoading] = useState(true);
+  const sequence = useRef(0);
 
   const load = useCallback(async () => {
+    const request = ++sequence.current;
     setLoading(true);
     setPlatformError(''); setAnalyticsError('');
     const [platformResult, analyticsResult] = await Promise.allSettled([
       authFetch('/api/horses/club-arena-admin?section=platform'),
       authFetch('/api/horses/analytics?type=summary'),
     ]);
+    if (request !== sequence.current) return;
     if (platformResult.status === 'fulfilled') setPlatform(platformResult.value.platform || null);
     else { setPlatform(null); setPlatformError(platformResult.reason?.message || 'Platform Pulse Could Not Be Read'); }
     if (analyticsResult.status === 'fulfilled') setAnalytics(analyticsResult.value.data || null);
@@ -97,7 +100,7 @@ export default function StatsPanel({ authFetch, onNavigate }) {
     setLoading(false);
   }, [authFetch]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); return () => { sequence.current += 1; }; }, [load]);
   useEffect(() => {
     let timer = null;
     const refresh = () => {

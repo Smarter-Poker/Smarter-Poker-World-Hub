@@ -158,8 +158,10 @@ financial scenarios, regulation compliance or a universal control plane.
    owning request rechecks current permission and approval before execution.
    Unknown or malformed recovery state keeps the original request identity.
 4. **O7 private exports:** request the authoritative filtered report once and
-   retain the real job ID. Refresh progress; resume only that original eligible
-   job. Inspect completeness and explicitly acknowledge truncation before
+   retain the real job ID. Export Files pages permitted history in groups of 25
+   with authoritative totals. Use Original Export Job ID and Read Original Job
+   to recover an older receipt directly. Refresh progress; resume only that
+   original eligible job. Inspect completeness and explicitly acknowledge truncation before
    download. Verify actual downloaded bytes and SHA-256 against the terminal job;
    truncated delivery retains complete=false. Jobs support cancellation, seven-day expiry and removal; caps remain 20,000
    rows and 16 MB. A prepared receipt is not a delivered private artifact.

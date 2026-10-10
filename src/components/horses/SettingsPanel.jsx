@@ -66,6 +66,8 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
   const mountedRef = useRef(true);
   const savingRef = useRef(false);
   const inFlightRef = useRef(0);
+  const readSequence = useRef(0);
+  const modeSequence = useRef(0);
   const flippingRef = useRef(null);
   const canWrite = hasPermission(permissions, 'content.write');
   const canOpenFleet = !Array.isArray(permissions)
@@ -74,6 +76,7 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     || permissions.includes('fleet.read');
 
   const load = useCallback(async () => {
+    const sequence = ++readSequence.current;
     setLoading(true);
     setReadError('');
     // Operator route, service role: content_settings is not readable from a
@@ -85,7 +88,7 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     } catch (cause) {
       result = { data: null, error: cause instanceof Error ? cause : new Error(String(cause)) };
     }
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || sequence !== readSequence.current) return;
     if (result.error) {
       setLoaded(false);
       setReadError(result.error.message || 'Settings Could Not Be Read');
@@ -102,6 +105,7 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
   }, [authFetch, patchContext]);
 
   const loadModes = useCallback(async () => {
+    const sequence = ++modeSequence.current;
     setModesLoading(true);
     setModesError('');
     // Same route, same reason: horse_post_modes is a server-only table.
@@ -112,7 +116,7 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     } catch (cause) {
       result = { data: null, error: cause instanceof Error ? cause : new Error(String(cause)) };
     }
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || sequence !== modeSequence.current) return;
     if (result.error) {
       setModes(null);
       setModesError(result.error.message || 'The Posting Modes Could Not Be Read');
@@ -130,10 +134,11 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     mountedRef.current = true;
     load();
     loadModes();
-    return () => { mountedRef.current = false; };
+    return () => { mountedRef.current = false; readSequence.current++; modeSequence.current++; };
   }, [load, loadModes]);
 
   const flush = useCallback(async () => {
+    if (savingRef.current || !mountedRef.current) return;
     const payload = pendingRef.current;
     if (!payload) return;
     pendingRef.current = null;
@@ -145,7 +150,8 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
         method: 'POST', body: JSON.stringify({ action: 'save_settings', settings: payload }),
       });
       if (!mountedRef.current) return;
-      const next = { ...DEFAULTS, ...payload, ...(body?.settings || {}) };
+      if (typeof body?.settings?.engine_enabled !== 'boolean') throw new Error('The Saved Settings Receipt Could Not Be Confirmed');
+      const next = { ...DEFAULTS, ...body.settings };
       // A second edit may have landed while this request was in flight. Do not
       // paint the older response over that newer draft; its own timer will
       // persist it.
@@ -162,11 +168,19 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
       setSaveError(message);
       showNotification?.(`Setting Not Saved: ${message}`, 'error');
       // The switch must show the row, not the hope: re-read it.
-      load();
+      pendingRef.current = null;
+      await load();
     } finally {
       inFlightRef.current = Math.max(0, inFlightRef.current - 1);
       savingRef.current = inFlightRef.current > 0;
-      if (mountedRef.current) setSaving(savingRef.current);
+      if (mountedRef.current) {
+        setSaving(savingRef.current);
+        if (pendingRef.current) {
+          if (timerRef.current) clearTimeout(timerRef.current);
+          timerRef.current = null;
+          void flush();
+        }
+      }
     }
   }, [authFetch, load, patchContext, showNotification]);
 
@@ -180,6 +194,8 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) return;
     // The payload is the PATCH, never the whole row: only a key this page owns
     // can reach the route, and the row's id and stamp never travel back.
+    readSequence.current += 1;
+    setLoading(false);
     const next = { ...(pendingRef.current || {}), [key]: value };
     pendingRef.current = next;
     setSettings((current) => {
@@ -207,6 +223,8 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     }
     // A second click while the first is in flight is dropped, not queued.
     if (flippingRef.current) return;
+    modeSequence.current += 1;
+    setModesLoading(false);
     flippingRef.current = mode;
     setFlipping(mode);
     setModeSaveError('');
@@ -216,12 +234,14 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
         method: 'POST', body: JSON.stringify({ action: 'set_post_mode', mode, enabled }),
       });
       if (!mountedRef.current) return;
+      const recordedMode = Array.isArray(body?.modes) ? body.modes.find(row => row.mode === mode) : null;
+      if (!recordedMode || typeof recordedMode.enabled !== 'boolean') throw new Error('The Posting Mode Receipt Could Not Be Confirmed');
       if (Array.isArray(body?.modes)) {
         setModes(body.modes);
         setModesError('');
         listed = true;
       }
-      showNotification?.(`${modeTitle(mode)} Is Now ${enabled ? 'Enabled' : 'Disabled'}`);
+      showNotification?.(`${modeTitle(mode)} Is Now ${recordedMode.enabled ? 'Enabled' : 'Disabled'}`);
       broadcastSync(SYNC_CHANNEL, { type: 'sync_update', timestamp: Date.now(), tabId: BROADCAST_TAB_ID });
     } catch (cause) {
       if (!mountedRef.current) return;
@@ -264,7 +284,7 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     {!canWrite ? <div className={styles.warnBanner}>Content Write Permission Is Required To Save These Settings.</div> : null}
     {readError ? <div className={styles.errorState} role="alert">Settings Not Read: {readError}</div> : null}
     {!loaded ? <div className={styles.warnBanner} role="status">{loading ? 'Reading The Saved Settings. Controls Stay Closed Until The Live Row Is Read.' : 'Controls Are Locked Because The Saved Settings Row Was Not Read. Defaults Are Not Live Values.'}</div> : null}
-    {saveError ? <div className={styles.errorState} role="alert">Settings Not Saved: {saveError}</div> : savedAt ? <div style={{ color: T.accent, fontSize: 12 }} role="status">Saved At {savedAt.toLocaleTimeString()}</div> : saving ? <div style={{ color: T.accent, fontSize: 12 }} role="status">Saving Settings</div> : null}
+    {saveError ? <div className={styles.errorState} role="alert">Settings Not Saved: {saveError}</div> : saving ? <div style={{ color: T.accent, fontSize: 12 }} role="status">Saving Settings</div> : savedAt ? <div style={{ color: T.accent, fontSize: 12 }} role="status">Saved At {savedAt.toLocaleTimeString()}</div> : null}
     <div className={styles.settingsGrid}>
       <section className={`${styles.settingCard} ${styles.fullWidth}`}><h3>System Controls</h3><div className={styles.systemControls}><div className={styles.controlItem}><label htmlFor="setting-engine">Content Engine</label><label className={styles.toggleSwitch}><input id="setting-engine" type="checkbox" checked={loaded && !!settings.engine_enabled} disabled={!loaded || !canWrite} onChange={(event) => update('engine_enabled', event.target.checked)} /><span className={styles.slider} /></label><span style={{ color: !loaded ? T.dim : settings.engine_enabled ? T.accent : T.danger }}>{!loaded ? 'Unknown' : settings.engine_enabled ? 'Running' : 'Stopped'}</span></div></div><p className={styles.settingNote}>The Master Switch. While It Is Stopped, Every Horse Posting Route Skips Its Run And No Posting Mode Below Posts, Whatever That Mode's Own Switch Says.</p></section>
       <section className={`${styles.settingCard} ${styles.fullWidth}`}><h3>Posting Modes</h3><p className={styles.settingNote}>One Row Per Way A Horse Can Post. A New Mode Arrives Disabled And Stays Off Until Someone Flips It Here On Purpose; Every Flip Is Written To The Audit Log. The Master Content Engine Switch Above Gates Every Mode.</p>{modesError ? <div className={styles.errorState} role="alert">Posting Modes Not Read: {modesError}</div> : null}{modeSaveError ? <div className={styles.errorState} role="alert">Posting Mode Not Saved: {modeSaveError}</div> : null}{modes === null ? <div className={styles.warnBanner} role="status">{modesLoading ? 'Reading The Posting Modes. Their State Is Unknown Until The Table Is Read.' : 'The Posting Modes Were Not Read, So Their State Is Unknown.'}</div> : modes.length === 0 ? <div className={styles.warnBanner} role="status">The Table Holds No Posting Modes.</div> : <ul className={styles.modeList}>{modes.map((row) => <li key={row.mode} className={styles.modeRow}><div className={styles.modeText}><strong>{modeTitle(row.mode)}</strong><span className={styles.modeMeta}>{row.description || 'No Description Recorded.'}</span><span className={styles.modeMeta}>{approvalLine(row)}</span></div><div className={styles.controlItem}><label className={styles.toggleSwitch}><input type="checkbox" aria-label={`${modeTitle(row.mode)} Posting Mode`} checked={!!row.enabled} disabled={!loaded || !canWrite} onChange={(event) => flipMode(row.mode, event.target.checked)} /><span className={styles.slider} /></label><span style={{ color: flipping === row.mode ? T.dim : row.enabled ? T.accent : T.danger }}>{flipping === row.mode ? 'Saving' : row.enabled ? 'Enabled' : 'Disabled'}</span></div></li>)}</ul>}</section>

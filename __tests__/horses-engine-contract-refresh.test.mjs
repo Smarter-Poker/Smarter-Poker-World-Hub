@@ -69,3 +69,35 @@ test('rendered control recovers a failed contract without remounting or issuing 
     assert.equal(calls, 2); assert.equal(submit().props.disabled, false); assert.equal(storage.size, 0);
   } finally { if (view) act(() => view.unmount()); globalThis.window = previousWindow; }
 });
+
+for (const value of [{}, { command: false }, { command: null }, { command: null, absent: true, operationId: 'other' }, { command: { id: 'other', domain: 'floor', status: 'completed' } }]) test('malformed outcome cannot release the original engine operation', async () => {
+  const prior = globalThis.window;
+  const id = '11111111-1111-4111-8111-111111111111', key = 'stable-admin-engine-operation:operator-a:floor';
+  const storage = new Map([[key, id]]);
+  globalThis.window = { sessionStorage: { getItem: k => storage.get(k) ?? null, setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k) } };
+  let view, posts = 0;
+  const authFetch = Object.assign(async (url, options = {}) => { if (options.method === 'POST') posts++; return url.includes('capabilities=1') ? { capabilities: { floor: ['pause'] } } : value; }, { captureScope: () => ({ operatorId: 'operator-a', isCurrent: () => true }) });
+  try {
+    await act(async () => { view = create(React.createElement(renderedComponent(), { authFetch, domain: 'floor', permissions: ['clubs.write'] })); });
+    await act(async () => { await view.root.findAllByType('button').find(b => b.children.includes('Read Durable Outcome')).props.onClick(); });
+    assert.equal(view.root.findAllByType('button').find(b => b.children.includes('New Operation')).props.disabled, true);
+    assert.equal(storage.get(key), id); assert.equal(posts, 0);
+  } finally { if (view) await act(async () => view.unmount()); globalThis.window = prior; }
+});
+
+for (const absent of [true, false]) test('confirmed engine absence or matching terminal receipt permits an explicit new operation', async () => {
+  const prior = globalThis.window;
+  const id = '11111111-1111-4111-8111-111111111111', key = 'stable-admin-engine-operation:operator-a:floor';
+  const storage = new Map([[key, id]]);
+  globalThis.window = { sessionStorage: { getItem: k => storage.get(k) ?? null, setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k) } };
+  let view, posts = 0;
+  const value = absent ? { command: null, absent: true, operationId: id } : { command: { id, domain: 'floor', status: 'completed', action: 'pause' } };
+  const authFetch = Object.assign(async (url, options = {}) => { if (options.method === 'POST') posts++; return url.includes('capabilities=1') ? { capabilities: { floor: ['pause'] } } : value; }, { captureScope: () => ({ operatorId: 'operator-a', isCurrent: () => true }) });
+  try {
+    await act(async () => { view = create(React.createElement(renderedComponent(), { authFetch, domain: 'floor', permissions: ['clubs.write'] })); });
+    await act(async () => { await view.root.findAllByType('button').find(b => b.children.includes('Read Durable Outcome')).props.onClick(); });
+    const next = view.root.findAllByType('button').find(b => b.children.includes('New Operation'));
+    assert.equal(next.props.disabled, false); assert.equal(storage.get(key), id); assert.equal(posts, 0);
+    await act(async () => next.props.onClick()); assert.equal(storage.has(key), false); assert.equal(posts, 0);
+  } finally { if (view) await act(async () => view.unmount()); globalThis.window = prior; }
+});

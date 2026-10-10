@@ -59,3 +59,13 @@ test('expired sanction approval proof is requester/op/kind bound and unavailable
     assert.deepEqual(reads[1], { table: 'ca_operator_approvals', filters: [['op_id', intent.opId], ['requested_by', actor], ['kind', 'sanction']] });
   }
 });
+
+ test('malformed outcome absence never authorizes a retry write', async () => {
+  for (const operation of [undefined, false, 0, '']) {
+    for (const retry of [false, true]) {
+      let calls = 0;
+      await assert.rejects(recoverPlayerLogout(async () => { calls++; return { actorId: actor, writable: true, operation }; }, scope, intent, retry));
+      assert.equal(calls, 1, 'only the original receipt read is allowed');
+    }
+  }
+});

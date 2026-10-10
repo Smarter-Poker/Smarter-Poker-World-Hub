@@ -23,6 +23,7 @@ export async function recoverPlayerLogout(authFetch, scope, intent, retry = fals
     }
     return row.result;
   }
+  if (prior.operation !== null) throw new Error('The Logout Outcome Is Unknown. Keep The Original Operation Id');
   if (!retry) return { pending: true, writable: prior.writable === true };
   if (prior.writable !== true) throw new Error('Logout Write Permission Is Not Available. The Original Operation Is Retained');
   const result = await authFetch(PLAYER_ADMIN, { ...scope.options, method: 'POST',
