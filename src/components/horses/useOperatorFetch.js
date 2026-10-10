@@ -162,11 +162,12 @@ export default function useOperatorFetch() {
 
   const authorizedFetch = useCallback(async (url, options = {}) => {
     const { isCurrent: callerCurrent, timeoutMs, responseType, expectedOperatorId: callerOperatorId, ...fetchOptions } = options;
-    const captured = useStableAdminStore.getState();
+    const captured = callerCurrent ? null : useStableAdminStore.getState();
     // Default requests belong to the ready operator generation that invoked them.
+    // An explicit caller fence retains its own account/view authority.
     // Explicit bootstrap identity works before the policy context is ready.
-    const automatic = captured.contextStatus === 'ready' && !!captured.operatorId;
-    if (!automatic && !callerOperatorId) throw new Error('The Operator Account Could Not Be Confirmed');
+    const automatic = !!captured && captured.contextStatus === 'ready' && !!captured.operatorId;
+    if (!automatic && !callerOperatorId && !callerCurrent) throw new Error('The Operator Account Could Not Be Confirmed');
     const expectedOperatorId = callerOperatorId || (automatic ? captured.operatorId : null);
     const isCurrent = () => {
       if (!aliveRef.current || (callerCurrent && callerCurrent() !== true)) return false;

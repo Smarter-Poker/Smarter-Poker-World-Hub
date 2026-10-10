@@ -52,3 +52,24 @@ test('queued account switch does not read or apply policy after subscription unm
  const before=writes;await act(async()=>view.unmount());await queued();
  assert.equal(reads,0);assert.equal(writes,before);
 });
+
+
+test('explicit caller scope remains authoritative without reading global context',async()=>{
+ let current=true,resolveToken,fetches=0,fetcher,view;
+ const token=new Promise(resolve=>resolveToken=resolve);
+ const api=moduleOf(load('src/components/horses/useOperatorFetch.js'),{
+  'react':React,'../../lib/authUtils':{getFreshAccessToken:()=>token},
+  '../../stores/stableAdminStore':{useStableAdminStore:{getState(){throw new Error('Unexpected global context read');}}}
+ });
+ function Harness(){fetcher=api.default();return null;}
+ const before=globalThis.fetch;
+ await act(async()=>{view=create(React.createElement(Harness));});
+ globalThis.fetch=async()=>{fetches++;return{ok:true,status:200,json:async()=>({success:true})};};
+ try{
+  const pending=fetcher('/api/club-arena/approve-cashout',{isCurrent:()=>current});
+  await new Promise(resolve=>setImmediate(resolve));current=false;resolveToken(jwt(actor));
+  await assert.rejects(pending,/changed/);assert.equal(fetches,0);
+  current=true;assert.equal((await fetcher('/read',{isCurrent:()=>current})).success,true);
+  assert.equal(fetches,1);
+ }finally{globalThis.fetch=before;await act(async()=>view.unmount());}
+});

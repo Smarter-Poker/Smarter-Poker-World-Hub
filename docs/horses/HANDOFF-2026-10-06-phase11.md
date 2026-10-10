@@ -1529,7 +1529,8 @@ Final WH qualification now PASS: fullhorses1261/1261, CHECK8 selection282/282,
 maintained built browser30/30 at desktop/mobile with no retries, full507-page
 production build and bundle/postbuild budgets. Root independently read primary
 logs; finalbuild/browser runtime/workflow/package/e2e fingerprints stayed fixed.
-Root selected source/documentation contracts22/22 pass. Extra imported broad
+Root selected architecture/pipeline contracts22/22 pass; actual documentation
+contracts were included in the fullhorses1261-case qualification. Extra imported broad
 meta-suite was deliberately stopped as outside this finite check selection;
 its interrupted result is not passing evidence. No runtime assertion changed.
 Final scoped lint and whitespace pass. Ordinary source commit/push and exacthead
@@ -1570,3 +1571,40 @@ remains pending. EnginePR6638 exactf506a78c283298ea1e31211ef30bcda29f3eccb0
 submitted after normalhooks, compiler,145focusedengine/3source/821binding,
 client4339/Node122 and engine9450checks passed;166existing engine skips are
 not claimed executed. Protected engine checks/merge/activation/live remain pending.
+
+
+### Audit exact-head continuation receipt, 13:31 UTC
+
+Canonical full policy reader emitted/read2026-10-10T13:30:57.779Z, v2.9;
+manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all preceding canonical hashes unchanged. Full WH AGENTS/playbook/CLAUDE/
+publishing, complete checkpoint, affected Phase1/2/3/4/9 contracts, permission
+matrix, agentrules and storage freshly read. ExternalSSD disk7s4 has87503856
+freeblocks; disk7s3 archive has455384640. CA operation owners remain exclusive.
+
+Expanded certificate normal pushf0ab4edefed33ebfc259f6160ca8a9c02f361c8d
+passed after correcting absent task-owned TMPDIR. The initial missing-directory
+policy-test failure is retained, never called a test pass. Runtime input hashes
+are unchanged; certificate11-case proof is separately qualified. PR2286
+current-head safety38055891093/footer38055891083 are running. Retired automatic
+merge38055889910 already completed before readback; root directly disabled
+automatic merge again. Protected merge/publication/fresh live proof are pending.
+
+
+### Required caller-scope regression repaired at the original owner
+
+Exactf0ab safety38055891093 failed two preserved cashout tests in the
+299-case Messenger/Cashier step. New default account capture unconditionally
+read global context even when an original caller-owned ABA fence was supplied.
+The source now captures ready store identity/generation only for default calls;
+explicit caller fences keep their original authority, liveness and token/body
+checks. Explicit expected identity still verifies JWTsubject, and ordinary
+unknown context still refuses dispatch. Existing cashout assertions were not
+changed. Root reproduced both failures locally, then verified all299 exact
+workflow cases and29 connected/realReact cases with zero failures/skips. New
+actualReact regression refuses global reads for caller-owned scope, proves stale
+request dispatch stayszero and current caller can finish. Targeted lint/diff pass.
+Final revised CHECK8 passes286/286 and fullhorses1265/1265; changed runtime
+requires refreshed productionbuild and30-case browser proof, currentlyrunning.
+New exacthead submission follows available localqualification; no unchanged
+provider retry or passed old-runtime build substitutes for this correction.
