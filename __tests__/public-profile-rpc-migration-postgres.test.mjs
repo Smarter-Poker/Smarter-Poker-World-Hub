@@ -67,6 +67,9 @@ test('public profile migration removes private keys and preserves lookup semanti
   const psql = pgTool('psql');
   const scratchBase = process.env.PUBLIC_PROFILE_POSTGRES_ROOT;
   if (!initdb || !pgCtl || !postgres || !psql || !scratchBase || !existsSync(scratchBase)) {
+    if (process.env.CI === 'true') {
+      throw new Error('Required CI PostgreSQL 17 tools and PUBLIC_PROFILE_POSTGRES_ROOT are missing');
+    }
     t.skip('PostgreSQL 17 tools and PUBLIC_PROFILE_POSTGRES_ROOT are required');
     return;
   }
