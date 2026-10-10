@@ -33,6 +33,54 @@ with mock.patch.dict(sys.modules, {'scrapling': types.ModuleType('scrapling'),
 
 
 class TourStopExtractionTests(unittest.TestCase):
+    def test_generic_parser_does_not_publish_commented_out_schedule(self):
+        page = '<h1>Official Poker Schedule</h1><!-- <h2>Archived Poker Championship</h2><p>October 20-30, 2026</p> -->'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule/', date(2026, 10, 10)), [])
+
+    def test_rrpt_calendar_start_avoids_marketing_dates_and_unqualified_duration(self):
+        url = 'https://roughriderpokertour.com/upcoming-events/'
+        event = {'@type': 'Event', 'eventStatus': 'https://schema.org/EventScheduled',
+                 'name': '&quot;RPT Minnesota Poker Return Part II&quot; - $10,000 Golden Tickets!',
+                 'url': 'https://roughriderpokertour.com/events/minnesota-return/',
+                 'startDate': '2026-10-15T09:30-5:00', 'endDate': '2026-10-18T23:41-5:00',
+                 'location': [{'@type': 'Place', 'name': 'Jackpot Junction'}]}
+        def page(entry):
+            return '<h2>The Top 10 finishers receive Golden Tickets!</h2><p>November 19-22, 2026</p><script type="application/ld+json">' + json.dumps(entry) + '</script>'
+        stops = scraper.extract_stops(page(event), url, date(2026, 10, 10), 'RRPT')
+        self.assertEqual(stops, [{'stop_name': 'RPT Minnesota Poker Return Part II',
+                                 'start': '2026-10-15', 'end': '2026-10-15',
+                                 'source_scope': 'published event-calendar start', 'venue': 'Jackpot Junction'}])
+        row = scraper.build_stop_row('RRPT', stops[0], url, 'a' * 64, '2026-10-10T00:00:00Z')
+        self.assertIn('full festival duration and event pricing unqualified', row['notes'])
+        self.assertNotIn('buy_in', row)
+        self.assertEqual(scraper.extract_stops(page(dict(event, startDate='2026-11-5')), url, date(2026, 10, 10), 'RRPT')[0]['start'], '2026-11-05')
+        for invalid in (dict(event, startDate='2026-02-30'), dict(event, startDate='November 5'),
+                        dict(event, eventStatus='https://schema.org/EventCancelled'),
+                        dict(event, name=None), dict(event, name={'title': 'Unknown'}),
+                        dict(event, name=''), dict(event, url='https://[invalid/'),
+                        dict(event, url='http://roughriderpokertour.com/events/minnesota/'),
+                        dict(event, url='https://foreign.test/events/minnesota/'),
+                        dict(event, url='https://roughriderpokertour.com/promotions/')):
+            self.assertEqual(scraper.extract_stops(page(invalid), url, date(2026, 10, 10), 'RRPT'), [])
+        self.assertEqual(scraper.extract_stops('<h2>The Road to Vegas Starts Here</h2><p>October 15-18, 2026</p>', url, date(2026, 10, 10), 'RRPT'), [])
+        self.assertEqual(scraper.extract_stops('<!--' + page(event) + '-->', url, date(2026, 10, 10), 'RRPT'), [])
+        self.assertEqual(scraper.extract_stops('<!--' + page(event) + '-->' + page(event), url, date(2026, 10, 10), 'RRPT'), stops)
+
+    def test_verification_allows_form_captcha_script_but_refuses_interstitial(self):
+        page = ('<title>Trailblazer Poker Tour</title>'
+                '<script src="https://www.gstatic.com/recaptcha/releases/version/recaptcha__en.js"></script>'
+                '<h1>Trailblazer Poker Tour</h1><p>Upcoming poker events and tournament schedule</p>'
+                + '<p>Official venue schedule information</p>' * 40)
+        self.assertTrue(scraper.verify_html(page))
+        for challenge in ('<title>Just a moment...</title>',
+                          '<title>CAPTCHA verification</title>',
+                          '<title>Attention Required</title>',
+                          '<h1>Access denied</h1>',
+                          '<h1>Please complete the CAPTCHA</h1>',
+                          '<h1>Verify you are human</h1>'):
+            self.assertFalse(scraper.verify_html(challenge + page))
+        self.assertFalse(scraper.verify_html('<script>poker tournament schedule</script>' * 60))
+
     def test_venetian_visible_series_paragraphs_not_cta_or_marketing_heading(self):
         page = '''<h2>DeepStack Extravaganza Poker Series</h2>
           <p><b>Current Series:<br /> </b>DeepStack Showdown (October)<br />
@@ -61,6 +109,12 @@ class TourStopExtractionTests(unittest.TestCase):
         self.assertEqual(len(stops), 3)
         self.assertEqual(stops[0], {'stop_name': 'Champions Club Texas', 'start': '2026-10-12', 'end': '2026-10-18', 'venue': 'Champions Club Texas', 'city': 'Houston', 'state': 'TX'})
         self.assertEqual(stops[2]['end'], '2026-12-03')
+        # Shopify's browser hydration inserts this source-owned wrapper. The
+        # maintained StealthySession reads the hydrated page, not raw HTTP HTML.
+        rendered = page.replace('</h2><table>', '</h2><div class="table-wrapper"><table>')
+        self.assertEqual(scraper.extract_stops(rendered, url, date(2026, 10, 10), 'RGPS'), stops)
+        self.assertEqual(scraper.extract_stops('<!--' + rendered + '-->', url, date(2026, 10, 10), 'RGPS'), [])
+        self.assertEqual(scraper.extract_stops('<!--' + rendered + '-->' + rendered, url, date(2026, 10, 10), 'RGPS'), stops)
         self.assertEqual(scraper.extract_stops(page.replace('2026 RunGood', 'RunGood'), url, date(2026, 10, 10), 'RGPS'), [])
 
     def test_seminole_dated_rows_yield_only_source_owned_series_envelope(self):
