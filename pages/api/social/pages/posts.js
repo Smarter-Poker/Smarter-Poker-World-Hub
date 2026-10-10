@@ -212,7 +212,9 @@ export default async function handler(req, res) {
                   // and viewers ON the club page saw a black box.
                   thumbnail_url: thumbnail_url || null,
                   link_preview,
-                  visibility: homeAccess.homeGame && !homeAccess.public ? 'private' : visibility || 'public',
+                  // Page posts use public/members/admins, not the global
+                  // social_posts private enum. Restricted groups stay members-only.
+                  visibility: homeAccess.homeGame && !homeAccess.public ? 'members' : visibility || 'public',
                   is_pinned: isOwner ? (is_pinned || false) : false,
                   post_type: isOwner ? (post_type || 'regular') : 'regular',
                   is_approved: isOwner || !page.require_post_approval,
@@ -312,7 +314,7 @@ export default async function handler(req, res) {
           if (link_preview !== undefined) updates.link_preview = link_preview;
           if (is_pinned !== undefined && isPageAdmin) updates.is_pinned = is_pinned;
           if (visibility !== undefined) updates.visibility = visibility;
-          if (homeAccess.homeGame && !homeAccess.public) updates.visibility = 'private';
+          if (homeAccess.homeGame && !homeAccess.public) updates.visibility = 'members';
 
           const { data, error } = await getSupabase()
               .from('social_page_posts')

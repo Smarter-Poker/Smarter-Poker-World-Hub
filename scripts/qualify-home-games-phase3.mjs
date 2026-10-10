@@ -301,10 +301,10 @@ export async function qualify(env = process.env) {
     assert.ok(unauthorizedManage.error || unauthorizedManage.data?.success === false);
     const privatePost = await api('/api/social/pages/posts', member, { page_id: page.id, content: marker, visibility: 'public' });
     assert.equal(privatePost.status, 201);
-    assert.equal(privatePost.data.data?.visibility, 'private');
+    assert.equal(privatePost.data.data?.visibility, 'members');
     const posted = await safe(admin.from('social_page_posts').select('id,visibility').eq('page_id', page.id).eq('author_id', member.id), 'private social post readback');
     assert.equal(posted.length, 1);
-    assert.equal(posted[0].visibility, 'private');
+    assert.equal(posted[0].visibility, 'members');
     const publicPosts = await api(`/api/social/pages/posts?page_id=${page.id}`);
     assert.equal(publicPosts.status, 200);
     assert.ok(!JSON.stringify(publicPosts.data).includes(posted[0].id));

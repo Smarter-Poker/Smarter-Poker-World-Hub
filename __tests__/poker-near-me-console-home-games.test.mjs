@@ -50,6 +50,7 @@ function runPublicHomeGameHandler(file, tables, query = {}, request = {}) {
     constructor(table) { this.table = table; this.filters = []; this.start = 0; this.end = null; this.one = false; }
     select() { return this; }
     update(values) { this.updates = values; return this; }
+    insert(values) { this.inserted = values; return this; }
     eq(key, value) { this.filters.push((row) => row[key] === value); return this; }
     in(key, values) { this.filters.push((row) => values.includes(row[key])); return this; }
     gte() { return this; }
@@ -64,6 +65,17 @@ function runPublicHomeGameHandler(file, tables, query = {}, request = {}) {
     then(resolve, reject) {
       const fixture = tables[this.table] || [];
       if (fixture.error) return Promise.resolve({ data: null, error: fixture.error }).then(resolve, reject);
+      // Match the installed page-post CHECK, not the different global-post enum.
+      const mutation = this.inserted || this.updates;
+      if (this.table === 'social_page_posts' && mutation?.visibility !== undefined
+          && !['public', 'members', 'admins'].includes(mutation.visibility)) {
+        return Promise.resolve({ data: null, error: { code: '23514' } }).then(resolve, reject);
+      }
+      if (this.inserted) {
+        const row = { id: 'created-post', ...this.inserted };
+        fixture.push(row);
+        return Promise.resolve({ data: this.one ? row : [row], error: null }).then(resolve, reject);
+      }
       let rows = fixture.filter((row) => this.filters.every((filter) => filter(row)));
       if (this.updates) rows = rows.map(row => ({ ...row, ...this.updates }));
       rows = rows.slice(this.start, this.end === null ? undefined : this.end + 1);
@@ -120,7 +132,25 @@ test('editing a Home Games post cannot bypass a ban or publish private-group con
       social_page_posts: [{ id: 'post-a', page_id: 'page-a', author_id: 'member-a' }],
     }, {}, { method: 'PUT', authUser: { id: 'member-a' }, body: { id: 'post-a', content: 'Edited', visibility: 'public' } });
     assert.equal(response.statusCode, status === 'approved' ? 200 : 403);
-    if (status === 'approved') assert.equal(response.body.data.visibility, 'private');
+    if (status === 'approved') assert.equal(response.body.data.visibility, 'members');
+  }
+});
+
+test('private and unlisted Home Game page posts persist the actual members enum and never mirror publicly', async () => {
+  for (const [isPrivate, isPublic] of [[true, true], [false, false], [false, true]]) {
+    const tables = {
+      social_pages: [{ ...publicPageFixture, owner_id: 'host-a', allow_member_posts: true, is_public: isPublic }],
+      commander_home_groups: [{ ...publicGroupFixture, owner_id: 'host-a', is_private: isPrivate }],
+      social_page_posts: [], social_posts: [],
+    };
+    const response = await runPublicHomeGameHandler('pages/api/social/pages/posts.js', tables, {}, {
+      method: 'POST', authUser: { id: 'host-a' }, body: { page_id: 'page-a', content: 'Scoped Update', visibility: 'public' },
+    });
+    assert.equal(response.statusCode, 201);
+    const isListed = !isPrivate && isPublic;
+    assert.equal(response.body.data.visibility, isListed ? 'public' : 'members');
+    assert.equal(tables.social_page_posts.length, 1, 'one durable page post');
+    assert.equal(tables.social_posts.length, isListed ? 1 : 0, 'only approved public content can mirror');
   }
 });
 
