@@ -96,7 +96,7 @@ async function fetchLinkPreview(url, { requireImage = false } = {}) {
 
     const promise = (async () => {
         try {
-            const version = requireImage ? '&preview=story-image-v2' : '';
+            const version = requireImage ? '&preview=story-image-v3' : '';
             const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}${version}`);
             if (response.ok) {
                 const data = await response.json();

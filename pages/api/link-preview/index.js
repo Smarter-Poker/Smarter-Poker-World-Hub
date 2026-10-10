@@ -266,6 +266,8 @@ export default async function handler(req, res) {
         // Do not fall through to a generic scraper that can mistake a brand
         // logo for the article artwork. The caller retains its persisted title
         // and renders a compact text card when first-party metadata is absent.
+        // A transient publisher miss must not poison the CDN for a full day.
+        res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json({ url, title: null, description: null, image: null, siteName: null });
     }
 

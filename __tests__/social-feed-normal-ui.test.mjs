@@ -47,7 +47,7 @@ test('titled image-less horse news still hydrates its actual preview image', () 
   assert.match(article, /newsImageUrl\(metadata\.image\)/);
   assert.match(article, /setMetadata\(supplied\)/);
   assert.match(article, /fetchLinkPreview\(url, \{ requireImage: !supplied\.image \}\)/);
-  assert.match(article, /preview=story-image-v2/);
+  assert.match(article, /preview=story-image-v3/);
   assert.doesNotMatch(article, /#1a1a2e|#16213e|#0f3460/);
 });
 
