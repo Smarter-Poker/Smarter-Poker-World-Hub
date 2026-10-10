@@ -1,0 +1,11 @@
+# PDF adapters for the existing PNM daily/series runtimes. Install with
+# --target /Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/pdf-packages
+# and an SSD TMPDIR/cache. Never mutate the shared internal-drive scraper venv.
+pdfplumber==0.11.7
+pdfminer.six==20250506
+pypdfium2==5.14.0
+Pillow==12.3.0
+charset-normalizer==3.5.2
+cryptography==50.0.2
+cffi==2.1.1
+pycparser==3.11

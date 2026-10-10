@@ -193,6 +193,17 @@ class RuntimeProof(unittest.TestCase):
                 else:
                     self.assertTrue(value['KeepAlive'])
 
+    def test_pdf_collectors_resolve_pinned_packages_from_external_ssd(self):
+        scripts = Path(runtime.__file__).parent
+        for suffix in ('series-scraper', 'tournament-schedule-daemon'):
+            with (scripts / ('com.smarter-poker.' + suffix + '.plist')).open('rb') as source:
+                value = plistlib.load(source)
+            self.assertEqual(value['EnvironmentVariables']['PYTHONPATH'],
+                '/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/pdf-packages')
+        pins = (scripts / 'pnm-pdf-requirements.txt').read_text()
+        self.assertIn('pdfplumber==0.11.7', pins)
+        self.assertIn('pdfminer.six==20250506', pins)
+
     def test_series_runtime_preserves_daemon_mode_and_catalog_inputs(self):
         files, inputs = runtime.COMPONENTS['series']
         for name in files:
