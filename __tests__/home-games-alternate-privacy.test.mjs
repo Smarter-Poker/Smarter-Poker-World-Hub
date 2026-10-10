@@ -164,6 +164,91 @@ const GROUP_ID = '00000000-0000-4000-8000-000000000001';
 const REPORT_ID = '00000000-0000-4000-8000-000000000002';
 const NATIVE_POST_ID = '00000000-0000-4000-8000-000000000003';
 
+async function publicNativePosts({ privateGroup = false, active = true, listed = true, groupError = null, pageError = null, postError = null, offset = 0, limit = 20 } = {}) {
+  const reads = [];
+  const rows = {
+    commander_home_groups: [{ id: GROUP_ID, club_code: 'SHARE', is_active: active, is_private: privateGroup }],
+    social_pages: [{ id: 'page', linked_entity_type: 'home_group', linked_entity_id: GROUP_ID, is_public: listed }],
+    commander_home_posts: [
+      { id: 'visible', group_id: GROUP_ID, is_published: true, visible_to: 'public', is_hidden: false },
+      { id: 'legacy-null', group_id: GROUP_ID, is_published: true, visible_to: 'public', is_hidden: null },
+      { id: 'hidden', group_id: GROUP_ID, is_published: true, visible_to: 'public', is_hidden: true },
+      { id: 'draft', group_id: GROUP_ID, is_published: false, visible_to: 'public', is_hidden: false },
+      { id: 'members', group_id: GROUP_ID, is_published: true, visible_to: 'members', is_hidden: false },
+      { id: 'foreign', group_id: 'foreign', is_published: true, visible_to: 'public', is_hidden: false },
+    ],
+  };
+  const sb = { from(table) {
+    reads.push(table);
+    const predicates = [];
+    let bounds = null;
+    const q = {
+      select() { return q; }, eq(key, value) { predicates.push(row => row[key] === value); return q; },
+      or(value) { assert.equal(value, 'is_hidden.is.null,is_hidden.eq.false'); predicates.push(row => row.is_hidden !== true); return q; },
+      order() { return q; }, range(start, end) { bounds = [start, end]; return q; },
+      maybeSingle() { return Promise.resolve(result(true)); },
+      then(resolve, reject) { return Promise.resolve(result(false)).then(resolve, reject); },
+    };
+    function result(single) {
+      const error = table === 'commander_home_groups' ? groupError : table === 'social_pages' ? pageError : postError;
+      const matched = (rows[table] || []).filter(row => predicates.every(predicate => predicate(row)));
+      return { data: single ? matched[0] || null : bounds ? matched.slice(bounds[0], bounds[1] + 1) : matched, error, count: matched.length };
+    }
+    return q;
+  } };
+  const routeSource = process.env.HG_PUBLIC_POSTS_BEFORE === '1'
+    ? execFileSync('git', ['show', 'HEAD:pages/api/public/home-game/[code]/posts.js'], { encoding: 'utf8' })
+    : fs.readFileSync(new URL('../pages/api/public/home-game/[code]/posts.js', import.meta.url), 'utf8');
+  const module = { exports: {} };
+  const mocks = {
+    '../../../../../src/lib/supabaseServerClient': { createClient: () => sb },
+    '../../../../../src/lib/apiRateLimit': { LIMITS: { read: {} }, applyRateLimit: () => true },
+    '../../../../../src/lib/apiErrorHandler': { reportApiError() {} },
+  };
+  const code = ts.transpileModule(routeSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  new Function('require', 'module', 'exports', code)(name => mocks[name], module, module.exports);
+  const previous = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'fixture-not-a-secret';
+  const res = { headers: {}, setHeader(key, value) { this.headers[key] = value; }, status(n) { this.statusCode = n; return this; }, json(body) { this.body = body; return this; } };
+  try {
+    await module.exports.default({ method: 'GET', headers: {}, query: { code: 'SHARE', offset, limit } }, res);
+  } finally {
+    if (previous === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = previous;
+  }
+  return { ...res, reads };
+}
+
+test('public native feed excludes hidden/draft/member/foreign posts and keeps legacy NULL visibility', async () => {
+  const result = await publicNativePosts();
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual(result.body.data.posts.map(post => post.id), ['visible', 'legacy-null']);
+  assert.equal(result.body.data.total, 2);
+  assert.match(result.headers['Cache-Control'], /no-store/);
+  const page = await publicNativePosts({ limit: 1, offset: 1 });
+  assert.deepEqual(page.body.data.posts.map(post => post.id), ['legacy-null']);
+  assert.equal(page.body.data.total, 2);
+});
+
+test('public native feed honors current private/inactive/unlisted parent before reading content', async () => {
+  for (const options of [{ privateGroup: true }, { active: false }, { listed: false }]) {
+    const result = await publicNativePosts(options);
+    assert.equal(result.statusCode, 404);
+    assert.ok(!result.reads.includes('commander_home_posts'));
+    assert.match(result.headers['Cache-Control'], /no-store/);
+  }
+});
+
+test('public native feed fails closed honestly when group/page/content reads are unavailable', async () => {
+  for (const options of [{ groupError: { code: 'CONNECTION' } }, { pageError: { code: 'CONNECTION' } }, { postError: { code: 'CONNECTION' } }]) {
+    const result = await publicNativePosts(options);
+    assert.equal(result.statusCode, 500);
+    assert.equal(result.body.success, false);
+    assert.equal(result.body.data, undefined);
+    assert.match(result.headers['Cache-Control'], /no-store/);
+  }
+});
+
 function moderationFixture({ memberStatus = 'approved', role = 'co_host', foreign = false, severity = 'other', unknownAck = false, hidden = false } = {}) {
   let writes = 0;
   const report = { id: REPORT_ID, reported_type: 'post', reported_id: NATIVE_POST_ID, status: 'pending', content_author_id: 'writer', reason_category: severity };

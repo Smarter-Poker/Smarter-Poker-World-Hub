@@ -133,6 +133,15 @@ test('privacy assertions reject address or invitation credential anywhere in ret
   assert.throws(() => assertPublicPrivacy({ url: '/join/private-token' }, 'private-address', 'private-token'));
 });
 
+test('qualification checks private, eligible, hidden and unlisted public native post consumers', () => {
+  const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
+  assert.match(source, /privateNativeRead\.status, 404/);
+  assert.match(source, /eligiblePublicNativeRead\.data\.data\.posts\.some\(post => post\.id === nativePostId\)/);
+  assert.match(source, /!hiddenPublicNativeRead\.data\.data\.posts\.some\(post => post\.id === nativePostId\)/);
+  assert.match(source, /unlistedPublicNativeRead\.status, 404/);
+  assert.match(source, /publicNativePostPrivacyPersisted = true/);
+});
+
 test('qualifier cannot silently use personal account credentials or retry writes', () => {
   const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /TEST_USER_EMAIL|TEST_USER_PASSWORD|['"]\.env|sendInvite|inviteUserByEmail/);

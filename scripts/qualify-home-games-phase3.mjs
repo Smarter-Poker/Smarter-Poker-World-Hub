@@ -182,7 +182,7 @@ export async function qualify(env = process.env) {
     });
     let data;
     try { data = await response.json(); } catch { throw new Error(`qualified API returned non-JSON (${response.status})`); }
-    return { status: response.status, data };
+    return { status: response.status, data, cacheControl: response.headers.get('cache-control') };
   };
   const health = async () => {
     const result = await api('/api/health');
@@ -338,6 +338,10 @@ export async function qualify(env = process.env) {
       assert.ok(!JSON.stringify(profile.data).includes(gameId));
     }
     receipt.checks.privatePublicProfilesProtected = true;
+    const publicNativePath = `/api/public/home-game/${encodeURIComponent(group.club_code || group.invite_code)}/posts?qualification=${runId}`;
+    const privateNativeRead = await api(publicNativePath);
+    assert.equal(privateNativeRead.status, 404, 'private native public feed remained reachable');
+    assert.match(privateNativeRead.cacheControl || '', /no-store/);
     // Only this exact owned fixture transitions public; no real user is touched.
     await safe(admin.from('commander_home_groups').update({ is_private: false, requires_approval: true }).eq('id', group.id).eq('owner_id', host.id).eq('name', marker), 'fixture public transition');
     await safe(admin.from('social_pages').update({ is_public: true }).eq('id', page.id).eq('owner_id', host.id).eq('linked_entity_id', group.id), 'fixture public listing');
@@ -353,6 +357,13 @@ export async function qualify(env = process.env) {
     const approved = await safe(admin.from('commander_home_members').select('status').eq('group_id', group.id).eq('user_id', stranger.id).maybeSingle(), 'approval readback');
     assert.equal(approved.status, 'approved');
     receipt.checks.pendingApprovalPersisted = true;
+    // Only this owned post changes audience. Prove the public reader first
+    // exposes an eligible post, then withholds the SAME persisted hidden row.
+    await safe(admin.from('commander_home_posts').update({ visible_to: 'public' }).eq('id', nativePostId).eq('group_id', group.id).eq('author_id', member.id), 'fixture public post transition');
+    const eligiblePublicNativeRead = await api(publicNativePath);
+    assert.equal(eligiblePublicNativeRead.status, 200);
+    assert.match(eligiblePublicNativeRead.cacheControl || '', /no-store/);
+    assert.ok(eligiblePublicNativeRead.data.data.posts.some(post => post.id === nativePostId), 'eligible public native post absent');
     nativeReportId = randomUUID();
     const reportBody = { group_id: group.id, post_id: nativePostId, report_id: nativeReportId, reason_category: 'other', reason_text: 'Task-owned qualification report, not real harmful content.' };
     const bannedReport = await api('/api/home-games/reports', member, { ...reportBody, report_id: randomUUID() });
@@ -381,6 +392,10 @@ export async function qualify(env = process.env) {
     const hiddenPost = await safe(admin.from('commander_home_posts').select('id,is_hidden,hidden_by').eq('id', nativePostId).eq('group_id', group.id).maybeSingle(), 'native hide persistence');
     assert.equal(hiddenPost.is_hidden, true);
     assert.equal(hiddenPost.hidden_by, host.id);
+    const hiddenPublicNativeRead = await api(`${publicNativePath}&hidden=1`);
+    assert.equal(hiddenPublicNativeRead.status, 200);
+    assert.match(hiddenPublicNativeRead.cacheControl || '', /no-store/);
+    assert.ok(!hiddenPublicNativeRead.data.data.posts.some(post => post.id === nativePostId), 'public native feed exposed hidden post');
     const stillPending = await safe(admin.from('commander_home_content_reports').select('status').eq('id', nativeReportId).maybeSingle(), 'moderation report remains pending');
     assert.equal(stillPending.status, 'pending', 'host hide must not falsely resolve platform review');
     const ordinaryPosts = await api(`/api/commander/home-games/${group.id}/posts`, stranger);
@@ -412,6 +427,10 @@ export async function qualify(env = process.env) {
     assert.equal(hiddenProfile.status, 200);
     assertPublicPrivacy(hiddenProfile.data, privateAddress, group.invite_code);
     assert.ok(!JSON.stringify(hiddenProfile.data).includes(gameId));
+    const unlistedPublicNativeRead = await api(`${publicNativePath}&unlisted=1`);
+    assert.equal(unlistedPublicNativeRead.status, 404, 'unlisted native public feed remained reachable');
+    assert.match(unlistedPublicNativeRead.cacheControl || '', /no-store/);
+    receipt.checks.publicNativePostPrivacyPersisted = true;
     receipt.checks.publicUnlistedDiscoveryProtected = true;
     receipt.afterSha = await health();
     receipt.status = 'passed';
