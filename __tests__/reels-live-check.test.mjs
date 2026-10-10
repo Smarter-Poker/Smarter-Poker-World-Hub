@@ -130,9 +130,12 @@ test('ordinary article live proof is scoped to the requested post and its reader
     /data-reader-loading-overlay="true"[\s\S]*pointerEvents: 'none'/,
     'the loading skeleton must never intercept the reader controls',
   );
+  assert.match(ARTICLE_READER, /role="dialog"[\s\S]*zIndex: 99999/);
+  assert.doesNotMatch(ARTICLE_READER, /aria-label="Close"\s+className="sp-icon-btn"/);
   assert.match(REELS_LIVE_CHECK, /page\.getByText\(\/Click To Read Full Article\/i\)\.filter\(\{ visible: true \}\)/);
   assert.match(REELS_LIVE_CHECK, /page\.getByRole\('dialog', \{ name: 'Article Reader' \}\)/);
-  assert.match(REELS_LIVE_CHECK, /page\.route\(proxyPattern, holdProxyRequest\)[\s\S]*waitForRequest[\s\S]*data-reader-loading-overlay="true"[\s\S]*getByRole\('button', \{ name: 'Close' \}\)\.click\(\)[\s\S]*waitFor\(\{ state: 'detached' \}\)[\s\S]*releaseHeldProxy\(\)[\s\S]*page\.unroute\(proxyPattern, holdProxyRequest\)/);
+  assert.match(REELS_LIVE_CHECK, /page\.route\(proxyPattern, holdProxyRequest\)[\s\S]*waitForRequest[\s\S]*data-reader-loading-overlay="true"[\s\S]*const closeButton = readerDialog\.getByRole\('button', \{ name: 'Close' \}\)[\s\S]*closeButton\.click\(\)[\s\S]*waitFor\(\{ state: 'detached' \}\)[\s\S]*releaseHeldProxy\(\)[\s\S]*page\.unroute\(proxyPattern, holdProxyRequest\)/);
+  assert.match(REELS_LIVE_CHECK, /document\.elementFromPoint[\s\S]*width >= 44 && closeHitTarget\.height >= 44[\s\S]*hitIsClose, true/);
   assert.match(REELS_LIVE_CHECK, /ordinaryArticleCloseWhileLoading: true/);
   assert.match(REELS_LIVE_CHECK, /const target = readerSandboxOpen \? articleReaderErrors : pageErrors;/);
   assert.match(REELS_LIVE_CHECK, /readerSandboxOpen = true;[\s\S]*articleLabel\.click\(\);[\s\S]*readerSandboxOpen = false;/);
