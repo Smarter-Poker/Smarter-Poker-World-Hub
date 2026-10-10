@@ -1056,7 +1056,11 @@ export default function ReelsPage({ reelsListing = null }) {
       const modeWasExplicit = Boolean(router.query.mode);
       const routeCategory = modeWasExplicit ? modeContract.category : categoryForReelsRoute(router.query);
       const feedMode = modeContract.id === 'following' ? 'following' : feedModeForReelsRoute(router.query);
-      const routeSort = modeWasExplicit ? modeContract.sort : feedMode === 'trending' ? 'popular' : 'recent';
+      const routeSort = modeContract.id === 'learning'
+        ? modeContract.sort
+        : modeWasExplicit
+          ? modeContract.sort
+          : feedMode === 'trending' ? 'popular' : 'recent';
       const routeNamespace = `${modeContract.id}:${routeCategory}:${routeSort}`;
       const routeNamespaceChanged = reelsRouteNamespaceRef.current !== routeNamespace;
       const authUser = feedMode === 'following' ? getAuthUser() : null;
@@ -1462,7 +1466,11 @@ export default function ReelsPage({ reelsListing = null }) {
       const modeWasExplicit = Boolean(router.query.mode);
       const routeCategory = modeWasExplicit ? modeContract.category : categoryForReelsRoute(router.query);
       const feedMode = modeContract.id === 'following' ? 'following' : feedModeForReelsRoute(router.query);
-      const routeSort = modeWasExplicit ? modeContract.sort : feedMode === 'trending' ? 'popular' : 'recent';
+      const routeSort = modeContract.id === 'learning'
+        ? modeContract.sort
+        : modeWasExplicit
+          ? modeContract.sort
+          : feedMode === 'trending' ? 'popular' : 'recent';
       const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
       if (feedMode === 'following' && !followingAccessToken) {
         setFollowingReauthRequired(true);

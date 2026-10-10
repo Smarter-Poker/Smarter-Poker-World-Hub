@@ -6,7 +6,7 @@ import { capReelsInMemory, reelsFeedModeContract } from './reelsDeliveryContract
 export async function loadCanonicalReelsWindow({
   cursor = null,
   id = null,
-  mode = 'latest',
+  mode = null,
   category = null,
   sort = null,
   scope = 'standalone',
@@ -17,7 +17,8 @@ export async function loadCanonicalReelsWindow({
   selectRows = (rows) => rows,
   fetchPage = fetchPokerReels,
 } = {}) {
-  const contract = reelsFeedModeContract(mode, { signedIn });
+  const inferredMode = mode || (category === 'poker' ? 'learning' : 'latest');
+  const contract = reelsFeedModeContract(inferredMode, { signedIn });
   const effectiveCategory = category || contract.category;
   const effectiveSort = sort || contract.sort;
   const effectiveScope = effectiveCategory === 'following' ? 'following' : scope;
