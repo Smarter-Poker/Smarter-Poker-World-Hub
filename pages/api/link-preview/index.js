@@ -177,14 +177,16 @@ export async function fetchKnownPokerArticleMetadata(url) {
             );
             const post = posts?.[0];
             const mediaId = Number(post?.featured_media);
-            if (!post || !Number.isSafeInteger(mediaId) || mediaId <= 0) return null;
+            if (!post || !Number.isSafeInteger(mediaId) || mediaId <= 0) {
+                throw new Error('Upswing WordPress post did not expose featured media');
+            }
             const media = await fetchKnownPublisherPayload(
                 `https://upswingpoker.com/wp-json/wp/v2/media/${mediaId}?_fields=source_url`,
                 { headers: ARTICLE_HEADERS, redirect: 'error' },
                 { timeoutMs: 6000, json: true }
             );
             const image = media?.source_url || null;
-            if (!isArticleImage(image)) return null;
+            if (!isArticleImage(image)) throw new Error('Upswing WordPress media was not a story image');
             return {
                 url: post.link || url,
                 title: plainText(post.title?.rendered),
@@ -192,6 +194,21 @@ export async function fetchKnownPokerArticleMetadata(url) {
                 image,
                 siteName: 'Upswing Poker',
             };
+        } catch {
+            // Continue to the first-party page fallback below. The WordPress
+            // media endpoint can time out independently even while the public
+            // article and its OpenGraph image remain available.
+        }
+        try {
+            const html = await fetchKnownPublisherPayload(
+                url,
+                { headers: ARTICLE_HEADERS, redirect: 'error' },
+                { timeoutMs: 6000 }
+            );
+            if (!html) return null;
+            const metadata = parseOpenGraph(html, url);
+            if (!isArticleImage(metadata.image)) return null;
+            return { ...metadata, siteName: metadata.siteName || 'Upswing Poker' };
         } catch {
             return null;
         }

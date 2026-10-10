@@ -121,11 +121,11 @@ async function inspectArticle(page, id) {
   }, id);
   assert.ok(expected?.title, `Article ${id} is not caller-visible or has no title`);
   await page.goto(`/hub/social-media?post=${id}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  const escapedTitle = expected.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const title = page.getByText(new RegExp(`^${escapedTitle}$`, 'i')).first();
-  await title.waitFor({ state: 'visible', timeout: 45_000 });
-  const deepCard = title.locator('xpath=ancestor::*[@data-post-card="true"][1]');
+  const deepCard = page.locator(`[data-post-card="true"][data-post-id="${id}"]`);
   await deepCard.waitFor({ state: 'visible', timeout: 45_000 });
+  const escapedTitle = expected.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const title = deepCard.getByText(new RegExp(`^${escapedTitle}$`, 'i')).first();
+  await title.waitFor({ state: 'visible', timeout: 45_000 });
   const result = await deepCard.evaluate(async (element, expectedPost) => {
     const normalized = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
     const deadline = Date.now() + 30_000;
@@ -229,7 +229,19 @@ async function run(env) {
     });
 
     receipt.stage = 'mobile-articles';
-    for (const id of ARTICLES) receipt.articleImages.push(await inspectArticle(page, id));
+    for (const id of ARTICLES) {
+      receipt.stage = `mobile-article:${id}`;
+      try {
+        receipt.articleImages.push(await inspectArticle(page, id));
+      } catch (error) {
+        receipt.failureArticleId = id;
+        await page.screenshot({
+          path: `test-results/social-feed-normal/mobile-article-${id}.png`,
+          fullPage: true,
+        }).catch(() => {});
+        throw error;
+      }
+    }
     receipt.checks.articleImages = true;
     receipt.checks.textBeforeMedia = true;
     await page.screenshot({ path: 'test-results/social-feed-normal/mobile.png', fullPage: true });

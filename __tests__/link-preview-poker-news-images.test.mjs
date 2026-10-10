@@ -133,3 +133,36 @@ test('Upswing first-party WordPress metadata resolves its featured article image
   assert.equal(calls.length, 2);
   assert.ok(calls.every((url) => url.startsWith('https://upswingpoker.com/wp-json/wp/v2/')));
 });
+
+test('Upswing falls back to bounded first-party OpenGraph when WordPress media fails', async () => {
+  const calls = [];
+  const { read } = loadKnownPublisherReader(async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('/wp-json/wp/v2/posts?')) {
+      return {
+        ok: true,
+        headers: { get() { return null; } },
+        async text() {
+          return JSON.stringify([{ featured_media: 0 }]);
+        },
+      };
+    }
+    return {
+      ok: true,
+      headers: { get() { return null; } },
+      async text() {
+        return [
+          '<meta property="og:title" content="Stop Playing GTO Against Blinds That Fold Too Much">',
+          '<meta property="og:image" content="https://upswingpoker.com/wp-content/uploads/2026/09/1200x630-2.jpg">',
+        ].join('');
+      },
+    };
+  });
+  const result = await read('https://upswingpoker.com/how-to-respond-big-blind-small-blind-too-tight/');
+  assert.equal(result.image, 'https://upswingpoker.com/wp-content/uploads/2026/09/1200x630-2.jpg');
+  assert.equal(result.title, 'Stop Playing GTO Against Blinds That Fold Too Much');
+  assert.deepEqual(calls, [
+    'https://upswingpoker.com/wp-json/wp/v2/posts?slug=how-to-respond-big-blind-small-blind-too-tight&_fields=link,title,excerpt,featured_media',
+    'https://upswingpoker.com/how-to-respond-big-blind-small-blind-too-tight/',
+  ]);
+});
