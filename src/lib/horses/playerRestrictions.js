@@ -23,13 +23,8 @@
  * SQL treats it that way, so an operator who restricts the account does not
  * also have to remember to tick cash.
  *
- * Only two of the five concrete surfaces are ENFORCED today, and this list says which, because
- * an operator choosing `transfers` deserves to know it is recorded rather
- * than blocking anything: the guards are attached to table_seats (cash) and
- * tournament_players (tournaments), which is where every seat and every
- * tournament entry on the platform converges. `transfers` and `social` have
- * no convergence point yet and are recorded for the phase that gives them
- * one.
+ * Every concrete scope converges on its authoritative admission, journal or
+ * social transaction. Whole-account restrictions imply all four scopes.
  */
 export const RESTRICTION_SCOPES = Object.freeze([
   'account',
@@ -40,18 +35,14 @@ export const RESTRICTION_SCOPES = Object.freeze([
 ]);
 
 /** Which scopes a guard actually watches today. */
-export const ENFORCED_SCOPES = Object.freeze(['cash', 'tournaments']);
+export const ENFORCED_SCOPES = Object.freeze(['account', 'cash', 'tournaments', 'transfers', 'social']);
 
 export const SCOPE_META = Object.freeze({
   account: {
     label: 'Whole Account',
-    blurb: 'Cash And Tournament Entry Are Guarded. Transfers And Social Are Recorded Only',
-    // Account is a composite decision, not a separately guarded surface.
-    // Calling it fully enforced hid the two child scopes that still have no
-    // guard. `partial` lets an operator see the exact coverage without
-    // weakening the second-operator rule for a whole-account decision.
-    enforced: false,
-    partial: true,
+    blurb: 'New Cash And Tournament Entries, Transfers And Social Actions Are Guarded',
+    enforced: true,
+    partial: false,
   },
   cash: {
     label: 'Cash Games',
@@ -71,13 +62,13 @@ export const SCOPE_META = Object.freeze({
   },
   transfers: {
     label: 'Transfers',
-    blurb: 'Recorded Only. No Guard Watches Transfers Yet',
-    enforced: false,
+    blurb: 'Cannot Send Chips, Diamonds Or Stream Gifts',
+    enforced: true,
   },
   social: {
     label: 'Social',
-    blurb: 'Recorded Only. No Guard Watches The Social Surfaces Yet',
-    enforced: false,
+    blurb: 'Cannot Publish, Comment, React, Message Or Start New Social Connections',
+    enforced: true,
   },
 });
 
@@ -168,7 +159,7 @@ export function enforcementNotice(enforced) {
     return {
       tone: 'live',
       title: 'Enforcement Is On',
-      body: 'A Restricted Player Will Be Refused At The Table And At Tournament Registration.',
+      body: 'Binding Restrictions Refuse New Entries, Paid Tournament Purchases, Transfers And Social Actions In Their Authoritative Transactions.',
     };
   }
   if (enforced === false) {

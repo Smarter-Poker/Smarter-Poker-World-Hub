@@ -207,6 +207,7 @@ let installed = false;
 export function installSessionLivenessWatch() {
   if (installed || typeof window === 'undefined') return;
   installed = true;
+  void import('./supabase').then(({ supabase }) => bindPlayerSessionRevocations(supabase)).catch(() => {});
 
   setInterval(() => {
     if (document.visibilityState === 'visible') void checkSessionLiveness('interval');
@@ -238,4 +239,23 @@ export function installSessionLivenessWatch() {
     wrapped.__spLiveness = true;
     window.fetch = wrapped;
   }
+}
+
+/** Explicit durable operator event; request authentication remains the final guard. */
+export function bindPlayerSessionRevocations(supabase) {
+  let channel = null;
+  const bind = (userId) => {
+    if (channel) void supabase.removeChannel(channel);
+    channel = null;
+    if (!userId) return;
+    channel = supabase.channel(`hub-player-session-control:${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ca_player_session_revocations', filter: `user_id=eq.${userId}` },
+        () => { void checkSessionLiveness('operator:force_logout', { force: true }); })
+      .subscribe();
+  };
+  try { bind(JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null')?.user?.id); } catch { /* next auth event binds it */ }
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    queueMicrotask(() => bind(session?.user?.id || null));
+  });
+  return () => { data.subscription.unsubscribe(); if (channel) void supabase.removeChannel(channel); };
 }

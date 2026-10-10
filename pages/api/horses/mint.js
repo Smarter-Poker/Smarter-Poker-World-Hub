@@ -105,13 +105,15 @@ const LEDGER_FIELDS =
 
 /** Where a register row came from (ca_mint_ledger.origin, generated from
  *  the op id in 20260904194036_the_mint_hardened). The panel filters on it. */
-const ORIGINS = [
+export const ORIGINS = [
   'operator', 'journal', 'baseline', 'diamond-mint', 'opening-grant', 'restoration', 'seed', 'deletion',
   // Diamond journal origins (20260905041033: the register follows the diamond
   // journal). Issuance: purchase, reward, promotion, refund, adjustment, arena.
   // Retirement: spend, bridge (diamonds converted to chips), adjustment.
   'purchase', 'reward', 'promotion', 'refund', 'adjustment', 'arena', 'spend', 'bridge', 'unclassified',
 ];
+
+export const MINT_REGISTER_FILTER_VALUES = Object.freeze({ asset: ['chips', 'diamonds'], action: ['mint', 'burn'], origin: ORIGINS });
 
 /** Restored to the original 200 (addendum item 10): the journal is rendered
  *  without a pager on first load, and 50 rows of it is half a screen. */
@@ -164,9 +166,9 @@ async function sectionLedger(db, query) {
     .select(LEDGER_FIELDS, { count: 'exact' })
     .order('created_at', { ascending: false });
 
-  const asset = enumOf(query.asset, ['chips', 'diamonds']);
+  const asset = enumOf(query.asset, MINT_REGISTER_FILTER_VALUES.asset);
   if (asset) q = q.eq('asset', asset);
-  const action = enumOf(query.action, ['mint', 'burn']);
+  const action = enumOf(query.action, MINT_REGISTER_FILTER_VALUES.action);
   if (action) q = q.eq('action', action);
   const holderId = uuid(query.holderId);
   if (holderId) q = q.eq('holder_id', holderId);

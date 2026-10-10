@@ -336,22 +336,34 @@ test('operations detail authorization accepts canonical admin flags or roles onl
     { headers: { authorization: 'Bearer valid-jwt-for-ops-read' } },
     mockSupabase({ is_admin: true, role: 'member' }),
     {},
+    { verifySession: async () => 'alive' },
   )).authorized, true);
   assert.equal((await authorizePokerOpsRead(
     { headers: { authorization: 'Bearer valid-jwt-for-ops-read' } },
     mockSupabase({ is_admin: false, role: 'superadmin' }),
     {},
+    { verifySession: async () => 'alive' },
   )).authorized, true);
   assert.equal((await authorizePokerOpsRead(
     { headers: { authorization: 'Bearer valid-jwt-for-ops-read' } },
     mockSupabase({ is_admin: false, role: 'member' }),
     {},
+    { verifySession: async () => 'alive' },
   )).authorized, false);
   assert.equal((await authorizePokerOpsRead(
     { headers: { authorization: 'Bearer expired-jwt-for-ops-read' } },
     mockSupabase({ is_admin: true, role: 'admin' }),
     {},
+    { verifySession: async () => 'alive' },
   )).authorized, false);
+  for (const verdict of ['revoked', 'unknown']) {
+    assert.equal((await authorizePokerOpsRead(
+      { headers: { authorization: 'Bearer valid-jwt-for-ops-read' } },
+      mockSupabase({ is_admin: true, role: 'admin' }), {},
+      { verifySession: async () => verdict },
+    )).authorized, false, 'canonical administrator flags cannot bypass a refused session');
+  }
+
 });
 
 test('public scraper health response exposes status and freshness only', () => {

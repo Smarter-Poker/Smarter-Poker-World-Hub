@@ -86,7 +86,7 @@ test('asymmetric access tokens use cached verified claims without calling the Au
     },
   };
 
-  const result = await getServerUserWithFallback(request, supabase);
+  const result = await getServerUserWithFallback(request, supabase, { verifySession: async () => 'alive' });
   assert.deepEqual(result, {
     user: {
       id: 'user-123',
@@ -112,7 +112,7 @@ test('an invalid verified-claims result fails closed without retrying through Go
         return { data: { user: { id: 'must-not-pass' } }, error: null };
       },
     },
-  });
+  }, { verifySession: async () => 'alive' });
 
   assert.equal(result.user, null);
   assert.equal(result.error, 'signature rejected');
@@ -129,7 +129,7 @@ test('older Supabase clients retain the shared authenticated fallback', async ()
         };
       },
     },
-  });
+  }, { verifySession: async () => 'alive' });
 
   assert.equal(result.user?.id, 'legacy-user');
   assert.equal(result.error, null);

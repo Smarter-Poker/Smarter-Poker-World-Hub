@@ -94,6 +94,7 @@ const SECTIONS = [
 const ACTIONS = [
   'restrict',
   'lift',
+  'force_logout',
   'note_add',
   'note_delete',
   'tag_add',
@@ -114,6 +115,7 @@ const ACTIONS = [
 const ACTION_PERMISSION = Object.freeze({
   restrict: PERMISSIONS.MODERATION_WRITE,
   lift: PERMISSIONS.MODERATION_WRITE,
+  force_logout: PERMISSIONS.MODERATION_WRITE,
   rg_set: PERMISSIONS.MODERATION_WRITE,
   report_review: PERMISSIONS.MODERATION_WRITE,
   ticket_assign: PERMISSIONS.SUPPORT_WRITE,
@@ -547,9 +549,6 @@ async function actionRestrict(db, op, req, res, body) {
 
   const expiresAt = body.expiresAt ? isoDate(body.expiresAt) : null;
   if (body.expiresAt && !expiresAt) throw badRequest('That Expiry Is Not A Date');
-  if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
-    throw badRequest('That Expiry Has Already Passed', 'expiry_in_the_past');
-  }
 
   // THE IDEMPOTENCY KEY IS REQUIRED, exactly as fleet-admin requires one.
   //
@@ -565,6 +564,24 @@ async function actionRestrict(db, op, req, res, body) {
   }
 
   const enforced = await enforcementState(db, op?.requestId);
+  // Recover the original committed outcome before time-sensitive approval/expiry
+  // checks. A transport retry never reapplies a lifted restriction.
+  const { data: receipt, error: receiptError } = await db.from('ca_player_control_operations')
+    .select('actor_id,action,payload,result').eq('op_id', opId).maybeSingle();
+  if (receiptError) throw new ApiError(503, 'The Original Restriction Outcome Could Not Be Read', 'outcome_unknown');
+  if (receipt) {
+    const expected = { userId, scope, reasonCode, note, expiresAt };
+    if (receipt.actor_id !== op?.user?.id || receipt.action !== 'restrict'
+      || Object.entries(expected).some(([key, value]) => receipt.payload?.[key] !== value)) {
+      throw new ApiError(409, 'That Retry Key Belongs To A Different Decision', 'op_payload_mismatch');
+    }
+    return { restriction: receipt.result?.restriction ?? null,
+      isHorse: receipt.result?.is_horse === true, enforced, replayed: true,
+      message: restrictionMessage(enforced, scope) };
+  }
+  if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
+    throw badRequest('That Expiry Has Already Passed', 'expiry_in_the_past');
+  }
   const gate = needsApproval({ scope, expiresAt });
 
   // Declared out here because the WRITE below needs the approval id (to
@@ -657,18 +674,14 @@ async function actionRestrict(db, op, req, res, body) {
 
   const data = await callPlayerRpc(
     db,
-    'fn_ca_player_restrict',
+    'fn_ca_player_control_once',
     {
-      p_user_id: userId,
-      p_scope: scope,
-      p_reason_code: reasonCode,
-      p_note: note,
-      p_expires_at: expiresAt,
-      p_actor: op?.user?.id || null,
+      p_action: 'restrict', p_op_id: opId, p_actor: op?.user?.id || null,
+      p_payload: { userId, scope, reasonCode, note, expiresAt,
       // The link between a sanction and the second pair of eyes that
       // authorised it. It used to be hardcoded null, so the column the
       // schema describes as "the approval that gated it" was always empty.
-      p_approval_id: gate.required ? (approvalIdOf(approvalRef) ?? null) : null,
+      approvalId: gate.required ? (approvalIdOf(approvalRef) ?? null) : null },
     },
     { unavailable: 'That Restriction Could Not Be Applied', requestId: op?.requestId }
   );
@@ -748,9 +761,9 @@ function restrictionMessage(enforced, scope) {
   const what = `${scopeLabel(scope)} Is Now Restricted For This Player`;
   if (enforced === true) {
     if (scope === 'account') {
-      return `${what}. Cash Games And Tournament Entry Will Be Refused. Transfers And Social Are Recorded Only`;
+      return `${what}. New Cash And Tournament Entries, Transfers And Social Actions Will Be Refused`;
     }
-    if (scope === 'cash' || scope === 'tournaments') {
+    if (RESTRICTION_SCOPES.includes(scope)) {
       return `${what}. New Entries Will Be Refused`;
     }
     return `${what}. This Scope Is Recorded Only Because No Guard Watches It Yet`;
@@ -846,16 +859,14 @@ async function actionLift(db, op, req, body) {
 
   const data = await callPlayerRpc(
     db,
-    'fn_ca_player_lift_restriction',
-    {
-      p_id: id,
-      p_actor: op?.user?.id || null,
-      p_note: noteOrThrow(body.note, 2000),
-    },
+    'fn_ca_player_control_once',
+    { p_action: 'lift', p_actor: op?.user?.id || null,
+      p_op_id: text(body.opId, { min: 1, max: 200 }) || `lift-${id}`,
+      p_payload: { restrictionId: id, note: noteOrThrow(body.note, 2000) } },
     { unavailable: 'That Restriction Could Not Be Lifted', requestId: op?.requestId }
   );
 
-  await auditOperatorAction(op, req, {
+  if (!data.replayed) await auditOperatorAction(op, req, {
     action: 'player.lift_restriction',
     targetType: 'profile',
     targetId: data.restriction?.user_id ?? before?.user_id ?? null,
@@ -864,7 +875,23 @@ async function actionLift(db, op, req, body) {
     details: { restrictionId: id, scope: data.restriction?.scope ?? before?.scope ?? null },
   });
 
-  return { restriction: data.restriction ?? null, message: 'That Restriction Is Lifted' };
+  return { restriction: data.restriction ?? null, replayed: data.replayed === true, message: 'That Restriction Is Lifted' };
+}
+
+async function actionForceLogout(db, op, req, body) {
+  const userId = uuid(body.userId);
+  const opId = text(body.opId, { min: 1, max: 200 });
+  const reason = noteOrThrow(body.note, 2000);
+  if (!userId || !opId || !reason) throw badRequest('A Player, Reason And Operation Id Are Required');
+  const data = await callPlayerRpc(db, 'fn_ca_player_force_logout', {
+    p_user_id: userId, p_actor: op?.user?.id || null, p_op_id: opId, p_reason: reason,
+    p_request_id: op?.requestId || null,
+    p_ip: req?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || null,
+    p_agent: req?.headers?.['user-agent'] || null,
+  }, { unavailable: 'That Session Control Could Not Be Applied', requestId: op?.requestId });
+  return { ...data, message: data.enforced === true
+    ? 'Existing Sessions Were Ended. The Player Can Sign In Again'
+    : 'Enforcement Is Off. Logout Was Recorded And No Session Was Ended' };
 }
 
 async function actionNoteAdd(db, op, req, body) {
@@ -1118,6 +1145,7 @@ export async function handle({ req, res, op, db, body, query, method, requestId 
 
     if (action === 'restrict') return actionRestrict(db, op, req, res, body);
     if (action === 'lift') return actionLift(db, op, req, body);
+    if (action === 'force_logout') return actionForceLogout(db, op, req, body);
     if (action === 'note_add') return actionNoteAdd(db, op, req, body);
     if (action === 'note_delete') return actionNoteDelete(db, op, req, body);
     if (action === 'tag_add') return actionTag(db, op, req, body, false);

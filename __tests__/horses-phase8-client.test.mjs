@@ -87,3 +87,13 @@ test('every PlatformPanel CSS module reference resolves', async () => {
   const definitions = new Set([...css.matchAll(/^\.([A-Za-z0-9_-]+)/gm)].map((match) => match[1]));
   for (const match of panel.matchAll(/styles\.([A-Za-z0-9_]+)/g)) assert.ok(definitions.has(match[1]), match[1]);
 });
+
+test('dedicated emergency stop copy states transaction boundaries without inventing live state', async () => {
+  const panel = await read('src/components/horses/PlatformPanel.jsx');
+  assert.match(panel, /Emergency Stop Boundaries/);
+  assert.match(panel, /Read Current State Below/);
+  assert.match(panel, /Existing Play, Unregistration, Cancellation And Funded Refunds Continue/);
+  assert.match(panel, /Cashout Requests And Approval Execution/);
+  assert.match(panel, /Positive Chip And Diamond Issuance/);
+  assert.doesNotMatch(panel, /No Complete Global Kill Exists Today|No Complete Positive-Issuance Kill Exists Today|Authoritative Control Gaps/);
+});

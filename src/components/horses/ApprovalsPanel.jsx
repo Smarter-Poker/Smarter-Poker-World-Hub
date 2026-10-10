@@ -71,6 +71,7 @@ function targetLabel(row) {
   if (!row) return '-';
   const label = row.target_label || row.target_id;
   if (!label) return '-';
+  if (row.kind === 'tournament_cancel') return <a className={styles.opsLink} href="/horses?tab=tournaments">Tournament {String(label)}: Return To Oversight</a>;
   return row.target_type ? `${row.target_type}: ${label}` : String(label);
 }
 
@@ -132,6 +133,9 @@ function approveSentence(kind) {
   }
   if (String(kind || '').toLowerCase() === 'cashout') {
     return 'Approving Records Your Decision. The Cashout Itself Is Still Completed From The Cashout Screen, So No Chips Move Here.';
+  }
+  if (k === 'tournament_cancel') {
+    return 'Approving Records Your Decision. Return To Tournament Oversight And Retry The Retained Cancellation Operation. The Refund Authority Rechecks The Same Event Before Anything Moves.';
   }
   return 'Approving Records Your Decision. Nothing Moves Until Its Own Screen Runs It.';
 }
@@ -331,6 +335,7 @@ export default function ApprovalsPanel({
     try {
       const result = await exportAllCsv({
         filenamePrefix: 'operator-approvals',
+        authFetch, artifactSurface: 'operator-approvals', artifactFilters: history.filters,
         limit: EXPORT_PAGE_SIZE,
         onProgress: (p) => setExporting(p),
         fetchPage: async (offset, limit) => {
@@ -374,7 +379,7 @@ export default function ApprovalsPanel({
         ],
       });
       showNotification(
-        result.complete
+        result.queued ? `Export Job ${result.jobId} Recorded. Open Export Files For Status And Download.` : result.complete
           ? `Exported ${num(result.exported)} Approval Records`
           : `Exported ${num(result.exported)} Approval Records. The Export Stopped At Its Page Cap And Is Incomplete.`,
         result.complete ? 'success' : 'info',

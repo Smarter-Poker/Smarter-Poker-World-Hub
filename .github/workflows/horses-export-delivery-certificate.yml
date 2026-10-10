@@ -1,0 +1,81 @@
+name: Stable Admin Export Delivery Certificate
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Full production commit SHA reported by /api/health
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: horses-export-delivery-certificate-${{ inputs.expected_sha }}
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 12
+    steps:
+      - name: Validate Expected Revision
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if [ "$GITHUB_REF" != 'refs/heads/main' ]; then
+            echo 'This certificate may run only from protected main.' >&2
+            exit 1
+          fi
+          if ! printf '%s' "$EXPECTED_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo 'expected_sha must be one full lowercase Git commit SHA' >&2
+            exit 1
+          fi
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+
+      - uses: actions/checkout@v4
+        with:
+          # Never execute a caller-selected tree with production credentials.
+          # GitHub's protected-main event SHA is the checkout authority. The
+          # input is evidence to compare, not a ref to execute.
+          ref: ${{ github.sha }}
+
+      - name: Confirm Checked Out Revision
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.12.0
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify Certificate Contract
+        run: node --test __tests__/horses-export-delivery.test.mjs
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Certify Stable Admin In Production
+        env:
+          HORSES_VERIFY_BASE_URL: https://smarter.poker
+          HORSES_VERIFY_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          HORSES_VERIFY_RECEIPT: ${{ runner.temp }}/horses-export-delivery.json
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: node scripts/verify-horses-export-delivery.mjs
+
+      - name: Upload Sanitized Certificate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-admin-export-delivery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/horses-export-delivery.json
+          if-no-files-found: error
+          retention-days: 30

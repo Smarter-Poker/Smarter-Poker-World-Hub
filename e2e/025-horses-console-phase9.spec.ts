@@ -424,3 +424,154 @@ test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
     expect(failures.chunkFailures).toEqual([]);
   });
 });
+
+// Real console components with synthetic data only; private object and database
+// authorization are separately qualified by the exported API/native SQL tests.
+test.describe('Stable Admin P3 and O7 connected controls', () => {
+  for (const width of [1440, 375]) {
+    test(`${width}px private incomplete report requires acknowledgement and verifies download`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await installSignedInPolicyFixture(page);
+      await page.route('**/api/horses/fleet**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...apiFixture(ALL_TAB_PERMISSIONS), ...canonicalPage({ rows: [{ id: OPERATOR_ID, display_name: 'Fixture Horse' }], total: 1 }) }) }));
+      const bytes = 'id,name\n1,fixture\n';
+      const contentSha = await import('node:crypto').then(({ createHash }) => createHash('sha256').update(bytes).digest('hex'));
+      const job = { id: '00000000-0000-4000-8000-000000000707', surface: 'fleet-roster', state: 'truncated', progress: 1, total: 30000, content_sha256: contentSha, expires_at: new Date(Date.now() + 86400000).toISOString() };
+      const requests: any[] = [];
+      await page.route('**/api/horses/export-artifacts**', async route => {
+        const url = new URL(route.request().url());
+        if (url.searchParams.has('download')) {
+          expect(url.searchParams.get('acknowledge')).toBe('1');
+          await route.fulfill({ status: 200, contentType: 'text/csv', headers: { 'x-content-sha256': contentSha }, body: bytes });
+        } else if (route.request().method() === 'POST') {
+          const body = route.request().postDataJSON(); requests.push(body);
+          await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ job: { ...job, state: 'queued' } }) });
+        } else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ jobs: [job] }) });
+      });
+      await page.goto('/horses?tab=fleet', { waitUntil: 'domcontentloaded' });
+      await page.getByRole('tab', { name: 'Roster', exact: true }).click();
+      await page.getByRole('button', { name: 'Export CSV', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Private Export Files' })).toBeVisible();
+      expect(requests).toHaveLength(1);
+      expect(requests[0]).toMatchObject({ action: 'request', surface: 'fleet-roster' });
+      expect(requests[0].opId).toMatch(/^[0-9a-f-]{36}$/i);
+      const download = page.getByRole('button', { name: 'Download Verified CSV' });
+      await expect(download).toBeDisabled();
+      await page.getByRole('checkbox', { name: 'I Acknowledge This Is An Incomplete Bounded Report.' }).check();
+      const saved = page.waitForEvent('download');
+      await download.click();
+      expect((await saved).suggestedFilename()).toContain('incomplete');
+      await expect(page.getByRole('status').filter({ hasText: 'Verified File Download Requested' })).toBeVisible();
+    });
+  }
+});
+
+test('P3 permitted controls preserve reason and show authoritative permission refusal', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await installSignedInPolicyFixture(page, [...ALL_TAB_PERMISSIONS, 'moderation.write']);
+  const target = '00000000-0000-4000-8000-000000000303';
+  const mutations: any[] = [];
+  await page.route('**/api/horses/player-admin**', async route => {
+    const section = new URL(route.request().url()).searchParams.get('section');
+    if (route.request().method() === 'POST') {
+      mutations.push(route.request().postDataJSON());
+      await route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'Fixture Authoritative Permission Refused' }) });
+    } else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(section === 'player'
+      ? { profile: { id: target, displayName: 'Fixture Player' }, restrictions: [], enforced: true }
+      : { ...canonicalPage({ rows: [{ id: target, display_name: 'Fixture Player' }], total: 1 }), enforced: true }) });
+  });
+  await page.goto('/horses?tab=players', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('button', { name: 'Fixture Player', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Restrict', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'End Existing Sessions', exact: true }).click();
+  const group = page.getByRole('group', { name: 'End Existing Sessions' });
+  await expect(group.getByRole('button', { name: 'End Existing Sessions', exact: true })).toBeDisabled();
+  await group.getByLabel('Reason', { exact: true }).fill('Fixture session safety request');
+  await group.getByRole('button', { name: 'End Existing Sessions', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Fixture Authoritative Permission Refused' })).toBeVisible();
+  expect(mutations).toHaveLength(1);
+  expect(mutations[0]).toMatchObject({ action: 'force_logout', userId: target, note: 'Fixture session safety request' });
+  expect(mutations[0].opId).toMatch(/^restrict-[0-9a-f-]{36}$/i);
+  await expect(group.getByLabel('Reason', { exact: true })).toHaveValue('Fixture session safety request');
+});
+
+for (const width of [1440, 375]) {
+  test(`${width}px O1 C2 engine unknown receipt and O2 stop CAS recovery`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+    await installSignedInPolicyFixture(page, [...ALL_TAB_PERMISSIONS, 'clubs.write']);
+    let command: any;
+    await page.route('**/api/horses/engine-control**', async route => {
+      const url = new URL(route.request().url());
+      const result = route.request().method() === 'POST'
+        ? { command: { id: (command = route.request().postDataJSON()).operationId, status: 'unknown' } }
+        : url.searchParams.has('capabilities') ? { capabilities: { floor: ['pause'], maintenance: ['start'] } }
+        : { command: { id: command.operationId, status: 'completed' } };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) });
+    });
+    await page.route('**/api/horses/platform-admin?section=registry**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ rows: [{ key: 'Fixture Registry Source Ready', domain: 'fixture', kind: 'projection', state: 'Open' }] }) }));
+    let stop: any;
+    await page.route('**/api/horses/emergency-stops**', async route => {
+      if (route.request().method() === 'POST') {
+        stop = route.request().postDataJSON();
+        await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'Fixture Stop Version Changed', code: 'stop_version_changed' }) });
+      } else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ actorId: OPERATOR_ID, stops: [{ path: 'positive_issuance', label: 'Positive Issuance', stopped: false, version: 7, writable: true }] }) });
+    });
+    await page.goto('/horses?tab=floor', { waitUntil: 'domcontentloaded' });
+    const floor = page.getByRole('region', { name: 'floor Operator Commands' });
+    await floor.getByLabel('Audit Reason').fill('Fixture floor safety request');
+    await floor.getByRole('button', { name: 'Submit Command' }).click();
+    await expect(floor).toContainText('unknown');
+    await expect(floor.getByRole('button', { name: 'Submit Command' })).toBeDisabled();
+    await floor.getByRole('button', { name: 'Read Durable Outcome' }).click();
+    await expect(floor).toContainText('completed');
+    expect(command).toMatchObject({ domain: 'floor', action: 'pause' });
+    await page.locator('[data-tabid="platform"]').click();
+    await Promise.all([page.waitForResponse(response => response.url().includes('/api/horses/platform-admin?section=maintenance')), page.getByRole('button', { name: 'Maintenance', exact: true }).click()]);
+    await expect(page.getByRole('button', { name: 'Refresh Active Section', exact: true })).toBeEnabled();
+    const maintenance = page.getByRole('region', { name: 'maintenance Operator Commands' });
+    await maintenance.getByLabel('Audit Reason').fill('Fixture maintenance safety request');
+    await expect(maintenance.getByLabel('Audit Reason')).toHaveValue('Fixture maintenance safety request');
+    await expect(maintenance.getByRole('button', { name: 'Submit Command' })).toBeEnabled();
+    await maintenance.getByRole('button', { name: 'Submit Command' }).click();
+    await expect(maintenance).toContainText('unknown');
+    expect(command).toMatchObject({ domain: 'maintenance', action: 'start' });
+    await Promise.all([page.waitForResponse(response => response.url().includes('/api/horses/platform-admin?section=registry')), page.getByRole('button', { name: 'Control Registry', exact: true }).click()]);
+    await expect(page.getByRole('button', { name: 'Refresh Active Section', exact: true })).toBeEnabled();
+    await expect(page.getByRole('heading', { name: 'Fixture Registry Source Ready', exact: true })).toBeVisible();
+    const stops = page.locator('section').filter({ has: page.locator('#emergency-stop-title') }).last();
+    await expect(stops).toContainText('Positive Issuance');
+    await stops.getByLabel('Required Reason').fill('Fixture positive issuance safety');
+    await expect(stops.getByRole('button', { name: 'Apply Stop', exact: true })).toBeEnabled();
+    await stops.getByRole('button', { name: 'Apply Stop', exact: true }).click({ timeout: 5000 });
+    await expect(stops.getByRole('alert')).toHaveText('Fixture Stop Version Changed');
+    expect(stop).toMatchObject({ path: 'positive_issuance', stopped: true, expectedVersion: 7 });
+    try { await expect(stops.getByRole('button', { name: 'Apply Stop', exact: true })).toBeEnabled(); } catch (failure) { await testInfo.attach('stop-final-state', { body: JSON.stringify({ state: await inspectStopState(), html: await stops.evaluate(element => element.outerHTML) }), contentType: 'application/json' }); throw failure; }
+  });
+}
+
+for (const width of [1440, 375]) {
+  test(`${width}px C4 cancellation approval retains operation without claiming refunds`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+    await installSignedInPolicyFixture(page, [...ALL_TAB_PERMISSIONS, 'clubs.write', 'money.write']);
+    const event = { id: '00000000-0000-4000-8000-000000000404', name: 'Fixture Prestart Event', status: 'scheduled' };
+    await page.route('**/api/horses/floor-admin**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(new URL(route.request().url()).searchParams.get('section') === 'event' ? { event } : { tournaments: canonicalPage({ rows: [event], total: 1 }) }) }));
+    let request: any;
+    await page.route('**/api/horses/tournament-admin**', async route => {
+      if (route.request().method() === 'POST') {
+        request = route.request().postDataJSON();
+        await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ actorId: OPERATOR_ID, operation: { op_id: request.opId, tournament_id: event.id, pending: true, approval_id: 'fixture-approval' } }) });
+      } else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ actorId: OPERATOR_ID, writable: true, eligible: true }) });
+    });
+    await page.goto('/horses?tab=tournaments', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'View Event Evidence' }).first().click();
+    const controls = page.locator('section').filter({ has: page.locator('#cancel-refund-title') }).last();
+    await expect(controls.getByRole('button', { name: 'Cancel And Refund This Event' })).toBeDisabled();
+    await controls.getByLabel('Required Cancellation Reason').fill('Fixture prestart cancellation safety');
+    await controls.getByRole('button', { name: 'Cancel And Refund This Event' }).click();
+    await expect(controls.getByRole('status')).toContainText('No Refund Has Been Applied');
+    expect(request).toMatchObject({ action: 'cancel_refund', tournamentId: event.id });
+    await expect(controls).toContainText(request.opId);
+    await expect(controls.getByLabel('Required Cancellation Reason')).toBeDisabled();
+    await expect(controls.getByRole('button', { name: 'Read Outcome And Retry Same Operation' })).toBeEnabled();
+  });
+}

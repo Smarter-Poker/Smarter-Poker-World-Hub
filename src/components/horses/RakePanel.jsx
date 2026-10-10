@@ -68,6 +68,7 @@ export default function RakePanel({ authFetch }) {
     try {
       setExportResult(await exportAllCsv({
         filenamePrefix: `stable-rake-${dimension}`,
+        authFetch, artifactSurface: 'stable-rake', artifactFilters: { days: DAYS, dimension },
         columns: RAKE_COLUMNS,
         fetchPage: async (offset, limit) => pageOf(await authFetch(rakeUrl({ days: DAYS, dimension, rakeLimit: limit, rakeOffset: offset })), 'rake'),
         onProgress: (progress) => setExportResult({ running: true, ...progress }),

@@ -52,7 +52,7 @@ export function requestHasPokerOpsSecret(req, env = process.env) {
  * valid Supabase JWT and be marked as an administrator; machine callers may
  * use one of the configured header-only operations secrets.
  */
-export async function authorizePokerOpsRead(req, supabase, env = process.env) {
+export async function authorizePokerOpsRead(req, supabase, env = process.env, authOptions = {}) {
   if (requestHasPokerOpsSecret(req, env)) {
     return { authorized: true, kind: 'secret' };
   }
@@ -62,7 +62,7 @@ export async function authorizePokerOpsRead(req, supabase, env = process.env) {
   }
 
   try {
-    const { user, error: userError } = await getServerUserWithFallback(req, supabase);
+    const { user, error: userError } = await getServerUserWithFallback(req, supabase, authOptions);
     const userId = user?.id;
     if (userError || !userId) return { authorized: false, kind: null };
 

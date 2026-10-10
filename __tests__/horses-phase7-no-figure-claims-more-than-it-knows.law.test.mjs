@@ -95,21 +95,17 @@ test('the extracted Mint retains confirmation locking, balance disclosure and sa
   assert.match(mint, /Reversing .*Operation \$\{row\.op_id\}/);
 });
 
-test('the Mint register export walks every page and discloses any safety-cap truncation before download', async () => {
+test('the Mint register requests the source-owned artifact and defers download to verified retrieval', async () => {
   const mint = await read('src/components/horses/MintPanel.jsx');
-  assert.match(mint, /collectAllRows/);
-  assert.match(mint, /EXPORT_PAGE = 500/);
-  assert.match(mint, /EXPORT_MAX_PAGES = 200/);
-  assert.match(mint, /section: 'ledger', limit: String\(limit\), offset: String\(offset\)/);
-  for (const heading of ['Balance Before', 'Balance After', 'Net Issued Supply After', 'Reason', 'By', 'Operation Id']) {
-    assert.match(mint, new RegExp(heading));
-  }
-  assert.match(mint, /Platform Exports Are Not Recorded/);
-  assert.match(mint, /setExportConfirm\(prepared\)/);
-  assert.match(mint, /Acknowledge Truncated Register Export/);
-  assert.match(mint, /requireTyped="TRUNCATED"/);
-  assert.match(mint, /the-mint-register\$\{prepared\.complete \? '' : '-truncated'\}/);
-  assert.match(mint, /TRUNCATED EXPORT/);
+  const center = await read('src/components/horses/ExportArtifactCenter.jsx');
+  const worker = await read('src/lib/horses/exportArtifactWorker.js');
+  assert.match(mint, /requestExportArtifact\(authFetch, 'mint-register', filters\)/);
+  assert.doesNotMatch(mint, /collectAllRows|downloadCsv|Platform Exports Are Not Recorded/);
+  for (const heading of ['Balance Before', 'Balance After', 'Net Issued Supply After', 'Reason', 'By', 'Operation Id']) assert.match(mint, new RegExp(heading));
+  assert.match(center, /I Acknowledge This Is An Incomplete Bounded Report/);
+  assert.match(center, /!acknowledged.has\(job.id\)/);
+  assert.match(worker, /INCOMPLETE BOUNDED REPORT/);
+  assert.match(await read('src/components/horses/exportArtifactClient.js'), /incomplete-/);
 });
 
 test('Phase 7 queries match maintained production column names and do not expose raw signup email', async () => {
@@ -180,7 +176,10 @@ test('every Phase 7 evidence export declares completeness from its returned list
   const exportComponent = await read('src/components/horses/EconomyExport.jsx');
   for (const prefix of ['economy-drift-incidents', 'economy-rakeback-periods', 'economy-bbj-payouts', 'economy-invoices', 'economy-job-evidence']) assert.match(economy, new RegExp(prefix));
   for (const prefix of ['rake-law-findings', 'rakeback-periods', 'leaderboard-payouts', 'bbj-payouts', 'promotion-awards']) assert.match(rake, new RegExp(prefix));
-  assert.match(exportComponent, /TOTAL ROWS UNKNOWN/);
+  assert.match(exportComponent, /Authoritative Source/);
   assert.match(exportComponent, /filenamePrefix/);
-  assert.match(exportComponent, /truncated/);
+  assert.match(exportComponent, /Incomplete Files Require Acknowledgement/);
+  const source = await read('src/lib/horses/exportArtifactSource.js');
+  assert.match(source, /source_changed/);
+  assert.match(source, /complete = false/);
 });
