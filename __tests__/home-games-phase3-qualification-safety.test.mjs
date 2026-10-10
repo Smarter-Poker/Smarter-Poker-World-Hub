@@ -50,6 +50,16 @@ test('qualification requires persisted hide and consumer withholding, not false 
   assert.doesNotMatch(source, /\.screenshot\(|\.storageState\(|\.tracing\.|recordHar|recordVideo/);
 });
 
+test('live qualification proves canonical address storage and member versus stranger and banned readers', () => {
+  const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
+  assert.match(source, /games\[0\]\.address_visible_to, 'approved'/);
+  assert.match(source, /privateTournamentRead, \[\]/);
+  assert.match(source, /calendarGame\.address, privateAddress/);
+  assert.match(source, /calendarGame\.address_visible, true/);
+  assert.match(source, /bannedCalendar\.some\(game => game\.game_id === gameId\), false/);
+  assert.match(source, /bannedTournaments, \[\]/);
+});
+
 test('qualification refuses missing mode, foreign database and unqualified revision before writes', () => {
   const valid = { NEXT_PUBLIC_SUPABASE_URL: 'https://kuklfnapbkmacvwxktbh.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-placeholder', SUPABASE_SERVICE_ROLE_KEY: 'test-placeholder', HOME_GAMES_EXPECTED_SHA: 'a'.repeat(40), HOME_GAMES_QUALIFICATION_MODE: 'task-owned-fixtures' };
   validateConfiguration(valid);
