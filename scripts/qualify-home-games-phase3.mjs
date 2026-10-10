@@ -81,7 +81,7 @@ export async function qualifyBrowserConsumers({ users, group, marker, observatio
           const response = await page.goto(`https://smarter.poker${scenario.path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
           observation.httpStatus = response?.status();
           assert.equal(observation.httpStatus, 200, `${scenario.name} document failed`);
-          if (scenario.heading) await page.getByRole('heading', { name: scenario.heading, exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+          if (scenario.heading) await page.getByRole('heading', { name: scenario.heading, exact: true, level: 1 }).waitFor({ state: 'visible', timeout: 30000 });
           if (scenario.name === 'moderation') {
             await page.getByRole('tab', { name: 'Moderation', exact: true }).click({ timeout: 30000 });
             const panel = page.getByRole('tabpanel', { name: 'Moderation', exact: true });
