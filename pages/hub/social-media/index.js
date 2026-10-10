@@ -4904,7 +4904,11 @@ function SocialMediaPage() {
             // state finishes hydrating instead of permanently dropping the share.
             return;
           }
-          router.replace('/hub/social-media', undefined, { shallow: true });
+          // Keep ?post= in the URL until the initial feed load has completed.
+          // A replace here races the loadFeed safety pin: if the normal page
+          // fetch returns after the query is removed, an older shared article
+          // can be dropped back into the feed window and never hydrate its
+          // preview image in the live deep-link certificate.
         })();
       }
     }
