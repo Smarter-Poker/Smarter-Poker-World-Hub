@@ -169,13 +169,25 @@ export async function fetchKnownPokerArticleMetadata(url) {
         const slug = parsed.pathname.split('/').filter(Boolean).at(-1);
         if (!slug || !/^[a-z0-9-]{3,160}$/i.test(slug)) return null;
         try {
-            const postsUrl = `https://upswingpoker.com/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&_fields=link,title,excerpt,featured_media`;
+            const postsUrl = `https://upswingpoker.com/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&_fields=link,title,excerpt,featured_media,yoast_head_json.og_image,yoast_head_json.og_title,yoast_head_json.og_description`;
             const posts = await fetchKnownPublisherPayload(
                 postsUrl,
                 { headers: ARTICLE_HEADERS, redirect: 'error' },
                 { timeoutMs: 6000, json: true }
             );
             const post = posts?.[0];
+            const yoastImage = post?.yoast_head_json?.og_image?.find?.((candidate) => (
+                isArticleImage(candidate?.url)
+            ))?.url || null;
+            if (yoastImage) {
+                return {
+                    url: post.link || url,
+                    title: plainText(post.title?.rendered || post.yoast_head_json?.og_title),
+                    description: plainText(post.excerpt?.rendered || post.yoast_head_json?.og_description),
+                    image: yoastImage,
+                    siteName: 'Upswing Poker',
+                };
+            }
             const mediaId = Number(post?.featured_media);
             if (!post || !Number.isSafeInteger(mediaId) || mediaId <= 0) {
                 throw new Error('Upswing WordPress post did not expose featured media');
@@ -571,7 +583,23 @@ function decodeHTMLEntities(text) {
         .replace(/&#39;/g, "'")
         .replace(/&#x27;/g, "'")
         .replace(/&#x2F;/g, '/')
-        .replace(/&nbsp;/g, ' ');
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#(\d+);/g, (_match, value) => {
+            const code = Number(value);
+            try {
+                return Number.isInteger(code) ? String.fromCodePoint(code) : _match;
+            } catch {
+                return _match;
+            }
+        })
+        .replace(/&#x([0-9a-f]+);/gi, (_match, value) => {
+            const code = Number.parseInt(value, 16);
+            try {
+                return Number.isInteger(code) ? String.fromCodePoint(code) : _match;
+            } catch {
+                return _match;
+            }
+        });
 }
 
 // Check if URL is a social platform OR a Cloudflare-protected news/sports site

@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect, useMemo, useTransition, useRef } from 'react';
-import { getInitialsColor, US_STATE_TIMEZONES } from './pnm-utils';
+import { getInitialsColor, resolveVenueTimeZone } from './pnm-utils';
+import { qualifiedScheduleZone, scheduleCountdown } from '../../lib/poker-near-me/scheduleTemporal.mjs';
 import { homeGameUrl } from '../../lib/home-games/urls';
 import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
@@ -131,39 +132,6 @@ function matchesTournamentFilters(t, f, includeState) {
 function MapPinIcon({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>; }
 function ClockIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>; }
 
-/**
- * Minutes since midnight for `date` as observed in `timeZone`.
- *
- * BUG FIX: the previous approach — `new Date(new Date().toLocaleString('en-US', { timeZone }))`
- * — round-trips through a locale-formatted string and misparses in environments whose
- * en-US formatting differs (and silently yields Invalid Date). Intl.DateTimeFormat
- * with formatToParts reads the zoned wall clock directly.
- *
- * @returns {number|null} 0-1439, or null if the timezone is unusable.
- */
-function zonedMinutesOfDay(date, timeZone) {
-  try {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone, hour12: false, hour: '2-digit', minute: '2-digit',
-    }).formatToParts(date);
-    let hour = null;
-    let minute = null;
-    for (const p of parts) {
-      if (p.type === 'hour') hour = parseInt(p.value, 10);
-      else if (p.type === 'minute') minute = parseInt(p.value, 10);
-    }
-    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
-    if (hour === 24) hour = 0; // some engines emit '24' for midnight under hour12:false
-    return hour * 60 + minute;
-  } catch (e) {
-    return null;
-  }
-}
-
-// State -> IANA timezone now lives in pnm-utils as the single copy (US_STATE_TIMEZONES),
-// shared with NearMeNowFeed so the two cannot drift apart.
-const IANA_TZ = US_STATE_TIMEZONES;
-
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 // [DTP1 FIX] Removed module-level TODAY_INDEX — it would be stale across midnight for long-lived tabs.
 // Now computed inside the component so it refreshes per-mount.
@@ -188,8 +156,9 @@ const getBuyinColor = (buyIn) => {
 };
 
 export default function DailyTournamentsPanel({ tournaments = [], onDayChange, openVenueModal }) {
-  // [DTP1 FIX] Compute today inside component, not at module load time (stale after midnight)
-  const todayIndex = useMemo(() => new Date().getDay(), []);
+  // The existing countdown clock also updates the Today label across midnight.
+  const [nowTick, setNowTick] = useState(() => new Date());
+  const todayIndex = nowTick.getDay();
   const [selectedDay, setSelectedDay] = useState(DAYS[todayIndex]);
   const [gameType, setGameType] = useState('all');
   const [sortBy, setSortBy] = useState('time');
@@ -227,7 +196,6 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
   // [DTP3 FIX v2] Tick now every 60s so countdowns don't freeze after mount.
   // useMemo(()=>new Date(),[]) was stale for the entire lifetime of the component.
-  const [nowTick, setNowTick] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNowTick(new Date()), 60_000);
     return () => clearInterval(id);
@@ -417,29 +385,15 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           
           {/* Countdown timer (if today and soon) */}
           {(() => {
-            if (!t.start_time || !isTodayTab) return null;
-            const match = (t.start_time || '').match(/(\d{1,2}:\d{2})\s*(AM|PM)?/i);
-            const timePart = match ? match[1] : null;
-            const ampm = match ? match[2] : null;
-            if (!timePart) return null;
-            const [h, m] = timePart.split(':').map(Number);
-            let hour24 = h;
-            if (ampm) { if (ampm.toUpperCase() === 'PM' && h !== 12) hour24 += 12; if (ampm.toUpperCase() === 'AM' && h === 12) hour24 = 0; }
-            
-            // Timezone math — compare wall-clock minutes in the venue's own zone.
-            // Driven by nowTick so the 60s interval actually refreshes the countdown.
-            const tz = IANA_TZ[t.state || t.venue_state] || 'America/New_York';
-            const nowMinutes = zonedMinutesOfDay(nowTick, tz);
-            if (nowMinutes === null) return null;
-            const diffMin = (hour24 * 60 + m) - nowMinutes;
+            const tz = qualifiedScheduleZone(t, resolveVenueTimeZone);
+            const diffMin = scheduleCountdown(t, selectedDay, tz, nowTick);
+            if (diffMin === null) return null;
 
-            // BUG FIX: previously a passed start time rolled the target to tomorrow,
-            // so a 7PM tournament viewed at 8PM rendered "23h 0m" — implying it was
-            // still 23 hours away today. Show an honest "Started" badge instead.
+            // Passing a scheduled time does not prove the event actually started.
             if (diffMin <= 0) {
               return (
                 <div style={{ float: 'right', fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(148,163,184,0.12)', color: 'rgba(203,213,225,0.7)' }}>
-                  Started
+                  Scheduled Start Passed
                 </div>
               );
             }

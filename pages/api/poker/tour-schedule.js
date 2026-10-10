@@ -16,7 +16,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { decodeScrapedTournamentText, fetchAllRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 import tourRegistry from '../../../data/tour-source-registry.json';
-import { databaseTourStops } from '../../../src/lib/poker/tourSchedule.mjs';
+import { databaseTourStops, tourStopIdentityKey } from '../../../src/lib/poker/tourSchedule.mjs';
 import {
   SERVABLE_TOUR_EVENT_QUALITIES,
   SERVABLE_TOUR_DETAIL_QUALITIES,
@@ -113,10 +113,10 @@ const classifyStops = (events, today, summaries = []) => {
   if (!events?.length && !summaries.length) return { current: null, next: null, future: [], past: [] };
 
   // Names repeat across dates and rooms. Preserve the physical dated stop.
-  const stopKey = (name, start, venue) => JSON.stringify([name, start || '', venue || '']);
+  const stopKey = (name, start, venue, end, city, state) => tourStopIdentityKey({ name, start, venue, end, city, state });
   const stopMap = {};
   for (const summary of summaries) {
-    stopMap[stopKey(summary.name, summary.start_date, summary.venue)] = {
+    stopMap[stopKey(summary.name, summary.start_date, summary.venue, summary.end_date, summary.city, summary.state)] = {
       stop_name: summary.name,
       stop_venue: summary.venue,
       stop_city: summary.city,
@@ -131,7 +131,7 @@ const classifyStops = (events, today, summaries = []) => {
     };
   }
   for (const e of events) {
-    const key = stopKey(e.stop_name, e.stop_start_date, e.stop_venue);
+    const key = stopKey(e.stop_name, e.stop_start_date, e.stop_venue, e.stop_end_date, e.stop_city, e.stop_state);
     if (!stopMap[key]) {
       stopMap[key] = {
         stop_name: e.stop_name,

@@ -136,6 +136,38 @@ test('Upswing first-party WordPress metadata resolves its featured article image
   assert.ok(calls.every((url) => url.startsWith('https://upswingpoker.com/wp-json/wp/v2/')));
 });
 
+test('Upswing first-party WordPress metadata uses Yoast OpenGraph image before secondary media fetch', async () => {
+  const calls = [];
+  const { read } = loadKnownPublisherReader(async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('/wp/v2/posts?')) {
+      return {
+        ok: true,
+        async text() {
+          return JSON.stringify([{
+            link: 'https://upswingpoker.com/live-poker-tips-from-garrett-adelstein/',
+            title: { rendered: 'Garrett Adelstein&#8217;s 5 Live Poker Tips To Boost Your Win Rate' },
+            excerpt: { rendered: '<p>Do you play live poker?</p>' },
+            featured_media: 792375,
+            yoast_head_json: {
+              og_image: [{
+                url: 'https://upswingpoker.com/wp-content/uploads/2026/09/Garrett-LIVE-CASH-TIPS-1200x800-upswing-v2.jpg',
+              }],
+            },
+          }]);
+        },
+      };
+    }
+    throw new Error('secondary media fetch should not be needed when Yoast carries the story image');
+  });
+  const result = await read('https://upswingpoker.com/live-poker-tips-from-garrett-adelstein/');
+  assert.equal(result.image, 'https://upswingpoker.com/wp-content/uploads/2026/09/Garrett-LIVE-CASH-TIPS-1200x800-upswing-v2.jpg');
+  assert.equal(result.title, 'Garrett Adelstein’s 5 Live Poker Tips To Boost Your Win Rate');
+  assert.deepEqual(calls, [
+    'https://upswingpoker.com/wp-json/wp/v2/posts?slug=live-poker-tips-from-garrett-adelstein&_fields=link,title,excerpt,featured_media,yoast_head_json.og_image,yoast_head_json.og_title,yoast_head_json.og_description',
+  ]);
+});
+
 test('Upswing falls back to bounded first-party OpenGraph when WordPress media fails', async () => {
   for (const failure of ['missing-media-id', 'posts-throw', 'media-http-failure']) {
     const calls = [];

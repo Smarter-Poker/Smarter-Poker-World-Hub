@@ -514,7 +514,7 @@ async function handler(req, res) {
                       for (let i = 0; i < clusterVenueIds.length; i += CHUNK) {
                           const { data: pvRows, error: pvError } = await getSupabase()
                               .from('poker_venues')
-                              .select('id, state, city')
+                              .select('id, state, city, timezone')
                               .in('id', clusterVenueIds.slice(i, i + CHUNK));
                           if (pvError) throw pvError;
                           (pvRows || []).forEach(v => dbVenueInfoById.set(Number(v.id), v));
@@ -545,6 +545,7 @@ async function handler(req, res) {
                           : t.flights,
                       state: dbInfo.state || venueInfo.state || null,
                       city: dbInfo.city || venueInfo.city || null,
+                      venue_timezone: dbInfo.timezone || null,
                       venueType: venueInfo.type || 'Unknown',
                       pokerAtlasUrl: venueInfo.pokerAtlasUrl || t.source_url
                   };

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 import * as eventTruth from '../src/lib/poker-near-me/tourScheduleData.mjs';
-import { databaseTourStops } from '../src/lib/poker/tourSchedule.mjs';
+import { databaseTourStops, tourStopIdentityKey } from '../src/lib/poker/tourSchedule.mjs';
 import { decodeScrapedTournamentText, fetchAllRows } from '../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 const source = readFileSync(new URL('../pages/api/poker/tour-schedule.js', import.meta.url), 'utf8')
@@ -25,7 +25,7 @@ async function request(rows, query = {}, failure = null, failAt = -1) {
     : property === 'range' ? (start) => { offset = start; return chain; }
     : () => chain });
   const context = vm.createContext({
-    ...eventTruth, databaseTourStops, decodeScrapedTournamentText, fetchAllRows,
+    ...eventTruth, databaseTourStops, tourStopIdentityKey, decodeScrapedTournamentText, fetchAllRows,
     createClient: () => ({ from: () => chain }),
     applyRateLimit: () => true, LIMITS: { read: {} }, reportApiError: () => {},
     tourRegistry: { tours: { TEST: { official_website: 'https://official.example' } } },
@@ -77,4 +77,28 @@ test('repeated names on different dates and overlapping stops are all retained',
   const response = await request(rows, { all_stops: 'true' });
   assert.equal(response.body.total_stops, 4);
   assert.equal(response.body.stops.filter(stop => stop.stop_type === 'current').length, 2);
+});
+
+test('one physical stop combines punctuation variants without deleting its event or provenance', async () => {
+  const event = { ...summary, id: 'event', stop_name: 'Confirmed festival - Main tour',
+    stop_end_date: null, event_number: 1, event_name: 'Opening event',
+    notes: '', data_quality: 'scraped_verified', scrape_html_hash: 'a'.repeat(64) };
+  const sourceSummary = { ...summary, stop_name: 'Confirmed festival \u2014 Main tour',
+    stop_end_date: summary.stop_start_date };
+  const before = JSON.stringify([sourceSummary, event]);
+  const response = await request([sourceSummary, event], { all_stops: 'true' });
+  assert.equal(response.code, 200);
+  assert.equal(response.body.total_stops, 1);
+  assert.equal(response.body.total_events, 1);
+  assert.equal(response.body.stops[0].events[0].id, 'event');
+  assert.equal(response.body.stops[0].source_url, summary.source_url);
+  assert.equal(JSON.stringify([sourceSummary, event]), before);
+});
+
+test('different physical ranges, venues and years are never deduplicated', async () => {
+  const rows = [summary,
+    { ...summary, stop_end_date: '2026-12-12' },
+    { ...summary, stop_venue: 'Another room' },
+    { ...summary, start_date: '2027-12-01', stop_start_date: '2027-12-01', stop_end_date: '2027-12-10' }];
+  assert.equal((await request(rows, { all_stops: 'true' })).body.total_stops, 4);
 });
