@@ -106,8 +106,8 @@ action. Never hand off only a screenshot.
 
 The 28-tab desktop/mobile catalogue and nested navigation checks establish
 rendering, reachability and settled source-shaped responses. They do not prove
-every write against production. Production certification is strictly read-only
-and binds its eight named surfaces to one serving revision/deployment.
+every write against production. Current production certification is strictly
+read-only and binds eleven named surfaces to one serving revision/deployment.
 Financial, moderation, staff and SQL operations retain their tested permission,
 validation, audit, idempotency and maker-checker boundaries; destructive probes
 must not be run against active production players merely to claim coverage.
@@ -134,6 +134,12 @@ financial scenarios, regulation compliance or a universal control plane.
    policy-controlled and off by default; targeted logout is a distinct session
    command. An Unknown response requires reading the original operation before
    retrying, and an account change cannot reuse another operator's request.
+   After reload, use Read Logout Receipt or Read Sanction Outcome for the
+   retained decision. Retry only the original operation after an authoritative
+   absent result and fresh permission checks. A Pending Approval sanction keeps its immutable decision;
+   apply the approved original from Players. Release an expired decision only
+   through the explicit control after the named atomic refusal, a fresh absent
+   operation result, and absent or terminal matching approval evidence.
 2. **O1 floor controls:** compare engine/database state, enter a reason and
    submit pause, park, resume or cash-table close once with the durable UUID.
    Existing hands finish before the boundary; chips and diamonds leave through
@@ -147,6 +153,10 @@ financial scenarios, regulation compliance or a universal control plane.
    Verify the immutable receipt and funded money/ticket returns. Started or
    awarded events are refused and must be resumed or settled by their owners.
    Maker-checker remains policy-controlled; approvals are disabled by default.
+   Read Outcome is a separate read. Retry Same Operation becomes available
+   only after that read confirms absence or a matching pending state. The
+   owning request rechecks current permission and approval before execution.
+   Unknown or malformed recovery state keeps the original request identity.
 4. **O7 private exports:** request the authoritative filtered report once and
    retain the real job ID. Refresh progress; resume only that original eligible
    job. Inspect completeness and explicitly acknowledge truncation before
@@ -158,6 +168,8 @@ financial scenarios, regulation compliance or a universal control plane.
    Cancel is permitted only before claim. End retains the original owner and
    deadline; it does not create a second break. The two-minute lead, five-minute
    break, full 285-second reserve and v3 thaw stay with the maintenance owner.
+   If the contract read is unavailable, use Refresh Engine Contract to read
+   again. This refresh sends no maintenance command and replaces no intent.
 6. **C4 emergency stops:** read the versioned registration, positive issuance
    or cashout stop and its permission boundary, then submit the desired state,
    reason, expected version and durable UUID. A CAS conflict requires fresh
@@ -166,9 +178,12 @@ financial scenarios, regulation compliance or a universal control plane.
    issuance and cashout admission/approval/execution in original transactions;
    existing hands, funded refunds, burns and permitted transfers retain owners.
 
-## 7. Verified Launch Boundary
+## 7. Preceding Release: Dated Verification
 
-Runtime verification is COMPLETE within the six-capability scope. Protected
+Runtime verification is COMPLETE for the preceding six-capability release.
+The later connected audit is recorded separately below with its own dated
+proof and final closeout receipt.
+Protected
 PR #6634 source `052899dd3f52a2d9367ef0eec8dcc33bdbd74071` passed exact-head
 checks; normal `38046257851` qualified it against retained serving client
 `44b07e12c9df6f04d74e0d2c67277e63b9b12b15` at both origins. Actual production
@@ -189,3 +204,53 @@ SHA-256 and a stable serving deployment bracket. A terminal truncated download m
 and eight capability SQL receipts plus the ninth supporting theme repair receipt do not substitute for either live certificate.
 Enforcement remains off, approvals disabled and all three stops false unless an
 operator separately changes the established policy or control through its owner.
+
+
+## Connected Audit Follow-Up: Dated 17:19 UTC
+
+The later audit console is protected-merged as
+6311bc987ff0fb367b3afbfe77a5cae179246158 and production READY. Expanded
+certificate 38058111388 passed all eleven read surfaces at desktop and 375px
+with stable authenticated identity and zero mutations, page/chunk errors or
+overflow. The client and engine repair is protected-merged as
+d026c1d35a807780826d2da3793674972f37cf02. The normal client publisher
+38060381015 installed that revision at both public origins. Engine receiver
+38060429820 completed sealed activation, with independently verified elected
+leader/image/public identity and append-only receipt1022. Scheduled thaw and
+all eight resume waves completed for 302 tables. Actual new-engine live job
+114241081563 passed all four required cases without retries, skips or failures;
+coverage and test-account absence were verified. Subsequent full production
+browser38065521412 passed477 cases, both strictCSP cases and all three
+customization journeys, with two existing unrelated skips and zero failures
+or flaky cases; its normal durable seal binds clientd635 and engined026.
+
+An earlier aborted overview read exposed an unmount lifecycle defect. The
+original hook now invalidates pending reads during cleanup; active-reader
+errors still report. Actual mounted regressions failed before and passed
+after. Protected client-only PR6642 merged as
+2e627f7400ed407479f5c8e66711d6e70c625971 after allsix required checks and
+35,227 passing client tests, including the three new lifecycle cases. Normal
+publisher38070876318 published this exact client at both origins. Actual
+affected browser proof38071196938 is pending. Earlier failed/unknown
+browser attempts remain dated evidence in the handoff.
+
+New qualification covers actor/session changes, immutable operation recovery,
+real Geeves resolution parameters, named Scrapers/Geeves permissions, engine
+contract refresh, executable cash-close targets, private-session admission and
+recovery, pre-paint settlement-dialog scroll locking and disposed overview
+read invalidation. The expanded console
+certificate observes eleven named read surfaces at both widths with its strict
+no-mutation fence. Native and actual-component mutation tests retain their
+isolated scope; the read certificate does not certify production writes.
+
+The manual content-pipeline trigger remains outside the original six-capability
+build and explicitly unavailable. Enforcement and approval defaults remain
+policy-controlled. No production money, player or stop-control fixture supplies
+verification.
+
+
+Final affected production verdict, protected documentation integration and
+verified task-owned cleanup are recorded in the [final closeout receipt](</Volumes/SmarterArchives/agent-evidence/stable-admin-scope-audit-20261010/final-closeout-receipt.json>).
+The receipt must contain observed passed states before task completion; a
+pending receipt or published bundle alone does not establish that result.
+Earlier pending, failed and unknown attempts retain their dated outcomes.
