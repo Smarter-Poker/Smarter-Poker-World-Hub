@@ -172,6 +172,9 @@ jobs:
           "$RUNNER_TEMP/pnm-session-contracts/bin/python" -m pip install python-dotenv==1.2.2 patchright==1.58.2
           "$RUNNER_TEMP/pnm-session-contracts/bin/python" scripts/test_pokeratlas_persistence.py
 
+      - name: Poker Near Me Tour Calendar Truth
+        run: node --test __tests__/poker-near-me-tour-calendar-truth.test.mjs
+
       - name: Training M1 Scope-Preserving HMAC Provisioning
         run: python3 -m unittest discover -s __tests__ -p test_provision_training_m1_hmac.py
 

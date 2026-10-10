@@ -22,8 +22,8 @@ Scrapling context teardown now independently releases the remaining owned
 browser/Playwright resources, so its active sync loop cannot strand reconnect.
 Two tour regressions and two session regressions failed before repair. All
 three tour regressions and 36 persistence tests pass after; a real Patchright
-sync owner is stopped and reopened without a process restart. Tests are wired
-into the existing PNM build suite and required Pre-Deploy Safety Checks.
+sync owner is stopped and reopened without a process restart. Both suites are
+explicitly executed by required Pre-Deploy Safety Checks.
 
 The previous immutable scraper generation completed its full 480-room sweep
 and durable stale cleanup at 2026-10-10T00:05:41Z (final slice 202/202 saved,

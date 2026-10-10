@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import test from 'node:test';
-import './poker-near-me-tour-calendar-truth.test.mjs';
 import {
   buildLiveCashGameIndex,
   buildVenueDirectoryIdentityIndex,
