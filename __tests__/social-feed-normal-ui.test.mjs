@@ -34,6 +34,9 @@ test('titled image-less horse news still hydrates its actual preview image', () 
   }), false);
   const emoji = 'https://s.w.org/images/core/emoji/17.0.2/72x72/1f609.png';
   assert.equal(isArticlePreviewImage(emoji), false);
+  assert.equal(isArticlePreviewImage('https://example.com/wp-includes/images/smilies/icon_wink.gif'), false);
+  assert.equal(isArticlePreviewImage('https://example.com/assets/default-placeholder.jpg'), false);
+  assert.equal(isArticlePreviewImage('https://user:secret@example.com/article.jpg'), false);
   assert.equal(isArticlePreviewImage('https://upswingpoker.com/wp-content/uploads/story.jpg'), true);
   assert.equal(suppliedArticleMetadata({ title: 'Live Poker Tips', image: emoji }).image, null);
   assert.equal(articlePreviewNeedsHydration('https://upswingpoker.com/live-poker-tips/',

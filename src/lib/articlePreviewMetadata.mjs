@@ -3,7 +3,8 @@ export function isArticlePreviewImage(value) {
   try {
     const url = new URL(value);
     if (!['http:', 'https:'].includes(url.protocol)) return false;
-    return !/(?:^|[\/_-])(?:logo|favicon|icon|emoji|smiley|emoticon)(?:[\/_.-]|$)/i.test(url.pathname);
+    if (url.username || url.password) return false;
+    return !/(?:^|[\/_-])(?:logo|favicon|icon|emoji|smiley|smilies|emoticon|avatar|sprite|placeholder|default)(?:[\/_.-]|$)/i.test(url.pathname);
   } catch {
     return false;
   }
