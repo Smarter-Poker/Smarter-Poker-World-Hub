@@ -59,7 +59,7 @@ test('browser verifies real report dialog without submission and hidden pending 
   const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
   assert.match(source, /getByRole\('dialog', \{ name: 'Report Home Game Post'/);
   assert.match(source, /getByRole\('combobox', \{ name: 'Concern'/);
-  assert.match(source, /getByRole\('textbox', \{ name: 'Describe the concern'/);
+  assert.match(source, /getByRole\('textbox', \{ name: 'Describe The Concern'/);
   assert.match(source, /Submit Report', exact: true \}\)\.isDisabled\(\), true/);
   assert.match(source, /keyboard\.press\('Escape'\)/);
   assert.match(source, /report dialog failed focus restoration/);

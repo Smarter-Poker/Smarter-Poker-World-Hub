@@ -105,7 +105,7 @@ export async function qualifyBrowserConsumers({ users, group, marker, observatio
               const dialog = page.getByRole('dialog', { name: 'Report Home Game Post', exact: true });
               await dialog.waitFor({ state: 'visible' });
               await dialog.getByRole('combobox', { name: 'Concern', exact: true }).waitFor({ state: 'visible' });
-              await dialog.getByRole('textbox', { name: 'Describe the concern', exact: true }).waitFor({ state: 'visible' });
+              await dialog.getByRole('textbox', { name: 'Describe The Concern', exact: true }).waitFor({ state: 'visible' });
               assert.equal(await dialog.getByRole('button', { name: 'Submit Report', exact: true }).isDisabled(), true);
               await dialog.getByRole('button', { name: 'Cancel', exact: true }).focus();
               assert.equal(await dialog.evaluate(node => node.contains(document.activeElement)), true);

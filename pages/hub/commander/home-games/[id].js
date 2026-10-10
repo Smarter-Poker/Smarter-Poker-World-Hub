@@ -1096,12 +1096,12 @@ export default function HomeGameDetailPage() {
         onClose={() => setReportTarget(null)} onConfirm={submitPostReport}>
         <label htmlFor="home-game-report-category" className="block text-sm text-white mb-2">Concern</label>
         <select id="home-game-report-category" value={reportReason} onChange={event => setReportReason(event.target.value)}>
-          <option value="other">Content or behavior concern</option>
-          <option value="illegal">Illegal activity</option>
-          <option value="self_harm">Self-harm concern</option>
-          <option value="doxxing">Private information exposed</option>
+          <option value="other">Content Or Behavior Concern</option>
+          <option value="illegal">Illegal Activity</option>
+          <option value="self_harm">Self-Harm Concern</option>
+          <option value="doxxing">Private Information Exposed</option>
         </select>
-        <label htmlFor="home-game-report-details" className="block text-sm text-white mt-4 mb-2">Describe the concern</label>
+        <label htmlFor="home-game-report-details" className="block text-sm text-white mt-4 mb-2">Describe The Concern</label>
         <textarea id="home-game-report-details" value={reportText} onChange={event => setReportText(event.target.value)} maxLength={2000} />
         {reportError ? <p className="text-sm text-red-300 mt-3" role="alert">{reportError}</p> : null}
       </CasinoActionDialog>
