@@ -4835,8 +4835,12 @@ function SocialMediaPage() {
         }
       })();
     }
-    // Handle ?post=<postId> deep link (notifications, search, share links)
-    if (router.query.post && user?.id) {
+    // Handle ?post=<postId> deep link (notifications, search, share links).
+    // The one-post API is already caller-scoped (bearer token when present,
+    // anon/public RLS otherwise), so do not wait on local user state here:
+    // auth can finish before the React profile object hydrates, and that race
+    // drops older article/share links back into the normal feed.
+    if (router.isReady && router.query.post) {
       const postId = router.query.post;
       if (processedPostIdRef.current !== postId) {
         (async () => {
@@ -4921,7 +4925,7 @@ function SocialMediaPage() {
         })();
       }
     }
-  }, [user?.id, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post, router.query.reel]);
+  }, [user?.id, router.isReady, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post, router.query.reel]);
 
   //  REFRESH NOTIFICATIONS when modal opens — always show latest data
   useEffect(() => {
