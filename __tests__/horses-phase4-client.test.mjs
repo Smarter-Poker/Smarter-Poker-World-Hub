@@ -428,12 +428,12 @@ test('a raised sanction has a surface and a way to be applied', () => {
   );
   assert.match(
     panel,
-    /draft: \{ \.\.\.restrictDraft, opId: data\.opId \|\| restrictDraft\.opId \}/,
+    /retainSanction\(localStorage, actorId, restrictDraft/,
     'under THE SAME key, which is what makes an approved request execute exactly once'
   );
   assert.match(
     panel,
-    /const applyPendingSanction = useCallback\(async \(key\) => \{/,
+    /const applyPendingSanction = useCallback\(async \(key, retry = false, abandon = false\) => \{/,
     'and applying one names WHICH pending sanction, now that several can be waiting'
   );
   assert.match(

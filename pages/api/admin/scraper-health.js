@@ -1,3 +1,5 @@
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 /**
  * /api/admin/scraper-health.js
  *
@@ -43,7 +45,6 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { classifyScraperHealth } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 
-const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 
 let _supabase = null;
 function getSupabase() {
@@ -220,10 +221,8 @@ export default async function handler(req, res) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-  // Verify the bearer JWT, then authorize on profiles.role — the same pattern
-  // every sibling admin route uses. The previous hardcoded email allowlist
-  // (admin@smarter.poker / me@smarter.poker) matched NO account in production,
-  // so this endpoint 403'd for every real administrator.
+  // Verify the JWT and resolve canonical console.read, including named grants.
+  // A legacy profile role alone cannot express an enforced narrowed grant.
   let user = null;
   try {
     const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
@@ -240,7 +239,8 @@ export default async function handler(req, res) {
     .eq('id', user.id)
     .maybeSingle();
 
-  if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+  const gate = await operatorHoldsPermission(getSupabase(), { userId: user.id, profileRole: profile?.role || null }, PERMISSIONS.CONSOLE_READ);
+  if (!gate.ok) {
     return res.status(403).json({ error: 'Admin access required' });
   }
 

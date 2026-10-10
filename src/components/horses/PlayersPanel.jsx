@@ -32,7 +32,7 @@
  * a bug report waiting to be filed. This is the Phase 3 heartbeat discipline,
  * applied to four more panels.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
@@ -40,6 +40,9 @@ import KpiTile from './KpiTile';
 import Pager from './Pager';
 import StatusPill from './StatusPill';
 import usePagedList from './usePagedList';
+import PlayerLogoutControls from './PlayerLogoutControls';
+import { engineControlScope } from './engineControlScope';
+import { readSanctions, retainSanction, completeSanction, recoverSanction } from './sanctionRecovery';
 import styles from './shared.module.css';
 import { num, when } from '../../lib/horsesAdminTokens';
 import { hasPermission } from './operatorPermissions';
@@ -50,13 +53,11 @@ import {
   observationsUrl,
   playerUrl,
   reportsUrl,
-  restrictBody,
   restrictionsUrl,
   searchUrl,
   ticketsUrl,
   enforcedOf,
   liftBody,
-  forceLogoutBody,
   newRestrictionOpId,
   noteAddBody,
   noteDeleteBody,
@@ -379,6 +380,27 @@ export default function PlayersPanel({
   // ── RESTRICT DIALOG ──────────────────────────────────────────────────────
   const [restrictDraft, setRestrictDraft] = useState(null);
   const [pendingSanctions, setPendingSanctions] = useState({});
+  const [sanctionError, setSanctionError] = useState('');
+  const [sanctionRetries, setSanctionRetries] = useState({});
+  const [sanctionAbandonable, setSanctionAbandonable] = useState({});
+  const sanctionAlive = useRef(true);
+  useEffect(() => { sanctionAlive.current = true; return () => { sanctionAlive.current = false; }; }, []);
+  const retainedSanctionScope = useRef(null);
+  let proposedSanctionScope;
+  try { proposedSanctionScope = engineControlScope(authFetch, 'player-sanctions', () => sanctionAlive.current); } catch { proposedSanctionScope = null; }
+  if (!proposedSanctionScope) retainedSanctionScope.current = null;
+  else if (!retainedSanctionScope.current?.isCurrent()) retainedSanctionScope.current = proposedSanctionScope;
+  const sanctionScope = retainedSanctionScope.current;
+  useEffect(() => {
+    setBusy(false);
+    setSanctionRetries({});
+    setSanctionAbandonable({});
+    try {
+      if (!sanctionScope) throw new Error('The Operator Account Could Not Be Confirmed');
+      sanctionScope.assertCurrent();
+      setPendingSanctions(readSanctions(localStorage, sanctionScope.options.expectedOperatorId)); setSanctionError('');
+    } catch (failure) { setPendingSanctions({}); setSanctionError(failure.message); }
+  }, [sanctionScope]);
   const [busy, setBusy] = useState(false);
 
   const gate = restrictDraft
@@ -392,18 +414,24 @@ export default function PlayersPanel({
   const noteRequired = restrictDraft?.reasonCode === REASON_NEEDS_NOTE;
   const restrictReady =
     restrictDraft
+    && !sanctionError && !!sanctionScope
     && restrictDraft.scope
     && restrictDraft.reasonCode
     && noteIsValid(restrictDraft.note, noteRequired);
 
   const submitRestrict = useCallback(async () => {
-    if (!restrictDraft || !restrictReady) return;
+    if (!restrictDraft || !restrictReady || sanctionError) return;
     setBusy(true);
     try {
-      const data = await authFetch(PLAYER_ADMIN, {
-        method: 'POST',
-        body: JSON.stringify(restrictBody(restrictDraft)),
-      });
+      if (!sanctionScope) throw new Error('The Operator Account Could Not Be Confirmed');
+      sanctionScope.assertCurrent();
+      const actorId = sanctionScope.options.expectedOperatorId;
+      setPendingSanctions(retainSanction(localStorage, actorId, restrictDraft));
+      setRestrictDraft(null);
+      const entry = { actorId, draft: restrictDraft };
+      const data = await recoverSanction(authFetch, sanctionScope, entry, true);
+      sanctionScope.assertCurrent();
+      if (data?.unapplied && data.abandonable) { setSanctionAbandonable(prev => ({ ...prev, [restrictDraft.opId]: true })); showNotification(data.message, 'info'); return; }
       if (data?.pending) {
         // KEPT, not discarded. `sanction` is deliberately not executable
         // from the approvals queue, so the ONLY way this restriction ever
@@ -416,14 +444,8 @@ export default function PlayersPanel({
         // second raise, or an ordinary restriction on any other player,
         // used to overwrite or clear the only handle on it, orphaning an
         // approved row and making the next press mint a fresh key.
-        setPendingSanctions((prev) => ({
-          ...prev,
-          [data.approvalId || restrictDraft.opId]: {
-            approvalId: data.approvalId ?? null,
-            status: data.status ?? 'pending',
-            gateReason: data.gateReason ?? null,
-            draft: { ...restrictDraft, opId: data.opId || restrictDraft.opId },
-          },
+        setPendingSanctions(retainSanction(localStorage, actorId, restrictDraft, {
+          approvalId: data.approvalId ?? null, status: data.status ?? 'pending', gateReason: data.gateReason ?? null,
         }));
         showNotification(
           data.message
@@ -431,6 +453,7 @@ export default function PlayersPanel({
           'info'
         );
       } else {
+        setPendingSanctions(completeSanction(localStorage, actorId, restrictDraft.opId));
         showNotification(data?.message || 'Restriction Applied', 'success');
         setEnforced(enforcedOf(data));
       }
@@ -438,12 +461,12 @@ export default function PlayersPanel({
       if (openId) loadPlayer(openId);
       if (restrictionList.loaded) restrictionList.refresh();
     } catch (err) {
-      showNotification(err?.message || 'That Restriction Could Not Be Applied', 'error');
+      if (sanctionScope?.isCurrent()) showNotification(`${err?.message || 'That Restriction Could Not Be Applied'}. The Original Decision Is Retained For Outcome Recovery`, 'error');
     } finally {
-      setBusy(false);
+      if (sanctionScope?.isCurrent()) setBusy(false);
     }
   }, [
-    authFetch, restrictDraft, restrictReady, showNotification, openId, loadPlayer, restrictionList,
+    authFetch, restrictDraft, restrictReady, showNotification, openId, loadPlayer, restrictionList, sanctionScope, sanctionError,
   ]);
 
   /**
@@ -454,16 +477,22 @@ export default function PlayersPanel({
    * a fresh one here would raise a SECOND request and leave the approved
    * one to expire.
    */
-  const applyPendingSanction = useCallback(async (key) => {
+  const applyPendingSanction = useCallback(async (key, retry = false, abandon = false) => {
     const entry = pendingSanctions[key];
     if (!entry) return;
     setBusy(true);
     try {
-      const data = await authFetch(PLAYER_ADMIN, {
-        method: 'POST',
-        body: JSON.stringify(restrictBody(entry.draft)),
-      });
+      if (!sanctionScope || entry.actorId !== sanctionScope.options.expectedOperatorId) throw new Error('The Original Sanction Account Changed');
+      setSanctionRetries((prev) => ({ ...prev, [key]: false }));
+      const data = await recoverSanction(authFetch, sanctionScope, entry, retry);
+      if (data?.unapplied && data.abandonable) {
+        if (abandon) { setPendingSanctions(completeSanction(localStorage, entry.actorId, key)); setSanctionAbandonable(prev => ({ ...prev, [key]: false })); }
+        else setSanctionAbandonable(prev => ({ ...prev, [key]: true }));
+        showNotification(data.message, 'info'); return;
+      }
       if (data?.pending) {
+        if (!retry) { setSanctionRetries((prev) => ({ ...prev, [key]: data.writable === true })); return; }
+        setPendingSanctions(retainSanction(localStorage, entry.actorId, entry.draft, { approvalId: data.approvalId ?? entry.approvalId, status: data.status ?? 'pending' }));
         showNotification(
           'That Sanction Has Not Been Approved Yet. It Is Still Waiting',
           'info'
@@ -472,20 +501,16 @@ export default function PlayersPanel({
       }
       showNotification(data?.message || 'Restriction Applied', 'success');
       setEnforced(enforcedOf(data));
-      setPendingSanctions((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
+      setPendingSanctions(completeSanction(localStorage, entry.actorId, entry.draft.opId));
       if (openId) loadPlayer(openId);
       if (restrictionList.loaded) restrictionList.refresh();
     } catch (err) {
-      showNotification(err?.message || 'That Restriction Could Not Be Applied', 'error');
+      if (sanctionScope?.isCurrent()) showNotification(err?.message || 'That Restriction Could Not Be Applied', 'error');
     } finally {
-      setBusy(false);
+      if (sanctionScope?.isCurrent()) setBusy(false);
     }
   }, [
-    authFetch, pendingSanctions, showNotification, openId, loadPlayer, restrictionList,
+    authFetch, pendingSanctions, showNotification, openId, loadPlayer, restrictionList, sanctionScope,
   ]);
 
   const post = useCallback(
@@ -565,9 +590,10 @@ export default function PlayersPanel({
           section rather than inside one, because an operator who raises a
           sanction and then goes to look at the player must not lose the
           only handle on it. */}
+      {sanctionError && <p role="alert">{sanctionError}. Original Decisions Must Be Recovered Before A New Sanction.</p>}
       {Object.entries(pendingSanctions).map(([key, entry]) => (
         <div key={key} className={styles.warnNote} role="status">
-          <strong>A Sanction Is Waiting For A Second Operator. </strong>
+          <strong>An Original Sanction Decision Is Retained. </strong>
           {SCOPE_META[entry.draft.scope]?.label} For
           {' '}
           {entry.draft.displayName || entry.draft.userId}
@@ -575,25 +601,16 @@ export default function PlayersPanel({
           . The Approvals Queue Records The Decision And Does Not Carry It Out, So Apply It
           Here Once It Is Approved.
           <div className={styles.rowActions}>
+            <button type="button" className={styles.btn} disabled={busy || !sanctionScope?.isCurrent()} onClick={() => applyPendingSanction(key, false)}>Read Sanction Outcome</button>
             <button
               type="button"
               className={styles.btn}
-              disabled={busy || !canModerate}
-              onClick={() => applyPendingSanction(key)}
+              disabled={busy || !canModerate || !canWritePlayers || !sanctionRetries[key]}
+              onClick={() => applyPendingSanction(key, true)}
             >
               Apply It Now
             </button>
-            <button
-              type="button"
-              className={styles.btn}
-              onClick={() => setPendingSanctions((prev) => {
-                const next = { ...prev };
-                delete next[key];
-                return next;
-              })}
-            >
-              Dismiss This Reminder
-            </button>
+            {sanctionAbandonable[key] && <button type="button" className={styles.btn} disabled={busy || !canModerate || !canWritePlayers} onClick={() => applyPendingSanction(key, true, true)}>Release Expired Decision</button>}
           </div>
         </div>
       ))}
@@ -713,6 +730,7 @@ export default function PlayersPanel({
               canModerate={canModerate}
               canWritePlayers={canWritePlayers}
               busy={busy}
+              restrictionPending={Object.values(pendingSanctions).some(entry => entry.draft.userId === player.profile.id)}
               onRestrict={() =>
                 setRestrictDraft({
                   userId: player.profile.id,
@@ -724,7 +742,8 @@ export default function PlayersPanel({
                   expiresAt: '',
                   opId: newRestrictionOpId(),
                 })}
-              onForceLogout={(draft) => post(forceLogoutBody({ userId: player.profile.id, ...draft }), 'Session Control Applied')}
+              authFetch={authFetch}
+              onLogoutComplete={() => loadPlayer(player.profile.id)}
               onLift={(id) => post(liftBody({ restrictionId: id }), 'Restriction Lifted')
                 .then((ok) => { if (ok && restrictionList.loaded) restrictionList.refresh(); })}
               onNoteAdd={(text) => post(noteAddBody({ userId: player.profile.id, body: text }), 'Note Saved')}
@@ -1212,8 +1231,10 @@ function Player360({
   canModerate,
   canWritePlayers,
   busy,
+  restrictionPending,
   onRestrict,
-  onForceLogout,
+  authFetch,
+  onLogoutComplete,
   onLift,
   onNoteAdd,
   onNoteDelete,
@@ -1222,7 +1243,6 @@ function Player360({
   onRgSet,
 }) {
   const p = player.profile;
-  const [logoutDraft, setLogoutDraft] = useState(null);
   const [noteDraft, setNoteDraft] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const [liftTarget, setLiftTarget] = useState(null);
@@ -1246,25 +1266,13 @@ function Player360({
             {p.displayName || p.username || p.id} <HorseBadge isHorse={p.isHorse} />
           </h3>
           {canModerate && (
-            <button type="button" className={styles.btnDanger} onClick={onRestrict} disabled={busy}>
+            <button type="button" className={styles.btnDanger} onClick={onRestrict} disabled={busy || restrictionPending}>
               Restrict
             </button>
           )}
         </div>
 
-        {canModerate && <button type="button" className={styles.btnDanger} disabled={busy}
-          onClick={() => setLogoutDraft({ note: '', opId: newRestrictionOpId() })}>End Existing Sessions</button>}
-        {logoutDraft && <div className={styles.card} role="group" aria-label="End Existing Sessions">
-          <EnforcementBanner enforced={enforced} />
-          <p className={styles.cardNote}>Ends Existing Sessions On Every Device. Current Hands Finish Safely. The Player Can Sign In Again.</p>
-          <label className={styles.fieldLabel} htmlFor="logout-reason">Reason</label>
-          <textarea id="logout-reason" className={styles.input} value={logoutDraft.note} maxLength={2000}
-            onChange={(e) => setLogoutDraft({ ...logoutDraft, note: e.target.value })} />
-          <button type="button" className={styles.btnDanger} disabled={busy || !logoutDraft.note.trim()}
-            onClick={async () => { const result = await onForceLogout(logoutDraft); if (result) setLogoutDraft(null); }}>
-            {enforced === true ? 'End Existing Sessions' : 'Record Logout Request'}</button>
-          <button type="button" className={styles.btn} disabled={busy} onClick={() => setLogoutDraft(null)}>Cancel</button>
-        </div>}
+        <PlayerLogoutControls authFetch={authFetch} userId={p.id} enforced={enforced} canModerate={canModerate && canWritePlayers} onComplete={onLogoutComplete} />
 
         <div className={styles.kpiGrid}>
           <KpiTile label="Clubs" value={num(clubs.length)} />

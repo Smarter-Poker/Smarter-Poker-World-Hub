@@ -1,4 +1,5 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { requireOperator } from '../../../src/lib/horses/operatorAuth.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 /* ═══════════════════════════════════════════════════════════════════════════
    GEEVES ANALYTICS API — Admin-only endpoint
    Serves the Geeves tab in the Horses admin page.
@@ -9,24 +10,13 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
      POST { action:'mark_resolved', id, added_to_kb }
             `id` MUST be an integer (geeves_missed_questions.id is a bigint).
             A non-integer id returns 400, not 500.
-   Auth: admin or superadmin role required
+   Auth: console.read for reads; moderation.write for resolution
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 const { logAdminAction } = require('../../../src/lib/antiAbuse');
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
-
 export default async function handler(req, res) {
   // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -38,31 +28,17 @@ export default async function handler(req, res) {
   }
 
   try {
-      // ── Auth: only admins ──────────────────────────────────────────────
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Unauthorized' });
-
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-      const { data: profile } = await getSupabase()
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle();
-
-      if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
-          return res.status(403).json({ success: false, error: 'Admin access required' });
-      }
+      if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ success: false, error: 'Method not allowed' });
+      const op = await requireOperator(req, res, { permission: req.method === 'POST' ? PERMISSIONS.MODERATION_WRITE : PERMISSIONS.CONSOLE_READ });
+      if (!op) return;
+      const { db, user } = op;
 
       // ── Route by method + action ───────────────────────────────────────
       if (req.method === 'GET') {
           const { action = 'summary' } = req.query;
 
           if (action === 'top_missed') {
-              const { data, error } = await getSupabase()
+              const { data, error } = await db
                   .from('geeves_missed_questions')
                   .select('id, question, page, asked_count, first_asked, last_asked, resolved, added_to_kb, grok_answer')
                   .eq('resolved', false)
@@ -88,20 +64,20 @@ export default async function handler(req, res) {
                   addedToKbRes,
                   cacheRes,
               ] = await Promise.all([
-                  getSupabase()
+                  db
                       .from('geeves_missed_questions')
                       .select('*', { count: 'exact', head: true })
                       .gte('last_asked', weekAgo),
-                  getSupabase()
+                  db
                       .from('geeves_missed_questions')
                       .select('*', { count: 'exact', head: true })
                       .eq('resolved', true)
                       .gte('last_asked', weekAgo),
-                  getSupabase()
+                  db
                       .from('geeves_missed_questions')
                       .select('*', { count: 'exact', head: true })
                       .eq('added_to_kb', true),
-                  getSupabase()
+                  db
                       .from('geeves_knowledge_cache')
                       .select('times_served, avg_rating')
                       .gte('created_at', weekAgo)
@@ -167,7 +143,7 @@ export default async function handler(req, res) {
                   });
               }
 
-              const { data: updated, error } = await getSupabase()
+              const { data: updated, error } = await db
                   .from('geeves_missed_questions')
                   .update({
                       resolved: true,
@@ -188,7 +164,7 @@ export default async function handler(req, res) {
               // Audit: resolving a missed question changes what the Geeves KB
               // reports as outstanding. DELETE-class admin actions elsewhere in
               // this panel are logged; this one was not.
-              await logAdminAction(getSupabase(), {
+              await logAdminAction(db, {
                   admin_user_id: user.id,
                   action: 'geeves_question.marked_resolved',
                   target_type: 'geeves_missed_question',

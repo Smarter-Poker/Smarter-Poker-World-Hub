@@ -1,5 +1,12 @@
 # Stable Admin Phase 11 Closeout
 
+Current audit continuation: IN PROGRESS. The owner requested a further connected
+launch audit after the preceding delivery. Confirmed recovery/account/permission
+and cash-close defects are being repaired and separately qualified. Earlier
+completed receipts below remain dated evidence; they do not close this new audit.
+The manual content-pipeline trigger remains explicitly unavailable and outside
+the six original capability build scope. No universal no-bugs claim is made.
+
 ## Current Six-Capability Delivery State, 2026-10-10
 
 Finite scope: P3, O1, O2, O7, C2 and C4. All six connected implementations,
@@ -1412,3 +1419,192 @@ no runtime/source/SQL/engine change. Actual six documentation contractsPASS,
 Unknown/PendingApproval/originalUUID, explicitcomplete=false and safetycaps.
 Primary final-docs-contracts.log retained. Ordinaryhooks/push, exacthead
 requiredchecks/protectedmerge and ownedcleanup remainpending.
+
+
+### Authorized connected launch audit, 2026-10-10 12:55 UTC
+
+Owner requested exhaustive bugs/gaps/stubs/errors/regressions/wiring inspection
+within this Stable Admin launch assignment and authorized parallel agents.
+Existing protected PR2285 documentation merge3cbc9729 and completed six
+receipts are preserved as dated evidence, not proof of untested recovery cases.
+Fresh canonical full reader emitted/read12:55:39.998UTC, policy2.9, manifest
+a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b;
+all five previously recorded canonical hashes unchanged. Required repository,
+publishing, CLAUDE, path/storage and complete existing checkpoint recovered.
+Owned SSD root /Volumes/SmarterWork/agent-work/stable-admin-scope-audit-20261010,
+WH3cbc9729 and CA052899dd, branchagent/codex/stable-admin-scope-audit-20261010.
+Archive /Volumes/SmarterArchives/agent-evidence/stable-admin-scope-audit-20261010.
+Root owns checkpoint, integration, protected merges and provider operations;
+helpers own disjoint restriction/session, floor/maintenance and tournament fixes.
+Acceptance: trace whole connected six implementation and console; reproduce
+confirmed recovery defects, repair original owners, retain focused regressions,
+required exact-candidate checks, installation if needed, normal publication and
+affected live proof. Unknown operations retain identity; no production money,
+player or stop-toggle fixtures; original policy-off boundaries unchanged.
+Findings in progress: O2 durable read/write recovery and invalid retained intent;
+P3 logout identity loss and candidate account-switch session-probe race; O1
+accepted cash-close target refused by dealer admission; C2 capability refresh.
+O7 source inspection has not established a new defect. No new qualification,
+merge, installation, publication or launch-clear claim yet.
+
+
+### Connected audit continuation receipt, 2026-10-10 13:10 UTC
+
+Full canonical reader emitted/read13:10:33.261UTC, v2.9; canonicalmanifest
+a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all five recorded hashes unchanged. Both repositories' instructions,
+publishing, fullCLAUDE, storage, migration rules, existing checkpoint and
+complete owning maintenance handoff/programme freshly recovered. SSD disk7s4
+free92655264blocks; no fallback storage. WHbase3cbc9729; CAbase052899dd.
+Independent client session fix e3ba091fe4ffd6dac27dcc25a06a98a8b79b9084
+is submitted in PR6636; requiredCI38054478637 remains running. Actual local
+38/38 session/account checks passed, finalcompiler passed and normalhooks/push
+passed. It has no newengine dependency and continues independently.
+WH recovery/permission/Geeves fixes are quiescent for integrated build; floor
+closure correction and exact named22023 refusal are qualified in isolation.
+Engine private-access repair remains in progress. Missed logout subscription
+events leave cached private access until the existing five-minute reauth sweep;
+the finite reconnect/private-read repair closes that confirmed window.
+New close-selector forward SQL belongs in canonicalCA and is not installed.
+13:03 readback shows96 open nontournament targets, allcash/notdeleted, and
+zero pendingclosures; no production financial cleanup or fixture is needed.
+No new audit merge, installation, publication or launch-clear claim yet.
+
+
+### Exact close-target owner installation, 2026-10-10 13:15 UTC
+
+Root reviewed the complete canonicalCA forward/inverse and independently ran
+its final nativePG17 qualifier: original before-countercases, allinvalidtarget
+refusals, command replay after target change, real concurrentrowlock, original
+unchanged financialbehavior and exact inverse/reapply PASS. First rootattempt
+failed environmentstartup because the Unixsocketpath104bytes exceeded103;
+shorter task-owned prefix repairs the harness and retains bounded diagnostics.
+Exact SQL20261010131117 SHA256
+83251378ba2870f2ebf56829064c01fd656aa1076b32fd6b8020fdb1cb98f53e
+installed ONCE as provider20261010131448/close_cash_targets_are_executable.
+Fresh13:14:59.967UTC readback fullrecordedSQL equals qualifiedsource; definition
+MD5 40c186edc95844d580834f047e252ce4; oneoverload/postgresowner/SECDEF/volatile,
+public,pg_temp path and service-onlyexecute unchanged. Zeropendingclosures;
+no production command, seat, balance or custody fixture/write. Preflight
+13:14:37 outsideDDLwindow/platformunfrozen; noexistingledger and exactoriginal
+MD5 f6d78897576ce5a925ca454437cb9e91. Pre/post security andperformance advisory
+counts unchanged. Source/workflow/node regressions remain pending protected
+CAintegration and enginepublication; installation alone is not completion.
+
+### Quiescent audit delivery and current reading receipt, 13:24 UTC
+
+Canonical full policies emitted/read13:20:19.344UTC, version2.9, manifest
+a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all recorded canonical hashes unchanged. Root freshly read full WH
+AGENTS/playbook/publishing/CLAUDE, current checkpoint, storage, affected
+Phase1/2/3/4/9 contracts and permission matrix. SSD disk7s4 is mounted
+with87770320 freeblocks. CA client and engine delivery owners freshly read
+their applicable references separately; root remains sole checkpoint writer.
+
+Final WH connected CHECK8 selection passed282/282 with no skips; exact
+production build passed. Full horses suite first passed1260/1261: the remaining
+source-contract matcher expected the old unfenced policy call. It now requires
+the exact actor/generation fence and stale-before-apply ordering while retaining
+one policy read, both sign-in paths and no browser role gate. That focused
+29-case group passes. Final full suite and30-case built desktop/mobile browser
+proof remain running. No assertion was removed or runtime changed for this fix.
+
+P3 scope includes immutable logout and sanction recovery, mounted-view fencing
+and explicit expired-decision release only after named atomic refusal plus
+fresh absent/terminal approval evidence. O2 now separates outcome read from
+same-key retry. C2 has a finite explicit capability refresh. Default console
+requests reject changed account/generation; Scrapers and Geeves resolve their
+canonical named permissions, and Geeves sends the real resolution contract.
+New regressions are in the original required safety job.
+
+Independent CA client PR6636 protected-squash merged13:21:24UTC as
+67e42c6c082fb8522e0c25731ba6de8d84451a93 after all six required checks.
+Its sole normal publisher38055402343 is running. Restriction helper owns that
+client operation; tournament helper owns CA engine source/protected/provider
+delivery. All821 source bindings and30 affected binding contracts pass.
+Engine closure and missed-revocation corrections are qualified locally;
+new protected engine delivery and all new audit live proof remain pending.
+
+Final WH qualification now PASS: fullhorses1261/1261, CHECK8 selection282/282,
+maintained built browser30/30 at desktop/mobile with no retries, full507-page
+production build and bundle/postbuild budgets. Root independently read primary
+logs; finalbuild/browser runtime/workflow/package/e2e fingerprints stayed fixed.
+Root selected architecture/pipeline contracts22/22 pass; actual documentation
+contracts were included in the fullhorses1261-case qualification. Extra imported broad
+meta-suite was deliberately stopped as outside this finite check selection;
+its interrupted result is not passing evidence. No runtime assertion changed.
+Final scoped lint and whitespace pass. Ordinary source commit/push and exacthead
+protected/provider/live gates remain pending.
+
+Engine owner full-policy receipt13:22:34.915UTC v2.9/hashunchanged plus current
+CA repository/publishing/fullCLAUDE/maintenancehandoff/programme/deploy references
+and checkpoint freshly read. Root delegates engine delivery exclusively to that
+helper, retains WH and checkpoint ownership, and does not duplicate operations.
+
+### Audit submission and affected production certificate, 13:34 UTC
+
+WH normal hooks/push PASS at17d48e9b7c3cba0d4432e8acfccbe8b21ee3234a,
+treebc5587204bac72551f4a66471736ac76580150bf. AttachedPR2286 owns this
+follow-up. Exacthead hosted gates are running; retired ownautopilot38055646222
+terminalCANCELLED and autoMergeRequestnull. Localtypecheck reports0errors.
+The unused-hook heuristic warned on imperative useStableAdminStore.getState;
+source uses the import and no runtime or assertion was changed to conceal it.
+Pathclassifier package files are manually reviewed: exactly locked React18.3.1
+test renderer and its development-only dependencies, verification input with
+no engine/API/runtime dependency. Root compared all27 build/browser input
+hashes with current source: zero mismatches.
+
+Existing strict production certificate now additionally observes Players,
+Geeves and Scrapers at both widths, retaining originaleight surfaces and strict
+safe-method fence. Actual named GET observations, settled/errorfree panels,
+28tabs, original identity/error/overflow gates and sanitized evidence remain
+mandatory. The11-case certificate contracts pass including missing/failedread,
+wrongaction/nonGET and unfinished/errorpanel countercases. This changes only
+verification source; qualified runtimebuild/browser inputs are unchanged.
+Fresh production execution remains pending protected integration and READY.
+
+CA client solepublisher38055402343 SUCCESS; both origins independently serve
+67e42c6c082fb8522e0c25731ba6de8d84451a93, built13:24:09UTC. Published runtime
+inventory complete:true and sessionRevoked blob13f1208be0a14858eb5973169f57f85b5da38bdd
+matches qualified/mergedsource. Normalpostdeploy38055652963 is running and
+remains pending. EnginePR6638 exactf506a78c283298ea1e31211ef30bcda29f3eccb0
+submitted after normalhooks, compiler,145focusedengine/3source/821binding,
+client4339/Node122 and engine9450checks passed;166existing engine skips are
+not claimed executed. Protected engine checks/merge/activation/live remain pending.
+
+
+### Audit exact-head continuation receipt, 13:31 UTC
+
+Canonical full policy reader emitted/read2026-10-10T13:30:57.779Z, v2.9;
+manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all preceding canonical hashes unchanged. Full WH AGENTS/playbook/CLAUDE/
+publishing, complete checkpoint, affected Phase1/2/3/4/9 contracts, permission
+matrix, agentrules and storage freshly read. ExternalSSD disk7s4 has87503856
+freeblocks; disk7s3 archive has455384640. CA operation owners remain exclusive.
+
+Expanded certificate normal pushf0ab4edefed33ebfc259f6160ca8a9c02f361c8d
+passed after correcting absent task-owned TMPDIR. The initial missing-directory
+policy-test failure is retained, never called a test pass. Runtime input hashes
+are unchanged; certificate11-case proof is separately qualified. PR2286
+current-head safety38055891093/footer38055891083 are running. Retired automatic
+merge38055889910 already completed before readback; root directly disabled
+automatic merge again. Protected merge/publication/fresh live proof are pending.
+
+
+### Required caller-scope regression repaired at the original owner
+
+Exactf0ab safety38055891093 failed two preserved cashout tests in the
+299-case Messenger/Cashier step. New default account capture unconditionally
+read global context even when an original caller-owned ABA fence was supplied.
+The source now captures ready store identity/generation only for default calls;
+explicit caller fences keep their original authority, liveness and token/body
+checks. Explicit expected identity still verifies JWTsubject, and ordinary
+unknown context still refuses dispatch. Existing cashout assertions were not
+changed. Root reproduced both failures locally, then verified all299 exact
+workflow cases and29 connected/realReact cases with zero failures/skips. New
+actualReact regression refuses global reads for caller-owned scope, proves stale
+request dispatch stayszero and current caller can finish. Targeted lint/diff pass.
+Final revised CHECK8 passes286/286 and fullhorses1265/1265; changed runtime
+requires refreshed productionbuild and30-case browser proof, currentlyrunning.
+New exacthead submission follows available localqualification; no unchanged
+provider retry or passed old-runtime build substitutes for this correction.

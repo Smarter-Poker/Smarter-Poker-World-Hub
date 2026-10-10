@@ -467,7 +467,7 @@ test.describe('Stable Admin P3 and O7 connected controls', () => {
 
 test('P3 permitted controls preserve reason and show authoritative permission refusal', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await installSignedInPolicyFixture(page, [...ALL_TAB_PERMISSIONS, 'moderation.write']);
+  await installSignedInPolicyFixture(page, [...ALL_TAB_PERMISSIONS, 'moderation.write', 'players.write']);
   const target = '00000000-0000-4000-8000-000000000303';
   const mutations: any[] = [];
   await page.route('**/api/horses/player-admin**', async route => {
@@ -475,7 +475,8 @@ test('P3 permitted controls preserve reason and show authoritative permission re
     if (route.request().method() === 'POST') {
       mutations.push(route.request().postDataJSON());
       await route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'Fixture Authoritative Permission Refused' }) });
-    } else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(section === 'player'
+    } else if (section === 'control_outcome') await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ actorId: OPERATOR_ID, operation: null, writable: true }) });
+    else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(section === 'player'
       ? { profile: { id: target, displayName: 'Fixture Player' }, restrictions: [], enforced: true }
       : { ...canonicalPage({ rows: [{ id: target, display_name: 'Fixture Player' }], total: 1 }), enforced: true }) });
   });
@@ -492,7 +493,13 @@ test('P3 permitted controls preserve reason and show authoritative permission re
   expect(mutations).toHaveLength(1);
   expect(mutations[0]).toMatchObject({ action: 'force_logout', userId: target, note: 'Fixture session safety request' });
   expect(mutations[0].opId).toMatch(/^restrict-[0-9a-f-]{36}$/i);
-  await expect(group.getByLabel('Reason', { exact: true })).toHaveValue('Fixture session safety request');
+  const retained = await page.evaluate(({ actorId, target }) => JSON.parse(localStorage.getItem(`stable-player-logout:${actorId}:${target}`) || 'null'), { actorId: OPERATOR_ID, target });
+  expect(retained).toMatchObject({ actorId: OPERATOR_ID, userId: target, note: 'Fixture session safety request', opId: mutations[0].opId });
+  await expect(page.getByRole('button', { name: 'Retry Same Logout', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Read Logout Receipt', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Retry Same Logout', exact: true })).toBeEnabled();
+  expect(mutations).toHaveLength(1);
+  expect(await page.evaluate(({ actorId, target }) => JSON.parse(localStorage.getItem(`stable-player-logout:${actorId}:${target}`) || 'null'), { actorId: OPERATOR_ID, target })).toEqual(retained);
 });
 
 for (const width of [1440, 375]) {
@@ -556,11 +563,15 @@ for (const width of [1440, 375]) {
     const event = { id: '00000000-0000-4000-8000-000000000404', name: 'Fixture Prestart Event', status: 'scheduled' };
     await page.route('**/api/horses/floor-admin**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(new URL(route.request().url()).searchParams.get('section') === 'event' ? { event } : { tournaments: canonicalPage({ rows: [event], total: 1 }) }) }));
     let request: any;
+    let cancellationPosts = 0;
     await page.route('**/api/horses/tournament-admin**', async route => {
       if (route.request().method() === 'POST') {
+        cancellationPosts += 1;
         request = route.request().postDataJSON();
         await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ actorId: OPERATOR_ID, operation: { op_id: request.opId, tournament_id: event.id, pending: true, approval_id: 'fixture-approval' } }) });
-      } else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ actorId: OPERATOR_ID, writable: true, eligible: true }) });
+      } else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(new URL(route.request().url()).searchParams.has('opId')
+        ? { actorId: OPERATOR_ID, operation: { op_id: request.opId, tournament_id: event.id, state: 'pending' } }
+        : { actorId: OPERATOR_ID, writable: true, eligible: true }) });
     });
     await page.goto('/horses?tab=tournaments', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'View Event Evidence' }).first().click();
@@ -572,6 +583,12 @@ for (const width of [1440, 375]) {
     expect(request).toMatchObject({ action: 'cancel_refund', tournamentId: event.id });
     await expect(controls).toContainText(request.opId);
     await expect(controls.getByLabel('Required Cancellation Reason')).toBeDisabled();
-    await expect(controls.getByRole('button', { name: 'Read Outcome And Retry Same Operation' })).toBeEnabled();
+    await expect(controls.getByRole('button', { name: 'Read Outcome', exact: true })).toBeEnabled();
+    await expect(controls.getByRole('button', { name: 'Retry Same Operation', exact: true })).toBeDisabled();
+    await controls.getByRole('button', { name: 'Read Outcome', exact: true }).click();
+    await expect(controls.getByRole('button', { name: 'Retry Same Operation', exact: true })).toBeEnabled();
+    expect(cancellationPosts).toBe(1);
+    await expect(controls).toContainText(request.opId);
+    await expect(controls.getByLabel('Required Cancellation Reason')).toBeDisabled();
   });
 }
