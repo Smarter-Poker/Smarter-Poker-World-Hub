@@ -157,12 +157,13 @@ test('feed never resets itself on a timer, focus, or new-content signal', () => 
   assert.match(manualNotice, /onClick=\{async \(\) => \{[\s\S]*?window\.scrollTo[\s\S]*?await loadFeed\(0, false\)/);
 });
 
-test('post deep links wait for a hydrated signed-in user before consuming the target', () => {
+test('post deep links pin the target through the caller-scoped post API without waiting on profile hydration', () => {
   const deepLink = social.slice(
     social.indexOf('// Handle ?post=<postId> deep link'),
     social.indexOf('// Handle ?stream=<streamId> query param')
   );
-  assert.match(deepLink, /if \(router\.query\.post && user\?\.id\)/);
+  assert.match(deepLink, /if \(router\.isReady && router\.query\.post\)/);
+  assert.doesNotMatch(deepLink, /router\.query\.post && user\?\.id/);
   assert.doesNotMatch(
     deepLink,
     /if \(processedPostIdRef\.current !== postId\) \{\s*processedPostIdRef\.current = postId;/
