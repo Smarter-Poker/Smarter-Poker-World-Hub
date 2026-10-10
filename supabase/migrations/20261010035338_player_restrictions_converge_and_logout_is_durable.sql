@@ -6,38 +6,6 @@ BEGIN;
 SET LOCAL lock_timeout = '3s';
 SET LOCAL statement_timeout = '30s';
 
--- Acquire every existing CREATE TRIGGER target before DDL/event guards run.
--- Wait at most lock_timeout for the hot admission target before any other lock.
--- Remaining targets refuse contention NOWAIT before incidental DDL locks.
--- These are the exact final trigger lock modes, so there is no later upgrade.
-LOCK TABLE public.tournament_players IN SHARE ROW EXCLUSIVE MODE;
-LOCK TABLE public.ca_player_restrictions,
-  public.chip_transactions,
-  public.club_chat,
-  public.crew_members,
-  public.crews,
-  public.diamond_transactions,
-  public.friendships,
-  public.live_sessions,
-  public.message_reactions,
-  public.page_followers,
-  public.session_chat_messages,
-  public.social_comments,
-  public.social_follows,
-  public.social_interactions,
-  public.social_likes,
-  public.social_messages,
-  public.social_page_comment_likes,
-  public.social_page_followers,
-  public.social_page_post_likes,
-  public.social_page_posts,
-  public.social_page_reviews,
-  public.social_posts,
-  public.social_reels,
-  public.social_stories,
-  public.table_chat,
-  public.wallet_transactions
-  IN SHARE ROW EXCLUSIVE MODE NOWAIT;
 
 DO $pre$ BEGIN
   IF to_regprocedure('public.fn_ca_player_restricted(uuid,text)') IS NULL
@@ -74,6 +42,39 @@ DO $publication$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.ca_player_session_revocations;
   END IF;
 END $publication$;
+
+-- Acquire every existing CREATE TRIGGER target before its trigger DDL.
+-- Supautils policy-grant checks can lock unrelated auth relations: create the
+-- new-table policy first, then refuse every existing target contention NOWAIT.
+-- These are the exact final trigger lock modes, so there is no later upgrade.
+LOCK TABLE public.tournament_players IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+LOCK TABLE public.ca_player_restrictions,
+  public.chip_transactions,
+  public.club_chat,
+  public.crew_members,
+  public.crews,
+  public.diamond_transactions,
+  public.friendships,
+  public.live_sessions,
+  public.message_reactions,
+  public.page_followers,
+  public.session_chat_messages,
+  public.social_comments,
+  public.social_follows,
+  public.social_interactions,
+  public.social_likes,
+  public.social_messages,
+  public.social_page_comment_likes,
+  public.social_page_followers,
+  public.social_page_post_likes,
+  public.social_page_posts,
+  public.social_page_reviews,
+  public.social_posts,
+  public.social_reels,
+  public.social_stories,
+  public.table_chat,
+  public.wallet_transactions
+  IN SHARE ROW EXCLUSIVE MODE NOWAIT;
 
 -- Serializes restriction decisions and attempted admissions without locking wallets.
 CREATE FUNCTION public.fn_ca_player_control_lock() RETURNS trigger

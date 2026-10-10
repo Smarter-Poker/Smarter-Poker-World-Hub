@@ -624,3 +624,41 @@ Club Arena67904 hosted38026920728 production build and all four engine shards
 passed; remaining accounting, native-service and client checks are running.
 World Hub final-head checks, P3 installation, protected merges, publication,
 sealed engine activation and genuine production acceptance remain pending.
+
+### Provider policy lock cause and qualified atomic repair, 05:30 UTC
+
+The bounded-first-target c201 source also failed40P01 at05:23:37UTC.
+Independent readback again proves noP3 ledger/tables and originalhook unchanged.
+Configured PostgreSQL logs identify CREATE POLICY, mgmt-api and auth.users
+AccessExclusive versus a seat-first writer waiting chip_transactions. Installed
+supautils policy_grants and upstream fix42cc7f0c4b2655ee3f70a834e253e6a79c66f1d6
+explain the unrelated allowlist-table locks during policy creation; vanilla PG17
+and publicationADD did not reproduce them. No unsupported wrapper inference
+supplies the diagnosis.
+
+The exact final repair creates only its new tables/RLS/grants/policy before
+acquiring existing trigger targets, then acquires all27 targets NOWAIT. Atomic
+rollback,3s lock_timeout,30s per-statement timeout and provider/event safeguards
+remain; no explicit auth lock or provider override is added. Native PG17 models
+the identified provider hook, reproduces the old40P01, then proves corrected
+policy contention55P03 bounded near3s, target contention55P03/full rollback,
+continued auth-first writer progress, allP3 enforcement boundaries/concurrency
+and duplicate logout exactly once. Root repeated exact-source native proof.
+Final SQLSHA256bb6b2f85cb8f48aaa60c41248752581db947980fa182dbf73ea8d3dd7461d38c.
+
+Four installed migrations read back as ninepostgres-owned RLS service-only
+relations, expected enabled floor/five stop guards and exact original-owner
+postimages. Three stops remainfalse/version0. Current existing approvals policy
+is disabled; maker-checker is qualified but not enabled. Security WARN counts
+unchanged. RLS no-policy INFO713→722 is exactly nine intentional deny-all tables;
+unindexedFK689→690 is the immutable three-row stop-registry reference, not a hot
+relation. No necessary installed-source hardening identified. Evidence archives
+four-installed-metadata-readback.json and independent C4/O2 source/body review.
+
+A separate manual protected-main export delivery verifier now requests one real
+floor metadata artifact through the console, permits only that exact POST,
+reads bounded status, downloads actualCSV and validates bytes/hash against
+receipt+response header under one stable deployment. Eleven focused contracts
+pass; required safety also runs the new regression. Existing strict read-only
+certificate is unchanged. No production export has run. All publication/live
+acceptance remains pending.

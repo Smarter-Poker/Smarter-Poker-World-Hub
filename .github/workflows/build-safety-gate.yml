@@ -1229,6 +1229,7 @@ jobs:
             __tests__/header-stats-read-only.test.mjs \
             __tests__/horses-navigation-does-not-trigger-player-writes.test.mjs \
             __tests__/horses-production-certificate.test.mjs \
+            __tests__/horses-export-delivery.test.mjs \
             __tests__/horses-phase6-client.test.mjs \
             __tests__/horses-phase6-model.test.mjs \
             __tests__/horses-phase6-server.test.mjs \

@@ -22,6 +22,14 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT (nullif
 ` +`
 CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'role' $$;
 CREATE TABLE auth.users(id uuid PRIMARY KEY);
+-- Model the installed supautils pre-#228 policy-grant OID scan. Its actual
+-- ProcessUtility CREATE POLICY hook locks allowlisted unrelated auth tables.
+-- A ddl_command_start hook preserves that ordering on isolated vanilla PG17.
+CREATE FUNCTION fixture_supautils_policy_lock() RETURNS event_trigger LANGUAGE plpgsql AS $$
+BEGIN LOCK TABLE auth.users IN ACCESS EXCLUSIVE MODE; END $$;
+CREATE EVENT TRIGGER fixture_supautils_policy_lock ON ddl_command_start
+ WHEN TAG IN ('CREATE POLICY') EXECUTE FUNCTION fixture_supautils_policy_lock();
+
 CREATE TABLE auth.sessions(id uuid PRIMARY KEY,user_id uuid NOT NULL,created_at timestamptz DEFAULT now(),not_after timestamptz);
 CREATE TABLE auth.refresh_tokens(id int PRIMARY KEY,session_id uuid REFERENCES auth.sessions ON DELETE CASCADE);
 CREATE TABLE profiles(id uuid PRIMARY KEY,is_horse boolean DEFAULT false);

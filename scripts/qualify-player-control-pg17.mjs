@@ -31,19 +31,48 @@ if(provisional) {
   const db=await connect();await db.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='postgres') THEN CREATE ROLE postgres SUPERUSER; END IF; END $$`);await db.query('SET ROLE postgres');
   await db.query(fixtureSql());
   // A live admission writer already holding its target must refuse installation
-  // before any DDL. The refused transaction must leave unrelated authentication available.
-  const blocker=await connect();await blocker.query('BEGIN');
+  // atomically. The refused transaction must leave unrelated authentication available.
+  const blocker=await connect();
+  // Reproduce the previous target-first order with the actual provider lock
+  // boundary modeled above; either original transaction can be the victim.
+  await db.query('BEGIN');await db.query('LOCK TABLE public.chip_transactions IN SHARE ROW EXCLUSIVE MODE');
+  await blocker.query('BEGIN');await blocker.query('LOCK TABLE auth.users IN ROW SHARE MODE');
+  const policyAttempt=db.query('CREATE POLICY fixture_old_order ON public.ca_operator_policy USING (true)').then(()=>({ok:true}),error=>({code:error.code}));
+  await new Promise(resolve=>setTimeout(resolve,100));
+  const writerAttempt=blocker.query('LOCK TABLE public.chip_transactions IN ROW EXCLUSIVE MODE').then(()=>({ok:true}),error=>({code:error.code}));
+  const cycle=await Promise.all([policyAttempt,writerAttempt]);
+  assert.ok(cycle.some(result=>result.code==='40P01'),'old target-first provider policy ordering must reproduce the deadlock');
+  await db.query('ROLLBACK');await blocker.query('ROLLBACK');
+  console.log('PASS reproduced prior target-first/provider policy deadlock');
+  await blocker.query('BEGIN');await blocker.query('LOCK TABLE auth.users IN ROW SHARE MODE');
+  const policyStarted=Date.now();
+  await assert.rejects(db.query(migration),error=>error.code==='55P03');
+  assert.ok(Date.now()-policyStarted>=2800 && Date.now()-policyStarted<5000,'provider policy contention must obey 3s lock timeout');
+  await db.query('ROLLBACK');
+  assert.equal((await db.query("SELECT to_regclass('public.ca_player_session_revocations') AS relation")).rows[0].relation,null);
+  await blocker.query('LOCK TABLE public.chip_transactions IN ROW EXCLUSIVE MODE NOWAIT');
+  await blocker.query('ROLLBACK');
+  console.log('PASS provider auth contention bounded to 3s with atomic new-table rollback');
+
+  await blocker.query('BEGIN');
   await blocker.query('LOCK TABLE public.tournament_players IN ROW EXCLUSIVE MODE');
   const startedAt=Date.now();
   await assert.rejects(db.query(migration),error=>error.code==='55P03');
-  assert.ok(Date.now()-startedAt>=2800 && Date.now()-startedAt<5000,'hot admission preflight must refuse within the bounded 3s lock timeout');
+  assert.ok(Date.now()-startedAt<2000,'all target admission locks must refuse NOWAIT after new-table policy');
   await db.query('ROLLBACK');
   assert.equal((await db.query("SELECT to_regclass('public.ca_player_control_operations') AS relation")).rows[0].relation,null);
   assert.equal((await db.query("SELECT md5(pg_get_functiondef('smarter_private.fn_smarter_data_api_pre_request()'::regprocedure)) AS hash")).rows[0].hash,'6027b488b1c77d03642b3d384f275d6a');
   await blocker.query('LOCK TABLE auth.users IN ROW SHARE MODE NOWAIT');
   await blocker.query('ROLLBACK');
-  console.log('PASS native writer contention refuses before DDL and preserves unrelated authentication access');
-  await db.query(migration);
+  console.log('PASS native writer contention refuses atomically and preserves unrelated authentication access');
+  // A live writer holding auth must still acquire its chip writer lock:
+  // the policy waits before any old-table lock, then proceeds after release.
+  await blocker.query('BEGIN');await blocker.query('LOCK TABLE auth.users IN ROW SHARE MODE');
+  let installed=false;const installation=db.query(migration).then(()=>{installed=true;});
+  await new Promise(resolve=>setTimeout(resolve,100));assert.equal(installed,false);
+  await blocker.query('LOCK TABLE public.chip_transactions IN ROW EXCLUSIVE MODE NOWAIT');
+  await blocker.query('COMMIT');await installation;
+  console.log('PASS provider policy-hook auth-first writer can finish before P3 target locks');
   console.log(JSON.stringify({backend:'native PostgreSQL17',...await qualifyPlayerControl(async sql=>{const result=await db.query(sql); return Array.isArray(result)?result.at(-1):result;})}));
   // Separate real sessions: an admission must wait for the original restriction decision,
   // then see committed restriction state rather than its stale statement snapshot.
