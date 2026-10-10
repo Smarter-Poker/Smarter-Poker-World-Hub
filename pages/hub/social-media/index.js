@@ -49,16 +49,13 @@ import { useFeedPrefetchObserver } from '../../../src/hooks/useProfilePrefetch';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
+import { subscribeSocialAuthority } from '../../../src/lib/socialAuthorityBroadcast.mjs';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser, ensureAuthReady } from '../../../src/lib/authUtils';
 import { useUnreadCount } from '../../../src/hooks/useUnreadCount';
 import { StoriesBar } from '../../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../../src/components/social/ReelsFeedCarousel';
 import ReelPublicationRecoveryBanner from '../../../src/components/reels/ReelPublicationRecoveryBanner';
-import VideoLibraryConsole, {
-  ConsoleCopy,
-} from '../../../src/components/video-library/console/VideoLibraryConsole';
-import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSurfaces.module.css';
 // 2026-09-10: these two were STATIC imports and they cost every reader 825 KB.
 // GoLiveModal pulls lottie-react and LiveStreamViewer reaches livekit-client, so
 // a feed scroll downloaded a 298 KB Lottie chunk and a 527 KB WebRTC chunk -
@@ -99,7 +96,7 @@ import { useSocialStore } from '../../../src/stores/socialStore';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import toast from '../../../src/stores/toastStore';
 import { getAccessToken } from '../../../src/lib/authUtils';
-import { fetchBrowserPost } from '../../../src/lib/socialPostClient';
+import { fetchBrowserPost, mergeCanonicalBrowserPost } from '../../../src/lib/socialPostClient';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
@@ -138,6 +135,28 @@ import {
 import { feedCache } from '../../../src/lib/feedCache';
 import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRecovery.mjs';
 import { normalizeUserReelTopic, USER_REEL_TOPIC_LABELS } from '../../../src/lib/userReelTopics.mjs';
+
+function videoPostExplicitlyRevoked(post) {
+  if (!post || post.content_type !== 'video') return false;
+  const audience = post.audience_mode
+    || (post.visibility !== 'public' ? post.visibility : null)
+    || 'public';
+  if (post.is_deleted === true || audience !== 'public') return true;
+  if (post.taken_down_at || (post.moderation_state && post.moderation_state !== 'active')) return true;
+  if (post.playback_type === 'youtube_embed' && post.rights_status) {
+    return !['embed_only', 'owned', 'licensed'].includes(post.rights_status);
+  }
+  if (post.playback_type === 'native') {
+    if (post.rights_status && !['owned', 'licensed', 'user_authorized'].includes(post.rights_status)) {
+      return true;
+    }
+    if (post.transcode_status !== undefined && ![null, 'done'].includes(post.transcode_status)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
@@ -1034,6 +1053,7 @@ const PostCard = React.memo(
         className="no-capitalize"
         data-preserve-case="true"
         data-post-card="true"
+        data-post-id={post.id}
         data-user-content="true"
         style={{
           background: C.card,
@@ -1189,7 +1209,8 @@ const PostCard = React.memo(
             </>
           )}
         </div>
-        {post.contentType !== 'video' && postBody}
+        {/* The author's words always precede their media in DOM and visual order. */}
+        {postBody}
         {/* Phase 7: a puzzle post carries its options in metadata.puzzle. The
             board is already drawn by the text body above through PokerCardText;
             the card adds the choices, the clock and, after the reveal, the
@@ -1913,8 +1934,6 @@ const PostCard = React.memo(
             </div>
           </div>
         )}
-        {/* Phase 8.1: a video post's text is its caption, under the media. */}
-        {post.contentType === 'video' && postBody}
         {/* Link preview for posts with link_url but no media_urls. Shared Reel
             wrappers must reopen their canonical Reel rather than the sharing
             post ID or the article proxy. */}
@@ -1943,82 +1962,33 @@ const PostCard = React.memo(
                 onClick={() => router.push(sharedReelPath)}
                 aria-label={`Open Shared Reel From ${sourceName}`}
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(124px, 38%) 1fr',
+                  display: 'block',
                   width: 'calc(100% - 24px)',
-                  minHeight: 132,
                   margin: '4px 12px 12px',
                   padding: 0,
                   overflow: 'hidden',
-                  borderRadius: 14,
-                  border: '1px solid rgba(104, 202, 255, 0.62)',
-                  background:
-                    'linear-gradient(145deg, rgba(10, 27, 42, 0.98), rgba(2, 8, 16, 0.99))',
-                  boxShadow:
-                    'inset 0 1px 0 rgba(224, 248, 255, 0.22), inset 0 -1px 0 rgba(0, 74, 128, 0.65), 0 10px 28px rgba(0, 20, 38, 0.24)',
-                  color: '#eaf8ff',
+                  borderRadius: 8,
+                  border: '1px solid #dadde1',
+                  background: '#fff',
+                  color: '#050505',
                   textAlign: 'left',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                 }}
               >
-                <span
-                  style={{
-                    position: 'relative',
-                    display: 'grid',
-                    placeItems: 'center',
-                    minHeight: 132,
-                    overflow: 'hidden',
-                    background:
-                      'radial-gradient(circle at 50% 45%, rgba(0, 151, 255, 0.46), rgba(1, 10, 20, 0.98) 68%)',
-                    borderRight: '1px solid rgba(104, 202, 255, 0.35)',
-                  }}
-                >
-                  {post.link_image ? (
-                    <img
-                      src={post.link_image}
-                      alt=""
-                      loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  ) : null}
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      display: 'grid',
-                      placeItems: 'center',
-                      width: 48,
-                      height: 48,
-                      borderRadius: '50%',
-                      border: '1px solid rgba(220, 247, 255, 0.82)',
-                      background:
-                        'linear-gradient(145deg, rgba(235, 250, 255, 0.94), rgba(69, 172, 238, 0.9))',
-                      boxShadow:
-                        'inset 0 1px 0 white, 0 0 0 5px rgba(0, 143, 255, 0.16), 0 8px 22px rgba(0, 0, 0, 0.48)',
-                    }}
-                  >
-                    <svg width="19" height="22" viewBox="0 0 19 22" fill="none">
-                      <path d="M2 2.2L17 11L2 19.8V2.2Z" fill="#03131f" stroke="#03131f" />
-                    </svg>
-                  </span>
-                </span>
-                <span style={{ padding: '18px 16px', alignSelf: 'center', minWidth: 0 }}>
+                <span style={{ display: 'block', padding: '12px 16px', minWidth: 0 }}>
                   <span
                     style={{
                       display: 'block',
-                      marginBottom: 7,
-                      color: '#72d6ff',
-                      fontSize: 10,
-                      fontWeight: 800,
-                      letterSpacing: '0.18em',
+                      marginBottom: 4,
+                      color: '#65676b',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
                       textTransform: 'uppercase',
                     }}
                   >
-                    Shared Reel
+                    {sourceName} · Shared Reel
                   </span>
                   <span
                     style={{
@@ -2026,28 +1996,33 @@ const PostCard = React.memo(
                       overflow: 'hidden',
                       WebkitBoxOrient: 'vertical',
                       WebkitLineClamp: 2,
-                      color: '#f5fbff',
+                      color: '#050505',
                       fontSize: 15,
-                      fontWeight: 750,
+                      fontWeight: 600,
                       lineHeight: 1.3,
                     }}
                   >
                     {post.link_title || 'Watch This Reel On Smarter.Poker'}
                   </span>
-                  <span
-                    style={{
-                      display: 'block',
-                      marginTop: 9,
-                      overflow: 'hidden',
-                      color: '#9eb9c9',
-                      fontSize: 12,
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {sourceName}
-                  </span>
+                  {post.link_description ? (
+                    <span style={{ display: 'block', marginTop: 5, color: '#65676b', fontSize: 13, lineHeight: 1.35 }}>
+                      {post.link_description}
+                    </span>
+                  ) : null}
                 </span>
+                {post.link_image ? (
+                  <span style={{ display: 'block', overflow: 'hidden', background: '#f0f2f5' }}>
+                    <img
+                      src={post.link_image}
+                      alt=""
+                      loading="lazy"
+                      style={{ display: 'block', width: '100%', maxHeight: 260, objectFit: 'cover' }}
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </span>
+                ) : null}
               </button>
             );
           })()}
@@ -3709,8 +3684,10 @@ function SocialMediaPage() {
   const loadFeedRef = useRef(null);
   // The ids on screen, so a Realtime update re-reads only a post the reader holds.
   const shownPostIdsRef = useRef(new Set());
+  const postsRef = useRef([]);
   useEffect(() => {
     shownPostIdsRef.current = new Set(posts.map((p) => p.id));
+    postsRef.current = posts;
   }, [posts]);
   const feedRequestGuardRef = useRef(createLatestRequestGuard());
 
@@ -3986,7 +3963,7 @@ function SocialMediaPage() {
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!user?.id) return;
-    let eligibilityReloadTimer = null;
+    let realtimeActive = true;
 
     // Subscribe to new posts (INSERT events)
     const feedChannel = supabase
@@ -4041,14 +4018,35 @@ function SocialMediaPage() {
             return;
           }
           if (updatedPost.content_type === 'video') {
-            // Every video type is server-gated. Reload through the canonical
-            // service boundary so a rights, object-state, audience, or source
-            // change cannot be merged from an unverified Realtime payload.
-            clearTimeout(eligibilityReloadTimer);
-            eligibilityReloadTimer = setTimeout(
-              () => loadFeedRef.current?.(0, false),
-              250
-            );
+            // Never reset or reorder the whole feed for a single video row.
+            // Explicit revocations fail closed immediately. Other changes are
+            // read through the caller-scoped canonical endpoint and update only
+            // an already-mounted card; an update can never insert a new post.
+            if (!shownPostIdsRef.current.has(updatedPost.id)) return;
+            if (videoPostExplicitlyRevoked(updatedPost)) {
+              setPosts((prev) => prev.filter((post) => post.id !== updatedPost.id));
+              return;
+            }
+            fetchBrowserPost(updatedPost.id)
+              .then((fresh) => {
+                if (!realtimeActive) return;
+                // The single-post endpoint has already applied the complete
+                // feed authority. Missing means revoked/ineligible; a returned
+                // browser row is authoritative and needs no weaker client gate.
+                if (!fresh) {
+                  setPosts((prev) => prev.filter((post) => post.id !== updatedPost.id));
+                  return;
+                }
+                setPosts((prev) => prev.map((post) => (
+                  post.id === fresh.id ? mergeCanonicalBrowserPost(post, fresh) : post
+                )));
+              })
+              .catch(() => {
+                if (!realtimeActive) return;
+                // An uncertain authorization read cannot preserve potentially
+                // revoked video content. Remove only that card; never reset the feed.
+                setPosts((prev) => prev.filter((post) => post.id !== updatedPost.id));
+              });
             return;
           }
           setPosts((prev) =>
@@ -4069,7 +4067,7 @@ function SocialMediaPage() {
           if (!shownPostIdsRef.current.has(updatedPost.id)) return;
           fetchBrowserPost(updatedPost.id)
             .then((fresh) => {
-              if (!fresh) return;
+              if (!realtimeActive || !fresh) return;
               setPosts((prev) =>
                 prev.map((p) => (p.id === fresh.id ? { ...p, metadata: fresh.metadata } : p))
               );
@@ -4178,9 +4176,7 @@ function SocialMediaPage() {
         window.masterBus.subscribe('SOCIAL_POST', () => {
           if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
             console.log('[Social] 🔄 New post detected via masterBus');
-          // Ref first, like every other long-lived listener in this file - this
-          // one captured loadFeed from whenever user?.id last changed.
-          (loadFeedRef.current || loadFeed)(0, false);
+          setNewPostsCount((count) => Math.min(count + 1, 99));
         })
       );
       unsubMasterBus.push(
@@ -4204,12 +4200,111 @@ function SocialMediaPage() {
     }
 
     return () => {
-      clearTimeout(eligibilityReloadTimer);
+      realtimeActive = false;
       supabase.removeChannel(feedChannel);
       supabase.removeChannel(typingChannel);
       unsubMasterBus.forEach((unsub) => unsub());
     };
   }, [user?.id]);
+
+  // Visibility/deletion authority changes are broadcast as strict public IDs. The
+  // row itself is always re-read through caller RLS before it can be retained,
+  // so a forged or delayed broadcast can never hide an eligible post or expose
+  // private authority fields. A socket reconnect checks only mounted posts,
+  // closing the offline-event gap without replacing or reordering the feed.
+  useEffect(() => {
+    let active = true;
+    let subscribedOnce = false;
+    const MAX_RECONNECT_POSTS = 100; // matches the durable feed-cache ceiling
+    const postIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const reconcileHeldPost = async (postId) => {
+      if (!postIdPattern.test(String(postId || '')) || !shownPostIdsRef.current.has(postId)) return;
+      try {
+        const fresh = await fetchBrowserPost(postId);
+        if (!active) return;
+        if (!fresh) {
+          setPosts((current) => current.filter((post) => post.id !== postId));
+          feedCache.invalidatePosts(user?.id || null);
+          return;
+        }
+        setPosts((current) => current.map((post) => (
+          post.id === postId ? mergeCanonicalBrowserPost(post, fresh) : post
+        )));
+      } catch {
+        if (!active) return;
+        setPosts((current) => current.filter((post) => post.id !== postId));
+        feedCache.invalidatePosts(user?.id || null);
+      }
+    };
+    const reconcileMountedPosts = () => {
+      const held = postsRef.current;
+      const ids = held.slice(0, MAX_RECONNECT_POSTS).map((post) => post.id);
+      if (held.length > MAX_RECONNECT_POSTS) {
+        // Rows beyond the bounded authority window cannot remain trusted after
+        // a missed socket interval. Drop only that old tail; keep order/scroll
+        // and re-read it only if the reader explicitly continues the feed.
+        setPosts((current) => current.slice(0, MAX_RECONNECT_POSTS));
+        feedCache.invalidatePosts(user?.id || null);
+      }
+      ids.forEach((id) => { reconcileHeldPost(id); });
+    };
+    const unsubscribeAuthority = subscribeSocialAuthority(supabase, (event) => {
+      if (event.type === 'broadcast') {
+        const notice = event.payload;
+        const keys = notice && typeof notice === 'object' ? Object.keys(notice).sort() : [];
+        if (
+          keys.join(',') === 'id,kind'
+          && notice.kind === 'post'
+          && typeof notice.id === 'string'
+        ) reconcileHeldPost(notice.id);
+        return;
+      }
+      if (event.type === 'status' && event.status === 'SUBSCRIBED') {
+        if (subscribedOnce) reconcileMountedPosts();
+        subscribedOnce = true;
+      }
+    });
+    return () => {
+      active = false;
+      unsubscribeAuthority();
+    };
+  }, [user?.id]);
+
+  // Positive YouTube verification expires even when no row changes. Schedule
+  // one exact check at the earliest server-supplied deadline; this is not a
+  // periodic refresh and it never inserts or reorders feed content.
+  useEffect(() => {
+    let active = true;
+    const now = Date.now();
+    const deadlines = posts
+      .filter((post) => post?.contentType === 'video')
+      .map((post) => Date.parse(post.eligibilityExpiresAt || ''))
+      .filter(Number.isFinite);
+    if (!deadlines.length) return undefined;
+    const earliest = Math.min(...deadlines);
+    const timer = setTimeout(async () => {
+      const dueIds = postsRef.current
+        .filter((post) => post?.contentType === 'video'
+          && Date.parse(post.eligibilityExpiresAt || '') <= Date.now() + 1000)
+        .slice(0, 50)
+        .map((post) => post.id);
+      const results = await Promise.all(dueIds.map(async (id) => {
+        try { return [id, await fetchBrowserPost(id)]; } catch { return [id, null]; }
+      }));
+      if (!active) return;
+      const freshById = new Map(results);
+      setPosts((current) => current.flatMap((post) => {
+        if (!freshById.has(post.id)) return [post];
+        const fresh = freshById.get(post.id);
+        return fresh ? [mergeCanonicalBrowserPost(post, fresh)] : [];
+      }));
+      if (results.some(([, fresh]) => !fresh)) feedCache.invalidatePosts(user?.id || null);
+    }, Math.max(0, earliest - now + 25));
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [posts, user?.id]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // REALTIME: Notification subscription — live badge updates
@@ -4275,9 +4370,8 @@ function SocialMediaPage() {
       const isSameTab = msg?.tabId === BROADCAST_TAB_ID;
       if (isRefresh && !isSameTab) {
         if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
-          console.log('[Social] Refreshing feed from other tab');
-        // Use ref to get always-fresh loadFeed (avoids stale closure from mount-time capture)
-        (loadFeedRef.current || loadFeed)(0, false);
+          console.log('[Social] New feed content is available from another tab');
+        setNewPostsCount((count) => Math.min(count + 1, 99));
       }
     });
 
@@ -4286,11 +4380,11 @@ function SocialMediaPage() {
       // Self-tab suppression + support both string and object payloads
       if (msg?.tabId === BROADCAST_TAB_ID) return;
       if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
-        console.log('[Social] Friends changed in other tab - refreshing feed');
-      // BUG-10 FIX: reset graph cache so the next loadFeed re-fetches with the new friend included
-      // Without this, a new friend's posts would never get the +100 priority score until page reload
+        console.log('[Social] Friends changed in another tab');
+      // Reset graph cache, then let the reader apply the new ordering with an
+      // explicit refresh. Never replace the feed underneath their scroll.
       socialGraphLoadedRef.current = false;
-      (loadFeedRef.current || loadFeed)(0, false);
+      setNewPostsCount((count) => Math.min(count + 1, 99));
     });
 
     // Block sync: when user blocks someone in another tab, hide their posts here too
@@ -5192,24 +5286,6 @@ function SocialMediaPage() {
     setNewPostsCount(0);
     loadFeed(0, false);
   };
-
-  useEffect(() => {
-    let refreshTimer = null;
-    const revalidateVisibleFeed = () => {
-      if (document.visibilityState !== 'visible') return;
-      clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => loadFeedRef.current?.(0, false), 200);
-    };
-    const interval = window.setInterval(revalidateVisibleFeed, 60_000);
-    window.addEventListener('focus', revalidateVisibleFeed);
-    document.addEventListener('visibilitychange', revalidateVisibleFeed);
-    return () => {
-      clearTimeout(refreshTimer);
-      window.clearInterval(interval);
-      window.removeEventListener('focus', revalidateVisibleFeed);
-      document.removeEventListener('visibilitychange', revalidateVisibleFeed);
-    };
-  }, []);
 
   // ♾️ INFINITE SCROLL: Refs to avoid stale closures in IntersectionObserver
   const feedOffsetRef = useRef(feedOffset);
@@ -6672,28 +6748,24 @@ function SocialMediaPage() {
             />
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
           </Link>
-          {/* Reels Console Entry */}
+          {/* Reels entry — conventional Social Media navigation, never a decorative console. */}
           <Link prefetch={false}
             href="/hub/reels"
             onClick={() => setSidebarOpen(false)}
-            className={auxiliaryReelsStyles.entryLink}
             aria-label="Open Poker Reels"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              padding: '14px 12px',
+              background: '#fff',
+              borderRadius: 8,
+              textDecoration: 'none',
+              border: '1px solid #dadde1',
+            }}
           >
-            <VideoLibraryConsole
-              as="div"
-              eyebrow="Social Hub"
-              title="Poker Reels"
-              titleAs="span"
-              subtitle="Short Form Poker Video"
-              pill="Open"
-              pillInk="blue"
-              foot="foot"
-              className={auxiliaryReelsStyles.entryConsole}
-            >
-              <ConsoleCopy as="span" align="center" className={auxiliaryReelsStyles.entryCopy}>
-                Watch And Share Poker Reels
-              </ConsoleCopy>
-            </VideoLibraryConsole>
+            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Reels</span>
+            <span style={{ marginTop: 4, fontSize: 13, color: '#65676b' }}>Watch And Share Short Videos</span>
           </Link>
         </div>
 

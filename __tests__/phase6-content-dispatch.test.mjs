@@ -6,7 +6,12 @@ const dispatcher = fs.readFileSync('scripts/openclaw-cron-dispatcher.py', 'utf8'
 const migration = fs.readFileSync('supabase/migrations/20260907002000_phase6_content_modes_disabled.sql', 'utf8');
 
 test('Phase 6 content is scheduled and routed to the workers service', () => {
-  assert.match(dispatcher, /\('\/api\/cron\/phase6-content',[\s\S]*?dict\(hour=9, minute=20\)\)/);
+  const phase6Schedule = dispatcher
+    .split('\n')
+    .find((line) => line.includes("('/api/cron/phase6-content'"));
+
+  assert.match(phase6Schedule, /dict\(minute=20\)/);
+  assert.doesNotMatch(phase6Schedule, /hour=/);
   assert.match(dispatcher, /'\/api\/cron\/phase6-content':\s+'\/cron\/phase6-content'/);
   assert.match(dispatcher, /'\/api\/cron\/phase6-content':\s+300/);
 });

@@ -300,7 +300,7 @@ test('every enumerated raw social-content surface routes its body through PokerC
     ['pages/hub/home-games/[slug].js', /<PokerCardText text=\{p\.content\} \/>/],
     ['pages/hub/reels.js', /<PokerCardText text=\{comment\.content\} \/>/],
     ['src/components/social/Reels.jsx', /<PokerCardText text=\{comment\.content\} \/>/],
-    ['src/components/social/ReelsFeedCarousel.jsx', /<ConsoleCopy><PokerCardText text=\{comment\.content\} \/><\/ConsoleCopy>/],
+    ['src/components/social/ReelsFeedCarousel.jsx', /<PlainCopy><PokerCardText text=\{comment\.content\} \/><\/PlainCopy>/],
     ['src/components/social/SmarterPokerStyleCard.jsx', /<PokerCardText text=\{comment\.text \|\| comment\.content\} \/>/],
   ]);
   for (const [file, contract] of contracts) {

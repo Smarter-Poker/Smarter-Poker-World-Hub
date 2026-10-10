@@ -10,6 +10,7 @@ import {
   reportFailureToServer,
 } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
+import { subscribeSocialAuthority } from '../../lib/socialAuthorityBroadcast.mjs';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
@@ -49,10 +50,6 @@ import {
   safeSetReelsSessionStorage,
 } from '../../lib/reelsWatchedStorage.mjs';
 import { createReelAccountScope } from '../../lib/reelAccountScope.mjs';
-import VideoLibraryConsole, {
-  ConsoleCopy,
-  ConsoleDataRow,
-} from '../video-library/console/VideoLibraryConsole';
 import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
 import ReelCard from '../reels/ReelCard';
 import ReelPlayerFrame from '../reels/ReelPlayerFrame';
@@ -71,6 +68,19 @@ function timeAgo(d) {
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   return `${Math.floor(s / 86400)}d`;
+}
+
+function PlainCopy({ children, as: Tag = 'p', className = '', ...rest }) {
+  return <Tag {...rest} className={`vlc-plain-copy ${className}`.trim()}>{children}</Tag>;
+}
+
+function PlainDataRow({ label, value, className = '', ...rest }) {
+  return (
+    <div {...rest} className={`vlc-plain-data-row ${className}`.trim()}>
+      <span>{label}</span>
+      <span>{value === undefined || value === null ? '' : String(value)}</span>
+    </div>
+  );
 }
 
 // Format view count (456000 -> 456K)
@@ -119,7 +129,7 @@ function reelTopicLabel(reel) {
 
 function reelSourceName(reel) {
   return reel?.channel_name
-    || reel?.profiles?.full_name
+    || reel?.profiles?.display_name
     || reel?.profiles?.username
     || 'Creator Unavailable';
 }
@@ -2305,56 +2315,74 @@ function ReelViewer({
       aria-labelledby="carousel-viewer-title"
       tabIndex={-1}
     >
-      <VideoLibraryConsole
-        eyebrow="Social Feed"
-        title={panelTitle || 'Reel Viewer'}
-        titleId="carousel-viewer-title"
-        titleAs="h1"
-        subtitle={
-          currentSourceName
-            ? `By ${currentSourceName}`
-            : `Verified ${reelTopicLabel(currentReel)} Video`
-        }
-        pill={`${currentIndex + 1} Of ${reels.length}${hasMore ? '+' : ''}`}
-        pillInk="blue"
-        foot="plates"
-        plates={
-          panelTitle
-            ? {
-                secondary: { label: 'Close Viewer', onClick: onClose, ink: 'silver' },
-                primary: { label: 'Back To Reel', onClick: closePanel, ink: 'white' },
-              }
-            : {
-                secondary: {
-                  label: 'Previous Reel',
-                  onClick: goPrev,
-                  disabled: currentIndex === 0,
-                  ink: 'silver',
-                },
-                primary: {
-                  label:
-                    loadingMore && currentIndex >= reels.length - 1
-                      ? 'Loading More Reels'
-                      : 'Next Reel',
-                  onClick: goNext,
-                  disabled: currentIndex >= reels.length - 1,
-                  ink: 'white',
-                },
-              }
-        }
-        className="vlc-carousel-viewer-console"
-      >
+      <section className="vlc-carousel-viewer-console">
+        <header className="vlc-carousel-viewer-header">
+          <h1 id="carousel-viewer-title">{panelTitle || 'Reel Viewer'}</h1>
+          <span>{currentIndex + 1} Of {reels.length}{hasMore ? '+' : ''}</span>
+        </header>
         <div className="vlc-carousel-viewer-toolbar">
           <button type="button" onClick={onClose} aria-label="Close">
             Close Viewer
           </button>
-          {panelTitle && (
+          {panelTitle ? (
             <button type="button" onClick={closePanel}>
               Back To Reel
             </button>
+          ) : (
+            <>
+              <button type="button" onClick={goPrev} disabled={currentIndex === 0}>
+                Previous Reel
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={currentIndex >= reels.length - 1}
+              >
+                {loadingMore && currentIndex >= reels.length - 1
+                  ? 'Loading More Reels'
+                  : 'Next Reel'}
+              </button>
+            </>
           )}
         </div>
         <div className="vlc-carousel-viewer-layout" hidden={Boolean(panelTitle)}>
+          <div className="vlc-carousel-viewer-copy">
+            <div className="vlc-carousel-author">
+              {currentReel.profiles?.avatar_url && (
+                <img src={currentReel.profiles.avatar_url} alt="" />
+              )}
+              {currentReel.profiles?.username ? (
+                <Link href={`/hub/user/${currentReel.profiles.username}`}>
+                  {currentReel.profiles.display_name
+                    || currentReel.profiles.username}
+                </Link>
+              ) : (
+                <span>{currentSourceName}</span>
+              )}
+            </div>
+            {currentSourceUrl ? (
+              <a
+                href={currentSourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="vlc-carousel-source-link"
+              >
+                View Original On {currentSourceName}
+              </a>
+            ) : null}
+            {currentReel.caption && (
+              <PlainCopy>
+                {captionExpanded || currentReel.caption.length <= 100
+                  ? currentReel.caption
+                  : `${currentReel.caption.slice(0, 100)}...`}
+                {currentReel.caption.length > 100 && (
+                  <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>
+                    {captionExpanded ? 'See Less' : 'See More'}
+                  </button>
+                )}
+              </PlainCopy>
+            )}
+          </div>
           <div
             ref={containerRef}
             className="vlc-carousel-viewer-stage"
@@ -2724,43 +2752,21 @@ function ReelViewer({
                 More Options
               </button>
             </div>
-            <div className="vlc-carousel-author">
-              {currentReel.profiles?.avatar_url && (
-                <img src={currentReel.profiles.avatar_url} alt="" />
-              )}
-              {currentReel.profiles?.username ? (
-                <Link href={`/hub/user/${currentReel.profiles.username}`}>
-                  {currentReel.profiles.full_name || currentReel.profiles.username}
-                </Link>
-              ) : (
-                <span>{currentSourceName}</span>
-              )}
-            </div>
-            {currentSourceUrl ? (
-              <a
-                href={currentSourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="vlc-carousel-source-link"
-              >
-                View Original On {currentSourceName}
-              </a>
-            ) : null}
-            <ConsoleDataRow label="Published" value={timeAgo(currentReel.created_at)} />
-            <ConsoleDataRow
+            <PlainDataRow label="Published" value={timeAgo(currentReel.created_at)} />
+            <PlainDataRow
               label="Views"
               value={formatViews(viewCounts[currentReel.id] || currentReel.view_count || 0)}
             />
             {watchedReelIds.includes(currentReel.id) && (
-              <ConsoleDataRow label="Watch State" value="Watched" valueInk="blue" />
+              <PlainDataRow label="Watch State" value="Watched" />
             )}
             {!isYouTubeUrl(currentReel.video_url) && (
-              <ConsoleDataRow label="Playback" value={`${Math.floor(progress)}%`} />
+              <PlainDataRow label="Playback" value={`${Math.floor(progress)}%`} />
             )}
-            {loadingMore && <ConsoleDataRow label="Reel Signal" value="Loading More" valueInk="blue" />}
+            {loadingMore && <PlainDataRow label="Reel Status" value="Loading More" />}
             {continuationError && (
               <div className="vlc-carousel-continuation-recovery" role="alert">
-                <ConsoleCopy>{continuationError.message}</ConsoleCopy>
+                <PlainCopy>{continuationError.message}</PlainCopy>
                 <button type="button" onClick={onRetryContinuation} disabled={loadingMore}>
                   {continuationError.authRequired
                     ? 'Sign In Again'
@@ -2779,18 +2785,6 @@ function ReelViewer({
                 {following[currentReel.author_id] ? 'Following' : 'Follow Creator'}
               </button>
             )}
-            {currentReel.caption && (
-              <ConsoleCopy>
-                {captionExpanded || currentReel.caption.length <= 100
-                  ? currentReel.caption
-                  : `${currentReel.caption.slice(0, 100)}...`}
-                {currentReel.caption.length > 100 && (
-                  <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>
-                    {captionExpanded ? 'See Less' : 'See More'}
-                  </button>
-                )}
-              </ConsoleCopy>
-            )}
             <ReelResponsibleGamingNotice topic={currentReel.topic} />
             <ReelTrustStrip reel={currentReel} compact />
           </div>
@@ -2800,12 +2794,12 @@ function ReelViewer({
           <div className="vlc-carousel-panel">
             {showReportModal ? (
               reportSubmitted ? (
-                <ConsoleCopy role="status">
+                <PlainCopy role="status">
                   Report Submitted. Thank You. We Will Review This Content.
-                </ConsoleCopy>
+                </PlainCopy>
               ) : (
                 <>
-                  <ConsoleCopy>Why Are You Reporting This Content?</ConsoleCopy>
+                  <PlainCopy>Why Are You Reporting This Content?</PlainCopy>
                   <div className="vlc-carousel-options" role="group" aria-label="Report Reason">
                     {[
                       'Inappropriate Content',
@@ -2854,7 +2848,7 @@ function ReelViewer({
                       ? 'Sharing...'
                       : 'Share To My Feed'}
                 </button>
-                <ConsoleCopy>Or Share Externally</ConsoleCopy>
+                <PlainCopy>Or Share Externally</PlainCopy>
                 <div className="vlc-carousel-command-grid">
                   {[
                     ['copy', 'Copy Link'],
@@ -2912,7 +2906,7 @@ function ReelViewer({
                   ['Esc', 'Close'],
                   ['?', 'This Menu'],
                 ].map(([key, label]) => (
-                  <ConsoleDataRow key={key} label={key} value={label} />
+                  <PlainDataRow key={key} label={key} value={label} />
                 ))}
               </>
             ) : showReactionPicker ? (
@@ -2971,7 +2965,7 @@ function ReelViewer({
               </div>
             ) : showComments ? (
               <>
-                <ConsoleDataRow label="Comments" value={formatViews(reelComments.length)} />
+                <PlainDataRow label="Comments" value={formatViews(reelComments.length)} />
                 <button
                   type="button"
                   onClick={() => {
@@ -2990,7 +2984,7 @@ function ReelViewer({
                 </button>
                 <div className="vlc-carousel-comments">
                   {reelComments.length === 0 && (
-                    <ConsoleCopy>No Comments Yet. Be The First!</ConsoleCopy>
+                    <PlainCopy>No Comments Yet. Be The First!</PlainCopy>
                   )}
                   {reelComments.map((comment) => (
                     <article
@@ -3037,7 +3031,7 @@ function ReelViewer({
                           </button>
                         </div>
                       ) : (
-                        comment.content && <ConsoleCopy><PokerCardText text={comment.content} /></ConsoleCopy>
+                        comment.content && <PlainCopy><PokerCardText text={comment.content} /></PlainCopy>
                       )}
                       {comment.media_url && (
                         <img
@@ -3132,7 +3126,7 @@ function ReelViewer({
                 />
                 {replyTo && (
                   <div className="vlc-carousel-reply">
-                    <ConsoleCopy>Replying To @{replyTo.username}</ConsoleCopy>
+                    <PlainCopy>Replying To @{replyTo.username}</PlainCopy>
                     <button
                       type="button"
                       onClick={() => {
@@ -3187,7 +3181,7 @@ function ReelViewer({
                   </button>
                 </div>
                 {commentText.length > 0 && (
-                  <ConsoleDataRow
+                  <PlainDataRow
                     label="Characters"
                     value={`${commentText.length} / ${COMMENT_MAX_LENGTH}`}
                   />
@@ -3196,9 +3190,9 @@ function ReelViewer({
             ) : null}
           </div>
         )}
-        {(shareToast || copyToast) && <ConsoleCopy role="status">Link Copied</ConsoleCopy>}
-        {errorToast && <ConsoleCopy role="alert">{errorToast}</ConsoleCopy>}
-      </VideoLibraryConsole>
+        {(shareToast || copyToast) && <PlainCopy role="status">Link Copied</PlainCopy>}
+        {errorToast && <PlainCopy role="alert">{errorToast}</PlainCopy>}
+      </section>
       <ReelsFeedConsoleStyles />
     </div>
   );
@@ -3447,6 +3441,11 @@ export function ReelsFeedCarousel() {
           ? { replacements: [], removeIds: [] }
           : await resolveStaleReels({
             ids: flaggedIds.filter((id) => mountedIds.has(id) && !windowIds.has(id)),
+            // The mounted list is already capped at 180. A source-authority
+            // broadcast deliberately flags that whole bounded set because its
+            // source id is not necessarily the social_reels row id.
+            max: flaggedIds.length,
+            concurrency: 5,
             isCurrent: reelsRequest.isCurrent,
             fetchDetail: async (id) => (await fetchPokerReels({
               limit: 1,
@@ -3749,6 +3748,35 @@ export function ReelsFeedCarousel() {
       )
       .subscribe();
 
+    let authoritySubscribedOnce = false;
+    const markMountedReelsStale = () => {
+      reelsRef.current.forEach((reel) => {
+        if (reel?.id) staleReelIdsRef.current.add(reel.id);
+      });
+    };
+    const unsubscribeAuthority = subscribeSocialAuthority(supabase, (event) => {
+      if (event.type === 'broadcast') {
+        const notice = event.payload;
+        const keys = notice && typeof notice === 'object' ? Object.keys(notice).sort() : [];
+        if (
+          keys.join(',') === 'id,kind'
+          && notice.kind === 'reel'
+          && /^[0-9a-f-]{36}$/i.test(String(notice.id || ''))
+        ) {
+          markMountedReelsStale();
+          scheduleBackgroundReelsRefresh();
+        }
+        return;
+      }
+      if (event.type === 'status' && event.status === 'SUBSCRIBED') {
+        if (authoritySubscribedOnce) {
+          markMountedReelsStale();
+          scheduleBackgroundReelsRefresh();
+        }
+        authoritySubscribedOnce = true;
+      }
+    });
+
     const handleDataMutated = (event) => {
       if (event?.payload === 'social' || event?.payload === 'reels') {
         scheduleBackgroundReelsRefresh();
@@ -3763,21 +3791,10 @@ export function ReelsFeedCarousel() {
       pendingContinuationRef.current = null;
       if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
       supabase.removeChannel(_ch);
+      unsubscribeAuthority();
       eventBus.off(EventType.DATA_MUTATED, handleDataMutated);
     };
   }, [loadReels, removeMountedReels, scheduleBackgroundReelsRefresh]);
-
-  useEffect(() => {
-    const revalidateVisibleFeed = () => {
-      if (document.visibilityState === 'visible') scheduleBackgroundReelsRefresh();
-    };
-    window.addEventListener('focus', revalidateVisibleFeed);
-    document.addEventListener('visibilitychange', revalidateVisibleFeed);
-    return () => {
-      window.removeEventListener('focus', revalidateVisibleFeed);
-      document.removeEventListener('visibilitychange', revalidateVisibleFeed);
-    };
-  }, [scheduleBackgroundReelsRefresh]);
 
   const openViewer = useCallback((index) => {
     viewerActiveIndexRef.current = index;
@@ -3789,33 +3806,25 @@ export function ReelsFeedCarousel() {
     viewerActiveIndexRef.current = index;
   }, []);
 
-  // Loading uses the exact same native-ratio chassis as the final carousel.
+  // Every inline lifecycle uses the same conventional feed card. Social Media
+  // deliberately does not mount the Video Library's decorative console.
   if (loading || followingUnavailable) {
     return (
-      <div className="vlc-feed-console-shell">
-        <VideoLibraryConsole
-          eyebrow="Social Feed"
-          title={categoryDefinition.title}
-          subtitle="Verified Video Channel"
-          pill="Tuning"
-          pillInk="blue"
-          foot="foot"
-          aria-label={`${categoryDefinition.title} Loading`}
+      <section className="vlc-feed-console-shell" aria-label={`${categoryDefinition.title} Loading`}>
+        <header className="vlc-feed-header"><h2>Reels</h2></header>
+        {renderCategoryRail()}
+        <div
+          id="vlc-social-reel-strip"
+          className="vlc-feed-status"
+          role="tabpanel"
+          aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
+          aria-busy="true"
+          tabIndex={0}
         >
-          {renderCategoryRail()}
-          <div
-            id="vlc-social-reel-strip"
-            role="tabpanel"
-            aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
-            aria-busy="true"
-            tabIndex={0}
-          >
-            <ConsoleCopy align="center">Preparing The Latest Playable {categoryDefinition.label} Reels.</ConsoleCopy>
-          </div>
-          <ConsoleDataRow label="Signal" value="Connecting" valueInk="blue" />
-        </VideoLibraryConsole>
+          Preparing The Latest {categoryDefinition.label} Reels.
+        </div>
         <ReelsFeedConsoleStyles />
-      </div>
+      </section>
     );
   }
 
@@ -3824,115 +3833,70 @@ export function ReelsFeedCarousel() {
     const followingAuthError = selectedCategoryId === 'following'
       && loadError === 'Sign In Again To View Following Reels.';
     return (
-      <div className="vlc-feed-console-shell">
-        <VideoLibraryConsole
-          eyebrow="Social Feed"
-          title="Reel Signal Interrupted"
-          subtitle="Account State Protected"
-          pill="Attention"
-          pillInk="red"
-          foot="plates"
-          plates={{
-            secondary: {
-              label: 'Browse All Reels',
-              onClick: () => router.push(browseAllReelsPath),
-              ink: 'silver',
-            },
-            primary: followingAuthError
-              ? {
-                label: 'Sign In Again',
-                onClick: () => router.push(
-                  `/auth/login?redirect=${encodeURIComponent('/hub/reels?category=following')}`
-                ),
-                ink: 'blue',
-              }
-              : { label: 'Retry Signal', onClick: () => loadReels(), ink: 'blue' },
-          }}
-          aria-label={`${categoryDefinition.title} Connection Recovery`}
+      <section className="vlc-feed-console-shell" aria-label={`${categoryDefinition.title} Connection Recovery`}>
+        <header className="vlc-feed-header"><h2>Reels</h2></header>
+        {renderCategoryRail()}
+        <div
+          id="vlc-social-reel-strip"
+          className="vlc-feed-status"
+          role="tabpanel"
+          aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
+          tabIndex={0}
         >
-          {renderCategoryRail()}
-          <div
-            id="vlc-social-reel-strip"
-            role="tabpanel"
-            aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
-            tabIndex={0}
+          {loadError}
+        </div>
+        <div className="vlc-feed-actions">
+          <button type="button" onClick={() => router.push(browseAllReelsPath)}>Browse All Reels</button>
+          <button
+            type="button"
+            onClick={() => followingAuthError
+              ? router.push(`/auth/login?redirect=${encodeURIComponent('/hub/reels?category=following')}`)
+              : loadReels()}
           >
-            <ConsoleCopy align="center">{loadError}</ConsoleCopy>
-          </div>
-          <ConsoleDataRow label="Account State" value="Protected" valueInk="green" />
-        </VideoLibraryConsole>
+            {followingAuthError ? 'Sign In Again' : 'Retry'}
+          </button>
+        </div>
         <ReelsFeedConsoleStyles />
-      </div>
+      </section>
     );
   }
 
   if (reels.length === 0) {
     return (
-      <div className="vlc-feed-console-shell">
-        <VideoLibraryConsole
-          eyebrow="Social Feed"
-          title={categoryDefinition.title}
-          subtitle="Verified Video Channel"
-          pill="No Live Reels"
-          pillInk="silver"
-          foot="plates"
-          plates={{
-            secondary: continuationError?.cursor
-              ? {
-                label: continuationError.authRequired ? 'Sign In Again' : 'Retry More Reels',
-                onClick: retryContinuation,
-                ink: 'silver',
-              }
-              : { label: 'Refresh Reels', onClick: () => loadReels(), ink: 'silver' },
-            primary: {
-              label: 'Browse All Reels',
-              onClick: () => router.push(browseAllReelsPath),
-              ink: 'white',
-            },
-          }}
-          aria-label={`${categoryDefinition.title} Empty`}
+      <section className="vlc-feed-console-shell" aria-label={`${categoryDefinition.title} Empty`}>
+        <header className="vlc-feed-header"><h2>Reels</h2></header>
+        {renderCategoryRail()}
+        <div
+          id="vlc-social-reel-strip"
+          className="vlc-feed-status"
+          role="tabpanel"
+          aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
+          tabIndex={0}
         >
-          {renderCategoryRail()}
-          <div
-            id="vlc-social-reel-strip"
-            role="tabpanel"
-            aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
-            tabIndex={0}
-          >
-            <ConsoleCopy align="center">
-              {continuationError?.message
-                || (selectedCategoryId === 'following'
-                  ? 'Follow More Creators Or Return To For You While This Feed Builds.'
-                  : 'No Verified Reels Are Available In This Channel Yet.')}
-            </ConsoleCopy>
-          </div>
-        </VideoLibraryConsole>
+          {continuationError?.message
+            || (selectedCategoryId === 'following'
+              ? 'Follow more creators or return to For You while this feed builds.'
+              : 'No reels are available in this channel yet.')}
+        </div>
+        <div className="vlc-feed-actions">
+          <button type="button" onClick={continuationError?.cursor ? retryContinuation : () => loadReels()}>
+            {continuationError?.authRequired ? 'Sign In Again' : continuationError?.cursor ? 'Retry More Reels' : 'Refresh'}
+          </button>
+          <button type="button" onClick={() => router.push(browseAllReelsPath)}>Browse All Reels</button>
+        </div>
         <ReelsFeedConsoleStyles />
-      </div>
+      </section>
     );
   }
 
   return (
     <>
-      <div className="vlc-feed-console-shell">
-        <VideoLibraryConsole
-          eyebrow="Social Feed"
-          title={categoryDefinition.title}
-          subtitle="Swipe The Verified Video Rail"
-          pill={`${reels.length}${hasMore ? '+' : ''} Live`}
-          pillInk="blue"
-          foot="plates"
-          plates={{
-            secondary: { label: 'Refresh Reels', onClick: () => loadReels(), ink: 'silver' },
-            primary: {
-              label: 'Browse All Reels',
-              onClick: () => router.push(browseAllReelsPath),
-              ink: 'white',
-            },
-          }}
-          aria-label={`${categoryDefinition.title} In The Social Feed`}
-        >
-          {renderCategoryRail()}
+      <section className="vlc-feed-console-shell" aria-label={`${categoryDefinition.title} In The Social Feed`}>
+        <header className="vlc-feed-header">
+          <h2>Reels</h2>
+          <span>{reels.length}{hasMore ? '+' : ''}</span>
+        </header>
+        {renderCategoryRail()}
           <div
             id="vlc-social-reel-strip"
             ref={scrollRef}
@@ -3942,12 +3906,17 @@ export function ReelsFeedCarousel() {
             className="vlc-feed-reel-strip"
           >
             {reels.map((reel, index) => (
-              <ReelCard key={reel.id} reel={reel} onOpen={() => openViewer(index)} />
+              <ReelCard
+                key={reel.id}
+                reel={reel}
+                onOpen={() => openViewer(index)}
+                textFirst
+              />
             ))}
           </div>
           {continuationError ? (
             <div className="vlc-carousel-continuation-recovery" role="alert">
-              <ConsoleCopy align="center">{continuationError.message}</ConsoleCopy>
+              <p>{continuationError.message}</p>
               <button type="button" onClick={retryContinuation} disabled={loadingMore}>
                 {continuationError.authRequired
                   ? 'Sign In Again'
@@ -3955,10 +3924,12 @@ export function ReelsFeedCarousel() {
               </button>
             </div>
           ) : null}
-          <ConsoleCopy align="center">Select A Reel To Enter The Full Viewer.</ConsoleCopy>
-        </VideoLibraryConsole>
+        <div className="vlc-feed-actions">
+          <button type="button" onClick={() => loadReels()}>Refresh</button>
+          <button type="button" onClick={() => router.push(browseAllReelsPath)}>Browse All Reels</button>
+        </div>
         <ReelsFeedConsoleStyles />
-      </div>
+      </section>
 
       {/* Full-screen viewer */}
       {viewerOpen && (
@@ -3985,7 +3956,52 @@ function ReelsFeedConsoleStyles() {
         width: 100%;
         max-width: 760px;
         margin: 0 auto 16px;
-        background: #000;
+        padding: 12px 16px 16px;
+        border: 1px solid #dadde1;
+        background: #fff;
+        color: #050505;
+        container-type: inline-size;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .vlc-feed-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .vlc-feed-header h2 {
+        margin: 0;
+        color: #050505;
+        font: 700 18px/1.3 Arial, Helvetica, sans-serif;
+      }
+      .vlc-feed-header span {
+        color: #65676b;
+        font: 600 13px/1.3 Arial, Helvetica, sans-serif;
+      }
+      .vlc-feed-status {
+        min-height: 72px;
+        padding: 18px 4px;
+        color: #65676b;
+        font: 400 15px/1.5 Arial, Helvetica, sans-serif;
+        text-align: center;
+      }
+      .vlc-feed-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding-top: 10px;
+        border-top: 1px solid #e4e6eb;
+      }
+      .vlc-feed-actions button,
+      .vlc-carousel-continuation-recovery button {
+        appearance: none;
+        min-height: 44px;
+        padding: 8px 12px;
+        border: 0;
+        background: transparent;
+        color: #1877f2;
+        font: 600 14px/1.3 Arial, Helvetica, sans-serif;
+        cursor: pointer;
       }
       .vlc-reel-category-rail {
         display: flex;
@@ -4007,12 +4023,12 @@ function ReelsFeedConsoleStyles() {
         padding: 8px 12px;
         border: 0;
         border-radius: 0;
-        color: #aab9c2;
+        color: #65676b;
         background: transparent;
         box-shadow: none;
         font-size: clamp(12px, 2.8cqw, 14px);
-        font-weight: 800;
-        letter-spacing: 0.045em;
+        font-weight: 600;
+        letter-spacing: 0;
         white-space: nowrap;
         scroll-snap-align: start;
         cursor: pointer;
@@ -4027,17 +4043,17 @@ function ReelsFeedConsoleStyles() {
         background: transparent;
       }
       .vlc-reel-category-command:focus-visible {
-        color: #e7f6ff;
-        outline: 2px solid #67ceff;
+        color: #050505;
+        outline: 2px solid #1877f2;
         outline-offset: -2px;
       }
       .vlc-reel-category-command.is-active {
-        color: #f1fbff;
+        color: #1877f2;
         background: transparent;
         box-shadow: none;
       }
       .vlc-reel-category-command.is-active::after {
-        background: #67ceff;
+        background: #1877f2;
       }
       .vlc-reel-category-command[aria-disabled='true'] {
         opacity: 0.55;
@@ -4045,10 +4061,10 @@ function ReelsFeedConsoleStyles() {
       }
       .vlc-feed-reel-strip {
         display: flex;
-        gap: 2.4cqw;
+        gap: 12px;
         width: 100%;
         overflow-x: auto;
-        padding-bottom: 2cqw;
+        padding-bottom: 12px;
         scroll-snap-type: x mandatory;
         overscroll-behavior-inline: contain;
       }
@@ -4057,20 +4073,20 @@ function ReelsFeedConsoleStyles() {
         display: flex;
         flex-direction: column;
         position: relative;
-        flex: 0 0 38cqw;
+        flex: 0 0 min(220px, 58vw);
         min-width: 0;
         padding: 0;
         border: 0;
         border-radius: 0;
         background: transparent;
-        color: #f4f7fb;
+        color: #050505;
         cursor: pointer;
         scroll-snap-align: start;
-        font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+        font-family: Arial, Helvetica, sans-serif;
         text-align: left;
       }
       .vlc-reel-card:focus-visible {
-        outline: 2px solid #45adff;
+        outline: 2px solid #1877f2;
         outline-offset: -2px;
       }
       .vlc-reel-card__media {
@@ -4087,30 +4103,28 @@ function ReelsFeedConsoleStyles() {
       }
       .vlc-reel-card__fallback {
         align-self: center;
-        color: #45adff;
-        font-size: 3cqw;
+        color: #65676b;
+        font-size: 14px;
         text-align: center;
       }
       .vlc-reel-card__author {
         display: flex;
         align-items: center;
-        gap: 1.5cqw;
-        padding-top: 2cqw;
-        color: #45adff;
-        font-size: 3cqw;
+        gap: 8px;
+        padding-top: 10px;
+        color: #050505;
+        font-size: 14px;
         overflow-wrap: anywhere;
       }
       .vlc-reel-card__author img {
-        width: 6cqw;
-        height: 6cqw;
+        width: 32px;
+        height: 32px;
         object-fit: cover;
       }
       .vlc-reel-card__caption {
-        padding-top: 1cqw;
-        font:
-          500 3cqw/1.4 Inter,
-          system-ui,
-          sans-serif;
+        padding-top: 6px;
+        color: #050505;
+        font: 400 14px/1.4 Arial, Helvetica, sans-serif;
         overflow-wrap: anywhere;
       }
       .vlc-carousel-viewer-shell.vlc-carousel-viewer-shell {
@@ -4134,9 +4148,35 @@ function ReelsFeedConsoleStyles() {
       }
       .vlc-carousel-viewer-console {
         width: min(100%, 540px);
+        padding: 12px;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .vlc-carousel-viewer-console * {
+        font-family: Arial, Helvetica, sans-serif !important;
+        letter-spacing: normal !important;
+      }
+      .vlc-carousel-viewer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 10px;
+        color: #fff;
+      }
+      .vlc-carousel-viewer-header h1 {
+        margin: 0;
+        font: 700 18px/1.3 Arial, Helvetica, sans-serif;
+      }
+      .vlc-carousel-viewer-header span {
+        color: #b0b3b8;
+        font: 500 13px/1.3 Arial, Helvetica, sans-serif;
       }
       .vlc-carousel-viewer-layout {
         display: grid;
+        grid-template-areas:
+          'copy'
+          'stage'
+          'details';
         gap: 3cqw;
         min-width: 0;
       }
@@ -4144,6 +4184,7 @@ function ReelsFeedConsoleStyles() {
         display: none;
       }
       .vlc-carousel-viewer-stage {
+        grid-area: stage;
         position: relative;
         width: 100%;
         aspect-ratio: 9 / 16;
@@ -4157,6 +4198,14 @@ function ReelsFeedConsoleStyles() {
         height: 100%;
       }
       .vlc-carousel-viewer-details {
+        grid-area: details;
+        display: flex;
+        flex-direction: column;
+        gap: 2cqw;
+        min-width: 0;
+      }
+      .vlc-carousel-viewer-copy {
+        grid-area: copy;
         display: flex;
         flex-direction: column;
         gap: 2cqw;
@@ -4195,11 +4244,8 @@ function ReelsFeedConsoleStyles() {
         background-color: transparent !important;
         background-image: none !important;
         box-shadow: none !important;
-        color: #45adff !important;
-        font:
-          700 3.7cqw/1.3 'Roboto Condensed',
-          'Arial Narrow',
-          sans-serif;
+        color: #fff !important;
+        font: 600 14px/1.3 Arial, Helvetica, sans-serif;
         text-align: center;
         overflow-wrap: anywhere;
         cursor: pointer;
@@ -4213,11 +4259,11 @@ function ReelsFeedConsoleStyles() {
       }
       .vlc-carousel-viewer-console button:focus-visible,
       .vlc-carousel-viewer-console input:focus-visible {
-        outline: 2px solid #45adff;
+        outline: 2px solid #fff;
         outline-offset: -2px;
       }
       .vlc-carousel-viewer-console button:active {
-        color: #f4f7fb !important;
+        color: #fff !important;
       }
       .vlc-carousel-author {
         display: flex;
@@ -4234,23 +4280,35 @@ function ReelsFeedConsoleStyles() {
       .vlc-carousel-author a,
       .vlc-carousel-author span {
         color: #e4e7ec;
-        font:
-          600 3.5cqw/1.4 'Roboto Condensed',
-          sans-serif;
+        font: 600 14px/1.4 Arial, Helvetica, sans-serif;
       }
       .vlc-carousel-source-link {
         display: inline-flex;
         width: fit-content;
         min-height: 44px;
         align-items: center;
-        color: #8fd4ff;
-        font: 800 3.2cqw/1.3 'Roboto Condensed', 'Arial Narrow', sans-serif;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        color: #e4e7ec;
+        font: 600 14px/1.3 Arial, Helvetica, sans-serif;
       }
       .vlc-carousel-source-link:focus-visible {
-        outline: 2px solid #8fd4ff;
+        outline: 2px solid #fff;
         outline-offset: 2px;
+      }
+      .vlc-plain-copy {
+        margin: 0;
+        color: #e4e7ec;
+        font: 400 14px/1.45 Arial, Helvetica, sans-serif;
+      }
+      .vlc-plain-data-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: #b0b3b8;
+        font: 400 13px/1.4 Arial, Helvetica, sans-serif;
+      }
+      .vlc-plain-data-row span:last-child {
+        color: #e4e7ec;
+        text-align: right;
       }
       .vlc-carousel-comment {
         display: flex;
@@ -4273,10 +4331,8 @@ function ReelsFeedConsoleStyles() {
         display: flex;
         flex-direction: column;
         gap: 2cqw;
-        color: #45adff;
-        font:
-          600 3.7cqw/1.4 'Roboto Condensed',
-          sans-serif;
+        color: #e4e7ec;
+        font: 600 14px/1.4 Arial, Helvetica, sans-serif;
       }
       .vlc-carousel-viewer-console input:not([type='file']) {
         width: 100%;
@@ -4289,10 +4345,7 @@ function ReelsFeedConsoleStyles() {
         background-image: none !important;
         box-shadow: none !important;
         color: #e4e7ec !important;
-        font:
-          500 3.7cqw/1.4 Inter,
-          system-ui,
-          sans-serif;
+        font: 500 14px/1.4 Arial, Helvetica, sans-serif;
       }
       .vlc-carousel-play-state,
       .vlc-carousel-like-confirmation {
@@ -4333,6 +4386,9 @@ function ReelsFeedConsoleStyles() {
         }
         .vlc-carousel-viewer-layout {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          grid-template-areas:
+            'copy copy'
+            'stage details';
           align-items: start;
         }
         .vlc-carousel-viewer-console .vlc-carousel-panel button,

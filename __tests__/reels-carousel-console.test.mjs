@@ -11,7 +11,7 @@ const viewer = source.slice(
   source.indexOf('// Main Reels Feed Carousel component')
 );
 
-test('carousel and every viewer state use the master without generic decorative chrome', () => {
+test('social carousel and every viewer state avoid decorative console chrome', () => {
   assert.doesNotMatch(
     source,
     /<svg\b|(?:linear|radial|conic)-gradient|:hover\b|onMouseEnter|onMouseLeave/
@@ -24,11 +24,11 @@ test('carousel and every viewer state use the master without generic decorative 
   for (const match of source.matchAll(/border-radius:\s*([^;]+)/g)) {
     assert.equal(match[1].replace(/!important/g, '').trim(), '0');
   }
-  assert.equal(
-    (viewer.match(/<VideoLibraryConsole\b/g) || []).length,
-    1,
-    'Secondary states share one visible master, without nesting frames'
+  assert.doesNotMatch(
+    source,
+    /VideoLibraryConsole|ConsoleCopy|ConsoleDataRow|eyebrow=|pillInk=|foot="plates"/
   );
+  assert.match(viewer, /<section className="vlc-carousel-viewer-console">/);
   assert.match(viewer, /hidden=\{Boolean\(panelTitle\)\}/);
   for (const label of [
     'Report This Reel',
@@ -43,6 +43,8 @@ test('carousel and every viewer state use the master without generic decorative 
   }
   assert.match(source, /aria-label=\{`\$\{categoryDefinition\.title\} Loading`\}/);
   assert.match(source, /aria-label=\{`\$\{categoryDefinition\.title\} Connection Recovery`\}/);
+  assert.match(source, /\.vlc-feed-console-shell \{[\s\S]*?background: #fff;/);
+  assert.match(source, /font-family: Arial, Helvetica, sans-serif/);
   assert.match(source, /@media \(min-width: 900px\)/);
   assert.match(source, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/);
 });

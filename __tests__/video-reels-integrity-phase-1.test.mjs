@@ -608,13 +608,19 @@ test('social feed caches are viewer-scoped and never persist interaction truth',
   }
 });
 
-test('clients abort stale requests, refuse cache seeding, revalidate on focus, and resolve old post IDs server-side', () => {
+test('clients abort stale requests, refuse cache seeding, and resolve old post IDs server-side', () => {
   for (const source of [REELS_COMPONENT, REELS_PAGE, FEED_CAROUSEL]) {
     assert.match(source, /createLatestRequestGuard/);
     assert.doesNotMatch(source, /readPokerReelsCache/);
     assert.match(source, /reelsRequest\.isCurrent\(\)/);
-    assert.match(source, /visibilitychange/);
   }
+  for (const source of [REELS_COMPONENT, REELS_PAGE]) assert.match(source, /visibilitychange/);
+  assert.doesNotMatch(FEED_CAROUSEL, /visibilitychange/);
+  assert.match(FEED_CAROUSEL, /table: 'social_reels'/);
+  assert.match(FEED_CAROUSEL, /scheduleBackgroundReelsRefresh/);
+  assert.match(FEED_CAROUSEL, /markMountedReelsStale/);
+  assert.match(FEED_CAROUSEL, /staleReelIdsRef\.current\.add\(reel\.id\)/);
+  assert.match(FEED_CAROUSEL, /max: flaggedIds\.length/);
   assert.match(REELS_PAGE, /id:\s*initialId/);
   assert.match(REELS_PAGE, /router\.query\.id/);
   assert.match(REELS_PAGE, /initialId && \[400, 404, 410\]\.includes\(e\?\.status\)/);

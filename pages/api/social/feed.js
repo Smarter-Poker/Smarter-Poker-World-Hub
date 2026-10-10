@@ -391,6 +391,46 @@ export function managedVideoPostIsEligible(post, context, nowMs = Date.now()) {
         && checkedAt <= nowMs + MAX_FUTURE_SKEW_MS;
 }
 
+export function managedVideoEligibilityExpiresAt(post, context, nowMs = Date.now()) {
+    if (post?.content_type !== 'video') return null;
+    const youtubeId = postYouTubeId(post);
+    if (!youtubeId || context.failedYoutubeIds.has(youtubeId)) return null;
+    const proofExpiries = [];
+    const freshExpiry = (value) => {
+        const checkedAt = Date.parse(value || '');
+        if (Number.isFinite(checkedAt) && checkedAt <= nowMs + MAX_FUTURE_SKEW_MS) {
+            return checkedAt + VERIFY_MAX_AGE_MS;
+        }
+        return null;
+    };
+    const managed = isManagedVideoLibraryPost(post);
+    const asset = managed
+        ? context.assetById.get(post.source_asset_id)
+        : context.assetByYoutube.get(youtubeId);
+    let assetExpiry = null;
+    if (asset?.availability_status === 'verified' && asset?.embeddable === true) {
+        assetExpiry = freshExpiry(asset.availability_checked_at);
+        if (Number.isFinite(assetExpiry)) proofExpiries.push(assetExpiry);
+    }
+    if (!managed) {
+        const verdict = context.verificationByYoutube.get(youtubeId);
+        if (verdict?.verification_status === 'resolved' && verdict?.resolved === true) {
+            const verdictExpiry = freshExpiry(verdict.last_verified_at);
+            if (Number.isFinite(verdictExpiry)) proofExpiries.push(verdictExpiry);
+        }
+    }
+    if (hasActiveLegacyTransition(post, nowMs)) {
+        const transitionExpiry = Date.parse(post.legacy_transition_expires_at || '');
+        if (Number.isFinite(transitionExpiry)) proofExpiries.push(transitionExpiry);
+    }
+    // Unmanaged YouTube rows accept any one positive proof, so their deadline
+    // is the latest alternative. Managed library rows require their own asset
+    // proof unless a live legacy transition is carrying them; verifier-only
+    // evidence must never extend a managed row past its asset deadline.
+    const expiry = proofExpiries.length ? Math.max(...proofExpiries) : null;
+    return Number.isFinite(expiry) ? new Date(expiry).toISOString() : null;
+}
+
 export function nativeVideoIsReady(post) {
     if (post?.content_type !== 'video' || post?.playback_type !== 'native') return true;
     return READY_TRANSCODE_STATUSES.has(post?.transcode_status ?? null);
@@ -513,7 +553,10 @@ export async function readSafePostWindow(offset, limit, options = {}) {
                 // position prevents filtered rows from creating skips/loops.
                 return { posts, hasMore: true, nextOffset: rawOffset + index, partial: false };
             }
-            posts.push(post);
+            const eligibilityExpiresAt = managedVideoEligibilityExpiresAt(post, context);
+            posts.push(eligibilityExpiresAt
+                ? { ...post, eligibility_expires_at: eligibilityExpiresAt }
+                : post);
             countByAuthor.set(authorKey, (countByAuthor.get(authorKey) || 0) + 1);
         }
         rawOffset += page.length;
@@ -699,6 +742,7 @@ export default async function handler(req, res) {
                 youtube_video_id: p.youtube_video_id,
                 canonical_asset_key: p.canonical_asset_key,
                 publication_key: p.publication_key,
+                eligibilityExpiresAt: p.eligibility_expires_at || null,
                 author: {
                     // Never the author's legal name (owner-only, ruling 25).
                     name: meta.page_name || profile?.display_name || profile?.username || 'Player',

@@ -749,7 +749,7 @@ ALL_CRONS = [
     ('/api/cron/horses-social-all',               dict(minute=30)),          # hourly, whole fleet
     # Fleet Content Programme Phase 6. The handler and every Phase 6 mode
     # fail closed; while approval rows are disabled this is a measured no-op.
-    ('/api/cron/phase6-content',                  dict(hour=9, minute=20)),  # daily; Monday emits weekly club window
+    ('/api/cron/phase6-content',                  dict(minute=20)),  # hourly; each mode still enforces its own approval and publication cap
     # Fleet Content Programme Phase 7 (interactive puzzles and grounded
     # stories). Hourly at :40, clear of :10, :25, :30 and the :55 Club Arena
     # break. Each fire reveals the puzzles that are due (owed to the humans
