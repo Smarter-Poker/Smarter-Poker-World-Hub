@@ -452,8 +452,55 @@ def extract_stops(html: str, base_url: str, today: date = None, tour_code: str =
     """Generic stop extractor: date-range matches paired with the nearest
     preceding heading/link text. Conservative by design - a missed stop is
     recoverable on the next run, a garbage stop pollutes the calendar."""
+    # Disabled HTML is not an active schedule, including embedded JSON-LD and
+    # source-specific tables. Strip it before every extraction branch.
+    html = re.sub(r'<!--.*?-->', ' ', html, flags=re.S)
     code = str(tour_code or '').upper()
     host = urllib.parse.urlparse(base_url).hostname
+    if code in {'RRPT', 'ROUGHRIDER'} and host in {'roughriderpokertour.com', 'www.roughriderpokertour.com'}:
+        # EventON's visible event descriptions contain unrelated Golden Ticket
+        # promotion dates. Read only its source-owned Event calendar records.
+        # Some published end dates contradict the description, so certify only
+        # the actual calendar start, never invent a complete festival duration.
+        stops, seen = [], set()
+        cutoff = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
+        for raw in re.findall(r'<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', html, re.I | re.S):
+            try:
+                event = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(event, dict) or event.get('@type') != 'Event' or event.get('eventStatus') != 'https://schema.org/EventScheduled':
+                continue
+            if not isinstance(event.get('name'), str) or not isinstance(event.get('url'), str):
+                continue
+            try:
+                event_url = urllib.parse.urlsplit(event['url'])
+            except ValueError:
+                continue
+            if event_url.scheme != 'https' or event_url.hostname not in {'roughriderpokertour.com', 'www.roughriderpokertour.com'} or not event_url.path.startswith('/events/') or event_url.path == '/events/':
+                continue
+            full_name = normalize_stop_name(event.get('name'))
+            quoted = re.match(r'^["“]([^"”]+)["”]', full_name)
+            name = quoted[1] if quoted else full_name.split(' LIVE from ', 1)[0]
+            if not is_plausible_tour_stop_name(name):
+                continue
+            match = re.fullmatch(r'(20\d{2})-(\d{1,2})-(\d{1,2})(?:T\d{1,2}:\d{2}(?:[+-]\d{1,2}:\d{2}|Z)?)?', str(event.get('startDate') or ''))
+            if not match:
+                continue
+            try:
+                start = date(*map(int, match.groups()))
+            except ValueError:
+                continue
+            if start < cutoff or (name.lower(), start) in seen:
+                continue
+            seen.add((name.lower(), start))
+            stop = {'stop_name': name, 'start': start.isoformat(), 'end': start.isoformat(),
+                    'source_scope': 'published event-calendar start'}
+            location = event.get('location')
+            if isinstance(location, list) and len(location) == 1 and isinstance(location[0], dict) and location[0].get('@type') == 'Place':
+                stop['venue'] = normalize_stop_name(location[0].get('name'))
+            stops.append(stop)
+        return stops
     if code == 'TCH' and host == 'trailblazer.texascardhouse.com':
         stops, seen = [], set()
         cutoff = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
@@ -517,7 +564,9 @@ def extract_stops(html: str, base_url: str, today: date = None, tour_code: str =
         # Scope the explicit year to the schedule heading and its adjacent table;
         # archived navigation, JSON app data and copyright cannot supply a year.
         for year, table in re.findall(
-            r'<h2\b[^>]*>\s*(20\d{2}) RunGood Poker Series Fall Schedule\s*</h2>\s*<table\b[^>]*>(.*?)</table>',
+            r'<h2\b[^>]*>\s*(20\d{2}) RunGood Poker Series Fall Schedule\s*</h2>\s*'
+            r'(?:<div\b[^>]*\bclass=["\']table-wrapper["\'][^>]*>\s*)?'
+            r'<table\b[^>]*>(.*?)</table>',
             html, re.I | re.S,
         ):
             headings = [normalize_stop_name(cell).lower() for cell in re.findall(r'<th\b[^>]*>(.*?)</th>', table, re.I | re.S)]
@@ -629,7 +678,7 @@ def extract_stops(html: str, base_url: str, today: date = None, tour_code: str =
     # stop name.  Preserve tag boundaries/text while discarding those hidden
     # attribute and script surfaces before pairing headings with dates.
     scan_html = re.sub(
-        r"<(?:script|style|noscript)\b[^>]*>.*?</(?:script|style|noscript)>",
+        r"<!--.*?-->|<(?:script|style|noscript)\b[^>]*>.*?</(?:script|style|noscript)>",
         " ",
         html,
         flags=re.I | re.DOTALL,
@@ -721,6 +770,8 @@ def build_stop_row(code: str, stop: dict, source_url: str,
         row['notes'] = f"Source-owned stop summary from {source_url} on {scraped_at[:10]}; not an individual tournament or priced event."
     if stop.get('start_only'):
         row['notes'] = f"Source-owned JSON-LD event-start summary from {source_url} on {scraped_at[:10]}; calendar point date only, duration and event pricing not published."
+    if stop.get('source_scope') == 'published event-calendar start':
+        row['notes'] = f"Source-owned event-calendar start from {source_url} on {scraped_at[:10]}; point date only, full festival duration and event pricing unqualified."
     if stop.get('source_scope') == 'dated schedule envelope':
         row['notes'] = f"Source-owned series summary from dated schedule rows at {source_url} on {scraped_at[:10]}; schedule date envelope, not an individual tournament or priced event."
     if stop.get('source_scope') == 'announced festival span':
@@ -915,8 +966,18 @@ def cas_stop_patch(code: str, row: dict, patch: dict) -> bool:
 def verify_html(html: str) -> bool:
     if not html or len(html) < 1000:
         return False
-    low = html.lower()
-    if "access denied" in low or "captcha" in low[:5000]:
+    # Public event sites load reCAPTCHA for contact forms and signup widgets.
+    # A script URL is not an access challenge. Qualify visible schedule text,
+    # while keeping actual human-verification/interstitial responses rejected.
+    visible = re.sub(r'<!--.*?-->|<(?:script|style|noscript)\b[^>]*>.*?</(?:script|style|noscript)>',
+                     ' ', html, flags=re.I | re.S)
+    low = normalize_stop_name(visible).lower()
+    challenge_title = any(re.search(r'\b(?:captcha|access denied|attention required|'
+                                    r'just a moment|security check)\b', normalize_stop_name(title), re.I)
+                          for title in re.findall(r'<title\b[^>]*>(.*?)</title>', visible, re.I | re.S))
+    if challenge_title or re.search(r'\b(?:access denied|just a moment|checking your browser|'
+                 r'verify (?:that )?you are human|security verification|'
+                 r'please complete (?:the )?captcha|enable javascript and cookies)\b', low):
         return False
     return sum(1 for k in ("poker", "tournament", "buy-in", "event", "schedule",
                            "main event") if k in low) >= 2
