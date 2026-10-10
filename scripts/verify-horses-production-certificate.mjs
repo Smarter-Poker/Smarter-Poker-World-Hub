@@ -239,7 +239,10 @@ async function probeViewport(browser, storageState, viewport) {
 
     await waitForPanel(page, 'floor', 'Live Floor');
     await waitForApi(apiStatuses, '/api/horses/floor-admin');
-    await page.getByText('Owner Pause, Resume And Empty-Table Close Stay In Club Arena.', { exact: false }).waitFor({ state: 'visible' });
+    await page.getByText('Live Table Evidence With Global Pause, Park, Resume And Cash-Table Closure.', { exact: false }).waitFor({ state: 'visible' });
+    await waitForApi(apiStatuses, '/api/horses/engine-control');
+    await page.getByText('Engine Command Contract Is Unverified.', { exact: false }).waitFor({ state: 'detached', timeout: 20_000 });
+    requireCondition(await page.getByText('Engine Command Contract Is Unverified.', { exact: false }).count() === 0, `${viewport.name}_engine_contract_unverified`);
     await assertNoOverflow(page, viewport, 'floor', overflowSamples);
 
     const floorReadsBeforeTournaments = apiStatuses.filter((entry) => entry.path === '/api/horses/floor-admin').length;
@@ -298,6 +301,7 @@ async function probeViewport(browser, storageState, viewport) {
 
     const requiredApiPaths = [
       '/api/horses/floor-admin',
+      '/api/horses/engine-control',
       '/api/horses/integrity-admin',
       '/api/horses/platform-admin',
       '/api/horses/economy-admin',

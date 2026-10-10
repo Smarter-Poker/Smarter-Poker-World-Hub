@@ -742,3 +742,23 @@ WHf01 safety38028340652 failed its documentation punctuation contract at
 05:47:28UTC: checkpoint used an en dash in the measured2.8-5s lock interval.
 That prose is corrected, unchanged no-dash assertion retained. Actual final
 local documentation contracts are rerun before normal submission.
+
+
+### Actual control disclosures and strict live contract, 05:51 UTC
+
+A final connected-source read found the genuine verifier awaiting removed
+old floor-ownership copy. Regression fails before and passes after matching
+the shipped disclosure. The same eight surfaces, two widths, stable exact
+deployment and strict GET/HEAD/OPTIONS fence remain; floor now also requires
+actual engine-control GET200 and verified available contract. Genuine scoped
+certificate therefore follows sealed engine activation. O7 real delivery can
+finish independently beforehand. Registry's static missing/notimplemented
+claims are replaced with actual stop scopes and preserved transaction exemptions,
+without inventing live switch state. Final focused34/34 and lint0 passed.
+
+Reserved matcher forward source proves real stale first group failure-before
+and16 valid hands after, unchanged1500ms budget and exact duplicate replay.
+Agent default11scenarios/169invariants passed; root independent run was invalid
+when supporting harness bytes changed during bash execution, never a pass.
+Final quiescent harness root repeat and explicitP13chain are running. No new
+production matcher migration installed; hourlyDDLwindow is now active.
