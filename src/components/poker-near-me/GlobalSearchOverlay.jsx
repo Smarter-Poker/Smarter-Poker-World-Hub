@@ -936,18 +936,18 @@ export default function GlobalSearchOverlay({
       // Missing catalogue fields are not confirmed game/stakes matches. Surface
       // that coverage gap separately instead of silently removing the filter.
       let list = venues;
+      const needsGames = intent.gameType === 'cash' || intent.gameType === 'live' || !!GAME_TYPE_PATTERNS[intent.gameType];
+      setMissingFilterCoverage(venues.filter(v => (needsGames && (!Array.isArray(v.games_offered) || !v.games_offered.length))
+        || (intent.stakes && (!Array.isArray(v.stakes_cash) || !v.stakes_cash.length))).length);
       if (intent.gameType === 'cash' || intent.gameType === 'live') {
-        setMissingFilterCoverage(list.filter(v => !Array.isArray(v.games_offered) || !v.games_offered.length).length);
         list = list.filter(v => Array.isArray(v.games_offered) && v.games_offered.length > 0);
         applied.gameType = true;
       }
       if (GAME_TYPE_PATTERNS[intent.gameType]) {
-        setMissingFilterCoverage(list.filter(v => !Array.isArray(v.games_offered) || !v.games_offered.length).length);
         list = list.filter(v => venueMatchesGameType(v, intent.gameType));
         applied.gameType = true;
       }
       if (intent.stakes) {
-        setMissingFilterCoverage(venues.filter(v => !Array.isArray(v.stakes_cash) || !v.stakes_cash.length).length);
         list = list.filter(v => venueMatchesStakes(v, intent.stakes));
         applied.stakes = true;
       }

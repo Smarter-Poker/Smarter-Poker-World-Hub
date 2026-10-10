@@ -115,6 +115,15 @@ test('the actual submit callback refuses an older cached failure after a newer r
   assert.equal(state.SearchError, false);
   assert.equal(state.IsLoading, false);
   assert.equal(state.VenueResults[0].id, 2);
+  const filtered = scope.submit(null, '1/2 PLO');
+  pending[2].resolve({ data: [
+    { id: 3, games_offered: ['PLO'], stakes_cash: ['$1/$2'] },
+    { id: 4, games_offered: [], stakes_cash: ['$1/$2'] },
+    { id: 5, games_offered: ['PLO'], stakes_cash: [] },
+  ], has_more: false });
+  await filtered;
+  assert.equal(state.VenueResults.length, 1);
+  assert.equal(state.MissingFilterCoverage, 2, 'combined filters retain the union of missing published evidence');
 });
 
 test('search exhausts published result pages before stakes filtering and refuses incomplete pages', async () => {
