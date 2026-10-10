@@ -149,7 +149,7 @@ function VenueCard({ venue }) {
             )}
             {venue.is_featured && <span>Featured Room</span>}
             {venue.trust_score > 0 && <span>Trust {Math.round(venue.trust_score)}</span>}
-            {venue.location_quality?.status === 'verified' && <span>Location Verified</span>}
+            {venue.location_quality?.status === 'verified' && <span>State-Coordinate Match</span>}
             {updatedLabel && <span>Updated {updatedLabel}</span>}
             <span>Open Venue Profile</span>
           </div>

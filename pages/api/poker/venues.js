@@ -16,6 +16,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { isPublicCanonicalVenue } from '../../../src/lib/poker-near-me/venueIntegrity';
 import allVenuesData from '../../../data/all-venues.json';
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -940,13 +941,13 @@ export default async function handler(req, res) {
 
                       if (!error && data) {
                           // Bug #6 Fix: reject suppressed venues even on direct ID lookup
-                          if (data.is_suppressed && data.canonical_venue_id) {
+                          if (data.canonical_venue_id != null) {
                               const { data: canonical, error: canonicalError } = await sb.from('poker_venues')
                                   .select('*')
                                   .eq('id', data.canonical_venue_id)
                                   .eq('is_active', true)
                                   .maybeSingle();
-                              if (!canonicalError && canonical) {
+                              if (!canonicalError && isPublicCanonicalVenue(canonical)) {
                                   venues = [{ ...canonical, canonical_redirect_from: data.id }];
                               } else {
                                   return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Canonical venue not found' } });

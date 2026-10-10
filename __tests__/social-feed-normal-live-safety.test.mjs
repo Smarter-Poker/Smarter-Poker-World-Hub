@@ -73,6 +73,8 @@ test('the probe uses the reported articles, waits through the removed timer, and
   assert.match(source, /Production deployment changed during the certificate/);
   assert.match(source, /failureArticleId = id/);
   assert.match(source, /mobile-article-\$\{id\}\.png/);
+  assert.match(source, /Certify the actual visible author words/);
+  assert.match(source, /authorLinks\.find/);
   assert.match(source, /context\.route\('\*\*\/\*'/);
   assert.match(source, /route\.abort\('blockedbyclient'\)/);
   assert.doesNotMatch(source, /\.click\(\{\s*force:\s*true/);

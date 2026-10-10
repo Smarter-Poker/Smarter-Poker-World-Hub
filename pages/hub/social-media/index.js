@@ -3813,6 +3813,45 @@ function SocialMediaPage() {
   // The post opened from a share link / notification, held so the feed load
   // that lands after it cannot drop it.
   const deepLinkPostRef = useRef(null);
+  const formatDeepLinkPost = (p) => {
+    if (!p?.id) return null;
+    const meta = p.metadata || {};
+    return {
+      id: p.id,
+      authorId: p.author_id,
+      content: p.content,
+      // Older news/article rows were published with a text-ish content_type
+      // but a real link_url. The normal feed formatter promotes those into
+      // link cards; deep links must do the same or the pinned card renders as
+      // plain text and never mounts ArticleCard's preview-image hydration.
+      contentType: p.link_url ? (p.content_type === 'article' ? 'article' : 'link') : p.content_type,
+      mediaUrls: p.media_urls || [],
+      thumbnailUrl: p.thumbnail_url || null,
+      thumbnail_url: p.thumbnail_url || null,
+      likeCount: p.like_count || 0,
+      commentCount: p.comment_count || 0,
+      shareCount: p.share_count || 0,
+      reactions: [],
+      isLiked: false,
+      isBookmarked: false,
+      viewCount: p.view_count || 0,
+      createdAt: p.created_at,
+      // Every other post-construction site sets this; without it the
+      // deep-linked post rendered with a blank timestamp.
+      timeAgo: timeAgo(p.created_at),
+      link_url: p.link_url || null,
+      link_title: p.link_title || null,
+      link_description: p.link_description || null,
+      link_image: p.link_image || null,
+      link_site_name: p.link_site_name || null,
+      metadata: meta,
+      author: {
+        name: meta.page_name || p.author?.display_name || p.author?.username || 'Player',
+        username: p.author?.username || null,
+        avatar: meta.page_avatar_url || p.author?.avatar_url || null,
+      },
+    };
+  };
   // "N new posts" pill — replaces the destructive full-feed reset on
   // realtime INSERT (2026-08-15 audit).
   const [newPostsCount, setNewPostsCount] = useState(0);
@@ -4850,38 +4889,8 @@ function SocialMediaPage() {
             const p = await fetchBrowserPost(String(postId));
             if (p) {
               processedPostIdRef.current = postId;
-              const meta = p.metadata || {};
-              const formatted = {
-                id: p.id,
-                authorId: p.author_id,
-                content: p.content,
-                contentType: p.content_type,
-                mediaUrls: p.media_urls || [],
-                thumbnailUrl: p.thumbnail_url || null,
-                thumbnail_url: p.thumbnail_url || null,
-                likeCount: p.like_count || 0,
-                commentCount: p.comment_count || 0,
-                shareCount: p.share_count || 0,
-                reactions: [],
-                isLiked: false,
-                isBookmarked: false,
-                viewCount: p.view_count || 0,
-                createdAt: p.created_at,
-                // Every other post-construction site sets this; without it the
-                // deep-linked post rendered with a blank timestamp.
-                timeAgo: timeAgo(p.created_at),
-                link_url: p.link_url || null,
-                link_title: p.link_title || null,
-                link_description: p.link_description || null,
-                link_image: p.link_image || null,
-                link_site_name: p.link_site_name || null,
-                metadata: meta,
-                author: {
-                  name: meta.page_name || p.author?.display_name || p.author?.username || 'Player',
-                  username: p.author?.username || null,
-                  avatar: meta.page_avatar_url || p.author?.avatar_url || null,
-                },
-              };
+              const formatted = formatDeepLinkPost(p);
+              if (!formatted) return;
               // Pin it. The mount effect's loadFeed() resolves later and calls
               // setPosts(formattedPosts), replacing the whole array - which
               // silently threw away every post opened from a share link or a
@@ -4899,7 +4908,11 @@ function SocialMediaPage() {
             // state finishes hydrating instead of permanently dropping the share.
             return;
           }
-          router.replace('/hub/social-media', undefined, { shallow: true });
+          // Keep ?post= in the URL until the initial feed load has completed.
+          // A replace here races the loadFeed safety pin: if the normal page
+          // fetch returns after the query is removed, an older shared article
+          // can be dropped back into the feed window and never hydrate its
+          // preview image in the live deep-link certificate.
         })();
       }
     }
@@ -5229,6 +5242,29 @@ function SocialMediaPage() {
         if (p.authorId && p.author) profileMap[p.authorId] = p.author;
       });
       if (Object.keys(profileMap).length > 0) feedCache.setProfiles(profileMap);
+
+      if (!append) {
+        const requestedPostId = Array.isArray(router.query.post)
+          ? router.query.post[0]
+          : router.query.post;
+        if (
+          requestedPostId
+          && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(requestedPostId))
+          && deepLinkPostRef.current?.id !== requestedPostId
+          && !formattedPosts.some((post) => post.id === requestedPostId)
+        ) {
+          try {
+            const linkedPost = await fetchBrowserPost(String(requestedPostId));
+            const formatted = formatDeepLinkPost(linkedPost);
+            if (formatted) {
+              deepLinkPostRef.current = formatted;
+              processedPostIdRef.current = requestedPostId;
+            }
+          } catch (e) {
+            console.warn('[post param] loadFeed pin failed:', e);
+          }
+        }
+      }
 
       if (append) {
         // Appends de-duplicate by id: raw-offset drift can hand back a row

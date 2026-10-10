@@ -1,5 +1,10 @@
 const VALID_LOCATION_STATES = new Set(['verified', 'border', 'approximate', 'unverified', 'missing', 'conflict']);
 
+export function isPublicCanonicalVenue(venue) {
+  return Boolean(venue && venue.is_active === true && venue.is_suppressed !== true
+    && venue.canonical_venue_id == null);
+}
+
 function coordinate(value) {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);

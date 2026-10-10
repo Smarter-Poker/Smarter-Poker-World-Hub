@@ -277,7 +277,7 @@ const PUBLIC_VENUE_FIELDS = [
   'latitude', 'longitude', 'lat', 'lng', 'phone', 'website',
   'hours', 'hours_weekday', 'hours_weekend',
   'poker_atlas_url', 'pokeratlas_url', 'has_tournaments',
-  'trust_score', 'is_featured', 'commander_enabled',
+  'trust_score', 'is_featured', 'commander_enabled', 'is_active',
   'profile_photo_url', 'cover_photo_url', 'logo_url',
   'about', 'tagline', 'slug', 'bravo_slug', 'pokeratlas_slug',
   'games_offered', 'stakes_cash', 'poker_tables',
@@ -2044,6 +2044,18 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
 
         {venue && (
           <>
+            {venue.is_active === false && (
+              <DeepRouteNotice
+                eyebrow="Venue Listing Status"
+                title="Confirm Before Visiting"
+                titleId="venue-inactive-title"
+                pill="Inactive Listing"
+                crest="locator"
+                body="This venue is not currently listed as active."
+                detail="This does not confirm a permanent closure. Contact the venue to confirm its poker room and schedule before making travel plans."
+                links={[{ href: '/hub/poker-near-me/venues', label: 'Browse Active Venues' }]}
+              />
+            )}
 
             <DeepRouteSignalDeck
               eyebrow="Venue intelligence"
