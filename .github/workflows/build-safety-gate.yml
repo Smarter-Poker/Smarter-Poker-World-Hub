@@ -175,6 +175,9 @@ jobs:
       - name: Poker Near Me Tour Calendar Truth
         run: node --test __tests__/poker-near-me-tour-calendar-truth.test.mjs __tests__/poker-near-me-tour-db-schedule.test.mjs __tests__/poker-near-me-tour-stop-scope.test.mjs __tests__/poker-near-me-data-truth.test.mjs __tests__/poker-near-me-coordinate-repair.test.mjs __tests__/poker-near-me-schedule-artifact-truth.test.mjs
 
+      - name: Poker Near Me Discovery Search Maps And Schedule Contracts
+        run: node --test __tests__/poker-near-me-console-search.test.mjs __tests__/poker-near-me-console-map.test.mjs __tests__/poker-near-me-phase-2.test.mjs
+
       - name: Poker Near Me Installed Collector Contracts
         run: |
           python3 scripts/test_tour_stealth_scraper.py

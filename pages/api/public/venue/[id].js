@@ -7,6 +7,8 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { canonicalPublicUrl } from '../../../../src/lib/publicOrigin.mjs';
 import { isPublicCanonicalVenue } from '../../../../src/lib/poker-near-me/venueIntegrity';
+import { readVenueTournamentRows, isServableDailyTournamentRow } from '../../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import { orderDiscoverySchedules } from '../../../../src/lib/poker-near-me/scheduleDiscovery.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -437,6 +439,7 @@ export default async function handler(req, res) {
       // response time of every venue page view. Each keeps its own try/catch
       // so one failing table still degrades to an empty section instead of
       // taking the whole payload down.
+      let dailyScheduleUnavailable = false;
       const [
         liveGames,
         tournaments,
@@ -506,21 +509,16 @@ export default async function handler(req, res) {
         // Daily tournament schedule
         (async () => {
           try {
-            const { data: dtData, error: dtError } = await getSupabase()
-              .from('venue_daily_tournaments')
-              .select('*')
-              .eq('venue_id', id)
-              .eq('is_active', true)
-              // Same visibility contract as every other consumer: without this,
-              // rows retired via data_quality='stale' (venue-scraper/receive.js)
-              // or suppression kept surfacing on the public venue page.
-              .in('data_quality', ['scraped_verified', 'scraped_inferred'])
-              .or('is_suppressed.is.null,is_suppressed.eq.false')
-              .order('day_of_week')
-              .limit(100);
-            if (dtError) console.warn('[venue-detail] Daily tournaments query error (pv path):', dtError.message);
-            return dtData || [];
+            const result = await readVenueTournamentRows(getSupabase(), id);
+            if (result.error || result.truncated) {
+              dailyScheduleUnavailable = true;
+              const error = result.error || new Error('Daily schedule read incomplete');
+              reportApiError(error, req);
+              return [];
+            }
+            return orderDiscoverySchedules(result.rows.filter(row => isServableDailyTournamentRow(row)));
           } catch (cmdErr) {
+            dailyScheduleUnavailable = true;
             console.warn('[venue-detail] Daily tournaments query failed (pv path):', cmdErr.message);
             reportApiError(cmdErr, req);
             return [];
@@ -614,6 +612,7 @@ export default async function handler(req, res) {
           live_games: liveGames,
           upcoming_tournaments: tournaments || [],
           daily_schedule: dailyTournaments || [],
+          daily_schedule_unavailable: dailyScheduleUnavailable,
           promotions: promotions || [],
           venue_news: venueNews || [],
           waitlist_stats: waitlistStats,

@@ -5,6 +5,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { PokerNearMePanelShell } from './PokerNearMeConsole';
+import { orderDiscoverySchedules } from '../../lib/poker-near-me/scheduleDiscovery.mjs';
 
 const SeriesCard = dynamic(() => import('./NewSeriesVenueCard'), { ssr: false });
 
@@ -227,7 +228,7 @@ export default function SeriesTabPanel({
     openVenueModal,
 }) {
     const seriesStateVal = filters.hubSeriesState || 'all';
-    let filteredSeries = series;
+    let filteredSeries = orderDiscoverySchedules(series);
     if (seriesStateVal !== 'all') {
         filteredSeries = filteredSeries.filter(s => s.state === seriesStateVal);
     }
@@ -252,6 +253,7 @@ export default function SeriesTabPanel({
             </div>
             <div className="results-bar">
                 <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredSeries.length}</span> Series</span>
+                <span className="results-count">Upcoming Dates First · Undated And Past Schedules Retained</span>
                 <div className="view-toggle">
                     <button className={'view-btn' + (seriesViewMode === 'grid' ? ' active' : '')} onClick={() => setSeriesViewMode('grid')}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>

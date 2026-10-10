@@ -360,6 +360,7 @@ export default function ClubPage() {
   const [reviews, setReviews] = useState([]);
   const [liveGames, setLiveGames] = useState([]);
   const [tournaments, setTournaments] = useState([]);
+  const [dailyScheduleUnavailable, setDailyScheduleUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
   const [isFollowing, setIsFollowing] = useState(false);
@@ -437,6 +438,7 @@ export default function ClubPage() {
       if (data.success) {
         setLiveGames(data.data.live_games || []);
         setTournaments(data.data.upcoming_tournaments || []);
+        setDailyScheduleUnavailable(data.data.daily_schedule_unavailable === true);
       }
     } catch (err) {
       if (err.name !== 'AbortError') console.warn('Live data refresh failed:', err);
@@ -459,6 +461,7 @@ export default function ClubPage() {
           setVenue(data.data.venue);
           setLiveGames(data.data.live_games || []);
           setTournaments(data.data.upcoming_tournaments || []);
+          setDailyScheduleUnavailable(data.data.daily_schedule_unavailable === true);
 
           // Use the resolved venue ID for subsequent calls (handles slug-based access)
           const resolvedId = data.data.venue.id || id;
@@ -1722,6 +1725,11 @@ export default function ClubPage() {
 
               {activeTab === 'events' && (
                 <div className="space-y-4">
+                  {dailyScheduleUnavailable && (
+                    <p role="status" className="text-sm text-[#6B7280]">
+                      Daily Schedule Unavailable. Contact The Venue To Confirm Its Published Schedule.
+                    </p>
+                  )}
                   {/* Live Tournaments */}
                   {tournaments.filter(t => ['running', 'break', 'final_table'].includes(t.status)).length > 0 && (
                     <div className="bg-white rounded-xl border border-[#10B981]/20 p-4">

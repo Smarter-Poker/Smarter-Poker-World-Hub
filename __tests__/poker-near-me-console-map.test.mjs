@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { haversineMiles } from '../src/components/poker-near-me/pnm-utils.js';
 import {
   attachPokerPopupViewportGuard,
   buildPokerRouteStopPopupHtml,
@@ -19,6 +20,81 @@ import {
 
 const root = new URL('../', import.meta.url);
 const source = (path) => readFile(new URL(path, root), 'utf8');
+
+test('an obsolete viewport response cannot replace current filters or Show All', async () => {
+  const panel = await source('src/components/poker-near-me/VenueMapPanel.jsx');
+  const body = panel.slice(panel.indexOf('async function searchCurrentMapArea()'), panel.indexOf('function resetMapArea()'));
+  let finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const writes = [];
+  const abortRef = { current: null };
+  const deps = {
+    viewportBoundsRef: { current: { north: 40, south: 30, east: -70, west: -90 } },
+    enableViewportSearch: true, areaSearchBusy: false, viewportAbortRef: abortRef,
+    mountedRef: { current: true }, viewportState: '', AbortController,
+    appendPokerMapBounds: p => p, URLSearchParams, fetch: () => pending,
+    baseVenuesRef: { current: [] }, isVenueWithinPokerMapBounds: () => true,
+    summarizeVenueIntegrity: () => ({}), setViewportVenues: v => writes.push(v),
+    setAreaSearchAvailable: () => {}, setAreaSearchBusy: () => {}, setAreaSearchError: () => {},
+    capturePokerNearMeEvent: () => {}, mapInstanceRef: { current: null }, clusteringAvailable: false,
+  };
+  const run = new Function(...Object.keys(deps), `${body}; return searchCurrentMapArea();`);
+  const result = run(...Object.values(deps));
+  abortRef.current.abort();
+  abortRef.current = null; // Show All/filter reset takes ownership away.
+  finish({ ok: true, json: async () => ({ success: true, data: [{ id: 'stale' }] }) });
+  await result;
+  assert.deepEqual(writes, [], 'an abort-ignoring transport still cannot publish obsolete results');
+  deps.fetch = async () => ({ ok: true, json: async () => ({ success: true, data: [{ id: 'current' }] }) });
+  await run(...Object.values(deps));
+  assert.deepEqual(writes, [[{ id: 'current' }]], 'the current owned response remains usable');
+  assert.match(panel, /\[baseGeoSignature, viewportState, radiusMiles, userLocation\]/);
+});
+
+test('absent radius preserves result framing while Any resets without GPS', async () => {
+  const mapSource = await source('src/components/poker-near-me/VenueMap.jsx');
+  const start = mapSource.indexOf('// ═══ DYNAMIC RADIUS ZOOM');
+  const effect = mapSource.slice(start);
+  const body = effect.slice(effect.indexOf('useEffect(() => {') + 'useEffect(() => {'.length, effect.indexOf('}, [radiusMiles'));
+  const calls = [];
+  const map = { removeLayer: () => {}, fitBounds: () => calls.push('national'), setView: () => calls.push('radius') };
+  const L = { latLng: (...v) => v, latLngBounds: (...v) => v, circle: () => ({ addTo: () => ({}) }) };
+  const run = new Function('radiusMiles', 'userLocation', 'centerLocation', 'mapReady', 'mapInstanceRef', 'radiusCircleRef', 'window', 'radiusToZoom', body);
+  run(undefined, { lat: 40, lng: -74 }, null, true, { current: map }, { current: null }, { L }, () => 10);
+  assert.deepEqual(calls, [], 'no radius is not an instruction to replace result bounds');
+  run('Any', null, null, true, { current: map }, { current: null }, { L }, () => 10);
+  assert.deepEqual(calls, ['national'], 'nationwide discovery must work with denied/unavailable GPS');
+  for (const radius of [25, 50, 100, 150, 200, 250, 500]) {
+    calls.length = 0;
+    run(radius, { lat: 40, lng: -74 }, null, true, { current: map }, { current: null }, { L }, () => 10);
+    assert.deepEqual(calls, ['radius'], `${radius} miles remains an actual radius`);
+  }
+  calls.length = 0;
+  run('invalid', { lat: 40, lng: -74 }, null, true, { current: map }, { current: null }, { L }, () => 10);
+  assert.deepEqual(calls, []);
+});
+
+test('map dossiers use the same spherical distance as discovery without mutating rows', async () => {
+  const map = await source('src/components/poker-near-me/VenueMap.jsx');
+  const start = map.indexOf('const distanceMap = new Map();');
+  const end = map.indexOf('// Update visible count', start);
+  const measure = new Function('validVenues', 'userLocation', 'haversineMiles', `${map.slice(start, end)} return distanceMap;`);
+  const venues = [{ id: 1, latitude: 34.0522, longitude: -118.2437 }];
+  const before = JSON.stringify(venues);
+  const distances = measure(venues, { lat: 40.7128, lng: -74.006 }, haversineMiles);
+  assert.equal(distances.get(1), haversineMiles(40.7128, -74.006, 34.0522, -118.2437));
+  assert.equal(JSON.stringify(venues), before);
+});
+
+test('map failures have direct list alternatives and unknown GPS remains requestable', async () => {
+  const [map, panel, tab] = await Promise.all([
+    source('src/components/poker-near-me/VenueMap.jsx'), source('src/components/poker-near-me/VenueMapPanel.jsx'), source('src/components/poker-near-me/MapTabPanel.jsx'),
+  ]);
+  for (const text of [map, panel, tab]) assert.match(text, /href="\/hub\/poker-near-me\/venues"/);
+  assert.match(tab, /\{requestGpsLocation && \(/);
+  assert.match(tab, /'Use my location'/);
+  assert.doesNotMatch(tab, /mapTitle="Live poker map"/);
+});
 
 function fakeLeaflet() {
   return { divIcon: (options) => ({ options }) };

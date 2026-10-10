@@ -138,10 +138,13 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   }, [scheduleKeyboardTargetSync]);
 
   useEffect(() => {
+    viewportAbortRef.current?.abort();
+    viewportAbortRef.current = null;
     setViewportVenues(null);
     setAreaSearchAvailable(false);
+    setAreaSearchBusy(false);
     setAreaSearchError('');
-  }, [baseGeoSignature, viewportState]);
+  }, [baseGeoSignature, viewportState, radiusMiles, userLocation]);
 
   // Keep callback ref current without triggering marker re-render
   useEffect(() => { onVenueSelectRef.current = onVenueSelect; }, [onVenueSelect]);
@@ -429,6 +432,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         headers: { Accept: 'application/json' },
       });
       const payload = await response.json().catch(() => null);
+      // Reset, changed filters or unmount revoke this request's ownership even
+      // if a transport completes after aborting.
+      if (!mountedRef.current || controller.signal.aborted || viewportAbortRef.current !== controller) return;
       if (!response.ok || payload?.success === false || !Array.isArray(payload?.data)) {
         throw new Error(payload?.error || `Area search returned ${response.status}`);
       }
@@ -460,9 +466,10 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         held_count: mergedIntegrity.held,
       });
     } catch (error) {
-      if (error?.name !== 'AbortError') setAreaSearchError('Area search unavailable · try again');
+      if (mountedRef.current && !controller.signal.aborted && viewportAbortRef.current === controller
+        && error?.name !== 'AbortError') setAreaSearchError('Area search unavailable · try again');
     } finally {
-      if (viewportAbortRef.current === controller) {
+      if (mountedRef.current && viewportAbortRef.current === controller) {
         viewportAbortRef.current = null;
         setAreaSearchBusy(false);
       }
@@ -483,7 +490,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     <MapSurfaceFrame
       className="pnm-map-surface--fill pnm-map-surface--primary"
       eyebrow="National discovery grid"
-      title="Find every poker room"
+      title="Explore poker rooms"
       detail={`${mappedVenueCount} mapped locations · pan the map to search another area`}
       onLayoutChange={handleMapLayoutChange}
     >
@@ -522,6 +529,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         <div className="pnm-map-status pnm-map-status--error" role="alert">
           <strong className="pnm-map-status__title">Map Unavailable</strong>
           <p>{mapError}</p>
+          <a className="pnm-map-status__action" href="/hub/poker-near-me/venues">Browse Venue List</a>
           <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }}>Try Map Again</button>
         </div>
       )}
