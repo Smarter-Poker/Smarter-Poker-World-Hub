@@ -130,6 +130,47 @@ class RuntimeProof(unittest.TestCase):
         self.assertEqual(runtime.run(self.root), 1)
         self.assertIn('release_missing', (self.root / 'runtime.log').read_text())
 
+    def test_runtime_log_stays_bounded_while_native_child_is_alive(self):
+        command = [
+            sys.executable, '-c',
+            'import time; print("old-" + "x" * 32768, flush=True); '
+            'time.sleep(0.4); print("collector-tail", flush=True)',
+        ]
+        with runtime.runtime_output(
+            self.root, max_bytes=4096, retain_bytes=1024, check_seconds=0,
+        ) as output:
+            code, terminating = runtime.supervise(
+                command, None, dict(os.environ), grace_seconds=0.2,
+                log_maintenance=output.maintain,
+            )
+        contents = (self.root / 'runtime.log').read_bytes()
+        self.assertEqual((code, terminating), (0, False))
+        self.assertLessEqual(len(contents), 4096)
+        self.assertIn(runtime.RUNTIME_LOG_BOUNDARY, contents)
+        self.assertIn(b'collector-tail', contents)
+        self.assertNotIn(b'old-', contents)
+
+    def test_final_log_failure_restores_descriptors_before_propagating(self):
+        probe_path = self.base / 'restored-stdout.log'
+        probe = os.open(probe_path, os.O_WRONLY | os.O_CREAT, 0o600)
+        saved_stdout = os.dup(1)
+        try:
+            os.dup2(probe, 1)
+            with patch.object(
+                runtime.BoundedRuntimeOutput, 'maintain', side_effect=[True, False],
+            ), self.assertRaisesRegex(runtime.RuntimeFault, 'runtime_log_unavailable'):
+                with runtime.runtime_output(self.root):
+                    os.write(1, b'captured-before-final-failure\n')
+            os.write(1, b'restored-after-final-failure\n')
+        finally:
+            os.dup2(saved_stdout, 1)
+            os.close(saved_stdout)
+            os.close(probe)
+        self.assertIn(
+            b'captured-before-final-failure', (self.root / 'runtime.log').read_bytes(),
+        )
+        self.assertEqual(probe_path.read_bytes(), b'restored-after-final-failure\n')
+
     def test_unavailable_runtime_log_prevents_collector_start(self):
         self.install()
         (self.root / 'runtime.log').mkdir()

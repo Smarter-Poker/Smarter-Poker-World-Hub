@@ -753,6 +753,8 @@ def retirable_stop_ids(existing_rows: list[dict], current_stops: list[dict],
     for row in existing_rows or []:
         if row.get("data_quality") != "scraped_inferred":
             continue
+        if row.get("event_number") is not None:
+            continue
         if row.get("scrape_script") != "tour_stealth_scraper.py":
             continue
         if str(row.get("source_url") or "").rstrip("/") != source_url.rstrip("/"):
@@ -794,9 +796,11 @@ def reactivatable_stop_matches(existing_rows: list[dict], current_stops: list[di
         for row in existing_rows or []
         if row.get("data_quality") in servable_qualities
     }
-    matches = []
+    matches_by_identity = {}
     for row in existing_rows or []:
         if row.get("data_quality") != "stale" or not row.get("id"):
+            continue
+        if row.get("event_number") is not None:
             continue
         if row.get("scrape_script") != "tour_stealth_scraper.py":
             continue
@@ -807,8 +811,10 @@ def reactivatable_stop_matches(existing_rows: list[dict], current_stops: list[di
             continue
         current = current_by_identity.get(identity)
         if current:
-            matches.append((row, current))
-    return matches
+            matches_by_identity.setdefault(identity, []).append((row, current))
+    # Historical duplicates have no implicit canonical owner. Leave them stale;
+    # main counts their unservable identity as rejected rather than reviving both.
+    return [matches[0] for matches in matches_by_identity.values() if len(matches) == 1]
 
 
 def refreshable_stop_matches(existing_rows: list[dict], current_stops: list[dict],
@@ -853,10 +859,26 @@ def refresh_stop_provenance(code: str, row: dict, stop: dict, source_url: str,
         'scrape_url', 'scrape_html_hash', 'scrape_timestamp', 'scrape_script',
         'notes',
     )}
+    return cas_stop_patch(code, row, patch)
+
+
+def reactivate_stop_from_preimage(code: str, row: dict, stop: dict,
+                                 source_url: str, html_hash: str,
+                                 scraped_at: str) -> bool:
+    """Restore only the still-owned stale preimage, never a concurrent edit."""
+    if not reactivatable_stop_matches([row], [stop], source_url):
+        return False
+    return cas_stop_patch(code, row, build_stop_row(
+        code, stop, source_url, html_hash, scraped_at,
+    ))
+
+
+def cas_stop_patch(code: str, row: dict, patch: dict) -> bool:
+    """Guard public identity, ownership and provenance; confirm exact readback."""
     expected = {key: row.get(key) for key in (
-        'id', 'stop_name', 'stop_start_date', 'stop_end_date', 'data_quality',
+        'id', 'stop_name', 'start_date', 'stop_start_date', 'stop_end_date', 'data_quality',
         'scrape_script', 'source_url', 'scrape_timestamp', 'scrape_html_hash',
-        'event_number',
+        'event_number', 'notes', 'event_name', 'stop_venue', 'stop_city', 'stop_state',
     )}
     expected['tour_code'] = code
     filt = '&'.join(
@@ -886,7 +908,7 @@ def refresh_stop_provenance(code: str, row: dict, stop: dict, source_url: str,
                 return False
         return True
     except Exception as exc:
-        log(f'  [REFRESH ERR] tour_stop_events: {type(exc).__name__}')
+        log(f'  [CAS ERR] tour_stop_events: {type(exc).__name__}')
         return False
 
 
@@ -1065,7 +1087,8 @@ def main():
                     "tour_stop_events",
                     f"?select=id,stop_name,stop_start_date,stop_end_date,start_date,"
                     f"data_quality,scrape_script,source_url,scrape_timestamp,"
-                    f"scrape_html_hash,event_number&tour_code=eq."
+                    f"scrape_html_hash,event_number,notes,event_name,stop_venue,"
+                    f"stop_city,stop_state&tour_code=eq."
                     f"{urllib.parse.quote(code)}",
                 )
                 if existing_rows is None:
@@ -1085,18 +1108,30 @@ def main():
                     refreshes = refreshable_stop_matches(
                         existing_rows, stops, effective_source_url,
                     )
+                    servable = {tour_stop_identity(row) for row in existing_rows
+                                if row.get('data_quality') in {
+                                    'scraped_verified', 'scraped_inferred', 'manual_research',
+                                }}
+                    restoring = {tour_stop_identity(row) for row, _stop in reactivations}
+                    blocked = sum(1 for stop in stops
+                                  if (identity := tour_stop_identity({
+                                      'stop_name': stop['stop_name'],
+                                      'stop_start_date': stop['start'],
+                                  })) in existing and identity not in servable
+                                  and identity not in restoring)
+                    if blocked:
+                        log(f"    {blocked} source identities have only unowned/unservable "
+                            "history; preserving those records and failing closed")
                     rows = [
                         build_stop_row(code, s, effective_source_url, hhash, now_iso)
                         for s in fresh
                     ]
-                    attempted = len(rows) + len(reactivations) + len(refreshes)
+                    attempted = len(rows) + len(reactivations) + len(refreshes) + blocked
                     written = sb_insert("tour_stop_events", rows)
                     for stale_row, current_stop in reactivations:
-                        patch = build_stop_row(
-                            code, current_stop, effective_source_url, hhash, now_iso,
-                        )
-                        if sb_patch_exact_ids(
-                            "tour_stop_events", [str(stale_row["id"])], patch,
+                        if reactivate_stop_from_preimage(
+                            code, stale_row, current_stop,
+                            effective_source_url, hhash, now_iso,
                         ):
                             written += 1
                     for observed_row, current_stop in refreshes:
@@ -1116,15 +1151,18 @@ def main():
                             existing_rows, stops, final_url or url,
                         )
                         if retire_ids:
-                            if sb_patch_exact_ids(
-                                "tour_stop_events", retire_ids,
-                                {"data_quality": "stale"},
-                            ):
+                            retire_set = set(retire_ids)
+                            retired = sum(cas_stop_patch(code, row, {"data_quality": "stale"})
+                                          for row in existing_rows
+                                          if str(row.get("id")) in retire_set)
+                            if retired == len(retire_ids):
                                 log(
                                     f"    retired {len(retire_ids)} inferred stop(s) "
                                     "no longer present on the complete source page"
                                 )
                             else:
+                                log(f"    {retired}/{len(retire_ids)} retirements confirmed; "
+                                    "changed owners preserved, no blind retry")
                                 source_errors += 1
             total_attempted += attempted
             total_written += written

@@ -408,6 +408,34 @@ class TourStopExtractionTests(unittest.TestCase):
 
 
 class TourSourceContractTests(unittest.TestCase):
+    def test_retirement_cas_refuses_concurrent_manual_owner_and_event_details(self):
+        row = self.owned_row()
+        self.assertEqual(scraper.retirable_stop_ids(
+            [dict(row, event_number=7)], [dict(self.current_stop(), stop_name='Other')],
+            row['source_url'], date(2026, 10, 10)), [])
+        current = dict(row, tour_code='WPT', data_quality='manual_research', notes='Curator edit')
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self): return b'[]'
+        def changed_owner(req, **_kwargs):
+            params = scraper.urllib.parse.parse_qs(scraper.urllib.parse.urlsplit(req.full_url).query)
+            self.assertEqual(params['data_quality'], ['eq.scraped_inferred'])
+            self.assertNotEqual(params['data_quality'], ['eq.' + current['data_quality']])
+            return Response()
+        with mock.patch.object(scraper.urllib.request, 'urlopen', side_effect=changed_owner):
+            self.assertFalse(scraper.cas_stop_patch('WPT', row, {'data_quality': 'stale'}))
+        self.assertEqual(current['data_quality'], 'manual_research')
+        self.assertEqual(current['notes'], 'Curator edit')
+
+    def test_duplicate_stale_summaries_and_event_details_are_not_reactivated(self):
+        row = dict(self.owned_row(), data_quality='stale')
+        stop = self.current_stop()
+        self.assertEqual(scraper.reactivatable_stop_matches(
+            [row, dict(row, id='duplicate-stale-owner')], [stop], row['source_url']), [])
+        self.assertEqual(scraper.reactivatable_stop_matches(
+            [dict(row, event_number=7)], [stop], row['source_url']), [])
+
     def owned_row(self):
         return {'id': '00000000-0000-0000-0000-000000000001', 'stop_name': 'Current Classic',
                 'stop_start_date': '2099-11-01', 'stop_end_date': '2099-11-10', 'start_date': '2099-11-01',
@@ -468,6 +496,34 @@ class TourSourceContractTests(unittest.TestCase):
             self.assertFalse(scraper.refresh_stop_provenance('WPT', row, self.current_stop(), row['source_url'], 'a' * 64, '2026-10-10T00:00:00Z'))
         transport.assert_not_called()
 
+    def test_reactivation_cas_preserves_foreign_or_concurrently_changed_owners(self):
+        row = dict(self.owned_row(), data_quality='stale', notes='Original source note',
+                   event_name='Current Classic', stop_venue='Original Venue')
+        stop, requests = self.current_stop(), []
+        now = '2026-10-10T04:30:00Z'
+        class Response:
+            def __init__(self, value): self.value = value
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self): return json.dumps(self.value).encode()
+        def write(req, **_kwargs):
+            requests.append(req)
+            return Response([dict(row, **json.loads(req.data))])
+        with mock.patch.object(scraper.urllib.request, 'urlopen', side_effect=write):
+            self.assertTrue(scraper.reactivate_stop_from_preimage('WPT', row, stop, row['source_url'], 'a' * 64, now))
+        params = scraper.urllib.parse.parse_qs(scraper.urllib.parse.urlsplit(requests[0].full_url).query)
+        for key in ('id', 'stop_name', 'start_date', 'stop_start_date', 'stop_end_date',
+                    'data_quality', 'scrape_script', 'source_url', 'scrape_timestamp',
+                    'scrape_html_hash', 'notes', 'event_name', 'stop_venue'):
+            self.assertEqual(params[key], ['eq.' + str(row[key])], key)
+        self.assertEqual(params['data_quality'], ['eq.stale'])
+        with mock.patch.object(scraper.urllib.request, 'urlopen', return_value=Response([])):
+            self.assertFalse(scraper.reactivate_stop_from_preimage('WPT', row, stop, row['source_url'], 'a' * 64, now))
+        with mock.patch.object(scraper.urllib.request, 'urlopen') as transport:
+            self.assertFalse(scraper.reactivate_stop_from_preimage('WPT', dict(row, scrape_script='manual.py'), stop, row['source_url'], 'a' * 64, now))
+            self.assertFalse(scraper.reactivate_stop_from_preimage('WPT', dict(row, data_quality='manual_research'), stop, row['source_url'], 'a' * 64, now))
+        transport.assert_not_called()
+
     def test_existing_current_rows_count_actual_refresh_confirmation_and_failure(self):
         session = mock.Mock()
         for succeeds in (True, False):
@@ -500,6 +556,39 @@ class TourSourceContractTests(unittest.TestCase):
             self.assertEqual(heartbeats[-1]['records_written'], 10 * int(succeeds))
             self.assertEqual(heartbeats[-1]['records_rejected'], 10 * int(not succeeds))
             self.assertEqual(registry_updates[-1][2], 'active' if succeeds else 'error')
+
+    def test_foreign_stale_identity_cannot_claim_a_servable_schedule(self):
+        for writer in ('manual.py', 'tour_stealth_scraper.py'):
+            self.assert_unservable_identity_fails_closed(writer)
+
+    def assert_unservable_identity_fails_closed(self, writer):
+        row = dict(self.owned_row(), data_quality='stale', scrape_script=writer)
+        heartbeats, registry_updates = [], []
+        session = mock.Mock()
+        with mock.patch.object(sys, 'argv', ['tour_stealth_scraper.py']), \
+             mock.patch.object(scraper, 'SUPABASE_KEY', 'offline-key'), \
+             mock.patch.object(scraper, 'load_tours', return_value=[('WPT', 'World Poker Tour', row['source_url'])]), \
+             mock.patch.object(scraper, 'create_session', return_value=session), \
+             mock.patch.object(scraper, 'fetch_page', return_value=('poker schedule ' * 100, 'a' * 64, session, row['source_url'])), \
+             mock.patch.object(scraper, 'tour_page_identity', return_value=(True, 'source_owned')), \
+             mock.patch.object(scraper, 'extract_stops', return_value=[self.current_stop()]), \
+             mock.patch.object(scraper, 'sb_get', return_value=[row]), \
+             mock.patch.object(scraper, 'sb_insert', return_value=0) as insert, \
+             mock.patch.object(scraper, 'sb_patch_exact_ids') as patch, \
+             mock.patch.object(scraper, 'reactivate_stop_from_preimage', return_value=False) as reactivate, \
+             mock.patch.object(scraper, 'update_tour_registry', side_effect=lambda *args: registry_updates.append(args) or True), \
+             mock.patch.object(scraper, 'write_heartbeat', side_effect=lambda **kw: heartbeats.append(kw)), \
+             mock.patch.object(scraper.time, 'sleep'):
+            with self.assertRaises(SystemExit) as stopped:
+                scraper.main()
+            self.assertEqual(stopped.exception.code, 1)
+        insert.assert_called_once_with('tour_stop_events', [])
+        patch.assert_not_called()
+        self.assertEqual(reactivate.call_count, int(writer == 'tour_stealth_scraper.py'))
+        self.assertEqual(heartbeats[-1]['records_attempted'], 1)
+        self.assertEqual(heartbeats[-1]['records_written'], 0)
+        self.assertEqual(heartbeats[-1]['records_rejected'], 1)
+        self.assertEqual(registry_updates[-1][2], 'error')
 
     def test_legacy_tour_publishers_are_fail_disabled(self):
         self.assertTrue(legacy_full.LEGACY_TOUR_WRITES_DISABLED)

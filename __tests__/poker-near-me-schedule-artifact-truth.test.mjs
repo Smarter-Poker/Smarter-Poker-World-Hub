@@ -90,6 +90,21 @@ test('dated one-offs retain source dates and cannot project past dates into futu
   assert.equal(group.schedules[0].day_of_week, '2026-10-12');
 });
 
+test('one-offs remain available through their Eastern business day across UTC midnight and DST', () => {
+  for (const [eventDate, eveningUtc, nextEasternDayUtc] of [
+    ['2026-10-09', '2026-10-10T02:00:00Z', '2026-10-10T04:00:00Z'],
+    ['2026-01-09', '2026-01-10T04:59:59Z', '2026-01-10T05:00:00Z'],
+    ['2026-07-09', '2026-07-10T03:59:59Z', '2026-07-10T04:00:00Z'],
+  ]) {
+    const row = { ...base, tournament_name: 'Evening Festival', is_recurring: false, event_date: eventDate };
+    assert.equal(qualifyVenueTournamentRows([row], Date.parse(eveningUtc)).length, 1, eventDate);
+    const grouped = groupVenueDailyTournamentRows([row], Date.parse(eveningUtc));
+    assert.equal(grouped[0].schedules[0].event_date, eventDate);
+    assert.equal(grouped[0].schedules[0].day_of_week, eventDate);
+    assert.deepEqual(qualifyVenueTournamentRows([row], Date.parse(nextEasternDayUtc)), []);
+  }
+});
+
 function scheduleClient(rows, failOffset = -1) {
   const calls = [];
   return { calls, from(table) {

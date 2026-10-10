@@ -427,7 +427,13 @@ export function dailyTournamentDedupKey(tournament) {
 
 /** Public profiles must qualify the same source rows as daily discovery. */
 export function qualifyVenueTournamentRows(rows, nowMs = Date.now()) {
-  const today = new Date(nowMs).toISOString().slice(0, 10);
+  // Daily discovery and directory previews use the Eastern business day.
+  // UTC midnight must not retire an event while that day is still in progress.
+  const dateParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date(nowMs));
+  const part = type => dateParts.find(value => value.type === type).value;
+  const today = `${part('year')}-${part('month')}-${part('day')}`;
   return (rows || []).flatMap(row => {
     const name = decodeScrapedTournamentText(row?.tournament_name);
     if (!name || !['scraped_verified', 'scraped_inferred'].includes(row?.data_quality)

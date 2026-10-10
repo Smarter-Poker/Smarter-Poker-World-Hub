@@ -46,6 +46,10 @@ SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
 # library, so it keeps a mirror; scripts/test_operational_alerts.py fails CI if
 # the mirror differs.
 FLEET_TASK_ID = '01a09b86-5ba8-7290-8657-1041f13dd3ca'
+RUNTIME_LOG_MAX_BYTES = 8 * 1024 * 1024
+RUNTIME_LOG_RETAIN_BYTES = 2 * 1024 * 1024
+RUNTIME_LOG_CHECK_SECONDS = 1.0
+RUNTIME_LOG_BOUNDARY = b'[runtime] older output discarded at size bound\n'
 
 
 class RuntimeFault(RuntimeError):
@@ -301,10 +305,11 @@ def install(repository, revision, root, state, inputs, python,
     return manifest
 
 
-def supervise(argv, cwd, env, grace_seconds=10):
+def supervise(argv, cwd, env, grace_seconds=10, log_maintenance=None):
     """Own one process group, including a stop arriving during child startup."""
     child = None
     termination = None
+    log_failed = False
     def stop(signum, _frame):
         nonlocal termination
         if termination is None:
@@ -322,8 +327,19 @@ def supervise(argv, cwd, env, grace_seconds=10):
             stop(termination[0], None)
         while True:
             try:
-                return child.wait(timeout=0.2), termination is not None
+                code = child.wait(timeout=0.2)
+                if log_failed:
+                    raise RuntimeFault('runtime_log_unavailable')
+                return code, termination is not None
             except subprocess.TimeoutExpired:
+                if log_maintenance is not None and not log_failed:
+                    try:
+                        log_ok = log_maintenance()
+                    except Exception:
+                        log_ok = False
+                    if not log_ok:
+                        log_failed = True
+                        stop(signal.SIGTERM, None)
                 if termination is not None and time.monotonic() - termination[1] >= grace_seconds:
                     try:
                         os.killpg(child.pid, signal.SIGKILL)
@@ -334,8 +350,55 @@ def supervise(argv, cwd, env, grace_seconds=10):
         signal.signal(signal.SIGINT, old_int)
 
 
+class BoundedRuntimeOutput:
+    """Bound one append-only log without a second process or schedule."""
+
+    def __init__(self, path, descriptor, max_bytes=RUNTIME_LOG_MAX_BYTES,
+                 retain_bytes=RUNTIME_LOG_RETAIN_BYTES,
+                 check_seconds=RUNTIME_LOG_CHECK_SECONDS):
+        if (not isinstance(max_bytes, int) or not isinstance(retain_bytes, int)
+                or max_bytes <= len(RUNTIME_LOG_BOUNDARY)
+                or retain_bytes < 0
+                or retain_bytes > max_bytes - len(RUNTIME_LOG_BOUNDARY)
+                or check_seconds < 0):
+            raise RuntimeFault('runtime_log_configuration_invalid')
+        self.path = Path(path)
+        self.descriptor = descriptor
+        self.max_bytes = max_bytes
+        self.retain_bytes = retain_bytes
+        self.check_seconds = check_seconds
+        self.next_check = 0.0
+
+    def maintain(self, force=False):
+        """Retain the newest complete output and keep the active inode bounded."""
+        now = time.monotonic()
+        if not force and now < self.next_check:
+            return True
+        self.next_check = now + self.check_seconds
+        try:
+            size = os.fstat(self.descriptor).st_size
+            if size <= self.max_bytes:
+                return True
+            start = max(0, size - self.retain_bytes)
+            with self.path.open('rb', buffering=0) as source:
+                source.seek(start)
+                tail = source.read(self.retain_bytes)
+            if start:
+                newline = tail.find(b'\n')
+                tail = tail[newline + 1:] if newline >= 0 else b''
+            os.ftruncate(self.descriptor, 0)
+            os.write(self.descriptor, RUNTIME_LOG_BOUNDARY)
+            if tail:
+                os.write(self.descriptor, tail)
+            return os.fstat(self.descriptor).st_size <= self.max_bytes
+        except OSError:
+            return False
+
+
 @contextlib.contextmanager
-def runtime_output(root):
+def runtime_output(root, max_bytes=RUNTIME_LOG_MAX_BYTES,
+                   retain_bytes=RUNTIME_LOG_RETAIN_BYTES,
+                   check_seconds=RUNTIME_LOG_CHECK_SECONDS):
     """Python owns SSD logging; launchd never opens removable-volume paths.
 
     Capture native child output and runner failures in the same durable log.
@@ -347,32 +410,45 @@ def runtime_output(root):
         destination = os.open(root / 'runtime.log', os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
     except OSError:
         raise RuntimeFault('runtime_log_unavailable') from None
+    output = BoundedRuntimeOutput(
+        root / 'runtime.log', destination, max_bytes, retain_bytes, check_seconds,
+    )
+    if not output.maintain(force=True):
+        os.close(destination)
+        raise RuntimeFault('runtime_log_unavailable')
     original = []
+    final_log_ok = True
     try:
         for stream, descriptor in ((sys.stdout, 1), (sys.stderr, 2)):
             stream.flush()
             original.append((descriptor, os.dup(descriptor)))
             os.dup2(destination, descriptor)
-        yield
+        yield output
     finally:
         sys.stdout.flush()
         sys.stderr.flush()
+        try:
+            final_log_ok = output.maintain(force=True)
+        except Exception:
+            final_log_ok = False
         for descriptor, saved in original:
             os.dup2(saved, descriptor)
             os.close(saved)
         os.close(destination)
+        if not final_log_ok:
+            raise RuntimeFault('runtime_log_unavailable')
 
 
 def run(root):
     try:
-        with runtime_output(root):
-            return run_logged(root)
+        with runtime_output(root) as output:
+            return run_logged(root, output.maintain)
     except (OSError, RuntimeFault):
         print('runtime_log_unavailable', file=sys.stderr, flush=True)
         return 1
 
 
-def run_logged(root):
+def run_logged(root, log_maintenance=None):
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (root / 'run.lock').open('a') as lock:
         try:
@@ -398,7 +474,9 @@ def run_logged(root):
             argv = [config['python'], str(release / files[0])]
             if component == 'series':
                 argv.append('--daemon')
-            code, terminating = supervise(argv, release, env)
+            code, terminating = supervise(
+                argv, release, env, log_maintenance=log_maintenance,
+            )
             if terminating:
                 return 0
             if component == 'tours' and code == 0:
