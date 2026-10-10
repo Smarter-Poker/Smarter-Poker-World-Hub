@@ -1,6 +1,6 @@
 # Stable Admin Operator Runbook
 
-Effective 2026-10-06. Route: `https://smarter.poker/horses`.
+Effective 2026-10-10. Route: `https://smarter.poker/horses`.
 
 This is the operating guide for the platform back office. It is not a club,
 union or agent manual. Open the console through an authorized staff account,
@@ -116,22 +116,76 @@ is denied, and fn_is_horse_admin resolves fleet.read through the current
 operator permission function. Club Arena legacy read POSTs are semantic reads;
 HTTP method alone is not evidence that those reads mutate records.
 
-P3 restrictions disclose enforcement off/unknown and do not guarantee complete
-transfer/social/logout/paid-tournament convergence. O1/O2 preserve floor and
-tournament write authority in Club Arena/engine. O7 proves export preparation,
-not delivered or saved files. C2 has no global maintenance command API. C4
-lacks global registration, positive issuance and a dedicated cashout kill;
-scheduled maintenance is not a dedicated cashout kill. These boundaries prevent
-a claim of a complete universal control plane and must remain visible to staff.
+The six carried capabilities P3, O1, O2, O7, C2 and C4 operate through their
+named owners. Native qualifications cover permission/refusal, transactional
+rollback and concurrency on synthetic rows. Installed SQL is a separate layer
+from serving APIs, engine activation and live certificates. The final score is
+79 Resolved, four Resolved Elsewhere, zero Partial and zero Open only after the
+current delivery receipts in the canonical handoff satisfy the finite gates.
+This does not certify every production write, every tab live, all gameplay or
+financial scenarios, regulation compliance or a universal control plane.
+
+## Six Supported Command Workflows
+
+1. **P3 player controls:** open Player 360, choose the restriction scope and
+   reason, then submit restriction, lift or targeted logout once. Retain its
+   durable UUID and returned audit identity. Restrictions converge at cash,
+   paid tournament, transfer and social transaction owners. Enforcement remains
+   policy-controlled and off by default; targeted logout is a distinct session
+   command. An Unknown response requires reading the original operation before
+   retrying, and an account change cannot reuse another operator's request.
+2. **O1 floor controls:** compare engine/database state, enter a reason and
+   submit pause, park, resume or cash-table close once with the durable UUID.
+   Existing hands finish before the boundary; chips and diamonds leave through
+   the original occupancy cashout owners. Confirm persisted intent and engine
+   observation. Cash-table closure does not imply tournament closure or removal
+   of unrelated pause owners. Preserve an Unknown request's identity.
+3. **O2 tournament cancellation:** select a pre-play eligible event, review
+   exposure and roster, and submit a reason-coded cancel/refund with its durable
+   UUID. A Pending Approval response refunds nothing; retain approval identity
+   and execute the same reviewed operation after the current policy permits it.
+   Verify the immutable receipt and funded money/ticket returns. Started or
+   awarded events are refused and must be resumed or settled by their owners.
+   Maker-checker remains policy-controlled; approvals are disabled by default.
+4. **O7 private exports:** request the authoritative filtered report once and
+   retain the real job ID. Refresh progress; resume only that original eligible
+   job. Inspect completeness and explicitly acknowledge truncation before
+   download. Verify actual downloaded bytes and SHA-256 against the terminal job;
+   truncated delivery retains complete=false. Jobs support cancellation, seven-day expiry and removal; caps remain 20,000
+   rows and 16 MB. A prepared receipt is not a delivered private artifact.
+5. **C2 hourly maintenance:** read the original owner state, supply a reason and
+   durable UUID, then Start to queue the next existing hourly announcement.
+   Cancel is permitted only before claim. End retains the original owner and
+   deadline; it does not create a second break. The two-minute lead, five-minute
+   break, full 285-second reserve and v3 thaw stay with the maintenance owner.
+6. **C4 emergency stops:** read the versioned registration, positive issuance
+   or cashout stop and its permission boundary, then submit the desired state,
+   reason, expected version and durable UUID. A CAS conflict requires fresh
+   state and review. Confirm returned version and audit identity. All three
+   stops install false at version 0. They guard new registration/rebuys/add-ons,
+   issuance and cashout admission/approval/execution in original transactions;
+   existing hands, funded refunds, burns and permitted transfers retain owners.
 
 ## 7. Verified Launch Boundary
 
-Runtime publication and genuine authenticated read certification passed on
-2026-10-10 UTC (October 9 Central). The 28-tab catalogue and 47 nested sections
-have fixture navigation/rendering evidence; genuine production certification
-covers the eight named read surfaces at desktop and 375px, with no writes.
-This qualifies oversight and existing permission-bound workflows. It does not
-add the six Partial capabilities or certify every possible operator mutation.
-Dedicated cashout, global tournament-registration and positive-issuance kill
-controls remain missing; scheduled maintenance is not a dedicated cashout kill.
-Final documentation protected integration is recorded separately.
+Runtime verification is COMPLETE within the six-capability scope. Protected
+PR #6634 source `052899dd3f52a2d9367ef0eec8dcc33bdbd74071` passed exact-head
+checks; normal `38046257851` qualified it against retained serving client
+`44b07e12c9df6f04d74e0d2c67277e63b9b12b15` at both origins. Actual production
+browser `38046325420` passed both strict CSP cases over eight real routes,
+zero collected violations, 477 executed cases, zero failures/flaky cases and
+two existing unrelated skips. Its four required mobile live-table cases passed;
+reserved accounts were hard-deleted and absence verified. Original scoped
+engine, read-surface, O7 artifact and customization receipts retain their own
+boundaries. Protected final documentation integration and owned cleanup are
+separately tracked in the canonical handoff.
+
+The 28-tab catalogue and 47 nested sections retain
+fixture navigation/rendering evidence. Genuine production certification covers
+only its eight named read surfaces at desktop and 375px with no writes. O7
+requires its separate real request/job/download certificate, including bytes,
+SHA-256 and a stable serving deployment bracket. A terminal truncated download must be explicitly acknowledged and retains
+`complete=false`; it is not a complete report. Native mutation qualification
+and eight capability SQL receipts plus the ninth supporting theme repair receipt do not substitute for either live certificate.
+Enforcement remains off, approvals disabled and all three stops false unless an
+operator separately changes the established policy or control through its owner.
