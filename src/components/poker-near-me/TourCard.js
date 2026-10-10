@@ -1,6 +1,7 @@
 import React from 'react';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell, usePnmConsoleFitText } from './PokerNearMeConsole';
 import { safeImageUrl } from '../../lib/security/imageHosts.js';
+import { discoveryDate, nextTourSchedule } from '../../lib/poker-near-me/scheduleDiscovery.mjs';
 
 /**
  * TourCard - Poker tour card for Poker Near Me page
@@ -85,6 +86,8 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
     const displayName = tour.tour_name || tour.name || 'Unknown Tour';
     const displayLocation = tour.headquarters || ((tour.city || '') + (tour.city && tour.state ? ', ' : '') + (tour.state || ''));
     const detailUrl = tour.tour_code ? '/hub/tours/' + tour.tour_code : '/hub/venues/' + tour.id;
+    const nextSchedule = nextTourSchedule(tour);
+    const scheduleLabel = nextSchedule?.start_date < discoveryDate() ? 'Ongoing' : 'Next';
 
     // For venue-table entries, derive a short code from the name
     const shortCode = tour.tour_code || (tour.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'TOUR';
@@ -149,10 +152,10 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                     {tour.games_offered.slice(0, 4).map((g, i) => <span key={g || i} className="tag game">{g}</span>)}
                 </div>
             )}
-            {Array.isArray(tour.upcoming_series) && tour.upcoming_series.length > 0 && (
+            {nextSchedule && (
                 <div className="upcoming-series">
-                    <span className="upcoming-label">Next: {tour.upcoming_series[0]?.short_name || tour.upcoming_series[0]?.name}</span>
-                    <span className="upcoming-date">{formatDate(tour.upcoming_series[0]?.start_date)}</span>
+                    <span className="upcoming-label">{scheduleLabel}: {nextSchedule.short_name || nextSchedule.name || nextSchedule.series_name || 'Published Schedule'}</span>
+                    <span className="upcoming-date">{formatDate(nextSchedule.start_date || nextSchedule.event_date)}</span>
                 </div>
             )}
             <div className="card-footer">
