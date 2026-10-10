@@ -38,6 +38,10 @@ test('qualification requires persisted hide and consumer withholding, not false 
   const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
   assert.match(source, /stillPending\.status, 'pending'/);
   assert.match(source, /ordinary member feed exposed hidden post/);
+  assert.match(source, /https:\/\/commander\.smarter\.poker\/api\/home-games\/\$\{encodeURIComponent\(group\.id\)\}\/posts/);
+  assert.match(source, /canonicalPostsResponse\.status, 200/);
+  assert.match(source, /canonicalPosts\.data\.posts\.some\(post => post\.id === nativePostId\)/);
+  assert.match(source, /canonicalCommanderHiddenPostWithheld = true/);
   assert.match(source, /dependentRowsAbsent = true/);
   assert.match(source, /scrollWidth, observation\.clientWidth/);
   assert.match(source, /ordinary member received host management control/);

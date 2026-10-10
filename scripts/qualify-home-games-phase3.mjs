@@ -365,6 +365,17 @@ export async function qualify(env = process.env) {
     const ordinaryPosts = await api(`/api/commander/home-games/${group.id}/posts`, stranger);
     assert.equal(ordinaryPosts.status, 200);
     assert.ok(!JSON.stringify(ordinaryPosts.data).includes(nativePostId), 'ordinary member feed exposed hidden post');
+    // The maintained Commander origin is independently reachable. Qualify
+    // the same owned hidden row there, not only World Hub's safer reader.
+    const canonicalPostsResponse = await fetch(`https://commander.smarter.poker/api/home-games/${encodeURIComponent(group.id)}/posts`, {
+      headers: { Authorization: `Bearer ${stranger.token}` },
+      redirect: 'error', signal: AbortSignal.timeout(30000),
+    });
+    assert.equal(canonicalPostsResponse.status, 200, 'canonical Commander post reader unavailable');
+    const canonicalPosts = await canonicalPostsResponse.json();
+    assert.ok(Array.isArray(canonicalPosts.data?.posts), 'canonical Commander post response malformed');
+    assert.ok(!canonicalPosts.data.posts.some(post => post.id === nativePostId), 'canonical Commander exposed hidden post');
+    receipt.checks.canonicalCommanderHiddenPostWithheld = true;
     receipt.checks.nativeReportAndHostHidePersisted = true;
     await qualifyBrowserConsumers({ users, group, marker, observations: receipt.browser, moderationSlug: page.slug });
     const discoveryPath = `/api/public/home-games/discover?state=TX&city=Austin&search=${encodeURIComponent(marker)}&limit=100&qualification=${runId}`;
