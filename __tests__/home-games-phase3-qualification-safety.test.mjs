@@ -55,6 +55,22 @@ test('qualification refuses missing mode, foreign database and unqualified revis
   assert.throws(() => validateConfiguration({ ...valid, HOME_GAMES_EXPECTED_SHA: 'main' }));
 });
 
+test('browser verifies real report dialog without submission and hidden pending host queue after persistence', () => {
+  const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
+  assert.match(source, /getByRole\('dialog', \{ name: 'Report Home Game Post'/);
+  assert.match(source, /getByRole\('combobox', \{ name: 'Concern'/);
+  assert.match(source, /getByRole\('textbox', \{ name: 'Describe the concern'/);
+  assert.match(source, /Submit Report', exact: true \}\)\.isDisabled\(\), true/);
+  assert.match(source, /keyboard\.press\('Escape'\)/);
+  assert.match(source, /report dialog failed focus restoration/);
+  assert.match(source, /report dialog horizontal overflow/);
+  assert.match(source, /getByRole\('tab', \{ name: 'Moderation'/);
+  assert.match(source, /Hidden \/ Awaiting Review/);
+  assert.match(source, /Reports Remain Pending Platform Review/);
+  assert.match(source, /nativeReportAndHostHidePersisted = true;\s+await qualifyBrowserConsumers\([^;]+moderationSlug: page\.slug/);
+  assert.doesNotMatch(source, /Submit Report[^\n]+\.click\(/);
+});
+
 test('fixture cleanup requires exact group ID, host and unique run marker', () => {
   const group = { id: '00000000-0000-4000-8000-000000000001', owner_id: 'host', name: 'PNM Qualification own-run' };
   assertOwnedGroup(group, 'host', group.name);

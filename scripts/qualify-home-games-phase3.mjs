@@ -43,12 +43,14 @@ export function createOperationKeys(makeKey = randomUUID) {
   };
 }
 
-export async function qualifyBrowserConsumers({ users, group, marker, observations = [] }) {
+export async function qualifyBrowserConsumers({ users, group, marker, observations = [], moderationSlug = null }) {
   const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
   try {
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
-      for (const scenario of [
+      for (const scenario of moderationSlug ? [
+        { role: 'host', name: 'moderation', path: `/hub/home-games/${encodeURIComponent(moderationSlug)}/dashboard` },
+      ] : [
         { role: 'host', name: 'create', path: '/hub/commander/home-games/create', heading: 'Host A Home Game' },
         { role: 'host', name: 'detail', path: `/hub/commander/home-games/${group.id}`, heading: marker },
         { role: 'member', name: 'member-detail', path: `/hub/commander/home-games/${group.id}`, heading: marker },
@@ -79,14 +81,40 @@ export async function qualifyBrowserConsumers({ users, group, marker, observatio
           const response = await page.goto(`https://smarter.poker${scenario.path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
           observation.httpStatus = response?.status();
           assert.equal(observation.httpStatus, 200, `${scenario.name} document failed`);
-          await page.getByRole('heading', { name: scenario.heading, exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+          if (scenario.heading) await page.getByRole('heading', { name: scenario.heading, exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+          if (scenario.name === 'moderation') {
+            await page.getByRole('tab', { name: 'Moderation', exact: true }).click({ timeout: 30000 });
+            const panel = page.getByRole('tabpanel', { name: 'Moderation', exact: true });
+            await panel.getByText(marker, { exact: false }).first().waitFor({ state: 'visible', timeout: 30000 });
+            const hidden = panel.getByRole('button', { name: 'Hidden / Awaiting Review', exact: true });
+            await hidden.waitFor({ state: 'visible', timeout: 30000 });
+            assert.equal(await hidden.isDisabled(), true, 'already hidden report exposes another hide action');
+            await panel.getByText('Reports Remain Pending Platform Review.', { exact: false }).waitFor({ state: 'visible' });
+            observation.hiddenAwaitingPlatformReviewVisible = true;
+          }
           if (scenario.name === 'detail' || scenario.name === 'member-detail') {
             await page.locator('main p').filter({ hasText: marker }).first().waitFor({ state: 'visible', timeout: 30000 });
             observation.nativePostVisible = true;
             const manage = page.getByRole('button', { name: 'Manage home game', exact: true });
             if (scenario.role === 'host') {
               await manage.waitFor({ state: 'visible', timeout: 10000 });
-              await page.getByRole('button', { name: 'Report this Home Game post', exact: true }).waitFor({ state: 'visible', timeout: 10000 });
+              const report = page.getByRole('button', { name: 'Report this Home Game post', exact: true }).first();
+              await report.waitFor({ state: 'visible', timeout: 10000 });
+              await report.focus();
+              await report.click();
+              const dialog = page.getByRole('dialog', { name: 'Report Home Game Post', exact: true });
+              await dialog.waitFor({ state: 'visible' });
+              await dialog.getByRole('combobox', { name: 'Concern', exact: true }).waitFor({ state: 'visible' });
+              await dialog.getByRole('textbox', { name: 'Describe the concern', exact: true }).waitFor({ state: 'visible' });
+              assert.equal(await dialog.getByRole('button', { name: 'Submit Report', exact: true }).isDisabled(), true);
+              await dialog.getByRole('button', { name: 'Cancel', exact: true }).focus();
+              assert.equal(await dialog.evaluate(node => node.contains(document.activeElement)), true);
+              assert.equal(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth), true, 'report dialog horizontal overflow');
+              assert.equal(await page.evaluate(() => document.documentElement.scrollWidth === document.documentElement.clientWidth), true);
+              await page.keyboard.press('Escape');
+              await dialog.waitFor({ state: 'hidden' });
+              assert.equal(await report.evaluate(node => node === document.activeElement), true, 'report dialog failed focus restoration');
+              observation.reportDialogReadOnlyVerified = true;
               observation.hostManagementVisible = true;
               observation.reportControlVisible = true;
             } else {
@@ -338,6 +366,7 @@ export async function qualify(env = process.env) {
     assert.equal(ordinaryPosts.status, 200);
     assert.ok(!JSON.stringify(ordinaryPosts.data).includes(nativePostId), 'ordinary member feed exposed hidden post');
     receipt.checks.nativeReportAndHostHidePersisted = true;
+    await qualifyBrowserConsumers({ users, group, marker, observations: receipt.browser, moderationSlug: page.slug });
     const discoveryPath = `/api/public/home-games/discover?state=TX&city=Austin&search=${encodeURIComponent(marker)}&limit=100&qualification=${runId}`;
     const discovery = await api(discoveryPath);
     assert.equal(discovery.status, 200);
