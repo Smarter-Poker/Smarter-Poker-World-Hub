@@ -157,6 +157,12 @@ test('feed never resets itself on a timer, focus, or new-content signal', () => 
   assert.match(manualNotice, /onClick=\{async \(\) => \{[\s\S]*?window\.scrollTo[\s\S]*?await loadFeed\(0, false\)/);
 });
 
+test('manual pull refresh updates its ref synchronously and does not depend on a React render tick', () => {
+  assert.match(social, /pullRefreshStateRef\.current = 'pulling';\s*setPullRefreshState\('pulling'\);/);
+  assert.match(social, /pullRefreshStateRef\.current = 'refreshing';\s*setPullRefreshState\('refreshing'\);/);
+  assert.match(social, /pullRefreshStateRef\.current = 'idle';\s*setPullRefreshState\('idle'\);/);
+});
+
 test('post deep links pin the target through the caller-scoped post API without waiting on profile hydration', () => {
   const formatter = social.slice(
     social.indexOf('const formatDeepLinkPost = (p) => {'),
