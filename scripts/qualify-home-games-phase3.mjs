@@ -263,6 +263,11 @@ export async function qualify(env = process.env) {
     // Core join uses the canonical group invite, not the separate invite-token RPC.
     const joined = await safe(member.client.rpc('join_home_group', { p_group_id: group.id, p_caller_user_id: member.id, p_invite_code: group.invite_code }), 'invited membership');
     assert.equal(joined.success, true);
+    assert.equal(joined.status, 'pending', 'invitation must preserve required host approval');
+    const requestedMembership = await safe(admin.from('commander_home_members').select('id,status').eq('group_id', group.id).eq('user_id', member.id), 'invited pending membership readback');
+    assert.equal(requestedMembership.length, 1);
+    assert.equal(requestedMembership[0].status, 'pending');
+    await safe(host.client.rpc('manage_home_group_member', { p_group_id: group.id, p_member_user_id: member.id, p_action: 'approve', p_caller_user_id: host.id }), 'host invitation approval');
     const memberships = await safe(admin.from('commander_home_members').select('id,status').eq('group_id', group.id).eq('user_id', member.id), 'membership readback');
     assert.equal(memberships.length, 1);
     assert.equal(memberships[0].status, 'approved');
@@ -418,6 +423,20 @@ export async function qualify(env = process.env) {
       if (group) {
         const current = await safe(admin.from('commander_home_groups').select('id,owner_id,name').eq('id', group.id).maybeSingle(), 'cleanup ownership readback');
         assertOwnedGroup(current, users[0].id, marker);
+        // Delete only our verified fixture games before the group cascade:
+        // the database correctly refuses removing a still-active game host.
+        const fixtureGames = await safe(admin.from('commander_home_games').select('id,host_id,title').eq('group_id', group.id), 'owned games cleanup readback');
+        for (const game of fixtureGames) {
+          assert.equal(game.host_id, users[0].id, 'refuse cleanup of a different game host');
+          assert.equal(game.title, marker, 'refuse cleanup of an unqualified game');
+          for (const table of ['commander_home_rsvps', 'commander_home_game_tables', 'commander_home_seats']) {
+            const dependencies = await safe(admin.from(table).select('id').eq('game_id', game.id).limit(1), 'owned game dependency check');
+            assert.equal(dependencies.length, 0, 'refuse cleanup of a game with player state');
+          }
+          await safe(admin.from('commander_home_games').delete().eq('id', game.id).eq('group_id', group.id).eq('host_id', users[0].id).eq('title', marker), 'owned game cleanup');
+        }
+        const remainingGames = await safe(admin.from('commander_home_games').select('id').eq('group_id', group.id).limit(1), 'owned games absence');
+        assert.equal(remainingGames.length, 0);
         if (nativePostId) {
           await safe(admin.from('commander_home_content_reports').delete().eq('reported_type', 'post').eq('reported_id', nativePostId).in('reporter_id', users.map(user => user.id)), 'owned native reports cleanup');
           const reports = await safe(admin.from('commander_home_content_reports').select('id').eq('reported_type', 'post').eq('reported_id', nativePostId).limit(1), 'native report cleanup readback');
