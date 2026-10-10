@@ -1280,8 +1280,17 @@ jobs:
             __tests__/horses-export-api.test.mjs \
             __tests__/horses-engine-control.test.mjs \
             __tests__/horses-engine-control-scope.test.mjs \
+            __tests__/horses-engine-contract-refresh.test.mjs \
             __tests__/horses-transaction-controls-scope.test.mjs \
+            __tests__/horses-tournament-recovery.test.mjs \
+            __tests__/horses-geeves-wiring.test.mjs \
+            __tests__/horses-default-account-boundary.test.mjs \
+            __tests__/horses-scraper-permission.test.mjs \
             __tests__/player-session-access.test.mjs \
+            __tests__/horses-player-logout-recovery.test.mjs \
+            __tests__/horses-player-logout-component.test.mjs \
+            __tests__/horses-sanction-recovery.test.mjs \
+            __tests__/horses-sanction-component.test.mjs \
             __tests__/stable-admin-cancel-stops.test.mjs \
             __tests__/horses-phase11-finance-records.test.mjs \
             __tests__/horses-phase11-identity-links.test.mjs \

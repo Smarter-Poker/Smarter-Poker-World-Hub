@@ -65,6 +65,7 @@ export default function HorsesAdmin() {
   const [caSection, setCaSection] = useState(DEFAULT_CA_SECTION);
   const [notification, setNotification] = useState(null);
   const notifyTimer = useRef(null);
+  const contextReadEpoch = useRef(0);
   const navRef = useRef(null);
   const urlHydratedRef = useRef(false);
   const urlSyncedRef = useRef(false);
@@ -99,11 +100,15 @@ export default function HorsesAdmin() {
   }, [applyOperatorContext]);
 
   const readOperatorContext = useCallback(async (authUser) => {
+    const epoch = ++contextReadEpoch.current;
+    const sameIdentity = () => epoch === contextReadEpoch.current && getAuthUser()?.id === authUser?.id;
     try {
-      const body = await authFetch(policyUrl());
+      const body = await authFetch(policyUrl(), { expectedOperatorId: authUser?.id, isCurrent: sameIdentity });
+      if (!sameIdentity()) return { ok: false, stale: true };
       applyPolicyEnvelope(body, authUser);
       return { ok: true, body };
     } catch (error) {
+      if (!sameIdentity()) return { ok: false, stale: true };
       resetOperatorContext(authUser?.id || null);
       return { ok: false, denied: isOperatorDenial(error) };
     }
@@ -114,6 +119,7 @@ export default function HorsesAdmin() {
       const authUser = getAuthUser();
       if (!authUser?.id) return;
       const answer = await readOperatorContext(authUser);
+      if (answer.stale) return;
       if (!answer.ok) {
         setLoginError(answer.denied ? ACCESS_DENIED_MESSAGE : VERIFY_FAILED_MESSAGE);
         return;
@@ -129,14 +135,28 @@ export default function HorsesAdmin() {
   useEffect(() => { checkAuth(); }, [checkAuth]);
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
+    let subscriptionAlive = true;
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        contextReadEpoch.current += 1;
         setUser(null);
         resetOperatorContext(null);
+      } else if (event === 'SIGNED_IN' && session?.user?.id && session.user.id !== useStableAdminStore.getState().operatorId) {
+        // Invalidate the old account immediately, before any async policy read.
+        contextReadEpoch.current += 1;
+        setUser(null);
+        resetOperatorContext(session.user.id);
+        queueMicrotask(async () => {
+          if (!subscriptionAlive) return;
+          const answer = await readOperatorContext(session.user);
+          if (!subscriptionAlive || answer.stale) return;
+          if (answer.ok) setUser(session.user);
+          else setLoginError(answer.denied ? ACCESS_DENIED_MESSAGE : VERIFY_FAILED_MESSAGE);
+        });
       }
     });
-    return () => data?.subscription?.unsubscribe();
-  }, [resetOperatorContext]);
+    return () => { subscriptionAlive = false; contextReadEpoch.current += 1; data?.subscription?.unsubscribe(); };
+  }, [readOperatorContext, resetOperatorContext]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -169,6 +189,7 @@ export default function HorsesAdmin() {
         return;
       }
       const answer = await readOperatorContext(data.user);
+      if (answer.stale) return;
       if (!answer.ok) {
         if (answer.denied) await supabase.auth.signOut();
         setLoginError(answer.denied ? ACCESS_DENIED_MESSAGE : VERIFY_FAILED_MESSAGE);
@@ -405,7 +426,7 @@ export default function HorsesAdmin() {
           <ErrorBoundary resetKey={`${activeTab}:${activeTab === 'clubarena' ? caSection : ''}`}
             label={activeTabEntry?.label || 'This Tab'}>
             {Panel ? (
-              <Panel authFetch={authFetch} showNotification={showNotification}
+              <Panel key={`${operatorId}:${useStableAdminStore.getState().sessionGeneration}`} authFetch={authFetch} showNotification={showNotification}
                 permissions={permissions} operatorId={operatorId} policy={policy}
                 aloneRule={aloneRule} approvalsAvailable={navTabs.some((tab) => tab.id === 'approvals')}
                 onNavigate={setActiveTab} permissionsDegraded={permissionsDegraded}

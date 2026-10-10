@@ -1,5 +1,5 @@
 import { hasPermission, PERMISSIONS } from '../../lib/horses/permissions';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './shared.module.css';
 import { engineControlScope } from './engineControlScope';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -71,34 +71,36 @@ function AccountEngineControl({ authFetch, domain, accountScope, permissions = [
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [available, setAvailable] = useState(false);
-  useEffect(() => {
-    let current = true;
+  const capabilitySequence = useRef(0);
+  const [capabilityBusy, setCapabilityBusy] = useState(false);
+  const refreshCapabilities = useCallback(async () => {
+    const sequence = ++capabilitySequence.current;
     let scope;
     try {
       accountScope.assertCurrent();
-      scope = engineControlScope(
-        authFetch,
-        domain,
-        () => current && alive.current && accountScope.isCurrent()
+      scope = engineControlScope(authFetch, domain, () =>
+        alive.current && accountScope.isCurrent() && sequence === capabilitySequence.current
       );
     } catch {
-      setAvailable(false);
-      return () => {
-        current = false;
-      };
+      if (alive.current && accountScope.isCurrent()) setAvailable(false);
+      return;
     }
-    authFetch(`/api/horses/engine-control?domain=${domain}&capabilities=1`, scope.options)
-      .then((value) => {
-        if (scope.isCurrent())
-          setAvailable(value.capabilities?.[domain]?.includes(ACTIONS[domain][0][0]) === true);
-      })
-      .catch(() => {
-        if (scope.isCurrent()) setAvailable(false);
-      });
-    return () => {
-      current = false;
-    };
+    setCapabilityBusy(true);
+    setAvailable(false);
+    try {
+      const value = await authFetch(`/api/horses/engine-control?domain=${domain}&capabilities=1`, scope.options);
+      if (scope.isCurrent())
+        setAvailable(value.capabilities?.[domain]?.includes(ACTIONS[domain][0][0]) === true);
+    } catch {
+      if (scope.isCurrent()) setAvailable(false);
+    } finally {
+      if (scope.isCurrent()) setCapabilityBusy(false);
+    }
   }, [authFetch, domain, accountScope]);
+  useEffect(() => {
+    refreshCapabilities();
+    return () => { capabilitySequence.current += 1; };
+  }, [refreshCapabilities]);
   const [unknown, setUnknown] = useState(() => Boolean(operationId));
   const read = async () => {
     let scope;
@@ -190,6 +192,9 @@ function AccountEngineControl({ authFetch, domain, accountScope, permissions = [
           Store And Owner Are Read Back.
         </p>
       ) : null}
+      <button className={styles.btn} type="button" disabled={busy || capabilityBusy} onClick={refreshCapabilities}>
+        {capabilityBusy ? 'Reading Engine Contract...' : 'Refresh Engine Contract'}
+      </button>
       {!canWrite ? (
         <p>Read-Only. An Operator With The Required Permission Must Submit Commands.</p>
       ) : null}

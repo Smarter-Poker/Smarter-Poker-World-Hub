@@ -161,7 +161,19 @@ export default function useOperatorFetch() {
   }, []);
 
   const authorizedFetch = useCallback(async (url, options = {}) => {
-    const { isCurrent, timeoutMs, responseType, expectedOperatorId, ...fetchOptions } = options;
+    const { isCurrent: callerCurrent, timeoutMs, responseType, expectedOperatorId: callerOperatorId, ...fetchOptions } = options;
+    const captured = useStableAdminStore.getState();
+    // Default requests belong to the ready operator generation that invoked them.
+    // Explicit bootstrap identity works before the policy context is ready.
+    const automatic = captured.contextStatus === 'ready' && !!captured.operatorId;
+    if (!automatic && !callerOperatorId) throw new Error('The Operator Account Could Not Be Confirmed');
+    const expectedOperatorId = callerOperatorId || (automatic ? captured.operatorId : null);
+    const isCurrent = () => {
+      if (!aliveRef.current || (callerCurrent && callerCurrent() !== true)) return false;
+      if (!automatic) return true;
+      const current = useStableAdminStore.getState();
+      return current.contextStatus === 'ready' && current.operatorId === captured.operatorId && current.sessionGeneration === captured.sessionGeneration;
+    };
     const checkScope = () => {
       if (isCurrent && isCurrent() !== true) throw new Error('The account or view changed. Refresh the original operation.');
     };
