@@ -559,3 +559,41 @@ Fresh reading receipt: full canonical policies emitted and read at `2026-10-10T0
 Final genuine production receipt: certificate run 38015383337 / job 114104368294 passed against exact protected and served descendant `83a68e9ecdc26e75a1665d762d783dc508e79f61`, with stable Vercel identity, authenticated reads at both widths and zero mutation attempts, page/chunk errors or overflow across the eight named surfaces. The direct sanitized JSON is archived under `certificate-38015383337/stable-admin-production-certificate-38015383337-1/horses-production-certificate.json`. Its bounded human-seat observation agrees with the independent read-only count above. Runtime acceptance is complete within this finite oversight scope; final documentation protected integration remains pending.
 
 Launch verdict: qualified oversight and existing permission-bound workflows, with truthful missing/degraded states. This is not a universal platform control plane. P3, O1, O2, O7, C2 and C4 remain explicit limitations; dedicated cashout, global tournament-registration and positive-issuance kill controls are absent. Prepared browser receipts do not prove delivery. No production financial or gameplay mutation was used for certification.
+
+
+### Exact installation prerequisites and lock recovery, 2026-10-10 05:18 UTC
+
+Canonical policies emitted/read at 2026-10-10T05:13:11.087Z, v2.9; all
+manifest/source hashes above unchanged. Owned World Hub head9e6c0c135 and
+Club Arena head67904f71a2dfdb2a408e127da60065291e8e1457 are pushed.
+World Hub required safety38026399010 refused five absent new tables; CHECK17
+explicitly requires candidate migrations installed before its live-schema
+verdict. Exact native qualification and measured compatibility therefore
+precede installation, with hosted checks still required before protected merge.
+
+O7 exact source902ea32d60d92ff2b01e0969c818a14cf9bf3f2d6d9ebfaba9c69eac76e42268
+installed once as provider ledger20261010051629/operator_private_export_artifacts.
+Readback confirms postgres owners, RLS, service-only tables/RPCs, fixed paths,
+private16MB CSV bucket and restrictive policy; zero jobs/events. Source and
+installed function hashes are archived. This is installation, not artifact
+delivery or live console acceptance.
+
+P3 first apply failed40P01: migration waited tournament_players schema lock
+while a live writer waited auth.users. Independent readback proves ledger[],
+new tables absent and original hook6027b488b1c77d03642b3d384f275d6a unchanged.
+The uninstalled source now acquires only its27 actual trigger targets in their
+final SHARE ROW EXCLUSIVE mode NOWAIT before anyDDL. No auth.users lock is
+added. Native PG17 proves55P03 immediate contention refusal, unchanged schema
+and hook, unrelated auth access, then full installation after writer release,
+restriction/admission ordering and duplicate logout exactly once. Statement
+timeout30s bounds statements; it is not a total transaction timer. Exact source
+8acf125d7bfc5d58f20c119f7ec934862c2ce6d591889ea88dd34e441ae9efcd.
+No blind retry or production player/control fixture supplied qualification.
+
+Club Arena repaired the actual native service fixture dependency, recorded the
+required startup-module review and declared P3 session RPC in its own manifest
+fragment. Ordinary hooks/push passed at67904f71a2. Hosted38026920728 is running;
+source-binding, settlement, production-write guards and trusted money-trigger
+checks passed. Prior failed run38026073351 remains failed. Final hosted native
+qualification, remaining installation, protected merges, provider publication,
+engine activation and genuine live proof remain pending.

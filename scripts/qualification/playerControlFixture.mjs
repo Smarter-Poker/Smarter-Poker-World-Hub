@@ -21,6 +21,7 @@ CREATE SCHEMA auth; CREATE SCHEMA smarter_private;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT (nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid $$;
 ` +`
 CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'role' $$;
+CREATE TABLE auth.users(id uuid PRIMARY KEY);
 CREATE TABLE auth.sessions(id uuid PRIMARY KEY,user_id uuid NOT NULL,created_at timestamptz DEFAULT now(),not_after timestamptz);
 CREATE TABLE auth.refresh_tokens(id int PRIMARY KEY,session_id uuid REFERENCES auth.sessions ON DELETE CASCADE);
 CREATE TABLE profiles(id uuid PRIMARY KEY,is_horse boolean DEFAULT false);

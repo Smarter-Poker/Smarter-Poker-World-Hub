@@ -29,7 +29,21 @@ if(provisional) {
   execFileSync(path.join(bin,'pg_ctl'),['-D',work+'/d','-l',work+'/postgres.log','-o',`-h 127.0.0.1 -k '' -p ${port}`,'-w','start'],{stdio:'pipe'});started=true;
   const connect=async()=>{const c=new Client({host:'127.0.0.1',port,user:username,database:'postgres',options:'-c statement_timeout=10000 -c lock_timeout=5000',query_timeout:15000});await c.connect();clients.push(c);return c;};
   const db=await connect();await db.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='postgres') THEN CREATE ROLE postgres SUPERUSER; END IF; END $$`);await db.query('SET ROLE postgres');
-  await db.query(fixtureSql());await db.query(migration);
+  await db.query(fixtureSql());
+  // A live admission writer already holding its target must refuse installation
+  // before any DDL. The refused transaction must leave unrelated authentication available.
+  const blocker=await connect();await blocker.query('BEGIN');
+  await blocker.query('LOCK TABLE public.tournament_players IN ROW EXCLUSIVE MODE');
+  const startedAt=Date.now();
+  await assert.rejects(db.query(migration),error=>error.code==='55P03');
+  assert.ok(Date.now()-startedAt<2000,'NOWAIT admission preflight must not wait for a live writer');
+  await db.query('ROLLBACK');
+  assert.equal((await db.query("SELECT to_regclass('public.ca_player_control_operations') AS relation")).rows[0].relation,null);
+  assert.equal((await db.query("SELECT md5(pg_get_functiondef('smarter_private.fn_smarter_data_api_pre_request()'::regprocedure)) AS hash")).rows[0].hash,'6027b488b1c77d03642b3d384f275d6a');
+  await blocker.query('LOCK TABLE auth.users IN ROW SHARE MODE NOWAIT');
+  await blocker.query('ROLLBACK');
+  console.log('PASS native writer contention refuses before DDL and preserves unrelated authentication access');
+  await db.query(migration);
   console.log(JSON.stringify({backend:'native PostgreSQL17',...await qualifyPlayerControl(async sql=>{const result=await db.query(sql); return Array.isArray(result)?result.at(-1):result;})}));
   // Separate real sessions: an admission must wait for the original restriction decision,
   // then see committed restriction state rather than its stale statement snapshot.
