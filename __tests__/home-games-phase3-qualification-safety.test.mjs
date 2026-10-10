@@ -13,6 +13,18 @@ test('unrelated API operations have distinct UUIDs while the same operation reta
   assert.equal(key('POST', '/api/reports'), 'operation-3');
 });
 
+test('browser qualifies the primary heading even when the same group name appears in a secondary heading', () => {
+  const detail = readFileSync(new URL('../pages/hub/commander/home-games/[id].js', import.meta.url), 'utf8');
+  // The real detail source intentionally repeats its name in header and body.
+  const namedHeadings = [...detail.matchAll(/<h([12])\b[^>]*>\{group\.name\}<\/h\1>/g)];
+  assert.deepEqual(namedHeadings.map(match => Number(match[1])), [1, 2]);
+  assert.equal(namedHeadings.length, 2, 'unqualified exact-name locator is ambiguous');
+  assert.equal(namedHeadings.filter(match => match[1] === '1').length, 1);
+  const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
+  assert.match(source, /getByRole\('heading', \{ name: scenario\.heading, exact: true, level: 1 \}\)/);
+  assert.doesNotMatch(source, /getByRole\('heading'[^\n]+\.first\(\)/);
+});
+
 test('manual qualifier uses the maintained authenticated private-package install route', () => {
   const workflow = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
   const job = workflow.split('  home-games-phase3-live:')[1].split('  reels-reconciliation:')[0];
