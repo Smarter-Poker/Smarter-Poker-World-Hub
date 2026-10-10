@@ -143,3 +143,25 @@ test('video realtime changes update or remove only the mounted card', () => {
   assert.doesNotMatch(branch, /loadFeed/);
   assert.match(social, /return \(\) => \{\s*realtimeActive = false;\s*supabase\.removeChannel\(feedChannel\)/);
 });
+
+test('privacy invalidation is ID-only, caller-authorized, reconnect-bounded, and never a feed reset', () => {
+  const authority = social.slice(
+    social.indexOf('// Visibility/deletion authority changes are broadcast'),
+    social.indexOf('// Positive YouTube verification expires')
+  );
+  assert.match(authority, /keys\.join\(','\) === 'id,kind'/);
+  assert.match(authority, /notice\.kind === 'post'/);
+  assert.match(authority, /fetchBrowserPost\(postId\)/);
+  assert.match(authority, /MAX_RECONNECT_POSTS = 100/);
+  assert.match(authority, /current\.slice\(0, MAX_RECONNECT_POSTS\)/);
+  assert.doesNotMatch(authority, /loadFeed|setInterval/);
+
+  const expiry = social.slice(
+    social.indexOf('// Positive YouTube verification expires'),
+    social.indexOf('// ═══════════════════════════════════════════════════════════════════════════\n  // REALTIME: Notification')
+  );
+  assert.match(expiry, /setTimeout\(async \(\) =>/);
+  assert.match(expiry, /if \(!active\) return/);
+  assert.match(expiry, /active = false/);
+  assert.doesNotMatch(expiry, /setInterval|loadFeed/);
+});

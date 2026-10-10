@@ -3742,6 +3742,24 @@ export function ReelsFeedCarousel() {
       )
       .subscribe();
 
+    let authoritySubscribedOnce = false;
+    const authorityChannel = supabase
+      .channel('social-video-authority')
+      .on('broadcast', { event: 'managed_video_invalidated' }, (message) => {
+        const notice = message?.payload;
+        const keys = notice && typeof notice === 'object' ? Object.keys(notice).sort() : [];
+        if (
+          keys.join(',') === 'id,kind'
+          && notice.kind === 'reel'
+          && /^[0-9a-f-]{36}$/i.test(String(notice.id || ''))
+        ) scheduleBackgroundReelsRefresh();
+      })
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return;
+        if (authoritySubscribedOnce) scheduleBackgroundReelsRefresh();
+        authoritySubscribedOnce = true;
+      });
+
     const handleDataMutated = (event) => {
       if (event?.payload === 'social' || event?.payload === 'reels') {
         scheduleBackgroundReelsRefresh();
@@ -3756,6 +3774,7 @@ export function ReelsFeedCarousel() {
       pendingContinuationRef.current = null;
       if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
       supabase.removeChannel(_ch);
+      supabase.removeChannel(authorityChannel);
       eventBus.off(EventType.DATA_MUTATED, handleDataMutated);
     };
   }, [loadReels, removeMountedReels, scheduleBackgroundReelsRefresh]);

@@ -44,6 +44,7 @@ export function mergeCanonicalBrowserPost(existing = {}, fresh = {}) {
     topics: Array.isArray(topics) ? topics : topics === null ? [] : existing.topics,
     rights_status: value('rights_status', existing.rights_status),
     transcodeStatus: value('transcode_status', existing.transcodeStatus),
+    eligibilityExpiresAt: value('eligibility_expires_at', existing.eligibilityExpiresAt),
     author,
   };
 }

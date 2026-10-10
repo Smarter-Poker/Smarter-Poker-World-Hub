@@ -34,24 +34,23 @@ function readJavaScriptTree(directory) {
   });
 }
 
-test('the Social Hub Reels entry is one painted console with its original route and close callback', () => {
+test('the Social Hub Reels entry is a conventional unframed link with its original route and close callback', () => {
   const entry = between(
     socialSource,
-    '{/* Reels Console Entry */}',
+    '{/* Reels entry — conventional Social Media navigation, never a decorative console. */}',
     '{/* Additional Navigation Items */}'
   );
 
-  assert.match(socialSource, /video-library\/console\/VideoLibraryConsole/);
-  assert.match(socialSource, /AuxiliaryReelsSurfaces\.module\.css/);
+  assert.doesNotMatch(socialSource, /video-library\/console\/VideoLibraryConsole/);
+  assert.doesNotMatch(socialSource, /AuxiliaryReelsSurfaces\.module\.css/);
   assert.match(entry, /href="\/hub\/reels"/);
   assert.match(entry, /onClick=\{\(\) => setSidebarOpen\(false\)\}/);
-  assert.match(entry, /<VideoLibraryConsole/);
-  assert.match(entry, /title="Poker Reels"/);
-  assert.match(entry, /foot="foot"/);
-  assert.match(entry, /<ConsoleCopy/);
+  assert.match(entry, />Poker Reels<\/span>/);
+  assert.match(entry, />Watch And Share Short Videos<\/span>/);
+  assert.doesNotMatch(entry, /<VideoLibraryConsole|<ConsoleCopy/);
   assert.doesNotMatch(
     entry,
-    /<img\b|<svg\b|\/icons\/reels\.png|borderRadius|boxShadow|linear-gradient/
+    /<img\b|<svg\b|\/icons\/reels\.png|boxShadow|linear-gradient/
   );
   assert.doesNotMatch(socialSource, /\/icons\/reels\.png/);
 });

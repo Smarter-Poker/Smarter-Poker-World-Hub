@@ -9,7 +9,8 @@ function loadKnownPublisherReader(fetch) {
   const transformed = source
     .replace(/^import .*;\n/gm, '')
     .replace(/export default async function handler/, 'async function handler')
-    .replace(/export async function fetchKnownPokerArticleMetadata/, 'async function fetchKnownPokerArticleMetadata');
+    .replace(/export async function fetchKnownPokerArticleMetadata/, 'async function fetchKnownPokerArticleMetadata')
+    .replace(/export async function fetchKnownPublisherPayload/, 'async function fetchKnownPublisherPayload');
   const context = {
     AbortController,
     URL,
@@ -18,15 +19,53 @@ function loadKnownPublisherReader(fetch) {
     fetch,
     require() { return { applyCors() { return true; } }; },
     setTimeout,
+    TextDecoder,
+    TextEncoder,
     applyCors() { return true; },
     applyRateLimit() { return true; },
     LIMITS: { read: {} },
     reportApiError() {},
   };
   context.globalThis = context;
-  vm.runInNewContext(`${transformed}\nglobalThis.__read = fetchKnownPokerArticleMetadata; globalThis.__handler = handler;`, context);
-  return { read: context.__read, handler: context.__handler };
+  vm.runInNewContext(`${transformed}\nglobalThis.__read = fetchKnownPokerArticleMetadata; globalThis.__payload = fetchKnownPublisherPayload; globalThis.__handler = handler;`, context);
+  return { read: context.__read, payload: context.__payload, handler: context.__handler };
 }
+
+test('known publisher bodies remain size and time bounded after headers arrive', async () => {
+  const oversized = loadKnownPublisherReader(async () => ({
+    ok: true,
+    headers: { get(name) { return name === 'content-length' ? '101' : null; } },
+    async text() { throw new Error('oversized body must not be consumed'); },
+  }));
+  assert.equal(await oversized.payload('https://www.pokernews.com/news/example.htm', {}, {
+    maxBytes: 100,
+  }), null);
+
+  const slow = loadKnownPublisherReader(async (_url, options) => ({
+    ok: true,
+    headers: { get() { return null; } },
+    body: {
+      getReader() {
+        return {
+          read() {
+            return new Promise((_resolve, reject) => {
+              options.signal.addEventListener('abort', () => {
+                const error = new Error('aborted');
+                error.name = 'AbortError';
+                reject(error);
+              }, { once: true });
+            });
+          },
+          async cancel() {},
+        };
+      },
+    },
+  }));
+  await assert.rejects(
+    slow.payload('https://www.pokernews.com/news/example.htm', {}, { timeoutMs: 10 }),
+    (error) => error?.name === 'AbortError'
+  );
+});
 
 test('PokerNews first-party OpenGraph returns the actual story image, never its logo', async () => {
   const { read } = loadKnownPublisherReader(async () => ({
@@ -71,20 +110,20 @@ test('Upswing first-party WordPress metadata resolves its featured article image
     if (String(url).includes('/wp/v2/posts?')) {
       return {
         ok: true,
-        async json() {
-          return [{
+        async text() {
+          return JSON.stringify([{
             link: 'https://upswingpoker.com/how-to-respond-big-blind-small-blind-too-tight/',
             title: { rendered: 'Stop Playing GTO Against Blinds That Fold Too Much' },
             excerpt: { rendered: '<p>Exploit players who overfold.</p>' },
             featured_media: 793986,
-          }];
+          }]);
         },
       };
     }
     return {
       ok: true,
-      async json() {
-        return { source_url: 'https://upswingpoker.com/wp-content/uploads/2026/09/1200x800-2.jpg' };
+      async text() {
+        return JSON.stringify({ source_url: 'https://upswingpoker.com/wp-content/uploads/2026/09/1200x800-2.jpg' });
       },
     };
   });

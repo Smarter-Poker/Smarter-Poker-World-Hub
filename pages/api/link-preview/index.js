@@ -56,6 +56,64 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
     }
 }
 
+const KNOWN_PUBLISHER_BODY_LIMIT = 2 * 1024 * 1024;
+
+// Keep the deadline active through body consumption. fetch() resolves when
+// headers arrive, so fetchWithTimeout alone cannot bound a slow or unbounded
+// publisher body. This helper is intentionally limited to the two fixed
+// first-party poker publisher origins below.
+export async function fetchKnownPublisherPayload(
+    url,
+    options = {},
+    { timeoutMs = 6000, maxBytes = KNOWN_PUBLISHER_BODY_LIMIT, json = false } = {}
+) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+        const response = await fetch(url, { ...options, signal: ctrl.signal });
+        if (!response.ok) return null;
+        const declaredLength = Number(response.headers?.get?.('content-length'));
+        if (Number.isFinite(declaredLength) && declaredLength > maxBytes) return null;
+
+        let bytes;
+        if (response.body?.getReader) {
+            const reader = response.body.getReader();
+            const chunks = [];
+            let length = 0;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                length += value.byteLength;
+                if (length > maxBytes) {
+                    await reader.cancel().catch(() => {});
+                    return null;
+                }
+                chunks.push(value);
+            }
+            bytes = new Uint8Array(length);
+            let offset = 0;
+            for (const chunk of chunks) {
+                bytes.set(chunk, offset);
+                offset += chunk.byteLength;
+            }
+        } else if (typeof response.arrayBuffer === 'function') {
+            const buffer = await response.arrayBuffer();
+            if (buffer.byteLength > maxBytes) return null;
+            bytes = new Uint8Array(buffer);
+        } else {
+            // Test doubles and older runtimes only. The production Fetch
+            // Response always exposes a stream or arrayBuffer.
+            const text = await response.text();
+            bytes = new TextEncoder().encode(text);
+            if (bytes.byteLength > maxBytes) return null;
+        }
+        const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+        return json ? JSON.parse(text) : text;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 const ARTICLE_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
@@ -93,13 +151,13 @@ export async function fetchKnownPokerArticleMetadata(url) {
 
     if (hostname === 'pokernews.com') {
         try {
-            const response = await fetchWithTimeout(
+            const html = await fetchKnownPublisherPayload(
                 url,
                 { headers: ARTICLE_HEADERS, redirect: 'error' },
-                6000
+                { timeoutMs: 6000 }
             );
-            if (!response.ok) return null;
-            const metadata = parseOpenGraph(await response.text(), url);
+            if (!html) return null;
+            const metadata = parseOpenGraph(html, url);
             if (!isArticleImage(metadata.image)) return null;
             return { ...metadata, siteName: metadata.siteName || 'PokerNews' };
         } catch {
@@ -112,22 +170,20 @@ export async function fetchKnownPokerArticleMetadata(url) {
         if (!slug || !/^[a-z0-9-]{3,160}$/i.test(slug)) return null;
         try {
             const postsUrl = `https://upswingpoker.com/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&_fields=link,title,excerpt,featured_media`;
-            const postsResponse = await fetchWithTimeout(
+            const posts = await fetchKnownPublisherPayload(
                 postsUrl,
                 { headers: ARTICLE_HEADERS, redirect: 'error' },
-                6000
+                { timeoutMs: 6000, json: true }
             );
-            if (!postsResponse.ok) return null;
-            const post = (await postsResponse.json())?.[0];
+            const post = posts?.[0];
             const mediaId = Number(post?.featured_media);
             if (!post || !Number.isSafeInteger(mediaId) || mediaId <= 0) return null;
-            const mediaResponse = await fetchWithTimeout(
+            const media = await fetchKnownPublisherPayload(
                 `https://upswingpoker.com/wp-json/wp/v2/media/${mediaId}?_fields=source_url`,
                 { headers: ARTICLE_HEADERS, redirect: 'error' },
-                6000
+                { timeoutMs: 6000, json: true }
             );
-            if (!mediaResponse.ok) return null;
-            const image = (await mediaResponse.json())?.source_url || null;
+            const image = media?.source_url || null;
             if (!isArticleImage(image)) return null;
             return {
                 url: post.link || url,

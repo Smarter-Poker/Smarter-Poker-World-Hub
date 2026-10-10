@@ -28,6 +28,7 @@ import {
     POST_SELECT,
     isPublicAudiencePost,
     managedVideoPostIsEligible,
+    managedVideoEligibilityExpiresAt,
     nativeVideoIsReady,
     readManagedEligibilityContext,
 } from './feed';
@@ -99,6 +100,7 @@ export default async function handler(req, res) {
         if (!visible.data) return res.status(404).json({ success: false, error: 'Post not found' });
 
         const service = getServiceClient();
+        let eligibilityExpiresAt = null;
         if (visible.data.content_type === 'video') {
             // A caller-visible row is not enough to prove a video still belongs
             // in the feed. Reuse the feed's service-only source, rights,
@@ -120,6 +122,7 @@ export default async function handler(req, res) {
             ) {
                 return res.status(404).json({ success: false, error: 'Post not found' });
             }
+            eligibilityExpiresAt = managedVideoEligibilityExpiresAt(authority.data, context);
         }
         const authorId = visible.data.author_id;
         const [notes, author] = await Promise.all([
@@ -143,6 +146,7 @@ export default async function handler(req, res) {
             ...visible.data,
             author: author.data || null,
             metadata: displayMetadata(notes.data?.metadata),
+            eligibility_expires_at: eligibilityExpiresAt,
         };
         return res.status(200).json({ success: true, post });
     } catch (err) {

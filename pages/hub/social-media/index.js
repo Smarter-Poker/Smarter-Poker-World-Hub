@@ -3726,8 +3726,10 @@ function SocialMediaPage() {
   const loadFeedRef = useRef(null);
   // The ids on screen, so a Realtime update re-reads only a post the reader holds.
   const shownPostIdsRef = useRef(new Set());
+  const postsRef = useRef([]);
   useEffect(() => {
     shownPostIdsRef.current = new Set(posts.map((p) => p.id));
+    postsRef.current = posts;
   }, [posts]);
   const feedRequestGuardRef = useRef(createLatestRequestGuard());
 
@@ -4246,6 +4248,105 @@ function SocialMediaPage() {
       unsubMasterBus.forEach((unsub) => unsub());
     };
   }, [user?.id]);
+
+  // Visibility/deletion authority changes are broadcast as strict public IDs. The
+  // row itself is always re-read through caller RLS before it can be retained,
+  // so a forged or delayed broadcast can never hide an eligible post or expose
+  // private authority fields. A socket reconnect checks only mounted posts,
+  // closing the offline-event gap without replacing or reordering the feed.
+  useEffect(() => {
+    let active = true;
+    let subscribedOnce = false;
+    const MAX_RECONNECT_POSTS = 100; // matches the durable feed-cache ceiling
+    const postIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const reconcileHeldPost = async (postId) => {
+      if (!postIdPattern.test(String(postId || '')) || !shownPostIdsRef.current.has(postId)) return;
+      try {
+        const fresh = await fetchBrowserPost(postId);
+        if (!active) return;
+        if (!fresh) {
+          setPosts((current) => current.filter((post) => post.id !== postId));
+          feedCache.invalidatePosts(user?.id || null);
+          return;
+        }
+        setPosts((current) => current.map((post) => (
+          post.id === postId ? mergeCanonicalBrowserPost(post, fresh) : post
+        )));
+      } catch {
+        if (!active) return;
+        setPosts((current) => current.filter((post) => post.id !== postId));
+        feedCache.invalidatePosts(user?.id || null);
+      }
+    };
+    const reconcileMountedPosts = () => {
+      const held = postsRef.current;
+      const ids = held.slice(0, MAX_RECONNECT_POSTS).map((post) => post.id);
+      if (held.length > MAX_RECONNECT_POSTS) {
+        // Rows beyond the bounded authority window cannot remain trusted after
+        // a missed socket interval. Drop only that old tail; keep order/scroll
+        // and re-read it only if the reader explicitly continues the feed.
+        setPosts((current) => current.slice(0, MAX_RECONNECT_POSTS));
+        feedCache.invalidatePosts(user?.id || null);
+      }
+      ids.forEach((id) => { reconcileHeldPost(id); });
+    };
+    const authorityChannel = supabase
+      .channel('social-video-authority')
+      .on('broadcast', { event: 'managed_video_invalidated' }, (message) => {
+        const notice = message?.payload;
+        const keys = notice && typeof notice === 'object' ? Object.keys(notice).sort() : [];
+        if (
+          keys.join(',') === 'id,kind'
+          && notice.kind === 'post'
+          && typeof notice.id === 'string'
+        ) reconcileHeldPost(notice.id);
+      })
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return;
+        if (subscribedOnce) reconcileMountedPosts();
+        subscribedOnce = true;
+      });
+    return () => {
+      active = false;
+      supabase.removeChannel(authorityChannel);
+    };
+  }, [user?.id]);
+
+  // Positive YouTube verification expires even when no row changes. Schedule
+  // one exact check at the earliest server-supplied deadline; this is not a
+  // periodic refresh and it never inserts or reorders feed content.
+  useEffect(() => {
+    let active = true;
+    const now = Date.now();
+    const deadlines = posts
+      .filter((post) => post?.contentType === 'video')
+      .map((post) => Date.parse(post.eligibilityExpiresAt || ''))
+      .filter(Number.isFinite);
+    if (!deadlines.length) return undefined;
+    const earliest = Math.min(...deadlines);
+    const timer = setTimeout(async () => {
+      const dueIds = postsRef.current
+        .filter((post) => post?.contentType === 'video'
+          && Date.parse(post.eligibilityExpiresAt || '') <= Date.now() + 1000)
+        .slice(0, 50)
+        .map((post) => post.id);
+      const results = await Promise.all(dueIds.map(async (id) => {
+        try { return [id, await fetchBrowserPost(id)]; } catch { return [id, null]; }
+      }));
+      if (!active) return;
+      const freshById = new Map(results);
+      setPosts((current) => current.flatMap((post) => {
+        if (!freshById.has(post.id)) return [post];
+        const fresh = freshById.get(post.id);
+        return fresh ? [mergeCanonicalBrowserPost(post, fresh)] : [];
+      }));
+      if (results.some(([, fresh]) => !fresh)) feedCache.invalidatePosts(user?.id || null);
+    }, Math.max(0, earliest - now + 25));
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [posts, user?.id]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // REALTIME: Notification subscription — live badge updates

@@ -332,6 +332,14 @@ jobs:
           mkdir -p "$HORSE_NEWS_POSTGRES_ROOT"
           node --test __tests__/horse-news-atomic-publisher-postgres.test.mjs
 
+      - name: Native Video Source Revocation PostgreSQL 17 Contract
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+          NATIVE_REVOCATION_POSTGRES_ROOT: ${{ runner.temp }}/native-video-revocation
+        run: |
+          mkdir -p "$NATIVE_REVOCATION_POSTGRES_ROOT"
+          node --test __tests__/native-video-source-revocation-postgres.test.mjs
+
       # Reuse the already-resolved PG17 binaries. Each authority gate owns one
       # disposable local cluster, removes it on every exit, and applies the
       # shipped migration over its exact predecessor fixture.

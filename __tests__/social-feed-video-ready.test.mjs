@@ -156,3 +156,53 @@ test('single-row authority rejects revoked or stale managed sources, confirmed f
     const native = nativeVideoPost(22);
     assert.equal(route.managedVideoPostIsEligible(native, baseContext, now), false, 'native object lacks storage proof');
 });
+
+test('eligibility deadlines follow the proofs that actually keep each video eligible', () => {
+    const now = Date.parse('2026-10-10T05:00:00.000Z');
+    const day = 24 * 60 * 60 * 1000;
+    const assetId = id(8001);
+    const asset = {
+        id: assetId,
+        youtube_video_id: YOUTUBE_ID,
+        availability_status: 'verified',
+        embeddable: true,
+        availability_checked_at: new Date(now - day).toISOString(),
+    };
+    const managed = youtubeVideoPost(31, {
+        origin_type: 'video_library',
+        source_asset_id: assetId,
+        publication_key: `video-library:${assetId}`,
+        topic: 'cash',
+    });
+    const context = {
+        assetById: new Map([[assetId, asset]]),
+        assetByYoutube: new Map([[YOUTUBE_ID, asset]]),
+        verificationByYoutube: new Map([[YOUTUBE_ID, {
+            verification_status: 'resolved', resolved: true,
+            last_verified_at: new Date(now).toISOString(),
+        }]]),
+        failedYoutubeIds: new Set(),
+        verifiedNativeObjects: new Set(),
+    };
+    assert.equal(
+        route.managedVideoEligibilityExpiresAt(managed, context, now),
+        new Date(now + (6 * day)).toISOString(),
+        'a verifier row cannot extend a managed asset past its required asset proof'
+    );
+
+    const ordinary = youtubeVideoPost(32);
+    assert.equal(
+        route.managedVideoEligibilityExpiresAt(ordinary, context, now),
+        new Date(now + (7 * day)).toISOString(),
+        'an ordinary YouTube row remains eligible through its latest alternative proof'
+    );
+
+    const legacyExpiry = new Date(now + (2 * day)).toISOString();
+    const legacyManaged = {
+        ...managed,
+        legacy_transition_eligible: true,
+        legacy_transition_expires_at: legacyExpiry,
+    };
+    const noAsset = { ...context, assetById: new Map(), assetByYoutube: new Map(), verificationByYoutube: new Map() };
+    assert.equal(route.managedVideoEligibilityExpiresAt(legacyManaged, noAsset, now), legacyExpiry);
+});
