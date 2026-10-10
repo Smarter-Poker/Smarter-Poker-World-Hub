@@ -852,3 +852,233 @@ no row cap was hit. No full report or download is yet certified. Supported
 original-job verification with explicit incomplete acknowledgement is being
 qualified; no duplicate export, financial/player mutation or weakened
 completeness claim supplies success. Failed receipt remains archived.
+
+
+### Export recovery integration and fresh resumption, 06:41 UTC
+
+Canonical policies fully emitted/read at2026-10-10T06:40:08.755Z, v2.9;
+all manifest/source hashes above unchanged. Full repository/publishing/CLAUDE,
+path/migration/storage, existing checkpoint and complete owning maintenance
+handoff/programme references freshly read atWH92e2931a6665332d8c2960b160ba473a4024580a
+andCAea17a49fbb08a1c31327e3e9a7576001e387c3c2. ExternalSSD mounted with free space.
+
+WH original-job export verifier correction passed17 focused tests, normal hooks,
+all seven required checks and U4.4. Source/pages runtime trees are identical to
+qualified PR2263; its full30-case console and browser acceptance remain valid.
+Protected squash PR2270 merged aseebeb17f8b10d030a5391b63304061044676eb08
+at06:41:15UTC. The extra provider browser run is still executing, not a pass.
+Normal Vercel publication and one original-job download verification remain
+pending. Strict complete-report default is unchanged; explicit bounded recovery
+retains completefalse and acknowledges the original report limitation. No new
+export POST or financial/player/control probe supplies recovery.
+
+CA exactea17 hosted38029982212 has only accounting1 remaining; P12loadstress,
+P13rollout and explicitP12overfullP13chain actually passed. Native receipt
+checks are still executing. Protected CAmerge/publication, sealed engine
+activation, genuine eight-surface certificate and final rescore remain pending.
+
+
+### Protected Club Arena integration and sole engine receiver, 06:48 UTC
+
+CA exactea17a49fbb08a1c31327e3e9a7576001e387c3c2 hosted38029982212
+passed all four client and server shards, all four nativePG17 accounting
+shards, genuine native service fixture, production build, TypeScript and
+the combined ServerEngine gate. Six required protected checks passed.
+Accounting1 completed06:43:46UTC; actual join proved server/accounting
+success and current PRhead. No supersession or skipped heavy matrix
+supplies these verdicts. Full primary workflow log and jobJSON archived.
+
+Protected squash PR6621 merged asf8caac885066c8ccc7917b8db972a1bd70862785
+at06:44:09UTC. Normal client publisher38031963054 is executing. Sole
+engine producer38031963038 passed and correlated immutable receiver
+38031997124, created06:44:47UTC for exactf8caac885066c8ccc7917b8db972a1bd70862785.
+Receiver preflight is still executing; no sealed activation or liveproof
+is claimed. Existing healthy engine and full certified maintenance contract
+remain; no alternate publisher, manual restart or duplicate dispatch.
+
+WH final evidence is isolated onagent/codex/stable-admin-six-final-evidence-20261010
+off protected5e131ebea6e5e765844325ac331c77cf8be2c291. Incoming social
+hydration changes are disjoint from the StableAdmin/source export verifier.
+No closed PR receives follow-up source. Final score and launch verdict remain
+conditional until serving identities and both genuine scope certificates pass.
+
+
+### Genuine original private-artifact delivery, 06:52 UTC
+
+Original-job O7 workflow38032312135/job114155640197 terminalSUCCESS.
+Actual authenticated browser download ran06:51:55.899UTC to06:52:07.160UTC
+on protected/served5e131ebea6e5e765844325ac331c77cf8be2c291 and canonical
+READYdpl_6xhHNkaypvhXVWjKdKw9SoEGowd2, stable before and after. Original
+jobbe6d9914-8c4e-4b5e-9842-601ebdb34d9e andop5344da38-f244-42e8-a5b8-94e1f8e8f1e1
+were retained. Actual173279-byte download SHA256
+87ade103f741ae64340849579659d9f1be06231318e731a97af013e19d417886
+matched durable receipt and response header.515rows; statetruncated;
+reportCompletefalse; explicitboundedReportAcknowledgedtrue; deliveryVerifiedtrue.
+Original mode admitted zero newexportPOSTs and blocked zero mutation attempts.
+This certifies actual private-artifact delivery, not a complete floor report.
+Earlier failed complete-only attempt remains failed; no new export supplied
+recovery. Artifact11662676408 digest
+58c0890d6f3cea3f693d0bc1ec5070a9697d05a0a5bc1350b5b0bd9f7bf1b3e9
+and sanitized primary JSON are retained in the external archive.
+
+
+### Sealed engine and strict console production proof, 07:05 UTC
+
+Canonical policies fully emitted/read at2026-10-10T07:05:10.018Z, v2.9;
+manifest and source hashes above unchanged. Repository instructions, publishing,
+CLAUDE, storage, migration/path references, existing checkpoint and complete
+owning maintenance handoff/programme freshly reread atWH5e131ebea6e5e765844325ac331c77cf8be2c291
+andCAea17a49fbb08a1c31327e3e9a7576001e387c3c2. ExternalSSD mounted with space.
+
+CA client publication38031963054 terminalSUCCESS. Both direct origin and public
+rewrite independently served exactf8caac885066c8ccc7917b8db972a1bd70862785
+at07:00UTC, built_at06:48:10Z by that normal publisher. Sole engine receiver
+38031997124 terminalSUCCESS: immutable preflight, production doors, sealed
+Hetzner activation, local/public/elected-leader proof and ephemeral cleanup
+actually executed. Independent local proof at06:57:05UTC identifies enginef8,
+imageSHA2563d4de3c5c6aaec76de76d3d9148db368e86f0e7356b3489ee57a4781b64c34bb,
+instance1-d669cd56. Append-only deploy receipt1021 reports shippedtrue and
+sealed verification. Independent07:00 health agrees: runningtrue/livenessok,
+maintenanceidle, eight resume waves complete and343tablesResumed. No manual
+restart, duplicate receiver or installed migration replay supplied delivery.
+
+Strict genuine console certificate38032737897/job114156891053 passed
+06:58:56.574UTC to06:59:31.308UTC on exact protected/served5e131 and
+READYdpl_6xhHNkaypvhXVWjKdKw9SoEGowd2, databaseok, stableAcrossRuntrue.
+Authenticated GET200 reads include actual available engine-control contract;
+all eight named surfaces settled at1440x900 and375x812,28tabs present,
+zero mutation attempts, page/chunk errors or overflow. Artifact11662706954,
+SHA256c11f90473610309fa63f14ea73ba6ebc4a2ea7418fb4005ca0369344ab7ff4f3.
+Bounded human-seat observation was0; this is not a whole-platform play verdict.
+
+Exact engine-triggered postdeploy38032746134 is executing actual live-table
+and client browser certification. Earlier client-triggered38032437332 was
+cancelled before browser execution and its live-table branch skipped actual
+cases after maintenance deferral; neither supplies the missing genuine proof.
+Final rescore, documentation protected merge and owned cleanup remain pending.
+
+
+### Genuine exact-engine live-table acceptance, 07:12 UTC
+
+Engine-triggered38032746134/job114156930825 completedSUCCESS at07:12:23UTC.
+Actual mobileWebKit suite ran four required MTT/SPIN/SNG/cash continuity and
+network-loss owner-recovery cases,4passed in11.5minutes without retries.
+Both actual-execution and exact required-coverage gates passed;
+coveragecomplete:true/missing:[], RUNTIME_RESUMEDtrue, protected client/engine
+f8caac885066c8ccc7917b8db972a1bd70862785 stayed exact across its bracket.
+Reserved account hard-deleted and absence verified07:12:22UTC. Primary full
+log archived asrestriction/ca-f8-engine-receiver-live.log and independently
+read by root. Original deferred/cancelled receiver remains a non-verdict.
+Client browser job114156931024 remains executing; no final seal/rescore yet.
+
+Independent SELECT readback of deploy receipt1021 confirms targetf8,
+shippedtrue, reasonHetznertransactionsealedandindependentlyverified,
+run_id38031997124-1. Primary response archived as
+engine-deploy-receipt-1021-readback.json. No provider write used for readback.
+
+
+### Actual final browser failure and finite recovery, 07:50 UTC
+
+Exact engine-triggered38032746134 clientjob114156931024 finishedFAILED.
+Actual failure1: mobiletableart reader expectedcarbon_red but stayedclassic_green
+for60seconds after successful persisted response. Primary sanitized diagnostic
+proves durableALLtable_idcarbon_red, both realtime subscribers received the
+correct own-row signal without channel errors, while both theme caches held
+classic_green at that same updated_at. Transport/DB success does not establish
+consumer repaint. Actual failure2: complete eight-route CSP observation hit its
+240-second case ceiling, with the stack inside a fixed2-second visit delay.
+Sweep425passed/1failed; no CSP violation result is inferred from that timeout.
+Other executed suites retain their primary results. Both reserved accounts
+were hard-deleted with absence verified; customization seal skipped after failure.
+
+Old comparable38029718347 also has clientFAILURE, not passing baseline proof.
+Actual primary failure logs/artifact11664236543 SHA256
+5924735a4c1688aa7586bebef71541d5ec22d5042620570957801d39584f425d
+are archived. Existing four exact-engine live-table cases remainPASS4/4.
+Recovery is limited to demonstrated browser delivery blockers, preserving every
+assertion, route and authority. No duplicate provider retry, engine restart,
+SQL replay, production control toggle or passing rescore supplies recovery.
+CA followup ownsagent/codex/stable-admin-six-browser-recovery-20261010 from
+protected71aa27a37d97e713df59df9a929b48c042505ec0; no closedPR receives changes.
+Initial basef8 description was corrected by the actual07:51:37 checkout reflog:
+the current-main branch already preserved incoming cashierPR6624 and wheelPR6626.
+Final score/documentation integration and task cleanup remain pending.
+
+### Browser recovery source owners and resumption, 07:56 UTC
+
+Canonical four policies freshly emitted and fully read at2026-10-10T07:54:37.601Z,
+v2.9; manifest and all recorded source hashes unchanged. Full repository,
+publishing, CLAUDE, actual path/migration/storage references, current checkpoint
+and owning maintenance handoff/programme reread. WH5e131 and CAf8 recovered on
+their owned followup branches. ExternalSSD disk7s4 has93820288 free512-byteblocks.
+Floor agent separately read canonical policies at07:53:38.606Z, same hashes.
+
+Root independently read the correct theme consumer: it preserves PostgreSQL
+microseconds via bigint version comparison and rejects conflicting equal-version
+echoes. Production trigger uses transaction-stable NOW(), while first save inserts
+the default row then updates the chosen art in the same transaction. Both emitted
+events therefore share one version; correct persistence/realtime alone cannot
+advance the cache. A new qualified forward migration at the original timestamp
+owner is authorized, preserving the consumer guard and original security.
+No production installation or new client proof has occurred yet.
+
+The CSP owner correction is quiescent in three disjoint files. It navigates once
+to DOMContentLoaded, requires a successful HTML/rendered application and retains
+all8 routes, original3.5s/scroll/2s windows,240s casebudget and zero-violation
+assertion. Failed scroll or unavailable collector now refuses certification.
+Maintained7-case fault harness passes; real isolatedChromium with a continuously
+pending request proves original second-navigation loses first-document CSP
+evidence and corrected source retains it. This is a controlled reproduction,
+not a claim that the failed production trace identified a particular request.
+Primary local proof is archived underfloor-maintenance/csp-browser-recovery-proof.log.
+Root reviewed the exact diff and maintained regression. Final delivery remains
+pending; no healthy-engine restart, SQL replay or rescore supplies recovery.
+
+### Qualified browser recovery and fresh resumption, 08:04 UTC
+
+Canonical reader emitted/read2026-10-10T08:03:00.941Z, version2.9;
+manifest/source hashes recorded above unchanged. Full repository AGENTS,
+CLAUDE, playbooks, publishing, actual migration/path/storage references,
+complete task checkpoint and owning maintenance handoff/programme reread.
+Owned WH5e131 and CA71aa27a37d97e713df59df9a929b48c042505ec0 recovered;
+externalSSD disk7s4 has89561264 free512-byteblocks. Earlier07:56 CAf8 prose
+is historical runtime identity; actual repair checkout base is71aa as recovered.
+
+Theme source quiescent: native final actual immutable RPC binding passes,
+existing Phase1 native129/129 and consumer24/24 pass. SQL SHA256
+71562ffcd85ee5a46d41a9c389a3181c65bf552ff91e277a362760f072267577.
+Root reviewed full SQL and final native proof. Fresh08:04:18 production read
+shows no matching ledger, noDDLwindow refusal, one invoker/postgres-owned
+function with exact oldbodyda5ac28a58c8b4bb30209bf0d3d7082c, fixed public
+path/service-only ACL and one expected enabled BEFORE UPDATE trigger.
+Root syntax and TypeScript pass. CSP7focused plus real controlled browser proof
+remain valid unchanged. Installation/submission/new actual client proof pending.
+
+### Timestamp owner installed once, 08:05 UTC
+
+Supporting theme migration source20261010075740 SHA256
+71562ffcd85ee5a46d41a9c389a3181c65bf552ff91e277a362760f072267577
+installed once asprovider20261010080441/theme_row_versions_advance_per_write.
+Independent08:05:07 readback of recorded fullSQL has identical SHA256;
+bodyba1df5a065cbb19f3763fc13a4048b7b anddefinition611f8d57e783e83c23688e3ef690c7a8.
+One overload, postgres owner, invoker/volatile, fixedpublic path, exact service-only
+ACL and original enabled BEFORE UPDATE trigger unchanged. Native trigger actual
+behavior qualifies locally; genuine cold first-save/realtime repaint still pending.
+Pre/post security/performance advisor counts identical: securityINFO727,
+WARN19/3/24/925; performanceINFO690/2/437,WARN11/54. Primary readback and
+postadvisor counts archived underrestriction. No production fixture or replay.
+Normal committed browser recoveryea3ab2ebbb is in ordinary pre-push checks;
+protected followup integration, new client publication/proof/seal and finaldocs
+remain pending. This ninth supporting installation is separate from the eight
+original capability/blocker installation receipts above.
+
+### Browser recovery submitted, 08:06 UTC
+
+Exact CAea3ab2ebbb2d0d0e326357318d3b4316d7fb9c50 normal pre-push
+passed65 affected tests and applicable live-schema/security/migration/source
+guards. Clean tracked/untracked source and installed migration SHA unchanged.
+Protected followupPR6628 is open and attached, exact CI38036688520 queued.
+Own automatic merge disabled and redundant queue request38036688265 cancelled;
+root retains direct protected completion. New-head checks/publication/browserseal
+remain pending. WH currentmain4d1c1da73 incoming changes are PNM/Social/preview,
+with no StableAdmin/header/auth path overlap; no runtime evidence rewritten.
