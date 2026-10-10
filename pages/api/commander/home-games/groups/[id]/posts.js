@@ -72,8 +72,12 @@ export default async function handler(req, res) {
       // The canonical staff decision above permits co-hosts, while legacy
       // post UPDATE RLS permits owner/admin only. One narrow service-role CAS
       // hides this group's identified post; it never resolves/deletes a report.
-      const update = await service.from('commander_home_posts').update({ is_hidden: true, hidden_at: new Date().toISOString(), hidden_by: user.id, hidden_reason: 'host_report_hide' })
-        .eq('id', post.id).eq('group_id', groupId).eq('is_hidden', false).select('id, is_hidden').maybeSingle();
+      let updateQuery = service.from('commander_home_posts').update({ is_hidden: true, hidden_at: new Date().toISOString(), hidden_by: user.id, hidden_reason: 'host_report_hide' })
+        .eq('id', post.id).eq('group_id', groupId);
+      // Older posts may carry NULL, which the reader correctly treats as
+      // visible. CAS that exact preimage rather than silently matching none.
+      updateQuery = post.is_hidden == null ? updateQuery.is('is_hidden', null) : updateQuery.eq('is_hidden', false);
+      const update = await updateQuery.select('id, is_hidden').maybeSingle();
       if (update.error) throw update.error;
     }
     const readback = await service.from('commander_home_posts').select('id, is_hidden').eq('id', post.id).eq('group_id', groupId).maybeSingle();

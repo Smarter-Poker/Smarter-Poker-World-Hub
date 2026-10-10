@@ -164,10 +164,10 @@ const GROUP_ID = '00000000-0000-4000-8000-000000000001';
 const REPORT_ID = '00000000-0000-4000-8000-000000000002';
 const NATIVE_POST_ID = '00000000-0000-4000-8000-000000000003';
 
-function moderationFixture({ memberStatus = 'approved', role = 'co_host', foreign = false, severity = 'other', unknownAck = false } = {}) {
+function moderationFixture({ memberStatus = 'approved', role = 'co_host', foreign = false, severity = 'other', unknownAck = false, hidden = false } = {}) {
   let writes = 0;
   const report = { id: REPORT_ID, reported_type: 'post', reported_id: NATIVE_POST_ID, status: 'pending', content_author_id: 'writer', reason_category: severity };
-  const post = { id: NATIVE_POST_ID, group_id: foreign ? 'foreign-group' : GROUP_ID, is_hidden: false };
+  const post = { id: NATIVE_POST_ID, group_id: foreign ? 'foreign-group' : GROUP_ID, is_hidden: hidden };
   const tables = {
     commander_home_groups: [{ id: GROUP_ID, owner_id: 'host', is_active: true, is_private: true }],
     commander_home_members: [{ group_id: GROUP_ID, user_id: 'member', role, status: memberStatus }],
@@ -185,6 +185,7 @@ function moderationFixture({ memberStatus = 'approved', role = 'co_host', foreig
       let updates = null;
       const q = {
         select() { return q; }, eq(k, v) { predicates.push(row => row[k] === v); return q; },
+        is(k, v) { predicates.push(row => row[k] === v); return q; },
         in(k, values) { predicates.push(row => values.includes(row[k])); return q; },
         update(value) { updates = value; return q; },
         async maybeSingle() { return result(true); },
@@ -240,6 +241,16 @@ test('native host moderation hides the reported post once without resolving the 
   const queue = await runModeration(sb, 'host', 'GET');
   assert.equal(queue.body.reports.length, 1);
   assert.equal(queue.body.reports[0].is_hidden, true, 'hidden content remains pending review, not falsely resolved');
+});
+
+test('native moderation hides a visible legacy NULL preimage exactly once', async () => {
+  const sb = moderationFixture({ hidden: null });
+  const hidden = await runModeration(sb);
+  assert.equal(hidden.statusCode, 200);
+  assert.equal(sb.post.is_hidden, true);
+  assert.equal(sb.report.status, 'pending');
+  assert.equal((await runModeration(sb)).statusCode, 200);
+  assert.equal(sb.writes, 1);
 });
 
 test('native moderation requires canonical approved staff and excludes foreign/high-severity targets', async () => {
