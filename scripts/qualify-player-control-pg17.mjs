@@ -36,7 +36,7 @@ if(provisional) {
   await blocker.query('LOCK TABLE public.tournament_players IN ROW EXCLUSIVE MODE');
   const startedAt=Date.now();
   await assert.rejects(db.query(migration),error=>error.code==='55P03');
-  assert.ok(Date.now()-startedAt<2000,'NOWAIT admission preflight must not wait for a live writer');
+  assert.ok(Date.now()-startedAt>=2800 && Date.now()-startedAt<5000,'hot admission preflight must refuse within the bounded 3s lock timeout');
   await db.query('ROLLBACK');
   assert.equal((await db.query("SELECT to_regclass('public.ca_player_control_operations') AS relation")).rows[0].relation,null);
   assert.equal((await db.query("SELECT md5(pg_get_functiondef('smarter_private.fn_smarter_data_api_pre_request()'::regprocedure)) AS hash")).rows[0].hash,'6027b488b1c77d03642b3d384f275d6a');

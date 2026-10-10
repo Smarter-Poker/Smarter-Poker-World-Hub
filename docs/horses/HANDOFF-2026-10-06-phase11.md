@@ -597,3 +597,30 @@ source-binding, settlement, production-write guards and trusted money-trigger
 checks passed. Prior failed run38026073351 remains failed. Final hosted native
 qualification, remaining installation, protected merges, provider publication,
 engine activation and genuine live proof remain pending.
+
+### Bounded first-lock correction and installation readback, 05:25 UTC
+
+Resumption canonical reader emitted 2026-10-10T05:22:19.495Z, v2.9;
+manifest and source hashes unchanged. Existing source and checkpoint recovered.
+Four exact qualified migrations are installed once: O7 provider20261010051629,
+O1/C2 provider20261010051856, C4 provider20261010051911 and O2 provider20261010051926.
+Readback confirms empty operation/receipt tables, three false emergency-stop
+rows, original refund-owner post-images and fixed privileged function paths.
+These are installation receipts, not publication or live command certificates.
+
+P3 intermediate all-target NOWAIT source refused tournament_players contention
+with55P03 twice (05:18 and05:19), after the original40P01 failure. Fresh ledger
+and relation readback still show no installed P3, no new tables and original
+hook6027b488b1c77d03642b3d384f275d6a. No failed attempt is reported as installed.
+The final source takes tournament_players FIRST with the existing3s lock_timeout,
+then the remaining26 exact CREATE TRIGGER targets NOWAIT before anyDDL.
+Final source SHA256c201404af5ccd9b8a5b148ab95faf45fdd9f69c0eac54ca177570dd93a9eabc3.
+NativePG17 proves bounded55P03 between2.8–5s, schema/hook preservation and
+unrelated authentication access, then complete installation, restriction/admission
+ordering and duplicate logout exactly once. Source regression passes1/1.
+No production policy toggle, player/control fixture or financial write supplies proof.
+
+Club Arena67904 hosted38026920728 production build and all four engine shards
+passed; remaining accounting, native-service and client checks are running.
+World Hub final-head checks, P3 installation, protected merges, publication,
+sealed engine activation and genuine production acceptance remain pending.

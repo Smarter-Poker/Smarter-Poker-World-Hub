@@ -7,8 +7,10 @@ SET LOCAL lock_timeout = '3s';
 SET LOCAL statement_timeout = '30s';
 
 -- Acquire every existing CREATE TRIGGER target before DDL/event guards run.
--- NOWAIT refuses live writer contention atomically before incidental DDL locks.
+-- Wait at most lock_timeout for the hot admission target before any other lock.
+-- Remaining targets refuse contention NOWAIT before incidental DDL locks.
 -- These are the exact final trigger lock modes, so there is no later upgrade.
+LOCK TABLE public.tournament_players IN SHARE ROW EXCLUSIVE MODE;
 LOCK TABLE public.ca_player_restrictions,
   public.chip_transactions,
   public.club_chat,
@@ -34,7 +36,6 @@ LOCK TABLE public.ca_player_restrictions,
   public.social_reels,
   public.social_stories,
   public.table_chat,
-  public.tournament_players,
   public.wallet_transactions
   IN SHARE ROW EXCLUSIVE MODE NOWAIT;
 
