@@ -1,13 +1,21 @@
 # Stable Admin Phase 11 Closeout
 
-Current audit continuation: IN PROGRESS. The owner requested a further connected
-launch audit after the preceding delivery. Confirmed recovery/account/permission
-and cash-close defects are being repaired and separately qualified. Earlier
-completed receipts below remain dated evidence; they do not close this new audit.
-The manual content-pipeline trigger remains explicitly unavailable and outside
-the six original capability build scope. No universal no-bugs claim is made.
+Current audit source and normal publication are delivered. The owner requested
+a connected launch audit after the preceding delivery. Confirmed recovery,
+account, permission, cash-close, private-session and overview-lifecycle defects
+are repaired and qualified at their original owners. The dated records below
+retain exact actual outcomes, including failed, unknown and pending attempts.
 
-## Current Six-Capability Delivery State, 2026-10-10
+Final acceptance, this two-path documentation protected merge and owned cleanup
+are recorded after completion in the [final closeout receipt](</Volumes/SmarterArchives/agent-evidence/stable-admin-scope-audit-20261010/final-closeout-receipt.json>).
+That receipt must report passed actual affected production proof, protected
+integration and verified cleanup before this task is complete. A pending
+receipt does not satisfy acceptance. It records its own observation time and
+actual provider identities; it supplies no future or universal no-bugs claim.
+The manual content-pipeline trigger remains explicitly unavailable and outside
+the original six-capability build scope. Policy defaults remain unchanged.
+
+## Preceding Six-Capability Delivery State, 2026-10-10
 
 Finite scope: P3, O1, O2, O7, C2 and C4. All six connected implementations,
 protected runtime merges, eight original SQL installations, sealed engine,
@@ -31,11 +39,11 @@ Earlier failed browser38041665880 remains failed; it is not relabeled.
 | --- | --- |
 | Six implementation/installation/runtime/live acceptance | Passed named scoped receipts; original policy defaults preserved |
 | Corrected strict CSP production proof | Passed38046325420 actual2cases and clientlaneSUCCESS |
-| Final79/4/0/0 score/operator runbook integration | Final source ready; exact localcontracts/hooks/protectedintegration pending |
-| Task-owned worktree/scratch cleanup | Exact owned inventory archived; pending final documentation delivery |
+| Preceding79/4/0/0 score/operator runbook integration | Protected PR2285 merged as3cbc9729db93278da063b3e13c4758a10b1ef8ec at12:02:48UTC |
+| Preceding task-owned worktree/scratch cleanup | Original owned six-capability checkouts removed12:04UTC; current audit owns separate SSD worktrees |
 
-No universal platform certificate is claimed. Earlier dated states below
-preserve history; this current state governs continuation.
+No universal platform certificate is claimed. These preceding receipts remain
+dated evidence; the current audit status and later appendices govern continuation.
 
 ## Authorized Remaining-Capability Continuation, October 9, 2026
 
@@ -1608,3 +1616,428 @@ Final revised CHECK8 passes286/286 and fullhorses1265/1265; changed runtime
 requires refreshed productionbuild and30-case browser proof, currentlyrunning.
 New exacthead submission follows available localqualification; no unchanged
 provider retry or passed old-runtime build substitutes for this correction.
+
+
+### Protected console audit integration, 2026-10-10 13:58 UTC
+
+Canonical full policies emitted/read2026-10-10T13:50:34.369Z, v2.9;
+manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all previously recorded source hashes unchanged. Full WH instructions,
+publishing, CLAUDE, complete checkpoint, Phase1/2/3/4/9 contracts, permission
+matrix, agentrules and storage freshly read. ExternalSSD disk7s4 mounted
+with84529640 free512-byteblocks. Root retains sole WH/checkpoint ownership.
+
+Final1503c612de3fc1d7632004bc673bcd1c2771c7b8/tree
+e913d630ccc41bd8f53aa2ec54034f3e75a4f1ba passed normalhooks/push,
+CHECK8selected286/286, fullhorses1265/1265, requiredMessenger/Cashier299/299,
+realReact/caller29/29, documentation6/6, production507-pagebuild/budgets
+and maintained localdesktop/mobile30/30 withzero skips/failures/retries.
+All30qualified input fingerprints unchanged. Exacthead hosted safety
+38056392866 passed actual299 Messenger/Cashier and3890CHECK8 cases.
+Allseven protectedrequired checks passed. Fullhosted browser38056392868
+passed13:57:05UTC: StableAdmin30, Trivia21+1, Marketplace2, footer52,
+menu29, mobile32 and performance12; no flaky/retry summary reported.
+Actualprimary logs and exact premerge receipt independently read by root.
+
+Root directly protected-squashmerged attachedPR2286 at13:57:57UTC as
+6311bc987ff0fb367b3afbfe77a5cae179246158. Automaticmerge remainednull.
+CanonicalVercel READY, exacthealth and expanded eleven-surface certificate
+remain pending. Finaldocumentation is isolated on newownedfollowupbranch
+agent/codex/stable-admin-audit-closeout-20261010 at protected6311; no closed
+PR receives follow-up source. No newSQL/replay/control/player/financial probe.
+
+CAengine314062 hosted allfourengine shards and native166departures passed,
+but preserved client assertion observed a settlementreview portal before
+its passive scrolllock. ActualReact Profiler commit reproduction failedbefore;
+originalowner now uses pre-paint layout lock with exact prioroverflow restoration.
+Focusedunion28 and connected44 passed; root independently reviewed minimaldiff.
+Ordinarymainintegration6213cdd99b86bf67702a978e47496fe93388fa96 preserves
+new protected PlayerCommand work; sevenaffectedfiles119/119 and integrated
+productionbuild/provenancebehind-main0 pass. Normalhooks/push pass60affected
+cases. PR6638 newexacthead CI38057717004 is executing, not passing.
+Helper retains exclusive CAengine delivery. Independentclient67e42 is published;
+actualfour live-table cases passed, but finalclientbrowser38055652963 remains
+running. No final audit success or launch-clear claim.
+
+
+### Canonical console publication and sole expanded certificate
+
+6311bc987ff0fb367b3afbfe77a5cae179246158 is canonicalVercel production
+READY dpl_4LQkZsDB26jVgE8Aeug9Cu95oFLn at
+hub-vanguard-4yrq7onrl-smarter-poker.vercel.app. Rootindependent14:03:23
+publichealth matches exactprotectedmain/revision/deployment; databaseok.
+Fullhostedfooter artifact11671882577 digest
+21647170841400418220b3032542f1ff0bdea1c9565babd8413d4f616fdb1d1e
+retains primary fullbrowser evidence. Root dispatched ONE strictprotectedmain
+eleven-surfacecertificate38058111388 at14:03:31UTC for that exactrevision.
+It is queued, notpassing. Finite read-only helper tracks its originaloperation;
+no duplicateexport, controlwrite, production financialfixture or enginerestart.
+Finalnewauditlive acceptance, CAengine/clientbrowser and docs remainpending.
+
+
+### Expanded genuine console certificate PASS, 14:05 UTC
+
+Sole38058111388/job114230628797 terminalSUCCESS. Root independently
+downloaded and read sanitizedJSON plus primarylog. Actualcertificate ran
+14:04:57.941UTC to14:05:38.650UTC on exactprotected/served6311 and
+READYdpl_4LQkZsDB26jVgE8Aeug9Cu95oFLn; stableAcrossRuntrue/databaseok/
+authenticatedtrue. Elevennamedreadsurfaces allsettled at1440x900 and375x812,
+28tabs, actualGET200 including Players, Geeves summary+top_missed and
+Scrapers. Both widths havezero mutationattempts/pageerrors/chunkfailures/
+body-documentoverflow. No productionwrite supplies thisproof. Bounded
+humanseatedvalue0 at14:05:33.477 is not a whole-app playcertificate.
+
+NamedO7 artifactAPI/worker/client/verifier paths are byte-identical to
+its original5e131 deliveryreceipt. Shared useOperatorFetch changed; its
+explicitcaller-owned scope behavior is separately qualified and remains intact.
+The dated originaljob actual173279bytes/SHA256 andcomplete=false proof is
+retained without duplicateartifactrequest. Newconsoledefault accountfence
+is separately qualified by originalcaller/realReact regressions. Current
+CA6213 hostedclient35,221PASS/2existingSKIP and engine22,003PASS/168existing
+SKIP; actualrequired native166 proof remains separate. Compiler/clientjoin/
+ProductionBuild/native-smoke pass; accounting/browser/requiredserverjoin
+stillpending. No newaudit completionclaim until the remaining owners finish.
+
+
+### Client session repair actual production browser proof, 14:06 UTC
+
+Normal38055652963 clientjob114223575386 SUCCESS: actual477executed/
+2existingunrelatedSKIP/0failures/0flaky/52files; strictCSP2executed/0SKIP,
+426-casesweeppassed. Threeactualcustomizationjourneys eachpassed exactlyonce
+firstattempt/complete:true/missing:[]; reservedaccount hard-delete/absence
+14:05:13.675UTC. Actualnormal sealjob114230964206 SUCCESS writes durable
+67e42/f8 Phase1seal14:05:50.548UTC. Rootindependently read bothprimarylogs.
+Fullbrowser exactsnapshot is UNKNOWN because productionadvanced to
+09b0d2bafaa64facbebee2881a12e6ef7c543b07 during its broaderbracket;
+it is not relabeled an exact67e42 whole-app certificate. Narroweractual
+Phase1bracket andfourlive-table cases retain their own successful receipts.
+Currentdescendant session-repair inclusion and finalengine proof remainpending.
+No healthyengine restart, duplicatebrowser dispatch or installedSQL replay.
+
+
+### Client descendant inclusion and owned cleanup, 14:08 UTC
+
+Root independently parsed actualcurrentorigin/runtimeinventory/ancestry primary
+JSON: bothorigins09b0d2bafaa64facbebee2881a12e6ef7c543b07, normalpublisher
+38056976427 built13:49:17UTC. Protectedcomparison is1commit ahead/0behind
+67e42; repairedsessionRevoked path unchanged. Publicruntimeinventory
+complete:true contains exactqualifiedblob13f1208be0a14858eb5973169f57f85b5da38bdd.
+Thus currentserving clientincludes the qualifiedsessionrepair withoutforcing
+olderruntime. Fullbrowser single-snapshot UNKNOWN remains explicit; narrower
+Phase1/live receipts remain valid. Normal38055652963 terminalSUCCESS14:06:32.
+
+Clienthelper cleanup14:08:15 removedonly private370MBdependencies, cleanowned
+client-delivery worktree via normalgit worktree remove, andownunusedrestriction
+cache/scratch. Rootverifiedabsence/receipt. CAengine/WH siblings andallarchives
+preserved. Client scope is complete; finalengine/newauditdocs/cleanup remainpending.
+
+
+### Current engine audit protected integration, 2026-10-10 14:38 UTC
+
+Canonical full policies emitted/read2026-10-10T14:41:01.050Z, version2.9;
+manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all recorded canonical source hashes unchanged. Root freshly read full
+WH AGENTS/playbook/CLAUDE/publishing, complete existing checkpoint, affected
+Phase1/2/3/4/9 contracts, permission matrix, agentrules and storage. Owned
+WH closeout branch remains at6311 with only two root documentation paths;
+externalSSD disk7s4 has89141008 free512-byteblocks. No source reset or retry.
+
+CA final6213cdd99b86bf67702a978e47496fe93388fa96 hosted38057717004
+terminalSUCCESS. Allfourclient/server/nativePG17 accounting shards executed
+andpassed, compiler/productionbuild/native-smoke/CSS/typecheck and allsix
+required contexts PASS. Actualclient35,221PASS/2existingunrelatedSKIP; engine
+22,003PASS/168existingSKIP. Separate native166departures executedPASS/noSKIP.
+Root independently read actual combinedjoin primary: server/accountingSUCCESS,
+SERVER_CHANGEDtrue, HEAD_CURRENTtrue; no supersession branch supplies proof.
+
+Soleenginehelper directly protected-squashmerged attachedPR6638 at14:37:57UTC
+asd026c1d35a807780826d2da3793674972f37cf02. Qualifiedruntime/native/SQL/Union
+paths remain byte-identical across ordinary protected integration, preserving
+seven incoming physical-Safari package/workflow/documentation paths. Normal
+producer38060381241 SUCCESS correlated sole immutable receiver38060429820;
+normalclientpublisher38060381015 is executing. Certifiedactivation, sealed
+receipt, both-origin affected-client proof and final live/browser acceptance
+remain pending. Root retains WH/checkpoint ownership, helper sole CA provider
+ownership. No duplicate event, manual restart, installedSQL replay or new
+production player/money/stop fixture. Final audit completion not yet claimed.
+
+
+### New audit client publication PASS, 2026-10-10 14:46 UTC
+
+Normalclientpublisher38060381015 terminalSUCCESS: allfourclientshards,
+immutable build/store and originaloriginpublication passed. Root independently
+read bothpublicbuild-info origins14:46:27.367UTC: exactprotected
+d026c1d35a807780826d2da3793674972f37cf02, built14:40:44UTC by
+publish-club-arena.yml/run38060381015. Root independently compared6213
+tod026: onlyseven incoming physical-Safari package/workflow/documentation
+paths differ; server/src/SQL and affectedUnionOps paths byte-identical.
+Clientpostdeploy38060882696 is pending its existing productionconcurrency
+slot behind an independently owned run; it has not executed acceptance yet.
+Engine receiver38060429820 allfourpreflight and productiondoor jobsPASS;
+originalHetzner publisher is staging through its durableintake, no sealed
+activation claimed. Finalnewengine/live/browser acceptance and docs remain
+pending. No foreign cancellation, duplicate dispatch or runtime overwrite.
+
+
+### Sealed audit engine deployment PASS, 2026-10-10 14:58 UTC
+
+Sole receiver38060429820 terminalSUCCESS. Root independently read original
+deployjob114238540567 primary: durable intake14:45:08, unitSUCCESS and
+RESULTsealed14:56:53.181UTC for exactd026. Actual local/public/electedleader
+proof14:56:54.485 matches imageSHA256
+eb61a16d8767fe4306554fcf89893dd7d0578dc52a7dba7f5b9bb69b6e7fe8bc,
+instance1-691f53e1 and fresh3second databaseheartbeat; ephemeralstaging and
+credentialscleanup passed. Append-only receipt1022 recorded14:57:37.321UTC
+reports shippedtrue/run38060429820-1/reasonHetznertransactionsealedand
+independentlyverified. Root independent SELECTreadback14:58:17.142538UTC
+confirms exacttarget and shippedtrue. No production control/moneywrite by root.
+
+Actual public durable scheduled announcement14:53 established15:00UTCdeadline;
+newengine activation/seal completed within the maintained scheduled window.
+Detailed host admission measurement is unobserved in the owning wrapperlog;
+no invented admissionmilliseconds or clock-only authorization supplied proof.
+TransientHTTP502 during cutover was observed before recovery; independentroot
+14:57health matches d026/1-691f53e1/leader/runningtrue/livenessok. Countdown
+thaw and affected gameplay/browser remain pending, not inferred from seal.
+
+Original automatic enginecertifier correlated normalpostdeploy38061686209
+created14:57:46UTC. Clientpostdeploy38060882696 browser is executing. Its
+earlier livejobSUCCESS is explicitly NONVERDICT: oldf8 changed during
+maintenance and RUNTIME_RESUMEDfalse; actualcases were not certified. The
+new-engine operation will supply required actuald026 gameplay proof. No
+duplicate dispatch, healthyengine restart, foreign cancellation or SQLreplay.
+Finaldocs/newaudit completion and ownedcleanup remain pending.
+
+
+### Original provider supersession retained, 2026-10-10 15:00 UTC
+
+Provider automatically superseded ownclientpostdeploy38060882696; root
+independently read terminalCANCELLED status and actualjobs. Browserjob
+114238822672 hassteps[] and did not execute. Live114238822365 has actual
+provision/cases/coverage stepsSKIPPED, with originalf8supersession and
+RUNTIME_RESUMEDfalse; no livePASS substituted. Alwayscleanup/operationalinbox
+actuallySUCCESS; customizationsealskipped. No agentcancellation or duplicate
+verificationdispatch supplied this transition. Originalnewenginepostdeploy
+38061686209 selects exactd026 and is executing liveverification, with full
+clientbrowser queued. Foreignproduction runs preserved. Finalaffected
+verification and documentation remain pending.
+
+
+### Original owner thaw and full resume, 2026-10-10 15:02 UTC
+
+Root independently read actual15:01:47.374UTC health primary: engineexact
+d026/1-691f53e1/electedleader/runningtrue/livenessok; maintenanceidle/inactive,
+unparked0/stalled0/settlementok. All8resume waves complete15:00:38.330UTC,
+302of302tables resumed. Actual380tables/374handsinflight establishes resumed
+operation, not a universal platformcertificate. Normalnewengine38061686209
+actual live-table step executes; its fourcase verdict and fullclientbrowser
+remain pending. Original pendingclientrun was replaced automatically; later
+normaljob retains all cashier/stateful/threecustomization/eightrouteCSP/sweep/
+actualexecution/coverage/cleanup/bracket/seal checks with exactd026source.
+IndependentSEO passed in earlier ownclientrun; no checker selection weakened.
+
+
+### Compatible retained-runtime verification replacement, 15:08 UTC
+
+Normalprovider laterpendingreplacement40da0ed744ae965dcdd85d095e36cb1c3e74e739
+automatically cancelled only pendingbrowser114241081747 of38061686209 with
+steps[]; its activeexactd026live114241081563 continues. Noagentcancellation.
+Laternormal38061965075 is linked by successfulretention38061880591 and
+authenticatedreceiver114241870696 to runtimeexactd026/originalpublisher
+38060381015/originalartifact11672533917. Inputscomplete:true; manifestSHA256
+55e21d9e55f0099fa5e74c53f1c84754a629374696ea8556b82b4760e2913c23,
+buildInfoSHA25685aa4995aec8b403937e43f3ee9af13c16814bd8ba59eb3687b653e99019b192.
+
+Root independently parsed actualretainedreceipt/compactcomparison and Gitdiff:
+onlysixlivewitness/unit/documentation paths changed; runtime/server/SQL/full
+browserworkflow/CSP/customization paths byte-identical. Allsixprotected
+required checks passed for candidate2b3cc/CI38061103678; explicitlyunselected
+server/native matrices are not claimed executed. Existing own6213 native/full
+engine evidence remains unchanged. Actualcompatiblefullbrowserexecution in
+38061965075 remains pending, not PASS. Foreignb7e source/runpreserved; no
+duplicate verification, olderclient overwrite or weakened acceptance.
+
+
+### Actual new-engine gameplay proof and resumption, 15:21 UTC
+
+Canonical full policies emitted/read2026-10-10T15:20:30.886Z, v2.9;
+manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all recorded canonical hashes unchanged. Root freshly read complete WH
+AGENTS/playbook/CLAUDE/publishing, full existing checkpoint, affected
+Phase1/2/3/4/9 contracts, permission matrix, agentrules and storage. Owned
+closeoutbranch remains6311 with only two documentation paths; SSDdisk7s4
+free88916880blocks. CA helper retains sole provider ownership.
+
+Root independently read engine-d026-live.log actual primary execution and
+closing gates. Job114241081563 of38061686209 actuallyPASS: four required
+MTT/SPIN/SNG/cash-network-loss cases executed,4passed15:14:52.541UTC,
+0skipped/0failed/0flaky/retries0, complete:true/missing:[]. Actual natural
+MTTlevel-up, tournament continuity and cash network recovery ran on WebKit.
+Closing classification certifiedtrue/RUNTIME_RESUMEDtrue retains exact
+d026 client and engine before/after despite later verification-only main.
+Reserved account hard-delete/absence verified15:14:54.1753005UTC. The
+overall38061686209 is CANCELLED because pendingbrowser was automatically
+superseded; no overallSUCCESS or unexecutedbrowser PASS is inferred.
+
+Compatible fullbrowser38061965075/job114241978815 remains pending under
+existing production concurrency. Current remaining finite gates: actual
+fullbrowser/coverage/cleanup/seal, final documentation protected integration
+and task-owned cleanup. No duplicate dispatch, unrelated sweep, installed
+SQL replay or healthyengine restart.
+
+
+### Actual full-browser failure and finite recovery, 16:03 UTC
+
+Compatible38061965075 clientjob114241978815 finishedFAILURE16:01:51UTC.
+Root read primary log:477executed across52files,476PASS/1FAIL/2existingSKIP;
+sweep425PASS/1FAIL. Exact originalfinancial-flows.spec.ts:16 zero-console
+assertion observed ClubOperationsOverview.Load_failed TypeError Failed to fetch.
+The assertion remains unchanged; sole CA source owner diagnoses the actual
+request/lifecycle before any correction or repeat. This is not passing evidence.
+Both strictCSP cases and all three customization journeys passed firstattempt,
+complete:true/missing:[]. Normal customizationsealSUCCESS16:02:23 is narrower
+scoped acceptance. Broader release bracket UNKNOWN because production advanced
+to d635e9413f7b336c62daed54abcc13c5c3faab06 during the sweep; it remains UNKNOWN.
+New retained-runtime livejob114241978666 SUCCESS15:26:56 is separately qualified.
+No engine restart, SQL replay or blind provider retry supplies recovery.
+Remaining: exact failure diagnosis/correction if established, required affected
+proof, protected final documentation and owned cleanup.
+
+
+### Browser baseline and exact lifecycle cause, 17:00 UTC
+
+Subsequent normal d635 postdeploy38065521412 client114252353378 actually
+SUCCESS16:36:39UTC. Root independently read originalprimary:477PASS/
+2existingSKIP/0failed/0flaky,426sweepPASS, both strictCSP cases and three
+customizationjourneysfirstattempt/complete:true. Reservedaccount absence
+16:36:35.839UTC; separate normal sealSUCCESS16:37:19. This is a successful
+current-runtime baseline, not qualification of a later source correction.
+
+Original failed38061965075 artifact identifies overviewRPC net::ERR_ABORTED
+at2135ms alongside cashierJS/CSS and telemetry, with another documentnavigation
+at2145ms/noHTTPerror. Hook cleanup failed to invalidate its in-flight request.
+Actual mountedReact pending rejection-after-unmount and switch-then-unmount
+regressions failbefore2/3, passafter3/3; real active-reader failure stillreports.
+Minimal originalowner cleanup generation invalidation plus retained regression
+passes57affected cases. New client-only followupbranch is from currentd635;
+ordinarychecks/protectedintegration/publication/affectedlive proof remain
+pending, without newengine replacement or weakenedconsole assertion.
+
+Root independently read17:00:15 WorldHub primary: stillprotected/served6311,
+canonicalREADYdpl_4LQkZsDB26jVgE8Aeug9Cu95oFLn, matchinghealth/DBok.
+Relevant runtime/auth/config/certificate paths unchanged; originalexpanded
+11-surface certificate retained. NamedO7pathsdiff5e-to6311empty; actual
+originalbytes/hash andcomplete=false retained, no newexportrequest.
+
+
+### Bounded lifecycle correction submitted
+
+FollowupPR6642 owns exact1bcecdc2eab2142f2f0ec7a88275d5a20f9b9df9
+from protectedd635. Root reviewed exact three-line originalcleanup fence and
+complete mounted3-case regression; existing ci.yml tests/4clientshards select
+the new regression directly. No financial-flow assertion changed. Local
+observation receipt records2FAIL/1PASS before,57PASS after, compiler/format/
+normalcommit/prepush PASS and35importing-source tests; original tooloutput
+was not redirected and is not relabeled a raw terminal log. Exact protected
+CI38070072697 pending; ownautopilot38070072487 cancellation requested and
+autoMergeRequestnull. Helper soleclientprovider owner; root soleWHdocs owner.
+Newprotectedmerge/publication/affectedliveproof and finaldocs/cleanup remain
+pending. No additional engine replacement or installedmigration replay.
+
+
+### Final read-only policy and installed-owner refresh, 17:06 UTC
+
+Root configured Supabase SELECT17:06:56.372691UTC confirms exactlyone installed
+20261010131448/close_cash_targets_are_executable ledgerrow and exactqualified
+close-function definitionMD5 40c186edc95844d580834f047e252ce4. Restrictions,
+approvals and named-role enforcement remainfalse. Allthree emergency stops
+remainfalse/version0. Primary root-final-policy-close-stops-1706.json retained;
+no DDL, migration replay, productioncontrol or moneywrite. Independent current
+clientd635 inclusion and normaldurableseal16:37:16.609UTC prove clientd635/
+engined026, with auditserver/SQL/UnionOps/overview paths unchanged fromd026.
+Root read actualprimary seal, not only its successbadge. PR6642 remains the
+separate client-only lifecycle correction awaiting protectedchecks/delivery.
+
+
+### Final client-only continuation reading receipt, 17:13 UTC
+
+Canonical full policy reader emitted/read2026-10-10T17:12:40.365Z, v2.9;
+manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all preceding canonical source hashes unchanged. Root freshly read full
+WH AGENTS/playbook/CLAUDE/publishing, complete checkpoint, Phase1/2/3/4/9/10
+contracts, permission matrix, agentrules and storage. Owned WH branch remains
+6311 with exactly two documentation paths. SSDdisk7s4 free79605544blocks;
+archive disk7s3 free454991136blocks. Helper retains sole CA6642 protected
+merge/client publication/affected proof ownership. Exact1bce allfourclient
+shards actuallyPASS35,227/2existingSKIP; new mountedlifecycle3tests executed
+andPASS in shard3. Required remaining contexts/publication/live are pending.
+No newengine dependency, additional SQL installation or duplicate operation.
+
+
+### Exact lifecycle correction protected integration, 17:14 UTC
+
+Root independently read allsix actualrequired contexts PASS for1bce and
+protected PR6642 metadata: direct squashed17:13:46UTC as
+2e627f7400ed407479f5c8e66711d6e70c625971, autoMergeRequestnull. Required
+CI38070072697 terminalSUCCESS; originalclientallfourshards35,227PASS/
+2existingSKIP, new actualmountedlifecycle3tests PASS in shard3 at17:09:05.
+Root read its originalcompleted joblog, not only the checkbadge. Allthree
+changed paths remain client, verification and documentation; original
+financial-flow zero-console assertion intact. Normalclientpublication and
+actualaffected proof remain pending. No engine replacement selected.
+
+
+### Current protected documentation base, 17:14 UTC
+
+Root fetched and normally fast-forwarded the owned documentation branch to
+23c09099b60d5472ebdd1fd90c41cf6b24f4d2c7, preserving both existing dirty
+closeout paths. Incoming PR2287 changes exactly phone-verification input
+position and placeholder in VerificationConsole.jsx/module.css; assigned
+StableAdmin runtime paths unchanged. Read-only independent review corrected
+the preceding-release wording to retain dated evidence authority; no new
+assertion, runtime, policy or release route change.
+
+
+### Current World Hub descendant publication, 17:15 UTC
+
+Root read actual17:14:42.216UTC primary wh-23c090-serving-inclusion-1714.json:
+protected/served23c09099b60d5472ebdd1fd90c41cf6b24f4d2c7, canonical
+hub-vanguard productionREADYdpl_7K7RUmdar627DWLSHjerCUXWxEcg, health
+same/databaseok53ms. Root independently inspected the full tracked6311-to23c
+diff: only two phone-verification paths, preserving all StableAdmin/auth/
+configuration/certificate/namedO7 inputs. Original38058111388 is retained
+unchanged-input evidence on its original stable deployment; no newcertificate
+bracket on23c is invented. OriginalO7actualbytes/hash/complete=false retained.
+No duplicate certificate or export, production mutation or engine replacement.
+
+
+### Corrected client-only publication, 17:19 UTC
+
+Normalpublisher38070876318 terminalSUCCESS. Root independently read actual
+overview-2e627-public-origins.json: bothdirectorigin andpublicrewrite HTTP200
+with exactprotected2e627f7400ed407479f5c8e66711d6e70c625971, built17:17:23UTC
+by thatpublisher, observed17:19:04.806UTC. Candidate andprotectedtree identical
+a8806c9c8284d5adf18faa7b8b22b0170ee591fa. Normalengine detector38070876299
+proves unchanged server tree and skips dispatch; no new engine receiver.
+Candidate passed checks reused by maintainedpublisher are not claimed new
+test executions. Original automaticpostdeploy38071196938 is executing;
+actualaffected browser proof, protected finaldocs and ownedcleanup pending.
+
+
+### Finite documentation closeout submitted alongside affected proof
+
+The two-path closing documentation changes no runtime, database, workflow or
+policy input. The final external receipt records actual later production proof,
+this documentation protected integration and owned cleanup without claiming
+those future actions inside the candidate. Earlier pending records remain
+dated; only the final observed receipt closes them. Root remains sole owner
+of this record and documentation integration; helper retains CA proof owner.
+
+
+Final two-path documentation review completed against protected23c09099b.
+All six maintained documentation contracts PASS/0fail/0skip; whitespace
+check PASS. Original83IDs/79Resolved/4ResolvedElsewhere/0Partial/0Open,
+28tabs/10sections/22permissions, allsixcommand boundaries, historical
+FAILED/UNKNOWN, complete=false and currentpolicy defaults retained. Normal
+hooks/push and exacthead protected integration remain required; the external
+receipt records their actual results after completion.
