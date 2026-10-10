@@ -60,6 +60,13 @@ test('live qualification proves canonical address storage and member versus stra
   assert.match(source, /bannedTournaments, \[\]/);
 });
 
+test('private page post persistence uses the installed members visibility and public withholding proof', () => {
+  const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
+  assert.match(source, /privatePost\.data\.data\?\.visibility, 'members'/);
+  assert.match(source, /posted\[0\]\.visibility, 'members'/);
+  assert.match(source, /!JSON\.stringify\(publicPosts\.data\)\.includes\(posted\[0\]\.id\)/);
+});
+
 test('qualification refuses missing mode, foreign database and unqualified revision before writes', () => {
   const valid = { NEXT_PUBLIC_SUPABASE_URL: 'https://kuklfnapbkmacvwxktbh.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-placeholder', SUPABASE_SERVICE_ROLE_KEY: 'test-placeholder', HOME_GAMES_EXPECTED_SHA: 'a'.repeat(40), HOME_GAMES_QUALIFICATION_MODE: 'task-owned-fixtures' };
   validateConfiguration(valid);
