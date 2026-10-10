@@ -542,6 +542,8 @@ import './profile-hand-stats-rpc.test.mjs';
 import './profile-hand-stats-api.test.mjs';
 import './profile-hand-stats-card.test.mjs';
 import './profile-reels-tab-ready-only.test.mjs';
+import './public-profile-api.test.mjs';
+import './public-profile-consumer.test.mjs';
 
 // Phase 8 discovery: social_posts.topics is derived by one SQL rule for every
 // writer (the trigger runs after the video contract), the backfill runs the

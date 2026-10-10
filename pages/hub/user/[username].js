@@ -13,7 +13,8 @@ import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
-import { SAFE_PROFILE_COLUMNS, OWNER_ONLY_PROFILE_COLUMNS } from '../../../src/lib/profileColumns';
+import { OWNER_ONLY_PROFILE_COLUMNS } from '../../../src/lib/profileColumns';
+import { loadPublicProfile } from '../../../src/lib/publicProfile';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 import {
   broadcastSync,
@@ -1933,6 +1934,7 @@ export default function UserProfilePage() {
 
   // Core state
   const [profile, setProfile] = useState(null);
+  const [profileLookupStatus, setProfileLookupStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(true);
   const [pokerLoading, setPokerLoading] = useState(true);
@@ -2271,11 +2273,7 @@ export default function UserProfilePage() {
       // Self-tab suppression: skip if this tab triggered the avatar change
       if (msg?.tabId === BROADCAST_TAB_ID) return;
       // Avatar changed in another tab — refresh avatar columns
-      supabase
-        .from('profiles')
-        .select('avatar_url, arena_avatar_url, use_avatar_as_profile_pic, bio, username')
-        .ilike('username', username)
-        .maybeSingle()
+      loadPublicProfile(username)
         .then(({ data }) => {
           if (data) setProfile((prev) => (prev ? { ...prev, ...data } : prev));
         });
@@ -2376,13 +2374,8 @@ export default function UserProfilePage() {
       } catch (_) {
         console.warn('[App] Handled exception:', _?.message || _);
       }
-      // Re-fetch profile from Supabase (using safe column list — phone
-      // and email are blocked at the column-grant layer for non-self reads)
-      supabase
-        .from('profiles')
-        .select(SAFE_PROFILE_COLUMNS)
-        .ilike('username', username)
-        .maybeSingle()
+      // Re-fetch the public snapshot through the server-owned privacy boundary.
+      loadPublicProfile(username)
         .then(async ({ data }) => {
           if (!data) return;
           const me = getAuthUser();
@@ -2458,6 +2451,7 @@ export default function UserProfilePage() {
     // during background revalidation to prevent the completion indicator from flashing.
     if (loadedUsernameRef.current !== username) {
       setProfile(null);
+      setProfileLookupStatus(null);
       setLoading(true);
     }
 
@@ -2513,21 +2507,13 @@ export default function UserProfilePage() {
         const user = getAuthUser();
         if (user) setCurrentUser(user);
 
-        // Fetch the profile by username
-        // BUG FIX (USER-LOOKUP-1): select('*') triggers a 403 from PostgREST because
-        // phone + email columns have column-level REVOKE for non-service-role callers
-        // (see src/lib/profileColumns.js header). The 403 is caught as `error`, the
-        // null-data branch fires, and the user sees 'User Not Found' even when the
-        // profile exists in the DB. Use SAFE_PROFILE_COLUMNS (already imported at L15)
-        // which lists every public column except phone/email.
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(SAFE_PROFILE_COLUMNS)
-          .ilike('username', username)
-          .maybeSingle();
+        // The profiles table is not browser-readable. Resolve one explicitly
+        // display-safe snapshot through the server-owned public profile route.
+        const { data, error, status } = await loadPublicProfile(username);
 
         if (error || !data) {
           setProfile(null);
+          setProfileLookupStatus(status === 404 ? 'not_found' : 'unavailable');
           setLoading(false);
           setContentLoading(false);
           setPokerLoading(false);
@@ -2545,21 +2531,8 @@ export default function UserProfilePage() {
         }
 
         setProfile(data);
+        setProfileLookupStatus('ready');
         loadedUsernameRef.current = username;
-
-        // Fetch avatar preference columns separately — these cannot be in SAFE_PROFILE_COLUMNS
-        // because adding non-standard columns to that string causes a PostgREST 403 when
-        // column-level grants are in play (see comment above). Failure here is non-fatal:
-        // the toggle just won't show, which is correct fallback behavior.
-        supabase
-          .from('profiles')
-          .select('arena_avatar_url, use_avatar_as_profile_pic')
-          .eq('id', data.id)
-          .maybeSingle()
-          .then(({ data: avatarPrefs }) => {
-            if (avatarPrefs) setProfile((prev) => prev ? { ...prev, ...avatarPrefs } : prev);
-          })
-          .catch(() => {}); // non-fatal
 
         // A profile's social reads (posts, friends, follows, counts) use the
         // profile's own id, the same for every player. The page never resolves
@@ -3777,6 +3750,7 @@ export default function UserProfilePage() {
   }
 
   if (!profile) {
+    const unavailable = profileLookupStatus === 'unavailable';
     return (
       <div
         style={{
@@ -3794,8 +3768,14 @@ export default function UserProfilePage() {
       >
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-          <h2 style={{ color: C.text, margin: '0 0 8px' }}>User Not Found</h2>
-          <p style={{ color: C.textSec }}>The Profile You're Looking For Doesn't Exist.</p>
+          <h2 style={{ color: C.text, margin: '0 0 8px' }}>
+            {unavailable ? 'Profile Temporarily Unavailable' : 'User Not Found'}
+          </h2>
+          <p style={{ color: C.textSec }}>
+            {unavailable
+              ? 'Please Try Again In A Moment.'
+              : "The Profile You're Looking For Doesn't Exist."}
+          </p>
           <Link href="/hub/social-media" style={{ color: C.blue, fontWeight: 600 }}>
             Back To Social
           </Link>
