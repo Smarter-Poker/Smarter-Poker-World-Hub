@@ -147,7 +147,7 @@ function auditHelpers(clock = Date) {
   const start = verifier.indexOf('async function waitForAuditRead(');
   const end = verifier.indexOf('async function probeViewport(', start);
   assert.ok(start >= 0 && end > start, 'maintained verifier owns the audit helpers');
-  return new Function('requireCondition', 'CertificateFailure', 'Date', 'setTimeout', `${verifier.slice(start, end)}; return { waitForAuditRead, assertAuditPanelSettled };`)(
+  return new Function('requireCondition', 'CertificateFailure', 'Date', 'setTimeout', `${verifier.slice(start, end)}; return { waitForAuditRead, assertAuditPanelSettled, assertExportListSettled };`)(
     (value, code) => { if (!value) throw new Error(code); }, Error, clock, (resolveWait) => resolveWait(),
   );
 }
@@ -176,4 +176,48 @@ test('audit panel settlement refuses lingering loading, raw list errors, alerts 
   await assert.rejects(assertAuditPanelSettled(page(0, 1), 'players', 'Loading Players'), /audit_read_failure/);
   await assert.rejects(assertAuditPanelSettled(page(0, 0, new Error('loading wait failed')), 'geeves', 'Loading Geeves Analytics'), /loading wait failed/);
   await assertAuditPanelSettled(page(0, 0), 'scrapers', 'Loading Scraper Status');
+});
+
+
+test('Audit entry proof requires its exact fresh GET action and persistent settled state', () => {
+  assert.ok(verifier.includes("waitForPanel(page, 'audit', 'Admin Audit Log')"));
+  assert.ok(verifier.includes("waitForAuditRead(apiStatuses, '/api/horses/stable-admin', 'audit_log', auditReadsBefore)"));
+  assert.ok(verifier.includes("assertAuditPanelSettled(page, 'audit', 'Loading Audit Log')"));
+  assert.ok(verifier.includes("assertNoOverflow(page, viewport, 'audit-log'"));
+  assert.match(verifier, /path === '\/api\/horses\/stable-admin' && action === 'audit_log'/);
+});
+test('fresh read proof rejects observations from before the selected surface opened', async () => {
+  let time = 0;
+  const { waitForAuditRead } = auditHelpers({ now: () => { time += 10_001; return time; } });
+  const earlier = { path: '/api/horses/stable-admin', readAction: 'audit_log', method: 'GET', status: 200 };
+  await assert.rejects(waitForAuditRead([earlier], earlier.path, earlier.readAction, 1), /not_observed/);
+  await assert.rejects(waitForAuditRead([earlier, { ...earlier, status: 503 }], earlier.path, earlier.readAction, 1), /not_2xx/);
+  await waitForAuditRead([earlier, { ...earlier }], earlier.path, earlier.readAction, 1);
+});
+
+
+test('Export Files certification opens and refreshes only paged stored history', () => {
+  const probe = verifier.slice(verifier.indexOf('async function probeViewport'), verifier.indexOf('let browser;'));
+  assert.ok(probe.includes("name: 'Export Files', exact: true"));
+  assert.ok(probe.includes("waitForAuditRead(apiStatuses, '/api/horses/export-artifacts', 'list', exportReadsBefore)"));
+  assert.ok(probe.includes("name: 'Refresh Export Status', exact: true"));
+  assert.ok(probe.includes("waitForAuditRead(apiStatuses, '/api/horses/export-artifacts', 'list', exportReadsBeforeRefresh)"));
+  assert.ok(probe.includes("name: 'Next', exact: true"));
+  assert.ok(probe.includes('entry.listOffset === 25'));
+  assert.ok(probe.includes("assertNoOverflow(page, viewport, 'export-files'"));
+  assert.match(verifier, /Number\.isSafeInteger\(listOffset\) && listOffset >= 0/);
+  assert.match(verifier, /!responseUrl\.searchParams\.has\('id'\) && !responseUrl\.searchParams\.has\('download'\)/);
+  assert.doesNotMatch(probe, /name: '(?:Export CSV|Resume Original Job|Download Verified CSV|Cancel And Revoke Download|Remove Stored File|Read Original Job)'/);
+});
+test('Export Files settlement rejects failed history reads, lingering loading and busy refresh', async () => {
+  const { assertExportListSettled } = auditHelpers();
+  const page = (loading, errors, enabled) => ({ getByRole: () => ({
+    getByText: () => ({ waitFor: async () => {}, count: async () => loading }),
+    locator: () => ({ count: async () => errors }),
+    getByRole: () => ({ isEnabled: async () => enabled }),
+  }) });
+  await assert.rejects(assertExportListSettled(page(1, 0, true)), /still_loading/);
+  await assert.rejects(assertExportListSettled(page(0, 1, true)), /read_failure/);
+  await assert.rejects(assertExportListSettled(page(0, 0, false)), /refresh_busy/);
+  await assertExportListSettled(page(0, 0, true));
 });

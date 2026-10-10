@@ -31,7 +31,8 @@ test('paged extractions consume canonical rows and route paging metadata', async
   assert.doesNotMatch(bugs, /body\.tickets/);
 
   const audit = await read('AuditPanel.jsx');
-  assert.match(audit, /setRows\(body\.rows \|\| \[\]\)/);
+  assert.match(audit, /if \(!Array\.isArray\(body\?\.rows\)\) throw new Error/);
+  assert.match(audit, /setRows\(body\.rows\)/);
   assert.match(audit, /setTotal\(body\.total \?\? null\)/);
   assert.match(audit, /setHasMore\(typeof body\.hasMore === 'boolean'/);
 });

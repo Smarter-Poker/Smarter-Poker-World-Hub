@@ -52,17 +52,20 @@ function AccountEmergencyStopControls({ authFetch, accountScope }) {
     const active = epoch.current;
     const request = intent || { path: row.path, stopped: !row.stopped, expectedVersion: row.version, reason: reason.trim(), opId: crypto.randomUUID() };
     setIntent(request); setBusy(true); setError('');
+    let submitted = false;
     try {
       localStorage.setItem(storageKey.current, JSON.stringify(request));
       // A retained uncertain operation reads its durable outcome first.
       if (intent) {
         const prior = await scopedFetch(`/api/horses/emergency-stops?opId=${request.opId}`);
         if (!current(active)) return;
-        if (prior.operation) {
+        if (prior.operation !== null) {
+          if (!prior.operation || typeof prior.operation !== 'object' || Array.isArray(prior.operation)) throw new Error('The Stop Outcome Is Unknown. Keep This Operation ID.');
           if (prior.operation.op_id !== request.opId || prior.operation.path !== request.path || prior.operation.stopped !== request.stopped || prior.operation.result?.ok !== true) throw new Error('The Stored Stop Receipt Could Not Be Confirmed. Keep This Operation ID.');
           setMessage('The Recorded Stop Operation Completed. Current State Has Been Refreshed.'); clear(); await read(); return;
         }
       }
+      submitted = true;
       const r = await scopedFetch('/api/horses/emergency-stops', { method: 'POST', body: JSON.stringify(request) });
       if (!current(active)) return;
       if (r.operation?.ok !== true || r.operation?.op_id !== request.opId) throw new Error('unverified_receipt');
@@ -70,7 +73,7 @@ function AccountEmergencyStopControls({ authFetch, accountScope }) {
       clear(); setReason(''); await read();
     } catch (failure) {
       if (!current(active)) return;
-      if (failure?.code === 'stop_version_changed' || failure?.code === 'stop_operation_conflict' || failure?.status === 403 || failure?.status === 400) { try { clear(); } catch { /* Keep durable identity when storage is unavailable. */ } await read(); }
+      if (submitted && (failure?.code === 'stop_version_changed' || failure?.code === 'stop_operation_conflict' || failure?.status === 403 || failure?.status === 400)) { try { clear(); } catch { /* Keep durable identity when storage is unavailable. */ } await read(); }
       setError(failure?.message || 'Outcome Is Unknown. Keep This Operation And Read Its Receipt Before Retrying.');
     } finally { if (current(active)) setBusy(false); }
   };

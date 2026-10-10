@@ -2,8 +2,8 @@ import { waitUntil } from '@vercel/functions';
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS, hasPermission } from '../../../src/lib/horses/permissions.js';
 import { ApiError, badRequest, forbidden } from '../../../src/lib/horses/apiEnvelope.js';
-import { uuid } from '../../../src/lib/horses/validate.js';
-import { EXPORT_ARTIFACT_BUCKET, exportDescriptor } from '../../../src/lib/horses/exportArtifactRegistry.js';
+import { uuid, int } from '../../../src/lib/horses/validate.js';
+import { EXPORT_ARTIFACT_BUCKET, EXPORT_ARTIFACT_REGISTRY, exportDescriptor } from '../../../src/lib/horses/exportArtifactRegistry.js';
 import { artifactHash, exportTransition, freshExportOperator, readExportJob, runExportArtifact } from '../../../src/lib/horses/exportArtifactWorker.js';
 
 export const config = { maxDuration: 300 };
@@ -27,9 +27,14 @@ export async function handle({ db, op, body, query, req, res, method, requestId 
     return;
   }
   if (method === 'GET' && !query.id) {
-    const answer = await db.from('ca_operator_export_artifacts').select('id,op_id,surface,filters,state,progress,total,complete,error_code,content_sha256,byte_size,created_at,updated_at,expires_at,lease_until,permission').eq('requester_id', op.user.id).order('created_at', { ascending: false }).limit(100);
-    if (answer.error) throw new ApiError(503, 'Export Jobs Could Not Be Read', 'export_jobs_unavailable');
-    return { jobs: (answer.data || []).filter((job) => hasPermission(op.permissions, job.permission)), limit: 100 };
+    const limit = query.limit === undefined ? 25 : int(query.limit, { min: 1, max: 100 });
+    const offset = query.offset === undefined ? 0 : int(query.offset, { min: 0, max: Number.MAX_SAFE_INTEGER - 100 });
+    if (limit === null || offset === null) throw badRequest('Choose A Valid Export History Page', 'export_page_invalid');
+    const permissions = [...new Set(Object.values(EXPORT_ARTIFACT_REGISTRY).map((descriptor) => descriptor.permission))].filter((permission) => hasPermission(op.permissions, permission));
+    if (!permissions.length) return { jobs: [], rows: [], total: 0, limit, offset, hasMore: false, truncated: false };
+    const answer = await db.from('ca_operator_export_artifacts').select('id,op_id,surface,filters,state,progress,total,complete,error_code,content_sha256,byte_size,created_at,updated_at,expires_at,lease_until,permission', { count: 'exact' }).eq('requester_id', op.user.id).in('permission', permissions).order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + limit - 1);
+    if (answer.error || !Array.isArray(answer.data) || !Number.isSafeInteger(answer.count) || answer.count < 0) throw new ApiError(503, 'Export Jobs Could Not Be Read', 'export_jobs_unavailable');
+    return { jobs: answer.data, rows: answer.data, total: answer.count, limit, offset, hasMore: offset + answer.data.length < answer.count, truncated: answer.count > answer.data.length };
   }
   const id = uuid(method === 'GET' ? query.id : body.id);
   if (!id) throw badRequest('Choose An Export Job', 'export_id_required');

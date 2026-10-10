@@ -1308,6 +1308,11 @@ jobs:
             __tests__/player-session-access.test.mjs \
             __tests__/horses-player-logout-recovery.test.mjs \
             __tests__/horses-player-logout-component.test.mjs \
+            __tests__/horses-settings-component.test.mjs \
+            __tests__/horses-console-read-lifecycle.test.mjs \
+            __tests__/horses-emergency-stop-recovery-component.test.mjs \
+            __tests__/horses-export-history-api.test.mjs \
+            __tests__/horses-export-history-component.test.mjs \
             __tests__/horses-sanction-recovery.test.mjs \
             __tests__/horses-sanction-component.test.mjs \
             __tests__/stable-admin-cancel-stops.test.mjs \

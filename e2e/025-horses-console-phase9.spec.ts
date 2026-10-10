@@ -435,7 +435,7 @@ test.describe('Stable Admin P3 and O7 connected controls', () => {
       await page.route('**/api/horses/fleet**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...apiFixture(ALL_TAB_PERMISSIONS), ...canonicalPage({ rows: [{ id: OPERATOR_ID, display_name: 'Fixture Horse' }], total: 1 }) }) }));
       const bytes = 'id,name\n1,fixture\n';
       const contentSha = await import('node:crypto').then(({ createHash }) => createHash('sha256').update(bytes).digest('hex'));
-      const job = { id: '00000000-0000-4000-8000-000000000707', surface: 'fleet-roster', state: 'truncated', progress: 1, total: 30000, content_sha256: contentSha, expires_at: new Date(Date.now() + 86400000).toISOString() };
+      const job = { id: '00000000-0000-4000-8000-000000000707', requester_id: OPERATOR_ID, surface: 'fleet-roster', state: 'truncated', progress: 1, total: 30000, content_sha256: contentSha, expires_at: new Date(Date.now() + 86400000).toISOString() };
       const requests: any[] = [];
       await page.route('**/api/horses/export-artifacts**', async route => {
         const url = new URL(route.request().url());
@@ -445,12 +445,23 @@ test.describe('Stable Admin P3 and O7 connected controls', () => {
         } else if (route.request().method() === 'POST') {
           const body = route.request().postDataJSON(); requests.push(body);
           await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ job: { ...job, state: 'queued' } }) });
-        } else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ jobs: [job] }) });
+        } else if (url.searchParams.has('id')) {
+          expect(url.searchParams.get('id')).toBe(job.id);
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ job }) });
+        } else {
+          expect(url.searchParams.get('limit')).toBe('25');
+          const offset = Number(url.searchParams.get('offset'));
+          expect(offset).toBe(0);
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ jobs: [job], rows: [job], total: 1, limit: 25, offset, hasMore: false, truncated: false }) });
+        }
       });
       await page.goto('/horses?tab=fleet', { waitUntil: 'domcontentloaded' });
       await page.getByRole('tab', { name: 'Roster', exact: true }).click();
       await page.getByRole('button', { name: 'Export CSV', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Private Export Files' })).toBeVisible();
+      await expect(page.getByText('Showing 1-1 Of 1 Jobs', { exact: true })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Private export files', exact: true }).getByRole('button', { name: 'Next', exact: true })).toBeDisabled();
+      await expect(page.getByRole('button', { name: 'Read Original Job', exact: true })).toBeDisabled();
       expect(requests).toHaveLength(1);
       expect(requests[0]).toMatchObject({ action: 'request', surface: 'fleet-roster' });
       expect(requests[0].opId).toMatch(/^[0-9a-f-]{36}$/i);
@@ -510,9 +521,9 @@ for (const width of [1440, 375]) {
     await page.route('**/api/horses/engine-control**', async route => {
       const url = new URL(route.request().url());
       const result = route.request().method() === 'POST'
-        ? { command: { id: (command = route.request().postDataJSON()).operationId, status: 'unknown' } }
+        ? { command: { id: (command = route.request().postDataJSON()).operationId, domain: command.domain, status: 'unknown' } }
         : url.searchParams.has('capabilities') ? { capabilities: { floor: ['pause'], maintenance: ['start'] } }
-        : { command: { id: command.operationId, status: 'completed' } };
+        : { command: { id: command.operationId, domain: command.domain, status: 'completed' } };
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) });
     });
     await page.route('**/api/horses/platform-admin?section=registry**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ rows: [{ key: 'Fixture Registry Source Ready', domain: 'fixture', kind: 'projection', state: 'Open' }] }) }));

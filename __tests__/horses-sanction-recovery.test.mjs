@@ -74,3 +74,13 @@ test('unknown approval reads, new committed receipts and mismatched identities c
     }, scope, { actorId: actor, draft }, true));
   }
 });
+
+ test('malformed outcome absence never authorizes a retry write', async () => {
+  for (const operation of [undefined, false, 0, '']) {
+    for (const retry of [false, true]) {
+      let calls = 0;
+      await assert.rejects(recoverSanction(async () => { calls++; return { actorId: actor, writable: true, operation }; }, scope, { actorId: actor, draft }, retry));
+      assert.equal(calls, 1, 'only the original receipt read is allowed');
+    }
+  }
+});
