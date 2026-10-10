@@ -1,0 +1,145 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import {
+  articlePreviewNeedsHydration,
+  mergeArticleMetadata,
+  suppliedArticleMetadata,
+} from '../src/lib/articlePreviewMetadata.mjs';
+import { mergeCanonicalBrowserPost } from '../src/lib/canonicalBrowserPost.mjs';
+import { reelCreatorName } from '../src/lib/reelCreatorName.mjs';
+
+const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const article = read('src/components/social/ArticleCard.jsx');
+const social = read('pages/hub/social-media/index.js');
+const reels = read('src/components/social/ReelsFeedCarousel.jsx');
+
+test('titled image-less horse news still hydrates its actual preview image', () => {
+  const supplied = suppliedArticleMetadata({
+    title: 'Stop Playing GTO Against Blinds That Fold Too Much',
+    image: null,
+    siteName: 'Upswing Poker News',
+  });
+  assert.equal(articlePreviewNeedsHydration('https://upswingpoker.com/example/', supplied), true);
+  assert.deepEqual(mergeArticleMetadata(supplied, {
+    title: 'Wrong replacement title',
+    image: 'https://upswingpoker.com/wp-content/uploads/article.jpg',
+  }), {
+    ...supplied,
+    image: 'https://upswingpoker.com/wp-content/uploads/article.jpg',
+  });
+  assert.equal(articlePreviewNeedsHydration('https://upswingpoker.com/example/', {
+    image: 'https://upswingpoker.com/article.jpg',
+  }), false);
+  assert.match(article, /newsImageUrl\(metadata\.image\)/);
+  assert.match(article, /setMetadata\(supplied\)/);
+  assert.match(article, /fetchLinkPreview\(url, \{ requireImage: !supplied\.image \}\)/);
+  assert.match(article, /preview=story-image-v1/);
+  assert.doesNotMatch(article, /#1a1a2e|#16213e|#0f3460/);
+});
+
+test('author copy and article metadata precede media in DOM order', () => {
+  const postCard = social.slice(
+    social.indexOf('data-post-card="true"'),
+    social.indexOf('{/* Action buttons row', social.indexOf('data-post-card="true"'))
+  );
+  assert.ok(postCard.indexOf('{postBody}') > -1);
+  assert.ok(postCard.indexOf('{postBody}') < postCard.indexOf('{/* Media Grid'));
+  assert.equal((postCard.match(/\{postBody\}/g) || []).length, 1, 'caption renders once');
+
+  const title = article.indexOf('{displayTitle}');
+  const image = article.indexOf('src={displayImage}');
+  assert.ok(title > -1 && image > -1 && title < image, 'article title precedes preview image');
+  assert.ok(article.indexOf('{metadata.description &&') < image, 'article description precedes preview image');
+});
+
+test('social Reel cards put creator, disclosures and caption before their preview media', () => {
+  const reelCard = readFileSync(new URL('../src/components/reels/ReelCard.jsx', import.meta.url), 'utf8');
+  assert.match(reels, /<ReelCard[\s\S]*?textFirst/);
+  assert.match(reelCard, /const content = textFirst \? <>\{words\}\{media\}<\/> : <>\{media\}\{words\}<\/>;/);
+  assert.ok(reelCard.indexOf('const words') < reelCard.indexOf('const content = textFirst'));
+  assert.ok(reelCard.indexOf('const media') < reelCard.indexOf('const content = textFirst'));
+  const authored = {
+    channel_name: 'Original YouTube Source',
+    profiles: { display_name: 'Kane Mercer', username: 'kanemercer' },
+  };
+  assert.equal(reelCreatorName(authored, { preferProfile: true }), 'Kane Mercer');
+  assert.equal(reelCreatorName(authored), 'Original YouTube Source');
+  assert.equal(reelCreatorName({ channel_name: 'Source Only' }, { preferProfile: true }), 'Source Only');
+});
+
+test('social Reel viewer puts author words before player in DOM and layout order', () => {
+  const viewer = reels.slice(reels.indexOf('function ReelViewer'), reels.indexOf('// Main Reels Feed Carousel component'));
+  const copy = viewer.indexOf('className="vlc-carousel-viewer-copy"');
+  const player = viewer.indexOf('className="vlc-carousel-viewer-stage"');
+  assert.ok(copy > -1 && player > -1 && copy < player, 'viewer copy precedes player in DOM');
+  assert.equal((viewer.match(/currentReel\.caption &&/g) || []).length, 1, 'viewer caption renders once');
+  assert.match(reels, /grid-template-areas:\s*'copy'\s*'stage'\s*'details'/);
+  assert.match(reels, /grid-template-areas:\s*'copy copy'\s*'stage details'/);
+  assert.match(reels, /currentReel\.profiles\.display_name\s*\|\|\s*currentReel\.profiles\.username/);
+  assert.doesNotMatch(viewer, /profiles\.full_name/, 'viewer only consumes the safe public persona fields');
+});
+
+test('canonical realtime reads honor explicit null clears and preserve absent fields', () => {
+  const existing = {
+    link_image: 'https://old.example/image.jpg',
+    thumbnailUrl: 'https://old.example/thumb.jpg',
+    transcodeStatus: 'ready',
+    author: { name: 'Old Name', username: 'old', avatar: 'https://old.example/avatar.jpg' },
+  };
+  const merged = mergeCanonicalBrowserPost(existing, {
+    link_image: null,
+    transcode_status: null,
+    author: { display_name: 'Real Name', username: 'real', avatar_url: null },
+  });
+  assert.equal(merged.link_image, null);
+  assert.equal(merged.transcodeStatus, null);
+  assert.equal(merged.author.avatar, null);
+  assert.equal(merged.author.name, 'Real Name');
+  assert.equal(merged.thumbnailUrl, existing.thumbnailUrl, 'an absent key preserves existing state');
+});
+
+test('Social Media contains no Video Library decorative console', () => {
+  assert.doesNotMatch(social, /VideoLibraryConsole|AuxiliaryReelsSurfaces/);
+  const inline = reels.slice(reels.indexOf('// Main Reels Feed Carousel component'));
+  assert.doesNotMatch(inline, /<VideoLibraryConsole\b|eyebrow=|pillInk=|foot="plates"/);
+  assert.match(inline, /\.vlc-feed-console-shell \{[\s\S]*?background: #fff;/);
+  assert.match(inline, /<button type="button" onClick=\{\(\) => loadReels\(\)\}>Refresh<\/button>/);
+});
+
+test('feed never resets itself on a timer, focus, or new-content signal', () => {
+  assert.doesNotMatch(social, /setInterval\(revalidateVisibleFeed,\s*60_000\)/);
+  assert.doesNotMatch(social, /addEventListener\('focus',\s*revalidateVisibleFeed\)/);
+  assert.doesNotMatch(reels, /addEventListener\('focus',\s*revalidateVisibleFeed\)/);
+
+  const masterBus = social.slice(
+    social.indexOf("window.masterBus.subscribe('SOCIAL_POST'"),
+    social.indexOf("window.masterBus.subscribe('SOCIAL_LIKE'")
+  );
+  assert.match(masterBus, /setNewPostsCount/);
+  assert.doesNotMatch(masterBus, /loadFeed/);
+
+  const crossTab = social.slice(
+    social.indexOf("listenBroadcast('smarter_poker_social_sync'"),
+    social.indexOf("listenBroadcast('smarter_poker_block_sync'")
+  );
+  assert.match(crossTab, /setNewPostsCount/);
+  assert.doesNotMatch(crossTab, /loadFeed/);
+
+  const manualNotice = social.slice(social.indexOf('{newPostsCount > 0 &&'));
+  assert.match(manualNotice, /onClick=\{async \(\) => \{[\s\S]*?window\.scrollTo[\s\S]*?await loadFeed\(0, false\)/);
+});
+
+test('video realtime changes update or remove only the mounted card', () => {
+  const branch = social.slice(
+    social.indexOf("if (updatedPost.content_type === 'video')"),
+    social.indexOf('setPosts((prev) =>\n            prev.map', social.indexOf("if (updatedPost.content_type === 'video')"))
+  );
+  assert.match(branch, /fetchBrowserPost\(updatedPost\.id\)/);
+  assert.match(branch, /videoPostExplicitlyRevoked\(updatedPost\)/);
+  assert.match(branch, /mergeCanonicalBrowserPost\(post, fresh\)/);
+  assert.match(branch, /if \(!realtimeActive\) return/);
+  assert.match(branch, /prev\.filter\(\(post\) => post\.id !== updatedPost\.id\)/);
+  assert.doesNotMatch(branch, /loadFeed/);
+  assert.match(social, /return \(\) => \{\s*realtimeActive = false;\s*supabase\.removeChannel\(feedChannel\)/);
+});

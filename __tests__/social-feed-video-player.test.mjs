@@ -210,7 +210,7 @@ const feedPost = (extra) => ({
 // the life of a loaded surface, so a second card would show the first's text.
 const renderCard = (post) => render(loadCard().exposed.PostCard(cardProps(feedPost(post))));
 
-test('a video post renders its caption after the media, through the feed video player, with its cover frame as the poster', () => {
+test('a video post renders its caption before the media, through the feed video player, with its cover frame as the poster', () => {
   const caption = 'Rivered the nuts [[sp-card:As]] and got paid';
   const html = renderCard({
     content: caption,
@@ -224,7 +224,7 @@ test('a video post renders its caption after the media, through the feed video p
   const captionAt = html.indexOf('Rivered the nuts');
   assert.ok(videoAt >= 0, 'the native video element renders inside the card');
   assert.ok(captionAt >= 0, 'the caption renders');
-  assert.ok(videoAt < captionAt, 'the caption comes after the media');
+  assert.ok(captionAt < videoAt, 'the author caption comes before the media');
   assert.deepEqual(cardImages(html), ['spades_a'], 'the caption still goes through PokerCardText');
   assert.match(html, /<video [^>]*poster="https:\/\/cdn\.smarter\.poker\/clips\/river-bluff-cover\.jpg"/, 'the cover frame is the poster when there is no thumbnail');
   assert.match(html, /aria-label="Unmute"/);
@@ -241,7 +241,7 @@ test('the thumbnail wins over the cover frame, and a YouTube video post keeps it
     coverFrameUrl: POSTER,
   });
   assert.match(html, new RegExp(`<video [^>]*poster="${thumb.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}"`));
-  assert.ok(html.indexOf('<video ') < html.indexOf('Watch this'), 'the caption follows the media');
+  assert.ok(html.indexOf('Watch this') < html.indexOf('<video '), 'the caption precedes the media');
 
   const youtube = renderCard({
     content: 'A final table',
@@ -255,7 +255,7 @@ test('the thumbnail wins over the cover frame, and a YouTube video post keeps it
   const posterAt = youtube.indexOf('data-feed-poster');
   const captionAt = youtube.indexOf('A final table');
   assert.ok(posterAt >= 0 && captionAt >= 0);
-  assert.ok(posterAt < captionAt, 'the caption still follows the media');
+  assert.ok(captionAt < posterAt, 'the caption still precedes the media');
 });
 
 test('every other post keeps its text above the media', () => {
@@ -282,10 +282,8 @@ test('the page hands every video tile to the feed video player and no longer mou
   assert.equal((page.match(/<FeedVideoPlayer\b/g) || []).length, 2, 'the 1-up and the 2-up video tiles');
   assert.equal((page.match(/<FeedVideoPoster\b/g) || []).length, 0);
   assert.equal((page.match(/posterUrl=\{post\.thumbnailUrl \|\| post\.thumbnail_url \|\| post\.coverFrameUrl \|\| null\}/g) || []).length, 2);
-  assert.match(page, /\{post\.contentType === 'video' && postBody\}/);
-  assert.match(page, /\{post\.contentType !== 'video' && postBody\}/);
-  const above = page.indexOf("{post.contentType !== 'video' && postBody}");
-  const below = page.indexOf("{post.contentType === 'video' && postBody}");
+  assert.equal((page.match(/\{postBody\}/g) || []).length, 1, 'one shared text position for every post type');
+  const above = page.indexOf('{postBody}');
   const grid = page.indexOf("post.contentType === 'video' ? (");
-  assert.ok(above > 0 && grid > above && below > grid, 'text above the grid for every post, below it for a video post');
+  assert.ok(above > 0 && grid > above, 'author text precedes the media grid for every post type');
 });

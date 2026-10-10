@@ -181,8 +181,8 @@ test('the initial Social carousel scan crosses hidden pages and preserves a paus
   assert.match(initialLoad, /selectRows: \(rows\) => rows[\s\S]*!notInterested\.has\(reel\.id\)/);
   assert.match(initialLoad, /payload\.continuation_paused === true && nextCursor/);
   assert.match(initialLoad, /setContinuationError\(\{[\s\S]*cursor: nextCursor/);
-  assert.match(emptyState, /'Retry More Reels'/);
-  assert.match(emptyState, /onClick: retryContinuation/);
+  assert.match(emptyState, /continuationError\?\.cursor \? 'Retry More Reels' : 'Refresh'/);
+  assert.match(emptyState, /onClick=\{continuationError\?\.cursor \? retryContinuation/);
 });
 
 test('a failed cursor is blocked from automatic retry and exposed for explicit same-cursor retry', () => {
@@ -371,11 +371,11 @@ test('Following authentication failures offer a real sign-in recovery instead of
     'function ReelsFeedConsoleStyles()'
   );
   assert.match(carousel, /followingAuthError = selectedCategoryId === 'following'/);
-  assert.match(carousel, /label: 'Sign In Again'/);
+  assert.match(carousel, /followingAuthError \? 'Sign In Again' : 'Retry'/);
   assert.match(carousel, /\/auth\/login\?redirect=\$\{encodeURIComponent\('\/hub\/reels\?category=following'\)\}/);
   assert.match(carousel, /authRequired: following && isReelsAuthError\(error\)/);
   assert.match(carousel, /if \(failedContinuation\?\.authRequired\)[\s\S]*\/auth\/login\?redirect=/);
-  assert.match(carousel, /continuationError\.authRequired[\s\S]*'Sign In Again'/);
+  assert.match(carousel, /continuationError\?\.authRequired[\s\S]*'Sign In Again'/);
 });
 
 test('failed foreground refreshes preserve the mounted Reel window and expose recovery', () => {
@@ -391,7 +391,8 @@ test('failed foreground refreshes preserve the mounted Reel window and expose re
 });
 
 test('mixed-source cards use channel attribution without poker-only fallback copy', () => {
-  assert.match(sharedCard, /reel\?\.channel_name[\s\S]*reel\?\.profiles\?\.full_name/);
+  assert.match(sharedCard, /reelCreatorName\(reel, \{ preferProfile: textFirst \}\)/);
+  assert.doesNotMatch(sharedCard, /profiles\?\.full_name/, 'public Reel cards use the safe public persona field');
   assert.match(sharedCard, />Verified Reel</);
   assert.doesNotMatch(sharedCard, /Poker Creator|Verified Poker Video|Poker reel preview/);
 });

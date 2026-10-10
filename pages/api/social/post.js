@@ -24,6 +24,13 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { BROWSER_POST_SELECT, displayMetadata } from '../../../src/lib/socialPostShape';
+import {
+    POST_SELECT,
+    isPublicAudiencePost,
+    managedVideoPostIsEligible,
+    nativeVideoIsReady,
+    readManagedEligibilityContext,
+} from './feed';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CLIENT_OPTIONS = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
@@ -92,6 +99,28 @@ export default async function handler(req, res) {
         if (!visible.data) return res.status(404).json({ success: false, error: 'Post not found' });
 
         const service = getServiceClient();
+        if (visible.data.content_type === 'video') {
+            // A caller-visible row is not enough to prove a video still belongs
+            // in the feed. Reuse the feed's service-only source, rights,
+            // verification, storage-object and transcode authority for this one
+            // changed row; none of those private authority fields is returned.
+            const authority = await service
+                .from('social_posts')
+                .select(POST_SELECT)
+                .eq('id', id)
+                .maybeSingle();
+            if (authority.error) throw authority.error;
+            if (!authority.data || !isPublicAudiencePost(authority.data)) {
+                return res.status(404).json({ success: false, error: 'Post not found' });
+            }
+            const context = await readManagedEligibilityContext([authority.data]);
+            if (
+                !managedVideoPostIsEligible(authority.data, context)
+                || !nativeVideoIsReady(authority.data)
+            ) {
+                return res.status(404).json({ success: false, error: 'Post not found' });
+            }
+        }
         const authorId = visible.data.author_id;
         const [notes, author] = await Promise.all([
             service

@@ -55,10 +55,6 @@ import { useUnreadCount } from '../../../src/hooks/useUnreadCount';
 import { StoriesBar } from '../../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../../src/components/social/ReelsFeedCarousel';
 import ReelPublicationRecoveryBanner from '../../../src/components/reels/ReelPublicationRecoveryBanner';
-import VideoLibraryConsole, {
-  ConsoleCopy,
-} from '../../../src/components/video-library/console/VideoLibraryConsole';
-import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSurfaces.module.css';
 // 2026-09-10: these two were STATIC imports and they cost every reader 825 KB.
 // GoLiveModal pulls lottie-react and LiveStreamViewer reaches livekit-client, so
 // a feed scroll downloaded a 298 KB Lottie chunk and a 527 KB WebRTC chunk -
@@ -99,7 +95,7 @@ import { useSocialStore } from '../../../src/stores/socialStore';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import toast from '../../../src/stores/toastStore';
 import { getAccessToken } from '../../../src/lib/authUtils';
-import { fetchBrowserPost } from '../../../src/lib/socialPostClient';
+import { fetchBrowserPost, mergeCanonicalBrowserPost } from '../../../src/lib/socialPostClient';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
@@ -138,6 +134,28 @@ import {
 import { feedCache } from '../../../src/lib/feedCache';
 import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRecovery.mjs';
 import { normalizeUserReelTopic, USER_REEL_TOPIC_LABELS } from '../../../src/lib/userReelTopics.mjs';
+
+function videoPostExplicitlyRevoked(post) {
+  if (!post || post.content_type !== 'video') return false;
+  const audience = post.audience_mode
+    || (post.visibility !== 'public' ? post.visibility : null)
+    || 'public';
+  if (post.is_deleted === true || audience !== 'public') return true;
+  if (post.taken_down_at || (post.moderation_state && post.moderation_state !== 'active')) return true;
+  if (post.playback_type === 'youtube_embed' && post.rights_status) {
+    return !['embed_only', 'owned', 'licensed'].includes(post.rights_status);
+  }
+  if (post.playback_type === 'native') {
+    if (post.rights_status && !['owned', 'licensed', 'user_authorized'].includes(post.rights_status)) {
+      return true;
+    }
+    if (post.transcode_status !== undefined && ![null, 'done'].includes(post.transcode_status)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
@@ -1189,7 +1207,8 @@ const PostCard = React.memo(
             </>
           )}
         </div>
-        {post.contentType !== 'video' && postBody}
+        {/* The author's words always precede their media in DOM and visual order. */}
+        {postBody}
         {/* Phase 7: a puzzle post carries its options in metadata.puzzle. The
             board is already drawn by the text body above through PokerCardText;
             the card adds the choices, the clock and, after the reveal, the
@@ -1913,8 +1932,6 @@ const PostCard = React.memo(
             </div>
           </div>
         )}
-        {/* Phase 8.1: a video post's text is its caption, under the media. */}
-        {post.contentType === 'video' && postBody}
         {/* Link preview for posts with link_url but no media_urls. Shared Reel
             wrappers must reopen their canonical Reel rather than the sharing
             post ID or the article proxy. */}
@@ -3986,7 +4003,7 @@ function SocialMediaPage() {
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!user?.id) return;
-    let eligibilityReloadTimer = null;
+    let realtimeActive = true;
 
     // Subscribe to new posts (INSERT events)
     const feedChannel = supabase
@@ -4041,14 +4058,35 @@ function SocialMediaPage() {
             return;
           }
           if (updatedPost.content_type === 'video') {
-            // Every video type is server-gated. Reload through the canonical
-            // service boundary so a rights, object-state, audience, or source
-            // change cannot be merged from an unverified Realtime payload.
-            clearTimeout(eligibilityReloadTimer);
-            eligibilityReloadTimer = setTimeout(
-              () => loadFeedRef.current?.(0, false),
-              250
-            );
+            // Never reset or reorder the whole feed for a single video row.
+            // Explicit revocations fail closed immediately. Other changes are
+            // read through the caller-scoped canonical endpoint and update only
+            // an already-mounted card; an update can never insert a new post.
+            if (!shownPostIdsRef.current.has(updatedPost.id)) return;
+            if (videoPostExplicitlyRevoked(updatedPost)) {
+              setPosts((prev) => prev.filter((post) => post.id !== updatedPost.id));
+              return;
+            }
+            fetchBrowserPost(updatedPost.id)
+              .then((fresh) => {
+                if (!realtimeActive) return;
+                // The single-post endpoint has already applied the complete
+                // feed authority. Missing means revoked/ineligible; a returned
+                // browser row is authoritative and needs no weaker client gate.
+                if (!fresh) {
+                  setPosts((prev) => prev.filter((post) => post.id !== updatedPost.id));
+                  return;
+                }
+                setPosts((prev) => prev.map((post) => (
+                  post.id === fresh.id ? mergeCanonicalBrowserPost(post, fresh) : post
+                )));
+              })
+              .catch(() => {
+                if (!realtimeActive) return;
+                // An uncertain authorization read cannot preserve potentially
+                // revoked video content. Remove only that card; never reset the feed.
+                setPosts((prev) => prev.filter((post) => post.id !== updatedPost.id));
+              });
             return;
           }
           setPosts((prev) =>
@@ -4069,7 +4107,7 @@ function SocialMediaPage() {
           if (!shownPostIdsRef.current.has(updatedPost.id)) return;
           fetchBrowserPost(updatedPost.id)
             .then((fresh) => {
-              if (!fresh) return;
+              if (!realtimeActive || !fresh) return;
               setPosts((prev) =>
                 prev.map((p) => (p.id === fresh.id ? { ...p, metadata: fresh.metadata } : p))
               );
@@ -4178,9 +4216,7 @@ function SocialMediaPage() {
         window.masterBus.subscribe('SOCIAL_POST', () => {
           if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
             console.log('[Social] 🔄 New post detected via masterBus');
-          // Ref first, like every other long-lived listener in this file - this
-          // one captured loadFeed from whenever user?.id last changed.
-          (loadFeedRef.current || loadFeed)(0, false);
+          setNewPostsCount((count) => Math.min(count + 1, 99));
         })
       );
       unsubMasterBus.push(
@@ -4204,7 +4240,7 @@ function SocialMediaPage() {
     }
 
     return () => {
-      clearTimeout(eligibilityReloadTimer);
+      realtimeActive = false;
       supabase.removeChannel(feedChannel);
       supabase.removeChannel(typingChannel);
       unsubMasterBus.forEach((unsub) => unsub());
@@ -4275,9 +4311,8 @@ function SocialMediaPage() {
       const isSameTab = msg?.tabId === BROADCAST_TAB_ID;
       if (isRefresh && !isSameTab) {
         if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
-          console.log('[Social] Refreshing feed from other tab');
-        // Use ref to get always-fresh loadFeed (avoids stale closure from mount-time capture)
-        (loadFeedRef.current || loadFeed)(0, false);
+          console.log('[Social] New feed content is available from another tab');
+        setNewPostsCount((count) => Math.min(count + 1, 99));
       }
     });
 
@@ -4286,11 +4321,11 @@ function SocialMediaPage() {
       // Self-tab suppression + support both string and object payloads
       if (msg?.tabId === BROADCAST_TAB_ID) return;
       if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
-        console.log('[Social] Friends changed in other tab - refreshing feed');
-      // BUG-10 FIX: reset graph cache so the next loadFeed re-fetches with the new friend included
-      // Without this, a new friend's posts would never get the +100 priority score until page reload
+        console.log('[Social] Friends changed in another tab');
+      // Reset graph cache, then let the reader apply the new ordering with an
+      // explicit refresh. Never replace the feed underneath their scroll.
       socialGraphLoadedRef.current = false;
-      (loadFeedRef.current || loadFeed)(0, false);
+      setNewPostsCount((count) => Math.min(count + 1, 99));
     });
 
     // Block sync: when user blocks someone in another tab, hide their posts here too
@@ -5192,24 +5227,6 @@ function SocialMediaPage() {
     setNewPostsCount(0);
     loadFeed(0, false);
   };
-
-  useEffect(() => {
-    let refreshTimer = null;
-    const revalidateVisibleFeed = () => {
-      if (document.visibilityState !== 'visible') return;
-      clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => loadFeedRef.current?.(0, false), 200);
-    };
-    const interval = window.setInterval(revalidateVisibleFeed, 60_000);
-    window.addEventListener('focus', revalidateVisibleFeed);
-    document.addEventListener('visibilitychange', revalidateVisibleFeed);
-    return () => {
-      clearTimeout(refreshTimer);
-      window.clearInterval(interval);
-      window.removeEventListener('focus', revalidateVisibleFeed);
-      document.removeEventListener('visibilitychange', revalidateVisibleFeed);
-    };
-  }, []);
 
   // ♾️ INFINITE SCROLL: Refs to avoid stale closures in IntersectionObserver
   const feedOffsetRef = useRef(feedOffset);
@@ -6672,28 +6689,24 @@ function SocialMediaPage() {
             />
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
           </Link>
-          {/* Reels Console Entry */}
+          {/* Reels entry — conventional Social Media navigation, never a decorative console. */}
           <Link prefetch={false}
             href="/hub/reels"
             onClick={() => setSidebarOpen(false)}
-            className={auxiliaryReelsStyles.entryLink}
             aria-label="Open Poker Reels"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              padding: '14px 12px',
+              background: '#fff',
+              borderRadius: 8,
+              textDecoration: 'none',
+              border: '1px solid #dadde1',
+            }}
           >
-            <VideoLibraryConsole
-              as="div"
-              eyebrow="Social Hub"
-              title="Poker Reels"
-              titleAs="span"
-              subtitle="Short Form Poker Video"
-              pill="Open"
-              pillInk="blue"
-              foot="foot"
-              className={auxiliaryReelsStyles.entryConsole}
-            >
-              <ConsoleCopy as="span" align="center" className={auxiliaryReelsStyles.entryCopy}>
-                Watch And Share Poker Reels
-              </ConsoleCopy>
-            </VideoLibraryConsole>
+            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Reels</span>
+            <span style={{ marginTop: 4, fontSize: 13, color: '#65676b' }}>Watch And Share Short Videos</span>
           </Link>
         </div>
 

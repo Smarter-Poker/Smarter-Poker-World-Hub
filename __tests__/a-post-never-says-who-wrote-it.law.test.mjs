@@ -433,6 +433,7 @@ function loadPostRoute({
   notes = { scheduler: 'phase6', ended: true },
   visibleError = null,
   authorRow = { id: 'a', username: 'u', display_name: 'D', avatar_url: null },
+  videoAuthority = {},
 }) {
   const calls = [];
   const createClient = (url, key, options) => {
@@ -446,6 +447,12 @@ function loadPostRoute({
           eq(col, v) { q.filters.push([col, v]); return builder; },
           maybeSingle() {
             if (key === 'service-key' && table === 'profiles') return Promise.resolve({ data: authorRow, error: null });
+            if (key === 'service-key' && q.select === 'authority-columns') {
+              return Promise.resolve({
+                data: videoAuthority.row ?? visibleRow,
+                error: videoAuthority.error ?? null,
+              });
+            }
             if (key === 'service-key') return Promise.resolve({ data: { metadata: notes }, error: null });
             // The database as it is: anon and authenticated may name only
             // browser-granted social_posts columns, and anon may not read
@@ -466,6 +473,13 @@ function loadPostRoute({
     '../../../src/lib/supabaseServerClient': { createClient },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {} } },
     '../../../src/lib/socialPostShape': shape,
+    './feed': {
+      POST_SELECT: 'authority-columns',
+      isPublicAudiencePost: videoAuthority.isPublicAudiencePost || (() => true),
+      readManagedEligibilityContext: videoAuthority.readContext || (async () => ({})),
+      managedVideoPostIsEligible: videoAuthority.isEligible || (() => true),
+      nativeVideoIsReady: videoAuthority.isNativeReady || (() => true),
+    },
   };
   const code = ts.transpileModule(POST_ROUTE, {
     fileName: 'post.js',
@@ -542,6 +556,62 @@ test('/api/social/post: hidden or missing is 404, a bad id is 400, a failure say
 
   ({ mod } = loadPostRoute({ visibleRow: null, visibleError: { message: 'down' } }));
   res = fakeRes();
+  await mod.default({ method: 'GET', query: { id: POST_ID }, headers: {} }, res);
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.body.post, undefined);
+});
+
+test('/api/social/post reuses full feed video authority without exposing service fields', async () => {
+  const visibleVideo = {
+    id: POST_ID,
+    author_id: 'a',
+    content_type: 'video',
+    content: 'caption',
+  };
+  const authorityRow = {
+    ...visibleVideo,
+    origin_type: 'video_library',
+    source_asset_id: '00000000-0000-4000-8000-000000000099',
+    metadata: { scheduler: 'private' },
+  };
+  let contextInput;
+  const videoAuthority = {
+    row: authorityRow,
+    readContext: async rows => { contextInput = rows; return { verified: true }; },
+    isEligible: (row, context) => row === authorityRow && context.verified,
+    isNativeReady: () => true,
+  };
+  const { mod, calls } = loadPostRoute({ visibleRow: visibleVideo, videoAuthority });
+  const res = fakeRes();
+  await mod.default({ method: 'GET', query: { id: POST_ID }, headers: { authorization: `Bearer ${TOKEN}` } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(contextInput, [authorityRow]);
+  assert.equal(res.body.post.origin_type, undefined);
+  assert.equal(res.body.post.source_asset_id, undefined);
+  assert.deepEqual(res.body.post.metadata, { ended: true });
+  assert.equal(calls[0].auth, `Bearer ${TOKEN}`, 'caller RLS runs before service authority');
+  assert.equal(calls[1].select, 'authority-columns');
+});
+
+test('/api/social/post fails a changed video closed on any authority or lookup failure', async () => {
+  const visibleVideo = { id: POST_ID, author_id: 'a', content_type: 'video' };
+  for (const videoAuthority of [
+    { isPublicAudiencePost: () => false },
+    { isEligible: () => false },
+    { isNativeReady: () => false },
+  ]) {
+    const { mod } = loadPostRoute({ visibleRow: visibleVideo, videoAuthority });
+    const res = fakeRes();
+    await mod.default({ method: 'GET', query: { id: POST_ID }, headers: {} }, res);
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.body.post, undefined);
+  }
+
+  const { mod } = loadPostRoute({
+    visibleRow: visibleVideo,
+    videoAuthority: { readContext: async () => { throw new Error('authority unavailable'); } },
+  });
+  const res = fakeRes();
   await mod.default({ method: 'GET', query: { id: POST_ID }, headers: {} }, res);
   assert.equal(res.statusCode, 503);
   assert.equal(res.body.post, undefined);

@@ -106,3 +106,53 @@ test('the ready check sits after the managed eligibility chain and before the li
     assert.match(FEED_SOURCE, /coverFrameUrl: coverFrameUrlFor\(p\),/);
     assert.doesNotMatch(scan, /is_horse|scheduler/);
 });
+
+test('single-row authority rejects revoked or stale managed sources, confirmed failures, and unverified native objects', () => {
+    const now = Date.now();
+    const assetId = id(8001);
+    const managed = youtubeVideoPost(21, {
+        origin_type: 'video_library',
+        source_asset_id: assetId,
+        publication_key: `video-library:${assetId}`,
+        topic: 'cash',
+    });
+    const baseContext = {
+        assetById: new Map(),
+        assetByYoutube: new Map(),
+        verificationByYoutube: new Map(),
+        failedYoutubeIds: new Set(),
+        verifiedNativeObjects: new Set(),
+    };
+    const asset = {
+        id: assetId,
+        youtube_video_id: YOUTUBE_ID,
+        type: 'cash',
+        availability_status: 'verified',
+        embeddable: true,
+        availability_checked_at: new Date(now).toISOString(),
+    };
+    const good = {
+        ...baseContext,
+        assetById: new Map([[assetId, asset]]),
+        assetByYoutube: new Map([[YOUTUBE_ID, asset]]),
+    };
+    assert.equal(route.managedVideoPostIsEligible(managed, good, now), true);
+    assert.equal(route.managedVideoPostIsEligible(managed, {
+        ...good,
+        assetById: new Map([[assetId, { ...asset, availability_status: 'unavailable', embeddable: false }]]),
+    }, now), false, 'revoked source asset');
+    const stale = new Date(now - (8 * 24 * 60 * 60 * 1000)).toISOString();
+    const staleAsset = { ...asset, availability_checked_at: stale };
+    assert.equal(route.managedVideoPostIsEligible(managed, {
+        ...good,
+        assetById: new Map([[assetId, staleAsset]]),
+        assetByYoutube: new Map([[YOUTUBE_ID, staleAsset]]),
+    }, now), false, 'stale availability proof');
+    assert.equal(route.managedVideoPostIsEligible(managed, {
+        ...good,
+        failedYoutubeIds: new Set([YOUTUBE_ID]),
+    }, now), false, 'confirmed playback failure');
+
+    const native = nativeVideoPost(22);
+    assert.equal(route.managedVideoPostIsEligible(native, baseContext, now), false, 'native object lacks storage proof');
+});

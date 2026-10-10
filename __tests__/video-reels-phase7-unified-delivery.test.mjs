@@ -73,10 +73,10 @@ test('delivery metrics are aggregate-only and service-role protected', () => {
   assert.match(METRICS_API, /SUPABASE_SERVICE_ROLE_KEY/);
 });
 
-test('the painted mobile command rail and shared card are wired into public delivery', () => {
+test('the mobile category rail and shared text-first card are wired into public delivery', () => {
   assert.match(PAGE, /<ReelsModeRail/);
   assert.match(SOCIAL, /import ReelCard from '..\/reels\/ReelCard'/);
-  assert.match(SOCIAL, /<ReelCard key=/);
+  assert.match(SOCIAL, /<ReelCard[\s\S]*?key=\{reel\.id\}[\s\S]*?textFirst/);
   assert.match(PAGE, /recordReelsDeliveryMetric/);
   assert.match(LIBRARY, /recordReelsDeliveryMetric/);
   assert.match(SOCIAL, /recordReelsDeliveryMetric/);

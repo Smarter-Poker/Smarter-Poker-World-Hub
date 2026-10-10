@@ -21,6 +21,12 @@
 
 import { useState, useEffect } from 'react';
 import { decodeHtmlEntities } from '../../lib/socialHelpers';
+import { newsImageUrl } from '../../lib/security/imageHosts.js';
+import {
+    articlePreviewNeedsHydration,
+    mergeArticleMetadata,
+    suppliedArticleMetadata,
+} from '../../lib/articlePreviewMetadata.mjs';
 
 // Light theme colors (matches social-media.js)
 const C = {
@@ -77,16 +83,20 @@ function prewarmProxy(url) {
 }
 
 
-async function fetchLinkPreview(url) {
+async function fetchLinkPreview(url, { requireImage = false } = {}) {
     // Return cached result if available
-    if (_metadataCache.has(url)) return _metadataCache.get(url);
+    const cached = _metadataCache.get(url);
+    if (cached && (!requireImage || cached.image)) return cached;
+
+    const requestKey = requireImage ? `${url}|story-image-v1` : url;
 
     // Deduplicate: if a request for this URL is already in-flight, await it
-    if (_inflightRequests.has(url)) return _inflightRequests.get(url);
+    if (_inflightRequests.has(requestKey)) return _inflightRequests.get(requestKey);
 
     const promise = (async () => {
         try {
-            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+            const version = requireImage ? '&preview=story-image-v1' : '';
+            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}${version}`);
             if (response.ok) {
                 const data = await response.json();
                 // Only cache if we got useful data (image or title) to allow retry on bare fallback
@@ -101,9 +111,9 @@ async function fetchLinkPreview(url) {
         return null;
     })();
 
-    _inflightRequests.set(url, promise);
+    _inflightRequests.set(requestKey, promise);
     const result = await promise;
-    _inflightRequests.delete(url);
+    _inflightRequests.delete(requestKey);
     return result;
 }
 
@@ -224,44 +234,39 @@ export default function ArticleCard({
     fallbackContent,
     onClick
 }) {
-    const [metadata, setMetadata] = useState({
-        title: title || null,
-        description: description || null,
-        image: image || null,
-        siteName: siteName || null,
-    });
-    const [loading, setLoading] = useState(!title && !image);
+    const [metadata, setMetadata] = useState(() => suppliedArticleMetadata({
+        title, description, image, siteName,
+    }));
+    const [loading, setLoading] = useState(Boolean(url && !image));
     const [imageError, setImageError] = useState(false);
 
-    // Fetch metadata if not provided (uses shared cache to avoid N+1).
-    // imageError is reset on url change so recycled cards don't inherit prior error state.
-    // Skip the API call whenever we already have a title — image is optional for rendering.
+    // Fetch incomplete metadata (uses shared cache to avoid N+1). Horse news
+    // rows can carry a persisted title while link_image is still null, so a
+    // title must never suppress thumbnail hydration.
+    // Reset all supplied fields on prop/url changes so recycled cards cannot
+    // retain the prior article's image, title or error state.
     // prewarmLinkPreviews() populates _metadataCache before cards mount so the
     // happy-path useEffect resolves as a synchronous cache hit with zero network.
     useEffect(() => {
+        const supplied = suppliedArticleMetadata({ title, description, image, siteName });
+        setMetadata(supplied);
         setImageError(false);
-        if (!url || title) {
+        if (!articlePreviewNeedsHydration(url, supplied)) {
             setLoading(false);
             return;
         }
-
         setLoading(true);
         let cancelled = false;
         (async () => {
-            const data = await fetchLinkPreview(url);
+            const data = await fetchLinkPreview(url, { requireImage: !supplied.image });
             if (cancelled) return; // guard against stale effect after url change
             if (data) {
-                setMetadata(prev => ({
-                    title: prev.title || data.title,
-                    description: prev.description || data.description,
-                    image: prev.image || data.image,
-                    siteName: prev.siteName || data.siteName,
-                }));
+                setMetadata(mergeArticleMetadata(supplied, data));
             }
             setLoading(false);
         })();
         return () => { cancelled = true; };
-    }, [url, title, image]);
+    }, [url, title, description, image, siteName]);
 
     // Check if URL is from a social platform that blocks proxying
     const isSocialPlatformUrl = (testUrl) => {
@@ -319,7 +324,7 @@ export default function ArticleCard({
 
     // Determine what image to show - be more permissive for social platform images
     // If we have an image URL, use it (don't be too strict with validation)
-    const displayImage = !imageError && metadata.image ? metadata.image : null;
+    const displayImage = !imageError && metadata.image ? newsImageUrl(metadata.image) : null;
 
     return (
         <div
@@ -339,43 +344,7 @@ export default function ArticleCard({
             }}
             onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
         >
-            {/* Image Container - FULL WIDTH for maximum visual impact */}
-            <div style={{
-                width: '100%',
-                minHeight: 280,
-                overflow: 'hidden',
-                background: loading
-                    ? 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)'
-                    : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-            }}>
-                {displayImage ? (
-                    <img
-                        src={displayImage}
-                        alt={displayTitle}
-                        style={{
-                            width: '100%',
-                            minHeight: 280,
-                            objectFit: 'cover',  // FULL SCREEN - fill the container
-                            objectPosition: 'center center',
-                            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
-                        }}
-                        onError={() => setImageError(true)}
-                    />
-                ) : (
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        color: 'white',
-                        fontSize: 48
-                    }}>
-                        📰
-                    </div>
-                )}
-            </div>
-
-            {/* Metadata Container */}
+            {/* Article words precede the preview media, matching every post type. */}
             <div style={{ padding: '12px 16px', background: C.card }}>
                 <div style={{
                     fontSize: 11,
@@ -414,6 +383,34 @@ export default function ArticleCard({
                         {decodeHtmlEntities(metadata.description)}
                     </div>
                 )}
+            </div>
+
+            {/* Do not manufacture a decorative fallback when a publisher has
+                no usable image. A neutral skeleton is visible only while the
+                first-party metadata request is actually pending. */}
+            {(loading || displayImage) && <div style={{
+                width: '100%',
+                minHeight: 280,
+                overflow: 'hidden',
+                background: '#f0f2f5',
+            }}>
+                {displayImage ? (
+                    <img
+                        src={displayImage}
+                        alt={displayTitle}
+                        style={{
+                            width: '100%',
+                            minHeight: 280,
+                            objectFit: 'cover',  // FULL SCREEN - fill the container
+                            objectPosition: 'center center',
+                            background: '#f0f2f5'
+                        }}
+                        onError={() => setImageError(true)}
+                    />
+                ) : null}
+            </div>}
+
+            <div style={{ padding: '10px 16px 12px', background: C.card }}>
                 <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
                     Click To Read Full Article →
                 </div>

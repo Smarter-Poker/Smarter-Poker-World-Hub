@@ -373,6 +373,8 @@ import './reels-authority-repair-postgres.test.mjs';
 import './reels-carousel-console.test.mjs';
 import './reels-console-dependencies.test.mjs';
 import './reels-embedded-console-visual.test.mjs';
+import './social-feed-normal-ui.test.mjs';
+import './link-preview-poker-news-images.test.mjs';
 import './historical-user-reels-recovery-migration.test.mjs';
 import './historical-user-reels-post-rights-followup-migration.test.mjs';
 import './social-reel-alias-reconciliation-migration.test.mjs';

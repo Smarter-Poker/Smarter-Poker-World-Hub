@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { buildReelPath } from '../../lib/reelsFeedClient';
+import { reelCreatorName } from '../../lib/reelCreatorName.mjs';
 
 function youtubeId(reel) {
   const stored = String(reel?.youtube_video_id || '').trim();
@@ -8,19 +9,21 @@ function youtubeId(reel) {
   return match?.[1] || null;
 }
 
-export default function ReelCard({ reel, onOpen, className = '' }) {
+export default function ReelCard({ reel, onOpen, className = '', textFirst = false }) {
   const id = youtubeId(reel);
-  const creator = reel?.channel_name || reel?.profiles?.full_name || reel?.profiles?.username || 'Creator Unavailable';
+  const creator = reelCreatorName(reel, { preferProfile: textFirst });
   const thumbnail = reel?.thumbnail_url || (id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null);
   const native = reel?.playback_type === 'native' || reel?.source_type === 'native';
-  const content = (
+  const media = (
+    <span className="sp-reel-card__media vlc-reel-card__media">
+      {thumbnail ? <img src={thumbnail} alt="" loading="lazy" decoding="async" /> : native ? (
+        <video src={reel?.video_url} muted playsInline preload="none" aria-label={reel?.caption || 'Reel preview'} />
+      ) : <span>Verified Reel</span>}
+      <span className="sp-reel-card__play" aria-hidden="true">▶</span>
+    </span>
+  );
+  const words = (
     <>
-      <span className="sp-reel-card__media vlc-reel-card__media">
-        {thumbnail ? <img src={thumbnail} alt="" loading="lazy" decoding="async" /> : native ? (
-          <video src={reel?.video_url} muted playsInline preload="none" aria-label={reel?.caption || 'Reel preview'} />
-        ) : <span>Verified Reel</span>}
-        <span className="sp-reel-card__play" aria-hidden="true">▶</span>
-      </span>
       <span className="sp-reel-card__creator vlc-reel-card__author">{creator}</span>
       <span className="sp-reel-card__trust" aria-label="Media disclosures">
         {reel?.disclosure_kind && reel.disclosure_kind !== 'organic' ? String(reel.disclosure_kind).replace('_', ' ') : null}
@@ -30,6 +33,7 @@ export default function ReelCard({ reel, onOpen, className = '' }) {
       <span className="sp-reel-card__caption vlc-reel-card__caption">{reel?.caption || 'Watch Reel'}</span>
     </>
   );
+  const content = textFirst ? <>{words}{media}</> : <>{media}{words}</>;
   if (onOpen) {
     return <button type="button" className={`sp-reel-card vlc-reel-card ${className}`.trim()} onClick={() => onOpen(reel)} aria-label={`Open reel by ${creator}`}>{content}</button>;
   }

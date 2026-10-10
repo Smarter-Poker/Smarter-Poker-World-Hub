@@ -8,6 +8,9 @@
  * src/lib/socialPostShape.js.
  */
 import { authedFetch } from './authUtils';
+import { mergeCanonicalBrowserPost } from './canonicalBrowserPost.mjs';
+
+export { mergeCanonicalBrowserPost };
 
 export async function fetchBrowserPost(id) {
     if (typeof id !== 'string' || !id) return null;
