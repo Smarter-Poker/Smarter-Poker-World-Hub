@@ -795,3 +795,60 @@ realO7download and genuine scoped production certificate remain pending.
 
 Exact generated inventory plus classifier/certificate/export/documentation
 contracts passed24/24 locally with zero skips; diff whitespace check passed.
+
+
+### Protected World Hub integration and resumption, 06:24 UTC
+
+Canonical policies fully emitted/read at2026-10-10T06:22:59.466Z, v2.9;
+manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b
+and all preceding source hashes unchanged. Complete repository/publishing/
+CLAUDE/path/migration/storage and owning maintenance references freshly read
+atWH27656996117836e6e7929a447acddaff4c8399c5 and
+CAea17a49fbb08a1c31327e3e9a7576001e387c3c2. SSD mounted with free space.
+
+WH final276569 passed all seven protected required checks and full production
+browser acceptance38029434563/job114147122810. Protected squash PR2263
+merged as2fca9affbc311aae2812593bb4e216eee9db964f at06:20:26UTC,
+preserving incoming current-main work. Canonical Vercel Git deployment is
+BUILDING; READY/served identity/real export remain pending. Full browser
+artifact11660944720 has digest01109b019d940025d7f031bb8310c1c00e8756456d8c41ca7977f93c1017aa51.
+
+CA finalea17 ordinary push passed2883 affected tests and122 Node checks.
+Required status checks pass; native accounting1/2/4 still executing in
+38029982212, accounting3passed. Protected CAmerge, client publication,
+sealed engine activation and genuine scoped live proof remain pending.
+All eight qualified database dependencies installed exactly once; no replay.
+
+
+### Exact blocker installations and first real export, 06:29 UTC
+
+Matcher forward source20261010054420 SHA256
+b56aea27caf66d304b213790368c30d19d12817370f60cda76025afa0b71115a
+installed once asprovider20261010060537. Definition postimage
+449fdbe1fa82cf75c17129b098e1c5f9; body8e06bde427b2b38939194c4ebb16c7de.
+Invoker, postgres owner, fixed public/pg_temp path and service-only execute
+read back unchanged. Real stale-first-group native countercase and both
+11-scenario/169-invariant chains passed; production financial fixtures absent.
+
+Cancel-lane doctrine forward20261010060243 SHA256
+0bcd9bd50784b73c2ad68a288897e6c2a5a8aa1096a7067019fdc2648f8a2ec7
+installed once asprovider20261010060702. Definition postimage
+a5f6ef6dc123d31aa6586bffe9452ba8. Exact one reviewed global caller added;
+original atomic refund wrapper/global/tournament helper postimages unchanged.
+Installed doctrine returns oktrue/violations[]. Real106 native assertions,
+including global-before-row lock contention, exact refund replay and guarded
+rollback, pass. This preserves the global owner; no blanket write exemption.
+
+World Hub protected2fca9affbc311aae2812593bb4e216eee9db964f is READY
+in canonical deploymentdpl_3cufSbgBqAUhZ3aS376BjhuXGtLk. Exact health
+at06:25:42UTC agrees and databaseok. Real export run38030900609 failed
+export_truncated: admitted one durable metadata request, original
+jobbe6d9914-8c4e-4b5e-9842-601ebdb34d9e,
+op5344da38-f244-42e8-a5b8-94e1f8e8f1e1. Authoritative read shows
+truncated/completefalse,515of515rows,173279bytes, SHA256
+87ade103f741ae64340849579659d9f1be06231318e731a97af013e19d417886.
+The floor owner disclosed engine/database partial or divergence evidence;
+no row cap was hit. No full report or download is yet certified. Supported
+original-job verification with explicit incomplete acknowledgement is being
+qualified; no duplicate export, financial/player mutation or weakened
+completeness claim supplies success. Failed receipt remains archived.
