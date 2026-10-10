@@ -80,13 +80,26 @@ test('the final re-score accounts for every numbered gap from the original plan 
   }
   const partialIds = [...RESCORE.matchAll(/^\| ([FHPIOECAX]\d+) \| Partial \|/gm)]
     .map((match) => match[1]);
-  assert.deepEqual(partialIds, ['P3', 'O1', 'O2', 'O7', 'C2', 'C4']);
-  const partialProse = RESCORE.match(/The six partial items[\s\S]*?stubs: ([^.]+)\./);
-  assert.ok(partialProse, 'the final score must name every partial item');
-  assert.deepEqual(
-    partialProse[1].replace(/,?\s+and\s+|,\s+/g, ',').split(',').map((id) => id.trim()),
-    partialIds,
-  );
+  assert.deepEqual(partialIds, []);
+  assert.deepEqual(scoreCounts, { Resolved: 79, 'Resolved Elsewhere': 4, Partial: 0, Open: 0 });
+  const elsewhereIds = [...RESCORE.matchAll(/^\| ([FHPIOECAX]\d+) \| Resolved Elsewhere \|/gm)].map(match => match[1]);
+  assert.deepEqual(elsewhereIds, ['O3', 'O4', 'O5', 'O8']);
+  for (const [id, term] of [['P3','policy-controlled'],['O1','cash'],['O2','receipt'],['O7','Private'],['C2','hourly'],['C4','Versioned']]) {
+    const row = RESCORE.split('\n').find(line => line.startsWith(`| ${id} |`));
+    assert.ok(row.includes('| Resolved |') && row.includes(term), `${id} retains its resolved owner boundary`);
+    assert.match(RUNBOOK, new RegExp(id + ' '));
+  }
+  for (const term of ['durable UUID','Unknown','Pending Approval','20,000','16 MB','seven-day','285-second','CAS conflict','version 0']) assert.ok(RUNBOOK.includes(term), term);
+  assert.match(RESCORE, /Runtime verification is COMPLETE/);
+  assert.match(RUNBOOK, /Runtime verification is COMPLETE/);
+  for (const document of [RESCORE, RUNBOOK]) {
+    assert.match(document, /38046325420/);
+    assert.match(document, /052899dd3f52a2d9367ef0eec8dcc33bdbd74071/);
+    assert.match(document, /44b07e12c9df6f04d74e0d2c67277e63b9b12b15/);
+    assert.match(document, /both strict CSP cases/);
+  }
+  assert.match(RUNBOOK, /complete=false/);
+  assert.match(RESCORE, /The six carried capabilities P3, O1, O2, O7, C2 and C4/);
   assert.match(RESCORE, /\| Total \| 83 \|/);
   assert.doesNotMatch(RESCORE, /^\| [FHPIOECAX]\d+ \| Open \|/m);
 });
