@@ -62,9 +62,9 @@ const FREQUENCY_LABELS = {
 const SITE_URL = 'https://smarter.poker';
 
 // ── Server-side data fetch ─────────────────────────────────────────────────
-// Called on every request. Short-cache so a new post or RSVP shows up fast,
-// but long-enough-SWR that crawler bursts don't hammer the DB.
+// Check current publication on every request, including public-to-private changes.
 export async function getServerSideProps({ params, res, req }) {
+  res.setHeader('Cache-Control', 'private, no-store');
   const slug = params?.slug;
   if (!slug || typeof slug !== 'string') {
     return { notFound: true };
@@ -105,8 +105,8 @@ export async function getServerSideProps({ params, res, req }) {
       // Upstream is throttled or broken — 503 + Retry-After, not 500. A 500
       // tells a crawler the URL itself is broken and it gets dropped from the
       // index; a 503 is the "come back shortly" signal this actually is.
-      res.statusCode = apiRes.status === 429 ? 503 : 500;
-      if (apiRes.status === 429) res.setHeader('Retry-After', '60');
+      res.statusCode = 503;
+      res.setHeader('Retry-After', '60');
       return { props: { data: null, serverError: true } };
     }
 
@@ -115,21 +115,13 @@ export async function getServerSideProps({ params, res, req }) {
       return { notFound: true };
     }
 
-    // Cache at the edge for 30s fresh / 180s stale-while-revalidate — but ONLY
-    // for public groups. This header was previously set unconditionally, so a
-    // PRIVATE group's HTML was stored in a shared CDN cache (audit C-3b).
-    // Today's payload for a private group is reduced, but a public edge cache
-    // is one careless field addition away from broadcasting invite_code.
-    if (json.data?.group?.is_private) {
-      res.setHeader('Cache-Control', 'private, no-store');
-    } else {
-      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
-    }
+    // No stale HTML after a host unlists or makes their group private.
 
     return { props: { data: json.data, serverError: false } };
   } catch (err) {
     console.warn('[App] Handled exception:', err?.message || err);
-    res.statusCode = 500;
+    res.statusCode = 503;
+    res.setHeader('Retry-After', '60');
     return { props: { data: null, serverError: true } };
   }
 }

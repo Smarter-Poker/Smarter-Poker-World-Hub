@@ -21,12 +21,13 @@
  * posts to the same endpoint the working in-page join button uses, so there
  * is exactly one join implementation.
  */
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Loader2 } from 'lucide-react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import { homeGameJoinOutcome, createHomeGameJoinOperation } from '../../../../src/lib/home-games/joinOutcome.mjs';
 
 export default function JoinHomeGame() {
   const router = useRouter();
@@ -40,6 +41,14 @@ export default function JoinHomeGame() {
   const [state, setState] = useState('idle'); // idle | joining | pending | joined | error
   const [message, setMessage] = useState('');
   const [slug, setSlug] = useState(null);
+  const joinOperation = useRef(null);
+  if (!joinOperation.current) {
+    joinOperation.current = createHomeGameJoinOperation(() =>
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `hg_join_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`
+    );
+  }
 
   const rawCode = typeof router.query.code === 'string' ? router.query.code.trim() : '';
   const rawSlug = typeof router.query.slug === 'string' ? router.query.slug.trim() : '';
@@ -55,6 +64,7 @@ export default function JoinHomeGame() {
       try {
         const r = await fetch(`/api/public/home-games/${encodeURIComponent(rawSlug)}`);
         const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error('Home game lookup unavailable');
         const g = j?.data?.group || j?.group || null;
         // club_code only. invite_code was removed from the public payload
         // (it is the membership credential; club_code is the share code) and
@@ -76,25 +86,29 @@ export default function JoinHomeGame() {
 
     setState('joining');
     try {
+      const attempt = await joinOperation.current.run(codeToUse, async (idempotencyKey) => {
       const res = await fetch(`/api/commander/home-games/join/${encodeURIComponent(codeToUse)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Idempotency-Key': idempotencyKey },
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error?.message || data?.error || 'Failed to join group');
-
-      const status = data.status || data?.membership?.status;
-      if (status === 'pending') {
-        setState('pending');
-        setMessage('Request sent. The host will let you know when you are approved.');
-      } else {
-        setState('joined');
-        setMessage('You are in.');
+      if (!res.ok) {
+        const denied = homeGameJoinOutcome({ success: false, error: data?.error || 'Failed to join group' });
+        setState(denied.state);
+        setMessage(denied.message);
+        return denied;
       }
+
+      const outcome = homeGameJoinOutcome(data);
+      setState(outcome.state);
+      setMessage(outcome.message);
       if (data?.group?.slug) setSlug(data.group.slug);
+      return outcome;
+      });
+      if (!attempt) return;
     } catch (err) {
-      setState('error');
-      setMessage(err.message || 'Could not join that game.');
+      setState('unknown');
+      setMessage('Your request could not be confirmed. Review your Home Games before retrying.');
     }
   }, [rawCode, rawSlug]);
 
@@ -160,6 +174,15 @@ export default function JoinHomeGame() {
                   Browse Home Games
                 </button>
               </div>
+            </>
+          )}
+          {state === 'unknown' && (
+            <>
+              <h1 className="text-xl font-semibold text-white mb-2">Membership Not Confirmed</h1>
+              <p className="text-sm text-[#9FB3C8] mb-6" role="status">{message}</p>
+              <button type="button" onClick={() => router.push('/hub/commander/home-games')} className="cmd-btn cmd-btn-primary px-4 h-11">
+                Review My Home Games
+              </button>
             </>
           )}
         </main>

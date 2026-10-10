@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { execFileSync } from 'node:child_process';
 import vm from 'node:vm';
 import * as socialPostShape from '../src/lib/socialPostShape.js';
+import * as homeGamePostAccess from '../src/lib/home-games/socialPostAccessServer.mjs';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -21,12 +23,12 @@ function synthetic(context, exports) {
   }, { context });
 }
 
-async function loadRoute(path, dependencies) {
+async function loadRoute(path, dependencies, routeSource = read(path)) {
   const context = vm.createContext({
     console: { warn() {} },
     process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'fixture' } },
   });
-  const route = new vm.SourceTextModule(read(path), { context });
+  const route = new vm.SourceTextModule(routeSource, { context });
   await route.link(specifier => {
     const exports = dependencies[specifier];
     if (!exports) throw new Error(`Unexpected import ${specifier} from ${path}`);
@@ -55,6 +57,7 @@ function commonDependencies(client, auth, gates = {}) {
     '../../../src/lib/serverAuth': { getServerUserWithFallback: auth },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {}, write: {} } },
     '../../../src/lib/socialPostShape': { ...socialPostShape },
+    '../../../src/lib/home-games/socialPostAccessServer.mjs': { ...homeGamePostAccess },
     './feed': {
       POST_SELECT: 'fixture-select',
       isPublicAudiencePost: gates.isPublicAudiencePost || (post => post.visibility === 'public'),
@@ -129,6 +132,35 @@ test('Profile Videos validates the persisted author and lets only the verified o
   const owner = response();
   await handler({ method: 'GET', headers: {}, query: { author_id: authorId } }, owner);
   assert.deepEqual(owner.body.data.map(post => post.id), ['public', 'private']);
+});
+
+test('saved/profile mirrors inherit current Home Game privacy and fail closed on unavailable authority', async () => {
+  const authorId = '00000000-0000-4000-8000-000000000123';
+  const pageId = '00000000-0000-4000-8000-000000000456';
+  const posts = [
+    { id: 'mirror', author_id: authorId, visibility: 'public', metadata: { source_page_id: pageId, page_type: 'home_game' } },
+    { id: 'generic', author_id: authorId, visibility: 'public' },
+    { id: 'orphan-home', author_id: authorId, visibility: 'public', metadata: { page_type: 'home_game' } },
+  ];
+  for (const path of ['pages/api/social/saved-posts.js', 'pages/api/social/profile-videos.js']) {
+    for (const decision of ['private', 'unlisted', 'inactive', 'missing', 'unavailable', 'public']) {
+      const client = { from(table) {
+        if (table === 'social_interactions') return queryResult({ data: posts.map(post => ({ post_id: post.id })), error: null });
+        if (table === 'social_posts') return queryResult({ data: posts, error: null });
+        if (table === 'social_pages') return queryResult({ data: [{ id: pageId, page_type: 'home_game', is_public: decision !== 'unlisted', linked_entity_type: 'home_group', linked_entity_id: 'group' }], error: null });
+        if (table === 'commander_home_groups') return queryResult({ data: decision === 'missing' ? [] : [{ id: 'group', is_active: decision !== 'inactive', is_private: decision === 'private' }], error: decision === 'unavailable' ? { message: 'Unavailable authority' } : null });
+        throw new Error(`Unexpected privacy table ${table}`);
+      } };
+      const routeSource = process.env.HG_MIRROR_BEFORE === '1'
+        ? execFileSync('git', ['show', `HEAD:${path}`], { encoding: 'utf8' }) : read(path);
+      const handler = await loadRoute(path, commonDependencies(client, async () => ({ user: { id: authorId }, error: null })), routeSource);
+      const res = response();
+      await handler({ method: 'GET', headers: {}, query: { author_id: authorId } }, res);
+      assert.equal(res.statusCode, decision === 'unavailable' ? 503 : 200, `${path} ${decision}`);
+      if (decision === 'unavailable') assert.equal(res.body.data, undefined);
+      else assert.deepEqual(res.body.data.map(post => post.id), decision === 'public' ? ['mirror', 'generic'] : ['generic'], `${path} ${decision}`);
+    }
+  }
 });
 
 test('public profile Reel handler forwards validated collection inputs and fails closed', async () => {

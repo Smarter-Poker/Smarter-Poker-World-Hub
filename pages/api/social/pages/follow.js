@@ -10,6 +10,7 @@ import { requireAuth, optionalAuth } from '../../../../src/lib/auth-middleware';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { homeGameFollowContext, publicHomeGameFollowPage } from '../../../../src/lib/home-games/socialFollowPrivacy.mjs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -104,14 +105,26 @@ export default async function handler(req, res) {
               }
               page_id = pageLookup.id;
           }
+          const pageResult = await getSupabase().from('social_pages')
+              .select('id, owner_id, page_type, is_public, linked_entity_type, linked_entity_id').eq('id', page_id).maybeSingle();
+          if (pageResult.error) throw pageResult.error;
+          if (!pageResult.data) return res.status(404).json({ success: false, error: 'Social page not found' });
+          const homeContext = await homeGameFollowContext(getSupabase(), pageResult.data, user_id);
 
           // === Approve/Reject (Commander actions) ===
           if (action === 'approve' || action === 'reject') {
               if (!follower_id) return res.status(400).json({ success: false, error: 'follower_id required' });
+              if (homeContext.homeGame) {
+                  if (!homeContext.staff) return res.status(403).json({ success: false, error: 'Only approved Home Game staff can moderate followers' });
+                  if (action === 'approve') {
+                      const targetContext = await homeGameFollowContext(getSupabase(), pageResult.data, follower_id);
+                      if (!targetContext.approved) return res.status(403).json({ success: false, error: 'Approve this player in Commander before approving their page follow' });
+                  }
+              }
               // Verify requester is the page owner
               const { data: ownerCheck } = await getSupabase()
                   .from('social_pages').select('owner_id').eq('id', page_id).maybeSingle();
-              if (!ownerCheck || ownerCheck.owner_id !== user_id) {
+              if (!homeContext.homeGame && (!ownerCheck || ownerCheck.owner_id !== user_id)) {
                   return res.status(403).json({ success: false, error: 'Only page owner can approve/reject followers' });
               }
               if (action === 'approve') {
@@ -145,6 +158,9 @@ export default async function handler(req, res) {
               // Reverse bridge: sync unfollow to venue system
               syncToVenueFollowers(user_id, page_id, 'unfollow');
               return res.status(200).json({ success: true, following: false });
+          }
+          if (homeContext.homeGame && (!homeContext.active || homeContext.denied)) {
+              return res.status(403).json({ success: false, error: 'This Home Game is not accepting your follow request' });
           }
 
           // Determine if page requires approval (home_game type)
@@ -238,10 +254,13 @@ export default async function handler(req, res) {
               if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
               // Determine if requester is page owner
-              const { data: pageInfo } = await getSupabase()
-                  .from('social_pages').select('owner_id, is_public').eq('id', page_id).maybeSingle();
-              const isOwner = requester_id && pageInfo && pageInfo.owner_id === requester_id;
-              const isPublicPage = pageInfo?.is_public !== false; // default to public
+              const { data: pageInfo, error: pageInfoError } = await getSupabase()
+                  .from('social_pages').select('id, owner_id, is_public, page_type, linked_entity_type, linked_entity_id').eq('id', page_id).maybeSingle();
+              if (pageInfoError) throw pageInfoError;
+              const homeContext = await homeGameFollowContext(getSupabase(), pageInfo, requester_id);
+              const isOwner = homeContext.homeGame ? homeContext.staff : requester_id && pageInfo && pageInfo.owner_id === requester_id;
+              const isPublicPage = homeContext.homeGame ? homeContext.public : pageInfo?.is_public !== false;
+              if (homeContext.homeGame) res.setHeader('Cache-Control', 'private, no-store');
 
               // For public pages OR owner: return enriched member profiles
               if (isOwner || isPublicPage) {
@@ -306,14 +325,21 @@ export default async function handler(req, res) {
                   (pageData || []).forEach(p => { pages[p.id] = p; });
               }
 
-              const visible = isSelf
+              let visible = isSelf
                   ? (data || [])
                   : (data || []).filter(f => f.status === 'approved'
                       && pages[f.page_id] && pages[f.page_id].is_public !== false);
+              const contexts = new Map(await Promise.all(Object.values(pages).map(async page =>
+                  [page.id, await homeGameFollowContext(getSupabase(), page, isSelf ? requester_id : null)])));
+              visible = visible.filter(f => {
+                  const context = contexts.get(f.page_id);
+                  return !context?.homeGame || context.public || (isSelf && context.approved);
+              });
+              if ([...contexts.values()].some(context => context.homeGame)) res.setHeader('Cache-Control', 'private, no-store');
               const enriched = visible.map(({ status, ...f }) => ({
                   ...f,
                   ...(isSelf ? { status } : {}),
-                  page: pages[f.page_id] || null
+                  page: pages[f.page_id] ? publicHomeGameFollowPage(pages[f.page_id]) : null
               }));
 
               return res.status(200).json({ success: true, data: enriched });
@@ -332,6 +358,21 @@ export default async function handler(req, res) {
           if (!page_id) {
               return res.status(400).json({ success: false, error: 'page_id required' });
           }
+          const homePage = await getSupabase().from('social_pages')
+              .select('id, owner_id, page_type, is_public, linked_entity_type, linked_entity_id').eq('id', page_id).maybeSingle();
+          if (homePage.error) throw homePage.error;
+          const homeContext = await homeGameFollowContext(getSupabase(), homePage.data, user_id);
+          if (homeContext.homeGame) {
+              const targetUser = req.body.follower_id || user_id;
+              if (notify !== undefined && targetUser !== user_id) return res.status(403).json({ success: false, error: 'Notification preferences can only be changed for yourself' });
+              if (role) {
+                  if (!homeContext.staff) return res.status(403).json({ success: false, error: 'Only approved Home Game staff can change follower roles' });
+                  const targetContext = await homeGameFollowContext(getSupabase(), homePage.data, targetUser);
+                  if (!targetContext.approved) return res.status(403).json({ success: false, error: 'Follower roles require approved Commander membership' });
+              } else if (targetUser !== user_id) {
+                  return res.status(403).json({ success: false, error: 'You cannot change another follower' });
+              }
+          }
 
           const updates = { updated_at: new Date().toISOString() };
           if (notify !== undefined) updates.notifications_enabled = !!notify;
@@ -339,7 +380,7 @@ export default async function handler(req, res) {
               // Verify requester is page owner before allowing role change
               const { data: pageInfo } = await getSupabase()
                   .from('social_pages').select('owner_id').eq('id', page_id).maybeSingle();
-              if (pageInfo?.owner_id !== user_id) {
+              if (!homeContext.homeGame && pageInfo?.owner_id !== user_id) {
                   return res.status(403).json({ success: false, error: 'Only page owners can change member roles' });
               }
               updates.role = role;

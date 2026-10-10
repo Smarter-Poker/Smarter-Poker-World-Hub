@@ -9,6 +9,7 @@ import {
     readManagedEligibilityContext,
 } from './feed';
 import { toBrowserPost } from '../../../src/lib/socialPostShape';
+import { publicHomeGameMirrors } from '../../../src/lib/home-games/socialPostAccessServer.mjs';
 
 let serviceClient = null;
 
@@ -51,7 +52,7 @@ export default async function handler(req, res) {
 
         const { data, error } = await client.from('social_posts').select(POST_SELECT).in('id', ids);
         if (error) throw error;
-        const rows = Array.isArray(data) ? data : [];
+        const rows = await publicHomeGameMirrors(client, Array.isArray(data) ? data : []);
         const context = await readManagedEligibilityContext(rows);
         const order = new Map(ids.map((id, index) => [id, index]));
         const eligible = rows.filter(post => (

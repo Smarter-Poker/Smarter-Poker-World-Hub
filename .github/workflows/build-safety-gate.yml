@@ -178,6 +178,9 @@ jobs:
       - name: Poker Near Me Discovery Search Maps And Schedule Contracts
         run: node --test __tests__/poker-near-me-console-search.test.mjs __tests__/poker-near-me-console-map.test.mjs __tests__/poker-near-me-phase-2.test.mjs
 
+      - name: Home Games Privacy Membership Publication And Qualification Safety
+        run: node --test __tests__/poker-near-me-console-home-games.test.mjs __tests__/home-games-emergency-gate.test.mjs __tests__/home-games-join-outcome.test.mjs __tests__/home-games-alternate-privacy.test.mjs __tests__/home-games-phase3-qualification-safety.test.mjs __tests__/social-feed-author-cap.test.mjs __tests__/a-post-never-says-who-wrote-it.law.test.mjs
+
       - name: Poker Near Me Installed Collector Contracts
         run: |
           python3 scripts/test_tour_stealth_scraper.py

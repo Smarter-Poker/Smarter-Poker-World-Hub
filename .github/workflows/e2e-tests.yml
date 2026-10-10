@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live]
         default: full
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
@@ -105,6 +105,56 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  home-games-phase3-live:
+    name: Published Home Games Task-Owned Qualification
+    if: ${{ inputs.suite == 'home-games-phase3-live' && github.ref == 'refs/heads/main' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Verify task-owned qualification safeguards
+        run: node --test __tests__/home-games-phase3-qualification-safety.test.mjs
+      - name: Restore locked dependencies
+        id: home-games-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.home-games-nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+      - name: Install finite qualification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Qualify actual persisted Home Games and privacy using task-owned identities
+        run: node scripts/qualify-home-games-phase3.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HOME_GAMES_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          HOME_GAMES_QUALIFICATION_MODE: task-owned-fixtures
+      - name: Retain sanitized qualification and exact owned cleanup receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-games-phase3-receipt
+          path: test-results/home-games-phase3/result.json
+          if-no-files-found: error
+          retention-days: 7
+
   reels-reconciliation:
     name: Reels Historical Reconciliation
     if: ${{ inputs.suite == 'reels-reconciliation-audit' || inputs.suite == 'reels-reconciliation-apply' }}

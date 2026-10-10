@@ -12,6 +12,7 @@ import { requireAuth } from '../../../../src/lib/auth-middleware';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { isHomeGameSocialPage, homeGamePagePublicFlags, homeGameSocialWriteAccess } from '../../../../src/lib/home-games/socialPrivacyServer.mjs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -73,8 +74,9 @@ export default async function handler(req, res) {
               .order('created_at', { ascending: false })
               .range(offset, offset + limit - 1);
 
-          const { data, error } = await query;
+          const { data: rawData, error } = await query;
           if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
+          let data = rawData || [];
 
           // Enrich with author profiles
           const authorIds = [...new Set((data || []).map(p => p.author_id))];
@@ -98,10 +100,18 @@ export default async function handler(req, res) {
           if (pageIds.length > 0) {
               const { data: pageData, error: pageError } = await getSupabase()
                   .from('social_pages')
-                  .select('id, name, slug, avatar_url')
+                  .select('id, name, slug, avatar_url, page_type, is_public, linked_entity_type, linked_entity_id')
                   .in('id', pageIds)
                   .limit(100);
-              if (pageError) console.warn('[PagePosts] Page identity lookup failed:', pageError.message);
+              if (pageError) throw pageError;
+              if ((pageData || []).some(isHomeGameSocialPage)) res.setHeader('Cache-Control', 'private, no-store');
+              const publicFlags = await homeGamePagePublicFlags(pageData, async (ids) => {
+                  const { data: groups, error: groupError } = await getSupabase().from('commander_home_groups')
+                      .select('id, is_active, is_private').in('id', ids);
+                  if (groupError) throw groupError;
+                  return groups;
+              });
+              data = data.filter((post) => publicFlags.get(post.page_id) === true);
               (pageData || []).forEach(pg => {
                   pages[pg.id] = { id: pg.id, name: pg.name || null, slug: pg.slug || null, avatar_url: pg.avatar_url || null };
               });
@@ -114,6 +124,7 @@ export default async function handler(req, res) {
               const authHeader = req.headers.authorization;
               const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
               if (jwtToken) {
+                  res.setHeader('Cache-Control', 'private, no-store');
                   try {
                       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
@@ -159,15 +170,18 @@ export default async function handler(req, res) {
           }
 
           // Check if page requires approval
-          const { data: page } = await getSupabase()
+          const { data: page, error: pageError } = await getSupabase()
               .from('social_pages')
-              .select('require_post_approval, owner_id, allow_member_posts, name, avatar_url, page_type')
+              .select('require_post_approval, owner_id, allow_member_posts, name, avatar_url, page_type, is_public, linked_entity_type, linked_entity_id')
               .eq('id', page_id)
               .maybeSingle();
 
+          if (pageError) throw pageError;
           if (!page) return res.status(404).json({ success: false, error: 'Page not found' });
+          const homeAccess = await homeGameSocialWriteAccess(getSupabase(), page, author_id);
+          if (!homeAccess.allowed) return res.status(403).json({ success: false, error: 'Approved Home Game Membership Required' });
 
-          const isOwner = page.owner_id === author_id;
+          const isOwner = homeAccess.homeGame ? homeAccess.staff : page.owner_id === author_id;
 
           // Check if user can post
           if (!isOwner && !page.allow_member_posts) {
@@ -198,7 +212,7 @@ export default async function handler(req, res) {
                   // and viewers ON the club page saw a black box.
                   thumbnail_url: thumbnail_url || null,
                   link_preview,
-                  visibility: visibility || 'public',
+                  visibility: homeAccess.homeGame && !homeAccess.public ? 'private' : visibility || 'public',
                   is_pinned: isOwner ? (is_pinned || false) : false,
                   post_type: isOwner ? (post_type || 'regular') : 'regular',
                   is_approved: isOwner || !page.require_post_approval,
@@ -214,7 +228,7 @@ export default async function handler(req, res) {
           // Sweep-4 audit fix (2026-04-29): include thumbnail_url so videos
           // posted to home groups show their preview frame in the global feed
           // (was being silently dropped — videos appeared as black squares).
-          if (data && data.is_approved && (data.visibility === 'public' || !data.visibility)) {
+          if (homeAccess.public && data && data.is_approved && (data.visibility === 'public' || !data.visibility)) {
               try {
                   const { error: err_social_posts_00kbv } = await getSupabase()
                     .from('social_posts')
@@ -275,12 +289,18 @@ export default async function handler(req, res) {
           const isAuthor = post.author_id === author_id;
 
           // Always check page admin status (needed for pin permission)
-          const { data: page } = await getSupabase()
+          const { data: page, error: pageError } = await getSupabase()
               .from('social_pages')
-              .select('owner_id')
+              .select('owner_id, page_type, is_public, linked_entity_type, linked_entity_id')
               .eq('id', post.page_id)
               .maybeSingle();
-          const isPageAdmin = page?.owner_id === author_id;
+          if (pageError) throw pageError;
+          if (!page) return res.status(404).json({ success: false, error: 'Page Not Found' });
+          const homeAccess = await homeGameSocialWriteAccess(getSupabase(), page, author_id);
+          if (homeAccess.homeGame && !homeAccess.allowed) {
+              return res.status(403).json({ success: false, error: 'Approved Group Membership Required' });
+          }
+          const isPageAdmin = homeAccess.homeGame ? homeAccess.staff : page?.owner_id === author_id;
 
           if (!isAuthor && !isPageAdmin) {
               return res.status(403).json({ success: false, error: 'Not authorized' });
@@ -292,6 +312,7 @@ export default async function handler(req, res) {
           if (link_preview !== undefined) updates.link_preview = link_preview;
           if (is_pinned !== undefined && isPageAdmin) updates.is_pinned = is_pinned;
           if (visibility !== undefined) updates.visibility = visibility;
+          if (homeAccess.homeGame && !homeAccess.public) updates.visibility = 'private';
 
           const { data, error } = await getSupabase()
               .from('social_page_posts')

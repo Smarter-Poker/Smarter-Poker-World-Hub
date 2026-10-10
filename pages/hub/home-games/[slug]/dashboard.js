@@ -271,9 +271,10 @@ function ModerationTab({ group, token }) {
     try {
       await apiFetch(`/api/commander/home-games/groups/${group.id}/posts`, token, {
         method: 'PATCH',
-        body: { post_id: postId, action: 'hide' },
+        body: { report_id: postId, action: 'hide' },
       });
-      setReports(prev => prev.filter(r => r.id !== postId));
+      setReports(prev => prev.map(r => r.id === postId ? { ...r, is_hidden: true } : r));
+      setActionNotice('Content hidden. The report remains pending review.');
     } catch (e) {
       // REPORT_ALREADY_RESOLVED: another moderator already actioned this report (409)
       const msg = e.message || '';
@@ -330,9 +331,11 @@ function ModerationTab({ group, token }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, color: C.textMuted }}>{r.author_display || r.author_name}</span>
               <span style={{ flex: 1 }} />
-              <button onClick={() => handleHide(r.id)} disabled={acting === r.id} style={{ minHeight: 44, padding: '5px 14px', borderRadius: 2, border: `1px solid ${C.border}`, background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: acting === r.id ? 'wait' : 'pointer' }}>
-                {acting === r.id ? '…' : 'Hide'}
-              </button>
+              {r.reported_type === 'post' ? (
+                <button onClick={() => handleHide(r.id)} disabled={acting === r.id || r.is_hidden === true} style={{ minHeight: 44, padding: '5px 14px', borderRadius: 2, border: `1px solid ${C.border}`, background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: acting === r.id ? 'wait' : 'pointer' }}>
+                  {acting === r.id ? '…' : r.is_hidden ? 'Hidden / Awaiting Review' : 'Hide'}
+                </button>
+              ) : <span style={{ color: C.textSec, fontSize: 12 }}>Platform Review Required</span>}
             </div>
           </div>
         ))

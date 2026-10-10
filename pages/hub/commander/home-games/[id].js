@@ -16,6 +16,8 @@ import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../src/lib/clipboard';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 import useAccessibleDialog from '../../../../src/hooks/useAccessibleDialog';
+import { homeGameJoinOutcome, createHomeGameJoinOperation } from '../../../../src/lib/home-games/joinOutcome.mjs';
+import CasinoActionDialog from '../../../../src/components/poker-near-me/CasinoActionDialog';
 
 // Phase 41/bug-hunt-zero: idempotency-token generator. Used on every
 // state-changing POST in this page so a timeout-then-retry doesn't
@@ -182,9 +184,18 @@ export default function HomeGameDetailPage() {
   // hold stable idempotency tokens for each respective handler.
   const rsvpingRef = useRef({});
   const postingRef = useRef(false);
+  const joinOperation = useRef(null);
+  if (!joinOperation.current) joinOperation.current = createHomeGameJoinOperation(makeIdemKey);
   const reviewIdemRef = useRef(makeIdemKey());
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState('');
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportReason, setReportReason] = useState('other');
+  const [reportText, setReportText] = useState('');
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState('');
+  const reportOperations = useRef(new Map());
+  const reportInFlight = useRef(false);
   const rsvpDialog = useAccessibleDialog({
     open: Boolean(selectedRsvpEvent),
     onClose: () => setSelectedRsvpEvent(null),
@@ -198,8 +209,6 @@ export default function HomeGameDetailPage() {
   useEffect(() => {
     (async () => {
     const token = getAccessToken();
-
-  if (!router.isReady) return null;
 
     if (token) {
       try {
@@ -291,7 +300,7 @@ export default function HomeGameDetailPage() {
       if (postsRes.ok) {
         const postsData = await postsRes.json();
         if (postsData.success) {
-          setPosts(postsData.data?.posts || postsData.posts || []);
+          setPosts((postsData.data?.posts || postsData.posts || []).filter(post => post.is_hidden !== true));
         }
       }
     } catch (error) {
@@ -399,6 +408,7 @@ export default function HomeGameDetailPage() {
 
     setJoining(true);
     try {
+      await joinOperation.current.run(String(id), async (idempotencyKey) => {
       const res = await fetch(`/api/commander/home-games/groups/${id}/members`, {
         method: 'POST',
         headers: {
@@ -407,7 +417,7 @@ export default function HomeGameDetailPage() {
           // bug-hunt-zero/B-ID-3: idempotency. Server may dedupe on
           // (group_id, user_id); the header lets it deterministically
           // collapse retries of the same logical join attempt.
-          'X-Idempotency-Key': makeIdemKey(),
+          'X-Idempotency-Key': idempotencyKey,
         }
       });
 
@@ -420,22 +430,15 @@ export default function HomeGameDetailPage() {
         const serverMsg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || data?.message || '';
         throw new Error(serverMsg || `Couldn't join - please try again (${res.status})`);
       }
-      if (data.success || data.membership) {
-        // audit 2026-08-14: read both response shapes, same as [slug].js and
-        // join.js - the proxy relays the upstream body untouched and the
-        // three consumers had three different readers.
-        if ((data.status || data.membership?.status) === 'pending') {
-          toast.success('Request sent - waiting for the host to approve you');
-        } else {
-          toast.success('You joined the group');
-        }
-        fetchGroup();
-      } else if (data.error) {
-        throw new Error(data.error?.message || data.error || 'Join failed');
-      }
+      const outcome = homeGameJoinOutcome(data);
+      if (outcome.state === 'joined' || outcome.state === 'pending') toast.success(outcome.message);
+      else toast.error(outcome.message);
+      await fetchGroup();
+      return outcome;
+      });
     } catch (error) {
       console.warn('Join failed:', error);
-      toast.error(error && error.message ? error.message : 'Failed to join group');
+      toast.error(error?.message || 'Your request could not be confirmed. Review your membership before retrying.');
     } finally {
       setJoining(false);
     }
@@ -575,6 +578,55 @@ export default function HomeGameDetailPage() {
       setTimeout(() => setCopied(false), 2000);
     } else {
       toast.error(`Couldn't copy. Code: ${code}`);
+    }
+  }
+
+  function openPostReport(post) {
+    if (!reportOperations.current.has(post.id)) {
+      const reportId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, character => {
+          const random = Math.floor(Math.random() * 16);
+          return (character === 'x' ? random : (random & 3) | 8).toString(16);
+        });
+      reportOperations.current.set(post.id, { id: reportId, unknown: false });
+    }
+    setReportTarget(post);
+    setReportText('');
+    setReportReason('other');
+    setReportError(reportOperations.current.get(post.id).unknown
+      ? 'This report has an unconfirmed outcome. Review with the host before sending another report.' : '');
+  }
+
+  async function submitPostReport() {
+    if (!reportTarget || reportInFlight.current) return;
+    const operation = reportOperations.current.get(reportTarget.id);
+    if (!operation || operation.unknown) return;
+    reportInFlight.current = true;
+    setReportBusy(true);
+    try {
+      const token = await getFreshAccessToken();
+      if (!token) { setReportError('Sign in again before submitting a report.'); return; }
+      const response = await fetch('/api/home-games/reports', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ group_id: id, post_id: reportTarget.id, report_id: operation.id,
+          reason_category: reportReason, reason_text: reportText }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 201 && data.success === true && data.report_id === operation.id) {
+        toast.success('Report submitted for moderation.');
+        setReportTarget(null);
+      } else if (response.status >= 400 && response.status < 500) {
+        setReportError(typeof data.error === 'string' ? data.error : 'This report was not accepted.');
+      } else {
+        operation.unknown = true;
+        setReportError('Report submission could not be confirmed. Review with the host before sending another report.');
+      }
+    } catch (_error) {
+      operation.unknown = true;
+      setReportError('Report submission could not be confirmed. Review with the host before sending another report.');
+    } finally {
+      reportInFlight.current = false;
+      setReportBusy(false);
     }
   }
 
@@ -911,6 +963,11 @@ export default function HomeGameDetailPage() {
                         </span>
                       </div>
                       <p className="text-sm text-[#C0CDE0]">{post.content}</p>
+                      {post.author_id !== currentUserId && (
+                        <button type="button" onClick={() => openPostReport(post)} className="cmd-btn cmd-btn-secondary min-h-[44px] mt-3 px-3" aria-label="Report this Home Game post">
+                          Report Post
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1031,6 +1088,23 @@ export default function HomeGameDetailPage() {
           </div>
         </main>
       </div>
+
+      <CasinoActionDialog open={Boolean(reportTarget)} title="Report Home Game Post"
+        eyebrow="Player safety" message="Reports enter the existing moderation queue. Reporting does not automatically remove a post."
+        confirmLabel="Submit Report" busy={reportBusy}
+        confirmDisabled={reportText.trim().length < 5 || reportOperations.current.get(reportTarget?.id)?.unknown === true}
+        onClose={() => setReportTarget(null)} onConfirm={submitPostReport}>
+        <label htmlFor="home-game-report-category" className="block text-sm text-white mb-2">Concern</label>
+        <select id="home-game-report-category" value={reportReason} onChange={event => setReportReason(event.target.value)}>
+          <option value="other">Content or behavior concern</option>
+          <option value="illegal">Illegal activity</option>
+          <option value="self_harm">Self-harm concern</option>
+          <option value="doxxing">Private information exposed</option>
+        </select>
+        <label htmlFor="home-game-report-details" className="block text-sm text-white mt-4 mb-2">Describe the concern</label>
+        <textarea id="home-game-report-details" value={reportText} onChange={event => setReportText(event.target.value)} maxLength={2000} />
+        {reportError ? <p className="text-sm text-red-300 mt-3" role="alert">{reportError}</p> : null}
+      </CasinoActionDialog>
 
       {/* RSVP Modal */}
       {selectedRsvpEvent && (

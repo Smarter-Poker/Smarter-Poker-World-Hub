@@ -55,6 +55,7 @@ const LeafletLocationPicker = dynamic(
 );
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import { publishPlannedHomeGameTournaments, submitHomeGameOccurrence } from '../../../../src/lib/home-games/tournamentPublication.mjs';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: "No Limit Hold'em" },
@@ -83,7 +84,11 @@ export default function CreateHomeGamePage() {
   const [error, setError] = useState(null);
   const [createdGroup, setCreatedGroup] = useState(null);
   const [createdSocialPage, setCreatedSocialPage] = useState(null);
+  const [tournamentPublication, setTournamentPublication] = useState(null);
+  const groupSubmissionLockRef = useRef(false);
   const [eventSubmitting, setEventSubmitting] = useState(false);
+  const eventSubmissionLockRef = useRef(false);
+  const [firstGameNeedsReview, setFirstGameNeedsReview] = useState(false);
   // Dan-fix/first-game-collapse (2026-05-12): the "Schedule First Game" panel
   // now collapses behind a toggle and prefills every overlapping field from
   // the group the user just created. Most of the form previously duplicated
@@ -231,7 +236,7 @@ export default function CreateHomeGamePage() {
   // Build schedule summary text
   function getScheduleSummary() {
     if (!formData.recurring || formData.schedule_days.length === 0) return '';
-    const dayLabels = formData.schedule_days
+    const dayLabels = [...formData.schedule_days]
       .sort(
         (a, b) =>
           DAYS_OF_WEEK.findIndex((d) => d.value === a) -
@@ -343,6 +348,7 @@ export default function CreateHomeGamePage() {
   }
 
   async function handleSubmit() {
+    if (groupSubmissionLockRef.current || createdGroup) return;
     if (!formData.name.trim()) {
       setError('Please enter a group name');
       return;
@@ -355,6 +361,7 @@ export default function CreateHomeGamePage() {
       return;
     }
 
+    groupSubmissionLockRef.current = true;
     setSubmitting(true);
     setError(null);
 
@@ -408,7 +415,7 @@ export default function CreateHomeGamePage() {
         token = await getFreshAccessToken();
         console.log(
           '[home-games-create] getFreshAccessToken returned:',
-          token ? `${token.substring(0, 20)}... (length ${token.length})` : 'NULL'
+          token ? 'Available' : 'Unavailable'
         );
       } catch (tokenErr) {
         console.error('[home-games-create] getFreshAccessToken threw:', tokenErr);
@@ -426,12 +433,8 @@ export default function CreateHomeGamePage() {
           'Could not retrieve authentication token. Open DevTools console for details, then try again.'
         );
         console.error('[home-games-create] BOTH token paths returned null. Auth state:', {
-          authUser,
+          hasAuthenticatedUser: !!authUser,
           hasLocalStorage: typeof localStorage !== 'undefined',
-          localStorageAuth:
-            typeof localStorage !== 'undefined'
-              ? localStorage.getItem('smarter-poker-auth')?.slice(0, 80)
-              : 'n/a',
         });
         return;
       }
@@ -544,17 +547,19 @@ export default function CreateHomeGamePage() {
         });
       } catch (fetchErr) {
         console.error('[home-games-create] fetch threw:', fetchErr);
-        setError(
-          `Network error: ${fetchErr.message || fetchErr}. Check DevTools Network tab for details.`
-        );
-        setSubmitting(false);
+        // A lost response can follow a committed group. Leave the wizard and
+        // offer dashboard readback, keeping the original operation identity.
+        setStep(4);
         return;
       }
 
-      // Rotate the token on 2xx (success) or 4xx (server saw & rejected our input).
-      // Keep it on 5xx / network errors so a safe retry doesn't duplicate.
-      if (res.ok || (res.status >= 400 && res.status < 500)) {
+      // Only an explicit validation/access rejection establishes no save.
+      // Conflicts, throttling and server failures can have unknown outcomes.
+      if ([400, 401, 403, 404, 422].includes(res.status)) {
         submissionTokenRef.current = makeToken();
+      } else if (!res.ok) {
+        setStep(4);
+        return;
       }
 
       // Phase 41/audit-fix-B8: surface the server's error message when present,
@@ -573,9 +578,16 @@ export default function CreateHomeGamePage() {
         }
         throw new Error(serverMsg || `Request failed (${res.status})`);
       }
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        setStep(4);
+        return;
+      }
 
-      if (data.success || data.group) {
+      if (typeof data?.group?.id === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(data.group.id)) {
+        submissionTokenRef.current = makeToken();
         setCreatedGroup(data.group);
 
         // The commander-groups API auto-creates the linked social_pages
@@ -594,76 +606,34 @@ export default function CreateHomeGamePage() {
         // canonical event surface for RSVPs, public pages, and host
         // management.
         //
-        // Non-fatal: if any tournament INSERT fails, group is still created
-        // and host can re-add via the manage page. We log to console for
-        // observability but advance to step 4 regardless.
+        // Group creation and each tournament are separate persisted operations.
+        // Report unconfirmed writes and undated plans visibly; never rerun a
+        // possibly committed occurrence from this wizard.
         if (
           formData.schedules_tournaments &&
           Array.isArray(formData.tournaments) &&
           formData.tournaments.length > 0 &&
           data.group?.id
         ) {
-          const validRows = formData.tournaments.filter(
-            (t) =>
-              t &&
-              typeof t.name === 'string' &&
-              t.name.trim().length > 0 &&
-              t.scheduled_date &&
-              t.scheduled_time
-          );
-          if (validRows.length > 0) {
-            try {
-              const results = await Promise.allSettled(
-                validRows.map((t) =>
-                  sb.rpc('rpc_hg_create_tournament', {
-                    p_group_id: data.group.id,
-                    p_name: t.name.trim().slice(0, 120),
-                    p_buy_in: Number(t.buy_in) || 0,
-                    p_starting_stack:
-                      t.starting_stack === '' || t.starting_stack == null
-                        ? null
-                        : Number(t.starting_stack) || null,
-                    p_structure: t.structure || 'standard',
-                    p_scheduled_date: t.scheduled_date,
-                    p_scheduled_time: t.scheduled_time,
-                    p_entries_cap:
-                      t.entries_cap === '' || t.entries_cap == null
-                        ? null
-                        : Number(t.entries_cap) || null,
-                  })
-                )
-              );
-              const failures = results.filter(
-                (r) => r.status === 'rejected' || (r.status === 'fulfilled' && r.value?.error)
-              );
-              if (failures.length > 0) {
-                console.warn(
-                  '[home-games-create] tournament create failures:',
-                  failures.length,
-                  'of',
-                  validRows.length,
-                  failures.map((f) => f.reason || f.value?.error?.message || 'unknown')
-                );
-              }
-            } catch (tErr) {
-              console.warn('[home-games-create] tournament batch failed:', tErr);
-            }
+          try {
+            setTournamentPublication(await publishPlannedHomeGameTournaments(sb, data.group.id, formData.tournaments));
+          } catch {
+            setTournamentPublication({ confirmed: [], unconfirmed: formData.tournaments.filter((plan) => plan?.name), unscheduled: [] });
           }
         }
 
         setStep(4);
       } else {
-        setError(
-          data.error?.message ||
-            (typeof data.error === 'string' ? data.error : null) ||
-            'Failed to create group'
-        );
+        // Unknown acknowledgement: keep operation identity, offer persisted
+        // dashboard readback, and never announce a group we cannot identify.
+        setStep(4);
       }
     } catch (err) {
       // Phase 41/audit-fix-B8: keep the specific message when we have one;
       // fall back to generic only on true network errors (no message).
       setError(err && err.message ? err.message : 'Connection error. Please try again.');
     } finally {
+      groupSubmissionLockRef.current = false;
       setSubmitting(false);
     }
   }
@@ -1622,7 +1592,7 @@ export default function CreateHomeGamePage() {
                                 host the date above is required to schedule. */}
                             {!t.scheduled_date && (
                               <p className="text-xs text-[#F59E0B] mt-2">
-                                Set The Date Above For The First Occurrence - Recurring Days Are Saved With Your Group, But The Tournament Is Only Scheduled Once A First Date Is Chosen.
+                                Recurring Days Are Saved As Preferences Only. Choose A Date And Time To Publish One Occurrence. Additional Occurrences Must Be Scheduled From Manage.
                               </p>
                             )}
                           </div>
@@ -1774,24 +1744,18 @@ export default function CreateHomeGamePage() {
               </div>
             </div>
           )}
-          {/* Step 4 fallback - Dan-fix/post-submit (2026-05-11)
-              If we reached step 4 but `createdGroup` happens to be null
-              (API returned success without the group payload, or a race
-              cleared it), still show a minimal success screen so the user
-              isn't dropped onto a blank page. They can navigate to their
-              home groups list to see what was created. Previously: step 4
-              with null createdGroup → empty <main> → looked like the
-              wizard reset. */}
+          {/* An unidentified acknowledgement is not a confirmed creation.
+              Offer durable dashboard readback without resubmitting. */}
           {step === 4 && !createdGroup && (
             <div className="space-y-6">
               <div className="cmd-panel p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-[#10B981]" />
                 </div>
-                <h2 className="text-xl font-bold text-white">Group Created</h2>
+                <h2 className="text-xl font-bold text-white">Creation Not Confirmed</h2>
                 <p className="text-[#64748B] mt-1">
-                  Your Home Game Group Has Been Created. View It In Your Dashboard To Add
-                  Tournaments, Photos, And Invite Members.
+                  The Server Did Not Return A Group Record. Check Your Dashboard Before
+                  Creating Another Group To Avoid A Duplicate.
                 </p>
                 <button
                   type="button"
@@ -1811,11 +1775,33 @@ export default function CreateHomeGamePage() {
                 <div className="w-16 h-16 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-[#10B981]" />
                 </div>
-                <h2 className="text-xl font-bold text-white">Game Created</h2>
+                <h2 className="text-xl font-bold text-white">Group Created</h2>
                 <p className="text-[#64748B] mt-1">
-                  {createdGroup.name} Is Live. Your Social Page Was Auto-Created.
+                  {createdGroup.name} Is Created. {createdGroup.is_private ? 'Private Membership Is Required.' : 'Review Your Published Schedule Below.'}
+                  {createdSocialPage ? ' Your Linked Social Page Is Ready.' : ' Linked Social Page Confirmation Is Unavailable. Check Manage Before Sharing.'}
                 </p>
               </div>
+
+              {tournamentPublication && (
+                <div className="cmd-panel p-5 space-y-3" role="status" aria-live="polite">
+                  <h3 className="font-semibold text-white">Tournament Publication</h3>
+                  <p className="text-sm text-[#94A3B8]">{tournamentPublication.confirmed.length} Occurrences Confirmed.</p>
+                  {tournamentPublication.unconfirmed.length > 0 && (
+                    <p className="text-sm text-[#FBBF24]">
+                      {tournamentPublication.unconfirmed.length} Occurrences Are Not Confirmed: {tournamentPublication.unconfirmed.map((plan) => plan.name).join(', ')}.
+                      Check Your Saved Schedule Before Adding Them Again. A Connection Failure May Have Occurred After Saving.
+                    </p>
+                  )}
+                  {tournamentPublication.unscheduled.length > 0 && (
+                    <p className="text-sm text-[#FBBF24]">
+                      {tournamentPublication.unscheduled.length} Named Plans Have No Complete Date And Time And Were Not Published.
+                    </p>
+                  )}
+                  <button type="button" onClick={() => router.push(`/hub/commander/home-games/${createdGroup.id}/manage`)} className="cmd-btn cmd-btn-secondary w-full h-12">
+                    Review Saved Schedule
+                  </button>
+                </div>
+              )}
 
               {/* Social Page Progress Bar */}
               {createdSocialPage &&
@@ -1930,18 +1916,23 @@ export default function CreateHomeGamePage() {
                   : 'Schedule Your First Game (Optional)'}
               </button>
 
-              {showFirstGameForm && firstGameError && (
+              {firstGameError && (
                 <div
                   className="mb-3 p-3 bg-[#EF4444]/10 border border-[#EF4444]/40 rounded-lg"
                   role="alert"
                 >
                   <p className="text-sm font-semibold text-[#EF4444]">
-                    Could Not Schedule The First Game
+                    {firstGameNeedsReview ? 'Schedule Confirmation Required' : 'Could Not Schedule The First Game'}
                   </p>
                   <p className="text-sm text-[#FCA5A5] mt-1">{firstGameError}</p>
+                  {firstGameNeedsReview && (
+                    <button type="button" onClick={() => router.push(`/hub/commander/home-games/${createdGroup.id}`)} className="cmd-btn cmd-btn-secondary w-full h-12 mt-3">
+                      Review Saved Group Schedule
+                    </button>
+                  )}
                 </div>
               )}
-              {showFirstGameForm && (
+              {showFirstGameForm && !firstGameNeedsReview && (
                 <CreateGameForm
                   groupId={createdGroup.id}
                   isLoading={eventSubmitting}
@@ -1979,6 +1970,8 @@ export default function CreateHomeGamePage() {
                     requires_approval: !!formData.requires_approval,
                   }}
                   onSubmit={async (eventData) => {
+                    if (eventSubmissionLockRef.current || firstGameNeedsReview) return;
+                    eventSubmissionLockRef.current = true;
                     // Audit-fix/event-field-mapping (2026-05-12): the shared
                     // CreateGameForm component uses field names that DO NOT match
                     // /api/home-games/events. Without this remap, every submit
@@ -2022,41 +2015,15 @@ export default function CreateHomeGamePage() {
                         // API expects special_rules, NOT notes.
                         special_rules: eventData.notes || undefined,
                       };
-                      const res = await fetch('/api/commander/home-games/events', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          Authorization: `Bearer ${token}`,
-                          'X-Idempotency-Key': eventSubmissionTokenRef.current,
-                        },
-                        body: JSON.stringify(apiPayload),
-                      });
-                      // Rotate idempotency on 2xx or parseable 4xx (server saw
-                      // and rejected our input - safe to retry with new key).
-                      if (res.ok || (res.status >= 400 && res.status < 500)) {
+                      const result = await submitHomeGameOccurrence(fetch, apiPayload, token, eventSubmissionTokenRef.current);
+                      if (result.status === 'confirmed' || result.status === 'rejected') {
                         eventSubmissionTokenRef.current = makeToken();
                       }
-                      if (!res.ok) {
-                        let serverMsg = '';
-                        try {
-                          const errBody = await res.json();
-                          serverMsg =
-                            errBody?.error?.message ||
-                            (typeof errBody?.error === 'string' ? errBody.error : '') ||
-                            errBody?.message ||
-                            '';
-                        } catch (_) {
-                          /* not JSON */
-                        }
-                        throw new Error(serverMsg || `Request failed (${res.status})`);
-                      }
-                      const data = await res.json();
-                      if (data.success || data.event) {
+                      if (result.status === 'confirmed') {
                         router.push(`/hub/commander/home-games/${createdGroup.id}`);
                       } else {
-                        setFirstGameError(
-                          'Game created but the response was unexpected. Refresh the group page to see it.'
-                        );
+                        setFirstGameError(result.message);
+                        setFirstGameNeedsReview(result.status === 'unknown');
                       }
                     } catch (err) {
                       console.warn('Schedule event error:', err);
@@ -2066,6 +2033,7 @@ export default function CreateHomeGamePage() {
                           : 'Failed to schedule. Check your details and try again.'
                       );
                     } finally {
+                      eventSubmissionLockRef.current = false;
                       setEventSubmitting(false);
                     }
                   }}

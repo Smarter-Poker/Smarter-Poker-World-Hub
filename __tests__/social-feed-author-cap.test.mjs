@@ -24,6 +24,46 @@ const A = id(901);
 const B = id(902);
 const C = id(903);
 
+test('Home Games mirrors use current group privacy and preserve raw continuation', async () => {
+    const pageId = id(600);
+    const groupId = id(601);
+    const page = { id: pageId, page_type: 'home_game', linked_entity_type: 'home_group', linked_entity_id: groupId, is_public: true };
+    const mirror = textPost(1, { metadata: { source_page_id: pageId, home_game: true } });
+    for (const state of [
+        { is_private: true, is_active: true },
+        { is_private: false, is_active: false },
+        { is_private: false, is_active: true, unlisted: true },
+    ]) {
+        const result = await runFeed([mirror, textPost(2, { author: B }), textPost(3, { author: C })], {
+            query: { limit: '1' },
+            pages: [{ ...page, is_public: !state.unlisted }],
+            groups: [{ id: groupId, ...state }],
+        });
+        assert.equal(result.res.statusCode, 200);
+        assert.deepEqual(result.res.body.posts.map(post => post.id), [id(2)]);
+        assert.equal(result.res.body.nextOffset, 2);
+        assert.equal(result.res.body.hasMore, true);
+    }
+    const published = await runFeed([mirror], {
+        pages: [page], groups: [{ id: groupId, is_private: false, is_active: true }],
+    });
+    assert.equal(published.res.statusCode, 200);
+    assert.deepEqual(published.res.body.posts.map(post => post.id), [id(1)]);
+    const unavailable = await runFeed([mirror], { pages: [page], groups: 'error' });
+    assert.equal(unavailable.res.statusCode, 503);
+    assert.equal(unavailable.res.body.posts, undefined);
+});
+
+test('non-Home Games mirrors retain existing eligibility without a group lookup', async () => {
+    const pageId = id(700);
+    const result = await runFeed([textPost(1, { metadata: { source_page_id: pageId } })], {
+        pages: [{ id: pageId, page_type: 'club', is_public: false }], groups: 'error',
+    });
+    assert.equal(result.res.statusCode, 200);
+    assert.deepEqual(result.res.body.posts.map(post => post.id), [id(1)]);
+    assert.equal(result.calls.some(call => call.path.endsWith('/commander_home_groups')), false);
+});
+
 function rows() {
     return [
         textPost(1, { author: A }),

@@ -9,6 +9,7 @@ import {
     readManagedEligibilityContext,
 } from './feed';
 import { toBrowserPost } from '../../../src/lib/socialPostShape';
+import { publicHomeGameMirrors } from '../../../src/lib/home-games/socialPostAccessServer.mjs';
 
 const PERSISTED_UUID_RE = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 let serviceClient = null;
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
             .order('created_at', { ascending: false })
             .limit(120);
         if (error) throw error;
-        const rows = Array.isArray(data) ? data : [];
+        const rows = await publicHomeGameMirrors(client, Array.isArray(data) ? data : []);
         const context = await readManagedEligibilityContext(rows);
         const eligible = rows.filter(post => (
             (isPublicAudiencePost(post) || (owner && post?.is_deleted !== true))

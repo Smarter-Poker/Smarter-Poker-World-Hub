@@ -36,6 +36,7 @@ import {
 import { FEED_TOPICS } from '../../../src/lib/socialTopics';
 import { rankFeedPage } from '../../../src/lib/feedRanking';
 import { displayMetadata } from '../../../src/lib/socialPostShape';
+import { homeGamePagePublicFlags } from '../../../src/lib/home-games/socialPrivacyServer.mjs';
 
 const POST_SCAN_SIZE = 100;
 const MAX_POST_SCAN_ROWS = 5_000;
@@ -532,8 +533,26 @@ export async function readSafePostWindow(offset, limit, options = {}) {
         }
         scanned += page.length;
         const context = await readManagedEligibilityContext(page);
+        // A Home Games post may have been public when mirrored and private
+        // later. Its old metadata/visibility is not current publication consent.
+        const mirroredPageIds = [...new Set(page.map((post) => post.metadata?.source_page_id)
+            .filter((id) => UUID_RE.test(String(id || ''))))];
+        let homePageFlags = new Map();
+        if (mirroredPageIds.length) {
+            const pageParams = new URLSearchParams({
+                select: 'id,page_type,is_public,linked_entity_type,linked_entity_id',
+                id: `in.(${mirroredPageIds.join(',')})`,
+            });
+            const mirroredPages = await supaFetch(`/social_pages?${pageParams}`);
+            homePageFlags = await homeGamePagePublicFlags(mirroredPages, (ids) => {
+                const groupParams = new URLSearchParams({ select: 'id,is_active,is_private', id: `in.(${ids.join(',')})` });
+                return supaFetch(`/commander_home_groups?${groupParams}`);
+            });
+        }
         for (let index = 0; index < page.length; index += 1) {
             const post = page[index];
+            if (post.metadata?.source_page_id && homePageFlags.get(post.metadata.source_page_id) !== true) continue;
+            if (post.metadata?.page_type === 'home_game' && !post.metadata?.source_page_id) continue;
             // Raw service-role reads bypass RLS. Reapply the anonymous/public
             // audience contract so a stale visibility bit cannot disclose a
             // friends/specific/only-me post through this public feed.
