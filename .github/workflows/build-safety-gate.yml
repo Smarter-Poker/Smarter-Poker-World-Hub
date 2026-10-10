@@ -173,7 +173,13 @@ jobs:
           "$RUNNER_TEMP/pnm-session-contracts/bin/python" scripts/test_pokeratlas_persistence.py
 
       - name: Poker Near Me Tour Calendar Truth
-        run: node --test __tests__/poker-near-me-tour-calendar-truth.test.mjs
+        run: node --test __tests__/poker-near-me-tour-calendar-truth.test.mjs __tests__/poker-near-me-tour-db-schedule.test.mjs __tests__/poker-near-me-tour-stop-scope.test.mjs __tests__/poker-near-me-data-truth.test.mjs __tests__/poker-near-me-coordinate-repair.test.mjs
+
+      - name: Poker Near Me Installed Collector Contracts
+        run: |
+          python3 scripts/test_tour_stealth_scraper.py
+          python3 scripts/test_tournament_schedule_daemon.py
+          python3 scripts/test_poker_series_scraper.py
 
       - name: Training M1 Scope-Preserving HMAC Provisioning
         run: python3 -m unittest discover -s __tests__ -p test_provision_training_m1_hmac.py

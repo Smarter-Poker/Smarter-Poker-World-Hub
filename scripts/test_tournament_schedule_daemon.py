@@ -23,6 +23,14 @@ SPEC.loader.exec_module(DAEMON)
 
 
 class GenericTournamentFallbackTests(unittest.TestCase):
+    def test_credentials_only_use_runtime_environment(self):
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            Path, "read_text", side_effect=AssertionError("credential file read"),
+        ):
+            self.assertIsNone(DAEMON._load_supabase_key())
+        with mock.patch.dict(os.environ, {"SUPABASE_SERVICE_ROLE_KEY": "test-runtime-key"}):
+            self.assertEqual(DAEMON._load_supabase_key(), "test-runtime-key")
+
     @staticmethod
     def _pa_page(name: str, state: str, title: str | None = None) -> str:
         return f'''

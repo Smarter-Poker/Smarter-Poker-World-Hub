@@ -14,7 +14,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
-import { decodeScrapedTournamentText } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import { decodeScrapedTournamentText, fetchAllRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import tourRegistry from '../../../data/tour-source-registry.json';
+import { databaseTourStops } from '../../../src/lib/poker/tourSchedule.mjs';
 import {
   SERVABLE_TOUR_EVENT_QUALITIES,
   SERVABLE_TOUR_DETAIL_QUALITIES,
@@ -66,7 +68,7 @@ const BUY_IN_TIER = (amount) => {
 
 // Smarter.Poker Standard: canonical game type normalization
 const normalizeGameType = (raw) => {
-  if (!raw) return 'NLH';
+  if (!raw) return 'TBD';
   const g = raw.trim().toUpperCase();
   const map = {
     'NLHE': 'NLH', 'NLH': 'NLH', 'NO-LIMIT': 'NLH', 'NO LIMIT HOLDEM': 'NLH',
@@ -107,13 +109,29 @@ function getTodayEastern() {
 }
 
 // Determine current and next stop based on today's date
-const classifyStops = (events, today) => {
-  if (!events?.length) return { current: null, next: null, future: [], past: [] };
+const classifyStops = (events, today, summaries = []) => {
+  if (!events?.length && !summaries.length) return { current: null, next: null, future: [], past: [] };
 
-  // Group events by stop_name
+  // Names repeat across dates and rooms. Preserve the physical dated stop.
+  const stopKey = (name, start, venue) => JSON.stringify([name, start || '', venue || '']);
   const stopMap = {};
+  for (const summary of summaries) {
+    stopMap[stopKey(summary.name, summary.start_date, summary.venue)] = {
+      stop_name: summary.name,
+      stop_venue: summary.venue,
+      stop_city: summary.city,
+      stop_state: summary.state,
+      stop_start_date: summary.start_date,
+      stop_end_date: summary.end_date,
+      source_url: summary.source_url,
+      scrape_timestamp: summary.scrape_timestamp,
+      data_quality: summary.data_quality,
+      schedule_scope: 'stop_summary',
+      events: [],
+    };
+  }
   for (const e of events) {
-    const key = e.stop_name;
+    const key = stopKey(e.stop_name, e.stop_start_date, e.stop_venue);
     if (!stopMap[key]) {
       stopMap[key] = {
         stop_name: e.stop_name,
@@ -126,6 +144,7 @@ const classifyStops = (events, today) => {
       };
     }
     stopMap[key].events.push(e);
+    stopMap[key].schedule_scope = 'event_schedule';
   }
 
   const stops = Object.values(stopMap || {}).sort((a, b) => {
@@ -158,7 +177,8 @@ const classifyStops = (events, today) => {
     }
 
     if (end >= today && start <= today) {
-      current = stop;
+      if (!current) current = stop;
+      else future.push({ ...stop, stop_type: 'current' });
     } else if (start > today) {
       if (!next) next = stop;
       else future.push(stop);
@@ -243,7 +263,7 @@ export default async function handler(req, res) {
   const all_stops = safeQ(req.query.all_stops);   // 'true' = return all stops grouped
   const pdf_detail = safeQ(req.query.pdf_detail);  // 'true' = also fetch from tour_event_details (PDF-extracted)
   const rawLimit = safeQ(req.query.limit);
-  const limit = Math.min(parseInt(rawLimit) || 500, 2000);
+  const limit = Math.max(1, Math.min(parseInt(rawLimit) || 500, 2000));
 
   if (!tour_code) {
     return res.status(400).json({ error: 'tour_code is required' });
@@ -253,7 +273,8 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
 
     // Query tour_stop_events table
-    let query = supabase
+    const buildQuery = () => {
+      let query = supabase
       .from('tour_stop_events')
       .select('*')
       .eq('tour_code', tour_code.toUpperCase())
@@ -261,37 +282,44 @@ export default async function handler(req, res) {
       .or('start_date.not.is.null,stop_start_date.not.is.null')
       .order('start_date', { ascending: true })
       .order('event_number', { ascending: true })
-      .limit(limit);
+      .order('id', { ascending: true });
 
     // Guard: treat empty string stop_name as no filter to prevent leaking all events
     // Escape LIKE wildcards to prevent pattern injection attacks
-    const stopNameFilter = stop_name && String(stop_name).replace(/[%_]/g, '\\$&').slice(0, 200).trim();
     if (stopNameFilter) {
       query = query.ilike('stop_name', `%${stopNameFilter}%`);
     }
+      return query;
+    };
 
-    const { data: rawEvents, error } = await query;
-
-    if (error) throw error;
+    const stopNameFilter = stop_name && String(stop_name).replace(/[%_]/g, '\\$&').slice(0, 200).trim();
+    const primaryRead = await fetchAllRows(buildQuery, { pageSize: 1000, maxRows: 20000 });
+    if (primaryRead.error || primaryRead.truncated) throw primaryRead.error || new Error('Tour schedule read is incomplete');
+    const rawEvents = primaryRead.rows;
 
     // PDF-extracted details are explicit opt-in. The base endpoint must never
     // leak historical schedule-summary placeholders from this secondary table.
     let pdfEvents = [];
     if (pdf_detail === 'true') {
-      let pdfQuery = supabase
+      const buildPdfQuery = () => {
+        let pdfQuery = supabase
         .from('tour_event_details')
         .select('*')
         .eq('tour_code', tour_code.toUpperCase())
         .eq('data_quality', SERVABLE_TOUR_DETAIL_QUALITIES[0])
         .order('start_date', { ascending: true })
         .order('event_number', { ascending: true })
-        .limit(limit);
+        .order('id', { ascending: true });
 
       if (stopNameFilter) {
         pdfQuery = pdfQuery.ilike('series_name', `%${stopNameFilter.substring(0, 30)}%`);
       }
+        return pdfQuery;
+      };
 
-      const { data: pdfRaw, error: pdfError } = await pdfQuery;
+      const pdfRead = await fetchAllRows(buildPdfQuery, { pageSize: 1000, maxRows: 20000 });
+      const pdfRaw = pdfRead.rows;
+      const pdfError = pdfRead.error || (pdfRead.truncated ? new Error('Tour detail read is incomplete') : null);
       if (pdfError) {
         try { reportApiError(pdfError, req); } catch (_reportError) {
           console.warn('[App] Handled exception:', _reportError?.message || _reportError);
@@ -383,8 +411,18 @@ export default async function handler(req, res) {
 
     events = events.map(decodeTourEventPayload).filter(Boolean);
 
-    // Classify stops by date (current/next/future)
-    const classified = classifyStops(events, today);
+    // A sourced festival date remains useful even when its individual event
+    // schedule is unpublished. Never turn a historical stop placeholder into
+    // a "Main Event" or carry its unsupported buy-in into this response.
+    const registryTour = tourRegistry.tours?.[tour_code.toUpperCase()];
+    const summaryTours = registryTour ? [{
+      ...registryTour,
+      tour_code: tour_code.toUpperCase(),
+      schedule_url: registryTour.source_urls?.primary,
+      alternate_urls: Object.values(registryTour.source_urls || {}),
+    }] : [];
+    const summaries = databaseTourStops(rawEvents || [], summaryTours);
+    const classified = classifyStops(events, today, summaries);
 
     if (stop === 'current') {
       const stopData = classified.current || classified.next;
@@ -450,7 +488,7 @@ export default async function handler(req, res) {
       const allStops = [
         ...(classified.current ? [{ ...classified.current, stop_type: 'current' }] : []),
         ...(classified.next ? [{ ...classified.next, stop_type: 'next' }] : []),
-        ...classified.future.map(s => ({ ...s, stop_type: 'future' })),
+        ...classified.future.map(s => ({ ...s, stop_type: s.stop_type || 'future' })),
         ...classified.past.map(s => ({ ...s, stop_type: 'past' })),
       ];
       return res.status(200).json({
@@ -472,7 +510,7 @@ export default async function handler(req, res) {
       current_stop: classified.current?.stop_name || null,
       next_stop: classified.next?.stop_name || null,
       total_events: events.length,
-      events,
+      events: events.slice(0, limit),
       data_source: 'database',
     });
 

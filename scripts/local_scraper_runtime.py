@@ -27,6 +27,17 @@ FILES = (
     'scripts/browser_heal.py',
 )
 INPUTS = ('all-venues.json', 'pokeratlas-slug-map.json')
+COMPONENTS = {
+    'pokeratlas': (FILES, INPUTS),
+    'tours': (('scripts/tour_stealth_scraper.py', 'scripts/scraper_data_truth.py',
+               'scripts/browser_heal.py'), ()),
+    'tournaments': (('scripts/tournament-schedule-daemon.py',
+                     'scripts/scraper_data_truth.py', 'scripts/browser_heal.py'),
+                    ()),
+    'series': (('scripts/poker_series_scraper.py', 'scripts/scraper_data_truth.py',
+                'scripts/browser_heal.py'),
+               ('master_poker_series_list.json', 'all-venues.json')),
+}
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
 # Every operational alert is addressed to the production-alerts fleet. The
 # shared writer, scripts/operational_alerts.py, owns this value and rule. This
@@ -100,6 +111,20 @@ def credentials(root):
     return auth
 
 
+def credential_root(root):
+    """Reference the configured service store without duplicating its secrets."""
+    pointer = root / 'credential-store.json'
+    if not pointer.exists():
+        return root
+    value = read_json(pointer, 'credential_store_unreadable')
+    if not isinstance(value, dict) or not isinstance(value.get('root'), str):
+        raise RuntimeFault('credential_store_invalid')
+    path = Path(value['root'])
+    if not path.is_absolute():
+        raise RuntimeFault('credential_store_invalid')
+    return path.resolve()
+
+
 def inspect_release(root):
     try:
         release = (root / 'current').resolve(strict=True)
@@ -110,10 +135,14 @@ def inspect_release(root):
     manifest = read_json(release / 'manifest.json', 'manifest_unreadable')
     if not isinstance(manifest, dict) or manifest.get('revision') != release.name:
         raise RuntimeFault('manifest_revision_mismatch')
+    component = manifest.get('component', 'pokeratlas')
+    if component not in COMPONENTS:
+        raise RuntimeFault('component_invalid')
+    files, inputs = COMPONENTS[component]
     hashes = manifest.get('files')
-    if not isinstance(hashes, dict) or set(hashes) != set(FILES):
+    if not isinstance(hashes, dict) or set(hashes) != set(files):
         raise RuntimeFault('manifest_file_set_mismatch')
-    for name in FILES:
+    for name in files:
         path = release / name
         if path.is_symlink() or not path.is_file():
             raise RuntimeFault('release_file_missing')
@@ -127,17 +156,17 @@ def inspect_release(root):
     state = Path(config['state_dir']).resolve()
     if not state.is_dir() or (release / 'data').resolve() != state:
         raise RuntimeFault('state_directory_invalid')
-    for name in INPUTS:
+    for name in inputs:
         value = read_json(state / name, 'catalog_input_unreadable')
         if not isinstance(value, (dict, list)) or not value:
             raise RuntimeFault('catalog_input_empty')
     return release, manifest, config
 
 
-def queue_fault(root, code, revision='unknown'):
+def queue_fault(root, code, revision='unknown', component='pokeratlas'):
     # The same failed release/startup condition is one incident across retries.
     key = hashlib.sha256((revision + ':' + code).encode()).hexdigest()
-    event = {'p_source': 'local.pokeratlas-runtime', 'p_event_key': key,
+    event = {'p_source': 'local.' + component + '-runtime', 'p_event_key': key,
              'p_alertname': 'LocalScraperRuntimeFailure', 'p_status': 'firing',
              'p_severity': 'critical',
              'p_payload': addressed({'failure_code': code, 'release_revision': revision})}
@@ -150,7 +179,7 @@ def queue_fault(root, code, revision='unknown'):
 
 
 def flush_outbox(root, opener=urllib.request.urlopen):
-    auth = credentials(root)
+    auth = credentials(credential_root(root))
     pending = sorted((root / 'outbox').glob('*.json'))
     for path in pending:
         event = read_json(path, 'outbox_unreadable')
@@ -190,14 +219,18 @@ def verify_python(python):
         raise RuntimeFault('python_runtime_prerequisites')
 
 
-def install(repository, revision, root, state, inputs, python):
+def install(repository, revision, root, state, inputs, python,
+            component='pokeratlas', credential_store=None):
+    if component not in COMPONENTS:
+        raise RuntimeFault('component_invalid')
+    files, input_names = COMPONENTS[component]
     if not re.fullmatch('[0-9a-f]{40}', revision):
         raise RuntimeFault('revision_must_be_full_sha')
     def git(*args):
         return subprocess.check_output(['git', '-C', str(repository), *args], stderr=subprocess.DEVNULL)
     try:
         git('merge-base', '--is-ancestor', revision, 'origin/main')
-        blobs = {name: git('show', revision + ':' + name) for name in FILES}
+        blobs = {name: git('show', revision + ':' + name) for name in files}
         runner = git('show', revision + ':scripts/local_scraper_runtime.py')
     except subprocess.CalledProcessError:
         raise RuntimeFault('release_not_complete_on_protected_main') from None
@@ -205,7 +238,7 @@ def install(repository, revision, root, state, inputs, python):
         compile(blob, name, 'exec')
     # Validate all inputs before publishing code or changing a live pointer.
     static = {}
-    for name in INPUTS:
+    for name in input_names:
         source = state / name if (state / name).exists() else inputs / name
         data = source.read_bytes()
         if not isinstance(json.loads(data), (dict, list)) or not json.loads(data):
@@ -214,7 +247,10 @@ def install(repository, revision, root, state, inputs, python):
     verify_python(python)
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(root, 0o700)
-    credentials(root)
+    store = credential_store.resolve() if credential_store else credential_root(root)
+    credentials(store)
+    if credential_store:
+        atomic_write(root / 'credential-store.json', json_bytes({'root': str(store)}))
     state.mkdir(parents=True, exist_ok=True)
     for name, blob in static.items():
         if not (state / name).exists():
@@ -230,6 +266,8 @@ def install(repository, revision, root, state, inputs, python):
                 'runtime': {'state_dir': str(state.resolve()), 'python': str(python.absolute())},
                 'files': {
         name: hashlib.sha256(blob).hexdigest() for name, blob in blobs.items()}}
+    if component != 'pokeratlas':
+        manifest['component'] = component
     staging = Path(tempfile.mkdtemp(prefix='.stage-', dir=releases))
     try:
         for name, blob in blobs.items():
@@ -303,10 +341,12 @@ def run(root):
         except BlockingIOError:
             return 0
         revision = 'unknown'
+        component = 'pokeratlas'
         try:
             release, manifest, config = inspect_release(root)
             revision = manifest['revision']
-            auth = credentials(root)
+            component = manifest.get('component', 'pokeratlas')
+            auth = credentials(credential_root(root))
             env = dict(os.environ)
             env.pop('SUPABASE_KEY', None)
             env.update({'NEXT_PUBLIC_SUPABASE_URL': auth['url'],
@@ -315,15 +355,21 @@ def run(root):
                 flush_outbox(root)
             except RuntimeFault as error:
                 print(str(error), file=sys.stderr, flush=True)
-            code, terminating = supervise([config['python'], str(release / FILES[0])], release, env)
+            files, _ = COMPONENTS[component]
+            argv = [config['python'], str(release / files[0])]
+            if component == 'series':
+                argv.append('--daemon')
+            code, terminating = supervise(argv, release, env)
             if terminating:
+                return 0
+            if component == 'tours' and code == 0:
                 return 0
             raise RuntimeFault('daemon_exited_' + str(code))
         except (OSError, ValueError, TypeError, KeyError):
             code = 'runtime_io_or_configuration_failure'
         except RuntimeFault as error:
             code = str(error)
-        queue_fault(root, code, revision)
+        queue_fault(root, code, revision, component)
         try:
             flush_outbox(root)
         except RuntimeFault as error:
@@ -341,17 +387,20 @@ def main():
     parser.add_argument('--state', type=Path)
     parser.add_argument('--inputs', type=Path)
     parser.add_argument('--python', type=Path)
+    parser.add_argument('--component', choices=sorted(COMPONENTS), default='pokeratlas')
+    parser.add_argument('--credential-store', type=Path)
     args = parser.parse_args()
     try:
         if args.action == 'install':
             if not all([args.repository, args.revision, args.state, args.inputs, args.python]):
                 parser.error('install requires repository, revision, state, inputs and python')
             result = install(args.repository, args.revision, args.root.resolve(),
-                             args.state.resolve(), args.inputs.resolve(), args.python)
+                             args.state.resolve(), args.inputs.resolve(), args.python,
+                             args.component, args.credential_store)
             print(json.dumps({'installed_revision': result['revision'], 'files': len(result['files'])}))
         elif args.action == 'check':
             _, manifest, _ = inspect_release(args.root.resolve())
-            credentials(args.root.resolve())
+            credentials(credential_root(args.root.resolve()))
             print(json.dumps({'revision': manifest['revision'], 'files': len(manifest['files']), 'ok': True}))
         elif args.action == 'flush':
             flush_outbox(args.root.resolve())

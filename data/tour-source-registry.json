@@ -1282,10 +1282,10 @@
       "tour_name": "PokerGO Tour",
       "tour_type": "high_roller",
       "priority": 1,
-      "official_website": "https://www.pokergo.com",
+      "official_website": "https://www.pgt.com",
       "source_urls": {
-        "primary": "https://www.pokergo.com/pgt/",
-        "schedule": "https://www.pokergo.com/schedule/",
+        "primary": "https://www.pgt.com/schedule",
+        "schedule": "https://www.pgt.com/schedule",
         "pokeratlas": "https://www.pokeratlas.com/poker-tournaments/pokergo"
       },
       "scrape_config": {

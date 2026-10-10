@@ -4,9 +4,8 @@
  * 
  * Data Strategy:
  *   1. Try DB for tour records
- *   2. Always merge with tour-source-registry.json for rich data
- *      (stops_2026, series_2026, typical_buyins, regions, etc.)
- *   3. Fall back to registry-only if DB unavailable
+ *   2. Merge registry identity, then attach qualified recorded DB stop summaries
+ *   3. Retain the honestly dated bundled registry for uncovered/unavailable schedules
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import tourRegistry from '../../../data/tour-source-registry.json';
@@ -14,6 +13,7 @@ import allVenuesData from '../../../data/all-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { tourCanonical, registryCodeForTour } from '../../../src/lib/seo/tourPageSeo';
+import { readTourScheduleRows, attachDatabaseTourSchedules } from '../../../src/lib/poker/tourSchedule.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -96,7 +96,7 @@ function mergeWithRegistry(dbTour, registryTour) {
         headquarters: dbTour.headquarters || registryTour.headquarters,
         established: dbTour.established_year || dbTour.established || registryTour.established,
         official_website: dbTour.official_website || registryTour.official_website,
-        // Always use registry for rich schedule data (DB doesn't have it)
+        // Bundled schedule fallback; qualified DB stop summaries are attached below.
         typical_buyins: registryTour.typical_buyins || null,
         regions: (Array.isArray(dbTour.regions) && dbTour.regions.length > 0)
             ? dbTour.regions
@@ -128,8 +128,7 @@ const venueLookup = buildVenueNameLookup();
 // Get upcoming series from registry stops/series data
 function getUpcomingSeries(tourCode, registryTours) {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    today.setUTCHours(0, 0, 0, 0);
     const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
 
     // These arrays are explicitly the 2026 schedule. An expired stop is not
@@ -150,14 +149,14 @@ function getUpcomingSeries(tourCode, registryTours) {
             if (m) {
                 const month = MONTHS[m[1]];
                 if (month === undefined) return null;
-                if (m[3]) return new Date(parseInt(m[3], 10), month, parseInt(m[2]));
-                if (explicitYear) return new Date(explicitYear, month, parseInt(m[2]));
-                return new Date(SCHEDULE_YEAR, month, parseInt(m[2]));
+                if (m[3]) return new Date(Date.UTC(parseInt(m[3], 10), month, parseInt(m[2])));
+                if (explicitYear) return new Date(Date.UTC(explicitYear, month, parseInt(m[2])));
+                return new Date(Date.UTC(SCHEDULE_YEAR, month, parseInt(m[2])));
             }
             const dayOnly = s.match(/^(\d{1,2})$/);
             if (dayOnly && fallbackMonth !== undefined) {
                 const baseYear = explicitYear || SCHEDULE_YEAR;
-                return new Date(baseYear, fallbackMonth, parseInt(dayOnly[1]));
+                return new Date(Date.UTC(baseYear, fallbackMonth, parseInt(dayOnly[1])));
             }
             return null;
         };
@@ -165,10 +164,10 @@ function getUpcomingSeries(tourCode, registryTours) {
         if (!start) return null;
         let end = start;
         if (parts.length >= 2) {
-            end = parseOne(parts[parts.length - 1], start.getMonth()) || start;
+            end = parseOne(parts[parts.length - 1], start.getUTCMonth()) || start;
             // Range wrapping the new year (e.g. "Dec 28 - Jan 5")
             if (end < start) {
-                end.setFullYear(end.getFullYear() + 1);
+                end.setUTCFullYear(end.getUTCFullYear() + 1);
             }
         }
         return { start, end };
@@ -187,7 +186,9 @@ function getUpcomingSeries(tourCode, registryTours) {
         ];
 
         for (const stop of allStops) {
-            const dates = parseInformalDate(stop.dates);
+            const dates = stop.schedule_source === 'database_recorded'
+                ? { start: new Date(stop.start_date + 'T00:00:00Z'), end: new Date(stop.end_date + 'T00:00:00Z') }
+                : parseInformalDate(stop.dates);
             if (!dates) continue;
             
             // Include if end date is today or later
@@ -386,9 +387,16 @@ export async function getMergedToursData(excludeStationary = false) {
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
     if (tours.length === 0) tours = registryTours;
+    let scheduleDegraded = false;
+    try {
+        tours = attachDatabaseTourSchedules(tours, await readTourScheduleRows(getSupabase()));
+    } catch (error) {
+        scheduleDegraded = true;
+        console.warn('[Tours] Schedule unavailable; retaining recorded registry:', error?.message);
+    }
     // One URL per tour, decided here so every caller agrees with the sitemap.
     tours = tours.map((tour) => ({ ...tour, detail_path: tourDetailPath(tour) }));
-    return { tours, registryTours, source };
+    return { tours, registryTours, source, scheduleDegraded };
 }
 
 /**
@@ -428,10 +436,10 @@ export async function getHouseSeriesForSSR() {
 }
 
 export async function getAllToursForSSR() {
-    const { tours, registryTours } = await getMergedToursData(true); // excludeStationary=true
+    const { tours } = await getMergedToursData(true); // excludeStationary=true
     let finalTours = tours;
     // Attach upcoming
-    const allUpcoming = getUpcomingSeries(null, registryTours);
+    const allUpcoming = getUpcomingSeries(null, tours);
     const seriesByTour = {};
     allUpcoming.forEach(s => {
         if (!seriesByTour[s.tour]) seriesByTour[s.tour] = [];
@@ -476,7 +484,7 @@ export default async function handler(req, res) {
 
           // Try to get DB tours
           // eslint-disable-next-line prefer-const
-          let { tours: toursRaw, registryTours, source } = await getMergedToursData(excludeStationary);
+          let { tours: toursRaw, source, scheduleDegraded } = await getMergedToursData(excludeStationary);
           let tours = toursRaw;
 
           // ── Narrow the working set FIRST ───────────────────────────────
@@ -515,9 +523,9 @@ export default async function handler(req, res) {
               );
           }
 
-          // Upcoming series from registry data. Computed ONCE — it was being
+          // Upcoming series from qualified DB stops or the recorded fallback. Computed ONCE — it was being
           // built twice per request (fallback-coordinates block + summary stats).
-          const allUpcoming = getUpcomingSeries(null, registryTours);
+          const allUpcoming = getUpcomingSeries(null, toursRaw);
 
           // Calculate distance if coordinates provided
           if (!isNaN(userLat) && !isNaN(userLng)) {
@@ -620,9 +628,12 @@ export default async function handler(req, res) {
               },
               metadata: {
                   source,
-                  // Schedule enrichment always comes from this recorded registry,
-                  // not from DB identity rows or the time this request was served.
+                  // Keep the bundled fallback's recorded date separate from the
+                  // database schedule observation; neither is request-time freshness.
                   last_updated: tourRegistry.metadata?.last_updated || null,
+                  schedule_source: toursRaw.some(tour => tour.schedule_source === 'database_recorded') ? 'database_and_registry' : 'bundled_registry',
+                  schedule_last_updated: toursRaw.map(tour => tour.schedule_last_updated).filter(Boolean).sort().at(-1) || null,
+                  schedule_degraded: scheduleDegraded,
               },
           });
 
