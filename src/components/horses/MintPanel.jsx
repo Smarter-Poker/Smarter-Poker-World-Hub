@@ -2,11 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './shared.module.css';
 import ConfirmDialog from './ConfirmDialog';
 import Pager from './Pager';
-import { collectAllRows } from './exportAllCsv';
+import { requestExportArtifact } from './exportArtifactClient';
 import { hasPermission } from './operatorPermissions';
 import { thresholdDecision } from './approvalModel';
 import { dataOf, decimalText, conservationModel, economyAdminUrl } from './economyAdmin';
-import { downloadCsv, stampedName, toCsv } from '../../lib/horsesAdminTokens';
 
 const PAGE = 50;
 const EXPORT_PAGE = 500;
@@ -50,7 +49,6 @@ export default function MintPanel({
   const [opId, setOpId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [registerExport, setRegisterExport] = useState(null);
-  const [exportConfirm, setExportConfirm] = useState(null);
   const [playerQuery, setPlayerQuery] = useState('');
   const [playerResults, setPlayerResults] = useState([]);
   const [pickedPlayer, setPickedPlayer] = useState(null);
@@ -170,50 +168,13 @@ export default function MintPanel({
     } finally { setSubmitting(false); }
   };
 
-  const downloadRegister = (prepared) => {
-    const marker = prepared.complete ? [] : [{
-      __export_state: `TRUNCATED EXPORT. ${prepared.rows.length} ROWS EXPORTED. ${prepared.total === null ? 'TOTAL UNKNOWN' : `TOTAL ${prepared.total}`}. SAFETY CAP ${EXPORT_PAGE * EXPORT_MAX_PAGES}.`,
-    }];
-    const columns = prepared.complete ? REGISTER_COLUMNS : [['__export_state', 'Export State'], ...REGISTER_COLUMNS];
-    downloadCsv(
-      stampedName(`the-mint-register${prepared.complete ? '' : '-truncated'}`),
-      toCsv([...marker, ...prepared.rows], columns),
-    );
-    setRegisterExport({ exported: prepared.rows.length, total: prepared.total, complete: prepared.complete });
-    setExportConfirm(null);
-  };
-
   const exportRegister = async () => {
     if (registerExport?.running) return;
-    const exportFilters = { ...filters };
-    setRegisterExport({ running: true, fetched: 0, total: ledger.total ?? null });
-    setExportConfirm(null);
+    setRegisterExport({ running: true });
     try {
-      const prepared = await collectAllRows(async (offset, limit) => {
-        const query = new URLSearchParams({ section: 'ledger', limit: String(limit), offset: String(offset) });
-        for (const [key, value] of Object.entries(exportFilters)) if (value) query.set(key, value);
-        const response = await authFetch(`/api/horses/mint?${query.toString()}`);
-        const page = response?.data ?? response;
-        return {
-          rows: page?.rows || page?.entries || [],
-          total: typeof page?.total === 'number' ? page.total : null,
-          offset: typeof page?.offset === 'number' ? page.offset : offset,
-          hasMore: page?.hasMore,
-        };
-      }, {
-        limit: EXPORT_PAGE,
-        maxPages: EXPORT_MAX_PAGES,
-        onProgress: (progress) => setRegisterExport({ running: true, ...progress }),
-      });
-      if (!prepared.complete) {
-        setExportConfirm(prepared);
-        setRegisterExport({ awaitingAcknowledgement: true, exported: prepared.rows.length, total: prepared.total, complete: false });
-        return;
-      }
-      downloadRegister(prepared);
-    } catch (cause) {
-      setRegisterExport({ error: cause?.message || 'The Complete Register Could Not Be Prepared.' });
-    }
+      const result = await requestExportArtifact(authFetch, 'mint-register', filters);
+      setRegisterExport(result);
+    } catch (cause) { setRegisterExport({ error: cause?.message || 'The Export Outcome Could Not Be Confirmed' }); }
   };
 
   return <div className={styles.opsPanel}>
@@ -241,8 +202,8 @@ export default function MintPanel({
       </div>
       <button type="button" className={`${styles.btn} ${styles.btnGo}`} disabled={!valid || submitting} onClick={stage}>Review Operation</button>
     </section>
-    <section className={styles.opsDetail} aria-label="Issuance register"><h3 className={styles.opsCardTitle}>Issuance Register</h3><div className={styles.opsToolbar}><label className={styles.field}><span className={styles.fieldLabel}>Asset</span><select className={styles.select} value={filters.asset} onChange={(event) => setFilters({ ...filters, asset: event.target.value })}><option value="">All Assets</option><option value="chips">Chips</option><option value="diamonds">Diamonds</option></select></label><label className={styles.field}><span className={styles.fieldLabel}>Action</span><select className={styles.select} value={filters.action} onChange={(event) => setFilters({ ...filters, action: event.target.value })}><option value="">All Actions</option><option value="mint">Issued</option><option value="burn">Retired</option></select></label><label className={styles.field}><span className={styles.fieldLabel}>Origin</span><select className={styles.select} value={filters.origin} onChange={(event) => setFilters({ ...filters, origin: event.target.value })}><option value="">All Origins</option>{['operator', 'journal', 'baseline', 'diamond-mint', 'opening-grant', 'restoration', 'seed', 'deletion', 'purchase', 'reward', 'promotion', 'refund', 'adjustment', 'arena', 'spend', 'bridge', 'unclassified'].map((origin) => <option value={origin} key={origin}>{origin}</option>)}</select></label><label className={styles.field}><span className={styles.fieldLabel}>Holder ID</span><input className={styles.input} value={filters.holderId} onChange={(event) => setFilters({ ...filters, holderId: event.target.value.trim() })} placeholder="Optional UUID" /></label><div className={styles.opsActions}><button type="button" className={styles.btn} onClick={() => load(0, filters)} disabled={loading}>Apply Filters</button><button type="button" className={styles.btn} onClick={() => { setFilters(EMPTY_FILTERS); load(0, EMPTY_FILTERS); }} disabled={loading}>Clear</button></div></div><div className={styles.opsExportBox}><div className={styles.warnNote}>Platform Exports Are Not Recorded. The Downloaded File Is The Operator Record.</div><button type="button" className={styles.btn} onClick={exportRegister} disabled={registerExport?.running === true}>{registerExport?.running ? `Preparing ${registerExport.fetched || 0} Of ${registerExport.total ?? 'Unknown'} Rows` : `Export Filtered Register (${ledger.total ?? 'Count Unknown'} Rows)`}</button><div className={styles.fieldHint}>Safety Cap: {(EXPORT_PAGE * EXPORT_MAX_PAGES).toLocaleString()} Rows. The Export Walks Every Register Page And Includes Balance Before, Balance After, Supply, Actor, Reason And Operation ID.</div>{registerExport?.error ? <div className={styles.errorNote} role="alert">{registerExport.error}</div> : null}{registerExport?.complete ? <div className={styles.exportStatus} role="status">Prepared {registerExport.exported} Rows.</div> : null}{registerExport?.awaitingAcknowledgement ? <div className={styles.errorNote} role="alert">This Export Is Incomplete. Confirm The Safety-Cap Disclosure Before The Truncated File Is Produced.</div> : null}</div><div className={styles.opsCardsAlways}>{(ledger.entries || []).map((row) => <article className={styles.opsCard} key={row.id}><div className={styles.opsCardHead}><h4 className={styles.opsCardTitle}>{row.holder_label || row.holder_id}</h4><span>{row.action} {row.asset}</span></div><div className={styles.opsFacts}><div><span className={styles.opsFactLabel}>Amount</span><span className={styles.opsFactValue}>{decimalText(row.amount)}</span></div><div><span className={styles.opsFactLabel}>Origin</span><span className={styles.opsFactValue}>{row.origin || 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Balance</span><span className={styles.opsFactValue}>{decimalText(row.balance_before)} To {decimalText(row.balance_after)}</span></div><div><span className={styles.opsFactLabel}>Net Issued After</span><span className={styles.opsFactValue}>{decimalText(row.supply_after)}</span></div><div><span className={styles.opsFactLabel}>Reason</span><span className={styles.opsFactValue}>{row.reason || 'Not Recorded'}</span></div><div><span className={styles.opsFactLabel}>Performed By</span><span className={styles.opsFactValue}>{row.performed_by_label || 'Not Recorded'}</span></div><div><span className={styles.opsFactLabel}>Operation ID</span><span className={styles.opsFactValue}>{row.op_id || 'Unknown'}</span></div></div>{canWrite ? <button type="button" className={styles.btn} onClick={() => reverse(row)}>Prepare Opposite Operation</button> : null}</article>)}</div><Pager offset={ledger.offset || 0} limit={ledger.limit || PAGE} count={(ledger.entries || []).length} total={ledger.total} loading={loading} label="Register Operations" onPrevious={() => load(Math.max(0, (ledger.offset || 0) - PAGE), filters)} onNext={() => load((ledger.offset || 0) + PAGE, filters)} /></section>
+    <section className={styles.opsDetail} aria-label="Issuance register"><h3 className={styles.opsCardTitle}>Issuance Register</h3><div className={styles.opsToolbar}><label className={styles.field}><span className={styles.fieldLabel}>Asset</span><select className={styles.select} value={filters.asset} onChange={(event) => setFilters({ ...filters, asset: event.target.value })}><option value="">All Assets</option><option value="chips">Chips</option><option value="diamonds">Diamonds</option></select></label><label className={styles.field}><span className={styles.fieldLabel}>Action</span><select className={styles.select} value={filters.action} onChange={(event) => setFilters({ ...filters, action: event.target.value })}><option value="">All Actions</option><option value="mint">Issued</option><option value="burn">Retired</option></select></label><label className={styles.field}><span className={styles.fieldLabel}>Origin</span><select className={styles.select} value={filters.origin} onChange={(event) => setFilters({ ...filters, origin: event.target.value })}><option value="">All Origins</option>{['operator', 'journal', 'baseline', 'diamond-mint', 'opening-grant', 'restoration', 'seed', 'deletion', 'purchase', 'reward', 'promotion', 'refund', 'adjustment', 'arena', 'spend', 'bridge', 'unclassified'].map((origin) => <option value={origin} key={origin}>{origin}</option>)}</select></label><label className={styles.field}><span className={styles.fieldLabel}>Holder ID</span><input className={styles.input} value={filters.holderId} onChange={(event) => setFilters({ ...filters, holderId: event.target.value.trim() })} placeholder="Optional UUID" /></label><div className={styles.opsActions}><button type="button" className={styles.btn} onClick={() => load(0, filters)} disabled={loading}>Apply Filters</button><button type="button" className={styles.btn} onClick={() => { setFilters(EMPTY_FILTERS); load(0, EMPTY_FILTERS); }} disabled={loading}>Clear</button></div></div><div className={styles.opsExportBox}><div className={styles.warnNote}>Private Export Jobs Record The Actor, Filters, Completeness, SHA-256 And Expiry.</div><button type="button" className={styles.btn} onClick={exportRegister} disabled={registerExport?.running === true}>{registerExport?.running ? `Preparing ${registerExport.fetched || 0} Of ${registerExport.total ?? 'Unknown'} Rows` : `Export Filtered Register (${ledger.total ?? 'Count Unknown'} Rows)`}</button><div className={styles.fieldHint}>Safety Cap: {(20000).toLocaleString()} Rows And 16 MB. The Server Reads The Register. Open Export Files For Status And A Verified Download.</div>{registerExport?.error ? <div className={styles.errorNote} role="alert">{registerExport.error}</div> : null}{registerExport?.queued ? <div className={styles.infoNote} role="status">Export Job {registerExport.jobId} Recorded. Open Export Files For Status.</div> : null}{registerExport?.complete ? <div className={styles.exportStatus} role="status">Prepared {registerExport.exported} Rows.</div> : null}{registerExport?.awaitingAcknowledgement ? <div className={styles.errorNote} role="alert">This Export Is Incomplete. Confirm The Safety-Cap Disclosure Before The Truncated File Is Produced.</div> : null}</div><div className={styles.opsCardsAlways}>{(ledger.entries || []).map((row) => <article className={styles.opsCard} key={row.id}><div className={styles.opsCardHead}><h4 className={styles.opsCardTitle}>{row.holder_label || row.holder_id}</h4><span>{row.action} {row.asset}</span></div><div className={styles.opsFacts}><div><span className={styles.opsFactLabel}>Amount</span><span className={styles.opsFactValue}>{decimalText(row.amount)}</span></div><div><span className={styles.opsFactLabel}>Origin</span><span className={styles.opsFactValue}>{row.origin || 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Balance</span><span className={styles.opsFactValue}>{decimalText(row.balance_before)} To {decimalText(row.balance_after)}</span></div><div><span className={styles.opsFactLabel}>Net Issued After</span><span className={styles.opsFactValue}>{decimalText(row.supply_after)}</span></div><div><span className={styles.opsFactLabel}>Reason</span><span className={styles.opsFactValue}>{row.reason || 'Not Recorded'}</span></div><div><span className={styles.opsFactLabel}>Performed By</span><span className={styles.opsFactValue}>{row.performed_by_label || 'Not Recorded'}</span></div><div><span className={styles.opsFactLabel}>Operation ID</span><span className={styles.opsFactValue}>{row.op_id || 'Unknown'}</span></div></div>{canWrite ? <button type="button" className={styles.btn} onClick={() => reverse(row)}>Prepare Opposite Operation</button> : null}</article>)}</div><Pager offset={ledger.offset || 0} limit={ledger.limit || PAGE} count={(ledger.entries || []).length} total={ledger.total} loading={loading} label="Register Operations" onPrevious={() => load(Math.max(0, (ledger.offset || 0) - PAGE), filters)} onNext={() => load((ledger.offset || 0) + PAGE, filters)} /></section>
     {confirm ? <ConfirmDialog open title={`Confirm ${confirm.action === 'mint' ? 'Issuance' : 'Retirement'}`} tone={confirm.action === 'mint' ? 'go' : 'danger'} busy={submitting} sticky={submitting} blockEscape={submitting} confirmLabel={confirm.approval?.willRequest ? 'Send For Approval' : confirm.action === 'mint' ? 'Issue Value' : 'Retire Value'} requireTyped={confirm.asset.toUpperCase()} onConfirm={submit} onCancel={() => setConfirm(null)} note="This Is Recorded Permanently And Cannot Be Edited. If A Response Is Lost, Retry This Unchanged Confirmation So The Same Operation ID Is Reused."><p><strong>{confirm.approval?.headline}</strong> {confirm.approval?.detail}</p><p>{confirm.action === 'mint' ? 'Create' : 'Destroy'} <strong>{decimalText(confirm.amount)} {confirm.asset}</strong> {confirm.action === 'mint' ? 'and place it in' : 'from'} <strong>{confirm.label}</strong>.</p>{confirm.balance !== null ? <p>Projected Balance: <strong>{decimalText(confirm.balance)}</strong> Before, <strong>{decimalText(confirm.projected)}</strong> After.</p> : <p>The Current Balance Could Not Be Read, So A Projected Balance Is Not Claimed.</p>}<p>Reason: {confirm.reason}</p><p>Operation ID: {confirm.opId}</p>{error ? <div className={styles.errorNote} role="alert">{error}</div> : null}</ConfirmDialog> : null}
-    {exportConfirm ? <ConfirmDialog open title="Acknowledge Truncated Register Export" tone="danger" confirmLabel="Produce Truncated File" requireTyped="TRUNCATED" onConfirm={() => downloadRegister(exportConfirm)} onCancel={() => { setExportConfirm(null); setRegisterExport(null); }} note="The File Will Carry A Truncation Marker In Its Name And First Row."><p>This Export Reached The Safety Cap Of <strong>{(EXPORT_PAGE * EXPORT_MAX_PAGES).toLocaleString()} Rows</strong>.</p><p>{exportConfirm.total === null ? 'The Full Register Count Is Unknown.' : `${exportConfirm.rows.length} Of ${exportConfirm.total} Rows Were Prepared.`}</p></ConfirmDialog> : null}
+
   </div>;
 }

@@ -71,6 +71,7 @@ export const APPROVAL_KINDS = Object.freeze([
   'fleet_policy',
   'sanction',
   'daily_close',
+  'tournament_cancel',
 ]);
 
 /**
@@ -86,6 +87,7 @@ const THRESHOLD_FIELD = Object.freeze({
   fleet_policy: null,
   sanction: null,
   daily_close: null,
+  tournament_cancel: 'cashoutThreshold',
 });
 
 /** The permission a decision on each kind requires (contract section 2). */
@@ -97,6 +99,7 @@ export const KIND_PERMISSION = Object.freeze({
   fleet_policy: 'fleet.write',
   sanction: 'moderation.write',
   daily_close: 'money.write',
+  tournament_cancel: 'money.write',
 });
 
 export function isApprovalKind(kind) {

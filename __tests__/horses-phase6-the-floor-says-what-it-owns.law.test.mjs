@@ -61,7 +61,8 @@ test('O1 and O2 retain existing owner controls as links and never add a second w
   assert.match(route, /tournament_refund_entitlements/);
   assert.match(route, /tournament_refund_tranches/);
   assert.match(model, /owner_pause_resume:\s*'AVAILABLE_IN_CLUB_ARENA'/);
-  assert.match(model, /platform_park:\s*'MISSING'/);
+  assert.match(model, /platform_park:\s*'RUNTIME_ENGINE_READBACK_REQUIRED'/);
+  assert.match(model, /cash_boundary_close:\s*W/);
 });
 
 test('read sections contain no queue optimism, horse exclusion, or hidden authority', () => {

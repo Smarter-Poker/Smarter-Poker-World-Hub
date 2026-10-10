@@ -90,6 +90,7 @@ export default function CashierPanel({ authFetch, operatorId }) {
     setResult({ running: true, fetched: 0, total: isCashout ? cashoutPage.total : chipPage.total });
     try {
       const result = await exportAllCsv({
+        authFetch, artifactSurface: `stable-${section}`, artifactFilters: { status, age },
         filenamePrefix: `stable-${kind}-${status || 'all'}`, columns: CASHIER_COLUMNS,
         fetchPage: async (offset, limit) => {
           const filters = { ...(status ? { status } : {}), ...(age ? { age } : {}) };

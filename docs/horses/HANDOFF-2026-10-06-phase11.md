@@ -1,5 +1,135 @@
 # Stable Admin Phase 11 Closeout
 
+## Authorized Remaining-Capability Continuation, October 9, 2026
+
+Fresh resumption receipt: full canonical policies emitted/read at
+`2026-10-10T05:03:54.349Z`, v2.9, all manifest/source hashes below unchanged.
+Repository/publishing/CLAUDE/path references, storage, existing checkpoint,
+migration rules and complete maintenance handoff/programme freshly read.
+Current heads: World Hub `af7e67bba081ed98f688e007f089cc8611aa57a3`,
+Club Arena `87aaee9d825388fa660373944e25eff749c31cdd`.
+Both normal pushes passed. Draft PRs #2263 and #6621 are attached and owned
+by this chat, without automatic merging. Hosted World Hub safety run
+38025988710 failed two cashout hook fixtures because they omitted the newly
+imported account-scope store. The original caller-owned ABA fences and
+zero-dispatch/zero-mutation assertions remain unchanged; the fixture now
+explicitly refuses unexpected store reads instead of hiding that boundary.
+Failure-before retained. Club Arena trusted money-trigger declaration passed;
+remaining exact-head hosted suites, migration installation, publication,
+engine activation and genuine live proof remain pending.
+
+Owner instruction: "YES, GET ALL 6 OF THESE BUILT AND FINISHED SO WE CAN LAUNCH".
+This explicitly expands the completed oversight assignment to P3, O1, O2, O7,
+C2 and C4. The prior protected delivery and installed migrations remain intact.
+No capability is re-scored from this authorization alone.
+
+Operation owner: this continuation chat. Fresh owned SSD checkouts:
+`/Volumes/SmarterWork/agent-work/stable-admin-six-20261009/world-hub` at
+`77c4e5965a85deb5de82dff65ff505f6c125bf7c` and sibling `club-arena` at
+`00703e4dea878d70ab3835c9555bd60c88267358`.
+Both branches are `agent/codex/stable-admin-six-20261009`.
+Evidence: `/Volumes/SmarterArchives/agent-evidence/stable-admin-six-20261009`.
+The original dirty worktree is preserved; the completed continuation was
+already removed by its owner. No existing release operation is retried.
+
+Canonical policies freshly emitted and read at `2026-10-10T04:52:27.953Z`,
+version 2.9, manifest and source hashes match the recorded receipt below.
+Storage was read and both SSD volumes verified mounted with free space.
+Both repository AGENTS, CLAUDE, AGENT-PLAYBOOK and PUBLISHING references,
+the current checkpoint, migration-safety and installation mechanism were read.
+Phase 1-10 reference recovery is complete, including the Phase 7 and permission
+matrix gaps. The complete maintenance programme handoff, engine programme and owning
+deployment references were freshly read on this resumption. Historical
+scheduler and autopilot procedures remain superseded by current owner policy.
+
+| Subphase | Contract | Current State | Required Completion Evidence |
+| --- | --- | --- | --- |
+| R1 / P3 | Restriction and forced-logout enforcement in owning transactions, sessions and consumers; preserve enforcement policy | Investigation / Implementation | Isolated allowed/refused, expiry/lift, duplicate/race, session/reconnect tests; exact migration and client/engine/API live proof |
+| R2 / O1 | Durable floor pause, park and eligible cash-table boundary close through engine owner | Investigation / Implementation | Safe hand/stack preservation and durable recovery, authenticated command/status tests; engine and console delivery |
+| R3 / O2 | Existing-owner tournament cancel/refund workflow within its eligibility policy | Investigation / Implementation | Atomic refund/idempotency, running/settled refusal, approval and returned receipt; installation and live consumer proof |
+| R4 / O7 | Private durable asynchronously generated export artifacts with authorized download/status/cancel and honest bounds | Investigation / Implementation | Stable data/cap/hash, failed upload/crash/resume, duplicate/IDOR/expiry/revocation tests; private storage and live artifact proof |
+| R5 / C2 | Authenticated commands in existing global maintenance owner/state machine | Investigation / Implementation | Announce/drain/freeze/thaw and durable safe cancellation/refusal/recovery; isolated tests and sealed engine publication |
+| R6 / C4 | Registration, positive-issuance and dedicated cashout stops in every original consumer | Investigation / Implementation | Full consumer inventory, fail-closed/race/idempotency/audit/permission tests; refunds/recovery retained; exact installed and live guards |
+| R7 | Integrated console, 83-gap score and delivery | Pending Product Qualification | Required checks, protected merges, exact installed/provider/live proof, affected 375px/desktop catalogue, honest final documentation and owned cleanup |
+
+Changes use existing canonical services. No watcher, scheduled repair, alternate
+publisher, duplicate money writer, production control toggle or active player
+fixture supplies correctness or certification. Existing policy-controlled
+enforcement remains unchanged. Deployment components are classified separately;
+only actual engine replacement uses certified maintenance activation.
+
+### Six-Capability Candidate Qualification, 2026-10-10 04:47 UTC
+
+All six have connected candidate implementations. Club Arena candidate
+`87b75a340d` integrated current protected main `e057b9d71b` as
+`ba2557a2b6`, preserving its funding qualification and theme changes.
+Neither repository candidate is pushed, protected-merged, installed, published
+or certified live yet. Earlier records below describe the oversight release.
+
+- World Hub affected suite: 1,233 passed and one documentation punctuation
+  failure. That documentation was corrected; its six-case group now passes.
+  Final source build passed all 507 pages and bundle budgets. The new control
+  browser suite now passes 30/30 at desktop and 375px without retries.
+- Club Arena broad client suite: 35,021 passed, three failed, one existing
+  skipped case. All three affected files now pass 23/23 after the actual
+  post-rest engine timing correction and reviewed additive workflow pin.
+  Required accounting routing passed 690/690; all 821 binding pins validate;
+  cash manifest contracts pass 6/6. Client build and server typecheck passed.
+- The first full engine run had 64 failures, including database fixtures that
+  omitted the new floor-state read and the local native host limitation.
+  Nine connected fixtures were repaired without changing fail-closed source;
+  the affected group passes 115/115. The native rebuy runner now uses caller
+  SSD scratch and passes all 15 real money scenarios. Final full run pending.
+- Native PostgreSQL 17 exact-source qualifications now pass locally:
+  player restriction commit/admission ordering and duplicate logout;
+  private export schema/privacy/transitions and concurrent claims;
+  floor original-owner, admission/park and cashout races;
+  tournament cancellation and emergency stops, 101 assertion groups,
+  actual chip/Diamond refund owners, late-fault rollback, maker-checker,
+  both real-session stop orderings and duplicate refund exactly once.
+  Initial shared-memory exhaustion is retained as a failed environment attempt;
+  sequential native execution succeeded without touching foreign clusters.
+- Existing required hosted PostgreSQL accounting shards and World Hub safety
+  checks enforce the same native qualifications. Hosted results, protected
+  merges, exact migration installation, normal component publication and
+  genuine live proof remain required.
+
+Evidence is under the assigned external archive. Source fingerprint updates
+preserve prior assertions, authorities, fixtures and qualification statuses.
+No alternate publisher, production fixture, financial write or control toggle
+supplied qualification. PGlite remains provisional evidence only.
+
+### Integrated source and browser qualification, 2026-10-10 04:58 UTC
+
+World Hub source committed as `7719ed2935f4e618f39059222a71e3a2ca568673`
+and current main `0de124b23` merged as
+`d56706c51c073223936268e8919a5f2ddd39a35d`. Incoming PNM work is preserved;
+no Stable Admin runtime path changed in that merge. Integrated affected
+suite passes 1,281/1,281 with zero skips. Corrected browser build passed 507
+pages and budgets; actual maintained suite passed 30/30 without retries at
+1440px and 375px, including the full 28-tab catalogue and seven new cases.
+Desktop CSS failure-before and passing-after evidence plus runtime fingerprints
+are retained under `restriction/browser`; all temporary diagnostics were removed.
+That owned local server was stopped (session90781 exit130, port3199 empty).
+Final integrated build is finishing. These are isolated fixture component proofs,
+not production command execution or genuine live certification.
+
+CA guard-repair source `dab9c04f64` passed both migration guards and renewed
+native floor qualification. Its ordinary push failed two strict timing source
+contracts because the normal formatter split the exact four-owner predicate
+across lines. Both contracts now permit only whitespace differences while
+retaining exact terms, timing ordering and residue checks. Focused failure-before
+and 17/17 passing-after evidence retained. Corrected source committed normally
+as `87aaee9d82`; final ordinary push is running. Active cash contracts pass 6/6
+and all 821 bindings remain valid. No source predicate or timing rule was relaxed.
+Neither repository is yet protected-merged, installed, published or certified live.
+
+### Final candidate blocker recovery, 2026-10-10 04:56 UTC
+
+Full World Hub affected suite passes 1,246/1,246. Full engine suite passes 21,952 tests with 168 existing skipped cases (1,267 passed files, one skipped). CA ordinary push of 6d594fb2b9 was correctly refused: two actual floor migration omissions and one stale active cash manifest pin. Resume now targets its singleton hold by id; the same uninstalled migration declares its seat guard with prerequisite/postflight checks. Native PG17 floor original-owner/admission/cashout-race qualification passes again after those changes. Cash manifest 6/6 and 821 source bindings pass after refreshing only the actual formatted active test fingerprint, retaining historical records. Failed trusted money-trigger recovery run 38025342420 remains failed; no recovery-policy change supplies correctness.
+
+Desktop browser diagnosis proved the emergency-stop state and DOM persisted but the shared mobile-only opsCards CSS hid commands above 768px. Its owning grid now uses the existing opsCardsAlways class. Eight scope/layout regressions and lint pass; production rebuild and final desktop/375px 30-case suite are running. No browser pass or launch verdict is claimed until they complete. Canonical repository, storage, migration and complete maintenance references freshly reread at this resumption; all canonical hashes remain unchanged.
+
 Status: Runtime repair is protected-merged, published and verified live within
 the declared oversight scope. Final documentation protected integration is
 pending; this draft does not claim that documentation has merged.
@@ -429,3 +559,239 @@ Fresh reading receipt: full canonical policies emitted and read at `2026-10-10T0
 Final genuine production receipt: certificate run 38015383337 / job 114104368294 passed against exact protected and served descendant `83a68e9ecdc26e75a1665d762d783dc508e79f61`, with stable Vercel identity, authenticated reads at both widths and zero mutation attempts, page/chunk errors or overflow across the eight named surfaces. The direct sanitized JSON is archived under `certificate-38015383337/stable-admin-production-certificate-38015383337-1/horses-production-certificate.json`. Its bounded human-seat observation agrees with the independent read-only count above. Runtime acceptance is complete within this finite oversight scope; final documentation protected integration remains pending.
 
 Launch verdict: qualified oversight and existing permission-bound workflows, with truthful missing/degraded states. This is not a universal platform control plane. P3, O1, O2, O7, C2 and C4 remain explicit limitations; dedicated cashout, global tournament-registration and positive-issuance kill controls are absent. Prepared browser receipts do not prove delivery. No production financial or gameplay mutation was used for certification.
+
+
+### Exact installation prerequisites and lock recovery, 2026-10-10 05:18 UTC
+
+Canonical policies emitted/read at 2026-10-10T05:13:11.087Z, v2.9; all
+manifest/source hashes above unchanged. Owned World Hub head9e6c0c135 and
+Club Arena head67904f71a2dfdb2a408e127da60065291e8e1457 are pushed.
+World Hub required safety38026399010 refused five absent new tables; CHECK17
+explicitly requires candidate migrations installed before its live-schema
+verdict. Exact native qualification and measured compatibility therefore
+precede installation, with hosted checks still required before protected merge.
+
+O7 exact source902ea32d60d92ff2b01e0969c818a14cf9bf3f2d6d9ebfaba9c69eac76e42268
+installed once as provider ledger20261010051629/operator_private_export_artifacts.
+Readback confirms postgres owners, RLS, service-only tables/RPCs, fixed paths,
+private16MB CSV bucket and restrictive policy; zero jobs/events. Source and
+installed function hashes are archived. This is installation, not artifact
+delivery or live console acceptance.
+
+P3 first apply failed40P01: migration waited tournament_players schema lock
+while a live writer waited auth.users. Independent readback proves ledger[],
+new tables absent and original hook6027b488b1c77d03642b3d384f275d6a unchanged.
+The uninstalled source now acquires only its27 actual trigger targets in their
+final SHARE ROW EXCLUSIVE mode NOWAIT before anyDDL. No auth.users lock is
+added. Native PG17 proves55P03 immediate contention refusal, unchanged schema
+and hook, unrelated auth access, then full installation after writer release,
+restriction/admission ordering and duplicate logout exactly once. Statement
+timeout30s bounds statements; it is not a total transaction timer. Exact source
+8acf125d7bfc5d58f20c119f7ec934862c2ce6d591889ea88dd34e441ae9efcd.
+No blind retry or production player/control fixture supplied qualification.
+
+Club Arena repaired the actual native service fixture dependency, recorded the
+required startup-module review and declared P3 session RPC in its own manifest
+fragment. Ordinary hooks/push passed at67904f71a2. Hosted38026920728 is running;
+source-binding, settlement, production-write guards and trusted money-trigger
+checks passed. Prior failed run38026073351 remains failed. Final hosted native
+qualification, remaining installation, protected merges, provider publication,
+engine activation and genuine live proof remain pending.
+
+### Bounded first-lock correction and installation readback, 05:25 UTC
+
+Resumption canonical reader emitted 2026-10-10T05:22:19.495Z, v2.9;
+manifest and source hashes unchanged. Existing source and checkpoint recovered.
+Four exact qualified migrations are installed once: O7 provider20261010051629,
+O1/C2 provider20261010051856, C4 provider20261010051911 and O2 provider20261010051926.
+Readback confirms empty operation/receipt tables, three false emergency-stop
+rows, original refund-owner post-images and fixed privileged function paths.
+These are installation receipts, not publication or live command certificates.
+
+P3 intermediate all-target NOWAIT source refused tournament_players contention
+with55P03 twice (05:18 and05:19), after the original40P01 failure. Fresh ledger
+and relation readback still show no installed P3, no new tables and original
+hook6027b488b1c77d03642b3d384f275d6a. No failed attempt is reported as installed.
+The final source takes tournament_players FIRST with the existing3s lock_timeout,
+then the remaining26 exact CREATE TRIGGER targets NOWAIT before anyDDL.
+Final source SHA256c201404af5ccd9b8a5b148ab95faf45fdd9f69c0eac54ca177570dd93a9eabc3.
+NativePG17 proves bounded55P03 between2.8-5s, schema/hook preservation and
+unrelated authentication access, then complete installation, restriction/admission
+ordering and duplicate logout exactly once. Source regression passes1/1.
+No production policy toggle, player/control fixture or financial write supplies proof.
+
+Club Arena67904 hosted38026920728 production build and all four engine shards
+passed; remaining accounting, native-service and client checks are running.
+World Hub final-head checks, P3 installation, protected merges, publication,
+sealed engine activation and genuine production acceptance remain pending.
+
+### Provider policy lock cause and qualified atomic repair, 05:30 UTC
+
+The bounded-first-target c201 source also failed40P01 at05:23:37UTC.
+Independent readback again proves noP3 ledger/tables and originalhook unchanged.
+Configured PostgreSQL logs identify CREATE POLICY, mgmt-api and auth.users
+AccessExclusive versus a seat-first writer waiting chip_transactions. Installed
+supautils policy_grants and upstream fix42cc7f0c4b2655ee3f70a834e253e6a79c66f1d6
+explain the unrelated allowlist-table locks during policy creation; vanilla PG17
+and publicationADD did not reproduce them. No unsupported wrapper inference
+supplies the diagnosis.
+
+The exact final repair creates only its new tables/RLS/grants/policy before
+acquiring existing trigger targets, then acquires all27 targets NOWAIT. Atomic
+rollback,3s lock_timeout,30s per-statement timeout and provider/event safeguards
+remain; no explicit auth lock or provider override is added. Native PG17 models
+the identified provider hook, reproduces the old40P01, then proves corrected
+policy contention55P03 bounded near3s, target contention55P03/full rollback,
+continued auth-first writer progress, allP3 enforcement boundaries/concurrency
+and duplicate logout exactly once. Root repeated exact-source native proof.
+Final SQLSHA256bb6b2f85cb8f48aaa60c41248752581db947980fa182dbf73ea8d3dd7461d38c.
+
+Four installed migrations read back as ninepostgres-owned RLS service-only
+relations, expected enabled floor/five stop guards and exact original-owner
+postimages. Three stops remainfalse/version0. Current existing approvals policy
+is disabled; maker-checker is qualified but not enabled. Security WARN counts
+unchanged. RLS no-policy INFO713→722 is exactly nine intentional deny-all tables;
+unindexedFK689→690 is the immutable three-row stop-registry reference, not a hot
+relation. No necessary installed-source hardening identified. Evidence archives
+four-installed-metadata-readback.json and independent C4/O2 source/body review.
+
+A separate manual protected-main export delivery verifier now requests one real
+floor metadata artifact through the console, permits only that exact POST,
+reads bounded status, downloads actualCSV and validates bytes/hash against
+receipt+response header under one stable deployment. Eleven focused contracts
+pass; required safety also runs the new regression. Existing strict read-only
+certificate is unchanged. No production export has run. All publication/live
+acceptance remains pending.
+
+### All six database dependencies installed, 05:40 UTC
+
+Final P3 foundation installed once asprovider20261010053645; enforcement once
+asprovider20261010053702. Ledger stores each full reviewed source with exact
+SHA78d77b8a3eec8fd1ece1ee71b4d6d8ec0239fd634ca20114444d162fd68dc077
+and16ef33428ff616cc88d013c6da3bbc0ef09b06df939187163f82560fa1a002b2.
+All six installed source hashes match qualified files; four earlier installations
+were not replayed. Independent P3 readback matches all8 function body/owner/path/
+privilege records,40 enabled newtriggerdefinitions,3 retained entryguards and
+hookb799597b6f91d7e59688bff5d1fa9c5a. Enforcement remainsfalse; ledgers empty.
+Final security WARN counts unchanged; one additional intentional RLS deny-all
+operations table produces INFO723. Exact source, metadata and independent
+readback are archived; no production player/financial/control probe used.
+
+WHcaedeee6b ordinary push passed and final hosted checks are running.
+CA67904 allclient,engine,native-service,build and3 accounting shards passed;
+accounting1 failed LightningPhase12 invariant pass_starved_by_its_budget.
+Failure remains visible and is being diagnosed; no unchanged rerun or softened
+assertion supplies success. Protected merges/publication/liveproof remain pending.
+Two obsolete product descriptions now state implemented original-owner controls
+and their cash-only/hand-boundary/hourly bounds. Final integration checks50/50
+passed, including incoming Messenger lifecycle and affected control contracts.
+
+### Cold foundation and atomic enforcement, 05:36 UTC
+
+Canonical policies fully emitted/read at2026-10-10T05:34:26.489Z, v2.9;
+manifest/source hashes above unchanged. Both repository/publishing/CLAUDE
+references, owning maintenance handoff/programme, migration rules, storage
+and existing checkpoint freshly read atWH620c0c3a7 andCA67904f71a2.
+
+The policy-first bb6 source safely refused55P03 at05:30, with no installation.
+The final qualified repair separates only unused storage/policy/publication
+into20261010053114_player_control_cold_foundation, then atomic enforcement
+into20261010053147_player_restrictions_converge_and_logout_is_durable.
+The never-installed035338 source is replaced, not replayed. FoundationSHA256
+78d77b8a3eec8fd1ece1ee71b4d6d8ec0239fd634ca20114444d162fd68dc077;
+mainSHA25616ef33428ff616cc88d013c6da3bbc0ef09b06df939187163f82560fa1a002b2.
+Main refuses missing/drifted/used foundation, checks each expected service grant,
+waits bounded3s for first hot target and takes other26 targets NOWAIT beforeDDL.
+No provider auth lock survives the separate cold transaction. Guarded executable
+rollback refuses installed or used foundations; noCASCADE or control toggle.
+
+Root exact nativePG17 repeat passed cold3s atomic refusal, empty rollback/reinstall,
+five independent missing-grant refusals, drift/use refusal, hot3s refusal with
+unchanged hook/empty foundation, successful enforcement with auth reader held,
+all P3 boundaries and real concurrent restriction/logout exactly once.
+Focused source/privacy/export/certificate contracts27/27 passed without skips;
+required safety now explicitly runs the maintained lock-footprint regression.
+Fresh production05:35:50 read still showed noP3 ledger/tables, original6027 hook,
+and noDDL-window refusal. Installation and final publication proof remain pending.
+
+
+### Matcher blocker recovery and fresh reading receipt, 05:47 UTC
+
+Canonical policies fully emitted/read at2026-10-10T05:45:03.402Z, v2.9,
+manifest/source hashes above unchanged. Full repository/publishing/CLAUDE,
+path, migration, storage and owning maintenance handoff/programme references
+freshly read atWHf01a1a73ceb2547997d654b70d172aea321735c6 and
+CA67904f71a2dfdb2a408e127da60065291e8e1457. SSD mounted with free space.
+
+CA38026920728 accounting1 failed its unchanged native LightningPhase12
+pass_starved_by_its_budget invariant:150 legal candidates,17 plannedgroups,
+zero formed,2 insufficient_legal_candidates retries/replans,1542ms. The
+comparable3daaa2963 accounting1 run38025991664 passed the same S1 inputs;
+source/harness comparison does not excuse the failed schedule-sensitive path.
+Actual matcher exits all remaining disjoint plannedgroups after first stale
+group, then repeats a full plan. A reserved forward migration plus native
+stale-first-group failure-before/passing-after regression is in progress.
+No installed source edited, production replay, unchanged CI retry or weakened
+budget/starvation assertion. All six installed dependency hashes remain exact.
+WHf01 required six checks pass, safety and full footer acceptance still running.
+Protected merges, normal publication, sealed engine activation and genuine
+production acceptance remain pending.
+
+
+WHf01 safety38028340652 failed its documentation punctuation contract at
+05:47:28UTC: checkpoint used an en dash in the measured2.8-5s lock interval.
+That prose is corrected, unchanged no-dash assertion retained. Actual final
+local documentation contracts are rerun before normal submission.
+
+
+### Actual control disclosures and strict live contract, 05:51 UTC
+
+A final connected-source read found the genuine verifier awaiting removed
+old floor-ownership copy. Regression fails before and passes after matching
+the shipped disclosure. The same eight surfaces, two widths, stable exact
+deployment and strict GET/HEAD/OPTIONS fence remain; floor now also requires
+actual engine-control GET200 and verified available contract. Genuine scoped
+certificate therefore follows sealed engine activation. O7 real delivery can
+finish independently beforehand. Registry's static missing/notimplemented
+claims are replaced with actual stop scopes and preserved transaction exemptions,
+without inventing live switch state. Final focused34/34 and lint0 passed.
+
+Reserved matcher forward source proves real stale first group failure-before
+and16 valid hands after, unchanged1500ms budget and exact duplicate replay.
+Agent default11scenarios/169invariants passed; root independent run was invalid
+when supporting harness bytes changed during bash execution, never a pass.
+Final quiescent harness root repeat and explicitP13chain are running. No new
+production matcher migration installed; hourlyDDLwindow is now active.
+
+### Final matcher qualification and inventory recovery, 05:59 UTC
+
+Canonical four policies fully emitted/read at2026-10-10T05:54:48.240Z,
+version2.9, manifest and source hashes above unchanged. Repository instructions,
+publishing, CLAUDE, migration/path/storage and complete owning maintenance
+references freshly read; existing checkpoint recovered atWH0b8e9df11f and
+CA67904f71a2. ExternalSSD mounted with free space.
+
+Exact matcher forwardSHA256b56aea27caf66d304b213790368c30d19d12817370f60cda76025afa0b71115a
+is qualified by both full native chains and root independent final repeat,
+11 scenarios/169 invariants each. The original stale-first-group countercase
+formszero hands; the repair forms16 through unchanged real validators and
+1500ms budget, with exact duplicate replay. Five security/grant/preimage/
+rollback drift controls and exact rollback/reapply pass; final706 contracts
+and TypeScript pass. Normal push first refused omitted current cash workflow
+fingerprint; reviewed additive selection now has exact active binding with
+history/status/financial inputs unchanged. Binding6/6 andregression10/10 pass.
+CA6a354f1bc2c04409416566a8253e1cd332c41e94 ordinary push passed;
+currentCI38029324298 is running. Installed six dependencies are not replayed.
+New matcher installation awaits after06:03UTC protectedDDLwindow.
+
+WH0b8 safety38028954573 failed only generated Training inventory: new
+shared serverAuth session checks add playerSessionAccess to its actual
+Training dependency graph. Maintained generator refresh changes only those
+two source rows and their derived edges/counts/classifications; Training game,
+route, CTA and coverage definitions are intact. Existing assertion remains.
+Final local generator/contract proof and ordinary submission precede hosted
+required checks. Protected merges, normal publication, sealed engine activation,
+realO7download and genuine scoped production certificate remain pending.
+
+Exact generated inventory plus classifier/certificate/export/documentation
+contracts passed24/24 locally with zero skips; diff whitespace check passed.

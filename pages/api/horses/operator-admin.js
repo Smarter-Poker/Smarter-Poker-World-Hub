@@ -125,7 +125,7 @@ const TRAIL_PAGE = { defaultLimit: 100, max: 500 };
  */
 const MIN_REASON_LENGTH = 10;
 
-const APPROVAL_STATUSES = [
+export const APPROVAL_STATUSES = [
   'pending',
   'approved',
   'rejected',

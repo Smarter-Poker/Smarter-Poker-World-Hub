@@ -11,6 +11,12 @@
    at 768px. */
 
 /* ── Modal ───────────────────────────────────────────────────────────────── */
+.exportArtifactIdentity {
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    font-size: 12px;
+    color: var(--text-dim);
+}
 .backdrop {
     position: fixed;
     inset: 0;

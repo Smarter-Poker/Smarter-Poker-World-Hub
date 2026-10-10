@@ -106,3 +106,14 @@ test('mutation labels expose only fixed same-origin endpoints without queries', 
     assert.equal(sanitizedMutationPath(new URL(`${origin}${path}`), origin), '[redacted]');
   }
 });
+
+test('live floor proof follows the shipped control disclosure and reads its actual engine contract', async () => {
+  const floor = await readFile(new URL('../src/components/horses/FloorPanel.jsx', import.meta.url), 'utf8');
+  const disclosure = 'Live Table Evidence With Global Pause, Park, Resume And Cash-Table Closure.';
+  assert.ok(floor.includes(disclosure));
+  assert.ok(verifier.includes(disclosure), 'live proof must await the disclosure the console ships');
+  assert.doesNotMatch(verifier, /Owner Pause, Resume And Empty-Table Close Stay In Club Arena/);
+  assert.match(verifier, /waitForApi\(apiStatuses, '\/api\/horses\/engine-control'\)/);
+  assert.match(verifier, /engine_contract_unverified/);
+  assert.match(verifier, /SAFE_METHODS = new Set\(\['GET', 'HEAD', 'OPTIONS'\]\)/);
+});

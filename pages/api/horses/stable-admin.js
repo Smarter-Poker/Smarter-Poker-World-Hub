@@ -820,7 +820,7 @@ async function readActors(db) {
 }
 
 /** No filter group needs more than a handful of prefixes. */
-const MAX_ACTION_PREFIXES = 12;
+export const MAX_ACTION_PREFIXES = 12;
 
 /**
  * Clean and de-duplicate the action prefixes a caller sent, from either
@@ -836,7 +836,7 @@ const MAX_ACTION_PREFIXES = 12;
  * `bulk_delete`). Stripping it, as the first version did, turned the "Engine
  * Settings" filter into `contentsettings%`, which matches nothing at all.
  */
-function cleanPrefixes(list, single) {
+export function cleanPrefixes(list, single) {
   const raw = [];
   if (Array.isArray(list)) raw.push(...list);
   else if (typeof list === 'string' && list) raw.push(list);

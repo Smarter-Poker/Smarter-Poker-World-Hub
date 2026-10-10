@@ -1,0 +1,100 @@
+import assert from 'node:assert/strict';
+import { readFileSync, mkdtempSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+const root = path.resolve(new URL('..', import.meta.url).pathname);
+const actor = '11111111-1111-4111-8111-111111111111';
+const other = '22222222-2222-4222-8222-222222222222';
+const op = '33333333-3333-4333-8333-333333333333';
+const lease = '44444444-4444-4444-8444-444444444444';
+const hash = 'a'.repeat(64);
+const finance = readFileSync(path.join(root,'supabase/migrations/20261006022120_stable_admin_phase11_finance_records.sql'),'utf8');
+const appendOnly = finance.match(/CREATE OR REPLACE FUNCTION public\.fn_ca_finance_records_are_append_only\(\)[\s\S]*?\$fn\$;/)?.[0];
+assert.ok(appendOnly, 'Current original append-only owner must be present');
+const fixture = `CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
+CREATE SCHEMA storage;
+CREATE TABLE storage.buckets(id text PRIMARY KEY,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+CREATE TABLE storage.objects(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),bucket_id text);
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+GRANT USAGE ON SCHEMA storage TO anon,authenticated,service_role;
+GRANT SELECT,INSERT,UPDATE,DELETE ON storage.objects TO anon,authenticated,service_role;
+CREATE POLICY fixture_broad_policy ON storage.objects FOR ALL TO anon,authenticated USING(true) WITH CHECK(true);
+CREATE TABLE public.profiles(id uuid PRIMARY KEY,role text);
+CREATE TABLE public.ca_operator_export_jobs(id uuid PRIMARY KEY);
+CREATE TABLE public.admin_audit_log(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,admin_user_id uuid,actor_role text,action text,target_type text,target_id text,details jsonb,request_id text);
+INSERT INTO public.profiles VALUES('${actor}','admin');
+${appendOnly}`;
+const migration = readFileSync(path.join(root,'supabase/migrations/20261010035733_operator_private_export_artifacts.sql'),'utf8');
+let query, concurrent, cleanup;
+if (process.argv.includes('--pglite')) {
+  assert.ok(process.env.OPERATOR_EXPORT_PGLITE_MODULE,'Owned PGlite module path is required');
+  const { PGlite } = await import(process.env.OPERATOR_EXPORT_PGLITE_MODULE);
+  const db = new PGlite();
+  query = async (sql) => { const results = await db.exec(sql); return results.findLast((result) => result.rows?.length)?.rows || results.at(-1)?.rows || []; };
+  await db.exec(fixture); await db.exec(migration);
+  cleanup = () => db.close();
+} else {
+  const bin = process.env.PG_BIN || '/usr/lib/postgresql/17/bin';
+  assert.match(execFileSync(path.join(bin,'postgres'),['--version'],{encoding:'utf8'}),/PostgreSQL\) 17\./);
+  const parent = tmpdir();
+  if(process.platform==='darwin') assert.ok(parent.startsWith('/Volumes/SmarterWork/agent-work/'),'Only task-owned SSD scratch is allowed');
+  const work = mkdtempSync(path.join(parent,'ex-'));
+  const socket = path.join(work,'s');mkdirSync(socket);
+  const data = path.join(work,'d');
+  let started=false;
+  cleanup=async()=>{ if(started){execFileSync(path.join(bin,'pg_ctl'),['-D',data,'-m','fast','-w','stop'],{stdio:'ignore'});started=false;} rmSync(work,{recursive:true,force:true}); };
+  try {
+    execFileSync(path.join(bin,'initdb'),['-D',data,'-A','trust','-U','postgres','--no-locale','-E','UTF8'],{stdio:'pipe'});
+    execFileSync(path.join(bin,'pg_ctl'),['-D',data,'-l',path.join(work,'postgres.log'),'-o',`-k ${socket} -h '' -p 55478`,'-w','start'],{stdio:'pipe'});started=true;
+    const { Client } = createRequire(import.meta.url)('pg');
+    const run=async(sql)=>{const db=new Client({host:socket,port:55478,user:'postgres',database:'postgres'});await db.connect();try{const result=await db.query(sql);return Array.isArray(result) ? (result.findLast((item)=>item.command==='SELECT')?.rows || []) : result.rows;}finally{await db.end();}};
+    query=run;concurrent=run;
+    await query(fixture);await query(migration);
+  } catch(error) { await cleanup();throw error; }
+}
+const request = (operation=op,who=actor,sha=hash) => `SELECT public.fn_ca_operator_export_request('${who}','${operation}','request','mint-register','money.read','{}','${sha}') AS job`;
+const transition=(id,action,leaseId=null,details={})=>`SELECT public.fn_ca_operator_export_transition('${id}','${actor}','${action}',${leaseId ? `'${leaseId}'`:'NULL'},'${JSON.stringify(details).replaceAll("'","''")}'::jsonb) AS receipt`;
+try {
+  const first=(await query(request()))[0].job;
+  const replay=(await query(request()))[0].job;
+  assert.equal(first.id,replay.id);
+  await assert.rejects(query(request(op,other)),/export_operation_conflict/);
+  await assert.rejects(query(request(op,actor,'b'.repeat(64))),/export_operation_conflict/);
+  assert.equal(Number((await query('SELECT count(*) AS count FROM public.admin_audit_log'))[0].count),1);
+  const claimed=(await query(transition(first.id,'claim',lease)))[0].receipt;
+  assert.equal(claimed.claimed,true);
+  assert.equal((await query(transition(first.id,'claim',lease)))[0].receipt.claimed,false);
+  const stale=(await query(transition(first.id,'progress',op,{rows:1,total:2})))[0].receipt;
+  assert.equal(stale.owned,false);
+  const snapshot={rows:[{amount:'-2.25',reason:'source'}],total:1,complete:true,consistency:'read_window'};
+  await query(transition(first.id,'capture',lease,snapshot));
+  await assert.rejects(query(transition(first.id,'capture',lease,{...snapshot,rows:[]})),/export_snapshot_immutable/);
+  await assert.rejects(query(transition(first.id,'finish',lease,{object_path:'other/file.csv',sha256:hash,bytes:32})),/export_artifact_invalid/);
+  await query(transition(first.id,'finish',lease,{object_path:`${actor}/${op}.csv`,sha256:hash,bytes:32}));
+  await query(transition(first.id,'served',null,{sha256:hash,bytes:32}));
+  await query(transition(first.id,'cancel'));
+  await assert.rejects(query(transition(first.id,'served')),/export_not_downloadable/);
+  assert.equal((await query(transition(first.id,'finish',lease,{object_path:`${actor}/${op}.csv`,sha256:hash,bytes:32})))[0].receipt.owned,false);
+  await query(transition(first.id,'purged'));
+  await assert.rejects(query('UPDATE public.ca_operator_export_artifact_events SET action=\'rewritten\''),/append.only|immutable/i);
+  await query("INSERT INTO storage.objects(bucket_id) VALUES('operator-export-artifacts'),('other-private-bucket')");
+  const privacy=await query("SET ROLE authenticated; SELECT bucket_id FROM storage.objects; RESET ROLE");
+  assert.deepEqual(privacy,[{bucket_id:'other-private-bucket'}]);
+  const probe=await query("SELECT has_function_privilege('authenticated','public.fn_ca_operator_export_request(uuid,uuid,text,text,text,jsonb,text)','EXECUTE') AS can_request,has_table_privilege('authenticated','public.ca_operator_export_artifacts','SELECT') AS can_read");
+  assert.equal(probe[0].can_request,false);assert.equal(probe[0].can_read,false);
+  const policies=await query("SELECT polpermissive FROM pg_policy WHERE polname='operator_export_artifacts_private'");assert.equal(policies[0].polpermissive,false);
+  if(concurrent) {
+    const concurrentOp='55555555-5555-4555-8555-555555555555';
+    const results=await Promise.all(Array.from({length:8},()=>concurrent(request(concurrentOp))));
+    assert.equal(new Set(results.map((answer)=>answer[0].job.id)).size,1);
+    assert.equal(Number((await query(`SELECT count(*) AS count FROM public.ca_operator_export_artifacts WHERE op_id='${concurrentOp}'`))[0].count),1);
+    const job=results[0][0].job;
+    const claims=await Promise.all(Array.from({length:8},()=>concurrent(transition(job.id,'claim',lease))));
+    assert.equal(claims.filter((answer)=>answer[0].receipt.claimed===true).length,1);
+    console.log('OPERATOR_EXPORT_NATIVE_PG17_CONCURRENCY_PASSED');
+  } else console.log('OPERATOR_EXPORT_PGLITE_PROVISIONAL_PASSED; native concurrency pending');
+  console.log('OPERATOR_EXPORT_SCHEMA_PRIVACY_TRANSITIONS_PASSED');
+} finally { await cleanup(); }

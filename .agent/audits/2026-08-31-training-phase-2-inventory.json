@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 344,
+    "dependencyFiles": 345,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 347,
     "dialogs": 12,
-    "persistenceFiles": 78,
+    "persistenceFiles": 79,
     "realtimeFiles": 6,
     "tests": 153,
-    "markerCandidates": 333,
-    "possibleUnwiredFunctions": 379,
+    "markerCandidates": 338,
+    "possibleUnwiredFunctions": 380,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -48437,6 +48437,65 @@
       ]
     },
     {
+      "file": "src/lib/horses/playerSessionAccess.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "retry": false,
+        "offline": false,
+        "stale": true,
+        "success": true,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 1
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "sessionIdOf",
+          "line": 2,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "playerSessionVerdict",
+          "line": 11,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "playerSessionVerdict"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/idbCacheStore.js",
       "imports": [
         "src/lib/idbCacheStore.js"
@@ -49011,7 +49070,10 @@
     },
     {
       "file": "src/lib/serverAuth.js",
-      "imports": [],
+      "imports": [
+        "src/lib/horses/playerSessionAccess.mjs",
+        "src/lib/supabaseServerClient.js"
+      ],
       "links": [],
       "apiReferences": [],
       "apiReferencePrefixes": [],
@@ -49029,7 +49091,7 @@
         "offline": false,
         "stale": false,
         "success": false,
-        "authExpiry": false
+        "authExpiry": true
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -49047,16 +49109,40 @@
       },
       "functions": [
         {
-          "name": "bearerToken",
-          "line": 9,
+          "name": "checkSession",
+          "line": 12,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "sessionChecked",
+          "line": 22,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getServerUser",
+          "line": 31,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bearerToken",
+          "line": 38,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "getServerUserWithFallback",
-          "line": 40,
+          "line": 69,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -49067,7 +49153,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 20,
+          "line": 49,
           "excerpt": "* fallback, for requests that local verification did not already satisfy.",
           "disposition": "identity-or-persistence-resilience",
           "review": "documented-follow-up",
@@ -49076,7 +49162,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 31,
+          "line": 60,
           "excerpt": "* neither the getClaims branch nor the GoTrue fallback should normally run.",
           "disposition": "identity-or-persistence-resilience",
           "review": "documented-follow-up",
@@ -49085,7 +49171,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 35,
+          "line": 64,
           "excerpt": "* it (or the GoTrue fallback) carrying real traffic volume, that is the",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -49093,12 +49179,52 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 38,
+          "line": 67,
           "excerpt": "* Investigate the vendored verifier rather than widening this fallback.",
           "disposition": "identity-or-persistence-resilience",
           "review": "documented-follow-up",
           "followUpPhase": 8,
           "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 92,
+          "excerpt": "const fallback = await getSharedServerUserWithFallback(req, supabase);",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 93,
+          "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 93,
+          "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 93,
+          "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 94,
+          "excerpt": "return sessionChecked(fallback.user, token, options.verifySession);",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
         }
       ]
     },
@@ -62170,6 +62296,14 @@
       "to": "src/lib/seo/hubPageSchema.js"
     },
     {
+      "from": "src/lib/serverAuth.js",
+      "to": "src/lib/horses/playerSessionAccess.mjs"
+    },
+    {
+      "from": "src/lib/serverAuth.js",
+      "to": "src/lib/supabaseServerClient.js"
+    },
+    {
       "from": "src/lib/store/walletDescription.mjs",
       "to": "src/lib/store/marketplaceCopy.js"
     },
@@ -63309,6 +63443,17 @@
         "updates": 0,
         "deletes": 0,
         "rpc": 0
+      }
+    },
+    {
+      "file": "src/lib/horses/playerSessionAccess.mjs",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 1
       }
     },
     {
@@ -68159,12 +68304,25 @@
       "reachableFiles": [
         "pages/api/training/achievements.js",
         "src/lib/apiErrorHandler.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
-      "persistence": [],
+      "persistence": [
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
       "realtime": [],
       "tests": [
         "__tests__/training-final-honesty-surfaces.test.mjs",
@@ -68195,6 +68353,7 @@
         "pages/api/training/analytics.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68212,6 +68371,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -68240,6 +68410,7 @@
         "src/engines/HandHistoryParser.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68259,6 +68430,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -68322,6 +68504,7 @@
         "src/engines/positionOrder.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -68388,6 +68571,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -68476,6 +68670,7 @@
         "pages/api/training/bookmark-solution.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68503,6 +68698,17 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
@@ -68517,6 +68723,7 @@
         "pages/api/training/browse-solutions.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
@@ -68544,6 +68751,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -68581,6 +68799,7 @@
         "pages/api/training/coaching-summary.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -68596,6 +68815,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -68625,6 +68855,7 @@
         "src/engines/positionOrder.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -68685,6 +68916,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -68757,13 +68999,26 @@
       "reachableFiles": [
         "pages/api/training/daily-bonus.js",
         "src/lib/apiErrorHandler.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/trivia/getTodayCST.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
-      "persistence": [],
+      "persistence": [
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
       "realtime": [],
       "tests": [
         "__tests__/training-daily-goals-authority.test.mjs",
@@ -68791,6 +69046,7 @@
         "pages/api/training/equity.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68805,6 +69061,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -68852,6 +69119,7 @@
         "pages/api/training/get-progress.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68866,6 +69134,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -68901,6 +69180,7 @@
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
         "src/lib/grokClient.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -68963,6 +69243,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -69039,6 +69330,7 @@
         "pages/api/training/get-sessions.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69056,6 +69348,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -69085,6 +69388,7 @@
         "src/config/solverRanges.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -69101,6 +69405,17 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
@@ -69114,6 +69429,7 @@
         "pages/api/training/gto-reports.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69131,6 +69447,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -69162,6 +69489,7 @@
         "src/engines/positionOrder.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69203,6 +69531,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -69306,6 +69645,7 @@
         "pages/api/training/icm-calc.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -69322,6 +69662,17 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
@@ -69332,6 +69683,7 @@
       "reachableFiles": [
         "pages/api/training/leaderboard.js",
         "src/lib/apiErrorHandler.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/leaderboardDimensions.mjs",
@@ -69342,6 +69694,17 @@
       "persistence": [
         {
           "file": "pages/api/training/leaderboard.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
           "writes": {
             "localStorage": 0,
             "sessionStorage": 0,
@@ -69369,6 +69732,7 @@
       "reachableFiles": [
         "pages/api/training/log-request.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js"
       ],
@@ -69395,6 +69759,17 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
@@ -69419,6 +69794,7 @@
         "src/engines/positionOrder.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -69481,6 +69857,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -69567,6 +69954,7 @@
         "src/config/solverRanges.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -69581,6 +69969,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -69598,6 +69997,7 @@
         "src/config/LevelRegistry.ts",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -69612,6 +70012,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -69638,6 +70049,7 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -69653,6 +70065,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -69673,6 +70096,7 @@
         "src/engines/positionOrder.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69715,6 +70139,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -69780,6 +70215,7 @@
         "src/engines/positionOrder.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69808,6 +70244,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -69858,6 +70305,7 @@
         "pages/api/training/report-question.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -69883,6 +70331,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -69913,6 +70372,7 @@
         "pages/api/training/save-progress.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69944,6 +70404,17 @@
           }
         },
         {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
+        {
           "file": "src/lib/supabaseRetry.js",
           "writes": {
             "localStorage": 0,
@@ -69967,6 +70438,7 @@
         "pages/api/training/save-session.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69998,6 +70470,17 @@
           }
         },
         {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
+        {
           "file": "src/lib/supabaseRetry.js",
           "writes": {
             "localStorage": 0,
@@ -70022,6 +70505,7 @@
         "pages/api/training/share.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -70049,6 +70533,17 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
@@ -70062,6 +70557,7 @@
         "pages/api/training/smart-practice.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -70078,6 +70574,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         },
@@ -70105,6 +70612,7 @@
         "pages/api/training/solver-api.js",
         "src/engines/positionOrder.js",
         "src/lib/apiErrorHandler.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/customSolverSpotContract.mjs",
@@ -70122,6 +70630,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -70247,6 +70766,7 @@
         "src/engines/positionOrder.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -70301,6 +70821,17 @@
           }
         },
         {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
+        {
           "file": "src/lib/supabaseRetry.js",
           "writes": {
             "localStorage": 0,
@@ -70348,6 +70879,7 @@
         "pages/api/training/streak.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -70379,6 +70911,17 @@
           }
         },
         {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
+        {
           "file": "src/lib/supabaseRetry.js",
           "writes": {
             "localStorage": 0,
@@ -70403,6 +70946,7 @@
       "reachableFiles": [
         "pages/api/training/study-groups.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js"
       ],
@@ -70429,6 +70973,17 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
@@ -70442,6 +70997,7 @@
       "reachableFiles": [
         "pages/api/training/study-groups/[groupId].js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js"
       ],
@@ -70468,6 +71024,17 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
@@ -70481,6 +71048,7 @@
       "reachableFiles": [
         "pages/api/training/study-groups/[groupId]/messages.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js"
       ],
@@ -70507,6 +71075,17 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
@@ -70531,6 +71110,7 @@
       "reachableFiles": [
         "pages/api/training/tool-records.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -70556,6 +71136,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -70616,6 +71207,7 @@
         "pages/api/training/weekly-stats.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -70641,6 +71233,17 @@
             "inserts": 0,
             "updates": 0,
             "deletes": 1,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
             "rpc": 1
           }
         }
@@ -84073,6 +84676,28 @@
       "tests": []
     },
     {
+      "file": "src/lib/horses/playerSessionAccess.mjs",
+      "reachableFiles": [
+        "src/lib/horses/playerSessionAccess.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/idbCacheStore.js",
       "reachableFiles": [
         "src/lib/idbCacheStore.js"
@@ -84201,10 +84826,24 @@
     {
       "file": "src/lib/serverAuth.js",
       "reachableFiles": [
-        "src/lib/serverAuth.js"
+        "src/lib/horses/playerSessionAccess.mjs",
+        "src/lib/serverAuth.js",
+        "src/lib/supabaseServerClient.js"
       ],
       "apiReferences": [],
-      "persistence": [],
+      "persistence": [
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
       "realtime": [],
       "tests": []
     },
@@ -87910,7 +88549,7 @@
       {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
-        "line": 20,
+        "line": 49,
         "excerpt": "* fallback, for requests that local verification did not already satisfy.",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
@@ -87920,7 +88559,7 @@
       {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
-        "line": 31,
+        "line": 60,
         "excerpt": "* neither the getClaims branch nor the GoTrue fallback should normally run.",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
@@ -87930,7 +88569,7 @@
       {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
-        "line": 35,
+        "line": 64,
         "excerpt": "* it (or the GoTrue fallback) carrying real traffic volume, that is the",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -87939,12 +88578,57 @@
       {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
-        "line": 38,
+        "line": 67,
         "excerpt": "* Investigate the vendored verifier rather than widening this fallback.",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
         "followUpPhase": 8,
         "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 92,
+        "excerpt": "const fallback = await getSharedServerUserWithFallback(req, supabase);",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 93,
+        "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 93,
+        "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 93,
+        "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 94,
+        "excerpt": "return sessionChecked(fallback.user, token, options.verifySession);",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
         "file": "src/lib/supabase.js",
@@ -92304,6 +92988,22 @@
         "externalReferenceFiles": [
           "src/contexts/AvatarContext.jsx",
           "src/hooks/useUnreadCount.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/horses/playerSessionAccess.mjs",
+        "name": "playerSessionVerdict",
+        "line": 11,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/player-session-access.test.mjs",
+          "src/lib/serverAuth.js"
         ]
       },
       {
@@ -96949,7 +97649,7 @@
       {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
-        "line": 20,
+        "line": 49,
         "excerpt": "* fallback, for requests that local verification did not already satisfy.",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
@@ -96959,7 +97659,7 @@
       {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
-        "line": 31,
+        "line": 60,
         "excerpt": "* neither the getClaims branch nor the GoTrue fallback should normally run.",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
@@ -96969,7 +97669,7 @@
       {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
-        "line": 35,
+        "line": 64,
         "excerpt": "* it (or the GoTrue fallback) carrying real traffic volume, that is the",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -96978,12 +97678,57 @@
       {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
-        "line": 38,
+        "line": 67,
         "excerpt": "* Investigate the vendored verifier rather than widening this fallback.",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
         "followUpPhase": 8,
         "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 92,
+        "excerpt": "const fallback = await getSharedServerUserWithFallback(req, supabase);",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 93,
+        "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 93,
+        "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 93,
+        "excerpt": "if (!fallback.user || fallback.error) return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/serverAuth.js",
+        "kind": "FALLBACK",
+        "line": 94,
+        "excerpt": "return sessionChecked(fallback.user, token, options.verifySession);",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
         "file": "src/lib/supabase.js",
@@ -101343,6 +102088,22 @@
         "externalReferenceFiles": [
           "src/contexts/AvatarContext.jsx",
           "src/hooks/useUnreadCount.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/horses/playerSessionAccess.mjs",
+        "name": "playerSessionVerdict",
+        "line": 11,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/player-session-access.test.mjs",
+          "src/lib/serverAuth.js"
         ]
       },
       {

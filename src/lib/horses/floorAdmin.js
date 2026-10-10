@@ -26,7 +26,7 @@ const E = 'EMBED';
 const W = 'AUTHORITATIVE_WRITE';
 
 export const FLOOR_ADMIN_CONTROL_MANIFEST = Object.freeze({
-  floor: Object.freeze({ list: R, table_detail: R, engine_health: R, table_management: L }),
+  floor: Object.freeze({ list: R, table_detail: R, engine_health: R, table_management: L, global_pause_resume: W, global_park: W, cash_boundary_close: W }),
   table: Object.freeze({ detail: R, seats: R, table_management: L }),
   tournaments: Object.freeze({ schedule: R, engine_health: R, payout_window_audit: R, cancel: L, refund: L }),
   event: Object.freeze({ detail: R, payout_audit: R, cancellation_receipt: R, cancel: L, refund: L }),
@@ -42,7 +42,7 @@ export const FLOOR_ADMIN_CONTROL_MANIFEST = Object.freeze({
 
 /** Product availability is separate from authority classification. */
 export const FLOOR_ADMIN_CONTROL_AVAILABILITY = Object.freeze({
-  floor: Object.freeze({ owner_pause_resume: 'AVAILABLE_IN_CLUB_ARENA', owner_empty_close: 'AVAILABLE_IN_CLUB_ARENA', platform_park: 'MISSING', occupied_boundary_close: 'MISSING' }),
+  floor: Object.freeze({ owner_pause_resume: 'AVAILABLE_IN_CLUB_ARENA', owner_empty_close: 'AVAILABLE_IN_CLUB_ARENA', platform_park: 'RUNTIME_ENGINE_READBACK_REQUIRED', occupied_boundary_close: 'RUNTIME_ENGINE_READBACK_REQUIRED', close_scope: 'CASH_TABLES_ONLY' }),
   table: Object.freeze({ owner_pause_resume: 'AVAILABLE_IN_CLUB_ARENA', owner_empty_close: 'AVAILABLE_IN_CLUB_ARENA', platform_park: 'MISSING', occupied_boundary_close: 'MISSING' }),
   cashouts: Object.freeze({ bulk_approve: 'DEFERRED' }),
   rake: Object.freeze({ change_rate: 'DEFERRED', durable_export_jobs: 'DEFERRED' }),

@@ -21,6 +21,7 @@ import { normalizePolicy } from '../../src/components/horses/approvalModel';
 import { policyUrl } from '../../src/components/horses/operatorAdmin';
 import { panelComponentFor } from '../../src/components/horses/dynamicPanels';
 import ErrorBoundary from '../../src/components/horses/ErrorBoundary';
+import ExportArtifactCenter from '../../src/components/horses/ExportArtifactCenter';
 import useOperatorFetch from '../../src/components/horses/useOperatorFetch';
 import useStableAdminStore, {
   selectApplyOperatorContext,
@@ -413,6 +414,7 @@ export default function HorsesAdmin() {
                 onSectionChange={setCaSection} />
             ) : <div className={shared.boundary} role="alert"><h2>Tab Could Not Be Loaded</h2></div>}
           </ErrorBoundary>
+          <ExportArtifactCenter key={operatorId} authFetch={authFetch} />
         </main>
       </div>
     </>

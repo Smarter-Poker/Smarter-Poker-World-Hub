@@ -20,6 +20,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
+import { useStableAdminStore } from '../../stores/stableAdminStore';
 
 /** Read a JSON body without exploding on an HTML error page. */
 export async function readJsonBody(res) {
@@ -159,8 +160,8 @@ export default function useOperatorFetch() {
     };
   }, []);
 
-  return useCallback(async (url, options = {}) => {
-    const { isCurrent, timeoutMs, ...fetchOptions } = options;
+  const authorizedFetch = useCallback(async (url, options = {}) => {
+    const { isCurrent, timeoutMs, responseType, expectedOperatorId, ...fetchOptions } = options;
     const checkScope = () => {
       if (isCurrent && isCurrent() !== true) throw new Error('The account or view changed. Refresh the original operation.');
     };
@@ -176,6 +177,11 @@ export default function useOperatorFetch() {
         const token = await getFreshAccessToken();
         checkScope();
         if (!token) throw new Error('Session Expired. Please Sign In Again.');
+        if (expectedOperatorId) {
+          let subject;
+          try { subject = JSON.parse(globalThis.atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub; } catch { /* malformed transport identity refuses the export */ }
+          if (subject !== expectedOperatorId) throw new Error('The account changed. Refresh the original operation.');
+        }
         const res = await fetch(url, {
           ...fetchOptions,
           signal,
@@ -187,6 +193,11 @@ export default function useOperatorFetch() {
         });
         // Deliberately inside the armed window. Headers are not an answer, so
         // the deadline is not satisfied until the body has been read.
+        if (responseType === 'blob' && res.ok) {
+          const blob = await res.blob();
+          checkScope();
+          return { blob, contentSha256: res.headers.get('X-Content-SHA256') };
+        }
         const body = await readJsonBody(res);
         checkScope();
         if (!res.ok) throw operatorError(body, res.status);
@@ -202,4 +213,14 @@ export default function useOperatorFetch() {
       if (controller) controllersRef.current.delete(controller);
     }
   }, []);
+  authorizedFetch.captureScope = () => {
+    const { operatorId, sessionGeneration, contextStatus } = useStableAdminStore.getState();
+    if (!operatorId || contextStatus !== 'ready') throw new Error('The Operator Account Could Not Be Confirmed');
+    return { operatorId, isCurrent: () => {
+      const current = useStableAdminStore.getState();
+      return aliveRef.current && current.contextStatus === 'ready'
+        && current.operatorId === operatorId && current.sessionGeneration === sessionGeneration;
+    } };
+  };
+  return authorizedFetch;
 }

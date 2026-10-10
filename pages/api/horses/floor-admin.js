@@ -413,7 +413,7 @@ async function queueSection(db, query, requestId, kind) {
   const clubId = query.clubId ? uuid(query.clubId) : null;
   if (query.clubId && !clubId) throw badRequest('Pick A Valid Club', 'invalid_club');
   if (clubId) builder = builder.eq('club_id', clubId);
-  const age = enumOf(query.age, ['recent', 'warning', 'overdue']);
+  const age = enumOf(query.age, QUEUE_AGES);
   const now = Date.now();
   if (age === 'recent') builder = builder.gte('created_at', new Date(now - 24 * 3600000).toISOString());
   if (age === 'warning') builder = builder.lt('created_at', new Date(now - 24 * 3600000).toISOString()).gte('created_at', new Date(now - 48 * 3600000).toISOString());
@@ -437,11 +437,14 @@ async function queueSection(db, query, requestId, kind) {
   return { ...baseMeta(kind, c), state: queueReadState({ sourceOk, total, pending }), queue: shapeList(result, page, rows), totals: { all: total, pending }, filters: { status: query.status || null, clubId, age: age || null }, sla: { warningHours: 24, overdueHours: 48 } };
 }
 
+export const RAKE_REPORT_DIMENSIONS = Object.freeze(['club', 'union', 'stake', 'date']);
+export const QUEUE_AGES = Object.freeze(['recent', 'warning', 'overdue']);
+
 async function sectionRake(db, query, requestId) {
   const c = sourceCollector({ requestId, route: 'horses.floor-admin' });
   const page = pageFor(query, 'rake', PAGE);
   const days = Math.min(90, Math.max(1, Number.parseInt(query.days, 10) || 7));
-  const dimension = enumOf(query.dimension, ['club', 'union', 'stake', 'date']) || 'club';
+  const dimension = enumOf(query.dimension, RAKE_REPORT_DIMENSIONS) || 'club';
   const asOf = new Date();
   const since = new Date(asOf.getTime() - days * 86400000).toISOString();
   const until = asOf.toISOString();
