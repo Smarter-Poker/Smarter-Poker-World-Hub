@@ -465,6 +465,17 @@ export function groupVenueDailyTournamentRows(rows, nowMs = Date.now()) {
   return schedules.length ? [{ source_url: qualified[0].source_url || null, schedules }] : [];
 }
 
+/** Complete, stably ordered profile/preview source read, never a partial success. */
+export async function readVenueTournamentRows(client, venueIds, options) {
+  const ids = Array.isArray(venueIds) ? venueIds : [venueIds];
+  const result = await fetchAllRows(() => client.from('venue_daily_tournaments')
+    .select('*').in('venue_id', ids).eq('is_active', true)
+    .in('data_quality', ['scraped_verified', 'scraped_inferred'])
+    .or('is_suppressed.is.null,is_suppressed.eq.false')
+    .order('id', { ascending: true }), options);
+  return result.error || result.truncated ? { ...result, rows: [] } : result;
+}
+
 /**
  * Health is output-aware: a fresh heartbeat cannot make a failed/empty write
  * healthy. `valid_empty`, `progress`, and `maintenance` are the explicit

@@ -44,7 +44,7 @@ import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching
 import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/structuredData';
 import { venueTitle } from '../../../src/lib/seo/venueTitle';
 import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
-import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, readVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
@@ -331,21 +331,14 @@ export async function getServerSideProps({ params, req, res }) {
       } else if (data) {
         // select('*') mirrors the API's own query — an explicit column list
         // would fail the whole read if any one name drifted.
-        const { data: tourRows } = await supabaseServer
-          .from('venue_daily_tournaments')
-          .select('*')
-          .eq('venue_id', numericId)
-          .eq('is_active', true)
-          .in('data_quality', ['scraped_verified', 'scraped_inferred'])
-          .or('is_suppressed.is.null,is_suppressed.eq.false')
-          .order('day_of_week')
-          .limit(100);
+        const { rows: tourRows, error: scheduleError, truncated } = await readVenueTournamentRows(supabaseServer, numericId);
 
         const grouped = groupDailyTournamentRows(tourRows);
         const overrides = {
           daily_tournaments: grouped,
           daily_tournaments_source: grouped.length > 0 ? (grouped[0].source_url || null) : null,
           schedule_unavailable: grouped.length === 0,
+          schedule_read_error: Boolean(scheduleError || truncated),
         };
         // The API stamps last_scraped from the tournament rows when it has
         // live ones; match it so the badge doesn't change value on hydration.
@@ -2843,7 +2836,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               <section id="tournaments-section" className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">
-                  <p>Tournament Schedule Data Is Being Collected For This Venue.</p>
+                  <p>{venue.schedule_read_error ? 'Tournament Schedule Could Not Be Loaded. Please Try Again.' : 'Tournament Schedule Data Is Being Collected For This Venue.'}</p>
                   {venue.poker_atlas_url && (
                     <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="pa-link">
                       Check Venue Website For Current Schedule

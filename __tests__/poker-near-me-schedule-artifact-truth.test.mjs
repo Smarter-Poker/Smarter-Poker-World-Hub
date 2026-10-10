@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { decodeScrapedTournamentText, qualifyVenueTournamentRows, groupVenueDailyTournamentRows,
-  dailyTournamentDedupKey } from '../src/lib/poker-near-me/dailyTournamentData.mjs';
+  dailyTournamentDedupKey, readVenueTournamentRows } from '../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 const artifacts = [
   'text-decoration:underline;', 'font-size:14pt',
@@ -88,4 +88,44 @@ test('dated one-offs retain source dates and cannot project past dates into futu
   assert.equal(group.schedules.length, 1);
   assert.equal(group.schedules[0].event_date, '2026-10-12');
   assert.equal(group.schedules[0].day_of_week, '2026-10-12');
+});
+
+function scheduleClient(rows, failOffset = -1) {
+  const calls = [];
+  return { calls, from(table) {
+    assert.equal(table, 'venue_daily_tournaments');
+    return { select() { return this; }, in() { return this; }, eq() { return this; }, or() { return this; },
+      order(column, options) { assert.equal(column, 'id'); assert.equal(options.ascending, true); return this; },
+      async range(start, end) { calls.push([start, end]); return start === failOffset
+        ? { error: new Error('Later source page unavailable') } : { data: rows.slice(start, end + 1) }; },
+    };
+  } };
+}
+
+test('all three consumers read complete stable pages before qualifying stale-heavy source cohorts', async () => {
+  const now = Date.parse('2026-10-10T12:00:00Z');
+  const stale = { ...base, tournament_name: 'Expired', last_scraped: '2026-08-01T12:00:00Z' };
+  const tail = { ...base, tournament_name: 'Future Festival', event_date: '2026-10-12', is_recurring: false };
+  for (const size of [650, 828, 1650]) {
+    const client = scheduleClient([...Array(size).fill(stale), tail]);
+    const result = await readVenueTournamentRows(client, [1828, 2270]);
+    assert.equal(result.rows.length, size + 1);
+    assert.equal(groupVenueDailyTournamentRows(result.rows, now)[0].schedules[0].tournament_name, 'Future Festival');
+    assert.deepEqual(client.calls, size < 1000 ? [[0, 999]] : [[0, 999], [1000, 1999]]);
+  }
+  assert.match(api, /readVenueTournamentRows\(getSupabase\(\), numericVenueId\)/);
+  assert.match(api, /readVenueTournamentRows\(getSupabase\(\), regularIds\)/);
+  const page = readFileSync(new URL('../pages/hub/venues/[id].js', import.meta.url), 'utf8');
+  assert.match(page, /readVenueTournamentRows\(supabaseServer, numericId\)/);
+  assert.match(page, /schedule_read_error: Boolean\(scheduleError \|\| truncated\)/);
+});
+
+test('a failed later page or safety-bound exhaustion serves no partial schedule', async () => {
+  const rows = Array(1001).fill(base);
+  const failed = await readVenueTournamentRows(scheduleClient(rows, 1000), 3458);
+  assert.deepEqual(failed.rows, []);
+  assert.match(failed.error.message, /Later source page/);
+  const bounded = await readVenueTournamentRows(scheduleClient(rows), 3458, { pageSize: 1000, maxRows: 1000 });
+  assert.deepEqual(bounded.rows, []);
+  assert.equal(bounded.truncated, true);
 });

@@ -27,7 +27,7 @@ import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/lib/poker-near-me/mapBounds';
 import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
 import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
-import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, dailyTournamentDedupKey, isRecurringScheduleRow } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, dailyTournamentDedupKey, isRecurringScheduleRow, readVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -1870,19 +1870,8 @@ export default async function handler(req, res) {
               // === LIVE DB FIRST: Query Supabase venue_daily_tournaments ===
               let usedLiveData = false;
               try {
-                  const { data: liveTourn, error: ltErr } = await getSupabase()
-                      .from('venue_daily_tournaments')
-                      .select('*')
-                      .eq('venue_id', numericVenueId)
-                      .eq('is_active', true)
-                      // Match daily-tournaments.js / venue-tournament-calendar.js so a
-                      // venue page never shows rows those surfaces already retired.
-                      // Accepts both scraped provenances (verified = structured,
-                      // inferred = heuristic parse); excludes stale/expired.
-                      .in('data_quality', ['scraped_verified', 'scraped_inferred'])
-                      .or('is_suppressed.is.null,is_suppressed.eq.false')
-                      .order('day_of_week')
-                      .limit(100);
+                  const { rows: liveTourn, error: ltErr, truncated } = await readVenueTournamentRows(getSupabase(), numericVenueId);
+                  venue.schedule_read_error = Boolean(ltErr || truncated);
 
                   const safeTourn = qualifyVenueTournamentRows(liveTourn);
                   if (!ltErr && safeTourn.length > 0) {
@@ -1897,6 +1886,7 @@ export default async function handler(req, res) {
                       usedLiveData = true;
                   }
               } catch (dbErr) {
+                  venue.schedule_read_error = true;
                   console.warn('[venues] Live tournament DB query failed, using static fallback:', dbErr.message);
               }
 
@@ -2218,14 +2208,9 @@ export default async function handler(req, res) {
                   const regularIds = regularTournamentVenues.map(v => v.id).filter(id => typeof id === 'number');
                   if (regularIds.length > 0) {
                       // Fetch all active tournament rows for these venues in one query
-                      const { data: regTours } = await getSupabase()
-                          .from('venue_daily_tournaments')
-                          .select('*')
-                          .in('venue_id', regularIds)
-                          .eq('is_active', true)
-                          .in('data_quality', ['scraped_verified', 'scraped_inferred'])
-                          .or('is_suppressed.is.null,is_suppressed.eq.false')
-                          .order('start_time', { ascending: true });
+                      const { rows: regTours, error, truncated } = await readVenueTournamentRows(getSupabase(), regularIds);
+                      if (error || truncated) throw new Error(error?.message || 'Incomplete venue schedule read');
+                      regTours.sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
 
                       if (regTours && regTours.length > 0) {
                           // Group by venue_id
@@ -2284,6 +2269,7 @@ export default async function handler(req, res) {
                       }
                   }
               } catch (e) {
+                  regularTournamentVenues.forEach(v => { v.schedule_read_error = true; });
                   console.warn('[venues] Regular venue next-tournament enrichment failed (non-fatal):', e.message);
               }
           }
