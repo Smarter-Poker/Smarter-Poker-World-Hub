@@ -208,10 +208,10 @@ export default function LandingPage() {
         {/* ── FULL-WIDTH HERO IMAGE WITH HOTSPOTS ─────────────── */}
         <div style={styles.imageWrapper}>
           <picture className="landing-desktop-art">
-            <source media="(max-width: 480px)" srcSet="/images/landing-hero-v2.webp" />
+            <source media="(max-width: 480px)" srcSet="/images/landing-hero-v3.webp" />
             <img
-            src="/images/landing-hero-v2.webp"
-            srcSet="/images/landing-hero-v2-640.webp 640w, /images/landing-hero-v2.webp 937w"
+            src="/images/landing-hero-v3.webp"
+            srcSet="/images/landing-hero-v3-640.webp 640w, /images/landing-hero-v3.webp 937w"
             sizes="(max-width: 937px) 100vw, 937px"
             alt="Smarter.Poker - The Future Of The Game"
             // THE HERO RESERVES ITS OWN SPACE (2026-09-17). Without intrinsic
@@ -264,7 +264,7 @@ export default function LandingPage() {
           ))}
           <div className="landing-phone-art">
             {PHONE_PANELS.map((spot) => (
-              <ArtworkSlice key={spot.id} spot={spot} image="/images/landing-hero-v2.webp"
+              <ArtworkSlice key={spot.id} spot={spot} image="/images/landing-hero-v3.webp"
                 width={937} height={1678} onActivate={handleHotspotClick} />
             ))}
           </div>
