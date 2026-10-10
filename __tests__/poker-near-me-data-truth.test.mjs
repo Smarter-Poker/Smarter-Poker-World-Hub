@@ -39,6 +39,9 @@ const validTourStop = (overrides = {}) => ({
   stop_end_date: '2026-09-28',
   start_date: '2026-09-20',
   data_quality: 'scraped_verified',
+  source_url: 'https://www.rungood.com/schedule',
+  scrape_html_hash: 'a'.repeat(64),
+  scrape_timestamp: '2026-09-01T12:00:00Z',
   ...overrides,
 });
 
@@ -215,6 +218,16 @@ test('primary tour rows require coherent event or stop date evidence', () => {
   assert.equal(isServableTourStopEventRow(validTourStop({
     event_name: 'Poker &bogus; Event',
   }), 'RGPS'), false);
+});
+
+test('stop placeholders and unsupported source provenance cannot become event details', () => {
+  for (const overrides of [
+    { notes: 'Stop-level placeholder row (Phase-7b). Schedule TBA' },
+    { scrape_html_hash: 'phase7b-manual-research-20260808' },
+    { source_url: 'javascript:alert(1)' },
+    { scrape_timestamp: null },
+    { scrape_script: 'tour_stealth_scraper.py', event_number: null },
+  ]) assert.equal(isServableTourStopEventRow(validTourStop(overrides), 'RGPS'), false);
 });
 
 test('physical PDF rows collapse to one best row per exact semantic identity', () => {

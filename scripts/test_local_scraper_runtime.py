@@ -85,6 +85,61 @@ class RuntimeProof(unittest.TestCase):
             prerequisite.assert_called_once()
             return result
 
+    def test_tours_one_shot_uses_configured_store_without_copying_credentials(self):
+        files, _ = runtime.COMPONENTS['tours']
+        for name in files:
+            path = self.repo / name
+            path.parent.mkdir(exist_ok=True)
+            path.write_text('raise SystemExit(0)\n')
+        self.git('add', 'scripts')
+        self.git('commit', '-qm', 'tour fixture')
+        sha = self.git('rev-parse', 'HEAD').strip()
+        self.git('update-ref', 'refs/remotes/origin/main', sha)
+        tour_root = self.base / 'tour-runtime'
+        with patch.object(runtime, 'verify_python'):
+            result = runtime.install(self.repo, sha, tour_root, self.state,
+                                     self.inputs, Path(sys.executable),
+                                     'tours', self.root)
+        self.assertEqual(result['component'], 'tours')
+        self.assertFalse((tour_root / 'auth.json').exists())
+        self.assertEqual(runtime.credential_root(tour_root), self.root)
+        self.assertEqual(runtime.run(tour_root), 0)
+        self.assertFalse((tour_root / 'outbox').exists())
+        self.assertFalse(self.requests)
+
+    def test_component_file_set_cannot_be_relabelled(self):
+        self.install()
+        manifest_path = self.root / 'current/manifest.json'
+        value = json.loads(manifest_path.read_text())
+        value['component'] = 'tours'
+        runtime.atomic_write(manifest_path, runtime.json_bytes(value))
+        with self.assertRaisesRegex(runtime.RuntimeFault, 'manifest_file_set_mismatch'):
+            runtime.inspect_release(self.root)
+
+    def test_tournament_daemon_exit_is_failure_not_one_shot_success(self):
+        files, _ = runtime.COMPONENTS['tournaments']
+        for name in files:
+            path = self.repo / name
+            path.parent.mkdir(exist_ok=True)
+            path.write_text('raise SystemExit(0)\n')
+        self.git('add', 'scripts')
+        self.git('commit', '-qm', 'tournament fixture')
+        sha = self.git('rev-parse', 'HEAD').strip()
+        self.git('update-ref', 'refs/remotes/origin/main', sha)
+        daemon_root = self.base / 'tournament-runtime'
+        with patch.object(runtime, 'verify_python'):
+            runtime.install(self.repo, sha, daemon_root, self.state, self.inputs,
+                            Path(sys.executable), 'tournaments', self.root)
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(daemon_root), 1)
+        self.assertEqual(self.requests[0]['p_source'], 'local.tournaments-runtime')
+        self.assertEqual(self.requests[0]['p_payload']['failure_code'], 'daemon_exited_0')
+
+    def test_credential_reference_rejects_relative_path(self):
+        runtime.atomic_write(self.root / 'credential-store.json', runtime.json_bytes({'root': '../foreign'}))
+        with self.assertRaisesRegex(runtime.RuntimeFault, 'credential_store_invalid'):
+            runtime.credential_root(self.root)
+
     def test_coherent_release_preserves_state_and_replays_install(self):
         (self.state / 'pokeratlas-sweep-state.json').write_text('{"offset":33}')
         first = self.install()

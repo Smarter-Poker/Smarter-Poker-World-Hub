@@ -61,6 +61,14 @@ export const isServableTourStopEventRow = (row, expectedTourCode) => {
   if (!normalizedIdentityText(row.event_name) || !normalizedIdentityText(row.stop_name)) {
     return false;
   }
+  // Historical stop summaries were stored with invented "Main Event" details.
+  // Keep their sourced stop dates in the stop-summary consumer, never promote
+  // those placeholders into a playable event or a quoted buy-in.
+  if (/stop[- ]level placeholder|schedule[- ]summary|event details? (?:tba|unknown|unavailable)/i.test(String(row.notes || ''))) return false;
+  if (row.scrape_script === 'tour_stealth_scraper.py' && !normalizedEventNumber(row.event_number)) return false;
+  if (!isSafeHttpsUrl(row.source_url || row.scrape_url)) return false;
+  if (!SHA256_RE.test(String(row.scrape_html_hash || ''))) return false;
+  if (!Number.isFinite(Date.parse(row.scrape_timestamp || ''))) return false;
 
   const eventDate = String(row.start_date || '');
   const stopStart = String(row.stop_start_date || '');

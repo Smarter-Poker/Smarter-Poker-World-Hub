@@ -17,7 +17,7 @@ tours_due_for_refresh finally drains.
 
 Battle-tested patterns carried over from poker_series_scraper.py and
 tournament-schedule-daemon.py, all of which failed in production without them:
-  - .env.local fallback for SUPABASE_SERVICE_ROLE_KEY + loud exit(2) when absent
+  - configured runtime injects SUPABASE_SERVICE_ROLE_KEY; loud exit(2) when absent
     (a None key silently 100%-failed series writes for months)
   - asyncio-loop clear before StealthySession.start() (the "Playwright Sync API
     inside the asyncio loop" crash that killed 3 scraper families)
@@ -73,19 +73,8 @@ SUPABASE_URL = "https://kuklfnapbkmacvwxktbh.supabase.co"
 
 
 def _load_supabase_key():
-    """launchd jobs do not inherit shell env; fall back to .env.local."""
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    if key:
-        return key
-    env_file = PROJECT_ROOT / ".env.local"
-    try:
-        for line in env_file.read_text().splitlines():
-            line = line.strip()
-            if line.startswith("SUPABASE_SERVICE_ROLE_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    except OSError:
-        pass
-    return None
+    """Only the configured runtime may supply the canonical service identity."""
+    return os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
 
 SUPABASE_KEY = _load_supabase_key()
@@ -260,8 +249,8 @@ MONTHS = {m: i + 1 for i, m in enumerate(
 
 # "Aug 6 - 17, 2026" | "Aug 6 - Sep 2, 2026" | "August 6-17" | "Aug. 6 to 17, 2026"
 DATE_RANGE = re.compile(
-    r"([A-Za-z]{3,9})\.?\s+(\d{1,2})\s*(?:-|–|—|to|through)\s*"
-    r"(?:([A-Za-z]{3,9})\.?\s+)?(\d{1,2})(?:\s*,?\s*(\d{4}))?", re.I)
+    r"(?P<m1>[A-Za-z]{3,9})\.?\s+(?P<d1>\d{1,2})(?:\s*,?\s*(?P<y1>20\d{2}))?\s*(?:-|–|—|to|through)\s*"
+    r"(?:(?P<m2>[A-Za-z]{3,9})\.?\s+)?(?P<d2>\d{1,2})(?:\s*,?\s*(?P<y2>20\d{2}))?", re.I)
 
 TAG_STRIP = re.compile(r"<[^>]+>")
 NAV_WORDS = re.compile(
@@ -405,6 +394,10 @@ def tour_page_identity(code: str, tour_name: str, requested_url: str,
     label = " ".join(labels).lower()
     label_words = set(re.findall(r"[a-z0-9]+", label))
     expected_code = re.sub(r"[^a-z0-9]", "", str(code or "").lower())
+    if (expected_code == 'wsopc' and final_identity[0] in {'wsop.com', 'www.wsop.com'}
+            and re.search(r'<li\b[^>]*data-competition-type=[\"\']circuit[\"\']', page_html or '', re.I)
+            and re.search(r'WSOP Circuit\s*-', page_html or '', re.I)):
+        return True, 'source_owned_circuit_cards'
     if expected_code and expected_code in label_words:
         return True, "source_owned_tour_code"
 
@@ -428,14 +421,7 @@ def _iso(month_name: str, day: int, year):
     if not m or not (1 <= day <= 31):
         return None
     if year is None:
-        now = datetime.now(timezone.utc)
-        year = now.year
-        try:
-            cand = datetime(year, m, day, tzinfo=timezone.utc)
-            if (now - cand).days > 182:  # >6 months past -> next year's schedule
-                year += 1
-        except ValueError:
-            return None
+        return None
     try:
         datetime(year, m, day)
     except ValueError:
@@ -443,10 +429,69 @@ def _iso(month_name: str, day: int, year):
     return f"{year}-{m:02d}-{day:02d}"
 
 
-def extract_stops(html: str, base_url: str, today: date = None) -> list:
+def extract_stops(html: str, base_url: str, today: date = None, tour_code: str = None) -> list:
     """Generic stop extractor: date-range matches paired with the nearest
     preceding heading/link text. Conservative by design - a missed stop is
     recoverable on the next run, a garbage stop pollutes the calendar."""
+    if (str(tour_code or '').upper() == 'PGT'
+            and urllib.parse.urlparse(base_url).hostname in {'www.pgt.com', 'pgt.com'}):
+        stops, seen = [], set()
+        cutoff = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
+        def walk(value):
+            if isinstance(value, list):
+                for entry in value:
+                    yield from walk(entry)
+            elif isinstance(value, dict):
+                if value.get('@type') == 'Event':
+                    yield value
+                for entry in value.values():
+                    if isinstance(entry, (dict, list)):
+                        yield from walk(entry)
+        for raw in re.findall(r'<script\b[^>]*type=[\"\']application/ld\+json[\"\'][^>]*>(.*?)</script>', html, re.I | re.S):
+            try:
+                payload = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            for event in walk(payload):
+                organizer = event.get('organizer') or {}
+                if not isinstance(organizer, dict) or organizer.get('name') != 'PokerGO Tour':
+                    continue
+                name = normalize_stop_name(str(event.get('name') or ''))
+                raw_start = str(event.get('startDate') or '')
+                if not re.fullmatch(r'20\d{2}-\d{2}-\d{2}(?:T.*)?', raw_start) or not is_plausible_tour_stop_name(name):
+                    continue
+                try:
+                    start = date.fromisoformat(raw_start[:10])
+                except ValueError:
+                    continue
+                if start < cutoff or (name, start) in seen:
+                    continue
+                seen.add((name, start))
+                stop = {'stop_name': name, 'start': start.isoformat(), 'end': start.isoformat(), 'start_only': True}
+                location = event.get('location') or {}
+                if isinstance(location, dict) and location.get('name'):
+                    stop['venue'] = str(location['name'])
+                stops.append(stop)
+        return stops
+    if (str(tour_code or '').upper() == 'WSOPC'
+            and urllib.parse.urlparse(base_url).hostname in {'www.wsop.com', 'wsop.com'}):
+        stops = []
+        for card in re.findall(r'<li\b[^>]*data-competition-type=[\"\']circuit[\"\'][^>]*>(.*?)</li>', html, re.I | re.S):
+            location = re.search(r'<span\b[^>]*class=[\"\']location[\"\'][^>]*>(.*?)</span>', card, re.I | re.S)
+            location_text = normalize_stop_name(location[1]) if location else ''
+            match = re.fullmatch(r'(.+),\s*([^,]+),\s*United States', location_text, re.I)
+            if not match:
+                continue
+            state = {'Arizona': 'AZ', 'Ohio': 'OH'}.get(match[2], match[2])
+            if not re.fullmatch('[A-Z]{2}', state):
+                continue
+            for stop in extract_stops(card, base_url, today):
+                if not stop['stop_name'].startswith('WSOP Circuit -'):
+                    continue
+                stop.update({'venue': stop['stop_name'].removeprefix('WSOP Circuit - ').strip(),
+                             'city': match[1], 'state': state})
+                stops.append(stop)
+        return stops
     stops, seen = [], set()
     cutoff = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
     # Date-like copy in scripts, image alt text, element IDs, analytics payloads,
@@ -465,15 +510,31 @@ def extract_stops(html: str, base_url: str, today: date = None) -> list:
         r"<\1>",
         scan_html,
     )
+    # Visible schedule-year headings qualify yearless rows; copyright years do not.
+    headings = re.findall(r'<h[1-6]>([^<>]+)</h[1-6]>', scan_html, re.I)
+    schedule_years = {
+        int(year) for heading in headings
+        if re.search(r'\b(schedule|calendar)\b', heading, re.I)
+        for year in re.findall(r'\b(20\d{2})\b', heading)
+    }
+    anchor_year = next(iter(schedule_years)) if len(schedule_years) == 1 else None
     prev_end = 0
     for m in DATE_RANGE.finditer(scan_html):
-        m1, d1, m2, d2, yr = m.group(1), int(m.group(2)), m.group(3), int(m.group(4)), m.group(5)
-        year = int(yr) if yr else None
-        start = _iso(m1, d1, year)
+        context_start = prev_end
+        prev_end = m.end()
+        m1, d1, m2, d2, yr = m['m1'], int(m['d1']), m['m2'], int(m['d2']), m['y2']
+        year = int(yr) if yr else int(m['y1']) if m['y1'] else anchor_year
+        # A trailing explicit year belongs to the ending date of a crossing
+        # range, while a schedule-heading anchor belongs to its starting year.
+        crosses_year = bool(m2 and MONTHS.get(m2[:3].lower(), 0) < MONTHS.get(m1[:3].lower(), 0))
+        start_year = int(m['y1']) if m['y1'] else year - 1 if year and yr and crosses_year else year
+        start = _iso(m1, d1, start_year)
         end = _iso(m2 or m1, d2, year)
         if not start or not end:
             continue
-        if end < start:  # range wrapped a year boundary (Dec 28 - Jan 4)
+        if end < start and yr:
+            continue  # An explicitly contradictory end year is never repaired.
+        if end < start:  # yearless end range wrapped (Dec 28 - Jan 4)
             y, mo, dd = end.split("-")
             end = f"{int(y) + 1}-{mo}-{dd}"
         if datetime.strptime(end, "%Y-%m-%d").date() < cutoff:
@@ -481,11 +542,10 @@ def extract_stops(html: str, base_url: str, today: date = None) -> list:
         # walk back for the nearest heading/anchor text - but never past the
         # previous date match, or a rejected nav heading lets the walker steal
         # an OLDER stop's name and mispair it with this date range.
-        ctx = scan_html[max(0, m.start() - 1200, prev_end):m.start()]
-        prev_end = m.end()
+        ctx = scan_html[max(0, m.start() - 1200, context_start):m.start()]
         name = None
         for hm in reversed(list(re.finditer(
-                r"<(?:h[1-6]|a|strong|b|span|div|td)[^>]*>([^<>]{4,90})</", ctx, re.I))):
+                r"<(?:h[1-6]|a|strong|b|span|div|td|p)[^>]*>([^<>]{4,90})</", ctx, re.I))):
             cand = normalize_stop_name(hm.group(1))
             if not is_plausible_tour_stop_name(cand):
                 continue
@@ -509,7 +569,7 @@ def build_stop_row(code: str, stop: dict, source_url: str,
                    html_hash: str, scraped_at: str) -> dict:
     """Build one explicitly inferred stop-summary row with full provenance."""
 
-    return {
+    row = {
         "tour_code": code,
         "stop_name": stop["stop_name"],
         "event_name": stop["stop_name"],
@@ -525,6 +585,14 @@ def build_stop_row(code: str, stop: dict, source_url: str,
         "notes": f"Auto-extracted from {source_url} on {scraped_at[:10]}; "
                  "generic date-range extractor; venue/city remain unverified.",
     }
+    for field in ('venue', 'city', 'state'):
+        if stop.get(field):
+            row['stop_' + field] = stop[field]
+    if stop.get('city') and stop.get('state'):
+        row['notes'] = f"Source-owned stop summary from {source_url} on {scraped_at[:10]}; not an individual tournament or priced event."
+    if stop.get('start_only'):
+        row['notes'] = f"Source-owned JSON-LD event-start summary from {source_url} on {scraped_at[:10]}; calendar point date only, duration and event pricing not published."
+    return row
 
 
 def retirable_stop_ids(existing_rows: list[dict], current_stops: list[dict],
@@ -762,7 +830,7 @@ def main():
             code, name, url, final_url, html,
         )
         if verify_html(html) and source_context_ok:
-            stops = extract_stops(html, url)
+            stops = extract_stops(html, final_url or url, tour_code=code)
             found = len(stops)
             total_stops += found
             log(f"    {found} stop candidate(s)")

@@ -15,6 +15,64 @@ import scrape_tours_targeted as legacy_targeted
 
 
 class TourStopExtractionTests(unittest.TestCase):
+    def test_yearless_dates_are_not_guessed_or_rolled_forward(self):
+        page = '<h2>WPT Championship</h2><p>Jan 1 - 10</p><footer>Copyright 2026</footer>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)), [])
+        self.assertIsNone(scraper._iso('Jan', 1, None))
+
+    def test_explicit_schedule_year_keeps_expired_dates_expired(self):
+        page = '<h1>2026 Schedule</h1><h2>WPT Championship</h2><p>Jan 1 - 10</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)), [])
+
+    def test_explicit_schedule_year_qualifies_current_range(self):
+        page = '<h1>2026 Schedule</h1><h2>WPT Championship</h2><p>Oct 20 - 30</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)),
+                         [{'stop_name': 'WPT Championship', 'start': '2026-10-20', 'end': '2026-10-30'}])
+
+    def test_key_loader_never_reads_environment_file(self):
+        with mock.patch.dict(scraper.os.environ, {}, clear=True), mock.patch.object(scraper.Path, 'read_text') as read:
+            self.assertIsNone(scraper._load_supabase_key())
+            read.assert_not_called()
+
+    def test_explicit_cross_year_range_uses_ending_year(self):
+        page = '<h2>WPT Championship</h2><p>Dec 28 - Jan 4, 2027</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)),
+                         [{'stop_name': 'WPT Championship', 'start': '2026-12-28', 'end': '2027-01-04'}])
+
+    def test_explicit_contradictory_end_year_is_not_repaired(self):
+        page = '<h2>WPT Championship</h2><p>Dec 28 2026 - Jan 4 2025</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)), [])
+        page = '<h2>WPT Championship</h2><p>Dec 28 2026 - Jan 4</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)),
+                         [{'stop_name': 'WPT Championship', 'start': '2026-12-28', 'end': '2027-01-04'}])
+
+    def test_stop_summary_does_not_invent_event_details(self):
+        stop = {'stop_name': 'WPT Championship', 'start': '2026-12-28', 'end': '2027-01-04'}
+        row = scraper.build_stop_row('WPT', stop, 'https://tour.test/schedule', 'a' * 64, '2026-10-09T22:00:00Z')
+        self.assertEqual(row['event_name'], stop['stop_name'])
+        self.assertEqual(row['data_quality'], 'scraped_inferred')
+        self.assertNotIn('buy_in', row)
+        self.assertNotIn('event_number', row)
+
+    def test_current_wsop_circuit_cards_use_explicit_years_and_us_location(self):
+        card = '<li data-competition-type="circuit"><p class="series-name">WSOP Circuit - Turning Stone</p><span class="date">Oct 15 2026 - Oct 26 2026</span><span class="location">Verona, NY, United States</span></li>'
+        foreign = card.replace('Verona, NY, United States', 'Calgary, AB, Canada')
+        stops = scraper.extract_stops(card + foreign, 'https://www.wsop.com/schedule/', date(2026, 10, 9), 'WSOPC')
+        self.assertEqual(stops, [{'stop_name': 'WSOP Circuit - Turning Stone', 'start': '2026-10-15', 'end': '2026-10-26', 'venue': 'Turning Stone', 'city': 'Verona', 'state': 'NY'}])
+        self.assertEqual(scraper.tour_page_identity('WSOPC', 'WSOP Circuit', 'https://www.wsop.com/schedule/', 'https://www.wsop.com/schedule/', card), (True, 'source_owned_circuit_cards'))
+
+    def test_pgt_jsonld_requires_explicit_date_and_owned_organizer(self):
+        event = {'@type': 'Event', 'name': "Poker Masters #1 - $10,500 No-Limit Hold'em", 'startDate': '2026-10-12T19:00:37Z', 'organizer': {'name': 'PokerGO Tour'}, 'location': {'name': 'PokerGO Studio, Las Vegas, Nevada'}}
+        missing = dict(event, name='PGT Sprint'); missing.pop('startDate')
+        foreign = dict(event, name='Foreign Event', organizer={'name': 'Other Tour'})
+        page = '<script type="application/ld+json">' + json.dumps({'@type': 'ItemList', 'itemListElement': [{'item': event}, {'item': missing}, {'item': foreign}]}) + '</script><footer>2026</footer>'
+        stops = scraper.extract_stops(page, 'https://www.pgt.com/schedule', date(2026, 10, 9), 'PGT')
+        self.assertEqual(len(stops), 1)
+        self.assertEqual(stops[0]['start'], '2026-10-12')
+        row = scraper.build_stop_row('PGT', stops[0], 'https://www.pgt.com/schedule', 'a' * 64, '2026-10-09T22:00:00Z')
+        self.assertIn('calendar point date only', row['notes'])
+        self.assertNotIn('buy_in', row)
+
     def test_native_tour_writer_is_fail_disabled(self):
         event = {
             "tour_code": "MSPT",
@@ -418,9 +476,10 @@ class TourSourceContractTests(unittest.TestCase):
         page = (
             "<html><head><title>WSOP Circuit Schedule</title></head><body>"
             "<h1>WSOP Circuit Poker Tournament Schedule</h1>"
-            "<section><h2>WSOP Circuit Main Event</h2>"
-            "<p>September 18 - 28, 2099</p><p>Buy-in event schedule</p>"
-            "</section>" + (" poker tournament schedule event " * 80) + "</body></html>"
+            '<li data-competition-type="circuit"><p class="series-name">WSOP Circuit - Turning Stone</p>'
+            '<span class="date">September 18 2099 - September 28 2099</span>'
+            '<span class="location">Verona, NY, United States</span></li>'
+            + (" poker tournament schedule event " * 80) + "</body></html>"
         )
         session = Session()
         registry_updates = []
