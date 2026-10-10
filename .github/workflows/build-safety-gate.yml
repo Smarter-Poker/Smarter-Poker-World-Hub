@@ -173,7 +173,7 @@ jobs:
           "$RUNNER_TEMP/pnm-session-contracts/bin/python" scripts/test_pokeratlas_persistence.py
 
       - name: Poker Near Me Tour Calendar Truth
-        run: node --test __tests__/poker-near-me-tour-calendar-truth.test.mjs __tests__/poker-near-me-tour-db-schedule.test.mjs __tests__/poker-near-me-tour-stop-scope.test.mjs __tests__/poker-near-me-data-truth.test.mjs __tests__/poker-near-me-coordinate-repair.test.mjs
+        run: node --test __tests__/poker-near-me-tour-calendar-truth.test.mjs __tests__/poker-near-me-tour-db-schedule.test.mjs __tests__/poker-near-me-tour-stop-scope.test.mjs __tests__/poker-near-me-data-truth.test.mjs __tests__/poker-near-me-coordinate-repair.test.mjs __tests__/poker-near-me-schedule-artifact-truth.test.mjs
 
       - name: Poker Near Me Installed Collector Contracts
         run: |
@@ -372,6 +372,9 @@ jobs:
 
       - name: Messenger Account Continuity And History Navigation
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-continuity-postgres.py
+
+      - name: Messenger Deletion Persists Per Account
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-deletion-postgres.py
 
       - name: Messenger Reads Stop At The Displayed Message
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-bounded-read-postgres.py

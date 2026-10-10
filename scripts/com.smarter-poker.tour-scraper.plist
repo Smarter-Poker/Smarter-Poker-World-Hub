@@ -22,12 +22,10 @@
 	<key>RunAtLoad</key>
 	<true/>
 	<key>StandardErrorPath</key>
-	<string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tours/state/tour-logs/launchd.log</string>
+	<string>/dev/null</string>
 	<key>StandardOutPath</key>
-	<string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tours/state/tour-logs/launchd.log</string>
+	<string>/dev/null</string>
 	<key>StartInterval</key>
 	<integer>259200</integer>
-	<key>WorkingDirectory</key>
-	<string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tours</string>
 </dict>
 </plist>

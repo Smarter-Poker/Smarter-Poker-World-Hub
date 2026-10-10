@@ -440,12 +440,34 @@ function MessengerPage() {
     // ever wrote it - the only writer was the in-game table messenger - so the
     // table was empty platform-wide and blocking did nothing here.
     const [blockedUserIds, setBlockedUserIds] = useState([]);
-    // Hidden messages (delete-for-me persistence)
-    const [hiddenMessageIds] = useState(() => {
-        try {
-            return new Set(JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]'));
-        } catch { return new Set(); }
-    });
+    // Account-scoped tombstones also protect cached and already-running reads.
+    const deletedMessageIdsRef = useRef(new Map());
+    const legacyDeletionOwnerRef = useRef(null);
+    const getHiddenMessageIds = () => {
+        const account = user?.id;
+        if (!account) return new Set();
+        let ids = deletedMessageIdsRef.current.get(account);
+        if (!ids) {
+            try { ids = new Set(JSON.parse(localStorage.getItem(`sp-hidden-messages:${account}`) || '[]')); }
+            catch { ids = new Set(); }
+            // Preserve existing browser deletions during the account-scoping upgrade.
+            // Claim the legacy browser state once; subsequent accounts use their own key.
+            if (!legacyDeletionOwnerRef.current) legacyDeletionOwnerRef.current = account;
+            if (legacyDeletionOwnerRef.current === account) {
+                try {
+                    const legacy = JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]');
+                    if (Array.isArray(legacy) && legacy.length) {
+                        for (const id of legacy) if (isMessageId(id)) ids.add(id);
+                        localStorage.setItem(`sp-hidden-messages:${account}`, JSON.stringify([...ids]));
+                        localStorage.removeItem('sp-hidden-messages');
+                    }
+                } catch { /* Retain the legacy ids in this account's in-memory set. */ }
+            }
+            deletedMessageIdsRef.current.set(account, ids);
+        }
+        return ids;
+    };
+    const deletionFlightsRef = useRef(new Set());
     // Incoming Call State (for seamless calling like Snapchat/WhatsApp)
     const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
     const [callingUser, setCallingUser] = useState(null); // Track who we're calling
@@ -1235,6 +1257,7 @@ function MessengerPage() {
                 filter: `conversation_id=eq.${activeConversation.id}`,
             }, async (payload) => {
                 const newMsg = payload.new;
+                if (newMsg.is_deleted || getHiddenMessageIds().has(newMsg.id)) return;
                 if (newMsg.message_type === 'invoice') {
                     // Realtime data is not proof of an issued financial record.
                     if (activeConversationRef.current?.id === newMsg.conversation_id) loadMessagesRef.current?.(newMsg.conversation_id);
@@ -1250,7 +1273,7 @@ function MessengerPage() {
                     if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== newMsg.conversation_id) return;
                     const operation = sendOperationsRef.current.get(newMsg.request_id);
                     if (operation) acknowledgeMessengerSend(operation, newMsg, localStorage);
-                    setMessages(previous => reconcileMessengerMessage(previous, { ...newMsg, status: 'sent' }));
+                    setMessages(previous => getHiddenMessageIds().has(newMsg.id) ? previous : reconcileMessengerMessage(previous, { ...newMsg, status: 'sent' }));
                     return;
                 }
 
@@ -1279,7 +1302,7 @@ function MessengerPage() {
                 if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== newMsg.conversation_id) return;
                 setMessages(prev => {
                     // Check for duplicates (defensive against null entries)
-                    if (prev.some(m => m && m.id === newMsg.id)) return prev;
+                    if (getHiddenMessageIds().has(newMsg.id) || prev.some(m => m && m.id === newMsg.id)) return prev;
                     return [...prev, { ...newMsg, profiles: profile || null }];
                 });
 
@@ -1347,9 +1370,14 @@ function MessengerPage() {
         const boundary = visibleMessageBoundary(messagesContainerRef.current);
         if (!boundary || !messages.some(message => message.id === boundary.last && message.conversation_id === conversationId)) return;
         const key = `${workspaceRef.current}:${conversationId}:${boundary.last}`;
-        if (lastVisibleReadRef.current === key) return;
-        lastVisibleReadRef.current = key;
-        markConversationReadRef.current?.(conversationId, boundary.last);
+        if (lastVisibleReadRef.current?.key === key) return;
+        const attempt = { key };
+        lastVisibleReadRef.current = attempt;
+        Promise.resolve(markConversationReadRef.current?.(conversationId, boundary.last)).then(saved => {
+            // A failed request is not a read receipt. Release only this attempt;
+            // a late failure must never unlock a newer displayed boundary.
+            if (saved !== true && lastVisibleReadRef.current === attempt) lastVisibleReadRef.current = null;
+        });
     };
     useEffect(() => {
         if (!incomingRead || incomingRead.scope !== workspaceRef.current) return;
@@ -1773,7 +1801,7 @@ function MessengerPage() {
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
         try {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(throughMessageId || '')
-                || !current() || document.visibilityState === 'hidden') return;
+                || !current() || document.visibilityState === 'hidden') return false;
             // Do not clear local/global badges or emit a read receipt on failure.
             const readResponse = await authedFetch('/api/messenger/mark-read', {
                 method: 'POST',
@@ -1783,7 +1811,7 @@ function MessengerPage() {
             const readResult = await readResponse.json();
             if (!readResponse.ok || readResult.success !== true) {
                 if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
-                return;
+                return false;
             }
             if (current()) {
                 loadConversationsRef.current?.(user.id, { invalidate: true });
@@ -1804,14 +1832,16 @@ function MessengerPage() {
             }
 
             //  Immediately refresh global unread count to clear header badge
-            if (workspaceRef.current !== requestScope) return;
+            if (workspaceRef.current !== requestScope) return false;
             if (refreshUnread) refreshUnread();
             // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
             broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
+            return true;
 
         } catch (error) {
             console.warn('[Messenger] Read persistence failed:', error);
             if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+            return false;
         }
     };
     markConversationReadRef.current = markConversationRead;
@@ -1835,7 +1865,7 @@ function MessengerPage() {
         const messagesAtStart = new Map((messagesRef.current || []).map(message => [message.id, message]));
         const replacingWindow = !!(navigation.anchorMessageId || navigation.firstUnread || navigation.latest);
         if (cachedMessages) {
-            setMessages(cachedMessages);
+            setMessages(cachedMessages.filter(message => !getHiddenMessageIds().has(message.id)));
             setLoadingMessages(false);
         } else {
             setMessages([]);
@@ -1867,10 +1897,7 @@ function MessengerPage() {
                 if (!current()) return;
 
                 // Filter out hidden messages — re-read from localStorage for freshness
-                const freshHiddenIds = (() => {
-                    try { return new Set(JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]')); }
-                    catch { return hiddenMessageIds; }
-                })();
+                const freshHiddenIds = getHiddenMessageIds();
                 const filtered = result.messages.filter(m => !freshHiddenIds.has(m.id));
                 continuity.ingestSavedItems(result.savedItems);
                 for (const operation of restoreMessengerSendOperations(localStorage, user.id)) {
@@ -1973,10 +2000,7 @@ function MessengerPage() {
             if (paginationLockRef.current !== operation || !currentWindow()) return;
             if (result.success && result.messages?.length > 0) {
                 // Filter out hidden messages — re-read from localStorage for freshness
-                const freshHiddenIds = (() => {
-                    try { return new Set(JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]')); }
-                    catch { return new Set(); }
-                })();
+                const freshHiddenIds = getHiddenMessageIds();
                 const filteredOlder = result.messages.filter(m => !freshHiddenIds.has(m.id));
                 continuity.ingestSavedItems(result.savedItems);
                 setMessages(prev => {
@@ -2030,7 +2054,7 @@ function MessengerPage() {
             if (!current()) return;
             if (!response.ok || !result.success || !Array.isArray(result.messages)) throw new Error('Messages Unavailable');
             continuity.ingestSavedItems(result.savedItems);
-            setMessages(previous => currentWindow() ? result.messages.reduce((rows, message) => reconcileMessengerMessage(rows, message), previous) : previous);
+            setMessages(previous => currentWindow() ? result.messages.filter(message => !getHiddenMessageIds().has(message.id)).reduce((rows, message) => reconcileMessengerMessage(rows, message), previous.filter(message => !getHiddenMessageIds().has(message.id))) : previous);
             setHasNewerMessages(result.hasNewer === true);
             historyWindowRef.current = { conversationId, hasNewer: result.hasNewer === true };
         } catch {
@@ -2170,7 +2194,7 @@ function MessengerPage() {
             if (!current()) return;
             const row = updated.receipt || messengerOperationMessage(updated);
             const cached = messageCacheRef.current.get(updated.conversationId) || [];
-            messageCacheRef.current.set(updated.conversationId, reconcileMessengerMessage(cached, row));
+            messageCacheRef.current.set(updated.conversationId, getHiddenMessageIds().has(row.id) ? cached : reconcileMessengerMessage(cached, row));
             if (activeConversationRef.current?.id === updated.conversationId) {
                 setMessages(previous => current() && activeConversationRef.current?.id === updated.conversationId
                     ? reconcileMessengerMessage(previous, row) : previous);
@@ -2441,73 +2465,55 @@ function MessengerPage() {
         }
     };
 
-    // Handle message deletion (SmarterPoker-style: delete for me vs delete for everyone)
+    // A deletion is complete only after its account-owned server write is acknowledged.
     const handleDeleteMessage = async (messageId, deleteType = 'for_me') => {
-        if (!user) return;
-
-        // For Jarvis messages, just remove from localStorage
+        if (!user) return false;
         if (activeConversation?.isJarvis) {
             setMessages(prev => {
-                const updated = deleteType === 'all'
-                    ? []
-                    : prev.filter(m => m.id !== messageId);
+                const updated = deleteType === 'all' ? [] : prev.filter(m => m.id !== messageId);
                 saveJarvisHistory(updated);
                 return updated;
             });
-            setToast({ type: 'success', message: deleteType === 'all' ? 'All messages deleted' : 'Message deleted' });
-            return;
+            setToast({ type: 'success', message: 'Message Deleted' });
+            return true;
         }
-
+        if (!isMessageId(messageId) || !['for_me', 'for_everyone'].includes(deleteType)) return false;
+        const account = user.id;
+        const scope = workspaceRef.current;
+        const conversationId = activeConversationRef.current?.id;
+        const flight = `${account}:${messageId}`;
+        if (deletionFlightsRef.current.has(flight)) return false;
+        deletionFlightsRef.current.add(flight);
+        const hiddenIds = getHiddenMessageIds();
+        const current = () => workspaceRef.current === scope && activeConversationRef.current?.id === conversationId;
         try {
-            if (deleteType === 'for_everyone') {
-                // EAGER STATE SYNCHRONIZATION: Mark as deleted immediately (BFCache-safe)
-                const prevMessages = messages;
-                setMessages(prev => prev.map(m =>
-                    m.id === messageId
-                        ? { ...m, content: '[Message deleted]', is_deleted: true }
-                        : m
-                ));
-                setToast({ type: 'success', message: 'Message Deleted For Everyone' });
-                busEmit.dataMutated('messenger');
-                if (refreshUnread) refreshUnread();
-                broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
-
-                // Route through authenticated API — anon supabase.rpc may silently fail if
-                // fn_delete_message lacks EXECUTE grant or SECURITY DEFINER.
-                const deleteToken = getAccessToken();
-                authedFetch('/api/messenger/delete-message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(deleteToken ? { Authorization: `Bearer ${deleteToken}` } : {}),
-                    },
-                    body: JSON.stringify({ messageId }),
-                }).then(async (delResp) => {
-                    const delResult = await delResp.json().catch(() => ({}));
-                    if (!delResp.ok || !delResult.success) {
-                        // Rollback on failure
-                        setMessages(prevMessages);
-                        setToast({ type: 'error', message: 'Could Not Delete Message' });
-                    }
-                }).catch(() => {
-                    setMessages(prevMessages);
-                    setToast({ type: 'error', message: 'Could Not Delete Message' });
-                });
-
-            } else {
-                // Delete for me only — persist to localStorage so it survives refresh
-                const hiddenKey = 'sp-hidden-messages';
-                try {
-                    const existing = JSON.parse(localStorage.getItem(hiddenKey) || '[]');
-                    const updated = [...existing, messageId].slice(-1000); // FIFO: keep last 1000
-                    localStorage.setItem(hiddenKey, JSON.stringify(updated));
-                } catch { /* localStorage full or corrupted */ }
+            const token = getAccessToken();
+            const response = await authedFetch('/api/messenger/delete-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ messageId, deleteType }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.success !== true) throw new Error('Deletion Unavailable');
+            hiddenIds.add(messageId);
+            // The server is authoritative; storage failure cannot undo its committed write.
+            try { localStorage.setItem(`sp-hidden-messages:${account}`, JSON.stringify([...hiddenIds])); } catch { /* in-memory tombstone remains */ }
+            if (current()) {
+                const cached = messageCacheRef.current.get(conversationId);
+                if (cached) messageCacheRef.current.set(conversationId, cached.filter(m => m.id !== messageId));
                 setMessages(prev => prev.filter(m => m.id !== messageId));
-                setToast({ type: 'success', message: 'Message Removed' });
+                setToast({ type: 'success', message: deleteType === 'for_everyone' ? 'Message Deleted For Everyone' : 'Message Deleted' });
+                busEmit.dataMutated('messenger');
+                refreshUnread?.();
+                broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
             }
-        } catch (e) {
-            console.warn('Delete message error:', e);
-            setToast({ type: 'error', message: 'Failed To Delete Message' });
+            return true;
+        } catch (error) {
+            console.warn('Delete message error:', error);
+            if (current()) setToast({ type: 'error', message: 'Could Not Delete Message. Please Try Again.' });
+            return false;
+        } finally {
+            deletionFlightsRef.current.delete(flight);
         }
     };
 
@@ -2588,43 +2594,8 @@ function MessengerPage() {
         setEditingMessage(null); // Cancel any active edit
     };
 
-    // Handle unsend — delete for everyone with undo feedback
-    const handleUnsendMessage = async (messageId) => {
-        // Save the message content for potential undo
-        const originalMessage = messages.find(m => m.id === messageId);
-        if (!originalMessage) return;
-
-        // Immediately hide from UI (optimistic)
-        setMessages(prev => prev.map(m =>
-            m.id === messageId ? { ...m, is_deleted: true, content: 'This message was unsent' } : m
-        ));
-
-        setToast({ type: 'info', message: 'Message Unsent' });
-
-        // Delete via authenticated API (not anon supabase.rpc which may lack grants)
-        try {
-            const unsendToken = getAccessToken();
-            const unsendResp = await authedFetch('/api/messenger/delete-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(unsendToken ? { Authorization: `Bearer ${unsendToken}` } : {}),
-                },
-                body: JSON.stringify({ messageId }),
-            });
-            const unsendResult = await unsendResp.json().catch(() => ({}));
-            if (!unsendResp.ok || !unsendResult.success) throw new Error(unsendResult.error || 'Delete failed');
-            // DEEP SWEEP FIX: Data mutated
-            busEmit.dataMutated('messenger');
-        } catch (e) {
-            console.warn('Unsend error:', e);
-            // Restore on failure
-            setMessages(prev => prev.map(m =>
-                m.id === messageId ? originalMessage : m
-            ));
-            setToast({ type: 'error', message: 'Unsend Failed' });
-        }
-    };
+    // Unsend uses the same acknowledged deletion and cache invalidation path.
+    const handleUnsendMessage = (messageId) => handleDeleteMessage(messageId, 'for_everyone');
 
     // Handle forwarding a message to another conversation
     const handleForwardMessage = (message) => {
@@ -4119,17 +4090,22 @@ function MessengerPage() {
                                             // Persist: delete from Supabase so it doesn't reappear on refresh
                                             try {
                                                 const token = getAccessToken();
-                                                await authedFetch('/api/messenger/delete-conversation', {
+                                                const deleteResponse = await authedFetch('/api/messenger/delete-conversation', {
                                                     method: 'POST',
                                                     headers: {
                                                         'Content-Type': 'application/json',
                                                         ...(token ? { Authorization: `Bearer ${token}` } : {}),
                                                     },
-                                                    body: JSON.stringify({ conversationId: id, userId: user.id }),
+                                                    body: JSON.stringify({ conversationId: id }),
                                                 });
+                                                const deleted = await deleteResponse.json().catch(() => ({}));
+                                                if (!deleteResponse.ok || deleted.success !== true) throw new Error('Conversation Deletion Unavailable');
+                                                messageCacheRef.current.delete(id);
+                                                refreshUnread?.();
                                                 busEmit.dataMutated('messenger');
                                             } catch (e) {
                                                 console.warn('[Messenger] Delete conversation failed:', e);
+                                                setToast({ type: 'error', message: 'Could Not Delete Conversation. Please Try Again.' });
                                                 // Re-fetch to restore if delete failed
                                                 loadConversations(user.id);
                                             }
@@ -4643,7 +4619,7 @@ function MessengerPage() {
                                         _yesterday.setDate(_today.getDate() - 1);
                                         // Defensive: drop any null/undefined entries so a single bad
                                         // realtime payload can't crash the entire conversation view.
-                                        const _validMessages = (messages || []).filter(Boolean);
+                                        const _validMessages = (messages || []).filter(message => message && !getHiddenMessageIds().has(message.id));
                                         return (
                                         _validMessages.map((msg, i) => {
                                             const isOwn = msg.sender_id === user.id;

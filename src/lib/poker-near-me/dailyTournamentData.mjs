@@ -35,6 +35,9 @@ const SAFE_HTML_ENTITIES = Object.freeze({
 });
 
 const SCRAPED_MARKUP_ARTIFACT_RE = /(?:<\s*\/?\s*[a-z!][^>]*>?|-->|^\s*>|(?:^|\s)(?:class|href|src|style|charset|content|data-[\w-]+)\s*=|[<>])/i;
+// CSS/JavaScript text can survive a tag-stripping parser. It is source code,
+// never a tournament title; check again after bounded entity decoding.
+const SCRAPED_CODE_ARTIFACT_RE = /(?:\b(?:text-decoration|font-(?:size|family|weight)|display|background(?:-color)?|text-align|line-height|z-index)\s*:|\bcolor\s*:\s*(?:var\s*\(|rgba?\s*\(|#[\da-f])|@(?:media|supports|font-face)\b|\b(?:document|window)\.(?:querySelector|addEventListener|__\w+)|\bmodule\.exports|[{}])/i;
 const UNFINISHED_ENTITY_RE = /(?:&(?:#[xX]?[0-9a-fA-F]+|amp|apos|quot|nbsp|lt|gt|ndash|mdash|lsquo|rsquo|ldquo|rdquo|hellip|middot|bull|copy|reg|trade)(?=$|[\s<>"'|,.\)\]])|&[a-zA-Z][a-zA-Z0-9]{2,}\s*$)/i;
 const UNKNOWN_ENTITY_RE = /&(?:#[xX]?[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]+);/;
 
@@ -84,7 +87,7 @@ function decodeTextEntitiesOnce(value) {
  */
 export function decodeScrapedTournamentText(value) {
   if (typeof value !== 'string') return '';
-  if (SCRAPED_MARKUP_ARTIFACT_RE.test(value) || UNFINISHED_ENTITY_RE.test(value)) return '';
+  if (SCRAPED_MARKUP_ARTIFACT_RE.test(value) || SCRAPED_CODE_ARTIFACT_RE.test(value) || UNFINISHED_ENTITY_RE.test(value)) return '';
 
   // Two bounded passes cover doubly escaped source text such as &amp;rsquo;
   // without allowing entity expansion to recurse indefinitely.
@@ -99,6 +102,7 @@ export function decodeScrapedTournamentText(value) {
 
   if (!decoded
     || SCRAPED_MARKUP_ARTIFACT_RE.test(decoded)
+    || SCRAPED_CODE_ARTIFACT_RE.test(decoded)
     || UNFINISHED_ENTITY_RE.test(decoded)
     || UNKNOWN_ENTITY_RE.test(decoded)) {
     return '';
@@ -412,13 +416,70 @@ export function dailyTournamentDedupKey(tournament) {
   const venue = tournament?.venue_id != null
     ? String(tournament.venue_id)
     : String(tournament?.venue_name || '').toLowerCase().trim();
-  const dateIdentity = tournament?.event_date
+  const dateIdentity = tournament?.event_date && String(tournament.event_date).slice(0, 10) !== '1970-01-01'
     ? String(tournament.event_date).slice(0, 10)
     : String(tournament?.day_of_week || '').toLowerCase().trim();
   const name = String(tournament?.tournament_name || '').toLowerCase().trim().replace(/\s+/g, ' ');
   const start = String(tournament?.start_time || '').toLowerCase().trim();
   const buyIn = Number(tournament?.buy_in || 0);
   return [venue, dateIdentity, start, normalizeTournamentGame(tournament?.game_type || name), buyIn, name].join('|');
+}
+
+/** Public profiles must qualify the same source rows as daily discovery. */
+export function qualifyVenueTournamentRows(rows, nowMs = Date.now()) {
+  // Daily discovery and directory previews use the Eastern business day.
+  // UTC midnight must not retire an event while that day is still in progress.
+  const dateParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date(nowMs));
+  const part = type => dateParts.find(value => value.type === type).value;
+  const today = `${part('year')}-${part('month')}-${part('day')}`;
+  return (rows || []).flatMap(row => {
+    const name = decodeScrapedTournamentText(row?.tournament_name);
+    if (!name || !['scraped_verified', 'scraped_inferred'].includes(row?.data_quality)
+      || row?.is_active === false || row?.is_suppressed === true
+      || !isServableDailyTournamentRow(row, nowMs)
+      || !isServableDailyTournamentStartTime(row, nowMs)) return [];
+    const eventDate = String(row.event_date || '').slice(0, 10);
+    if (!isRecurringScheduleRow(row)) {
+      const parsed = Date.parse(`${eventDate}T00:00:00Z`);
+      if (!Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0, 10) !== eventDate
+        || eventDate < today) return [];
+    }
+    return [{ ...row, tournament_name: name }];
+  });
+}
+
+/** Shared SSR/API shape prevents stale rows returning during hydration. */
+export function groupVenueDailyTournamentRows(rows, nowMs = Date.now()) {
+  const qualified = qualifyVenueTournamentRows(rows, nowMs);
+  const seen = new Set();
+  const schedules = [];
+  for (const row of qualified) {
+    const key = dailyTournamentDedupKey(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const schedule = {};
+    for (const field of ['start_time', 'tournament_name', 'buy_in', 'rebuy_addon',
+      'starting_stack', 'blind_levels', 'game_type', 'format', 'guaranteed', 'event_date']) {
+      schedule[field] = row[field] ?? null;
+    }
+    schedule.day_of_week = isRecurringScheduleRow(row)
+      ? row.day_of_week ?? null : String(row.event_date).slice(0, 10);
+    schedules.push(schedule);
+  }
+  return schedules.length ? [{ source_url: qualified[0].source_url || null, schedules }] : [];
+}
+
+/** Complete, stably ordered profile/preview source read, never a partial success. */
+export async function readVenueTournamentRows(client, venueIds, options) {
+  const ids = Array.isArray(venueIds) ? venueIds : [venueIds];
+  const result = await fetchAllRows(() => client.from('venue_daily_tournaments')
+    .select('*').in('venue_id', ids).eq('is_active', true)
+    .in('data_quality', ['scraped_verified', 'scraped_inferred'])
+    .or('is_suppressed.is.null,is_suppressed.eq.false')
+    .order('id', { ascending: true }), options);
+  return result.error || result.truncated ? { ...result, rows: [] } : result;
 }
 
 /**

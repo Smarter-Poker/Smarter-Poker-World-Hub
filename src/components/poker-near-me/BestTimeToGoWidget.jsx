@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { eventBus, EventType } from '../../engine/EventBus';
+import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from './PokerNearMeConsole';
 
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -106,29 +107,27 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
 
   if (loading) {
     return (
-      <div className="bttg-widget">
+      <PokerNearMePanelShell className="bttg-widget venue-console-body">
         <div className="bttg-loading">
           <div className="bttg-spinner" />
           <span>Analyzing Activity Patterns...</span>
         </div>
         <style>{STYLES}</style>
-      </div>
+      </PokerNearMePanelShell>
     );
   }
 
   if (!hasPredictions && !hasHeatmap && !hasBatchData) {
     return (
-      <div className="bttg-widget bttg-empty" role="status">
+      <PokerNearMePanelShell className="bttg-widget bttg-empty venue-console-body" role="status">
         <div className="bttg-title-row">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8fdcfb" strokeWidth="2" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-          </svg>
+          <PokerNearMeConsoleIcon name="info" />
           <h3>Observed Activity Intelligence</h3>
         </div>
         <p>{predictions?.message || 'Verified Activity Patterns Are Not Available For This Venue Yet.'}</p>
         <small>Best-Time Recommendations Use Positive Observed Tables Only. Modeled Estimates Are Excluded.</small>
         <style>{STYLES}</style>
-      </div>
+      </PokerNearMePanelShell>
     );
   }
 
@@ -137,13 +136,11 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
     : predictions?.predictions?.[0];
 
   return (
-    <div className="bttg-widget">
+    <PokerNearMePanelShell className="bttg-widget venue-console-body">
       {/* Header */}
       <div className="bttg-header">
         <div className="bttg-title-row">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-          </svg>
+          <PokerNearMeConsoleIcon name="info" />
           <h3>Best Time To Go</h3>
         </div>
         {(predictions?.summary?.data_quality || batchInsights?.data_quality) && (
@@ -324,7 +321,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
       )}
 
       <style>{STYLES}</style>
-    </div>
+    </PokerNearMePanelShell>
   );
 }
 

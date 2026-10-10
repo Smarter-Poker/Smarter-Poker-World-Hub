@@ -13,9 +13,10 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import { resolveVenueTimeZone } from '../../../src/components/poker-near-me/pnm-utils';
 import DeepRouteSignalDeck, { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
-import { PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
+import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
 import { getVenueLogoUrl } from '../../../src/components/poker-near-me/pnm-utils';
 import MapSurfaceFrame from '../../../src/components/poker-near-me/MapSurfaceFrame';
@@ -44,6 +45,7 @@ import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching
 import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/structuredData';
 import { venueTitle } from '../../../src/lib/seo/venueTitle';
 import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
+import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, readVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
@@ -215,54 +217,15 @@ function countSchedules(venue) {
 
 /**
  * Flat venue_daily_tournaments rows -> the { source_url, schedules } shape the
- * page renders. This mirrors the transform in /api/poker/venues (including its
- * start_time + normalized-game + buy_in dedupe) so the server HTML matches what
+ * page renders. Uses the same qualification and complete date/day/name identity
+ * as /api/poker/venues so the server HTML matches what
  * SWR renders after it revalidates — otherwise the schedule visibly shrinks on
  * hydration and crawlers index rows the live page never shows.
  * Every field is normalized to null: getServerSideProps props must be JSON
  * serializable, and `undefined` would throw.
  */
 function groupDailyTournamentRows(rows) {
-  if (!rows || rows.length === 0) return [];
-
-  const seenKeys = new Set();
-  const schedules = [];
-  for (const t of rows) {
-    let normGame = String(t.game_type || t.tournament_name || 'nlh').toLowerCase().trim();
-    if (normGame.includes('nlh') || normGame.includes('no limit') || normGame.includes('holdem') || normGame.includes("hold'em")) {
-      normGame = 'nlh';
-    } else if (normGame.includes('plo') || normGame.includes('omaha')) {
-      normGame = 'omaha';
-    } else if (normGame.includes('mixed') || normGame.includes('horse')) {
-      normGame = 'mixed';
-    }
-
-    const key = [
-      String(t.start_time || '').toLowerCase().trim(),
-      normGame,
-      String(t.buy_in || 0),
-    ].join('|');
-    if (seenKeys.has(key)) continue;
-    seenKeys.add(key);
-
-    schedules.push({
-      day_of_week: t.day_of_week ?? null,
-      start_time: t.start_time ?? null,
-      tournament_name: t.tournament_name ?? null,
-      buy_in: t.buy_in ?? null,
-      rebuy_addon: t.rebuy_addon ?? null,
-      starting_stack: t.starting_stack ?? null,
-      blind_levels: t.blind_levels ?? null,
-      game_type: t.game_type ?? null,
-      format: t.format ?? null,
-      guaranteed: t.guaranteed ?? null,
-    });
-  }
-
-  return [{
-    source_url: rows[0].source_url || null,
-    schedules,
-  }];
+  return groupVenueDailyTournamentRows(rows);
 }
 
 /**
@@ -369,24 +332,20 @@ export async function getServerSideProps({ params, req, res }) {
       } else if (data) {
         // select('*') mirrors the API's own query — an explicit column list
         // would fail the whole read if any one name drifted.
-        const { data: tourRows } = await supabaseServer
-          .from('venue_daily_tournaments')
-          .select('*')
-          .eq('venue_id', numericId)
-          .eq('is_active', true)
-          .or('is_suppressed.is.null,is_suppressed.eq.false')
-          .order('day_of_week')
-          .limit(100);
+        const { rows: tourRows, error: scheduleError, truncated } = await readVenueTournamentRows(supabaseServer, numericId);
 
         const grouped = groupDailyTournamentRows(tourRows);
         const overrides = {
           daily_tournaments: grouped,
           daily_tournaments_source: grouped.length > 0 ? (grouped[0].source_url || null) : null,
+          schedule_unavailable: grouped.length === 0,
+          schedule_read_error: Boolean(scheduleError || truncated),
         };
         // The API stamps last_scraped from the tournament rows when it has
         // live ones; match it so the badge doesn't change value on hydration.
-        if (tourRows && tourRows.length > 0) {
-          overrides.last_scraped = tourRows[0].last_scraped ?? null;
+        const qualifiedRows = qualifyVenueTournamentRows(tourRows);
+        if (qualifiedRows.length > 0) {
+          overrides.last_scraped = qualifiedRows[0].last_scraped ?? null;
         }
         // Narrow before it becomes a prop — see PUBLIC_VENUE_FIELDS. This is
         // the point where is_suppressed (already consumed above) and the rest
@@ -449,6 +408,46 @@ const VENUE_HERO_PLATES = {
 };
 
 const DAYS_ORDER = ['Daily', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function formatScheduleOccurrenceDate(value) {
+  if (typeof value !== 'string') return null;
+  var match = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/.exec(value);
+  if (!match) return null;
+  var iso = match[1] + '-' + match[2] + '-' + match[3];
+  if (iso === '1970-01-01') return null;
+  var year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  var leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  var monthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > monthDays[month - 1]) return null;
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return { iso: iso, label: months[month - 1] + ' ' + day + ', ' + year };
+}
+
+function scheduleGroupIsToday(day, schedules, today) {
+  if (!today) return false;
+  return schedules.some(function (schedule) {
+    var date = formatScheduleOccurrenceDate(schedule.event_date);
+    return date ? date.iso === today.iso : !schedule.event_date && day === today.day;
+  });
+}
+
+function scheduleVenueToday(timezone, now) {
+  if (!timezone) return null;
+  var parts;
+  try {
+    parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  } catch {
+    return null;
+  }
+  var part = function (type) { return parts.find(function (item) { return item.type === type; }).value; };
+  return { iso: part('year') + '-' + part('month') + '-' + part('day'), day: part('weekday') };
+}
+
+function compareScheduleOccurrences(a, b) {
+  var first = formatScheduleOccurrenceDate(a.event_date), second = formatScheduleOccurrenceDate(b.event_date);
+  var dates = (first ? first.iso : '').localeCompare(second ? second.iso : '');
+  return dates;
+}
 
 function formatTime(timeStr) {
   if (!timeStr) return '';
@@ -1873,6 +1872,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       if (!grouped[day]) grouped[day] = [];
       grouped[day].push(s);
     });
+    Object.values(grouped).forEach(function (schedules) { schedules.sort(compareScheduleOccurrences); });
     var sorted = {};
     DAYS_ORDER.forEach(function (day) {
       if (grouped[day]) sorted[day] = grouped[day];
@@ -1888,10 +1888,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   // clock can sit on a different calendar day than the visitor's, which would
   // make the "Today" badge a hydration mismatch. The badge simply appears once
   // the browser clock is known.
-  const [todayName, setTodayName] = useState(null);
+  const [scheduleToday, setScheduleToday] = useState(null);
   useEffect(function () {
-    setTodayName(DAYS_ORDER[(new Date().getDay() + 6) % 7]);
-  }, []);
+    setScheduleToday(scheduleVenueToday(resolveVenueTimeZone(venue), new Date()));
+  }, [venue?.timezone, venue?.state]);
 
   // Compute rating distribution
   var getRatingDistribution = function () {
@@ -2817,11 +2817,11 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
 
             {/* Daily Tournaments Section */}
             {groupedSchedules && Object.keys(groupedSchedules || {}).length > 0 && (
-              <section id="tournaments-section" className="tournaments-section">
+              <PokerNearMePanelShell as="section" id="tournaments-section" className="tournaments-section venue-console-body">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-container">
                   {Object.entries(groupedSchedules || {}).map(function ([day, schedules]) {
-                    var isToday = day === todayName;
+                    var isToday = scheduleGroupIsToday(day, schedules, scheduleToday);
                     return (
                       <div key={day} className={'day-group' + (isToday ? ' today' : '')}>
                         <div className="day-header">
@@ -2830,8 +2830,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                         </div>
                         <div className="schedule-cards">
                           {schedules.map(function (s, idx) {
+                            var scheduleDate = formatScheduleOccurrenceDate(s.event_date);
                             return (
                               <div key={idx} className="schedule-card">
+                                {scheduleDate && <p className="schedule-notes"><time dateTime={scheduleDate.iso}>{scheduleDate.label}</time></p>}
                                 <div className="schedule-row">
                                   <div className="schedule-time">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
@@ -2870,22 +2872,22 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     );
                   })}
                 </div>
-              </section>
+              </PokerNearMePanelShell>
             )}
 
             {/* No tournaments fallback */}
             {(!groupedSchedules || Object.keys(groupedSchedules || {}).length === 0) && venue.has_tournaments && (
-              <section id="tournaments-section" className="tournaments-section">
+              <PokerNearMePanelShell as="section" id="tournaments-section" className="tournaments-section venue-console-body">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">
-                  <p>Tournament Schedule Data Is Being Collected For This Venue.</p>
+                  <p>{venue.schedule_read_error ? 'Tournament Schedule Could Not Be Loaded. Please Try Again.' : 'Tournament Schedule Data Is Being Collected For This Venue.'}</p>
                   {venue.poker_atlas_url && (
                     <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="pa-link">
                       Check Venue Website For Current Schedule
                     </a>
                   )}
                 </div>
-              </section>
+              </PokerNearMePanelShell>
             )}
 
             {/* Last Scraped Badge */}
@@ -3022,13 +3024,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* ============================================ */}
             {/* LIVE GAMES SECTION                           */}
             {/* ============================================ */}
-            <section className="live-games-section">
+            <PokerNearMePanelShell as="section" className="live-games-section venue-console-body">
               <div className="section-header-row">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
+                  <PokerNearMeConsoleIcon name="live-games" />
                   Live Games
                   {liveGames.length > 0 && (
                     <span className="live-count-badge">{liveGames.length} Active</span>
@@ -3163,14 +3162,11 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 </div>
               ) : (
                 <div className="empty-section-card">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
+                  <PokerNearMeConsoleIcon name="live-games" />
                   <p>No Live Game Reports. Be The First To Report What&apos;S Running!</p>
                 </div>
               )}
-            </section>
+            </PokerNearMePanelShell>
 
             {/* ============================================ */}
             {/* CHECK-INS SECTION                            */}

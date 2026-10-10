@@ -81,10 +81,21 @@ test('persisted proof rejects duplicates, mismatched senders, wrong identity and
 
 test('hosted suite uses existing configured credential store with explicit isolated-send inputs', () => {
   const source = readFileSync('.github/workflows/e2e-tests.yml', 'utf8');
-  assert.match(source, /options: \[full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply\]/);
+  assert.match(source, /options: \[full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply\]/);
   assert.match(source, /if: \$\{\{ inputs\.suite == 'full' \|\| inputs\.suite == '' \}\}/);
   assert.match(source, /MESSENGER_FIXTURE_CONVERSATION_ID: \$\{\{ inputs\.messenger_fixture_conversation_id \}\}/);
   assert.match(source, /MESSENGER_REQUEST_ID: \$\{\{ inputs\.messenger_request_id \}\}/);
   assert.match(source, /MESSENGER_VERIFY_MODE: isolated-send/);
   assert.match(source, /TEST_USER_PASSWORD: \$\{\{ secrets\.TEST_USER_PASSWORD \}\}/);
+});
+
+test('isolated deletion refuses missing mode, foreign content and unowned mutation IDs', async () => {
+ const {deletionConfiguration,validateDeletionRows,allowedDeletion}=await import('../scripts/ci/messenger-deletion-live.mjs');
+ const expected={conversationId:'00000000-0000-4000-8000-000000000001',forMeId:'00000000-0000-4000-8000-000000000002',forEveryoneId:'00000000-0000-4000-8000-000000000003'};
+ assert.throws(()=>deletionConfiguration({}),/TEST_USER_EMAIL/);
+ assert.equal(allowedDeletion({messageId:expected.forMeId,deleteType:'for_me'},expected),true);
+ assert.equal(allowedDeletion({messageId:expected.forMeId,deleteType:'for_everyone'},expected),false);
+ assert.equal(allowedDeletion({messageId:expected.forMeId,deleteType:'for_me',userId:'foreign'},expected),false);
+ assert.throws(()=>validateDeletionRows([],expected,'actor'),/two fresh/);
+ assert.throws(()=>validateDeletionRows([{id:expected.forMeId,content:'ordinary'},{id:expected.forEveryoneId}],expected,'actor'),/ordinary or foreign/);
 });

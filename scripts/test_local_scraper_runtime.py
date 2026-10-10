@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import os
+import plistlib
 from pathlib import Path
 import subprocess
 import sys
@@ -104,6 +105,8 @@ class RuntimeProof(unittest.TestCase):
         self.assertFalse((tour_root / 'auth.json').exists())
         self.assertEqual(runtime.credential_root(tour_root), self.root)
         self.assertEqual(runtime.run(tour_root), 0)
+        self.assertTrue((tour_root / 'runtime.log').is_file())
+        self.assertFalse((self.root / 'runtime.log').exists())
         self.assertFalse((tour_root / 'outbox').exists())
         self.assertFalse(self.requests)
 
@@ -115,6 +118,91 @@ class RuntimeProof(unittest.TestCase):
         runtime.atomic_write(manifest_path, runtime.json_bytes(value))
         with self.assertRaisesRegex(runtime.RuntimeFault, 'manifest_file_set_mismatch'):
             runtime.inspect_release(self.root)
+
+    def test_runner_owns_ssd_log_for_native_collector_and_startup_failures(self):
+        self.install()
+        with runtime.runtime_output(self.root):
+            subprocess.run([sys.executable, '-c', 'import sys; print("collector-output", flush=True); print("collector-error", file=sys.stderr, flush=True)'], check=True)
+        contents = (self.root / 'runtime.log').read_text()
+        self.assertIn('collector-output', contents)
+        self.assertIn('collector-error', contents)
+        (self.root / 'current').unlink()
+        self.assertEqual(runtime.run(self.root), 1)
+        self.assertIn('release_missing', (self.root / 'runtime.log').read_text())
+
+    def test_runtime_log_stays_bounded_while_native_child_is_alive(self):
+        command = [
+            sys.executable, '-c',
+            'import time; print("old-" + "x" * 32768, flush=True); '
+            'time.sleep(0.4); print("collector-tail", flush=True)',
+        ]
+        with runtime.runtime_output(
+            self.root, max_bytes=4096, retain_bytes=1024, check_seconds=0,
+        ) as output:
+            code, terminating = runtime.supervise(
+                command, None, dict(os.environ), grace_seconds=0.2,
+                log_maintenance=output.maintain,
+            )
+        contents = (self.root / 'runtime.log').read_bytes()
+        self.assertEqual((code, terminating), (0, False))
+        self.assertLessEqual(len(contents), 4096)
+        self.assertIn(runtime.RUNTIME_LOG_BOUNDARY, contents)
+        self.assertIn(b'collector-tail', contents)
+        self.assertNotIn(b'old-', contents)
+
+    def test_final_log_failure_restores_descriptors_before_propagating(self):
+        probe_path = self.base / 'restored-stdout.log'
+        probe = os.open(probe_path, os.O_WRONLY | os.O_CREAT, 0o600)
+        saved_stdout = os.dup(1)
+        try:
+            os.dup2(probe, 1)
+            with patch.object(
+                runtime.BoundedRuntimeOutput, 'maintain', side_effect=[True, False],
+            ), self.assertRaisesRegex(runtime.RuntimeFault, 'runtime_log_unavailable'):
+                with runtime.runtime_output(self.root):
+                    os.write(1, b'captured-before-final-failure\n')
+            os.write(1, b'restored-after-final-failure\n')
+        finally:
+            os.dup2(saved_stdout, 1)
+            os.close(saved_stdout)
+            os.close(probe)
+        self.assertIn(
+            b'captured-before-final-failure', (self.root / 'runtime.log').read_bytes(),
+        )
+        self.assertEqual(probe_path.read_bytes(), b'restored-after-final-failure\n')
+
+    def test_unavailable_runtime_log_prevents_collector_start(self):
+        self.install()
+        (self.root / 'runtime.log').mkdir()
+        with patch.object(runtime.subprocess, 'Popen') as child, contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(self.root), 1)
+        child.assert_not_called()
+
+    def test_launchd_plists_leave_ssd_io_to_the_python_runner(self):
+        scripts = Path(runtime.__file__).parent
+        for suffix in ('tour-scraper', 'series-scraper', 'tournament-schedule-daemon'):
+            with self.subTest(component=suffix):
+                with (scripts / ('com.smarter-poker.' + suffix + '.plist')).open('rb') as source:
+                    value = plistlib.load(source)
+                self.assertNotIn('WorkingDirectory', value)
+                self.assertEqual(value['StandardOutPath'], '/dev/null')
+                self.assertEqual(value['StandardErrorPath'], '/dev/null')
+                self.assertTrue(value['RunAtLoad'])
+                if suffix == 'tour-scraper':
+                    self.assertEqual(value['StartInterval'], 259200)
+                else:
+                    self.assertTrue(value['KeepAlive'])
+
+    def test_pdf_collectors_resolve_pinned_packages_from_external_ssd(self):
+        scripts = Path(runtime.__file__).parent
+        for suffix in ('series-scraper', 'tournament-schedule-daemon'):
+            with (scripts / ('com.smarter-poker.' + suffix + '.plist')).open('rb') as source:
+                value = plistlib.load(source)
+            self.assertEqual(value['EnvironmentVariables']['PYTHONPATH'],
+                '/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/pdf-packages')
+        pins = (scripts / 'pnm-pdf-requirements.txt').read_text()
+        self.assertIn('pdfplumber==0.11.7', pins)
+        self.assertIn('pdfminer.six==20250506', pins)
 
     def test_series_runtime_preserves_daemon_mode_and_catalog_inputs(self):
         files, inputs = runtime.COMPONENTS['series']

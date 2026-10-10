@@ -45,25 +45,29 @@ export default async function handler(req, res) {
         if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const userId = user.id; // From JWT, NOT body
-        const { messageId } = req.body;
+        const { messageId, deleteType = 'for_everyone' } = req.body || {};
 
-        if (!messageId || typeof messageId !== 'string') {
+        if (typeof messageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId) || !['for_me', 'for_everyone'].includes(deleteType)) {
             return res.status(400).json({ success: false, error: 'messageId required' });
         }
 
         try {
             // Try the RPC first (preferred — atomic ownership check inside DB function)
-            const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_delete_message', {
+            const { data: rpcResult, error: rpcErr } = await getSupabase().rpc(deleteType === 'for_me' ? 'fn_messenger_hide_message' : 'fn_delete_message', {
                 p_message_id: messageId,
                 p_user_id: userId,
             });
 
             if (!rpcErr) {
-                if (!rpcResult) {
+                if (rpcResult !== true && rpcResult?.success !== true) {
                     // RPC returned false — message not found or not owned by caller
                     return res.status(403).json({ success: false, error: 'Not authorized to delete this message' });
                 }
                 return res.json({ success: true });
+            }
+
+            if (deleteType === 'for_me') {
+                return res.status(503).json({ success: false, error: 'Could not save message deletion' });
             }
 
             // RPC failed — fall back to atomic ownership-scoped UPDATE

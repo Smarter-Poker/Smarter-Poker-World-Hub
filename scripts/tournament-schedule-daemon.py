@@ -264,30 +264,26 @@ def parse_date(text: str) -> str | None:
     if m: return m.group(0)
     m2 = re.search(r"\b("+"|".join(MONTHS)+r")\b\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(20\d\d))?", text, re.I)
     if m2:
-        year_stated = m2.group(3) is not None
         mo,day,yr = MONTHS[m2.group(1).lower()], int(m2.group(2)), int(m2.group(3) or now.year)
         try:
             dt = datetime(yr,mo,day,tzinfo=timezone.utc)
-            # Only roll the year forward when the source text did NOT state one.
-            # Rolling a stated year turned archived schedules ("March 5, 2026")
-            # into future events that never existed.
-            if dt < now - timedelta(days=1):
-                if year_stated: return None
-                dt = dt.replace(year=yr+1)
+            # A source that omits the year does not authorize projecting a past
+            # date into next year.  That turned an Oct 9 live panel into a
+            # plausible-looking Oct 9, 2027 event on Oct 10, 2026.
+            if dt.date() < now.date():
+                return None
             return dt.strftime("%Y-%m-%d")
         except ValueError: pass
     m3 = re.search(r"\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b", text)
     if m3:
-        year_stated = m3.group(3) is not None
         mo,day = int(m3.group(1)), int(m3.group(2))
         yr = int(m3.group(3) or now.year)
         if yr < 100: yr += 2000
         if 1<=mo<=12 and 1<=day<=31:
             try:
                 dt = datetime(yr,mo,day,tzinfo=timezone.utc)
-                if dt < now - timedelta(days=1):
-                    if year_stated: return None
-                    dt = dt.replace(year=yr+1)
+                if dt.date() < now.date():
+                    return None
                 return dt.strftime("%Y-%m-%d")
             except ValueError: pass
     return None
@@ -428,6 +424,10 @@ def is_servable_scraped_start_time(
 
 def game_from(text: str) -> str:
     u = text.upper()
+    # PokerAtlas uses this exact type for a rotation of two split-pot games;
+    # it is neither NLH nor a single Omaha event.  Keep O8 alone out of this
+    # combined-game branch.
+    if re.search(r"\b(?:O8\s*/\s*S8|S8\s*/\s*O8)\b", u): return "Mixed"
     if "PLO" in u or "OMAHA" in u: return "PLO"
     if "MIXED" in u or "HORSE" in u: return "Mixed"
     if "STUD" in u: return "Stud"
@@ -569,7 +569,23 @@ def sanitize_tournament_name(name: str | None) -> str | None:
     """Remove HTML fragments, CSS selectors, and junk from scraped tournament names."""
     if not name:
         return None
-    name = html_lib.unescape(str(name)).strip()
+    name = str(name).strip()
+    # Bound entity decoding so multiply encoded CSS/JS cannot
+    # become a persisted event title before a later consumer decodes it.
+    for _ in range(8):
+        decoded = html_lib.unescape(name)
+        if decoded == name:
+            break
+        name = decoded
+    code_artifact = re.compile(
+        r'\b(?:text-decoration|font-(?:size|family|weight)|display|background(?:-color)?|text-align|line-height|z-index)\s*:'
+        r'|\bcolor\s*:\s*(?:var\s*\(|rgba?\s*\(|#[\da-f])'
+        r'|@(?:media|supports|font-face)\b'
+        r'|\b(?:document|window)\.(?:querySelector|addEventListener|__\w+)'
+        r'|\bmodule\.exports|[{}]', re.I,
+    )
+    if code_artifact.search(name):
+        return None
     name = re.sub(r"[\u2012-\u2015]", " - ", name)
     name = re.sub(r"\s+", " ", name)
     # Reject names containing HTML tags
@@ -1386,6 +1402,47 @@ GENERIC_PROMOTION_NOISE_RE = re.compile(
     r"\$[\d,]+\s+every\s+\d+\s+minutes?",
     re.I,
 )
+GENERIC_EXPLICIT_DATE_EVIDENCE_RE = re.compile(
+    r"\b20\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])\b|"
+    r"\b(?:" + "|".join(sorted(MONTHS, key=len, reverse=True)) +
+    r")\b\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*20\d{2})?\b|"
+    r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b",
+    re.I,
+)
+GENERIC_EXPLICIT_RECURRING_DAY_RE = re.compile(
+    r"\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\b|"
+    r"\b(?:mon|tue|wed|thu|fri|sat|sun|daily|nightly)\b",
+    re.I,
+)
+
+
+def explicit_generic_recurring_day(text: str) -> str | None:
+    """Return a recurring day only when the candidate says one explicitly."""
+    if not GENERIC_EXPLICIT_RECURRING_DAY_RE.search(str(text or "")):
+        return None
+    return normalize_day(text)
+
+
+def generic_event_date_is_current_or_future(event_date: str) -> bool:
+    """Reject malformed and historical exact dates from current schedules."""
+    try:
+        parsed = datetime.strptime(str(event_date), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return False
+    return parsed >= datetime.now(timezone.utc).date()
+
+
+def pdf_source_has_historical_archive_year(source_url: str) -> bool:
+    """Identify an explicit past-year directory in a PDF source path."""
+    try:
+        path = urllib.parse.urlsplit(str(source_url or "")).path
+    except ValueError:
+        return False
+    current_year = datetime.now(timezone.utc).year
+    return any(
+        int(year) < current_year
+        for year in re.findall(r"/(20\d{2})(?=/|$)", path)
+    )
 
 
 def is_generic_tournament_candidate(text: str) -> bool:
@@ -1419,7 +1476,26 @@ def extract_html(html:str, venue_name:str, vid, batch_id:str, source_url:str, sr
         if buyin is None: return  # No valid buy-in found — skip this block
         st = normalize_time(tm.group(1))
         ed = parse_date(txt)
-        day = normalize_day(txt) if not ed else None
+        if ed and not generic_event_date_is_current_or_future(ed):
+            return
+        if not ed and GENERIC_EXPLICIT_DATE_EVIDENCE_RE.search(txt):
+            # A past or invalid exact date must not silently degrade into a
+            # weekly template just because its text also names a weekday.
+            return
+        day = explicit_generic_recurring_day(txt) if not ed else None
+        if not ed and not day:
+            # Generic PDF/HTML extraction has no authority to turn an undated
+            # event into a Daily schedule. Recurrence must be source evidence.
+            return
+        if (
+            not ed
+            and str(src_type or "").lower().startswith("pdf")
+            and pdf_source_has_historical_archive_year(source_url)
+        ):
+            # An old upload directory cannot authorize a current recurrence.
+            # A current/future exact date in the PDF remains authoritative even
+            # when a venue replaces a file at a stable historical URL.
+            return
         stack = None
         sm = re.search(r"(?:stack|chips)[:\s]*([0-9,]+)",txt,re.I)
         if sm:
@@ -1450,7 +1526,7 @@ def extract_html(html:str, venue_name:str, vid, batch_id:str, source_url:str, sr
         dk=f"{ed or day}-{st}-{buyin}-{game_from(txt)}"
         if dk in seen: return
         seen.add(dk)
-        rec = make_rec(venue_name,vid,batch_id,day or "Daily",ed,st,buyin,
+        rec = make_rec(venue_name,vid,batch_id,day,ed,st,buyin,
             game_from(txt),fmt_from(txt),gtd,tname,source_url,src_type,h,stack,blvl,rebuy,late,
             state=state, age=parse_age(txt),
             quality="scraped_inferred",
@@ -2431,7 +2507,8 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict,
                 continue
             for origin in external_origins:
                 venue.setdefault("_extra_origins", []).append(origin)
-            if source_confirms_valid_empty(html):
+            recurring_schedule_empty = source_confirms_valid_empty(html)
+            if recurring_schedule_empty:
                 mark_valid_empty("pokeratlas", final_url)
 
             # PRIMARY PATH: the recurring weekly schedule from the page HTML.
@@ -2450,7 +2527,11 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict,
                 if recs:
                     log(f"      [PA:NEXT_DATA] {len(recs)} records (no schedule section)")
             # FALLBACK: generic extractor
-            if not recs and has_tourn(html):
+            # A source-owned ``no-tournaments`` marker applies to the recurring
+            # schedule section.  Do not let unrelated live/calendar copy on the
+            # same page fall through the generic heuristic and become a made-up
+            # daily row.  Structured dated data remains eligible above.
+            if not recs and not recurring_schedule_empty and has_tourn(html):
                 recs = extract_html(html, name, vid, batch_id, final_url, "pokeratlas", state)
             add(recs, "pokeratlas", final_url)
 
@@ -2976,9 +3057,12 @@ class DaemonSessionManager:
 
     @staticmethod
     def _is_access_challenge(html: str) -> bool:
+        # ``/cdn-cgi/challenge-platform/...`` is also injected into complete,
+        # readable Cloudflare-protected pages.  It is not challenge evidence by
+        # itself; retain the explicit interstitial text and cf-chl DOM markers.
         return bool(re.search(
             r"just a moment|security verification|checking your browser|"
-            r"cf-chl-|challenge-platform|cloudflare ray id|"
+            r"cf-chl-|cloudflare ray id|"
             r"enable javascript and cookies to continue",
             str(html or ""),
             re.I,
