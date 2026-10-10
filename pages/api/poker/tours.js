@@ -132,26 +132,15 @@ function getUpcomingSeries(tourCode, registryTours) {
     const todayStr = today.toISOString().split('T')[0];
     const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
 
-    // Registry stop dates are informal ("Apr 2-13", "Feb 22 - Mar 9") and carry no
-    // year. Anchor them to the CURRENT year (the old hardcoded 2026 meant every
-    // stop parsed as past from Jan 2027 onward) with a rollover heuristic: a date
-    // more than ~6 months behind today is assumed to belong to next year.
-    const CURRENT_YEAR = today.getFullYear();
-    const SIX_MONTHS_MS = 183 * 24 * 60 * 60 * 1000;
-
-    function rollYearForward(d) {
-        if (!d) return d;
-        if (today.getTime() - d.getTime() > SIX_MONTHS_MS) {
-            d.setFullYear(d.getFullYear() + 1);
-        }
-        return d;
-    }
+    // These arrays are explicitly the 2026 schedule. An expired stop is not
+    // evidence of a repeat next year. Only a source-supplied year overrides it.
+    const SCHEDULE_YEAR = 2026;
 
     // Parse informal dates like "Apr 2-13" or "Feb 22 - Mar 9"
     function parseInformalDate(dateStr) {
         if (!dateStr) return null;
         const parts = dateStr.split(/\s*[--]\s*/);
-        // An explicit 4-digit year anywhere in the string wins over the heuristic.
+        // An explicit 4-digit year anywhere in the string wins over the catalog year.
         const explicitYearMatch = dateStr.match(/\b(20\d{2})\b/);
         const explicitYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : null;
         const parseOne = (s, fallbackMonth) => {
@@ -163,13 +152,12 @@ function getUpcomingSeries(tourCode, registryTours) {
                 if (month === undefined) return null;
                 if (m[3]) return new Date(parseInt(m[3], 10), month, parseInt(m[2]));
                 if (explicitYear) return new Date(explicitYear, month, parseInt(m[2]));
-                return rollYearForward(new Date(CURRENT_YEAR, month, parseInt(m[2])));
+                return new Date(SCHEDULE_YEAR, month, parseInt(m[2]));
             }
             const dayOnly = s.match(/^(\d{1,2})$/);
             if (dayOnly && fallbackMonth !== undefined) {
-                const baseYear = explicitYear || CURRENT_YEAR;
-                const d = new Date(baseYear, fallbackMonth, parseInt(dayOnly[1]));
-                return explicitYear ? d : rollYearForward(d);
+                const baseYear = explicitYear || SCHEDULE_YEAR;
+                return new Date(baseYear, fallbackMonth, parseInt(dayOnly[1]));
             }
             return null;
         };
@@ -632,7 +620,9 @@ export default async function handler(req, res) {
               },
               metadata: {
                   source,
-                  last_updated: tourRegistry.metadata?.created || '2026-01-26',
+                  // Schedule enrichment always comes from this recorded registry,
+                  // not from DB identity rows or the time this request was served.
+                  last_updated: tourRegistry.metadata?.last_updated || null,
               },
           });
 

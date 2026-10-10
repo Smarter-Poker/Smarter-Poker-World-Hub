@@ -6,6 +6,34 @@ Worktree: `/Volumes/SmarterWork/agent-work/claude-pnm-console-20260929/world-hub
 
 ## 2026-10-08 final continuation
 
+### 2026-10-10 blocker closeout
+
+Owned follow-up `agent/codex/pnm-blocker-closeout-20261009`, external checkout
+`/Volumes/SmarterWork/agent-work/codex-pnm-blockers-20261009`, base
+`956ee734ecb3d4df628c8777dc6b8cc8ad32f4f2`. Canonical policies version 2.9
+fully reread at 2026-10-10T01:21:07.759Z with the unchanged hashes recorded below;
+portable canonical check passed. Root instructions, publishing, storage guide,
+live-cash policy and archived checkpoint reread. No engine/database change.
+
+Two demonstrated remaining defects repaired: explicitly 2026 tour schedules no
+longer roll expired stops into invented 2027 events; registry freshness reports
+its actual recorded April 7 update rather than January 26 creation. Failed
+Scrapling context teardown now independently releases the remaining owned
+browser/Playwright resources, so its active sync loop cannot strand reconnect.
+Two tour regressions and two session regressions failed before repair. All
+three tour regressions and 36 persistence tests pass after; a real Patchright
+sync owner is stopped and reopened without a process restart. Tests are wired
+into the existing PNM build suite and required Pre-Deploy Safety Checks.
+
+The previous immutable scraper generation completed its full 480-room sweep
+and durable stale cleanup at 2026-10-10T00:05:41Z (final slice 202/202 saved,
+zero errors). This is catalog proof, never running-table observation proof.
+PR #2248's optional footer run hit its 30-minute ceiling after an 8.5-minute
+browser installation; footer geometry and premium menu passed, final mobile
+steps were cancelled. One diagnosed recovery attempt is run 38004879543.
+Publication and installation of this new correction remain pending until
+the protected follow-up and actual live/runtime readback complete.
+
 Resumption receipt, 2026-10-09T23:27:43.266Z: canonical policy reader emitted full version 2.9;
 all hashes below remain unchanged and portable check with canonical passed. Repository entrypoints,
 publishing, storage guide, live-cash-games policy and this checkpoint were reread. Production proof

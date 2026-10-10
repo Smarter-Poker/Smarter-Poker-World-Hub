@@ -161,6 +161,17 @@ jobs:
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
 
+      - name: Setup Python For PokerAtlas Session Contracts
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: PokerAtlas Persistence And Real Session Teardown Contracts
+        run: |
+          python -m venv "$RUNNER_TEMP/pnm-session-contracts"
+          "$RUNNER_TEMP/pnm-session-contracts/bin/python" -m pip install python-dotenv==1.2.2 patchright==1.58.2
+          "$RUNNER_TEMP/pnm-session-contracts/bin/python" scripts/test_pokeratlas_persistence.py
+
       - name: Training M1 Scope-Preserving HMAC Provisioning
         run: python3 -m unittest discover -s __tests__ -p test_provision_training_m1_hmac.py
 
