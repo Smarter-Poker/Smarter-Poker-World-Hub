@@ -40,6 +40,15 @@ test('tour priority uses only real remaining printed dates without inventing dat
   const panel = read('src/components/poker-near-me/ToursTabPanel.jsx');
   assert.match(panel, /orderDiscoverySchedules\(safeTours, undefined, nextTourSchedule\)/);
   assert.match(panel, /filteredTours\.slice\(0, displayCount\.tours\)/);
+  const card = read('src/components/poker-near-me/TourCard.js');
+  assert.match(card, /const nextSchedule = nextTourSchedule\(tour\)/);
+  assert.match(card, /\{nextSchedule && \(/);
+  assert.match(card, /nextSchedule\?\.start_date < discoveryDate\(\) \? 'Ongoing' : 'Next'/);
+  assert.match(card, /formatDate\(nextSchedule\.start_date \|\| nextSchedule\.event_date\)/);
+  assert.doesNotMatch(card, /tour\.upcoming_series\[0\]/);
+  const staleFirst = { upcoming_series: [{ name: 'Past', start_date: '2026-08-22' }, { name: 'Next', start_date: '2026-10-12' }] };
+  assert.equal(nextTourSchedule(staleFirst, '2026-10-10').name, 'Next');
+  assert.equal(nextTourSchedule({ stops_2026: [{ name: 'Ongoing', start_date: '2026-08-22', end_date: '2026-10-24' }] }, '2026-10-10').name, 'Ongoing');
 });
 
 test('public companion reads beyond the old 100-row cutoff without losing history', async () => {
