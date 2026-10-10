@@ -253,6 +253,103 @@ class GenericTournamentFallbackTests(unittest.TestCase):
         self.assertEqual(rows[0]["day_of_week"], "Friday")
         self.assertEqual(rows[0]["data_quality"], "scraped_inferred")
 
+    def test_semantic_undated_container_cannot_become_daily_template(self):
+        html = """
+          <div class="poker-tournament event">
+            11:00 AM $150 Buy-In No Limit Hold'em Tournament
+          </div>
+        """
+        rows = DAEMON.extract_html(
+            html, "Verified Room", 99, "offline-batch",
+            "https://example.com/tournaments", "website", "NV",
+        )
+        self.assertEqual(rows, [])
+
+    def test_semantic_explicit_daily_container_remains_recurring(self):
+        html = """
+          <div class="poker-tournament event">
+            Daily 11:00 AM $150 Buy-In No Limit Hold'em Tournament
+          </div>
+        """
+        rows = DAEMON.extract_html(
+            html, "Verified Room", 99, "offline-batch",
+            "https://example.com/tournaments", "website", "NV",
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["day_of_week"], "Daily")
+        self.assertTrue(rows[0]["is_recurring"])
+
+    def test_archived_pdf_url_cannot_create_current_daily_projection(self):
+        # Trimmed from the exact SHRT 2019 PDF that produced one undated
+        # template and was expanded into 14 current October 2026 rows.
+        pdf_text = """
+          DAY 1C • FEB 21 | 11AM DAY 1F • FEB 23 | 11AM
+          DAY 2 • FEB 24 | NOON
+          $360 BUY-IN • NLH (RE-ENTRY) • BIG BLIND ANTE • 25,000 STARTING UNITS
+        """
+        rows = DAEMON.extract_html(
+            pdf_text, "Seminole Hard Rock Tampa", 1826, "offline-batch",
+            "https://www.shrtpoker.com/wp-content/uploads/2019/01/"
+            "SHRTPC-Event-1-360-NLH-200K_final.pdf",
+            "pdf_website", "FL",
+        )
+        self.assertEqual(rows, [])
+
+    def test_undated_pdf_candidate_cannot_become_daily_template(self):
+        rows = DAEMON.extract_html(
+            "11AM $360 BUY-IN NLH Tournament", "Verified Room", 99,
+            "offline-batch", "https://example.com/current-schedule.pdf",
+            "pdf_website", "NV",
+        )
+        self.assertEqual(rows, [])
+
+    def test_explicit_historical_pdf_date_cannot_become_weekly_template(self):
+        rows = DAEMON.extract_html(
+            "Friday February 20, 2019 11AM $360 BUY-IN NLH Tournament",
+            "Verified Room", 99, "offline-batch",
+            "https://example.com/schedule.pdf", "pdf_website", "NV",
+        )
+        self.assertEqual(rows, [])
+
+    def test_explicit_future_pdf_date_remains_a_dated_event(self):
+        real_datetime = DAEMON.datetime
+
+        class FixedDatetime(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return cls(2026, 10, 10, 12, 0, tzinfo=DAEMON.timezone.utc)
+
+        with mock.patch.object(DAEMON, "datetime", FixedDatetime):
+            rows = DAEMON.extract_html(
+                "October 11, 2026 11AM $360 BUY-IN NLH Tournament",
+                "Verified Room", 99, "offline-batch",
+                "https://example.com/schedule.pdf", "pdf_website", "NV",
+            )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["event_date"], "2026-10-11")
+        self.assertIsNone(rows[0]["day_of_week"])
+        self.assertFalse(rows[0]["is_recurring"])
+
+    def test_future_dated_pdf_at_old_upload_path_remains_a_fact(self):
+        real_datetime = DAEMON.datetime
+
+        class FixedDatetime(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return cls(2026, 10, 10, 12, 0, tzinfo=DAEMON.timezone.utc)
+
+        with mock.patch.object(DAEMON, "datetime", FixedDatetime):
+            rows = DAEMON.extract_html(
+                "October 11, 2026 11AM $360 BUY-IN NLH Tournament",
+                "Verified Room", 99, "offline-batch",
+                "https://example.com/wp-content/uploads/2019/01/schedule.pdf",
+                "pdf_website", "NV",
+            )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["event_date"], "2026-10-11")
+        self.assertIsNone(rows[0]["day_of_week"])
+        self.assertFalse(rows[0]["is_recurring"])
+
     def test_dom_json_and_truncated_names_are_rejected(self):
         artifacts = (
             "@context", "false", "true", "content", "comp-jv7a5ybk",

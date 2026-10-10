@@ -14,6 +14,39 @@ const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const exists = (file) => fs.existsSync(path.join(root, file));
 
+test('venue schedules expose each real calendar date without shifting or collapsing occurrences', () => {
+  const page = read('pages/hub/venues/[id].js');
+  assert.match(page, /<time dateTime=\{scheduleDate\.iso\}>\{scheduleDate\.label\}<\/time>/);
+  assert.match(page, /var scheduleDate = formatScheduleOccurrenceDate\(s\.event_date\)/);
+  assert.match(page, /schedules\.map\(function \(s, idx\)/);
+  const helper = page.match(/function formatScheduleOccurrenceDate\(value\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(helper, 'date formatter exists at the rendering owner');
+  const format = new Function(`${helper}; return formatScheduleOccurrenceDate;`)();
+  assert.deepEqual(format('2026-10-14'), { iso: '2026-10-14', label: 'Oct 14, 2026' });
+  assert.deepEqual(format('2026-10-14T00:00:00Z'), { iso: '2026-10-14', label: 'Oct 14, 2026' });
+  assert.deepEqual(format('2026-11-01'), { iso: '2026-11-01', label: 'Nov 1, 2026' });
+  assert.deepEqual(format('2028-02-29'), { iso: '2028-02-29', label: 'Feb 29, 2028' });
+  for (const invalid of [null, undefined, '', '1970-01-01', '2026-02-29', '2026-13-01', '2026-10-40', 'not-a-date']) assert.equal(format(invalid), null);
+  const functions = ['scheduleGroupIsToday', 'scheduleVenueToday', 'compareScheduleOccurrences'].map(name => page.match(new RegExp(`function ${name}\\([^]*?\\n\\}`))?.[0]);
+  assert.ok(functions.every(Boolean));
+  const behavior = new Function(`${helper}; ${functions.join('\n')}; return { scheduleGroupIsToday, scheduleVenueToday, compareScheduleOccurrences };`)();
+  const today = behavior.scheduleVenueToday('America/New_York', new Date('2026-10-10T01:00:00Z'));
+  assert.deepEqual(today, { iso: '2026-10-09', day: 'Friday' });
+  assert.equal(behavior.scheduleVenueToday(null, new Date()), null);
+  assert.equal(behavior.scheduleVenueToday('Not/AZone', new Date()), null);
+  assert.match(page, /scheduleVenueToday\(resolveVenueTimeZone\(venue\), new Date\(\)\)/);
+  assert.match(page, /\[venue\?\.timezone, venue\?\.state\]/);
+  assert.equal(behavior.scheduleGroupIsToday('Friday', [{ event_date: '2026-10-16' }, { event_date: '2026-10-23' }], today), false);
+  assert.equal(behavior.scheduleGroupIsToday('Friday', [{ event_date: '2026-10-09' }], today), true);
+  assert.equal(behavior.scheduleGroupIsToday('Friday', [{ event_date: null }], today), true);
+  assert.equal(behavior.scheduleGroupIsToday('Friday', [{ event_date: '1970-01-01' }], today), false);
+  const dated = [{ event_date: '2026-10-23', start_time: '18:00' }, { event_date: '2026-10-16', start_time: '18:00' }, { event_date: '2026-10-16', start_time: '11:00' }];
+  assert.deepEqual(dated.sort(behavior.compareScheduleOccurrences).map(row => row.event_date + ' ' + row.start_time), ['2026-10-16 18:00', '2026-10-16 11:00', '2026-10-23 18:00']);
+  assert.equal(behavior.compareScheduleOccurrences({ event_date: '2026-10-16', start_time: '9 AM' }, { event_date: '2026-10-16', start_time: '11 AM' }), 0, 'same-date source ordering is retained');
+  assert.match(page, /schedules\.sort\(compareScheduleOccurrences\)/);
+  assert.match(page, /var isToday = scheduleGroupIsToday\(day, schedules, scheduleToday\)/);
+});
+
 test('venue schedule and live report states use complete painted panels without changing handlers', () => {
   const page = read('pages/hub/venues/[id].js');
   assert.equal((page.match(/<PokerNearMePanelShell as="section" id="tournaments-section"/g) || []).length, 2);
