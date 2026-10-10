@@ -92,7 +92,7 @@ export default function MapTabPanel({
                             onVenueClick={onMapVenueClick}
                             radiusMiles={filters.radius}
                             mapEyebrow="National discovery grid"
-                            mapTitle="Live poker map"
+                            mapTitle="Poker discovery map"
                             mapDetail={`${filteredVenues.length} filtered locations · drag to explore the country`}
                             mapControls={(
                                 <>
@@ -113,11 +113,14 @@ export default function MapTabPanel({
                                             <option value="Any">Any</option>
                                         </select>
                                     </label>
-                                    {userLocation && (
-                                        <button type="button" className="pnm-map-recenter-control" onClick={requestGpsLocation} aria-label="Recenter map on my location">
+                                    {requestGpsLocation && (
+                                        <button type="button" className="pnm-map-recenter-control" onClick={requestGpsLocation} aria-label={userLocation ? 'Recenter map on my location' : 'Use my location'}>
                                             <PokerNearMeConsoleIcon name="location" />
                                         </button>
                                     )}
+                                    <a className="pnm-map-recenter-control" href="/hub/poker-near-me/venues" aria-label="Browse venues without the map">
+                                        <PokerNearMeConsoleIcon name="menu" />
+                                    </a>
                                 </>
                             )}
                             onOpenIframeModal={openVenueModal || (setIframeModal ? (url, title) => setIframeModal({ isOpen: true, url, title }) : undefined)}

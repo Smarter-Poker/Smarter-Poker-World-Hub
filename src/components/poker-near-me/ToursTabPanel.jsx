@@ -5,6 +5,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { PokerNearMePanelShell } from './PokerNearMeConsole';
+import { orderDiscoverySchedules, nextTourSchedule } from '../../lib/poker-near-me/scheduleDiscovery.mjs';
 
 const TourCard = dynamic(() => import('./TourCard'), { ssr: false });
 
@@ -91,24 +92,19 @@ export default function ToursTabPanel({
 
     // Derive each tour's states once per tours change, and offer only states that
     // actually have tours — the old 51-option list guaranteed empty results.
-    const { stateOptions, stateIndex } = React.useMemo(() => {
-        const index = new Map();
+    const stateOptions = React.useMemo(() => {
         const present = new Set();
-        safeTours.forEach((t, i) => {
+        safeTours.forEach((t) => {
             const codes = tourStateCodes(t);
-            index.set(t.tour_code || i, codes);
             codes.forEach(c => present.add(c));
         });
-        return {
-            stateOptions: US_STATES.filter(st => present.has(st)),
-            stateIndex: index,
-        };
+        return US_STATES.filter(st => present.has(st));
     }, [safeTours]);
 
-    let filteredTours = safeTours;
+    let filteredTours = orderDiscoverySchedules(safeTours, undefined, nextTourSchedule);
     if (tourStateVal !== 'all') {
-        filteredTours = filteredTours.filter((t, i) => {
-            const codes = stateIndex.get(t.tour_code || i);
+        filteredTours = filteredTours.filter((t) => {
+            const codes = tourStateCodes(t);
             return !!(codes && codes.has(tourStateVal));
         });
     }
@@ -136,6 +132,7 @@ export default function ToursTabPanel({
             </div>
             <div className="results-bar">
                 <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredTours.length}</span> {filteredTours.length !== 1 ? 'tours' : 'tour'}</span>
+                <span className="results-count">Upcoming Dates First · All Tours Retained</span>
             </div>
             </PokerNearMePanelShell>
             {filteredTours.length === 0 ? (

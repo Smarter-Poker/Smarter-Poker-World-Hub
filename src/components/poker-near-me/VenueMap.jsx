@@ -15,7 +15,7 @@
  */
 
 import React, { useRef, useState, useEffect, useId, useMemo, useCallback } from 'react';
-import { radiusToZoom } from './pnm-utils';
+import { haversineMiles, radiusToZoom } from './pnm-utils';
 import MapPreferenceChooser from './MapPreferenceChooser';
 import MapCoverageReadout from './MapCoverageReadout';
 import MapSurfaceFrame from './MapSurfaceFrame';
@@ -133,6 +133,7 @@ export class MapErrorBoundary extends React.Component {
           <PokerNearMeConsoleIcon name="alert" className="pnm-map-boundary__icon" />
           <p className="pnm-map-boundary__title">Map Unavailable</p>
           <p className="pnm-map-boundary__copy">Unable To Load The Map. This May Be Caused By An Ad Blocker Or Network Issue.</p>
+          <a className="pnm-map-status__action" href="/hub/poker-near-me/venues">Browse Venue List</a>
           {/* [VM8 FIX] Stack trace hidden in production — was leaking internal file paths and source structure to end users. */}
           {process.env.NODE_ENV === 'development' && (
             <pre className="pnm-map-boundary__debug">
@@ -556,9 +557,7 @@ export default function VenueMap({
     const distanceMap = new Map();
     if (userLocation) {
       validVenues.forEach(function(v) {
-        const dlat = (v.latitude - userLocation.lat) * 69;
-        const dlng = (v.longitude - userLocation.lng) * 69 * Math.cos(userLocation.lat * Math.PI / 180);
-        distanceMap.set(v.id, Math.sqrt(dlat * dlat + dlng * dlng));
+        distanceMap.set(v.id, haversineMiles(userLocation.lat, userLocation.lng, v.latitude, v.longitude));
       });
     }
 
@@ -750,12 +749,10 @@ export default function VenueMap({
       radiusCircleRef.current = null;
     }
     
-    // Determine the center point: prefer explicit centerLocation, fallback to userLocation
-    const center = centerLocation || userLocation;
-    if (!center) return;
-    
-    // For "Any" / "all" radius, show full US overview (no circle)
-    if (!radiusMiles || radiusMiles === 'any' || radiusMiles === 'Any') {
+    // No radius means this caller owns result framing, not a nationwide search.
+    if (radiusMiles == null || radiusMiles === '') return;
+    // Explicit Any works without GPS (including denied location access).
+    if (radiusMiles === 'any' || radiusMiles === 'Any') {
       const usBounds = L.latLngBounds(
         L.latLng(24.396308, -125.0),
         L.latLng(49.384358, -66.93457)
@@ -763,6 +760,9 @@ export default function VenueMap({
       map.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6, animate: true, duration: 0.8 });
       return;
     }
+    const center = centerLocation || userLocation;
+    if (!center || !Number.isFinite(Number(center.lat)) || !Number.isFinite(Number(center.lng))) return;
+    if (!Number.isFinite(Number(radiusMiles)) || Number(radiusMiles) <= 0) return;
     
     const zoom = radiusToZoom(radiusMiles);
     map.setView([center.lat, center.lng], zoom, { animate: true, duration: 0.8 });
@@ -819,6 +819,7 @@ export default function VenueMap({
         <div className="pnm-map-status pnm-map-status--error" role="alert">
           <strong className="pnm-map-status__title">Map Unavailable</strong>
           <p>{mapError}</p>
+          <a className="pnm-map-status__action" href="/hub/poker-near-me/venues">Browse Venue List</a>
           <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }}>Try Map Again</button>
         </div>
       )}
