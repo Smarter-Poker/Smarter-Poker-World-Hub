@@ -24,6 +24,7 @@ import { decodeHtmlEntities } from '../../lib/socialHelpers';
 import { newsImageUrl } from '../../lib/security/imageHosts.js';
 import {
     articlePreviewNeedsHydration,
+    isArticlePreviewImage,
     mergeArticleMetadata,
     suppliedArticleMetadata,
 } from '../../lib/articlePreviewMetadata.mjs';
@@ -86,7 +87,7 @@ function prewarmProxy(url) {
 async function fetchLinkPreview(url, { requireImage = false } = {}) {
     // Return cached result if available
     const cached = _metadataCache.get(url);
-    if (cached && (!requireImage || cached.image)) return cached;
+    if (cached && (!requireImage || isArticlePreviewImage(cached.image))) return cached;
 
     const requestKey = requireImage ? `${url}|story-image-v1` : url;
 
@@ -237,7 +238,7 @@ export default function ArticleCard({
     const [metadata, setMetadata] = useState(() => suppliedArticleMetadata({
         title, description, image, siteName,
     }));
-    const [loading, setLoading] = useState(Boolean(url && !image));
+    const [loading, setLoading] = useState(Boolean(url && !isArticlePreviewImage(image)));
     const [imageError, setImageError] = useState(false);
 
     // Fetch incomplete metadata (uses shared cache to avoid N+1). Horse news

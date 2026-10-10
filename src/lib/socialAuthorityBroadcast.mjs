@@ -7,6 +7,7 @@ function openEntry(client) {
     active: true,
     channel: null,
     listeners: new Set(),
+    status: null,
     removing: null,
   };
   entry.channel = client
@@ -16,13 +17,17 @@ function openEntry(client) {
       for (const listener of entry.listeners) {
         listener({ type: 'broadcast', payload: message?.payload });
       }
-    })
-    .subscribe((status) => {
-      if (!entry.active) return;
-      for (const listener of entry.listeners) listener({ type: 'status', status });
     });
   entries.set(client, entry);
   return entry;
+}
+
+function startEntry(entry) {
+  entry.channel.subscribe((status) => {
+      entry.status = status;
+      if (!entry.active) return;
+      for (const listener of entry.listeners) listener({ type: 'status', status });
+    });
 }
 
 /**
@@ -50,6 +55,8 @@ export function subscribeSocialAuthority(client, listener) {
 
   const entry = current || openEntry(client);
   entry.listeners.add(listener);
+  if (!current) startEntry(entry);
+  else if (entry.status) listener({ type: 'status', status: entry.status });
   let subscribed = true;
   return () => {
     if (!subscribed) return;

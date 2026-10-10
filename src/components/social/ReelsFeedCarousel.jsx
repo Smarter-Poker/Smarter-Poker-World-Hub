@@ -3445,6 +3445,7 @@ export function ReelsFeedCarousel() {
             // broadcast deliberately flags that whole bounded set because its
             // source id is not necessarily the social_reels row id.
             max: flaggedIds.length,
+            concurrency: 5,
             isCurrent: reelsRequest.isCurrent,
             fetchDetail: async (id) => (await fetchPokerReels({
               limit: 1,

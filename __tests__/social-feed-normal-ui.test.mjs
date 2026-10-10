@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   articlePreviewNeedsHydration,
+  isArticlePreviewImage,
   mergeArticleMetadata,
   suppliedArticleMetadata,
 } from '../src/lib/articlePreviewMetadata.mjs';
@@ -31,6 +32,15 @@ test('titled image-less horse news still hydrates its actual preview image', () 
   assert.equal(articlePreviewNeedsHydration('https://upswingpoker.com/example/', {
     image: 'https://upswingpoker.com/article.jpg',
   }), false);
+  const emoji = 'https://s.w.org/images/core/emoji/17.0.2/72x72/1f609.png';
+  assert.equal(isArticlePreviewImage(emoji), false);
+  assert.equal(isArticlePreviewImage('https://upswingpoker.com/wp-content/uploads/story.jpg'), true);
+  assert.equal(suppliedArticleMetadata({ title: 'Live Poker Tips', image: emoji }).image, null);
+  assert.equal(articlePreviewNeedsHydration('https://upswingpoker.com/live-poker-tips/',
+    suppliedArticleMetadata({ title: 'Live Poker Tips', image: emoji })), true);
+  assert.equal(mergeArticleMetadata({ title: 'Live Poker Tips', image: emoji }, {
+    image: 'https://upswingpoker.com/wp-content/uploads/garrett-story.jpg',
+  }).image, 'https://upswingpoker.com/wp-content/uploads/garrett-story.jpg');
   assert.match(article, /newsImageUrl\(metadata\.image\)/);
   assert.match(article, /setMetadata\(supplied\)/);
   assert.match(article, /fetchLinkPreview\(url, \{ requireImage: !supplied\.image \}\)/);
@@ -51,6 +61,19 @@ test('author copy and article metadata precede media in DOM order', () => {
   const image = article.indexOf('src={displayImage}');
   assert.ok(title > -1 && image > -1 && title < image, 'article title precedes preview image');
   assert.ok(article.indexOf('{metadata.description &&') < image, 'article description precedes preview image');
+});
+
+test('shared Reel wrappers use the same plain text-first social card', () => {
+  const start = social.indexOf('const sharedReelPath = sharedReelPathForPost(post);');
+  const end = social.indexOf('{/* Action buttons row', start);
+  const shared = social.slice(start, end);
+  const title = shared.indexOf("{post.link_title || 'Watch This Reel On Smarter.Poker'}");
+  const image = shared.indexOf('src={post.link_image}');
+  assert.ok(title > -1 && image > title, 'shared Reel title precedes its preview image');
+  assert.ok(shared.indexOf('{post.link_description}') < image, 'shared Reel description precedes media');
+  assert.match(shared, /background: '#fff'/);
+  assert.doesNotMatch(shared, /(?:linear|radial|conic)-gradient|boxShadow|<svg\b/);
+  assert.match(shared, /router\.push\(sharedReelPath\)/, 'canonical Reel click path stays wired');
 });
 
 test('social Reel cards put creator, disclosures and caption before their preview media', () => {

@@ -333,22 +333,36 @@ export function mergeBackgroundReels({
  * or 410 (or a response without that Reel) is a removal verdict, any other
  * failure keeps the mounted row because it is not a verdict.
  */
-export async function resolveStaleReels({ ids = [], fetchDetail, isCurrent = () => true, max = MAX_STALE_REEL_CHECKS } = {}) {
+export async function resolveStaleReels({
+  ids = [],
+  fetchDetail,
+  isCurrent = () => true,
+  max = MAX_STALE_REEL_CHECKS,
+  concurrency = 1,
+} = {}) {
   if (typeof fetchDetail !== 'function') throw new TypeError('fetchDetail is required');
   const replacements = [];
   const removeIds = [];
   const unique = [...new Set(ids)].filter(Boolean).slice(0, Math.max(0, Math.trunc(Number(max)) || 0));
-  for (const id of unique) {
-    try {
-      const rows = await fetchDetail(id);
-      const row = (Array.isArray(rows) ? rows : []).find((reel) => reel?.id === id);
-      if (row) replacements.push(row);
-      else removeIds.push(id);
-    } catch (error) {
-      if (error?.name === 'AbortError') throw error;
-      if (UNAVAILABLE_STATUSES.has(error?.status)) removeIds.push(id);
+  let cursor = 0;
+  const worker = async () => {
+    while (isCurrent()) {
+      const position = cursor;
+      cursor += 1;
+      if (position >= unique.length) return;
+      const id = unique[position];
+      try {
+        const rows = await fetchDetail(id);
+        const row = (Array.isArray(rows) ? rows : []).find((reel) => reel?.id === id);
+        if (row) replacements.push(row);
+        else removeIds.push(id);
+      } catch (error) {
+        if (error?.name === 'AbortError') throw error;
+        if (UNAVAILABLE_STATUSES.has(error?.status)) removeIds.push(id);
+      }
     }
-    if (!isCurrent()) break;
-  }
+  };
+  const workerCount = Math.min(unique.length, Math.max(1, Math.min(8, Math.trunc(Number(concurrency)) || 1)));
+  await Promise.all(Array.from({ length: workerCount }, worker));
   return { replacements, removeIds, checkedIds: unique };
 }

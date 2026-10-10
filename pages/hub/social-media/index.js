@@ -1961,82 +1961,33 @@ const PostCard = React.memo(
                 onClick={() => router.push(sharedReelPath)}
                 aria-label={`Open Shared Reel From ${sourceName}`}
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(124px, 38%) 1fr',
+                  display: 'block',
                   width: 'calc(100% - 24px)',
-                  minHeight: 132,
                   margin: '4px 12px 12px',
                   padding: 0,
                   overflow: 'hidden',
-                  borderRadius: 14,
-                  border: '1px solid rgba(104, 202, 255, 0.62)',
-                  background:
-                    'linear-gradient(145deg, rgba(10, 27, 42, 0.98), rgba(2, 8, 16, 0.99))',
-                  boxShadow:
-                    'inset 0 1px 0 rgba(224, 248, 255, 0.22), inset 0 -1px 0 rgba(0, 74, 128, 0.65), 0 10px 28px rgba(0, 20, 38, 0.24)',
-                  color: '#eaf8ff',
+                  borderRadius: 8,
+                  border: '1px solid #dadde1',
+                  background: '#fff',
+                  color: '#050505',
                   textAlign: 'left',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                 }}
               >
-                <span
-                  style={{
-                    position: 'relative',
-                    display: 'grid',
-                    placeItems: 'center',
-                    minHeight: 132,
-                    overflow: 'hidden',
-                    background:
-                      'radial-gradient(circle at 50% 45%, rgba(0, 151, 255, 0.46), rgba(1, 10, 20, 0.98) 68%)',
-                    borderRight: '1px solid rgba(104, 202, 255, 0.35)',
-                  }}
-                >
-                  {post.link_image ? (
-                    <img
-                      src={post.link_image}
-                      alt=""
-                      loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  ) : null}
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      display: 'grid',
-                      placeItems: 'center',
-                      width: 48,
-                      height: 48,
-                      borderRadius: '50%',
-                      border: '1px solid rgba(220, 247, 255, 0.82)',
-                      background:
-                        'linear-gradient(145deg, rgba(235, 250, 255, 0.94), rgba(69, 172, 238, 0.9))',
-                      boxShadow:
-                        'inset 0 1px 0 white, 0 0 0 5px rgba(0, 143, 255, 0.16), 0 8px 22px rgba(0, 0, 0, 0.48)',
-                    }}
-                  >
-                    <svg width="19" height="22" viewBox="0 0 19 22" fill="none">
-                      <path d="M2 2.2L17 11L2 19.8V2.2Z" fill="#03131f" stroke="#03131f" />
-                    </svg>
-                  </span>
-                </span>
-                <span style={{ padding: '18px 16px', alignSelf: 'center', minWidth: 0 }}>
+                <span style={{ display: 'block', padding: '12px 16px', minWidth: 0 }}>
                   <span
                     style={{
                       display: 'block',
-                      marginBottom: 7,
-                      color: '#72d6ff',
-                      fontSize: 10,
-                      fontWeight: 800,
-                      letterSpacing: '0.18em',
+                      marginBottom: 4,
+                      color: '#65676b',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
                       textTransform: 'uppercase',
                     }}
                   >
-                    Shared Reel
+                    {sourceName} · Shared Reel
                   </span>
                   <span
                     style={{
@@ -2044,28 +1995,33 @@ const PostCard = React.memo(
                       overflow: 'hidden',
                       WebkitBoxOrient: 'vertical',
                       WebkitLineClamp: 2,
-                      color: '#f5fbff',
+                      color: '#050505',
                       fontSize: 15,
-                      fontWeight: 750,
+                      fontWeight: 600,
                       lineHeight: 1.3,
                     }}
                   >
                     {post.link_title || 'Watch This Reel On Smarter.Poker'}
                   </span>
-                  <span
-                    style={{
-                      display: 'block',
-                      marginTop: 9,
-                      overflow: 'hidden',
-                      color: '#9eb9c9',
-                      fontSize: 12,
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {sourceName}
-                  </span>
+                  {post.link_description ? (
+                    <span style={{ display: 'block', marginTop: 5, color: '#65676b', fontSize: 13, lineHeight: 1.35 }}>
+                      {post.link_description}
+                    </span>
+                  ) : null}
                 </span>
+                {post.link_image ? (
+                  <span style={{ display: 'block', overflow: 'hidden', background: '#f0f2f5' }}>
+                    <img
+                      src={post.link_image}
+                      alt=""
+                      loading="lazy"
+                      style={{ display: 'block', width: '100%', maxHeight: 260, objectFit: 'cover' }}
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </span>
+                ) : null}
               </button>
             );
           })()}

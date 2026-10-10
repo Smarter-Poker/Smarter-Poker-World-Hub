@@ -42,16 +42,27 @@ test('authority broadcast shares one channel until the final consumer leaves', a
   assert.deepEqual(first.map((event) => event.type), ['status', 'broadcast']);
   assert.deepEqual(second.map((event) => event.type), ['status', 'broadcast']);
 
+  const late = [];
+  const removeLate = subscribeSocialAuthority(fake.client, (event) => late.push(event));
+  assert.deepEqual(late, [{ type: 'status', status: 'SUBSCRIBED' }],
+    'a late consumer learns the current subscribed state immediately');
+  fake.status('SUBSCRIBED');
+  assert.equal(first.filter((event) => event.type === 'status').length, 2);
+  assert.equal(second.filter((event) => event.type === 'status').length, 2);
+  assert.equal(late.filter((event) => event.type === 'status').length, 2,
+    'the next subscribed status is a reconnect for every consumer');
+  removeLate();
+
   removeFirst();
   fake.emit({ kind: 'reel', id: '30000000-0000-4000-8000-000000000001' });
-  assert.equal(first.length, 2, 'a removed consumer receives no late callback');
-  assert.equal(second.length, 3, 'the remaining consumer stays subscribed');
+  assert.equal(first.length, 3, 'a removed consumer receives no late callback');
+  assert.equal(second.length, 4, 'the remaining consumer stays subscribed');
   assert.equal(fake.calls.remove, 0);
 
   removeSecond();
   fake.emit({ kind: 'post', id: '20000000-0000-4000-8000-000000000002' });
   fake.status('SUBSCRIBED');
-  assert.equal(second.length, 3, 'the inactive shared entry ignores late callbacks');
+  assert.equal(second.length, 4, 'the inactive shared entry ignores late callbacks');
   assert.equal(fake.calls.remove, 1, 'the final consumer removes the channel once');
   removeSecond();
   assert.equal(fake.calls.remove, 1, 'unsubscribe is idempotent');

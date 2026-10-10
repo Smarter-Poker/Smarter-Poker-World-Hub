@@ -705,6 +705,24 @@ test('stale mounted Reels are removed only on an authoritative verdict', async (
     fetchDetail: async () => [],
   });
   assert.equal(bounded.checkedIds.length, MAX_STALE_REEL_CHECKS);
+  const held = Array.from({ length: 12 }, (_, index) => `held-${index}`);
+  let active = 0;
+  let peak = 0;
+  const authority = await resolveStaleReels({
+    ids: held,
+    max: held.length,
+    concurrency: 5,
+    fetchDetail: async (id) => {
+      active += 1;
+      peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      active -= 1;
+      return id === held.at(-1) ? [] : [{ id }];
+    },
+  });
+  assert.equal(authority.checkedIds.length, held.length, 'authority events check every bounded held Reel');
+  assert.deepEqual(authority.removeIds, [held.at(-1)], 'the last held Reel outside the first five is removed');
+  assert.ok(peak > 1 && peak <= 5, `authority reads use bounded concurrency, observed ${peak}`);
   await assert.rejects(
     resolveStaleReels({
       ids: ['aborted'],
