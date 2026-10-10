@@ -1733,6 +1733,11 @@ def parse_pa_html(html:str, venue_name:str, vid, batch_id:str, url:str, state:st
         return []
 
     for block in blocks:
+        # A weekly schedule with unspecified excluded dates does not establish
+        # which future occurrences will run. Keep it out of dated projection;
+        # other exception-free definitions on the same page remain eligible.
+        if re.search(r'class=["\'][^"\']*\bexception\b[^"\']*["\']', block, re.I):
+            continue
         # Time — spans like <span class="hour">7:15pm</span> or 11:15a
         hm = re.search(r'class="hour"[^>]*>([^<]{1,20})', block)
         if not hm: continue
@@ -1743,7 +1748,11 @@ def parse_pa_html(html:str, venue_name:str, vid, batch_id:str, url:str, state:st
         nm = re.search(r'class="name"[^>]*>\s*<span>([^<]{2,80})', block)
         raw_tname = nm.group(1).strip()[:100] if nm else ""
         tname = sanitize_tournament_name(raw_tname) if raw_tname else None
-        if raw_tname and not tname:
+        # These exact game labels are real titles in the labelled recurring
+        # schema (Casino 99 uses 'NLH'). They remain junk in generic extraction;
+        # here the real game/time/buy-in supplies the existing descriptive name.
+        bare_game_title = raw_tname.lower() in ("nlh", "plo", "omaha")
+        if raw_tname and not tname and not bare_game_title:
             continue
 
         # Buy-in — look for $ amount inside a labelled buy-in span first.
@@ -1759,10 +1768,11 @@ def parse_pa_html(html:str, venue_name:str, vid, batch_id:str, url:str, state:st
             buyin = None
         if buyin is None or buyin in KNOWN_CORRUPT_AMOUNTS: continue
         if not BUYIN_MIN <= buyin <= BUYIN_MAX: continue
+        if bare_game_title and not labelled: continue
 
         # Game type
         gm = re.search(r'class="type"[^>]*>([^<]{1,40})', block)
-        game = game_from(gm.group(1).strip() if gm else (tname or "NLH"))
+        game = game_from(gm.group(1).strip() if gm else (tname or (raw_tname if bare_game_title else "NLH")))
 
         # Days — <li class="active">Mon</li> etc
         active = _PA_DAYS[:]
@@ -2135,8 +2145,11 @@ def same_state(a: str, b: str) -> bool:
     return bool(na) and na == nb
 
 def _name_tokens(name:str) -> set:
+    # Numeric venue names such as Casino 99 carry their distinguishing identity
+    # in a short number. Keep that complete token without accepting generic
+    # words, substrings, one-character noise, or dropping the state/URL checks.
     return {w for w in re.sub(r"[^a-z0-9 ]"," ",(name or "").lower()).split()
-            if len(w) >= 3} - MATCH_STOP_WORDS
+            if len(w) >= 3 or (w.isdigit() and len(w) >= 2)} - MATCH_STOP_WORDS
 
 
 def normalized_venue_key(name: str) -> str:

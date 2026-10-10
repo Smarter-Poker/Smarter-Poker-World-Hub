@@ -89,6 +89,65 @@ class GenericTournamentFallbackTests(unittest.TestCase):
         self.assertTrue(matched)
         self.assertEqual(reason, "matched")
 
+    def test_numeric_room_identity_is_not_discarded(self):
+        # The installed collector rejects actual Casino 99 pages with
+        # venue_name_has_no_identity_tokens: 'casino' is generic and the
+        # significant two-digit room identity was incorrectly discarded.
+        page = self._pa_page("Casino 99", "CA")
+        self.assertEqual(DAEMON._name_tokens("Casino 99"), {"99"})
+        self.assertTrue(DAEMON.pokeratlas_room_page_identity(page, "Casino 99", "CA")[0])
+        self.assertTrue(DAEMON.bravo_room_page_identity(page, "Casino 99", "CA")[0])
+        self.assertTrue(DAEMON.official_website_page_identity(
+            page, "Casino 99", "CA", "https://casino99chico.com/tournaments",
+            "https://casino99chico.com/tournaments/",
+        )[0])
+
+    def test_numeric_identity_does_not_accept_another_room_or_state(self):
+        self.assertFalse(DAEMON.pokeratlas_room_page_identity(
+            self._pa_page("Casino 98", "CA"), "Casino 99", "CA",
+        )[0])
+        self.assertFalse(DAEMON.pokeratlas_room_page_identity(
+            self._pa_page("Casino 99", "NV"), "Casino 99", "CA",
+        )[0])
+        self.assertFalse(DAEMON.pokeratlas_room_page_identity(
+            self._pa_page("Casino 199", "CA"), "Casino 99", "CA",
+        )[0])
+        self.assertFalse(DAEMON.pokeratlas_room_page_identity(
+            self._pa_page("Casino", "CA"), "Casino", "CA",
+        )[0])
+
+    def test_actual_numeric_room_keeps_only_exception_free_schedule(self):
+        # Actual Casino 99 markup at 2026-10-10T06:18Z states excluded dates
+        # for its first weekly definition without naming the excluded dates.
+        # That definition cannot establish future dated occurrences.
+        def block(name, price, time, active, exception=False):
+            days = ''.join(f'<li class="{"active" if i in active else ""}">{d}</li>'
+                           for i, d in enumerate("MTWTFSS"))
+            if exception:
+                days += '<li class="exception" title="Some days excluded.">with an exception</li>'
+            return f'''<div class="tournament"><h2><span class="name"><span>{name}</span></span></h2>
+              <span class="hour">{time}</span><div class="days"><ul>{days}</ul></div>
+              <span class="buy-in">${price}</span><span class="type">NL Holdem</span></div>'''
+        page = '<section class="tournament-schedule">' + ''.join([
+            block("NLH", 35, "10:00am", {0, 2, 3, 5}, True),
+            block("NLH Rebuy", 35, "10:00am", {1, 4}),
+            block("NLH", 45, "5:00pm", {6}),
+        ]) + '</section>'
+        rows = DAEMON.parse_pa_html(page, "Casino 99", 52, "test",
+            "https://www.pokeratlas.com/poker-room/casino-99-chico/tournaments", "CA")
+        self.assertEqual([(r["day_of_week"], r["buy_in"], r["start_time"]) for r in rows],
+                         [("Tuesday", 35, "10:00AM"), ("Friday", 35, "10:00AM"),
+                          ("Sunday", 45, "5:00PM")])
+
+    def test_weekly_definition_with_unresolved_exception_cannot_project_dates(self):
+        page = self._hard_rock_current_schedule_page().replace(
+            '</ul>', '<li class="exception" title="Some days excluded.">with an exception</li></ul>', 1,
+        )
+        rows = DAEMON.parse_pa_html(page, "Hard Rock", 1826, "test",
+            "https://www.pokeratlas.com/poker-room/hard-rock-tampa/tournaments", "FL")
+        self.assertEqual(len(rows), 3)
+        self.assertFalse(any(r['game_type'] == 'Mixed' for r in rows))
+
     def test_pokeratlas_identity_rejects_same_state_city_collision(self):
         matched, _origins, reason = DAEMON.pokeratlas_room_page_identity(
             self._pa_page("Rivers Casino Philadelphia", "PA"),
