@@ -11,7 +11,8 @@ const CONTRACTS = read('docs/horses/PHASE10-CONTRACTS.md');
 const MATRIX = read('docs/horses/STABLE-ADMIN-PERMISSION-MATRIX.md');
 const DISCLOSURE = read('docs/horses/STABLE-ADMIN-GLI19-DISCLOSURE.md');
 const RESCORE = read('docs/horses/STABLE-ADMIN-FINAL-GAP-RESCORE.md');
-const HANDOFF = read('docs/horses/HANDOFF-2026-10-05-phase10.md');
+const HANDOFF10 = read('docs/horses/HANDOFF-2026-10-05-phase10.md');
+const HANDOFF11 = read('docs/horses/HANDOFF-2026-10-06-phase11.md');
 const CURRENT = read('docs/HANDOFF_CURRENT_STATE.md');
 const PLAN = read('docs/horses/STABLE-ADMIN-OVERHAUL-PLAN.md');
 const REGISTRY = read('src/components/horses/tabRegistry.js');
@@ -57,7 +58,6 @@ test('the permission record covers the full canonical vocabulary and every role'
 });
 
 test('the final re-score accounts for every numbered gap from the original plan exactly once', () => {
-  const families = ['F', 'H', 'P', 'I', 'O', 'E', 'C', 'A', 'X'];
   const planIds = [...PLAN.matchAll(/^([FHPIOECAX]\d+) \[/gm)].map((match) => match[1]);
   assert.equal(planIds.length, 83);
   assert.equal(new Set(planIds).size, planIds.length);
@@ -67,6 +67,26 @@ test('the final re-score accounts for every numbered gap from the original plan 
   }
   const scoredIds = [...RESCORE.matchAll(/^\| ([FHPIOECAX]\d+) \|/gm)].map((match) => match[1]);
   assert.deepEqual(new Set(scoredIds), new Set(planIds));
+  const scoreRows = [...RESCORE.matchAll(/^\| [FHPIOECAX]\d+ \| (Resolved Elsewhere|Resolved|Partial|Open) \|/gm)]
+    .map((match) => match[1]);
+  const scoreCounts = Object.fromEntries(
+    ['Resolved', 'Resolved Elsewhere', 'Partial', 'Open'].map((score) => [
+      score,
+      scoreRows.filter((candidate) => candidate === score).length,
+    ]),
+  );
+  for (const [score, count] of Object.entries(scoreCounts)) {
+    assert.match(RESCORE, new RegExp(`\\| ${score} \\| ${count} \\|`));
+  }
+  const partialIds = [...RESCORE.matchAll(/^\| ([FHPIOECAX]\d+) \| Partial \|/gm)]
+    .map((match) => match[1]);
+  assert.deepEqual(partialIds, ['P3', 'O1', 'O2', 'O7', 'C2', 'C4']);
+  const partialProse = RESCORE.match(/The six partial items[\s\S]*?stubs: ([^.]+)\./);
+  assert.ok(partialProse, 'the final score must name every partial item');
+  assert.deepEqual(
+    partialProse[1].replace(/,?\s+and\s+|,\s+/g, ',').split(',').map((id) => id.trim()),
+    partialIds,
+  );
   assert.match(RESCORE, /\| Total \| 83 \|/);
   assert.doesNotMatch(RESCORE, /^\| [FHPIOECAX]\d+ \| Open \|/m);
 });
@@ -80,28 +100,74 @@ test('the disclosure pins the never-delete register and required attestation fie
   assert.match(DISCLOSURE, /not a representation that a regulator has certified/i);
 });
 
-test('the current handoff points to the ten-phase continuation and separates delivery layers', () => {
+test('the current handoff points to the Phase 11 closeout and retains the ten-phase source map', () => {
+  assert.match(CURRENT, /HANDOFF-2026-10-06-phase11\.md/);
   assert.match(CURRENT, /HANDOFF-2026-10-05-phase10\.md/);
   for (let phase = 1; phase <= 10; phase += 1) {
-    assert.match(HANDOFF, new RegExp(`\\| ${phase} \\|`), `Phase ${phase} must be recorded`);
+    assert.match(HANDOFF10, new RegExp(`\\| ${phase} \\|`), `Phase ${phase} must be recorded`);
   }
   for (const layer of ['source', 'database', 'publication', 'live behavior']) {
-    assert.match(HANDOFF.toLowerCase(), new RegExp(layer));
+    assert.match(HANDOFF11.toLowerCase(), new RegExp(layer));
   }
-  assert.match(HANDOFF, /No pending cell above may remain/);
-  const deliveryRecord = HANDOFF
-    .split('## 9. Final Delivery Record')[1]
-    .split('No pending cell above may remain')[0];
+  assert.match(HANDOFF11, /No pending row may remain/);
+  const deliveryRecord = HANDOFF11
+    .split('## Delivery Record')[1]
+    .split('No pending row may remain')[0];
   assert.doesNotMatch(deliveryRecord, /\| Pending(?:[ .]|$)/i);
-  assert.match(deliveryRecord, /PR #\d+/);
+  assert.match(deliveryRecord, /PR #2157/);
+  assert.match(deliveryRecord, /aa5c7f548f8dc4e8aa8f070aa42a212414eaacdb/);
+  assert.match(deliveryRecord, /production certificate PR #\d+/i);
+  assert.match(deliveryRecord, /run \d+/i);
+  assert.match(deliveryRecord, /job \d+/i);
+  assert.match(deliveryRecord, /stable-admin-production-certificate-\d+-\d+/);
+  assert.match(deliveryRecord, /certificate status `?passed`?/i);
+  assert.match(deliveryRecord, /stableAcrossRun `?true`?/i);
+  assert.match(deliveryRecord, /[0-9a-f]{40}/);
   assert.match(deliveryRecord, /dpl_[A-Za-z0-9]+/);
   assert.match(deliveryRecord, /READY/);
   assert.match(deliveryRecord, /`\/api\/health`/);
-  assert.match(deliveryRecord, /12\/12/);
+  assert.match(deliveryRecord, /database `?ok`?/i);
+  assert.match(deliveryRecord, /`\/horses`[^|]*200/i);
+  for (const route of ['economy-admin', 'floor-admin', 'integrity-admin', 'platform-admin']) {
+    assert.match(deliveryRecord, new RegExp(`${route}[^|]*401`, 'i'));
+  }
+  assert.match(deliveryRecord, /1440x900/);
+  assert.match(deliveryRecord, /375x812/);
+  assert.match(deliveryRecord, /28 tabs/);
+  for (const surface of ['Live Floor', 'Tournaments', 'Identity Links', 'Platform Incidents', 'Close And Jobs']) {
+    assert.match(deliveryRecord, new RegExp(surface, 'i'));
+  }
+  assert.match(deliveryRecord, /authenticated[^|]*admin APIs[^|]*2xx/i);
+  assert.match(deliveryRecord, /no mutations/i);
+  assert.match(deliveryRecord, /no page or chunk errors/i);
+  assert.match(deliveryRecord, /no horizontal overflow/i);
+  for (const version of ['20261006022120', '20261006022123', '20261006024310', '20261006171233']) {
+    assert.match(HANDOFF11, new RegExp(version));
+  }
+  for (const hash of [
+    'e03f21038d7b9113b813041406413f63d3909536b11d09eefff297339f86609a',
+    '3aac8dc4ac4918ea3ba80f55843aacf7a4884a8d2be401e351ab6cf87b24b336',
+    '9c829b3659e0e60b8464c888dcd5b61c732644a41f672f5e05a2372335f93e37',
+    '5780f6a072ad2119caf192dcc5df49fad20f987a9c6d622b6b2cf7b3722cf1ec',
+  ]) {
+    assert.match(HANDOFF11, new RegExp(hash));
+  }
+  for (const laterPr of ['2185', '2188', '2189', '2191']) {
+    assert.match(deliveryRecord, new RegExp(`PR #${laterPr}`));
+  }
+  for (const consumer of ['Statistics', 'Settings', 'Pipeline']) {
+    assert.match(deliveryRecord, new RegExp(consumer));
+  }
+  assert.match(deliveryRecord, /Global Footer E2E[^|]*passed/i);
+  assert.match(HANDOFF11, /SQLSTATE `0A000`/);
+  assert.doesNotMatch(HANDOFF11, /Trigger-only\s+functions have no application execute grant/);
+  for (const boundary of ['P3', 'C2', 'C4', 'private object store']) {
+    assert.match(HANDOFF11, new RegExp(boundary));
+  }
 });
 
-test('Phase 10 documents contain no UI-forbidden dash or emoji bytes', () => {
-  const joined = [CONTRACTS, RUNBOOK, MATRIX, DISCLOSURE, RESCORE, HANDOFF, CURRENT].join('\n');
+test('Phase 10 and Phase 11 documents contain no UI-forbidden dash or emoji bytes', () => {
+  const joined = [CONTRACTS, RUNBOOK, MATRIX, DISCLOSURE, RESCORE, HANDOFF10, HANDOFF11, CURRENT].join('\n');
   assert.doesNotMatch(joined, /[—–]/u);
   assert.doesNotMatch(joined, /[\u{1F300}-\u{1FAFF}]/u);
 });

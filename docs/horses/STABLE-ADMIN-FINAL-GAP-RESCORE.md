@@ -1,10 +1,10 @@
 # Stable Admin Final Gap Re-Score
 
-Scored 2026-10-05 against the original research inventory in
+Scored 2026-10-08 after Phase 11 against the original research inventory in
 `STABLE-ADMIN-OVERHAUL-PLAN.md`. `Resolved` means the intended capability is
 implemented in this programme. `Resolved Elsewhere` means authority deliberately
 remains in its named owner and Stable Admin provides oversight/deep-linking.
-`Partial` and `Open` are carried forward honestly; Phase 10 documentation does
+`Partial` and `Open` are carried forward honestly; Phase 11 documentation does
 not turn them into completed software.
 
 ## Foundation And Existing-Surface Safety
@@ -72,7 +72,7 @@ not turn them into completed software.
 | --- | --- | --- |
 | I1 | Resolved | Ranked, grouped platform queue and cases consume both collusion sources. |
 | I2 | Resolved | Anti-cheat flags are a platform investigation section. |
-| I3 | Partial | Available signup/device/IP relationships are exposed; source completeness limits the graph and is disclosed. |
+| I3 | Resolved | Identity Links ranks and pages a privacy-safe graph over four recorded evidence sources, discloses source coverage and treats correlation as evidence rather than a verdict. |
 | I4 | Resolved | Chip-flow pairs are ranked above correlated timing volume where material. |
 | I5 | Resolved | Human and horse timing evidence is shown side by side with construction disclosure. |
 | I6 | Resolved | Case, evidence, assignment, decision, sanction and appeal workflow exists. |
@@ -89,7 +89,7 @@ not turn them into completed software.
 | O4 | Resolved Elsewhere | Union/member/settlement oversight is visible; Club Arena owns union management. |
 | O5 | Resolved Elsewhere | Cashout and chip-request oversight is visible; Club Arena retains execution authority and maker-checker. |
 | O6 | Resolved | Rake reporting by scope/day, law evidence and export are available. |
-| O7 | Partial | Full exports exist with explicit caps/truncation; there is no universal durable asynchronous export-job ledger. |
+| O7 | Partial | Browser exports record durable prepared receipts with actor, request, filters, row count, completeness, bytes and SHA-256. Caps remain explicit, and a prepared receipt is not an asynchronously delivered artifact. |
 | O8 | Resolved Elsewhere | Announcement evidence/deep links exist; established club/union delivery authority remains in Club Arena. |
 
 ## Economy And Finance
@@ -102,7 +102,7 @@ not turn them into completed software.
 | E4 | Resolved | Rakeback and leaderboard payout oversight are visible without inventing writers. |
 | E5 | Resolved | BBJ pool, payout and winner evidence are visible. |
 | E6 | Resolved | Promotions, distributions, wagering and abuse evidence are visible. |
-| E7 | Partial | Daily/weekly/P and L and regulatory exports are surfaced; some durable digest/export receipt records remain source-dependent and explicitly Unknown when absent. |
+| E7 | Resolved | Daily closes, weekly digest runs and recipients, scoped P and L snapshots, and regulatory or prepared-export records are durable, with maker-checker and journal-manifest binding where required. |
 
 ## Platform Controls And Observability
 
@@ -111,10 +111,10 @@ not turn them into completed software.
 | C1 | Resolved | Platform Operations shows engine throughput, tables, seats, latency, break and release evidence. |
 | C2 | Partial | Maintenance status and divergence are visible; no safe global control API exists, so no database-only button was invented. |
 | C3 | Resolved | Allowlisted feature/policy registry reports source, consumer, scope and write owner. |
-| C4 | Partial | Existing exact-scope switches are inventoried; global tournament-registration and positive-issuance switches are correctly marked missing. |
+| C4 | Partial | Existing exact-scope switches are inventoried; global tournament-registration, positive-issuance and dedicated cashout switches are correctly marked missing. |
 | C5 | Resolved | Cron and alert sources fail independently and missing telemetry is Unknown. |
 | C6 | Resolved | Scraper health remains a read-only evidence surface. |
-| C7 | Partial | Platform incidents are normalized; acknowledgement remains source-specific where no durable shared schema exists. |
+| C7 | Resolved | Platform incidents are normalized and have a durable append-only acknowledge/release ownership overlay that cannot rewrite source status, resolution or health. |
 
 ## Access Control And Audit
 
@@ -139,13 +139,14 @@ not turn them into completed software.
 
 | Score | Count |
 | --- | ---: |
-| Resolved | 70 |
+| Resolved | 73 |
 | Resolved Elsewhere | 4 |
-| Partial | 9 |
+| Partial | 6 |
 | Open | 0 |
 | Total | 83 |
 
 The original inventory contains 83 numbered gaps. No item is unaccounted for.
-The nine partial items are explicit product/platform limitations, not hidden
-stubs: P3, I3, O1, O2, O7, E7, C2, C4 and C7. The contract test computes IDs
-from the plan so a prose/count discrepancy fails instead of silently shipping.
+The six partial items are explicit product/platform limitations, not hidden
+stubs: P3, O1, O2, O7, C2 and C4. The contract test computes IDs and scores
+from the plan and this table so a prose/count discrepancy fails instead of
+silently shipping.

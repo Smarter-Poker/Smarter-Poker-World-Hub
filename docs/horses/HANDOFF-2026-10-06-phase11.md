@@ -1,7 +1,11 @@
 # Stable Admin Phase 11 Closeout
 
-Status: Candidate validated locally. Protected merge, database installation and
-production proof are recorded here only after they occur.
+Status: Runtime repair is protected-merged, published and verified live within
+the declared oversight scope. Final documentation protected integration is
+pending; this draft does not claim that documentation has merged.
+
+Programme history and the complete ten-phase source map remain in
+`docs/horses/HANDOFF-2026-10-05-phase10.md`.
 
 Policy receipt: version 2.9, manifest
 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`.
@@ -10,12 +14,13 @@ Resumption receipt: the four canonical sources under
 `2026-10-06T03:00:50.166Z` from candidate
 `e89824385ac81f67200bf29548b02f5edf01602e`.
 
-## Scope Completed
+## Phase 11 Delivered Scope
 
 - O1 and O2: the Live Floor and Tournament pages resolve club and union names,
   link to the actual owner management surfaces, use exact registration counts,
   disclose bounded overlay evidence and show recorded refund entitlements and
-  payments without creating a second writer.
+  payments without creating a second writer. Both remain Partial because their
+  authoritative write actions stay in the owning Club Arena and engine runtimes.
 - I3: Integrity has a bounded, ranked Identity Links view over four recorded
   evidence sources. Horses are included. Raw IP, device, fingerprint, email and
   user-agent values never leave the database function. Correlation is not a
@@ -28,7 +33,8 @@ Resumption receipt: the four canonical sources under
   Daily close binds the exact journal manifest hash and follows maker-checker.
 - O7 boundary: browser exports now record actor, request, filters, row count,
   completeness, bytes and SHA-256 before asking the browser to download. The UI
-  explicitly says this is a prepared receipt, not proof of browser delivery.
+  explicitly says this is a prepared receipt, not proof of browser delivery, so
+  O7 remains Partial until a private object store and worker own delivery.
 
 ## Database Files
 
@@ -36,8 +42,10 @@ Resumption receipt: the four canonical sources under
 - `20261006022120_stable_admin_phase11_finance_records.sql`
 - `20261006022123_stable_admin_phase11_identity_links.sql`
 
-All three are additive, service-role-only and RLS-enabled where they add tables.
-No migration moves chips, changes a seat or suppresses horse evidence.
+All three are schema and data additive, with the finance migration extending
+the existing approval-kind constraint and installing or replacing the named
+functions and triggers. Added tables are service-role-only and RLS-enabled. No
+migration moves chips, changes a seat or suppresses horse evidence.
 
 ## Verification Before Submission
 
@@ -48,6 +56,64 @@ No migration moves chips, changes a seat or suppresses horse evidence.
 - Full repository production build: passed, including the Phase 9 bundle budget.
 - `/horses` initial JavaScript: 57,924 bytes; gzip: 19,435 bytes.
 - Diff whitespace check and targeted lint: passed.
+
+The feature candidate was
+`e89824385ac81f67200bf29548b02f5edf01602e` with tree
+`3043e8040d6cd88f6e6c8ded89e8b040a1fe8705`. Protected PR #2157 squash-merged
+as `aa5c7f548f8dc4e8aa8f070aa42a212414eaacdb` with the identical tree. This
+ties the 1,127-test result and production build to the exact Phase 11 source,
+not to a later working directory.
+
+## Installed Database Readback
+
+Production project `kuklfnapbkmacvwxktbh` reports all four exact migration
+ledger rows, freshly read on 2026-10-08 at 15:10 UTC. Local SHA-256 values are:
+
+| Version | Name | SHA-256 |
+| --- | --- | --- |
+| `20261006022120` | `stable_admin_phase11_finance_records` | `e03f21038d7b9113b813041406413f63d3909536b11d09eefff297339f86609a` |
+| `20261006022123` | `stable_admin_phase11_identity_links` | `3aac8dc4ac4918ea3ba80f55843aacf7a4884a8d2be401e351ab6cf87b24b336` |
+| `20261006024310` | `stable_admin_phase11_incident_acknowledgements_canonical` | `9c829b3659e0e60b8464c888dcd5b61c732644a41f672f5e05a2372335f93e37` |
+| `20261006171233` | `fleet_content_metrics` | `5780f6a072ad2119caf192dcc5df49fad20f987a9c6d622b6b2cf7b3722cf1ec` |
+
+Readback confirms the five finance tables and incident event table are owned by
+`postgres`, have RLS enabled, and grant SELECT/INSERT/UPDATE/DELETE to
+`service_role`; anonymous and ordinary authenticated SELECT are refused.
+Append-only triggers and permitted daily-close transitions provide the mutation
+constraints. Eighteen unique/lookup indexes exist. The incident current view
+retains `security_invoker=true`. Application RPCs are security-definer with
+fixed search paths and service-role-only execute authority. Fleet metrics also
+retains a 15,000ms statement timeout.
+
+Both trigger functions are security-invoker. Finance append-only execute is
+service-role-only. Incident append-only retains PostgreSQL's PUBLIC execute
+ACL; it is a trigger-returning function, and direct anonymous invocation was
+refused with SQLSTATE `0A000`. It does not provide an application RPC or a
+privileged write path. This corrects the inherited blanket claim that every
+trigger lacked an application execute grant.
+
+Direct read-only role probes returned fleet/identity objects for `service_role`
+and refused each function for both `anon` and `authenticated` with SQLSTATE
+`42501`. No production data was changed. API permission regressions separately
+exercise allowed/refused operator paths and maker-checker behavior.
+
+The installed function body MD5 post-images remain:
+
+| Function | Body MD5 |
+| --- | --- |
+| `fn_ca_capture_weekly_revenue_digest` | `2094d11704f4a4d7a2d0843bcb9c8812` |
+| `fn_ca_finance_records_are_append_only` | `f9d61e4d420271441b6c263edfbadacb` |
+| `fn_ca_integrity_identity_links` | `64f844197cc7487b0ba6654c0483c674` |
+| `fn_ca_operator_incident_ack_events_append_only` | `cd52d8520339a940a30a3159a977dcde` |
+| `fn_ca_operator_record_incident_ack_event` | `5bdfda53a910a1f95373ff657ab8e4a7` |
+| `fn_ca_operator_request_daily_close` | `6d6f8c86de781ba53eca9d985df06dc2` |
+| `fn_ca_operator_sign_daily_close` | `6a43f22f3c49110acd9aabbc24b3d7a2` |
+| `fn_fleet_content_metrics` | `2bd79725e1bf896f9cd958cf08e42b89` |
+
+Finance uses `public, extensions`, identity uses `public, auth, pg_temp`,
+and incident functions use `pg_catalog, public`. All eight owners are
+`postgres`. Exact signatures, complete definition hashes, grants, RLS, index
+and view readback are retained in the external evidence archive.
 
 ## Boundaries That Are Not Admin-Page Stubs
 
@@ -66,12 +132,13 @@ controls, silently exclude horses or claim unavailable evidence is healthy.
 
 | Layer | Evidence |
 | --- | --- |
-| Source | Pending protected PR and merge revision. |
-| Database | Pending exact migration ledger versions, hashes and object/grant readback. |
-| Publication | Pending READY Vercel deployment and `/api/health` revision. |
-| Live behavior | Pending authenticated desktop and 375px route proof. |
+| Source | Phase 11 PR #2157 merged as `aa5c7f548f8dc4e8aa8f070aa42a212414eaacdb`; production certificate PR #2176 merged as `4b34fbed5457c270e2b7236856732889a78a9554`. Later PR #2185, PR #2188, PR #2189 and PR #2191 and first repair PR #2228 are included. Final read-only shell repair PR #2237 protected-merged as `b21a9c4b86ec56e7e96c8501e4d405f3b397ae87` at 2026-10-10T01:51:39Z (October 9 Central). Qualified candidate `563e25002656233b0434934ea1aa1b457778a7c6` passed all seven required checks, safety run 38013030495. Global Footer E2E passed run 38013030486, job 114097133243: 16 Stable Admin, 52 footer (one flaky retry recovery), 29 menu, 32 mobile and 12 budget cases (two flaky retry recoveries); configured retries, no final failures. Artifact 11655454159 SHA-256 `7f3478885fa1f937ffcc4e8c44dc5fc9ea4ab9c52035577c3aa348bcb70a61e0`. |
+| Database | All four exact migration ledger versions and source hashes, eight function body post-images, owner/search-path/grant checks, six RLS tables, 18 indexes and the invoker view are recorded in Installed Database Readback above. Direct service-role reads were allowed; ordinary roles refused with SQLSTATE `42501`, and direct trigger invocation refused with SQLSTATE `0A000`. No installed migration was replayed or production state changed. |
+| Publication | Protected served descendant `83a68e9ecdc26e75a1665d762d783dc508e79f61` is canonical Vercel READY deployment `dpl_z4hZ2WewLJKmY1U4FPdrNawM2CoA`, ready timestamp `1791597629307`, immutable host `hub-vanguard-rm3l6w1ry-smarter-poker.vercel.app`. Exact `/api/health` reports that revision and database `ok`; certificate identity remained stable across its run. Public checks at 2026-10-10T02:01Z to 02:02Z: `/horses` returned 200; economy-admin, floor-admin, integrity-admin and platform-admin each returned 401 without authentication. |
+| Live behavior | Genuine production run 38015383337, job 114104368294, artifact `stable-admin-production-certificate-38015383337-1` (ID 11656385586; SHA-256 `c3e1a8bf47507fb927cf7c8b6fbb83197a4c0cac9778396ddc9de9a84f976a23`) has certificate status `passed`, authenticated `true`, stableAcrossRun `true`. Started 2026-10-10T02:02:39.854Z; completed 02:03:17.675Z on exact `83a68e9ecdc26e75a1665d762d783dc508e79f61`. At 1440x900 and 375x812, 28 tabs were present; Live Floor, Tournaments, Identity Links, Platform Incidents, Close And Jobs, Statistics, Settings and Pipeline settled. Authenticated admin APIs all returned 200 (2xx); no mutations, no page or chunk errors, no horizontal overflow. Full 28-tab navigation/rendering and 47 nested sections additionally retain fixture evidence; genuine certification covers the eight named read surfaces, not every write. Platform humans seated was 0 at 02:03:14.247Z; independent read-only database count was 0 at 02:04:02.231227Z. |
 
-No pending row may be rewritten as complete without its direct evidence.
+No pending row may remain in the runtime Delivery Record without direct evidence.
+Documentation protected integration is separately pending until its own PR merges.
 
 
 ## Authorized continuation, 2026-10-08
@@ -258,6 +325,9 @@ superseded by this authoritative fix when submitted. Genuine final hosted
 acceptance, protected integration, publication and certificate remain pending.
 
 
+Resumption receipt: canonical policies and repository/publishing/checkpoint/storage references freshly read on 2026-10-08 at final candidate 6d9b1d885c4c535e0abaa6291e8fe900fb524678. Policy version 2.9 and all manifest/source hashes above unchanged; canonical check passed. All seven required protected checks passed; full final browser run 37800295268 remains in progress. This isolated closeout draft does not claim publication or live certification.
+
+
 The remaining local Reels failure was a test-fixture contract drift: the
 menu test intercepted retired REST social_reels reads, while the real page
 now reads /api/reels/feed and refuses ineligible media. Its fixture now uses
@@ -275,7 +345,12 @@ Sanitized results are archived. No database state was changed.
 
 Final hosted run 37800295268 passed production build, Stable Admin, Trivia, Marketplace, footer routes and premium Chromium/WebKit menu. Phase 3 mobile then failed both browsers because Poker Near Me narrow-container overrides reduced six command descriptions to 11px below the maintained 12px readability minimum. Both owning narrow-container rules now retain 12px; assertions remain unchanged. Mobile performance was skipped after that failure and is not passing evidence. Corrected build/browser qualification and resubmission remain pending.
 
+
 Corrected full production build passed 507/507 and unchanged bundle budgets. All maintained Phase 3 mobile browser cases passed 32/32 without retries at the corrected source, including Poker Near Me in Chromium and WebKit (51.7s). Focused menu contracts passed 17/17; whitespace checks passed. Source retains both 12px floors and an enforced narrow-container regression. Hosted final-head qualification, publication and genuine certificate remain pending.
+
+
+
+Provider-blocked receipt 2026-10-08T16:05:10.717592+00:00: final head 5a7574e18168d44cb2cef79def05801a239e78b4 is pushed in open PR #2228, autoMergeRequest null. Global Footer E2E run 37804307696 / job 113404436343 and Build Safety run 37804307928 remain queued; runner labels ubuntu-latest, runner_id 0, no execution steps. Direct GitHub UI shows Starting job after more than eleven minutes, with no billing/auth/configuration failure reported. Prior final candidate gates are not substituted for new-head checks. No retries, alternate publisher, protected-check bypass or production mutations were performed. Protected merge, Vercel READY/health, genuine certificate and final documentation merge remain pending. All local source repairs and evidence are preserved; checkout retained because delivery is unfinished.
 
 
 Authorized parallel continuation resumed 2026-10-08 (America/Chicago); canonical policy reader emitted at 2026-10-09T00:45:38.041Z, v2.9 and all preceding hashes unchanged. Repository/publishing/checkpoint/storage references reread; mounted SSD has free space. Final head 5a7574e18 passed all seven required checks, build, Stable Admin, Trivia, footer and both mobile/menu gates. Run 37804307696 finally failed only Video Library mobile small-text readability. Source fix investigation is scoped to that release blocker. Current protected main c2a31a27a integrated; the single Trivia contract conflict preserves new main race and migration assertions plus the scoped three-gate count and our explicit PWA build contract. No installed migration is replayed.
@@ -287,37 +362,70 @@ Focused visible-label readback exposed the proportional fitter shrinking the 375
 Final corrected Video Library source passed the unchanged mobile budget case without retries (2.6s case, 3.1s suite), full production compilation/static generation and unchanged Stable Admin bundle budgets. Visible glyph measurements at 375/390 show no small text, both labels at least 12px, fit ratio 1 and glyphs inside the painted zones (0.5px subpixel tolerance). Nineteen connected console contracts and the final nine focused console cases passed; eight changed Trivia integration contracts passed. Earlier unrelated passing evidence is reused. Final-head hosted acceptance, protected merge, publication, genuine certificate and docs closeout remain pending.
 
 
-Production-certificate recovery, 2026-10-09T03:31:38.363Z: canonical policies
-freshly emitted/read, version 2.9 and preceding hashes unchanged. Published
-protected source f54830335813562aedb5c868755466f195dda224 passed the full hosted
-browser gate but genuine certificate 37874025554/job 113638330729 failed
-`desktop_mutation_attempted`: five same-origin POST attempts were blocked,
-authentication succeeded, page/chunk error counts were zero. The old sanitized
-receipt cannot identify the exact five-request split. Source tracing found the
-shared header read still using POST and global profile initialization, reward
-sweep and PWA install recording mounted on the staff route. The owned follow-up
-branch agent/codex/stable-admin-readonly-shell-20261009 corrects the header to
-GET and prevents those automatic player writes on /horses while preserving
-ordinary player routes and authenticated reads. Strict certificate blocking
-remains; diagnostic labels are limited to exact fixed endpoint names, with
-queries and unknown/dynamic/external paths redacted. Prepared five-file final
-closeout remains separately archived; genuine certification and protected final
-documentation integration remain pending. No production data was changed by
-the blocked requests and no installed migration was replayed.
+Final-candidate follow-through: canonical reader freshly emitted/read at 2026-10-09T00:55:39.052Z, v2.9 and preceding hashes unchanged; repository, publishing, CLAUDE, storage and task checkpoint references reread. Head dedabaaf7b84192c2f357f7f108eb5cc960c079d is pushed in PR #2228. Final footer run 37866979476/job 113615917617 and safety run 37866979419 are queued on ubuntu-latest with no runner assigned. Obsolete owning automatic merge run 37866976863 is terminal cancelled; PR automatic merging remains disabled. Latest protected main f04dee718aa31638fce826429f53d716a942aad8 adds disjoint Trivia changes with no overlapping paths. Last successful equivalent safety run 37840829929 queued from 20:37:30Z until 21:42:12Z on October 8 before passing; this is a provider admission delay, not a failed final test. Protected merge, publication and genuine certificate remain pending.
 
 
-Read-only shell qualification: 29 focused header, account-isolation, portrait,
-actual auth-transition and certificate privacy/blocking contracts passed. The
-frozen corrected production build passed 507/507 pages and unchanged Phase 9
-bundle budgets (58,057 bytes initial /horses, gzip 19,491; total 373,125, gzip
-117,662). Connected synthetic browser regression passed both desktop and mobile
-without retries (2/2, 6.5s): eight certificate surfaces, authenticated header
-GET, deferred mount timers advanced, zero automatic same-origin mutations.
-The auth-effect regression also proves ordinary profile initialization resumes
-after staff navigation. Targeted lint has zero errors and 20 existing warnings;
-whitespace and canonical policy integrity passed. New contracts are wired into
-the existing required safety job; browser regression runs in the maintained
-footer workflow. Failed prior certificate artifact is 11593966968, digest
-sha256:290692135956a99a4f66966f6fcecc66d98aa061999825535ab96ba620467be0.
-Protected follow-up merge, publication, genuine certification and final docs
-integration remain pending. No unaffected historical broad suite was repeated.
+Protected product publication receipt, 2026-10-09T02:19:01Z: final candidate `dedabaaf7b84192c2f357f7f108eb5cc960c079d` passed all required checks; protected PR #2228 merged as `f54830335813562aedb5c868755466f195dda224` at 01:57:12Z while the full browser workflow was still running. The final hosted browser workflow subsequently passed before genuine production certification was dispatched. GitHub records show auto-merge was reenabled at 01:15:51Z after the earlier disabled state; this record does not claim a direct agent merge. Canonical Vercel READY and exact live health identity are recorded above. Genuine production certificate run 37874025554 / job 113638330729 is queued; authenticated live behavior and final documentation integration remain pending.
+
+
+Final validation receipt: canonical policies emitted/read at 2026-10-09T03:27:28.498Z, v2.9, all preceding manifest/source hashes unchanged; repository AGENTS, publishing instructions and complete current checkpoint reread at published protected source f54830335813562aedb5c868755466f195dda224. Documentation closeout is isolated on agent/codex/stable-admin-closeout-20261008 and changes no runtime inputs.
+
+
+Genuine production certificate failure and scoped recovery: run 37874025554 / job 113638330729 finished FAILED with `desktop_mutation_attempted`. Authentication was true; the strict verifier blocked five same-origin POST attempts and retained redacted diagnostics. No viewport completed certification; zero page or chunk errors do not turn the failed run into passing behavior evidence. The receipt does not establish exact attribution of all five attempts. Published revision `f54830335813562aedb5c868755466f195dda224`, its READY deployment and earlier hosted footer remain valid historical evidence, not proof of the pending correction. Owned follow-up branch `agent/codex/stable-admin-readonly-shell-20261009` repairs the header GET and automatic profile, reward and PWA writes on `/horses`, retaining the strict verifier unchanged. Follow-up protected integration, publication and genuine live proof remain pending.
+
+Fresh canonical policy receipt: `2026-10-09T03:31:38.363Z`, version 2.9; manifest and all source hashes recorded above remain unchanged.
+
+
+Launch-readiness deep dive, 2026-10-09 (America/Chicago): all 28 registry tabs
+were traced against source, owning API/permissions and retained catalogue
+proof. No additional functional launch defect was established from legacy
+read-only POSTs in Club Arena oversight or Hand Reviews RPC transport; these
+are coverage boundaries of the strict eight-surface certificate. Installed
+metadata readback confirms all 12 Hand Reviews RPCs are STABLE security-definer,
+owned by postgres with fixed search paths, anonymous execute denied, and
+runtime fn_is_horse_admin checks. fn_is_horse_admin delegates fleet.read to
+fn_ca_operator_has_permission(auth.uid()). This is metadata/body qualification,
+not a claim that every operator role or production mutation was exercised.
+C4 includes the missing dedicated cashout kill as well as global registration
+and positive issuance; maintenance is not a cashout kill. Six Partial IDs
+remain; this is an oversight console, not a complete universal control plane.
+
+PR #2237 source d8730504e passed hosted footer 37880096378, including 16
+Stable Admin cases. Safety 37880096460 failed only generated Training inventory
+because the shared header source changed. The maintained generator refreshed
+only its connected header line/reference metadata; eight focused inventory
+checks passed. A local pre-push fixture accidentally found the task-parent
+node_modules through TMPDIR ancestry; an isolated SSD temp root restored the
+missing-parser boundary and normal hooks passed, with no hook bypass.
+Candidate cf20f8f2 was pushed, then current protected 956ee734e was integrated
+as 563e25002656233b0434934ea1aa1b457778a7c6 preserving new _app CSS imports.
+Integrated header/auth/certificate contracts and inventory checks passed;
+final hosted checks, protected publication, genuine certificate and final
+five-file documentation integration remain pending.
+Canonical policies fully reread at 2026-10-10T01:23:45.648Z, v2.9 and all
+preceding hashes unchanged.
+
+
+Final integrated follow-up source 563e25002656233b0434934ea1aa1b457778a7c6
+passed all seven required protected checks (safety 38013030495) and full hosted
+browser acceptance 38013030486/job114097133243. Build, 16 Stable Admin cases,
+Trivia/PWA/race, Marketplace, 52 footer cases, 29 menu cases, 32 mobile cases
+and 12 budget cases passed under the configured retry policy. One footer case
+and two unrelated mobile budget cases required retries; this is not a claim
+of universal flake-free performance. Artifact11655454159, digest
+sha256:7f3478885fa1f937ffcc4e8c44dc5fc9ea4ab9c52035577c3aa348bcb70a61e0.
+Direct protected squash merge completed PR#2237 at2026-10-10T01:51:39Z as
+b21a9c4b86ec56e7e96c8501e4d405f3b397ae87, preserving concurrent landing
+PR#2250. Vercel production dpl_AmgYMk4ZEFzuy4FYKsqeZ5FNXZCn is building;
+READY/liveidentity/genuinecertificate remain pending. Own automatic merge
+and redundant branch-proposal attempts were terminal cancelled.
+
+Final shell repair publication receipt: PR #2237 protected-merged as `b21a9c4b86ec56e7e96c8501e4d405f3b397ae87` at 2026-10-10T01:51:39Z (October 9 Central), from qualified candidate `563e25002656233b0434934ea1aa1b457778a7c6`. All seven required checks and full hosted footer run 38013030486 passed, with configured flaky retry recoveries disclosed above. Canonical Vercel deployment `dpl_AmgYMk4ZEFzuy4FYKsqeZ5FNXZCn` is READY and live health reports this revision with database `ok`. Newer protected main `83a68e9` is queued; passing genuine exact-main certification and final documentation integration remain pending.
+
+Current protected descendant publication receipt: `83a68e9ecdc26e75a1665d762d783dc508e79f61` is Vercel READY in deployment `dpl_z4hZ2WewLJKmY1U4FPdrNawM2CoA`; exact health at 2026-10-10T02:00:49Z reports this revision and database `ok`. Genuine production certificate run 38015383337 was dispatched once for that exact protected/served revision and is queued, not passing. The 28-tab fixture catalogue and eight-surface genuine acceptance are separate evidence boundaries.
+
+Fresh reading receipt: full canonical policies emitted and read at `2026-10-10T02:00:33.533Z`, version 2.9, with unchanged manifest/source hashes above; repository instructions, publishing references and checkpoint freshly read from source HEAD `563e25002656233b0434934ea1aa1b457778a7c6`.
+
+Final genuine production receipt: certificate run 38015383337 / job 114104368294 passed against exact protected and served descendant `83a68e9ecdc26e75a1665d762d783dc508e79f61`, with stable Vercel identity, authenticated reads at both widths and zero mutation attempts, page/chunk errors or overflow across the eight named surfaces. The direct sanitized JSON is archived under `certificate-38015383337/stable-admin-production-certificate-38015383337-1/horses-production-certificate.json`. Its bounded human-seat observation agrees with the independent read-only count above. Runtime acceptance is complete within this finite oversight scope; final documentation protected integration remains pending.
+
+Launch verdict: qualified oversight and existing permission-bound workflows, with truthful missing/degraded states. This is not a universal platform control plane. P3, O1, O2, O7, C2 and C4 remain explicit limitations; dedicated cashout, global tournament-registration and positive-issuance kill controls are absent. Prepared browser receipts do not prove delivery. No production financial or gameplay mutation was used for certification.
