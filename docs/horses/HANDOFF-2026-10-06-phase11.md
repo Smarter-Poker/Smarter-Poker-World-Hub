@@ -53,7 +53,7 @@ or certified live yet. Earlier records below describe the oversight release.
 - World Hub affected suite: 1,233 passed and one documentation punctuation
   failure. That documentation was corrected; its six-case group now passes.
   Final source build passed all 507 pages and bundle budgets. The new control
-  browser suite is still under qualification at desktop and 375px.
+  browser suite now passes 30/30 at desktop and 375px without retries.
 - Club Arena broad client suite: 35,021 passed, three failed, one existing
   skipped case. All three affected files now pass 23/23 after the actual
   post-rest engine timing correction and reviewed additive workflow pin.
@@ -82,6 +82,31 @@ Evidence is under the assigned external archive. Source fingerprint updates
 preserve prior assertions, authorities, fixtures and qualification statuses.
 No alternate publisher, production fixture, financial write or control toggle
 supplied qualification. PGlite remains provisional evidence only.
+
+### Integrated source and browser qualification, 2026-10-10 04:58 UTC
+
+World Hub source committed as `7719ed2935f4e618f39059222a71e3a2ca568673`
+and current main `0de124b23` merged as
+`d56706c51c073223936268e8919a5f2ddd39a35d`. Incoming PNM work is preserved;
+no Stable Admin runtime path changed in that merge. Integrated affected
+suite passes 1,281/1,281 with zero skips. Corrected browser build passed 507
+pages and budgets; actual maintained suite passed 30/30 without retries at
+1440px and 375px, including the full 28-tab catalogue and seven new cases.
+Desktop CSS failure-before and passing-after evidence plus runtime fingerprints
+are retained under `restriction/browser`; all temporary diagnostics were removed.
+That owned local server was stopped (session90781 exit130, port3199 empty).
+Final integrated build is finishing. These are isolated fixture component proofs,
+not production command execution or genuine live certification.
+
+CA guard-repair source `dab9c04f64` passed both migration guards and renewed
+native floor qualification. Its ordinary push failed two strict timing source
+contracts because the normal formatter split the exact four-owner predicate
+across lines. Both contracts now permit only whitespace differences while
+retaining exact terms, timing ordering and residue checks. Focused failure-before
+and 17/17 passing-after evidence retained. Corrected source committed normally
+as `87aaee9d82`; final ordinary push is running. Active cash contracts pass 6/6
+and all 821 bindings remain valid. No source predicate or timing rule was relaxed.
+Neither repository is yet protected-merged, installed, published or certified live.
 
 ### Final candidate blocker recovery, 2026-10-10 04:56 UTC
 
