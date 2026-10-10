@@ -615,7 +615,7 @@ hook6027b488b1c77d03642b3d384f275d6a. No failed attempt is reported as installed
 The final source takes tournament_players FIRST with the existing3s lock_timeout,
 then the remaining26 exact CREATE TRIGGER targets NOWAIT before anyDDL.
 Final source SHA256c201404af5ccd9b8a5b148ab95faf45fdd9f69c0eac54ca177570dd93a9eabc3.
-NativePG17 proves bounded55P03 between2.8–5s, schema/hook preservation and
+NativePG17 proves bounded55P03 between2.8-5s, schema/hook preservation and
 unrelated authentication access, then complete installation, restriction/admission
 ordering and duplicate logout exactly once. Source regression passes1/1.
 No production policy toggle, player/control fixture or financial write supplies proof.
@@ -713,3 +713,32 @@ Focused source/privacy/export/certificate contracts27/27 passed without skips;
 required safety now explicitly runs the maintained lock-footprint regression.
 Fresh production05:35:50 read still showed noP3 ledger/tables, original6027 hook,
 and noDDL-window refusal. Installation and final publication proof remain pending.
+
+
+### Matcher blocker recovery and fresh reading receipt, 05:47 UTC
+
+Canonical policies fully emitted/read at2026-10-10T05:45:03.402Z, v2.9,
+manifest/source hashes above unchanged. Full repository/publishing/CLAUDE,
+path, migration, storage and owning maintenance handoff/programme references
+freshly read atWHf01a1a73ceb2547997d654b70d172aea321735c6 and
+CA67904f71a2dfdb2a408e127da60065291e8e1457. SSD mounted with free space.
+
+CA38026920728 accounting1 failed its unchanged native LightningPhase12
+pass_starved_by_its_budget invariant:150 legal candidates,17 plannedgroups,
+zero formed,2 insufficient_legal_candidates retries/replans,1542ms. The
+comparable3daaa2963 accounting1 run38025991664 passed the same S1 inputs;
+source/harness comparison does not excuse the failed schedule-sensitive path.
+Actual matcher exits all remaining disjoint plannedgroups after first stale
+group, then repeats a full plan. A reserved forward migration plus native
+stale-first-group failure-before/passing-after regression is in progress.
+No installed source edited, production replay, unchanged CI retry or weakened
+budget/starvation assertion. All six installed dependency hashes remain exact.
+WHf01 required six checks pass, safety and full footer acceptance still running.
+Protected merges, normal publication, sealed engine activation and genuine
+production acceptance remain pending.
+
+
+WHf01 safety38028340652 failed its documentation punctuation contract at
+05:47:28UTC: checkpoint used an en dash in the measured2.8-5s lock interval.
+That prose is corrected, unchanged no-dash assertion retained. Actual final
+local documentation contracts are rerun before normal submission.
