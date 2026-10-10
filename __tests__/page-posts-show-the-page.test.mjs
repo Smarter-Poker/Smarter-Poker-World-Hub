@@ -297,20 +297,25 @@ test('page posts API: an unreadable parent fails closed, never publishing a poss
   assert.ok(!JSON.stringify(res.body).includes(POST_ROW.content));
 });
 
-test('page posts API: real current Home Game privacy hides private parents and preserves public page identity', async () => {
-  for (const isPrivate of [true, false]) {
+test('page posts API: real current Home Game privacy hides private, unlisted and inactive parents and preserves public page identity', async () => {
+  for (const scenario of [
+    { isPrivate: true, isPublic: true, isActive: true, visible: false },
+    { isPrivate: false, isPublic: true, isActive: true, visible: true },
+    { isPrivate: false, isPublic: false, isActive: true, visible: false },
+    { isPrivate: false, isPublic: true, isActive: false, visible: false },
+  ]) {
     const supabase = fakeSupabase({
       social_page_posts: [POST_ROW], profiles: [POSTER],
-      social_pages: [{ ...PAGE_ROW, page_type: 'home_game', linked_entity_type: 'home_group', linked_entity_id: 'group1', is_public: true }],
-      commander_home_groups: [{ id: 'group1', is_active: true, is_private: isPrivate }],
+      social_pages: [{ ...PAGE_ROW, page_type: 'home_game', linked_entity_type: 'home_group', linked_entity_id: 'group1', is_public: scenario.isPublic }],
+      commander_home_groups: [{ id: 'group1', is_active: scenario.isActive, is_private: scenario.isPrivate }],
     });
     const { module } = loadPagePostsApi(supabase);
     const res = fakeRes();
     await module.default({ method: 'GET', query: { page_id: 'pg1' }, headers: {} }, res);
     assert.equal(res.statusCode, 200);
     assert.equal(res.headers['Cache-Control'], 'private, no-store');
-    assert.equal(res.body.data.length, isPrivate ? 0 : 1);
-    if (!isPrivate) assert.deepEqual(res.body.data[0].page, PAGE_IDENTITY);
+    assert.equal(res.body.data.length, scenario.visible ? 1 : 0);
+    if (scenario.visible) assert.deepEqual(res.body.data[0].page, PAGE_IDENTITY);
     assert.ok(supabase.calls.some(call => call.table === 'commander_home_groups'), 'actual authoritative parent is read');
   }
 });
