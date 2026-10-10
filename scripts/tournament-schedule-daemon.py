@@ -85,27 +85,16 @@ EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
 SUPABASE_URL = "https://kuklfnapbkmacvwxktbh.supabase.co"
 def _load_supabase_key():
-    """The old fallback chain read the SAME env var twice, so when a launcher
-    does not source .env.local the key silently becomes None and every
-    PostgREST call fails with urllib's 'expected string or bytes-like object'
-    (None header) - exactly what killed poker_series_scraper's writes.
-    Fall back to parsing .env.local; fail fast if still absent."""
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    if key:
-        return key
-    env_file = PROJECT_ROOT / ".env.local"
-    try:
-        for line in env_file.read_text().splitlines():
-            line = line.strip()
-            if line.startswith("SUPABASE_SERVICE_ROLE_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    except OSError:
-        pass
-    return None
+    """The verified runtime injects its canonical service credential.
+
+    Do not recover credentials from checkout files. A missing injected key is
+    a startup failure, not permission to read an unrelated environment file.
+    """
+    return os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or None
 
 SUPABASE_KEY = _load_supabase_key()
 if not SUPABASE_KEY:
-    print("FATAL: SUPABASE_SERVICE_ROLE_KEY not in environment or .env.local - "
+    print("FATAL: SUPABASE_SERVICE_ROLE_KEY not supplied by the runtime - "
           "every DB write would silently fail. Exiting.", flush=True)
     raise SystemExit(2)
 SB_HDRS = {
@@ -580,7 +569,23 @@ def sanitize_tournament_name(name: str | None) -> str | None:
     """Remove HTML fragments, CSS selectors, and junk from scraped tournament names."""
     if not name:
         return None
-    name = html_lib.unescape(str(name)).strip()
+    name = str(name).strip()
+    # Bound entity decoding so multiply encoded CSS/JS cannot
+    # become a persisted event title before a later consumer decodes it.
+    for _ in range(8):
+        decoded = html_lib.unescape(name)
+        if decoded == name:
+            break
+        name = decoded
+    code_artifact = re.compile(
+        r'\b(?:text-decoration|font-(?:size|family|weight)|display|background(?:-color)?|text-align|line-height|z-index)\s*:'
+        r'|\bcolor\s*:\s*(?:var\s*\(|rgba?\s*\(|#[\da-f])'
+        r'|@(?:media|supports|font-face)\b'
+        r'|\b(?:document|window)\.(?:querySelector|addEventListener|__\w+)'
+        r'|\bmodule\.exports|[{}]', re.I,
+    )
+    if code_artifact.search(name):
+        return None
     name = re.sub(r"[\u2012-\u2015]", " - ", name)
     name = re.sub(r"\s+", " ", name)
     # Reject names containing HTML tags

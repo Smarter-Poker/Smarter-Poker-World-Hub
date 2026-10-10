@@ -44,6 +44,7 @@ import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching
 import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/structuredData';
 import { venueTitle } from '../../../src/lib/seo/venueTitle';
 import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
+import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, readVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
@@ -215,54 +216,15 @@ function countSchedules(venue) {
 
 /**
  * Flat venue_daily_tournaments rows -> the { source_url, schedules } shape the
- * page renders. This mirrors the transform in /api/poker/venues (including its
- * start_time + normalized-game + buy_in dedupe) so the server HTML matches what
+ * page renders. Uses the same qualification and complete date/day/name identity
+ * as /api/poker/venues so the server HTML matches what
  * SWR renders after it revalidates — otherwise the schedule visibly shrinks on
  * hydration and crawlers index rows the live page never shows.
  * Every field is normalized to null: getServerSideProps props must be JSON
  * serializable, and `undefined` would throw.
  */
 function groupDailyTournamentRows(rows) {
-  if (!rows || rows.length === 0) return [];
-
-  const seenKeys = new Set();
-  const schedules = [];
-  for (const t of rows) {
-    let normGame = String(t.game_type || t.tournament_name || 'nlh').toLowerCase().trim();
-    if (normGame.includes('nlh') || normGame.includes('no limit') || normGame.includes('holdem') || normGame.includes("hold'em")) {
-      normGame = 'nlh';
-    } else if (normGame.includes('plo') || normGame.includes('omaha')) {
-      normGame = 'omaha';
-    } else if (normGame.includes('mixed') || normGame.includes('horse')) {
-      normGame = 'mixed';
-    }
-
-    const key = [
-      String(t.start_time || '').toLowerCase().trim(),
-      normGame,
-      String(t.buy_in || 0),
-    ].join('|');
-    if (seenKeys.has(key)) continue;
-    seenKeys.add(key);
-
-    schedules.push({
-      day_of_week: t.day_of_week ?? null,
-      start_time: t.start_time ?? null,
-      tournament_name: t.tournament_name ?? null,
-      buy_in: t.buy_in ?? null,
-      rebuy_addon: t.rebuy_addon ?? null,
-      starting_stack: t.starting_stack ?? null,
-      blind_levels: t.blind_levels ?? null,
-      game_type: t.game_type ?? null,
-      format: t.format ?? null,
-      guaranteed: t.guaranteed ?? null,
-    });
-  }
-
-  return [{
-    source_url: rows[0].source_url || null,
-    schedules,
-  }];
+  return groupVenueDailyTournamentRows(rows);
 }
 
 /**
@@ -369,24 +331,20 @@ export async function getServerSideProps({ params, req, res }) {
       } else if (data) {
         // select('*') mirrors the API's own query — an explicit column list
         // would fail the whole read if any one name drifted.
-        const { data: tourRows } = await supabaseServer
-          .from('venue_daily_tournaments')
-          .select('*')
-          .eq('venue_id', numericId)
-          .eq('is_active', true)
-          .or('is_suppressed.is.null,is_suppressed.eq.false')
-          .order('day_of_week')
-          .limit(100);
+        const { rows: tourRows, error: scheduleError, truncated } = await readVenueTournamentRows(supabaseServer, numericId);
 
         const grouped = groupDailyTournamentRows(tourRows);
         const overrides = {
           daily_tournaments: grouped,
           daily_tournaments_source: grouped.length > 0 ? (grouped[0].source_url || null) : null,
+          schedule_unavailable: grouped.length === 0,
+          schedule_read_error: Boolean(scheduleError || truncated),
         };
         // The API stamps last_scraped from the tournament rows when it has
         // live ones; match it so the badge doesn't change value on hydration.
-        if (tourRows && tourRows.length > 0) {
-          overrides.last_scraped = tourRows[0].last_scraped ?? null;
+        const qualifiedRows = qualifyVenueTournamentRows(tourRows);
+        if (qualifiedRows.length > 0) {
+          overrides.last_scraped = qualifiedRows[0].last_scraped ?? null;
         }
         // Narrow before it becomes a prop — see PUBLIC_VENUE_FIELDS. This is
         // the point where is_suppressed (already consumed above) and the rest
@@ -2878,7 +2836,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               <section id="tournaments-section" className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">
-                  <p>Tournament Schedule Data Is Being Collected For This Venue.</p>
+                  <p>{venue.schedule_read_error ? 'Tournament Schedule Could Not Be Loaded. Please Try Again.' : 'Tournament Schedule Data Is Being Collected For This Venue.'}</p>
                   {venue.poker_atlas_url && (
                     <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="pa-link">
                       Check Venue Website For Current Schedule

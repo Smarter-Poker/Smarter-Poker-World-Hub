@@ -7,22 +7,25 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/Users/smarter.poker/.local/share/smarter-poker-venv/bin/python3</string>
-		<string>/Users/smarter.poker/.local/share/smarter-poker-scraper-runtime-20260906/scripts/tour_stealth_scraper.py</string>
+		<string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tours/runner.py</string>
+		<string>run</string>
+		<string>--root</string>
+		<string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tours</string>
 	</array>
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>PYTHONUNBUFFERED</key>
 		<string>1</string>
+		<key>TMPDIR</key>
+		<string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tours/tmp</string>
 	</dict>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>StandardErrorPath</key>
-	<string>/Users/smarter.poker/.local/share/smarter-poker-scraper-runtime-20260906/data/tour-logs/launchd.log</string>
+	<string>/dev/null</string>
 	<key>StandardOutPath</key>
-	<string>/Users/smarter.poker/.local/share/smarter-poker-scraper-runtime-20260906/data/tour-logs/launchd.log</string>
+	<string>/dev/null</string>
 	<key>StartInterval</key>
 	<integer>259200</integer>
-	<key>WorkingDirectory</key>
-	<string>/Users/smarter.poker/.local/share/smarter-poker-scraper-runtime-20260906</string>
 </dict>
 </plist>

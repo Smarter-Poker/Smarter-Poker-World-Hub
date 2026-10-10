@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import os
+import plistlib
 from pathlib import Path
 import subprocess
 import sys
@@ -84,6 +85,161 @@ class RuntimeProof(unittest.TestCase):
             result = runtime.install(self.repo, self.sha, self.root, self.state, self.inputs, Path(python or sys.executable))
             prerequisite.assert_called_once()
             return result
+
+    def test_tours_one_shot_uses_configured_store_without_copying_credentials(self):
+        files, _ = runtime.COMPONENTS['tours']
+        for name in files:
+            path = self.repo / name
+            path.parent.mkdir(exist_ok=True)
+            path.write_text('raise SystemExit(0)\n')
+        self.git('add', 'scripts')
+        self.git('commit', '-qm', 'tour fixture')
+        sha = self.git('rev-parse', 'HEAD').strip()
+        self.git('update-ref', 'refs/remotes/origin/main', sha)
+        tour_root = self.base / 'tour-runtime'
+        with patch.object(runtime, 'verify_python'):
+            result = runtime.install(self.repo, sha, tour_root, self.state,
+                                     self.inputs, Path(sys.executable),
+                                     'tours', self.root)
+        self.assertEqual(result['component'], 'tours')
+        self.assertFalse((tour_root / 'auth.json').exists())
+        self.assertEqual(runtime.credential_root(tour_root), self.root)
+        self.assertEqual(runtime.run(tour_root), 0)
+        self.assertTrue((tour_root / 'runtime.log').is_file())
+        self.assertFalse((self.root / 'runtime.log').exists())
+        self.assertFalse((tour_root / 'outbox').exists())
+        self.assertFalse(self.requests)
+
+    def test_component_file_set_cannot_be_relabelled(self):
+        self.install()
+        manifest_path = self.root / 'current/manifest.json'
+        value = json.loads(manifest_path.read_text())
+        value['component'] = 'tours'
+        runtime.atomic_write(manifest_path, runtime.json_bytes(value))
+        with self.assertRaisesRegex(runtime.RuntimeFault, 'manifest_file_set_mismatch'):
+            runtime.inspect_release(self.root)
+
+    def test_runner_owns_ssd_log_for_native_collector_and_startup_failures(self):
+        self.install()
+        with runtime.runtime_output(self.root):
+            subprocess.run([sys.executable, '-c', 'import sys; print("collector-output", flush=True); print("collector-error", file=sys.stderr, flush=True)'], check=True)
+        contents = (self.root / 'runtime.log').read_text()
+        self.assertIn('collector-output', contents)
+        self.assertIn('collector-error', contents)
+        (self.root / 'current').unlink()
+        self.assertEqual(runtime.run(self.root), 1)
+        self.assertIn('release_missing', (self.root / 'runtime.log').read_text())
+
+    def test_runtime_log_stays_bounded_while_native_child_is_alive(self):
+        command = [
+            sys.executable, '-c',
+            'import time; print("old-" + "x" * 32768, flush=True); '
+            'time.sleep(0.4); print("collector-tail", flush=True)',
+        ]
+        with runtime.runtime_output(
+            self.root, max_bytes=4096, retain_bytes=1024, check_seconds=0,
+        ) as output:
+            code, terminating = runtime.supervise(
+                command, None, dict(os.environ), grace_seconds=0.2,
+                log_maintenance=output.maintain,
+            )
+        contents = (self.root / 'runtime.log').read_bytes()
+        self.assertEqual((code, terminating), (0, False))
+        self.assertLessEqual(len(contents), 4096)
+        self.assertIn(runtime.RUNTIME_LOG_BOUNDARY, contents)
+        self.assertIn(b'collector-tail', contents)
+        self.assertNotIn(b'old-', contents)
+
+    def test_final_log_failure_restores_descriptors_before_propagating(self):
+        probe_path = self.base / 'restored-stdout.log'
+        probe = os.open(probe_path, os.O_WRONLY | os.O_CREAT, 0o600)
+        saved_stdout = os.dup(1)
+        try:
+            os.dup2(probe, 1)
+            with patch.object(
+                runtime.BoundedRuntimeOutput, 'maintain', side_effect=[True, False],
+            ), self.assertRaisesRegex(runtime.RuntimeFault, 'runtime_log_unavailable'):
+                with runtime.runtime_output(self.root):
+                    os.write(1, b'captured-before-final-failure\n')
+            os.write(1, b'restored-after-final-failure\n')
+        finally:
+            os.dup2(saved_stdout, 1)
+            os.close(saved_stdout)
+            os.close(probe)
+        self.assertIn(
+            b'captured-before-final-failure', (self.root / 'runtime.log').read_bytes(),
+        )
+        self.assertEqual(probe_path.read_bytes(), b'restored-after-final-failure\n')
+
+    def test_unavailable_runtime_log_prevents_collector_start(self):
+        self.install()
+        (self.root / 'runtime.log').mkdir()
+        with patch.object(runtime.subprocess, 'Popen') as child, contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(self.root), 1)
+        child.assert_not_called()
+
+    def test_launchd_plists_leave_ssd_io_to_the_python_runner(self):
+        scripts = Path(runtime.__file__).parent
+        for suffix in ('tour-scraper', 'series-scraper', 'tournament-schedule-daemon'):
+            with self.subTest(component=suffix):
+                with (scripts / ('com.smarter-poker.' + suffix + '.plist')).open('rb') as source:
+                    value = plistlib.load(source)
+                self.assertNotIn('WorkingDirectory', value)
+                self.assertEqual(value['StandardOutPath'], '/dev/null')
+                self.assertEqual(value['StandardErrorPath'], '/dev/null')
+                self.assertTrue(value['RunAtLoad'])
+                if suffix == 'tour-scraper':
+                    self.assertEqual(value['StartInterval'], 259200)
+                else:
+                    self.assertTrue(value['KeepAlive'])
+
+    def test_series_runtime_preserves_daemon_mode_and_catalog_inputs(self):
+        files, inputs = runtime.COMPONENTS['series']
+        for name in files:
+            path = self.repo / name
+            path.parent.mkdir(exist_ok=True)
+            path.write_text('import sys\nraise SystemExit(7 if "--daemon" in sys.argv else 9)\n')
+        for name in inputs:
+            (self.inputs / name).write_text('{"catalog":"existing"}')
+        self.git('add', 'scripts')
+        self.git('commit', '-qm', 'series fixture')
+        sha = self.git('rev-parse', 'HEAD').strip()
+        self.git('update-ref', 'refs/remotes/origin/main', sha)
+        series_root = self.base / 'series-runtime'
+        with patch.object(runtime, 'verify_python'):
+            result = runtime.install(self.repo, sha, series_root, self.state,
+                                     self.inputs, Path(sys.executable), 'series', self.root)
+        self.assertEqual(result['component'], 'series')
+        self.assertFalse((series_root / 'auth.json').exists())
+        self.assertTrue(all((self.state / name).is_file() for name in inputs))
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(series_root), 1)
+        self.assertEqual(self.requests[0]['p_source'], 'local.series-runtime')
+        self.assertEqual(self.requests[0]['p_payload']['failure_code'], 'daemon_exited_7')
+
+    def test_tournament_daemon_exit_is_failure_not_one_shot_success(self):
+        files, _ = runtime.COMPONENTS['tournaments']
+        for name in files:
+            path = self.repo / name
+            path.parent.mkdir(exist_ok=True)
+            path.write_text('raise SystemExit(0)\n')
+        self.git('add', 'scripts')
+        self.git('commit', '-qm', 'tournament fixture')
+        sha = self.git('rev-parse', 'HEAD').strip()
+        self.git('update-ref', 'refs/remotes/origin/main', sha)
+        daemon_root = self.base / 'tournament-runtime'
+        with patch.object(runtime, 'verify_python'):
+            runtime.install(self.repo, sha, daemon_root, self.state, self.inputs,
+                            Path(sys.executable), 'tournaments', self.root)
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(daemon_root), 1)
+        self.assertEqual(self.requests[0]['p_source'], 'local.tournaments-runtime')
+        self.assertEqual(self.requests[0]['p_payload']['failure_code'], 'daemon_exited_0')
+
+    def test_credential_reference_rejects_relative_path(self):
+        runtime.atomic_write(self.root / 'credential-store.json', runtime.json_bytes({'root': '../foreign'}))
+        with self.assertRaisesRegex(runtime.RuntimeFault, 'credential_store_invalid'):
+            runtime.credential_root(self.root)
 
     def test_coherent_release_preserves_state_and_replays_install(self):
         (self.state / 'pokeratlas-sweep-state.json').write_text('{"offset":33}')

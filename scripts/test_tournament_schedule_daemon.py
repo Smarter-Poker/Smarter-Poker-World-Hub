@@ -23,6 +23,14 @@ SPEC.loader.exec_module(DAEMON)
 
 
 class GenericTournamentFallbackTests(unittest.TestCase):
+    def test_credentials_only_use_runtime_environment(self):
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            Path, "read_text", side_effect=AssertionError("credential file read"),
+        ):
+            self.assertIsNone(DAEMON._load_supabase_key())
+        with mock.patch.dict(os.environ, {"SUPABASE_SERVICE_ROLE_KEY": "test-runtime-key"}):
+            self.assertEqual(DAEMON._load_supabase_key(), "test-runtime-key")
+
     @staticmethod
     def _pa_page(name: str, state: str, title: str | None = None) -> str:
         return f'''
@@ -198,6 +206,21 @@ class GenericTournamentFallbackTests(unittest.TestCase):
             "High Roller - Final",
             DAEMON.sanitize_tournament_name("High Roller &mdash; Final"),
         )
+
+    def test_css_and_javascript_titles_are_rejected_after_bounded_decode(self):
+        artifacts = (
+            'text-decoration:underline;', 'font-size:14pt',
+            'font-family:Arial', 'font-weight:bold', 'display:none',
+            '] { color: var(--text-color--brand); } [linkColor=',
+            'background-color:#fff', 'document.querySelector("table")',
+            'window.addEventListener("load")',
+        )
+        for artifact in artifacts:
+            for encoded in (artifact, artifact.replace(':', '&#58;'), artifact.replace(':', '&amp;#58;')):
+                with self.subTest(encoded=encoded):
+                    self.assertIsNone(DAEMON.sanitize_tournament_name(encoded))
+        for name in ('Color Up', 'High Roller: $1,100', 'NLH w/Rebuys &amp; Add-On'):
+            self.assertIsNotNone(DAEMON.sanitize_tournament_name(name))
 
     def test_explicit_artifact_is_not_replaced_with_generated_event_name(self):
         row = DAEMON.make_rec(

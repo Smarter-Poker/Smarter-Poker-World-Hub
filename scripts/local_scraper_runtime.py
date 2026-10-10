@@ -5,6 +5,7 @@ cannot prevent its supervisor from recording the startup failure. This module
 uses only the Python standard library; it never installs dependencies.
 """
 import argparse
+import contextlib
 import fcntl
 import hashlib
 import json
@@ -27,6 +28,17 @@ FILES = (
     'scripts/browser_heal.py',
 )
 INPUTS = ('all-venues.json', 'pokeratlas-slug-map.json')
+COMPONENTS = {
+    'pokeratlas': (FILES, INPUTS),
+    'tours': (('scripts/tour_stealth_scraper.py', 'scripts/scraper_data_truth.py',
+               'scripts/browser_heal.py'), ()),
+    'tournaments': (('scripts/tournament-schedule-daemon.py',
+                     'scripts/scraper_data_truth.py', 'scripts/browser_heal.py'),
+                    ()),
+    'series': (('scripts/poker_series_scraper.py', 'scripts/scraper_data_truth.py',
+                'scripts/browser_heal.py'),
+               ('master_poker_series_list.json', 'all-venues.json')),
+}
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
 # Every operational alert is addressed to the production-alerts fleet. The
 # shared writer, scripts/operational_alerts.py, owns this value and rule. This
@@ -34,6 +46,10 @@ SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
 # library, so it keeps a mirror; scripts/test_operational_alerts.py fails CI if
 # the mirror differs.
 FLEET_TASK_ID = '01a09b86-5ba8-7290-8657-1041f13dd3ca'
+RUNTIME_LOG_MAX_BYTES = 8 * 1024 * 1024
+RUNTIME_LOG_RETAIN_BYTES = 2 * 1024 * 1024
+RUNTIME_LOG_CHECK_SECONDS = 1.0
+RUNTIME_LOG_BOUNDARY = b'[runtime] older output discarded at size bound\n'
 
 
 class RuntimeFault(RuntimeError):
@@ -100,6 +116,20 @@ def credentials(root):
     return auth
 
 
+def credential_root(root):
+    """Reference the configured service store without duplicating its secrets."""
+    pointer = root / 'credential-store.json'
+    if not pointer.exists():
+        return root
+    value = read_json(pointer, 'credential_store_unreadable')
+    if not isinstance(value, dict) or not isinstance(value.get('root'), str):
+        raise RuntimeFault('credential_store_invalid')
+    path = Path(value['root'])
+    if not path.is_absolute():
+        raise RuntimeFault('credential_store_invalid')
+    return path.resolve()
+
+
 def inspect_release(root):
     try:
         release = (root / 'current').resolve(strict=True)
@@ -110,10 +140,14 @@ def inspect_release(root):
     manifest = read_json(release / 'manifest.json', 'manifest_unreadable')
     if not isinstance(manifest, dict) or manifest.get('revision') != release.name:
         raise RuntimeFault('manifest_revision_mismatch')
+    component = manifest.get('component', 'pokeratlas')
+    if component not in COMPONENTS:
+        raise RuntimeFault('component_invalid')
+    files, inputs = COMPONENTS[component]
     hashes = manifest.get('files')
-    if not isinstance(hashes, dict) or set(hashes) != set(FILES):
+    if not isinstance(hashes, dict) or set(hashes) != set(files):
         raise RuntimeFault('manifest_file_set_mismatch')
-    for name in FILES:
+    for name in files:
         path = release / name
         if path.is_symlink() or not path.is_file():
             raise RuntimeFault('release_file_missing')
@@ -127,17 +161,17 @@ def inspect_release(root):
     state = Path(config['state_dir']).resolve()
     if not state.is_dir() or (release / 'data').resolve() != state:
         raise RuntimeFault('state_directory_invalid')
-    for name in INPUTS:
+    for name in inputs:
         value = read_json(state / name, 'catalog_input_unreadable')
         if not isinstance(value, (dict, list)) or not value:
             raise RuntimeFault('catalog_input_empty')
     return release, manifest, config
 
 
-def queue_fault(root, code, revision='unknown'):
+def queue_fault(root, code, revision='unknown', component='pokeratlas'):
     # The same failed release/startup condition is one incident across retries.
     key = hashlib.sha256((revision + ':' + code).encode()).hexdigest()
-    event = {'p_source': 'local.pokeratlas-runtime', 'p_event_key': key,
+    event = {'p_source': 'local.' + component + '-runtime', 'p_event_key': key,
              'p_alertname': 'LocalScraperRuntimeFailure', 'p_status': 'firing',
              'p_severity': 'critical',
              'p_payload': addressed({'failure_code': code, 'release_revision': revision})}
@@ -150,7 +184,7 @@ def queue_fault(root, code, revision='unknown'):
 
 
 def flush_outbox(root, opener=urllib.request.urlopen):
-    auth = credentials(root)
+    auth = credentials(credential_root(root))
     pending = sorted((root / 'outbox').glob('*.json'))
     for path in pending:
         event = read_json(path, 'outbox_unreadable')
@@ -190,14 +224,18 @@ def verify_python(python):
         raise RuntimeFault('python_runtime_prerequisites')
 
 
-def install(repository, revision, root, state, inputs, python):
+def install(repository, revision, root, state, inputs, python,
+            component='pokeratlas', credential_store=None):
+    if component not in COMPONENTS:
+        raise RuntimeFault('component_invalid')
+    files, input_names = COMPONENTS[component]
     if not re.fullmatch('[0-9a-f]{40}', revision):
         raise RuntimeFault('revision_must_be_full_sha')
     def git(*args):
         return subprocess.check_output(['git', '-C', str(repository), *args], stderr=subprocess.DEVNULL)
     try:
         git('merge-base', '--is-ancestor', revision, 'origin/main')
-        blobs = {name: git('show', revision + ':' + name) for name in FILES}
+        blobs = {name: git('show', revision + ':' + name) for name in files}
         runner = git('show', revision + ':scripts/local_scraper_runtime.py')
     except subprocess.CalledProcessError:
         raise RuntimeFault('release_not_complete_on_protected_main') from None
@@ -205,7 +243,7 @@ def install(repository, revision, root, state, inputs, python):
         compile(blob, name, 'exec')
     # Validate all inputs before publishing code or changing a live pointer.
     static = {}
-    for name in INPUTS:
+    for name in input_names:
         source = state / name if (state / name).exists() else inputs / name
         data = source.read_bytes()
         if not isinstance(json.loads(data), (dict, list)) or not json.loads(data):
@@ -214,7 +252,10 @@ def install(repository, revision, root, state, inputs, python):
     verify_python(python)
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(root, 0o700)
-    credentials(root)
+    store = credential_store.resolve() if credential_store else credential_root(root)
+    credentials(store)
+    if credential_store:
+        atomic_write(root / 'credential-store.json', json_bytes({'root': str(store)}))
     state.mkdir(parents=True, exist_ok=True)
     for name, blob in static.items():
         if not (state / name).exists():
@@ -230,6 +271,8 @@ def install(repository, revision, root, state, inputs, python):
                 'runtime': {'state_dir': str(state.resolve()), 'python': str(python.absolute())},
                 'files': {
         name: hashlib.sha256(blob).hexdigest() for name, blob in blobs.items()}}
+    if component != 'pokeratlas':
+        manifest['component'] = component
     staging = Path(tempfile.mkdtemp(prefix='.stage-', dir=releases))
     try:
         for name, blob in blobs.items():
@@ -262,10 +305,11 @@ def install(repository, revision, root, state, inputs, python):
     return manifest
 
 
-def supervise(argv, cwd, env, grace_seconds=10):
+def supervise(argv, cwd, env, grace_seconds=10, log_maintenance=None):
     """Own one process group, including a stop arriving during child startup."""
     child = None
     termination = None
+    log_failed = False
     def stop(signum, _frame):
         nonlocal termination
         if termination is None:
@@ -283,8 +327,19 @@ def supervise(argv, cwd, env, grace_seconds=10):
             stop(termination[0], None)
         while True:
             try:
-                return child.wait(timeout=0.2), termination is not None
+                code = child.wait(timeout=0.2)
+                if log_failed:
+                    raise RuntimeFault('runtime_log_unavailable')
+                return code, termination is not None
             except subprocess.TimeoutExpired:
+                if log_maintenance is not None and not log_failed:
+                    try:
+                        log_ok = log_maintenance()
+                    except Exception:
+                        log_ok = False
+                    if not log_ok:
+                        log_failed = True
+                        stop(signal.SIGTERM, None)
                 if termination is not None and time.monotonic() - termination[1] >= grace_seconds:
                     try:
                         os.killpg(child.pid, signal.SIGKILL)
@@ -295,7 +350,105 @@ def supervise(argv, cwd, env, grace_seconds=10):
         signal.signal(signal.SIGINT, old_int)
 
 
+class BoundedRuntimeOutput:
+    """Bound one append-only log without a second process or schedule."""
+
+    def __init__(self, path, descriptor, max_bytes=RUNTIME_LOG_MAX_BYTES,
+                 retain_bytes=RUNTIME_LOG_RETAIN_BYTES,
+                 check_seconds=RUNTIME_LOG_CHECK_SECONDS):
+        if (not isinstance(max_bytes, int) or not isinstance(retain_bytes, int)
+                or max_bytes <= len(RUNTIME_LOG_BOUNDARY)
+                or retain_bytes < 0
+                or retain_bytes > max_bytes - len(RUNTIME_LOG_BOUNDARY)
+                or check_seconds < 0):
+            raise RuntimeFault('runtime_log_configuration_invalid')
+        self.path = Path(path)
+        self.descriptor = descriptor
+        self.max_bytes = max_bytes
+        self.retain_bytes = retain_bytes
+        self.check_seconds = check_seconds
+        self.next_check = 0.0
+
+    def maintain(self, force=False):
+        """Retain the newest complete output and keep the active inode bounded."""
+        now = time.monotonic()
+        if not force and now < self.next_check:
+            return True
+        self.next_check = now + self.check_seconds
+        try:
+            size = os.fstat(self.descriptor).st_size
+            if size <= self.max_bytes:
+                return True
+            start = max(0, size - self.retain_bytes)
+            with self.path.open('rb', buffering=0) as source:
+                source.seek(start)
+                tail = source.read(self.retain_bytes)
+            if start:
+                newline = tail.find(b'\n')
+                tail = tail[newline + 1:] if newline >= 0 else b''
+            os.ftruncate(self.descriptor, 0)
+            os.write(self.descriptor, RUNTIME_LOG_BOUNDARY)
+            if tail:
+                os.write(self.descriptor, tail)
+            return os.fstat(self.descriptor).st_size <= self.max_bytes
+        except OSError:
+            return False
+
+
+@contextlib.contextmanager
+def runtime_output(root, max_bytes=RUNTIME_LOG_MAX_BYTES,
+                   retain_bytes=RUNTIME_LOG_RETAIN_BYTES,
+                   check_seconds=RUNTIME_LOG_CHECK_SECONDS):
+    """Python owns SSD logging; launchd never opens removable-volume paths.
+
+    Capture native child output and runner failures in the same durable log.
+    Restore descriptors for callers/tests; never launch a collector if its
+    diagnostic destination cannot be opened.
+    """
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    try:
+        destination = os.open(root / 'runtime.log', os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    except OSError:
+        raise RuntimeFault('runtime_log_unavailable') from None
+    output = BoundedRuntimeOutput(
+        root / 'runtime.log', destination, max_bytes, retain_bytes, check_seconds,
+    )
+    if not output.maintain(force=True):
+        os.close(destination)
+        raise RuntimeFault('runtime_log_unavailable')
+    original = []
+    final_log_ok = True
+    try:
+        for stream, descriptor in ((sys.stdout, 1), (sys.stderr, 2)):
+            stream.flush()
+            original.append((descriptor, os.dup(descriptor)))
+            os.dup2(destination, descriptor)
+        yield output
+    finally:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        try:
+            final_log_ok = output.maintain(force=True)
+        except Exception:
+            final_log_ok = False
+        for descriptor, saved in original:
+            os.dup2(saved, descriptor)
+            os.close(saved)
+        os.close(destination)
+        if not final_log_ok:
+            raise RuntimeFault('runtime_log_unavailable')
+
+
 def run(root):
+    try:
+        with runtime_output(root) as output:
+            return run_logged(root, output.maintain)
+    except (OSError, RuntimeFault):
+        print('runtime_log_unavailable', file=sys.stderr, flush=True)
+        return 1
+
+
+def run_logged(root, log_maintenance=None):
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (root / 'run.lock').open('a') as lock:
         try:
@@ -303,10 +456,12 @@ def run(root):
         except BlockingIOError:
             return 0
         revision = 'unknown'
+        component = 'pokeratlas'
         try:
             release, manifest, config = inspect_release(root)
             revision = manifest['revision']
-            auth = credentials(root)
+            component = manifest.get('component', 'pokeratlas')
+            auth = credentials(credential_root(root))
             env = dict(os.environ)
             env.pop('SUPABASE_KEY', None)
             env.update({'NEXT_PUBLIC_SUPABASE_URL': auth['url'],
@@ -315,15 +470,23 @@ def run(root):
                 flush_outbox(root)
             except RuntimeFault as error:
                 print(str(error), file=sys.stderr, flush=True)
-            code, terminating = supervise([config['python'], str(release / FILES[0])], release, env)
+            files, _ = COMPONENTS[component]
+            argv = [config['python'], str(release / files[0])]
+            if component == 'series':
+                argv.append('--daemon')
+            code, terminating = supervise(
+                argv, release, env, log_maintenance=log_maintenance,
+            )
             if terminating:
+                return 0
+            if component == 'tours' and code == 0:
                 return 0
             raise RuntimeFault('daemon_exited_' + str(code))
         except (OSError, ValueError, TypeError, KeyError):
             code = 'runtime_io_or_configuration_failure'
         except RuntimeFault as error:
             code = str(error)
-        queue_fault(root, code, revision)
+        queue_fault(root, code, revision, component)
         try:
             flush_outbox(root)
         except RuntimeFault as error:
@@ -341,17 +504,20 @@ def main():
     parser.add_argument('--state', type=Path)
     parser.add_argument('--inputs', type=Path)
     parser.add_argument('--python', type=Path)
+    parser.add_argument('--component', choices=sorted(COMPONENTS), default='pokeratlas')
+    parser.add_argument('--credential-store', type=Path)
     args = parser.parse_args()
     try:
         if args.action == 'install':
             if not all([args.repository, args.revision, args.state, args.inputs, args.python]):
                 parser.error('install requires repository, revision, state, inputs and python')
             result = install(args.repository, args.revision, args.root.resolve(),
-                             args.state.resolve(), args.inputs.resolve(), args.python)
+                             args.state.resolve(), args.inputs.resolve(), args.python,
+                             args.component, args.credential_store)
             print(json.dumps({'installed_revision': result['revision'], 'files': len(result['files'])}))
         elif args.action == 'check':
             _, manifest, _ = inspect_release(args.root.resolve())
-            credentials(args.root.resolve())
+            credentials(credential_root(args.root.resolve()))
             print(json.dumps({'revision': manifest['revision'], 'files': len(manifest['files']), 'ok': True}))
         elif args.action == 'flush':
             flush_outbox(args.root.resolve())

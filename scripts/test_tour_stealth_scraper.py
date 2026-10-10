@@ -6,15 +6,183 @@ from datetime import date
 import io
 import json
 import sys
+import types
 from unittest import mock
 
 import tour_stealth_scraper as scraper
-import scrape_tour_full_schedules as legacy_full
-import scrape_tour_native as legacy_native
-import scrape_tours_targeted as legacy_targeted
+# These legacy publishers are imported only to exercise their real parser and
+# fail-disabled write guards. Their eager browser/client imports must not turn
+# offline contracts into browser-package installation or credential access.
+fetchers = types.ModuleType('scrapling.fetchers')
+def forbidden_offline_transport(*_args, **_kwargs):
+    raise AssertionError('offline parser contract attempted a browser transport')
+fetchers.Fetcher = forbidden_offline_transport
+fetchers.StealthySession = forbidden_offline_transport
+fetchers.DynamicFetcher = forbidden_offline_transport
+supabase_stub = types.ModuleType('supabase')
+supabase_stub.create_client = lambda *_args, **_kwargs: None
+dotenv_stub = types.ModuleType('dotenv')
+dotenv_stub.load_dotenv = lambda *_args, **_kwargs: False
+with mock.patch.dict(sys.modules, {'scrapling': types.ModuleType('scrapling'),
+                                  'scrapling.fetchers': fetchers,
+                                  'supabase': supabase_stub,
+                                  'dotenv': dotenv_stub}):
+    import scrape_tour_full_schedules as legacy_full
+    import scrape_tour_native as legacy_native
+    import scrape_tours_targeted as legacy_targeted
 
 
 class TourStopExtractionTests(unittest.TestCase):
+    def test_venetian_visible_series_paragraphs_not_cta_or_marketing_heading(self):
+        page = '''<h2>DeepStack Extravaganza Poker Series</h2>
+          <p><b>Current Series:<br /> </b>DeepStack Showdown (October)<br />
+          September 28 – October 27, 2026<br />Nearly $1 Million guaranteed</p>
+          <p><a href="/schedule.pdf">View Poker Tournament Schedule</a></p>
+          <p><b>Next Series:<br /> </b>WPT Fall Festival<br />October 28 - November 15, 2026<br />Nearly $4 Million guaranteed</p>
+          <p><b>Next Series:<br /> </b>DeepStack Extravaganza IV<br />November 16 – December 23, 2026</p>
+          <p><b>Next Series:<br /> </b>DeepStack Extravaganza NYE<br />December 24, 2026 - January 10, 2027</p>
+          <p><b>Next Series:<br /> </b>DeepStack Championship 2027<br />May-July TBD</p>'''
+        stops = scraper.extract_stops(page, 'https://www.venetianlasvegas.com/resort/casino/poker/deepstack-extravaganza-poker-tournament.html', date(2026, 10, 10), 'VENETIAN')
+        self.assertEqual([stop['stop_name'] for stop in stops], ['DeepStack Showdown (October)', 'WPT Fall Festival', 'DeepStack Extravaganza IV', 'DeepStack Extravaganza NYE'])
+        self.assertEqual(stops[-1]['start'], '2026-12-24')
+        self.assertEqual(stops[-1]['end'], '2027-01-10')
+        self.assertEqual(scraper.extract_stops(page.replace('2026', '2024').replace('2027', '2025'), 'https://www.venetianlasvegas.com/schedule', date(2026, 10, 10), 'VENETIAN'), [])
+
+    def test_rgps_dated_schedule_table_does_not_pair_navigation_or_prior_row(self):
+        page = '''<h2>2023 RGPS Road Trip Past Events</h2><p>November 25 to December 1, 2026</p>
+          <h2>2026 RunGood Poker Series Fall Schedule</h2><table><thead><tr><th>Dates</th><th>Venue</th><th>Location</th></tr></thead><tbody>
+          <tr><td>October 12 to 18</td><td>Champions Club Texas</td><td>Houston, Texas</td></tr>
+          <tr><td>October 20 to 25</td><td>Hard Rock Tulsa</td><td>Tulsa, Oklahoma</td></tr>
+          <tr><td>November 27 to December 3</td><td><strong>Dream Factory Festival</strong> at Thunder Valley Casino Resort</td><td>Lincoln, California</td></tr>
+          <tr><td>October 20 to 25</td><td>Hilton Aruba Casino</td><td>Aruba</td></tr>
+          </tbody></table><footer>Copyright 2026</footer>'''
+        url = 'https://www.rungood.com/blogs/tour-news-1/rungood-poker-series-announces-2026-fall-season-golden-expedition'
+        stops = scraper.extract_stops(page, url, date(2026, 10, 10), 'RGPS')
+        self.assertEqual(len(stops), 3)
+        self.assertEqual(stops[0], {'stop_name': 'Champions Club Texas', 'start': '2026-10-12', 'end': '2026-10-18', 'venue': 'Champions Club Texas', 'city': 'Houston', 'state': 'TX'})
+        self.assertEqual(stops[2]['end'], '2026-12-03')
+        self.assertEqual(scraper.extract_stops(page.replace('2026 RunGood', 'RunGood'), url, date(2026, 10, 10), 'RGPS'), [])
+
+    def test_seminole_dated_rows_yield_only_source_owned_series_envelope(self):
+        page = '''<h1 class="entry-title">2026 Rock &#8216;N&#8217; Roll Poker Open Schedule</h1>
+          <table><thead><tr><th>Event</th><th>Date</th><th>Time</th><th>Buy-In</th><th>Tournament Description</th><th>Details</th></tr></thead><tbody>
+          <tr><td>1</td><td>Tuesday, November 17, 2026</td><td>4PM</td><td>$300</td><td>Slater Scoops Quad Stack NLH - $100,000 GTD</td><td>Structure</td></tr>
+          <tr><td>2A</td><td>Wednesday, November 18, 2026</td><td>10AM</td><td>$400</td><td>Deep Stack No Limit Hold'em Flight A</td><td>Structure</td></tr>
+          <tr><td>79</td><td>Tuesday, December 1, 2026</td><td>12PM</td><td>$150</td><td>Satellite</td><td></td></tr>
+          <tr><td>80</td><td>Tuesday, December 2, 2025</td><td>12PM</td><td>$150</td><td>Old Satellite</td><td></td></tr>
+          </tbody></table>'''
+        url = 'https://www.seminolehardrockpokeropen.com/2026-rock-n-roll-poker-open-schedule/'
+        stops = scraper.extract_stops(page, url, date(2026, 10, 10), 'SHRPO')
+        self.assertEqual(stops, [{'stop_name': '2026 Rock ‘N’ Roll Poker Open', 'start': '2026-11-17', 'end': '2026-12-01', 'source_scope': 'dated schedule envelope'}])
+        # The actual maintained database/API family is SEMINOLE. SHRPO is only
+        # its older source alias and must not strand the persisted code.
+        self.assertEqual(scraper.extract_stops(page, url, date(2026, 10, 10), 'SEMINOLE'), stops)
+        for code in ('SEMINOLE', 'SHRPO'):
+            self.assertEqual(scraper.tour_page_identity(code, 'Seminole Hard Rock Poker Open',
+                'https://www.seminolehardrockpokeropen.com/schedule/', url, page),
+                (True, 'source_owned_seminole_schedule'))
+        row = scraper.build_stop_row('SEMINOLE', stops[0], url, 'a' * 64, '2026-10-10T00:00:00Z')
+        self.assertEqual(row['tour_code'], 'SEMINOLE')
+        self.assertIn('schedule date envelope', row['notes'])
+        self.assertNotIn('buy_in', row)
+        self.assertNotIn('event_number', row)
+        self.assertEqual(scraper.extract_stops(page.replace('2026', '2024'), url, date(2026, 10, 10), 'SHRPO'), [])
+
+    def test_tch_source_owned_embedded_festival_spans_preserve_publication_truth(self):
+        entries = [
+            {'stop': 1.0, 'name': 'Stop 1 · Dallas & Las Colinas', 'venues': 'Dallas · Las Colinas', 'start_iso': '2026-08-25', 'end_iso': '2026-09-08', 'schedule_published': 1.0},
+            {'stop': 2.0, 'name': 'Stop 2 · Dallas & Las Colinas', 'venues': 'Dallas · Las Colinas', 'start_iso': '2026-10-08', 'end_iso': '2026-10-19', 'guarantee': '$1,000,000 GTD', 'schedule_published': 1.0},
+            {'stop': 3.0, 'name': 'Stop 3 · Spring', 'venues': 'Spring', 'start_iso': '2026-10-27', 'end_iso': '2026-11-09', 'schedule_published': 1.0},
+            {'stop': 4.0, 'name': 'Stop 4 · Houston', 'venues': 'Houston', 'start_iso': '2026-12-26', 'end_iso': '2027-01-11', 'schedule_published': 0.0},
+            {'stop': 5.0, 'name': 'Stop 5 · Austin', 'venues': 'Austin', 'start_iso': '2027-02-10', 'end_iso': '2027-02-22', 'schedule_published': 0.0},
+        ]
+        page = '<title>Home | Trailblazer Poker Tour</title><script type="application/json" class="ts-data">' + json.dumps(entries) + '</script>'
+        url = 'https://trailblazer.texascardhouse.com/'
+        self.assertEqual(scraper.tour_page_identity('TCH', 'Texas Card House Series', url, url, page), (True, 'source_owned_trailblazer_stops'))
+        stops = scraper.extract_stops(page, url, date(2026, 10, 10), 'TCH')
+        self.assertEqual(len(stops), 4)
+        self.assertEqual(stops[0]['start'], '2026-10-08')
+        self.assertEqual(stops[2]['start'], '2026-12-26')
+        self.assertEqual(stops[2]['end'], '2027-01-11')
+        self.assertFalse(stops[2]['schedule_published'])
+        row = scraper.build_stop_row('TCH', stops[2], url, 'a' * 64, '2026-10-10T00:00:00Z')
+        self.assertEqual(row['event_name'], 'Stop 4 · Houston')
+        self.assertIn('individual schedule unpublished', row['notes'])
+        for field in ('buy_in', 'event_number', 'stop_city', 'stop_state'):
+            self.assertNotIn(field, row)
+
+    def test_tch_rejects_invalid_spans_wrong_json_and_unqualified_year(self):
+        good = {'stop': 2.0, 'name': 'Stop 2 · Spring', 'start_iso': '2026-10-27', 'end_iso': '2026-11-09'}
+        invalid = [dict(good, start_iso=None), dict(good, start_iso='2026-02-30'),
+                   dict(good, end_iso='2026-10-26'), dict(good, stop=3),
+                   dict(good, start_iso='October 27'), dict(good, name='View Schedule')]
+        url = 'https://trailblazer.texascardhouse.com/'
+        page = '<script type="application/json" class="ts-data">' + json.dumps(invalid) + '</script><footer>2026</footer>'
+        self.assertEqual(scraper.extract_stops(page, url, date(2026, 10, 10), 'TCH'), [])
+        unrelated = '<script type="application/json" class="ev-data">' + json.dumps([good]) + '</script>'
+        self.assertEqual(scraper.extract_stops(unrelated, url, date(2026, 10, 10), 'TCH'), [])
+        forged = '<title>Trailblazer Poker Tour</title><script type="application/json" class="ts-data">' + json.dumps([good]) + '</script>'
+        self.assertEqual(scraper.extract_stops(forged, 'https://foreign.test/', date(2026, 10, 10), 'TCH'), [])
+        self.assertFalse(scraper.tour_page_identity('TCH', 'Texas Card House Series', 'https://foreign.test/', 'https://foreign.test/', forged)[0])
+
+    def test_yearless_dates_are_not_guessed_or_rolled_forward(self):
+        page = '<h2>WPT Championship</h2><p>Jan 1 - 10</p><footer>Copyright 2026</footer>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)), [])
+        self.assertIsNone(scraper._iso('Jan', 1, None))
+
+    def test_explicit_schedule_year_keeps_expired_dates_expired(self):
+        page = '<h1>2026 Schedule</h1><h2>WPT Championship</h2><p>Jan 1 - 10</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)), [])
+
+    def test_explicit_schedule_year_qualifies_current_range(self):
+        page = '<h1>2026 Schedule</h1><h2>WPT Championship</h2><p>Oct 20 - 30</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)),
+                         [{'stop_name': 'WPT Championship', 'start': '2026-10-20', 'end': '2026-10-30'}])
+
+    def test_key_loader_never_reads_environment_file(self):
+        with mock.patch.dict(scraper.os.environ, {}, clear=True), mock.patch.object(scraper.Path, 'read_text') as read:
+            self.assertIsNone(scraper._load_supabase_key())
+            read.assert_not_called()
+
+    def test_explicit_cross_year_range_uses_ending_year(self):
+        page = '<h2>WPT Championship</h2><p>Dec 28 - Jan 4, 2027</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)),
+                         [{'stop_name': 'WPT Championship', 'start': '2026-12-28', 'end': '2027-01-04'}])
+
+    def test_explicit_contradictory_end_year_is_not_repaired(self):
+        page = '<h2>WPT Championship</h2><p>Dec 28 2026 - Jan 4 2025</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)), [])
+        page = '<h2>WPT Championship</h2><p>Dec 28 2026 - Jan 4</p>'
+        self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule', date(2026, 10, 9)),
+                         [{'stop_name': 'WPT Championship', 'start': '2026-12-28', 'end': '2027-01-04'}])
+
+    def test_stop_summary_does_not_invent_event_details(self):
+        stop = {'stop_name': 'WPT Championship', 'start': '2026-12-28', 'end': '2027-01-04'}
+        row = scraper.build_stop_row('WPT', stop, 'https://tour.test/schedule', 'a' * 64, '2026-10-09T22:00:00Z')
+        self.assertEqual(row['event_name'], stop['stop_name'])
+        self.assertEqual(row['data_quality'], 'scraped_inferred')
+        self.assertNotIn('buy_in', row)
+        self.assertNotIn('event_number', row)
+
+    def test_current_wsop_circuit_cards_use_explicit_years_and_us_location(self):
+        card = '<li data-competition-type="circuit"><p class="series-name">WSOP Circuit - Turning Stone</p><span class="date">Oct 15 2026 - Oct 26 2026</span><span class="location">Verona, NY, United States</span></li>'
+        foreign = card.replace('Verona, NY, United States', 'Calgary, AB, Canada')
+        stops = scraper.extract_stops(card + foreign, 'https://www.wsop.com/schedule/', date(2026, 10, 9), 'WSOPC')
+        self.assertEqual(stops, [{'stop_name': 'WSOP Circuit - Turning Stone', 'start': '2026-10-15', 'end': '2026-10-26', 'venue': 'Turning Stone', 'city': 'Verona', 'state': 'NY'}])
+        self.assertEqual(scraper.tour_page_identity('WSOPC', 'WSOP Circuit', 'https://www.wsop.com/schedule/', 'https://www.wsop.com/schedule/', card), (True, 'source_owned_circuit_cards'))
+
+    def test_pgt_jsonld_requires_explicit_date_and_owned_organizer(self):
+        event = {'@type': 'Event', 'name': "Poker Masters #1 - $10,500 No-Limit Hold'em", 'startDate': '2026-10-12T19:00:37Z', 'organizer': {'name': 'PokerGO Tour'}, 'location': {'name': 'PokerGO Studio, Las Vegas, Nevada'}}
+        missing = dict(event, name='PGT Sprint'); missing.pop('startDate')
+        foreign = dict(event, name='Foreign Event', organizer={'name': 'Other Tour'})
+        page = '<script type="application/ld+json">' + json.dumps({'@type': 'ItemList', 'itemListElement': [{'item': event}, {'item': missing}, {'item': foreign}]}) + '</script><footer>2026</footer>'
+        stops = scraper.extract_stops(page, 'https://www.pgt.com/schedule', date(2026, 10, 9), 'PGT')
+        self.assertEqual(len(stops), 1)
+        self.assertEqual(stops[0]['start'], '2026-10-12')
+        row = scraper.build_stop_row('PGT', stops[0], 'https://www.pgt.com/schedule', 'a' * 64, '2026-10-09T22:00:00Z')
+        self.assertIn('calendar point date only', row['notes'])
+        self.assertNotIn('buy_in', row)
+
     def test_native_tour_writer_is_fail_disabled(self):
         event = {
             "tour_code": "MSPT",
@@ -240,6 +408,188 @@ class TourStopExtractionTests(unittest.TestCase):
 
 
 class TourSourceContractTests(unittest.TestCase):
+    def test_retirement_cas_refuses_concurrent_manual_owner_and_event_details(self):
+        row = self.owned_row()
+        self.assertEqual(scraper.retirable_stop_ids(
+            [dict(row, event_number=7)], [dict(self.current_stop(), stop_name='Other')],
+            row['source_url'], date(2026, 10, 10)), [])
+        current = dict(row, tour_code='WPT', data_quality='manual_research', notes='Curator edit')
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self): return b'[]'
+        def changed_owner(req, **_kwargs):
+            params = scraper.urllib.parse.parse_qs(scraper.urllib.parse.urlsplit(req.full_url).query)
+            self.assertEqual(params['data_quality'], ['eq.scraped_inferred'])
+            self.assertNotEqual(params['data_quality'], ['eq.' + current['data_quality']])
+            return Response()
+        with mock.patch.object(scraper.urllib.request, 'urlopen', side_effect=changed_owner):
+            self.assertFalse(scraper.cas_stop_patch('WPT', row, {'data_quality': 'stale'}))
+        self.assertEqual(current['data_quality'], 'manual_research')
+        self.assertEqual(current['notes'], 'Curator edit')
+
+    def test_duplicate_stale_summaries_and_event_details_are_not_reactivated(self):
+        row = dict(self.owned_row(), data_quality='stale')
+        stop = self.current_stop()
+        self.assertEqual(scraper.reactivatable_stop_matches(
+            [row, dict(row, id='duplicate-stale-owner')], [stop], row['source_url']), [])
+        self.assertEqual(scraper.reactivatable_stop_matches(
+            [dict(row, event_number=7)], [stop], row['source_url']), [])
+
+    def owned_row(self):
+        return {'id': '00000000-0000-0000-0000-000000000001', 'stop_name': 'Current Classic',
+                'stop_start_date': '2099-11-01', 'stop_end_date': '2099-11-10', 'start_date': '2099-11-01',
+                'data_quality': 'scraped_inferred', 'scrape_script': 'tour_stealth_scraper.py',
+                'source_url': 'https://tour.test/schedule', 'scrape_timestamp': '2026-09-07T00:00:00+00:00',
+                'scrape_html_hash': 'b' * 64, 'event_number': None}
+
+    def current_stop(self):
+        return {'stop_name': 'Current Classic', 'start': '2099-11-01', 'end': '2099-11-10'}
+
+    def test_refresh_selects_owned_inferred_only_and_preserves_curated_owner(self):
+        row, stop = self.owned_row(), self.current_stop()
+        self.assertEqual(scraper.refreshable_stop_matches([row], [stop], row['source_url']), [(row, stop)])
+        for changed in ({'data_quality': 'manual_research'}, {'data_quality': 'scraped_verified'},
+                        {'scrape_script': 'other.py'}, {'source_url': 'https://other.test/schedule'},
+                        {'event_number': 1}, {'stop_end_date': '2099-11-11'}):
+            self.assertEqual(scraper.refreshable_stop_matches([dict(row, **changed)], [stop], row['source_url']), [])
+        curated = dict(row, id='curated-owner', data_quality='manual_research')
+        self.assertEqual(scraper.refreshable_stop_matches([row, curated], [stop], row['source_url']), [])
+
+    def test_refresh_cas_readback_retains_dates_and_is_duplicate_safe(self):
+        row, stop, requests = self.owned_row(), self.current_stop(), []
+        now = '2026-10-10T04:30:00Z'
+        class Response:
+            def __init__(self, value): self.value = value
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self): return json.dumps(self.value).encode()
+        def write(req, **_kwargs):
+            requests.append(req)
+            patch = json.loads(req.data)
+            return Response([dict(row, tour_code='WPT', **patch)])
+        with mock.patch.object(scraper.urllib.request, 'urlopen', side_effect=write):
+            self.assertTrue(scraper.refresh_stop_provenance('WPT', row, stop, row['source_url'], 'a' * 64, now))
+        params = scraper.urllib.parse.parse_qs(scraper.urllib.parse.urlsplit(requests[0].full_url).query)
+        self.assertEqual(params['id'], ['eq.' + row['id']])
+        self.assertEqual(params['scrape_timestamp'], ['eq.' + row['scrape_timestamp']])
+        self.assertEqual(params['scrape_script'], ['eq.tour_stealth_scraper.py'])
+        self.assertEqual(params['source_url'], ['eq.' + row['source_url']])
+        self.assertEqual(params['data_quality'], ['eq.scraped_inferred'])
+        self.assertEqual(params['event_number'], ['is.null'])
+        patch = json.loads(requests[0].data)
+        for key in ('stop_name', 'stop_start_date', 'stop_end_date', 'event_name', 'event_number', 'buy_in'):
+            self.assertNotIn(key, patch)
+        # A retry starts from a fresh durable preimage, updates the same ID and
+        # never enters the insertion path.
+        refreshed = dict(row, **patch)
+        with mock.patch.object(scraper.urllib.request, 'urlopen', return_value=Response([])):
+            self.assertFalse(scraper.refresh_stop_provenance('WPT', row, stop, row['source_url'], 'a' * 64, now))
+        with mock.patch.object(scraper.urllib.request, 'urlopen', return_value=Response([dict(refreshed, tour_code='WPT')])):
+            self.assertTrue(scraper.refresh_stop_provenance('WPT', refreshed, stop, row['source_url'], 'a' * 64, now))
+        with mock.patch.object(scraper.urllib.request, 'urlopen', return_value=Response([dict(refreshed, id='wrong-id', tour_code='WPT')])):
+            self.assertFalse(scraper.refresh_stop_provenance('WPT', row, stop, row['source_url'], 'a' * 64, now))
+
+    def test_refresh_refuses_foreign_preimage_before_transport(self):
+        row = dict(self.owned_row(), scrape_script='manual.py')
+        with mock.patch.object(scraper.urllib.request, 'urlopen') as transport:
+            self.assertFalse(scraper.refresh_stop_provenance('WPT', row, self.current_stop(), row['source_url'], 'a' * 64, '2026-10-10T00:00:00Z'))
+        transport.assert_not_called()
+
+    def test_reactivation_cas_preserves_foreign_or_concurrently_changed_owners(self):
+        row = dict(self.owned_row(), data_quality='stale', notes='Original source note',
+                   event_name='Current Classic', stop_venue='Original Venue')
+        stop, requests = self.current_stop(), []
+        now = '2026-10-10T04:30:00Z'
+        class Response:
+            def __init__(self, value): self.value = value
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self): return json.dumps(self.value).encode()
+        def write(req, **_kwargs):
+            requests.append(req)
+            return Response([dict(row, **json.loads(req.data))])
+        with mock.patch.object(scraper.urllib.request, 'urlopen', side_effect=write):
+            self.assertTrue(scraper.reactivate_stop_from_preimage('WPT', row, stop, row['source_url'], 'a' * 64, now))
+        params = scraper.urllib.parse.parse_qs(scraper.urllib.parse.urlsplit(requests[0].full_url).query)
+        for key in ('id', 'stop_name', 'start_date', 'stop_start_date', 'stop_end_date',
+                    'data_quality', 'scrape_script', 'source_url', 'scrape_timestamp',
+                    'scrape_html_hash', 'notes', 'event_name', 'stop_venue'):
+            self.assertEqual(params[key], ['eq.' + str(row[key])], key)
+        self.assertEqual(params['data_quality'], ['eq.stale'])
+        with mock.patch.object(scraper.urllib.request, 'urlopen', return_value=Response([])):
+            self.assertFalse(scraper.reactivate_stop_from_preimage('WPT', row, stop, row['source_url'], 'a' * 64, now))
+        with mock.patch.object(scraper.urllib.request, 'urlopen') as transport:
+            self.assertFalse(scraper.reactivate_stop_from_preimage('WPT', dict(row, scrape_script='manual.py'), stop, row['source_url'], 'a' * 64, now))
+            self.assertFalse(scraper.reactivate_stop_from_preimage('WPT', dict(row, data_quality='manual_research'), stop, row['source_url'], 'a' * 64, now))
+        transport.assert_not_called()
+
+    def test_existing_current_rows_count_actual_refresh_confirmation_and_failure(self):
+        session = mock.Mock()
+        for succeeds in (True, False):
+            heartbeats, registry_updates = [], []
+            row = self.owned_row()
+            rows = [dict(row, id=f'00000000-0000-0000-0000-{index:012d}', stop_name=f'Current Classic {index}') for index in range(1, 11)]
+            stops = [dict(self.current_stop(), stop_name=value['stop_name']) for value in rows]
+            with mock.patch.object(sys, 'argv', ['tour_stealth_scraper.py']), \
+                 mock.patch.object(scraper, 'SUPABASE_KEY', 'offline-key'), \
+                 mock.patch.object(scraper, 'load_tours', return_value=[('WPT', 'World Poker Tour', row['source_url'])]), \
+                 mock.patch.object(scraper, 'create_session', return_value=session), \
+                 mock.patch.object(scraper, 'fetch_page', return_value=('poker schedule ' * 100, 'a' * 64, session, row['source_url'])), \
+                 mock.patch.object(scraper, 'tour_page_identity', return_value=(True, 'source_owned')), \
+                 mock.patch.object(scraper, 'extract_stops', return_value=stops), \
+                 mock.patch.object(scraper, 'sb_get', return_value=rows), \
+                 mock.patch.object(scraper, 'sb_insert', return_value=0) as insert, \
+                 mock.patch.object(scraper, 'refresh_stop_provenance', return_value=succeeds) as refresh, \
+                 mock.patch.object(scraper, 'update_tour_registry', side_effect=lambda *args: registry_updates.append(args) or True), \
+                 mock.patch.object(scraper, 'write_heartbeat', side_effect=lambda **kw: heartbeats.append(kw)), \
+                 mock.patch.object(scraper.time, 'sleep'):
+                if succeeds:
+                    scraper.main()
+                else:
+                    with self.assertRaises(SystemExit) as stopped:
+                        scraper.main()
+                    self.assertEqual(stopped.exception.code, 1)
+            insert.assert_called_once_with('tour_stop_events', [])
+            self.assertEqual(refresh.call_count, 10)
+            self.assertEqual(heartbeats[-1]['records_attempted'], 10)
+            self.assertEqual(heartbeats[-1]['records_written'], 10 * int(succeeds))
+            self.assertEqual(heartbeats[-1]['records_rejected'], 10 * int(not succeeds))
+            self.assertEqual(registry_updates[-1][2], 'active' if succeeds else 'error')
+
+    def test_foreign_stale_identity_cannot_claim_a_servable_schedule(self):
+        for writer in ('manual.py', 'tour_stealth_scraper.py'):
+            self.assert_unservable_identity_fails_closed(writer)
+
+    def assert_unservable_identity_fails_closed(self, writer):
+        row = dict(self.owned_row(), data_quality='stale', scrape_script=writer)
+        heartbeats, registry_updates = [], []
+        session = mock.Mock()
+        with mock.patch.object(sys, 'argv', ['tour_stealth_scraper.py']), \
+             mock.patch.object(scraper, 'SUPABASE_KEY', 'offline-key'), \
+             mock.patch.object(scraper, 'load_tours', return_value=[('WPT', 'World Poker Tour', row['source_url'])]), \
+             mock.patch.object(scraper, 'create_session', return_value=session), \
+             mock.patch.object(scraper, 'fetch_page', return_value=('poker schedule ' * 100, 'a' * 64, session, row['source_url'])), \
+             mock.patch.object(scraper, 'tour_page_identity', return_value=(True, 'source_owned')), \
+             mock.patch.object(scraper, 'extract_stops', return_value=[self.current_stop()]), \
+             mock.patch.object(scraper, 'sb_get', return_value=[row]), \
+             mock.patch.object(scraper, 'sb_insert', return_value=0) as insert, \
+             mock.patch.object(scraper, 'sb_patch_exact_ids') as patch, \
+             mock.patch.object(scraper, 'reactivate_stop_from_preimage', return_value=False) as reactivate, \
+             mock.patch.object(scraper, 'update_tour_registry', side_effect=lambda *args: registry_updates.append(args) or True), \
+             mock.patch.object(scraper, 'write_heartbeat', side_effect=lambda **kw: heartbeats.append(kw)), \
+             mock.patch.object(scraper.time, 'sleep'):
+            with self.assertRaises(SystemExit) as stopped:
+                scraper.main()
+            self.assertEqual(stopped.exception.code, 1)
+        insert.assert_called_once_with('tour_stop_events', [])
+        patch.assert_not_called()
+        self.assertEqual(reactivate.call_count, int(writer == 'tour_stealth_scraper.py'))
+        self.assertEqual(heartbeats[-1]['records_attempted'], 1)
+        self.assertEqual(heartbeats[-1]['records_written'], 0)
+        self.assertEqual(heartbeats[-1]['records_rejected'], 1)
+        self.assertEqual(registry_updates[-1][2], 'error')
+
     def test_legacy_tour_publishers_are_fail_disabled(self):
         self.assertTrue(legacy_full.LEGACY_TOUR_WRITES_DISABLED)
         self.assertTrue(legacy_targeted.LEGACY_TOUR_WRITES_DISABLED)
@@ -418,9 +768,10 @@ class TourSourceContractTests(unittest.TestCase):
         page = (
             "<html><head><title>WSOP Circuit Schedule</title></head><body>"
             "<h1>WSOP Circuit Poker Tournament Schedule</h1>"
-            "<section><h2>WSOP Circuit Main Event</h2>"
-            "<p>September 18 - 28, 2099</p><p>Buy-in event schedule</p>"
-            "</section>" + (" poker tournament schedule event " * 80) + "</body></html>"
+            '<li data-competition-type="circuit"><p class="series-name">WSOP Circuit - Turning Stone</p>'
+            '<span class="date">September 18 2099 - September 28 2099</span>'
+            '<span class="location">Verona, NY, United States</span></li>'
+            + (" poker tournament schedule event " * 80) + "</body></html>"
         )
         session = Session()
         registry_updates = []
