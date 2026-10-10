@@ -36,7 +36,7 @@ try:
  run('fixture',f"""
  CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
  CREATE SCHEMA extensions; CREATE SCHEMA auth;
- CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('fixture.user',true),'')::uuid $$;
+ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('messenger_deletion_fixture.actor_id',true),'')::uuid $$;
  CREATE TABLE profiles(id uuid PRIMARY KEY,display_name text,username text,avatar_url text);
  CREATE TABLE social_conversations(id uuid PRIMARY KEY,group_name text,is_group boolean,last_message_at timestamptz);
  CREATE TABLE social_conversation_participants(conversation_id uuid,user_id uuid,context_entity_id uuid,context_entity_type text,last_read_at timestamptz);
@@ -63,8 +63,8 @@ try:
  run('peer-retains-message',f"SELECT count(*) FROM fn_messenger_continuity_visible('{peer}','{c}');",'1')
  run('unread-drops-only-owner',f"SELECT unread_count FROM fn_get_user_conversations('{u}'); SELECT unread_count FROM fn_get_user_conversations('{peer}');",'0\n0')
  run('source-message-retained',f"SELECT NOT is_deleted FROM social_messages WHERE id='{m}';",'t')
- run('rls-owner-can-read',f"SET fixture.user='{u}'; SET ROLE authenticated; SELECT count(*) FROM messenger_hidden_messages;",'1')
- run('rls-peer-cannot-read',f"SET fixture.user='{peer}'; SET ROLE authenticated; SELECT count(*) FROM messenger_hidden_messages;",'0')
+ run('rls-owner-can-read',f"SET messenger_deletion_fixture.actor_id='{u}'; SET ROLE authenticated; SELECT count(*) FROM messenger_hidden_messages;",'1')
+ run('rls-peer-cannot-read',f"SET messenger_deletion_fixture.actor_id='{peer}'; SET ROLE authenticated; SELECT count(*) FROM messenger_hidden_messages;",'0')
  run('direct-insert-denied',f"SET ROLE authenticated; INSERT INTO messenger_hidden_messages VALUES('{peer}','{m}',now());",failure='permission denied')
  run('role-function-grants',"SELECT has_function_privilege('service_role','fn_messenger_hide_message(uuid,uuid)','EXECUTE') AND NOT has_function_privilege('authenticated','fn_messenger_hide_message(uuid,uuid)','EXECUTE');",'t')
  # Distinct connections race against the unique account/message key.
