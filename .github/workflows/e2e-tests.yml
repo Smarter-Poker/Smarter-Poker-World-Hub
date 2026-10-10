@@ -699,6 +699,8 @@ jobs:
             pages/api/social/feed.js \
             pages/api/social/post.js \
             src/components/social/ArticleCard.jsx \
+            src/components/social/SharedLinkPreviewCard.jsx \
+            'pages/hub/social-pages/[pageId].js' \
             src/components/social/ReelsFeedCarousel.jsx \
             src/components/reels/ReelCard.jsx \
             src/lib/articlePreviewMetadata.mjs \
