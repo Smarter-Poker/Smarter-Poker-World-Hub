@@ -1,6 +1,86 @@
 /* Painted deep-route deck. Geometry comes from PokerNearMeConsole's raster
    head, repeating rail body, and flat foot; this file owns layout only. */
 
+/* Venue body panels share the intact three-slice chassis, including empty states. */
+body.world-poker-near-me .pnc-panel.venue-console-body {
+  width: min(900px, calc(100% - 24px));
+  margin: 24px auto 0;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+body.world-poker-near-me .venue-console-body .pnc-panel__body {
+  min-width: 0;
+  padding: 0 7.5%;
+  gap: 12px;
+}
+body.world-poker-near-me .venue-console-body :is(.day-group, .schedule-card, .empty-tournaments, .empty-section-card, .inline-form, .live-game-card, .bttg-badge, .bttg-prediction, .bttg-game-eta-section, .bttg-day-chart) {
+  min-width: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+body.world-poker-near-me .venue-console-body :is(.day-group, .live-game-card) {
+  padding: 12px 0;
+  border-top: 1px solid #52606d !important;
+}
+body.world-poker-near-me .venue-console-body :is(.schedule-card, .bttg-prediction, .bttg-game-eta-row) {
+  border-top: 1px solid #263440 !important;
+}
+body.world-poker-near-me .venue-console-body :is(.day-header, .schedule-cards) { padding: 8px 0; }
+body.world-poker-near-me .venue-console-body :is(.empty-tournaments, .empty-section-card) { padding: 18px 0; }
+body.world-poker-near-me .venue-console-body :is(.empty-tournaments p, .empty-section-card p, .bttg-loading span, .bttg-empty small) { color: #aebdca; }
+body.world-poker-near-me .venue-console-body .section-header-row { flex-wrap: wrap; align-items: center; }
+body.world-poker-near-me .venue-console-body :is(.section-action-btn, .form-submit-btn, .bttg-game-tab, .bttg-heatmap-toggle, .pa-link) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  max-width: 100%;
+  min-height: 52px;
+  aspect-ratio: 348 / 114;
+  padding: 12px 22px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
+  color: #e6e9ee !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  touch-action: manipulation;
+}
+body.world-poker-near-me .venue-console-body :is(.form-submit-btn, .bttg-game-tab.active) {
+  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+}
+body.world-poker-near-me .venue-console-body :is(.pa-link, .bttg-heatmap-toggle) { width: min(100%, 300px); min-height: 64px; }
+body.world-poker-near-me .venue-console-body :is(.form-input, .form-select) {
+  min-height: 52px;
+  padding: 12px 20px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #020405 url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / 100% 100% no-repeat !important;
+  color: #e6e9ee !important;
+  font-size: 16px;
+}
+body.world-poker-near-me .venue-console-body :is(button, a, input, select):focus-visible { outline: 2px solid #8fd4ff; outline-offset: -5px; }
+body.world-poker-near-me .venue-console-body .bttg-title-row { min-width: 0; }
+body.world-poker-near-me .venue-console-body .bttg-title-row .pnc-icon { width: 36px; height: 36px; flex: 0 0 36px; }
+body.world-poker-near-me .venue-console-body .section-title .pnc-icon { width: 32px; height: 32px; margin-right: 8px; vertical-align: middle; }
+body.world-poker-near-me .venue-console-body .empty-section-card .pnc-icon { width: 48px; height: 48px; }
+body.world-poker-near-me .venue-console-body :is(.bttg-header, .bttg-game-eta-row) { flex-wrap: wrap; }
+body.world-poker-near-me .venue-console-body :is(.bttg-title-row h3, .schedule-notes, .live-game-notes) { overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  body.world-poker-near-me .venue-console-body .section-header-row { gap: 0; }
+  body.world-poker-near-me .venue-console-body .section-title { flex-basis: 100%; }
+  body.world-poker-near-me .venue-console-body .form-row { flex-direction: column; }
+}
+
 body.world-poker-near-me .pnc.pnm-deep-deck {
   display: flex !important;
   width: min(calc(100% - 24px), 1000px) !important;
@@ -348,4 +428,3 @@ body.world-poker-near-me .pnm-location-index__link:focus-visible {
   outline: 2px solid #8fd4ff;
   outline-offset: -3px;
 }
-
