@@ -93,6 +93,19 @@ test('fixture cleanup requires exact group ID, host and unique run marker', () =
   assert.throws(() => assertOwnedGroup({ ...group, id: '*' }, 'host', group.name));
 });
 
+test('invitation preserves approval and fixture games are verified and removed before group cascade', () => {
+  const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
+  assert.match(source, /joined\.status, 'pending'/);
+  assert.match(source, /requestedMembership\[0\]\.status, 'pending'/);
+  assert.ok(source.indexOf("'host invitation approval'") < source.indexOf("'approved member calendar'"));
+  assert.match(source, /game\.host_id, users\[0\]\.id/);
+  assert.match(source, /game\.title, marker/);
+  assert.match(source, /\.eq\('id', game\.id\)\.eq\('group_id', group\.id\)\.eq\('host_id', users\[0\]\.id\)\.eq\('title', marker\)/);
+  assert.ok(source.indexOf("'owned game cleanup'") < source.indexOf("'owned group cleanup'"));
+  assert.match(source, /remainingGames\.length, 0/);
+  assert.doesNotMatch(source, /hg_skip_active/);
+});
+
 test('privacy assertions reject address or invitation credential anywhere in returned JSON', () => {
   assertPublicPrivacy({ group: { name: 'Public safe identity' } }, 'private-address', 'private-token');
   assert.throws(() => assertPublicPrivacy({ deep: { address: 'private-address' } }, 'private-address', 'private-token'));
