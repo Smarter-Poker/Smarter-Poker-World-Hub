@@ -1432,13 +1432,32 @@ class PokerAtlasSessionManager:
         return True
 
     def disconnect(self):
-        """Safely close the session."""
+        """Release every resource owned by this session, including a dead context.
+
+        Scrapling closes context, browser and Playwright sequentially. A dead
+        context can raise before Playwright.stop(), leaving its sync greenlet's
+        event loop active. A partially started session can also skip close()
+        entirely. Neither case may strand the next same-venue reconnect.
+        """
+        session = self.session
         try:
-            if self.session:
-                self.session.close()
-        except:
-            pass
+            if session:
+                session.close()
+        except Exception as exc:
+            log.warning(f'  Session close interrupted: {exc}')
         finally:
+            # Successful Scrapling teardown clears these attributes. For an
+            # interrupted/partial teardown, finish each remaining owned resource
+            # once. Do not alter an unrelated asyncio loop or mask stale data.
+            for name, method in (('context', 'close'), ('browser', 'close'), ('playwright', 'stop')):
+                resource = getattr(session, name, None)
+                if resource is not None:
+                    try:
+                        getattr(resource, method)()
+                    except Exception as exc:
+                        log.warning(f'  Session {name} cleanup failed: {exc}')
+                    finally:
+                        setattr(session, name, None)
             self.session = None
             self._session_dead = False
 

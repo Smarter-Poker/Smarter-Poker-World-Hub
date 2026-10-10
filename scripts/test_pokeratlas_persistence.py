@@ -50,6 +50,44 @@ def _load_daemon():
 daemon = _load_daemon()
 
 
+class SessionTeardownTests(unittest.TestCase):
+    def test_failed_context_close_still_stops_real_playwright_owner(self):
+        import asyncio
+        from patchright.sync_api import sync_playwright
+
+        owner = sync_playwright().start()
+        manager = daemon.PokerAtlasSessionManager()
+        session = types.SimpleNamespace(
+            playwright=owner,
+            context=types.SimpleNamespace(close=mock.Mock(side_effect=RuntimeError("closed context"))),
+            browser=types.SimpleNamespace(close=mock.Mock()),
+        )
+        session.close = lambda: session.context.close()
+        browser = session.browser
+        manager.session = session
+        try:
+            manager.disconnect()
+            with self.assertRaises(RuntimeError):
+                asyncio.get_running_loop()
+            self.assertIsNone(manager.session)
+            self.assertFalse(manager._session_dead)
+            browser.close.assert_called_once_with()
+            # A fresh sync owner must be constructible without a process restart.
+            fresh = sync_playwright().start()
+            fresh.stop()
+        finally:
+            owner.stop()
+
+    def test_partially_started_session_without_alive_flag_stops_owner(self):
+        manager = daemon.PokerAtlasSessionManager()
+        owner = types.SimpleNamespace(stop=mock.Mock())
+        session = types.SimpleNamespace(close=mock.Mock(), playwright=owner)
+        manager.session = session
+        manager.disconnect()
+        owner.stop.assert_called_once_with()
+        self.assertIsNone(manager.session)
+
+
 class _Response:
     def __init__(self, rows):
         self._body = json.dumps(rows).encode("utf-8")
@@ -346,10 +384,14 @@ class PokerAtlasPersistenceTests(unittest.TestCase):
             with mock.patch.object(daemon, "_network_available", return_value=True):
                 with mock.patch.object(daemon, "_kill_zombie_browsers"):
                     with mock.patch.object(daemon.threading, "Timer", return_value=timer):
-                        with mock.patch(
-                            "scrapling.fetchers.StealthySession",
-                            return_value=recovered_session,
-                        ):
+                        # This retry test already substitutes the session; inject
+                        # its import boundary too, rather than requiring the full
+                        # unrelated scraper/browser dependency tree in unit CI.
+                        with mock.patch.dict(sys.modules, {
+                            "scrapling.fetchers": types.SimpleNamespace(
+                                StealthySession=mock.Mock(return_value=recovered_session),
+                            ),
+                        }):
                             with mock.patch.object(
                                 daemon, "fallback_fetch_playwright",
                             ) as playwright_fallback:
