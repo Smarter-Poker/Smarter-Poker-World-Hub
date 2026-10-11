@@ -55,7 +55,7 @@ test('actual runtime interceptor contains transport and teardown rejection witho
   assert.ok(source.includes("runtime.instrumentationErrors.length, 0"));
 });
 test('sitemap counts include every maintained shared family and partial receipts never become success', () => {
-  assert.equal(scopedSitemapCount([...paths, '/hub/training', '/hub/poker-series-other']), paths.length);
+  assert.equal(scopedSitemapCount([...paths, '/hub/arcade', '/hub/poker-series-other']), paths.length);
   for (const invariant of ["await preserveProgress('started')", "await preserveProgress('inventory-complete')", 'await preserveProgress(`route:', 'await preserveProgress(`keyboard-map:', 'await preserveProgress(`map-faults:', "await preserveProgress('mobile-budget')", 'row.cleanupError = safeError(error); row.passed = false']) assert.ok(source.includes(invariant), invariant);
   assert.equal((source.match(/receipt\.passed = true/g) || []).length, 1);
   assert.ok(source.indexOf('receipt.mobileBudget.passed, true') < source.indexOf('receipt.passed = true'));
