@@ -28,7 +28,8 @@ async function setup(service = {}) {
   globalThis.window = { addEventListener: (name, cb) => { const list = listeners.get(name) || []; list.push(cb); listeners.set(name, list); }, removeEventListener() {}, location: { search: '' } };
   globalThis.sessionStorage = storage(); globalThis.localStorage = storage();
   let actor = A; const auth = { getAuthUser: () => ({ id: actor }) };
-  const hook = await compiled('src/components/poker-near-me/usePlayerPlanningWrite.js', { '../../lib/authUtils': auth, '../../services/pokerNearMePlayerPlanning': service });
+  const planning = await compiled('src/lib/poker-near-me/playerPlanning.js', { '../../components/poker-near-me/discoveryController.js': {} });
+  const hook = await compiled('src/components/poker-near-me/usePlayerPlanningWrite.js', { '../../lib/authUtils': auth, '../../services/pokerNearMePlayerPlanning': service, '../../lib/poker-near-me/playerPlanning': planning });
   return { hook: hook.default, auth, previous, listeners, switchTo: (id) => { actor = id; for (const fn of listeners.get('storage') || []) fn({ key: 'smarter-poker-auth' }); }, close: () => Object.assign(globalThis, previous) };
 }
 test('actual planning hook retains unknown UUID, suppresses double click, and reads before same-ID retry', async () => {
@@ -61,6 +62,31 @@ test('actual hook isolates switched accounts and does not relabel committed stor
     let second; await renderer.act(async () => { second = writer.submit({ action: 'delete', id: ID }); });
     await renderer.act(async () => { resolve(); await second; });
     assert.equal(writer.pending, null); assert.equal(refreshed, 1); assert.match(writer.error, /Write Was Recorded/);
+  } finally { await renderer.act(async () => tree?.unmount()); env.close(); }
+});
+test('actual hook releases only its account-owned lock across unresolved account switches', async () => {
+  const requests = []; let writer; let tree;
+  const env = await setup({ mutatePlayerPlan: (request, _, expected) => new Promise((resolve) => requests.push({ request, expected, resolve })) });
+  function Fixture() { writer = env.hook('switch-lock'); return null; }
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); });
+    let first; await renderer.act(async () => { first = writer.submit({ action: 'create', id: ID }); });
+    const firstReceipt = sessionStorage.getItem(`pnm-planning-pending:${A}:switch-lock`);
+    await renderer.act(async () => env.switchTo(A)); assert.equal(writer.busy, true, 'same-account auth refresh retains active request state');
+    await renderer.act(async () => env.switchTo(B));
+    let second; await renderer.act(async () => { second = writer.submit({ action: 'create', id: B }); });
+    assert.equal(requests.length, 2, 'the unresolved first account must not strand the next account');
+    assert.equal(requests[1].expected, B); assert.equal(writer.busy, true);
+    assert.equal(sessionStorage.getItem(`pnm-planning-pending:${A}:switch-lock`), firstReceipt, 'the unresolved original receipt remains account-owned');
+    await renderer.act(async () => { requests[0].resolve({ operation_id: requests[0].request.operation_id, action: 'create', plan: { id: ID } }); await first; });
+    assert.equal(writer.busy, true, 'the old finally cannot unlock the new account request');
+    await renderer.act(async () => writer.submit({ action: 'create', id: B }));
+    assert.equal(requests.length, 2, 'the new account still suppresses duplicate submissions');
+    // Its confirmed receipt can clear only the first account's retained record.
+    assert.ok(firstReceipt); assert.equal(sessionStorage.getItem(`pnm-planning-pending:${A}:switch-lock`), null);
+    assert.ok(sessionStorage.getItem(`pnm-planning-pending:${B}:switch-lock`));
+    await renderer.act(async () => { requests[1].resolve({ operation_id: requests[1].request.operation_id, action: 'create', plan: { id: B } }); await second; });
+    assert.equal(writer.busy, false); assert.equal(writer.pending, null);
   } finally { await renderer.act(async () => tree?.unmount()); env.close(); }
 });
 test('actual hook blocks corrupt retained receipts and clears definite refusal after original retry', async () => {
@@ -123,6 +149,45 @@ test('actual hook refuses receipt action or target mismatches without losing ori
     await renderer.act(async () => writer.check());
     assert.equal(writer.pending.request.id, ID); assert.equal(writer.retryable, false); assert.ok(writer.error);
   } finally { await renderer.act(async () => tree?.unmount()); env.close(); }
+});
+test('actual hook accepts canonical UUID receipts without weakening action or target checks', async () => {
+  const target = 'abcdefab-abcd-4abc-8abc-abcdefabcdef'; let writer; let tree;
+  const env = await setup({ mutatePlayerPlan: async (request) => ({ operation_id: request.operation_id.toUpperCase(), action: request.action, plan: { id: request.id.toLowerCase() } }) });
+  function Fixture() { writer = env.hook('canonical-receipt'); return null; }
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); });
+    await renderer.act(async () => writer.submit({ action: 'create', id: target.toUpperCase() }));
+    assert.equal(writer.pending, null); assert.equal(writer.error, ''); assert.match(writer.notice, /Was Saved/);
+    assert.equal(sessionStorage.map.size, 0);
+  } finally { await renderer.act(async () => tree?.unmount()); env.close(); }
+});
+
+test('actual lobby GPS preference refusal is visible and account-guarded without undoing local location', async () => {
+  const path = 'pages/hub/poker-near-me/lobby.js';
+  const source = process.env.PNM_PREF_LOBBY_SOURCE_REV ? require('node:child_process').execFileSync('git', ['show', `${process.env.PNM_PREF_LOBBY_SOURCE_REV}:${path}`], { encoding: 'utf8' }) : await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+  const wrapper = source.indexOf('  const persistLocalPreference =');
+  const start = wrapper >= 0 ? wrapper : source.indexOf('  const onGpsSuccess =');
+  const callbacks = source.slice(start, source.indexOf('  // ─── GPS Click handler', start));
+  let actor = A; let fail = Object.assign(new Error('Concurrent Preference Refused'), { confirmedRefusal: true }); let run; let visible; let local; let tree;
+  const noop = () => {};
+  function Fixture() {
+    const [error, setPreferenceError] = React.useState(''); visible = error;
+    const scope = { useCallback: React.useCallback, userId: A, getAuthUser: () => ({ id: actor }), updatePokerNearMePreferences: async () => { throw fail; }, setPreferenceError,
+      setUserLocation: (value) => { local = value; }, setGpsActive: noop, setSortBy: noop, setLocationPromptDismissed: noop, setShowEnablePopup: noop,
+      localStorage: storage(), persistSharedGpsLocation: noop, reverseGeocode: async () => ({ city: 'Reno', state: 'NV' }), showLocationSuccessToast: noop,
+      cachedFetch: async () => ({}), applyWideVenueFetch: noop, console: { warn: noop }, window: { dispatchEvent: noop }, Event: globalThis.Event };
+    const names = Object.keys(scope); run = new Function(...names, `${callbacks}\nreturn onGpsSuccess;`)(...names.map((name) => scope[name])); return null;
+  }
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); });
+    await renderer.act(async () => { await run({ coords: { latitude: 39, longitude: -119 } }); });
+    assert.match(visible, /Device-Only.*Not Saved To Your Account/); assert.deepEqual(local, { lat: 39, lng: -119 });
+    fail = new Error('Unknown Outcome'); await renderer.act(async () => { await run({ coords: { latitude: 40, longitude: -120 } }); });
+    assert.match(visible, /Check The Original Preference Request Before Retrying/);
+    const prior = visible; actor = B; fail = Object.assign(new Error('Refused Old Account'), { confirmedRefusal: true });
+    await renderer.act(async () => { await run({ coords: { latitude: 41, longitude: -121 } }); }); assert.equal(visible, prior);
+    if (wrapper >= 0) assert.equal((source.match(/updatePokerNearMePreferences\(/g) || []).length, 2, 'only the wrapper and existing menu rollback own account writes');
+  } finally { await renderer.act(async () => tree?.unmount()); }
 });
 
 test('actual trip restores private account fields and public single-stop links without private fallback', async () => {

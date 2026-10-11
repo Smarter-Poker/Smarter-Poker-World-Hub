@@ -1431,7 +1431,7 @@ export default function GlobalSearchOverlay({
                   )}
                 </div>
               )}
-              {phase === 'results' && !isLoading && !searchError && localQuery.trim() && <SavePlayerPlan
+              {phase === 'results' && !isLoading && !searchError && (localQuery.trim() || savedSearchRef.current?.query === localQuery.trim()) && <SavePlayerPlan
                 kind="search" context="global-search" defaultName="My Poker Search"
                 document={savedSearchRef.current?.query === localQuery.trim() ? savedSearchRef.current : { schemaVersion: 1, query: localQuery.trim(), filters: {
                   state: nlIntent?.stateCode || '', game: nlIntent?.gameType || '',

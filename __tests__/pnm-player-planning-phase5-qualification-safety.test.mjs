@@ -88,3 +88,18 @@ test('required planning regressions run once, retaining the existing shared pref
     assert.equal(workflow.split(file).length - 1, 1, `${file} must run exactly once`);
   }
 });
+
+test('published planning qualification exercises case-insensitive UUID persistence and recovery', () => {
+  const source = readFileSync(new URL('../scripts/qualify-pnm-player-planning-phase5.mjs', import.meta.url), 'utf8');
+  assert.match(source, /id: randomUUID\(\)\.toUpperCase\(\)/);
+  assert.match(source, /const requestId = randomUUID\(\)\.toUpperCase\(\)/);
+  assert.ok(source.includes('saved.data.plan.id, createSearch.id.toLowerCase()'));
+  assert.ok(source.includes('saved.data.operation_id, requestId.toLowerCase()'));
+  assert.ok(source.includes('original.data.operation.operation_id, requestId.toLowerCase()'));
+  assert.ok(source.includes('assert.deepEqual(stored.document, search)'));
+  assert.ok(source.includes('replay.status, 201'));
+  assert.ok(source.includes('changed.status, 409'));
+  assert.ok(source.includes("schemaVersion: 1, query: '', filters: { state: 'NV'"));
+  assert.ok(source.includes("name: 'Save Search To Account', exact: true"));
+  assert.ok(source.includes('filterOnlySearchResaveVisible = true'));
+});

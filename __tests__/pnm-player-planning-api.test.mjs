@@ -43,6 +43,74 @@ test('plan creation uses participant RPC with bounded structured document and no
   assert.equal(res.statusCode, 201); assert.equal(res.headers['Cache-Control'], 'private, no-store'); assert.equal(res.headers.Vary, 'Authorization, Cookie');
   assert.equal(f.calls[0].name, 'pnm_mutate_player_plan'); assert.equal(f.calls[0].args.p_request_id, OP); assert.deepEqual(f.calls[0].args.p_payload.document, search); assert.equal(f.calls[0].args.p_payload.user_id, undefined);
 });
+test('uppercase UUID requests reach actual handlers and recover canonical PostgreSQL receipts', async () => {
+  const operation = 'abcdefab-2222-4222-8222-abcdefabcdef';
+  const id = 'abcdefab-3333-4333-8333-abcdefabcdef';
+  const receipt = { operation_id: operation, action: 'create', plan: { id } };
+  const f = fixture({ receiptOverride: receipt });
+  const res = await f.run('player-plans', 'POST', { ...request, operation_id: operation.toUpperCase(), id: id.toUpperCase() });
+  assert.equal(res.statusCode, 201);
+  assert.equal(f.calls[0].args.p_request_id, operation);
+  assert.equal(f.calls[0].args.p_payload.id, id);
+  const recovered = await f.run('player-plans', 'GET', {}, { operation_id: operation.toUpperCase() });
+  assert.equal(recovered.statusCode, 200); assert.equal(recovered.body.operation.operation_id, operation);
+  assert.equal(f.calls[1].args.p_request_id, operation);
+  const preferences = fixture({ receiptOverride: { operation_id: operation, action: 'preferences', preferences: { locationEnabled: false } } });
+  assert.equal((await preferences.run('player-preferences', 'PATCH', { operation_id: operation.toUpperCase(), patch: { locationEnabled: false } })).statusCode, 200);
+  assert.equal(preferences.calls[0].args.p_request_id, operation);
+});
+test('client receipt matching accepts canonical UUID case without changing retained request identity', async () => {
+  const operation = 'abcdefab-2222-4222-8222-abcdefabcdef';
+  const id = 'abcdefab-3333-4333-8333-abcdefabcdef';
+  const client = compile('src/services/pokerNearMePlayerPlanning.js', { '../lib/authUtils': { getAuthUser: () => ({ id: OWNER }), getFreshAccessToken: async () => 'isolated-not-a-real-token' }, '../lib/poker-near-me/playerPlanning': contracts });
+  const sent = [];
+  const fetcher = async (url, options) => {
+    sent.push({ url, options });
+    const receipt = { operation_id: operation, action: options.method === 'PATCH' ? 'preferences' : 'create', plan: { id }, preferences: {} };
+    return { ok: true, json: async () => ({ success: true, ...receipt, operation: receipt }) };
+  };
+  const original = { ...request, operation_id: operation.toUpperCase(), id: id.toUpperCase() };
+  assert.equal((await client.mutatePlayerPlan(original, fetcher, OWNER)).plan.id, id);
+  assert.equal(JSON.parse(sent[0].options.body).operation_id, original.operation_id);
+  assert.equal((await client.checkPlanningOperation(original.operation_id, { fetcher, expectedUserId: OWNER })).operation_id, operation);
+  assert.equal((await client.patchPlayerPreferences({ operation_id: original.operation_id, patch: { locationEnabled: false } }, fetcher, OWNER)).operation_id, operation);
+  await assert.rejects(client.mutatePlayerPlan(original, async () => { throw new Error('Transport closed'); }, OWNER), error => error.operation_id === original.operation_id && error.outcome === 'unknown');
+});
+test('planning owner deadline releases hanging fetch, response body and token refresh as unknown without another write', async () => {
+  const realSetTimeout = globalThis.setTimeout; const realClearTimeout = globalThis.clearTimeout;
+  try {
+    for (const mode of ['fetch', 'body', 'token']) {
+      let timer; let cleared = false; let sends = 0; let signal; let start; let resolveToken;
+      const started = new Promise(resolve => { start = resolve; });
+      globalThis.setTimeout = (callback, milliseconds) => { timer = { callback, milliseconds }; return timer; };
+      globalThis.clearTimeout = value => { assert.equal(value, timer); cleared = true; };
+      const client = compile('src/services/pokerNearMePlayerPlanning.js', { '../lib/authUtils': { getAuthUser: () => ({ id: OWNER }), getFreshAccessToken: async () => {
+        if (mode === 'token') { start(); return new Promise(resolve => { resolveToken = resolve; }); }
+        return 'isolated-not-a-real-token';
+      } }, '../lib/poker-near-me/playerPlanning': contracts });
+      const writing = client.mutatePlayerPlan(request, async (_url, options) => {
+        sends++; signal = options.signal;
+        if (mode === 'fetch') { start(); return new Promise(() => {}); }
+        return { ok: true, json: () => { start(); return new Promise(() => {}); } };
+      }, OWNER);
+      await started;
+      assert.equal(timer?.milliseconds, 30000, 'the original request must own a finite deadline');
+      timer.callback();
+      await assert.rejects(writing, error => error.operation_id === OP && error.outcome === 'unknown' && !error.confirmedRefusal && /timed out/.test(error.message));
+      assert.equal(cleared, true);
+      if (mode === 'token') { resolveToken('isolated-not-a-real-token'); await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); assert.equal(sends, 0, 'late token refresh cannot initiate the expired write'); }
+      else { assert.equal(signal.aborted, true); assert.equal(sends, 1); }
+    }
+  } finally { globalThis.setTimeout = realSetTimeout; globalThis.clearTimeout = realClearTimeout; }
+});
+test('planning transport preserves caller cancellation and reads have the same finite request boundary', async () => {
+  const client = compile('src/services/pokerNearMePlayerPlanning.js', { '../lib/authUtils': { getAuthUser: () => ({ id: OWNER }), getFreshAccessToken: async () => 'isolated-not-a-real-token' }, '../lib/poker-near-me/playerPlanning': contracts });
+  const caller = new AbortController(); let start; let transportSignal;
+  const started = new Promise(resolve => { start = resolve; });
+  const reading = client.planningRequest('/api/poker/player-plans', { signal: caller.signal }, async (_url, options) => { transportSignal = options.signal; start(); return new Promise(() => {}); }, OWNER);
+  await started; caller.abort();
+  await assert.rejects(reading, /interrupted/); assert.equal(transportSignal.aborted, true);
+});
 test('plan list explicitly binds verified owner and maintains finite caps', async () => {
   const f = fixture(); const res = await f.run('player-plans', 'GET', {}, { kind: 'trip', user_id: 'stranger' });
   assert.equal(res.statusCode, 200); assert.ok(f.calls.some(call => call.key === 'user_id' && call.value === OWNER)); assert.ok(f.calls.some(call => call.limit === 70)); assert.ok(f.calls.some(call => call.key === 'kind' && call.value === 'trip'));
@@ -130,7 +198,7 @@ test('a confirmed but uncleared preference receipt blocks the next write instead
 });
 test('client account changes before send or after acknowledgment never mutate/display the wrong account', async () => {
   let user = OWNER; let fetchCalls = 0;
-  const client = compile('src/services/pokerNearMePlayerPlanning.js', { '../lib/authUtils': { getAuthUser: () => ({ id: user }), getFreshAccessToken: async () => 'isolated-not-a-real-token' } });
+  const client = compile('src/services/pokerNearMePlayerPlanning.js', { '../lib/authUtils': { getAuthUser: () => ({ id: user }), getFreshAccessToken: async () => 'isolated-not-a-real-token' }, '../lib/poker-near-me/playerPlanning': contracts });
   user = ID;
   await assert.rejects(client.mutatePlayerPlan(request, async () => { fetchCalls++; }, OWNER)); assert.equal(fetchCalls, 0);
   user = OWNER;
