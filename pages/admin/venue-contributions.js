@@ -11,6 +11,7 @@ import styles from '../../src/components/poker-near-me/VenueContributions.module
 export default function VenueContributionReview() {
   const router = useRouter();
   const venueFilter = typeof router.query.venue_id === 'string' && /^[1-9][0-9]*$/.test(router.query.venue_id) ? router.query.venue_id : '';
+  const reviewPath = `/admin/venue-contributions${venueFilter ? `?venue_id=${venueFilter}` : ''}`;
   const [queue, setQueue] = useState({ claims: [], corrections: [], has_more: false });
   const [status, setStatus] = useState('pending');
   const [offset, setOffset] = useState(0);
@@ -44,6 +45,8 @@ export default function VenueContributionReview() {
   useEffect(() => { load(); return () => { sequence.current++; }; }, [load]);
   const writer = useContributionWrite('staff-venue-review', load);
   const blocked = loading || writer.busy || Boolean(writer.pending);
+  const reasonLimit = selected?.kind === 'correction' && selected.category === 'location' && action === 'apply' ? 500 : 2000;
+  const reasonTooLong = reason.trim().length > reasonLimit;
   const items = [...queue.claims.map((row) => ({ ...row, kind: 'claim' })), ...queue.corrections.map((row) => ({ ...row, kind: 'correction' }))];
 
   function select(item) {
@@ -57,7 +60,7 @@ export default function VenueContributionReview() {
       <PokerNearMePanelShell as="header" className={styles.surface} bodyClassName={styles.body}>
         <h1 className={styles.title}>Venue Contribution Review</h1>
         <p className={styles.copy}>Review Sourced Ownership Claims And Venue Corrections. Staff Authorization And The Platform MFA Challenge Are Required For Queue Access And Every Decision. Applying A Correction Uses The Authoritative Venue-Integrity Transaction.</p>
-        <div className={styles.actions}><Link className={styles.button} href="/admin/venue-integrity">Venue Integrity</Link><Link className={styles.button} href="/hub/poker-near-me/lobby">Poker Near Me</Link><Link className={styles.button} href="/auth/login?redirect=%2Fadmin%2Fvenue-contributions">Staff Sign In</Link></div>
+        <div className={styles.actions}><Link className={styles.button} href="/admin/venue-integrity">Venue Integrity</Link><Link className={styles.button} href="/hub/poker-near-me/lobby">Poker Near Me</Link><Link className={styles.button} href="/auth/login?redirect=%2Fadmin%2Fvenue-contributions">Staff Sign In</Link><Link className={styles.button} href={`/auth/mfa?next=${encodeURIComponent(reviewPath)}`}>Staff MFA Challenge</Link></div>
         <ContributionField label="Queue Status"><select className={styles.control} value={status} disabled={writer.busy || Boolean(writer.pending)} onChange={(event) => { setStatus(event.target.value); setOffset(0); }}><option value="pending">Awaiting Review</option><option value="approved">Approved Claims</option><option value="applied">Applied Corrections</option><option value="rejected">Rejected</option><option value="revoked">Revoked Claims</option><option value="all">All Contributions</option></select></ContributionField>
         <ContributionWriteState writer={writer} />
         {loading && <p role="status" className={styles.notice}>Reading The Private Review Queue...</p>}
@@ -77,11 +80,12 @@ export default function VenueContributionReview() {
       {selected && <PokerNearMePanelShell as="section" className={styles.surface} bodyClassName={styles.body}>
         <h2 className={styles.title}>Review Venue {selected.venue_id}</h2>
         <p className={styles.copy}>Confirm Independent Evidence Before Approving Or Applying. Rejection And Revocation Retain The Original Record And Audit Trail. A Stale Revision Is Refused, Not Silently Overwritten.</p>
-        <form className={styles.form} onSubmit={(event) => { event.preventDefault(); writer.submit('/api/admin/venue-contributions', { kind: selected.kind, id: selected.id, payload: { action, reason, source_url: source, expected_updated_at: selected.updated_at } }); }}>
+        <form className={styles.form} onSubmit={(event) => { event.preventDefault(); if (reasonTooLong) return; writer.submit('/api/admin/venue-contributions', { kind: selected.kind, id: selected.id, payload: { action, reason, source_url: source, expected_updated_at: selected.updated_at } }); }}>
           <ContributionField label="Decision"><select className={styles.control} value={action} disabled={blocked} onChange={(event) => setAction(event.target.value)}>{selected.status === 'approved' ? <option value="revoke">Revoke This Claim</option> : <><option value={selected.kind === 'claim' ? 'approve' : 'apply'}>{selected.kind === 'claim' ? 'Approve Claim' : 'Apply Verified Correction'}</option><option value="reject">Reject Contribution</option></>}</select></ContributionField>
           <ContributionField label="Independent Verification Source URL"><input className={styles.control} type="url" required maxLength={1000} value={source} onChange={(event) => setSource(event.target.value)} disabled={blocked} /></ContributionField>
-          <ContributionField label="Decision Reason"><textarea className={`${styles.control} ${styles.textarea}`} required minLength={12} maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} disabled={blocked} /></ContributionField>
-          <div className={styles.actions}><ContributionButton primary type="submit" disabled={blocked}>{writer.busy ? 'Recording Decision...' : 'Record Review Decision'}</ContributionButton><ContributionButton disabled={blocked} onClick={() => setSelected(null)}>Cancel Review</ContributionButton></div>
+          <ContributionField label="Decision Reason"><textarea className={`${styles.control} ${styles.textarea}`} required minLength={12} maxLength={reasonLimit} value={reason} onChange={(event) => setReason(event.target.value)} disabled={blocked} /></ContributionField>
+          {reasonTooLong && <p role="alert" className={`${styles.notice} ${styles.error}`}>This Decision Allows At Most {reasonLimit} Characters. Shorten The Reason Before Recording.</p>}
+          <div className={styles.actions}><ContributionButton primary type="submit" disabled={blocked || reasonTooLong}>{writer.busy ? 'Recording Decision...' : 'Record Review Decision'}</ContributionButton><ContributionButton disabled={blocked} onClick={() => setSelected(null)}>Cancel Review</ContributionButton></div>
         </form>
       </PokerNearMePanelShell>}
     </main>

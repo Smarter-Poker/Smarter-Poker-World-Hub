@@ -164,6 +164,16 @@ export async function qualify(env = process.env) {
     }
     assert.equal(createdVenues.length, 1); venue = createdVenues[0]; assertOwnedVenue(venue, marker, runId);
     receipt.fixtures.venueId = venue.id; await checkpoint();
+    // A platform administrator has authoritative management permissions without
+    // claiming the venue or creating an independent venue-manager grant.
+    const staffManagement = await api(`/api/public/venue/${venue.id}/manage`, staff);
+    assert.equal(staffManagement.status, 200);
+    assert.equal(staffManagement.data.manager.permissions.can_edit_info, true);
+    assert.equal(staffManagement.data.manager.permissions.can_edit_games, true);
+    assert.match(staffManagement.cacheControl, /no-store/);
+    const strangerManagement = await api(`/api/public/venue/${venue.id}/manage`, stranger);
+    assert.equal(strangerManagement.status, 403);
+    receipt.checks.authoritativeManagementReadPermissions = true; await checkpoint();
     await qualifyBrowserConsumers({ owner, staff, venue, marker, observations: receipt.browser, phase: 'claim' });
     receipt.checks.authenticatedDesktopMobileClaimForms = true; await checkpoint();
     const sourceUrl = `https://example.invalid/pnm-contribution/${runId}`;
@@ -206,6 +216,20 @@ export async function qualify(env = process.env) {
     const schedules = await safe(service.from('venue_game_schedules').select('*').eq('venue_id', venue.id), 'schedule readback'); assert.equal(schedules.length, 1); assert.equal(schedules[0].source_url, sourceUrl);
     const badRevision = await api('/api/poker/venue-schedules', owner, { ...scheduleBody, action: 'update', id: schedules[0].id, expected_updated_at: '2000-01-01T00:00:00Z' }, 'POST', randomUUID()); assert.equal(badRevision.status, 409);
     const directSchedule = await stranger.client.from('venue_game_schedules').insert({ venue_id: venue.id, day_of_week: 'monday', game_name: 'Unauthorized' }); assert.ok(directSchedule.error);
+    const updatedSchedule = await api('/api/poker/venue-schedules', owner, { ...scheduleBody,
+      id: schedules[0].id, expected_updated_at: schedules[0].updated_at,
+      game_name: 'Updated Qualification Schedule Only', start_time: '20:00' }, 'POST', randomUUID());
+    assert.equal(updatedSchedule.status, 200); assert.equal(updatedSchedule.data.action, 'updated');
+    const refreshedSchedule = await api(`/api/poker/venue-schedules?venue_id=${venue.id}&refresh=1`);
+    assert.equal(refreshedSchedule.status, 200); assert.match(refreshedSchedule.cacheControl, /no-store/);
+    assert.equal(refreshedSchedule.data.total_entries, 1);
+    assert.equal(refreshedSchedule.data.schedule.monday[0].id, schedules[0].id);
+    assert.equal(refreshedSchedule.data.schedule.monday[0].game_name, 'Updated Qualification Schedule Only');
+    assert.equal(refreshedSchedule.data.schedule.monday[0].start_time, '20:00');
+    const updatedStored = await safe(service.from('venue_game_schedules').select('*').eq('id', schedules[0].id).maybeSingle(), 'updated schedule durable readback');
+    assert.equal(updatedStored.game_name, 'Updated Qualification Schedule Only');
+    assert.equal(updatedStored.start_time, '20:00');
+    receipt.checks.scheduleValidUpdateAndFreshConsumer = true; await checkpoint();
     receipt.checks.schedulePermissionCasAndPersistence = true; await checkpoint();
     const access = await api(`/api/poker/venue-contributions?venue_id=${venue.id}`, owner);
     const correction = await api('/api/poker/venue-contributions', stranger, { kind: 'correction', venue_id: venue.id, payload: { category: 'details', proposal: { phone: 'qualification-only' }, source_url: sourceUrl, notes: 'Task-owned sourced contact correction fixture.', expected_revision: access.data.access.revision } }, 'POST', randomUUID()); assert.equal(correction.status, 201); assert.equal(correction.data.correction.status, 'pending');
@@ -218,6 +242,15 @@ export async function qualify(env = process.env) {
     const operations = await safe(service.from('pnm_contribution_operations').select('request_id').eq('venue_id', venue.id), 'operation readback');
     assert.ok(audit.every(row => operations.some(operation => operation.request_id === row.request_id))); receipt.checks.atomicAuditAndProvenanceReadback = true;
     await qualifyBrowserConsumers({ owner, staff, venue, marker, observations: receipt.browser }); receipt.checks.authenticatedDesktopMobileContributionForms = true;
+    const deletedSchedule = await api('/api/poker/venue-schedules', owner, { venue_id: venue.id,
+      id: updatedStored.id, expected_updated_at: updatedStored.updated_at, source_url: sourceUrl }, 'DELETE', randomUUID());
+    assert.equal(deletedSchedule.status, 200); assert.equal(deletedSchedule.data.action, 'deleted');
+    const deletedStored = await safe(service.from('venue_game_schedules').select('id,is_active').eq('id', updatedStored.id).maybeSingle(), 'soft-deleted schedule readback');
+    assert.equal(deletedStored.id, updatedStored.id); assert.equal(deletedStored.is_active, false);
+    const afterDelete = await api(`/api/poker/venue-schedules?venue_id=${venue.id}&refresh=1`);
+    assert.equal(afterDelete.status, 200); assert.equal(afterDelete.data.total_entries, 0);
+    assert.equal(afterDelete.data.schedule.monday.length, 0);
+    receipt.checks.scheduleSoftDeleteAndFreshConsumer = true; await checkpoint();
     const revoked = await api('/api/admin/venue-contributions', staff, { kind: 'claim', id: claimRow.id, payload: { action: 'revoke', expected_updated_at: claimRow.updated_at, source_url: sourceUrl, reason: 'Task-owned fixture revoke confirms grant revocation without unrelated grants.' } }, 'POST', randomUUID()); assert.equal(revoked.status, 200);
     const afterRevoke = await api(`/api/poker/venue-contributions?venue_id=${venue.id}`, owner); assert.equal(afterRevoke.data.access.permissions.can_edit_games, false);
     const deniedAfterRevoke = await api('/api/poker/venue-schedules', owner, scheduleBody, 'POST', randomUUID()); assert.equal(deniedAfterRevoke.status, 403);

@@ -189,3 +189,114 @@ test('staff review is reachable, uses current claim columns and preserves source
   assert.match(source, /venue_id=\$\{venueFilter\}/);
   assert.match(source, /credentials: 'include'/);
 });
+
+test('committed hook receipts remain terminal when refreshing the consumer fails', async () => {
+  const previous = { window: globalThis.window, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
+  globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  globalThis.sessionStorage = storage();
+  const ui = await loadUi({ getAuthUser: () => ({ id: ACTOR }), getSessionToken: () => 'isolated-token' });
+  let writer; let writes = 0; let tree;
+  globalThis.fetch = async (_, options) => {
+    writes++;
+    return response({ success: true, operation_id: JSON.parse(options.body).operation_id, status: 'under_review' });
+  };
+  function Fixture() { writer = ui.useContributionWrite('venue:12', () => { throw new Error('refresh unavailable'); }); return null; }
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); });
+    await renderer.act(async () => writer.submit('/api/poker/venue-contributions', { venue_id: 12, kind: 'claim' }));
+    assert.equal(writes, 1);
+    assert.equal(writer.pending, null);
+    assert.equal(writer.retryable, false);
+    assert.match(writer.notice, /was recorded/);
+    assert.match(writer.error, /recorded.*could not be refreshed/);
+    assert.equal(globalThis.sessionStorage.data.size, 0);
+  } finally { await renderer.act(async () => tree?.unmount()); Object.assign(globalThis, previous); }
+});
+
+test('retry refusal clears only a terminal original request; account-switched status results stay isolated', async () => {
+  const previous = { window: globalThis.window, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
+  const listeners = new Map();
+  globalThis.window = { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: (name) => listeners.delete(name) };
+  globalThis.sessionStorage = storage();
+  let actor = ACTOR;
+  const ui = await loadUi({ getAuthUser: () => ({ id: actor }), getSessionToken: () => `isolated-${actor}` });
+  let writer; let writes = 0; let deferredRead; let tree;
+  globalThis.fetch = async (_, options) => {
+    if (options.method === 'POST') {
+      writes++;
+      if (writes === 1 || writes === 3) throw new Error('ack unavailable');
+      return response({ success: false, error: 'Stale revision refused' }, 409);
+    }
+    if (writes === 3) return new Promise((resolve) => { deferredRead = resolve; });
+    return response({ success: true, operation: null });
+  };
+  function Fixture() { writer = ui.useContributionWrite('venue:12'); return null; }
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); });
+    await renderer.act(async () => writer.submit('/api/poker/venue-contributions', { venue_id: 12, kind: 'claim' }));
+    const original = writer.pending.body.operation_id;
+    await renderer.act(async () => writer.check());
+    assert.equal(writer.retryable, true);
+    await renderer.act(async () => writer.retryOriginal());
+    assert.equal(writer.pending, null);
+    assert.equal(writer.retryable, false);
+    assert.equal(writer.error, 'Stale revision refused');
+    assert.equal(globalThis.sessionStorage.data.size, 0);
+    await renderer.act(async () => writer.submit('/api/poker/venue-contributions', { venue_id: 12, kind: 'claim' }));
+    const unknown = writer.pending;
+    assert.notEqual(unknown.body.operation_id, original);
+    const checking = writer.check();
+    await renderer.act(async () => { actor = '33333333-3333-4333-8333-333333333333'; listeners.get('storage')({ key: 'smarter-poker-auth' }); });
+    await renderer.act(async () => { deferredRead(response({ success: true, operation: null })); await checking; });
+    assert.equal(writer.pending, null);
+    assert.equal(writer.retryable, false);
+    assert.equal(writer.error, '');
+    assert.deepEqual(loadPendingContribution(globalThis.sessionStorage, contributionPendingKey(ACTOR, 'venue:12')), unknown);
+    assert.equal(writes, 3);
+  } finally { await renderer.act(async () => tree?.unmount()); Object.assign(globalThis, previous); }
+});
+
+test('actual schedule edit round-trips stored zero seconds as strict API minute values', async () => {
+  const previous = { window: globalThis.window, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
+  globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  globalThis.sessionStorage = storage();
+  const ui = await loadUi({ getAuthUser: () => ({ id: ACTOR }), getSessionToken: () => 'isolated-token' });
+  const entry = { id: OPERATION, day_of_week: 'monday', game_name: 'NLH 1/2', start_time: '19:00:00', end_time: '02:00:00.000', source_url: 'https://example.invalid/schedule', updated_at: '2026-10-11T00:00:00Z' };
+  let submitted; let tree; let changed = 0;
+  globalThis.fetch = async (_, options) => { submitted = JSON.parse(options.body); return response({ success: true, operation_id: submitted.operation_id, status: 'updated' }); };
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(ui.VenueScheduleEditor, { venueId: 12, schedule: { monday: [entry] }, onChanged: () => { changed++; } })); });
+    await renderer.act(async () => tree.root.findAllByType('button').find((button) => button.props.children === 'Edit Entry').props.onClick());
+    assert.deepEqual(tree.root.findAllByType('input').filter((input) => input.props.type === 'time').map((input) => input.props.value), ['19:00', '02:00']);
+    await renderer.act(async () => tree.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+    assert.equal(submitted.start_time, '19:00');
+    assert.equal(submitted.end_time, '02:00');
+    assert.equal(submitted.expected_updated_at, entry.updated_at);
+    assert.equal(changed, 1);
+    await renderer.act(async () => { tree.update(React.createElement(ui.VenueScheduleEditor, { venueId: 12, schedule: { monday: [{ ...entry, start_time: '19:00:31' }] }, onChanged() {} })); });
+    await renderer.act(async () => tree.root.findAllByType('button').find((button) => button.props.children === 'Edit Entry').props.onClick());
+    assert.equal(tree.root.findAllByType('input').find((input) => input.props.type === 'time').props.value, '19:00:31', 'nonzero legacy seconds must never be silently truncated');
+  } finally { await renderer.act(async () => tree?.unmount()); Object.assign(globalThis, previous); }
+});
+
+test('an account switch during a receipt read cannot enable retry for the new account', async () => {
+  const previous = { window: globalThis.window, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
+  let listener; let actor = ACTOR; let writer; let tree; let resolveRead;
+  globalThis.window = { addEventListener: (_, fn) => { listener = fn; }, removeEventListener() {} };
+  globalThis.sessionStorage = storage();
+  const pending = { account_id: ACTOR, context: 'venue:12', url: '/api/poker/venue-contributions', body: { operation_id: OPERATION } };
+  savePendingContribution(globalThis.sessionStorage, contributionPendingKey(ACTOR, 'venue:12'), pending);
+  const ui = await loadUi({ getAuthUser: () => ({ id: actor }), getSessionToken: () => 'isolated-token' });
+  globalThis.fetch = () => new Promise((resolve) => { resolveRead = resolve; });
+  function Fixture() { writer = ui.useContributionWrite('venue:12'); return null; }
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); });
+    const checking = writer.check();
+    await renderer.act(async () => { actor = '33333333-3333-4333-8333-333333333333'; listener({ key: 'smarter-poker-auth' }); });
+    await renderer.act(async () => { resolveRead(response({ success: true, operation: null })); await checking; });
+    assert.equal(writer.pending, null);
+    assert.equal(writer.retryable, false);
+    assert.equal(writer.error, '');
+    assert.deepEqual(loadPendingContribution(globalThis.sessionStorage, contributionPendingKey(ACTOR, 'venue:12')), pending);
+  } finally { await renderer.act(async () => tree?.unmount()); Object.assign(globalThis, previous); }
+});

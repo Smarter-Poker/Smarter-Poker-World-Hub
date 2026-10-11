@@ -70,6 +70,18 @@ test('unknown fixture writes retain ownership and read back before any possible 
   assert.equal((source.match(/service\.auth\.admin\.createUser\(/g) || []).length, 1);
 });
 
+test('qualification verifies valid schedule update and soft delete through durable and fresh public consumers', () => {
+  const source = readFileSync(new URL('../scripts/qualify-pnm-contributions-phase4.mjs', import.meta.url), 'utf8');
+  for (const evidence of ['staffManagement.status, 200', 'strangerManagement.status, 403',
+    'staffManagement.data.manager.permissions.can_edit_games, true',
+    'updatedSchedule.status, 200', "updatedStored.start_time, '20:00'",
+    "refreshedSchedule.data.schedule.monday[0].game_name, 'Updated Qualification Schedule Only'",
+    'deletedStored.is_active, false', 'afterDelete.data.total_entries, 0',
+    'afterDelete.data.schedule.monday.length, 0']) assert.ok(source.includes(evidence), evidence);
+  assert.ok(source.indexOf('updatedStored = await safe') < source.indexOf('deletedSchedule = await api'));
+  assert.ok(source.indexOf('qualifyBrowserConsumers({ owner, staff, venue, marker, observations: receipt.browser });') < source.indexOf('deletedSchedule = await api'));
+});
+
 test('finite manual workflow uses existing supported authenticated secrets and canonical main', () => {
   const source = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
   const job = source.split('  pnm-contributions-phase4-live:')[1]?.split('  home-games-phase3-live:')[0];

@@ -11,22 +11,29 @@ const CLAIM = '33333333-3333-4333-8333-333333333333';
 const REVISION = '2026-10-11T05:00:00.000Z';
 const source = 'https://venue.example.com/poker';
 
-function fixture({ user = OWNER, role = 'admin', mfa = true, error = null, throwRpc = false, missingClaim = false, sessionStatus = null, correctionCategory = 'details', proposal = {}, operation = null, canPostUpdates = false } = {}) {
+function fixture({ user = OWNER, role = 'admin', mfa = true, error = null, throwRpc = false, missingClaim = false, sessionStatus = null, correctionCategory = 'details', proposal = {}, operation = null, canPostUpdates = false, accessOverride = null, managerRow, venueRow, tableRows = {}, tableErrors = {} } = {}) {
   const calls = [];
   const receipt = { operation_id: OPERATION, status: 'pending', claim: { id: CLAIM, status: 'pending' }, schedule: { id: 1, updated_at: REVISION }, venue: { id: 10 } };
   const service = {
     rpc: async (name, args) => { calls.push({ name, args, service: true }); return { data: receipt, error }; },
     from(table) {
-      const query = { select(fields) { calls.push({ table, fields }); return query; }, insert(value) { calls.push({ table, insert: value }); return query; }, eq(key, value) { calls.push({ table, filter: key, value }); return query; }, in() { return query; }, order() { return query; }, limit() { return query; }, range() { return query; },
-        maybeSingle: async () => ({ data: table === 'profiles' ? { role } : table === 'pnm_contribution_operations' ? operation : table === 'poker_venues' ? { id: 10, name: 'Venue', state: 'TX', city: 'Austin', venue_type: 'poker_club', is_claimed: false } : table === 'pnm_venue_corrections' ? { id: CLAIM, venue_id: 10, category: correctionCategory, proposal } : missingClaim ? null : { id: CLAIM, user_id: OWNER, venue_id: 10, status: 'pending' }, error: null }),
-        then(resolve, reject) { return Promise.resolve({ data: table === 'venue_claims' ? [{ id: CLAIM, verification_code: 'Never Publish', verification_attempts: 1 }] : [], error: null }).then(resolve, reject); },
+      let bounds = null;
+      let rowLimit = null;
+      const query = { select(fields) { calls.push({ table, fields }); return query; }, insert(value) { calls.push({ table, insert: value }); return query; }, eq(key, value) { calls.push({ table, filter: key, value }); return query; }, in() { return query; }, order(key, options) { calls.push({ table, order: key, options }); return query; }, limit(value) { rowLimit = value; return query; }, range(from, to) { bounds = [from, to]; calls.push({ table, range: bounds }); return query; },
+        maybeSingle: async () => ({ data: table === 'profiles' ? { role } : table === 'pnm_contribution_operations' ? operation : table === 'poker_venues' ? venueRow === undefined ? { id: 10, name: 'Venue', state: 'TX', city: 'Austin', venue_type: 'poker_club', is_claimed: false } : venueRow : table === 'venue_managers' && managerRow !== undefined ? managerRow : table === 'pnm_venue_corrections' ? { id: CLAIM, venue_id: 10, category: correctionCategory, proposal } : missingClaim ? null : { id: CLAIM, user_id: OWNER, venue_id: 10, status: 'pending' }, error: tableErrors[table] || null }),
+        then(resolve, reject) {
+          let data = tableRows[table] || (table === 'venue_claims' ? [{ id: CLAIM, verification_code: 'Never Publish', verification_attempts: 1 }] : []);
+          if (bounds) data = data.slice(bounds[0], bounds[1] + 1);
+          if (rowLimit !== null) data = data.slice(0, rowLimit);
+          return Promise.resolve({ data, error: typeof tableErrors[table] === 'function' ? tableErrors[table](bounds) : tableErrors[table] || null }).then(resolve, reject);
+        },
       }; return query;
     },
   };
   const participant = { ...service, rpc: async (name, args) => {
     calls.push({ name, args, service: false });
     if (throwRpc) throw new Error('Network connection closed');
-    return { data: name === 'pnm_contribution_operation' ? receipt : name === 'pnm_venue_contribution_access' ? { venue_id: 10, is_claimed: false, claim: user ? receipt.claim : null, permissions: { can_edit_games: false, can_post_updates: canPostUpdates } } : receipt, error };
+    return { data: name === 'pnm_contribution_operation' ? receipt : name === 'pnm_venue_contribution_access' ? accessOverride || { venue_id: 10, is_claimed: false, claim: user ? receipt.claim : null, permissions: { can_edit_games: false, can_post_updates: canPostUpdates } } : receipt, error };
   } };
   const modules = {
     '../supabaseServerClient': { createClient: (_url, key) => key ? participant : service },
@@ -163,6 +170,57 @@ test('manager info PATCH is one permission-scoped atomic operation with no parti
   const f = fixture(); const result = await f.run('public/venue/[id]/manage', 'PATCH', { operation_id: OPERATION, expected_revision: REVISION, source_url: source, changes: { description: 'Published venue description' } }, { id: 10 });
   assert.equal(result.statusCode, 200); assert.equal(f.calls[0].name, 'pnm_mutate_venue_info'); assert.deepEqual(f.calls[0].args.p_payload.changes, { about: 'Published venue description' });
   const invalid = fixture(); assert.equal((await invalid.run('public/venue/[id]/manage', 'PATCH', { operation_id: OPERATION, expected_revision: REVISION, source_url: source, changes: { has_parking: true } }, { id: 10 })).statusCode, 400); assert.equal(invalid.calls.length, 0);
+});
+test('management GET trusts authoritative administrator permissions without requiring a personal venue claim', async () => {
+  const allowed = fixture({ managerRow: null, accessOverride: { claim: null, legacy_claim: null, permissions: { can_edit_info: true } } });
+  const result = await allowed.run('public/venue/[id]/manage', 'GET', {}, { id: '10' });
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.body.venue.id, 10);
+  assert.equal(result.body.manager.permissions.can_edit_info, true);
+  assert.equal(result.headers['Cache-Control'], 'private, no-store');
+  const denied = fixture({ managerRow: null, accessOverride: { permissions: { can_edit_info: false } } });
+  assert.equal((await denied.run('public/venue/[id]/manage', 'GET', {}, { id: '10' })).statusCode, 403);
+  assert.equal(denied.calls.some(call => call.table === 'poker_venues'), false);
+});
+test('management GET distinguishes unavailable database reads from a missing venue', async () => {
+  const f = fixture({ managerRow: { role: 'manager' }, accessOverride: { permissions: { can_edit_info: true } }, tableErrors: { poker_venues: { message: 'Read unavailable' } } });
+  const result = await f.run('public/venue/[id]/manage', 'GET', {}, { id: '10' });
+  assert.equal(result.statusCode, 503);
+  assert.equal(result.body.venue, undefined);
+  const missing = fixture({ managerRow: { role: 'manager' }, accessOverride: { permissions: { can_edit_info: true } }, venueRow: null });
+  assert.equal((await missing.run('public/venue/[id]/manage', 'GET', {}, { id: '10' })).statusCode, 404);
+  const managerError = fixture({ accessOverride: { permissions: { can_edit_info: true } }, tableErrors: { venue_managers: { message: 'Manager read unavailable' } } });
+  assert.equal((await managerError.run('public/venue/[id]/manage', 'GET', {}, { id: '10' })).statusCode, 503);
+});
+test('schedule GET collects every active entry beyond the former 200-row truncation with deterministic paging', async () => {
+  const rows = Array.from({ length: 450 }, (_, index) => ({ id: index + 1, day_of_week: 'monday', game_name: `Game ${index + 1}`, start_time: '19:00' }));
+  const f = fixture({ tableRows: { venue_game_schedules: rows } });
+  const result = await f.run('poker/venue-schedules', 'GET', {}, { venue_id: '10' });
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.body.total_entries, 450);
+  assert.deepEqual(result.body.schedule.monday.map(row => row.id), rows.map(row => row.id));
+  assert.deepEqual(f.calls.filter(call => call.table === 'venue_game_schedules' && call.range).map(call => call.range), [[0, 199], [200, 399], [400, 599]]);
+  assert.equal(f.calls.filter(call => call.table === 'venue_game_schedules' && call.order === 'id').length, 3);
+});
+test('schedule GET refuses an incomplete bounded inventory rather than announcing a partial successful total', async () => {
+  const rows = Array.from({ length: 5001 }, (_, index) => ({ id: index + 1, day_of_week: 'monday', game_name: `Game ${index + 1}` }));
+  const f = fixture({ tableRows: { venue_game_schedules: rows } });
+  const result = await f.run('poker/venue-schedules', 'GET', {}, { venue_id: '10' });
+  assert.equal(result.statusCode, 503);
+  assert.equal(result.body.schedule, undefined);
+  assert.equal(result.headers['Cache-Control'], 'private, no-store');
+  assert.equal(f.calls.filter(call => call.range).length, 25);
+});
+test('schedule GET withholds partial rows after a later-page failure or a concurrent duplicate', async () => {
+  const rows = Array.from({ length: 201 }, (_, index) => ({ id: index + 1, day_of_week: 'monday', game_name: `Game ${index + 1}` }));
+  const unavailable = fixture({ tableRows: { venue_game_schedules: rows }, tableErrors: { venue_game_schedules: bounds => bounds?.[0] === 200 ? { message: 'Next page unavailable' } : null } });
+  const duplicate = fixture({ tableRows: { venue_game_schedules: [...rows.slice(0, 200), rows[0]] } });
+  for (const f of [unavailable, duplicate]) {
+    const result = await f.run('poker/venue-schedules', 'GET', {}, { venue_id: '10' });
+    assert.equal(result.statusCode, 503);
+    assert.equal(result.body.schedule, undefined);
+    assert.equal(result.headers['Cache-Control'], 'private, no-store');
+  }
 });
 test('malformed JSON is a definite 400 refusal before any contribution mutation', async () => {
   const f = fixture(); const result = await f.run('poker/venue-contributions', 'POST', '{broken');

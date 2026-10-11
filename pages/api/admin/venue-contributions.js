@@ -46,6 +46,9 @@ export default async function handler(req, res) {
       if (correctionError) throw correctionError;
       if (!correction) throw Object.assign(new Error('Correction not found'), { code: 'P0002' });
       if (correction.category === 'location') {
+        // The preserved location-integrity transaction accepts at most 500
+        // characters. Other decisions retain the broader review contract.
+        if (payload.reason.length > 500) throw contributionInvalid('Location application reason must contain at most 500 characters');
         const { data: venue, error: venueError } = await session.service.from('poker_venues').select('id,name,venue_type,address,city,state,latitude,longitude,lat,lng').eq('id', correction.venue_id).maybeSingle();
         if (venueError) throw venueError;
         if (!venue) throw Object.assign(new Error('Venue not found'), { code: 'P0002' });

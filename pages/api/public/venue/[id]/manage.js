@@ -77,12 +77,8 @@ export default async function handler(req, res) {
           .maybeSingle();
 
       if (managerError) throw managerError;
-      if (!manager && !access.legacy_claim && !access.claim) {
-          return res.status(403).json({
-              success: false, error: 'Not authorized',
-              message: 'You do not have permission to manage this venue.'
-          });
-      }
+      // The access RPC is authoritative, including platform administrators and
+      // legacy grants. A missing personal manager row cannot revoke its decision.
 
       if (req.method === 'GET') {
           return handleGet(req, res, id, user, manager || { role: 'manager' }, access.permissions);
@@ -106,7 +102,8 @@ async function handleGet(req, res, venueId, user, manager, permissions) {
             .eq('id', parseInt(venueId))
             .maybeSingle();
 
-        if (venueError || !venue) {
+        if (venueError) throw venueError;
+        if (!venue) {
             return res.status(404).json({ success: false, error: 'Venue not found' });
         }
 
@@ -150,7 +147,7 @@ async function handleGet(req, res, venueId, user, manager, permissions) {
 
     } catch (error) {
         console.warn('Venue manage GET error:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
+        return contributionError(res, error);
     }
 }
 
