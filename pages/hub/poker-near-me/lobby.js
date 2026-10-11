@@ -2131,9 +2131,11 @@ export default function PokerNearMeLobby() {
           <div>
             <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <select
+                className="pnm-lobby-map-state-select"
+                aria-label="Filter Map By State"
                 value={mapStateFilter}
                 onChange={(e) => setFilters(prev => ({ ...prev, mapState: e.target.value }))}
-                style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100 }}>
+                style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100, minHeight: 44, boxSizing: 'border-box' }}>
                 <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
                 {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
                   <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>

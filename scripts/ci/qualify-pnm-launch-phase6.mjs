@@ -123,13 +123,61 @@ async function geometry(page, row) {
   }));
   assertGeometry(row);
 }
-async function qualifyRoute(browser, viewport, entry, directory) {
+export async function qualifySearchFlow(page, entry, row) {
+  const dialog = page.getByRole('dialog', { name: /^Search Poker Venues, Tours, And Series$/i });
+  await dialog.waitFor();
+  const input = dialog.getByRole('combobox');
+  assert.equal(await input.inputValue(), entry.query, 'Real structured search control');
+  assert.equal(new URL(page.url()).searchParams.get('q'), entry.query, 'Query survives URL synchronization');
+  const scope = dialog.locator('[data-player-planning="search-scope"]');
+  await scope.waitFor();
+  assert.match(await scope.textContent(), /Saved Search Filters:\s*NV\s*\/\s*Venues\./i, 'Actual Nevada venue scope');
+  if (entry.family === 'honest-empty-search') {
+    await dialog.getByText('No Results Found', { exact: true }).waitFor();
+    assert.equal(await dialog.locator('.gso-result-card').count(), 0, 'Empty results must not fabricate venue cards');
+    assert.equal(await dialog.getByText('Venue Search Unavailable', { exact: true }).count(), 0, 'A failed read is not honest emptiness');
+    await dialog.getByRole('button', { name: 'Clear', exact: true }).click();
+    assert.equal(await input.inputValue(), '', 'Actual empty-search clear recovery');
+    await dialog.getByText('No Results Found', { exact: true }).waitFor({ state: 'hidden' });
+    row.honestEmptyState = true;
+    row.emptySearchClearRecovery = true;
+  } else {
+    const result = dialog.locator('.gso-result-card--venue').first();
+    await result.waitFor();
+    const resultName = await result.locator('.gso-result__name').textContent();
+    assert.match(await result.locator('.gso-result__place').textContent(), /, NV$/i, 'Result belongs to Nevada');
+    await result.click();
+    const detail = page.locator('.gso-detail-console');
+    await detail.waitFor();
+    assert.equal(await detail.locator('.gso-detail__name').textContent(), resultName, 'Clicked venue identity');
+    assert.match(await detail.locator('.gso-detail__city').textContent(), /, NV$/i);
+    await detail.getByRole('button', { name: 'View Full Details', exact: true }).click();
+    await page.waitForURL(url => /^\/hub\/venues\/\d+$/.test(url.pathname));
+    await page.locator('main.venue-page .venue-header .venue-name').waitFor();
+    const path = new URL(page.url()).pathname;
+    const actual = await readPublic(`/api/poker/venues?id=${path.split('/').at(-1)}`);
+    assert.equal(actual.success, true, 'Real public venue destination');
+    const actualVenue = (Array.isArray(actual.data) ? actual.data : [actual.data]).find(venue => String(venue?.id) === path.split('/').at(-1));
+    assert.equal(actualVenue?.name, resultName, 'Public destination agrees with clicked venue');
+    assert.equal(actualVenue?.state, 'NV', 'Public destination preserves actual Nevada scope');
+    row.actualSearchResultLink = true;
+    row.actualSearchDestination = path;
+  }
+  row.structuredQueryAndStateRetained = true;
+}
+export async function qualifyRoute(browser, viewport, entry, directory) {
   const row = { ...entry, viewport, blockedWrites: 0, pageErrors: [], passed: false };
   const context = await publicContext(browser, viewport, row);
   try {
     const page = await context.newPage();
     page.setDefaultTimeout(30000);
     page.on('pageerror', error => row.pageErrors.push(safeError(error)));
+    const completedDirectory = entry.family === 'discovery-map' ? page.waitForResponse(async response => {
+      const url = new URL(response.url());
+      if (url.origin !== ORIGIN || url.pathname !== '/api/poker/venues' || url.searchParams.get('view') !== 'directory' || response.status() !== 200) return false;
+      try { await response.finished(); return completedDirectoryPage(url, await response.json()); }
+      catch { row.unreadableDirectoryResponses = (row.unreadableDirectoryResponses || 0) + 1; return false; }
+    }).then(() => ({ complete: true }), error => ({ error: safeError(error) })) : null;
     const response = await page.goto(`${ORIGIN}${entry.path}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     row.status = response.status(); assert.equal(row.status, 200, entry.family);
     if (entry.family === 'entry-redirect') assert.equal(new URL(page.url()).pathname, entry.destination, 'Maintained entry destination');
@@ -137,22 +185,16 @@ async function qualifyRoute(browser, viewport, entry, directory) {
     await page.locator('main h1, main h2').first().waitFor({ state: 'visible' });
     if (entry.family.startsWith('discovery-') || entry.family.startsWith('private-')) await page.locator('.pnm-page').waitFor({ state: 'visible' });
     if (entry.family.startsWith('discovery-') || entry.query) await page.locator('.pnm-page[data-pnm-hydrated="true"]').waitFor();
-    if (entry.query) {
-      const input = page.locator('main input').filter({ visible: true });
-      await page.waitForFunction(query => [...document.querySelectorAll('main input')].some(node => node.value === query), entry.query);
-      assert.ok(await input.count() > 0, 'Real structured search control');
-      assert.equal(new URL(page.url()).searchParams.get('q'), entry.query, 'Query survives URL synchronization');
-      await page.locator('[data-player-planning="search-scope"]').getByText(/NV/).waitFor();
-      if (entry.family === 'honest-empty-search') {
-        await page.locator('#pnm-section-venues').getByText('No Venues Found Matching Your Criteria', { exact: true }).waitFor();
-        assert.equal(await page.locator('#pnm-section-venues .venue-card').count(), 0, 'Empty results must not fabricate venue cards');
-        await page.locator('#pnm-section-venues').getByRole('button', { name: 'Clear All Filters', exact: true }).waitFor();
-        row.honestEmptyState = true;
-      } else {
-        await page.locator('#pnm-section-venues a[href^="/hub/venues/"]').first().waitFor();
-        row.actualSearchResultLink = true;
-      }
-      row.structuredQueryAndStateRetained = true;
+    if (entry.query) await qualifySearchFlow(page, entry, row);
+    if (entry.family === 'discovery-map') {
+      const completed = await completedDirectory;
+      assert.equal(completed.complete, true, `Actual screenshot directory completion: ${completed.error || ''}`);
+      await page.locator('.pnm-directory-source').waitFor({ state: 'hidden' });
+      await page.locator('#pnm-section-map [data-map-ready="true"]').waitFor();
+      await page.locator('#pnm-section-map [data-map-tiles="ready"]').waitFor();
+      assert.ok(Number(await page.locator('#pnm-section-map [data-map-marker-count]').getAttribute('data-map-marker-count')) > 0, 'Completed actual directory map');
+      await page.locator('#pnm-section-map [data-map-foundation="shared-v3"]').scrollIntoViewIfNeeded();
+      row.actualMapScreenshotReady = true;
     }
     if (entry.family.startsWith('private-')) assert.match(await page.locator('meta[name="robots"]').getAttribute('content'), /noindex/i);
     await page.evaluate(() => Promise.race([Promise.all([...document.images].map(image => image.decode().catch(() => {}))), new Promise(resolve => setTimeout(resolve, 5000))]));

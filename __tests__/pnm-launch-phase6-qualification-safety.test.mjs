@@ -3,9 +3,28 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { allowedPublicRead, safeError, validateConfiguration, sitemapPaths, buildManifest, assertGeometry, readPublic, isRuntimeScriptURL, isLeafletRuntimeSource, scopedSitemapCount, interceptRuntimeRoute, completedDirectoryPage, lobbyMapMarkerCount, ORIGIN, VIEWPORTS } from '../scripts/ci/qualify-pnm-launch-phase6.mjs';
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes.js';
+import { parse } from '@babel/parser';
 
 const source = readFileSync(new URL('../scripts/ci/qualify-pnm-launch-phase6.mjs', import.meta.url), 'utf8');
 const paths = ['/hub/poker-near-me/lobby', ...POKER_DISCOVERY_SITEMAP_ROUTES.map(row => row.path), '/hub/daily-tournaments', '/hub/events-calendar', '/hub/poker-near-me/in', '/hub/poker-near-me/in/nv', '/hub/poker-near-me/in/nv/las-vegas', '/hub/venues/1828', '/hub/poker-series', '/hub/series/5000759', '/hub/poker-tours', '/hub/tours/wsop', '/hub/home-games', '/hub/home-games/near-me', '/hub/home-games/actual-public-group', '/hub/home-games/in', '/hub/home-games/in/nv', '/hub/home-games/in/nv/las-vegas'];
+test('shared daily route has one authoritative main containing its heading, filters and every feed state', () => {
+  const daily = readFileSync(new URL('../pages/hub/daily-tournaments.js', import.meta.url), 'utf8');
+  const ast = parse(daily, { sourceType: 'module', plugins: ['jsx'] });
+  const mains = []; let headingInside = false; let searchInside = false;
+  function walk(node, inside = false) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'JSXElement') {
+      const name = node.openingElement.name.name;
+      if (name === 'main') { mains.push(node); inside = true; }
+      if (name === 'h1' && inside) headingInside = true;
+      if (name === 'form' && inside) searchInside = true;
+    }
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(child => walk(child, inside)); else if (value && typeof value === 'object') walk(value, inside);
+  }
+  walk(ast); assert.equal(mains.length, 1); assert.equal(headingInside, true); assert.equal(searchInside, true);
+  const mainSource = daily.slice(mains[0].start, mains[0].end);
+  for (const state of ['Failed To Load Schedule', 'Finding Tournaments', 'No Tournaments Found', 'TournamentCard', 'dt-state-filter']) assert.ok(mainSource.includes(state), state);
+});
 test('marker preservation waits for actual complete registry and restored Show All markers, not an early partial map', () => {
   const body = { success: true, data_integrity: {}, data: [], total: 473 };
   assert.equal(completedDirectoryPage(`${ORIGIN}/api/poker/venues?view=directory&offset=0&limit=160`, body), false);
@@ -104,7 +123,10 @@ test('finite qualifier actually enforces source identity, both viewports, read-o
   for (const invariant of ['routeWebSocket', 'socket.close()', "serviceWorkers: 'block'", 'expectedSha', 'receipt.before = await health', 'receipt.after = await health', 'receipt.manifest.length * VIEWPORTS.length', 'receipt.routes.every(row => row.passed)', 'receipt.maps.every(row => row.passed)', 'row.areaAndTiles.passed && row.runtime.passed', 'assertPnmMobileBudget(row, budget)', 'Map container is already initialized', 'Area Search Timed Out', 'context.setOffline(true)', 'context.setOffline(false)', 'beforeMarkers', 'delayReads > 0', 'hungReads > 0', "name: 'Browse Venue List'", "trigger.press('Enter')", "page.keyboard.press('Escape')"]) assert.ok(source.includes(invariant), invariant);
   assert.doesNotMatch(source, /createUser|deleteUser|SERVICE_ROLE|TEST_USER|\.skip\(|schedule:|vercel\s+deploy|gh pr merge/);
   assert.match(source, /Math|Promise\.race/);
-  for (const invariant of ['structuredQueryAndStateRetained', 'honestEmptyState', 'actualSearchResultLink', 'Query survives URL synchronization', 'No Venues Found Matching Your Criteria']) assert.ok(source.includes(invariant));
+  for (const invariant of ['structuredQueryAndStateRetained', 'honestEmptyState', 'actualSearchResultLink', 'Query survives URL synchronization', 'No Results Found', 'Actual empty-search clear recovery', 'Public destination agrees with clicked venue', 'Public destination preserves actual Nevada scope', 'actualMapScreenshotReady', '[data-map-tiles="ready"]']) assert.ok(source.includes(invariant), invariant);
+  assert.ok(source.includes('if (entry.query) await qualifySearchFlow(page, entry, row)'));
+  assert.ok(source.indexOf('row.actualMapScreenshotReady = true') < source.indexOf('await page.screenshot'));
+  assert.ok(!source.includes("#pnm-section-venues a[href"), 'Do not target the hidden background list for overlay search');
 });
 test('manual Phase6 workflow has exact main-only lane and publishes only its evidence artifact', () => {
   const workflow = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');

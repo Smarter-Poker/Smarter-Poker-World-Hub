@@ -410,9 +410,10 @@ export default function DailyTournaments() {
                 />
 
                 {/* Page Header — Title left, Search right */}
+                <main aria-labelledby="daily-tournaments-heading">
                 <div className="dt-header">
                     <div className="dt-header-left">
-                        <h1><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
+                        <h1 id="daily-tournaments-heading"><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
                         <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
                         <div className={`dt-source-state dt-source-state--${scheduleState}`} role="status" aria-live="polite" data-source-state={scheduleState}>
                             <span className="dt-source-state__signal" aria-hidden="true" />
@@ -607,7 +608,7 @@ export default function DailyTournaments() {
                     
 
                     {/* Center - Tournament Cards */}
-                    <main className="tournament-feed">
+                    <div className="tournament-feed">
                         {error && !loading ? (
                             <div className="empty-state error-state" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
                                 <p>Failed To Load Schedule</p>
@@ -634,10 +635,11 @@ export default function DailyTournaments() {
                                 ))}
                             </div>
                         )}
-                    </main>
+                    </div>
 
                     
                 </div>
+                </main>
 
                 <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
                     /* Metal UI Variables */

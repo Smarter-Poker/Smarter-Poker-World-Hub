@@ -5510,7 +5510,11 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         .bravo-live-scroll-btn {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 6px;
+          box-sizing: border-box;
+          min-width: 44px;
+          min-height: 44px;
           padding: 6px 14px;
           background: rgba(0, 212, 255, 0.12);
           border: 1px solid rgba(0, 212, 255, 0.25);

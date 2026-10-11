@@ -24,6 +24,17 @@ test('venue map and premium actions retain full painted touch targets', () => {
   assert.match(read('pages/hub/venues/[id].js'), /className="peak-analytics-upgrade"/);
 });
 
+test('venue live-detail disclosure keeps a 44px target on desktop and mobile', () => {
+  const page = read('pages/hub/venues/[id].js');
+  const owner = page.match(/\.bravo-live-scroll-btn\s*\{([^}]+)\}/);
+  assert.ok(owner, 'the View Full Details action keeps its route-owned rule');
+  assert.match(owner[1], /min-width:\s*44px/);
+  assert.match(owner[1], /min-height:\s*44px/);
+  assert.match(owner[1], /box-sizing:\s*border-box/);
+  assert.match(owner[1], /justify-content:\s*center/);
+  assert.match(page, /className="bravo-live-scroll-btn"[\s\S]*?View Full Details/);
+});
+
 test('venue schedules expose each real calendar date without shifting or collapsing occurrences', () => {
   const page = read('pages/hub/venues/[id].js');
   assert.match(page, /<time dateTime=\{scheduleDate\.iso\}>\{scheduleDate\.label\}<\/time>/);
