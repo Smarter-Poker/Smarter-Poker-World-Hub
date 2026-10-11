@@ -89,6 +89,10 @@ test('actual saved library reads private plans with expected account and exposes
     './PokerNearMeConsole': { PokerNearMePanelShell: ({ as: Tag = 'article', children, ...props }) => React.createElement(Tag, props, children) },
   });
   try {
+    const { renderToString } = require('react-dom/server');
+    const markup = renderToString(React.createElement(ui.default, { userId: A }));
+    assert.match(markup, /Sign In To Read Your Private Account Plans/);
+    assert.doesNotMatch(markup, /Refresh Account Plans|Saved Searches/);
     await renderer.act(async () => { tree = renderer.create(React.createElement(ui.default, { userId: A })); });
     assert.deepEqual(calls, [A]);
     assert.match(tree.root.findByType('a').props.href, new RegExp(`accountPlan=${ID}`));

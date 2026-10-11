@@ -70,6 +70,9 @@ export function PreferenceRecovery({ userId }) {
 }
 
 export default function PlayerPlanningPanel({ userId }) {
+  // The server and first client render share the signed-out shell. Read device
+  // auth only after mount, never while hydrating the prerendered markup.
+  const [account, setAccount] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -82,8 +85,7 @@ export default function PlayerPlanningPanel({ userId }) {
     finally { if (getAuthUser()?.id === account) setLoading(false); }
   }, [userId]);
   const writer = usePlayerPlanningWrite('saved-library', load);
-  useEffect(() => { setPlans([]); load(); const changed = () => { setPlans([]); load(); }; window.addEventListener('storage', changed); return () => window.removeEventListener('storage', changed); }, [load]);
-  const account = getAuthUser()?.id;
+  useEffect(() => { setAccount(getAuthUser()?.id || null); setPlans([]); load(); const changed = () => { setAccount(getAuthUser()?.id || null); setPlans([]); load(); }; window.addEventListener('storage', changed); return () => window.removeEventListener('storage', changed); }, [load]);
   return <PokerNearMePanelShell as="section" bodyClassName={styles.body} aria-label="Player Planning" data-player-planning="library">
     <h2 className={styles.title}>Player Planning</h2>
     <p className={styles.copy}>Private Account-Owned Searches And Trip Plans. Device Trips Are Imported Only When You Explicitly Choose To Import Them.</p>

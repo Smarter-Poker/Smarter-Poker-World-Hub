@@ -26,12 +26,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fuzzyMatchScore } from '../src/components/poker-near-me/pnm-utils.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => process.env.PNM_SEARCH_SOURCE_REV && rel === 'src/components/poker-near-me/GlobalSearchOverlay.jsx'
   ? execFileSync('git', ['show', `${process.env.PNM_SEARCH_SOURCE_REV}:${rel}`], { cwd: ROOT, encoding: 'utf8' })
+  : process.env.PNM_LOBBY_SOURCE_REV && rel === 'pages/hub/poker-near-me/lobby.js'
+    ? execFileSync('git', ['show', `${process.env.PNM_LOBBY_SOURCE_REV}:${rel}`], { cwd: ROOT, encoding: 'utf8' })
   : fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
@@ -41,6 +44,55 @@ const OVERLAY = 'src/components/poker-near-me/lobby/LobbyOverlay.jsx';
 const LOBBY = 'pages/hub/poker-near-me/lobby.js';
 const LOBBY_CSS = 'src/styles/worlds/poker-near-me-lobby.css';
 const VOICE = 'src/components/poker-near-me/VoiceSearch.jsx';
+
+test('actual lobby hydration effects never replace the saved query with initial empty state', async () => {
+  const require = createRequire(import.meta.url);
+  const React = require('react'); const renderer = require('react-test-renderer');
+  const source = read(LOBBY);
+  const effects = source.slice(source.indexOf('  // ─── Deep Link: read URL params on mount'), source.indexOf('  // ─── Fetch venues'));
+  const query = 'NLH 1/2 in Nevada tonight';
+  const planning = JSON.stringify({ schemaVersion: 1, query, filters: { state: 'NV', game: 'NLH', stakes: '1/2', date: 'tonight', type: 'venues' }, location: { city: 'Las Vegas', state: 'NV' } });
+  const location = { pathname: '/hub/poker-near-me/lobby', search: `?q=${encodeURIComponent(query)}&pnm_planning=${encodeURIComponent(planning)}` };
+  const written = []; let tree;
+  function Fixture() {
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const [urlHydrated, setUrlHydrated] = React.useState(false);
+    const hasHydratedRef = React.useRef(false);
+    const scope = vm.createContext({ URLSearchParams, console, searchQuery, setSearchQuery, urlHydrated, setUrlHydrated, hasHydratedRef,
+      useEffect: React.useEffect, window: { location, history: { replaceState: (_, __, value) => written.push(value) } },
+      requestAnimationFrame: (fn) => fn(), setShowGlobalSearch() {}, setShowPanel() {}, setActivePod() {}, setFilters() {}, setSortBy() {},
+      POD_FEATURES: {}, activePod: null, filters: {}, sortBy: 'distance', fetchSequenceRef: { current: 0 }, cachedFetch: async () => ({ data: [] }), applyWideVenueFetch() {},
+    });
+    vm.runInContext(effects, scope);
+    return null;
+  }
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); });
+    assert.equal(written.length, 1);
+    const restored = new URL(written[0], 'https://smarter.poker').searchParams;
+    assert.equal(restored.get('q'), query); assert.equal(restored.get('pnm_planning'), planning);
+  } finally { await renderer.act(async () => tree?.unmount()); }
+});
+
+test('actual overlay opening effect restores the validated saved document even when parent query is initially empty', async () => {
+  const require = createRequire(import.meta.url); const React = require('react'); const renderer = require('react-test-renderer');
+  const source = read(SEARCH); const effect = source.slice(source.indexOf('  // Reset & focus when opened'), source.indexOf('  // ESC key'));
+  const saved = { schemaVersion: 1, query: 'NLH 1/2 in Nevada tonight', filters: { state: 'NV', game: 'NLH', stakes: '1/2', date: 'tonight', type: 'venues' }, location: { city: 'Las Vegas', state: 'NV' } };
+  const submissions = []; let query; let tree;
+  function Fixture() {
+    const [localQuery, setLocalQuery] = React.useState(''); query = localQuery;
+    const savedSearchRef = React.useRef(null);
+    const scope = vm.createContext({ URLSearchParams, savedSearchRef, useEffect: React.useEffect, isOpen: true, searchQuery: '', localQuery, setLocalQuery,
+      window: { location: { search: `?pnm_planning=${encodeURIComponent(JSON.stringify(saved))}` } },
+      validateSearchDocument: value => value, handleSubmit: (_, value) => submissions.push(value),
+      setTimeout: fn => { fn(); return 1; }, clearTimeout() {}, setPhase() {}, setSearchError() {}, setNameMatchFallback() {}, setDetailItem() {},
+      inputRef: { current: null }, debounceRef: { current: null }, abortControllerRef: { current: null }, submitSeqRef: { current: 0 },
+    });
+    vm.runInContext(effect, scope); return null;
+  }
+  try { await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); }); assert.equal(query, saved.query); assert.deepEqual(submissions, [saved.query]); }
+  finally { await renderer.act(async () => tree?.unmount()); }
+});
 
 function searchHelpers() {
   const src = read(SEARCH);
@@ -180,7 +232,8 @@ test('saved search deep links preserve structured scope and open the actual sear
   assert.match(lobby, /if \(params\.has\('pnm_planning'\)\) \{[\s\S]*?setShowGlobalSearch\(true\)/);
   assert.match(lobby, /const planning = new URLSearchParams\(window\.location\.search\)\.get\('pnm_planning'\)/);
   assert.match(lobby, /if \(planning\) params\.set\('pnm_planning', planning\)/);
-  assert.match(read(SEARCH), /if \(searchQuery \|\| savedSearchRef\.current\)/);
+  assert.match(read(SEARCH), /const restoredQuery = savedSearchRef\.current\?\.query \?\? searchQuery \?\? ''/);
+  assert.match(read(SEARCH), /if \(restoredQuery \|\| savedSearchRef\.current\)/);
 });
 
 test('venue typo suggestions require every published name or city word and remain labelled', () => {

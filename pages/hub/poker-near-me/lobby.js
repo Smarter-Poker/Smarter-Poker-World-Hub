@@ -433,6 +433,7 @@ export default function PokerNearMeLobby() {
   // ─── Deep Link: hydration guard ───
   // Prevents the write-back effect from clearing URL params before mount reads them
   const hasHydratedRef = useRef(false);
+  const [urlHydrated, setUrlHydrated] = useState(false);
 
   // ─── Deep Link: read URL params on mount ───
   // Uses URLSearchParams directly instead of router.query (which can be empty on first render)
@@ -494,6 +495,9 @@ export default function PokerNearMeLobby() {
     } else {
       hasHydratedRef.current = true;
     }
+    // State commits with the parsed query. A ref set in this effect is already
+    // true when the first write-back effect still sees the empty initial state.
+    setUrlHydrated(true);
   }, []);
 
   // ─── Deep Link: write URL params on state change ───
@@ -502,7 +506,7 @@ export default function PokerNearMeLobby() {
   // killing the panel and 3D scene. replaceState updates the URL silently.
   useEffect(() => {
     // Skip write-back until mount effect has read the URL params
-    if (!hasHydratedRef.current) return;
+    if (!urlHydrated || !hasHydratedRef.current) return;
 
     const params = new URLSearchParams();
     const planning = new URLSearchParams(window.location.search).get('pnm_planning');
@@ -524,7 +528,7 @@ export default function PokerNearMeLobby() {
     if (currentUrl !== newUrl) {
       window.history.replaceState(null, '', newUrl);
     }
-  }, [activePod, searchQuery, filters.selectedState, filters.gameType, sortBy, filters.radius]);
+  }, [urlHydrated, activePod, searchQuery, filters.selectedState, filters.gameType, sortBy, filters.radius]);
 
   // ─── Fetch venues ───
   const userLocationRef = useRef(userLocation);
