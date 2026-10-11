@@ -166,7 +166,7 @@ export async function contributionReviewReplay(session, operationId, kind, targe
 }
 export function contributionError(res, error) {
   const code = error?.code;
-  const status = error?.status || (code === '42501' ? 403 : code === 'P0002' ? 404 : ['22023', '22P02', '22007', '23514'].includes(code) ? 400 : code === '40001' || /PNM_CONFLICT/.test(error?.message || '') ? 409 : 503);
+  const status = error?.status || (code === '42501' ? 403 : code === 'P0002' ? 404 : ['22023', '22P02', '22007', '23514'].includes(code) ? 400 : ['PT409', '40001'].includes(code) || /PNM_CONFLICT/.test(error?.message || '') ? 409 : 503);
   const uncertain = status >= 500 && Boolean(error?.operationId);
   return res.status(status).json({ success: false, error: status >= 500 ? 'Contribution service unavailable. Check the saved operation before retrying.' : error.message,
     ...(uncertain ? { outcome: 'unknown', operation_id: error.operationId } : {}) });
