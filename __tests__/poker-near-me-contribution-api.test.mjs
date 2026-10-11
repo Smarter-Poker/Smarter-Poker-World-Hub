@@ -11,7 +11,7 @@ const CLAIM = '33333333-3333-4333-8333-333333333333';
 const REVISION = '2026-10-11T05:00:00.000Z';
 const source = 'https://venue.example.com/poker';
 
-function fixture({ user = OWNER, role = 'admin', mfa = true, error = null, throwRpc = false, missingClaim = false, sessionStatus = null, correctionCategory = 'details', proposal = {}, operation = null, canPostUpdates = false, accessOverride = null, managerRow, venueRow, tableRows = {}, tableErrors = {} } = {}) {
+function fixture({ user = OWNER, role = 'admin', mfa = true, error = null, throwRpc = false, missingClaim = false, sessionStatus = null, correctionCategory = 'details', proposal = {}, operation = null, canPostUpdates = false, accessOverride = null, managerRow, venueRow, tableRows = {}, tableErrors = {}, duplicateManagerProfileRelationships = false } = {}) {
   const calls = [];
   const receipt = { operation_id: OPERATION, status: 'pending', claim: { id: CLAIM, status: 'pending' }, schedule: { id: 1, updated_at: REVISION }, venue: { id: 10 } };
   const service = {
@@ -19,9 +19,15 @@ function fixture({ user = OWNER, role = 'admin', mfa = true, error = null, throw
     from(table) {
       let bounds = null;
       let rowLimit = null;
-      const query = { select(fields) { calls.push({ table, fields }); return query; }, insert(value) { calls.push({ table, insert: value }); return query; }, eq(key, value) { calls.push({ table, filter: key, value }); return query; }, in() { return query; }, order(key, options) { calls.push({ table, order: key, options }); return query; }, limit(value) { rowLimit = value; return query; }, range(from, to) { bounds = [from, to]; calls.push({ table, range: bounds }); return query; },
+      let projection = '';
+      const query = { select(fields) { projection = fields; calls.push({ table, fields }); return query; }, insert(value) { calls.push({ table, insert: value }); return query; }, eq(key, value) { calls.push({ table, filter: key, value }); return query; }, in() { return query; }, order(key, options) { calls.push({ table, order: key, options }); return query; }, limit(value) { rowLimit = value; return query; }, range(from, to) { bounds = [from, to]; calls.push({ table, range: bounds }); return query; },
         maybeSingle: async () => ({ data: table === 'profiles' ? { role } : table === 'pnm_contribution_operations' ? operation : table === 'poker_venues' ? venueRow === undefined ? { id: 10, name: 'Venue', state: 'TX', city: 'Austin', venue_type: 'poker_club', is_claimed: false } : venueRow : table === 'venue_managers' && managerRow !== undefined ? managerRow : table === 'pnm_venue_corrections' ? { id: CLAIM, venue_id: 10, category: correctionCategory, proposal } : missingClaim ? null : { id: CLAIM, user_id: OWNER, venue_id: 10, status: 'pending' }, error: tableErrors[table] || null }),
         then(resolve, reject) {
+          // Installed schema has two user_id -> profiles.id foreign keys.
+          // PostgREST refuses an unqualified embed instead of choosing one.
+          if (duplicateManagerProfileRelationships && table === 'venue_managers' && /user:profiles\s*\(/.test(projection)) {
+            return Promise.resolve({ data: null, error: { code: 'PGRST201', message: 'Could not embed because more than one relationship was found for venue_managers and profiles' } }).then(resolve, reject);
+          }
           let data = tableRows[table] || (table === 'venue_claims' ? [{ id: CLAIM, verification_code: 'Never Publish', verification_attempts: 1 }] : []);
           if (bounds) data = data.slice(bounds[0], bounds[1] + 1);
           if (rowLimit !== null) data = data.slice(0, rowLimit);
@@ -191,6 +197,17 @@ test('management GET distinguishes unavailable database reads from a missing ven
   assert.equal((await missing.run('public/venue/[id]/manage', 'GET', {}, { id: '10' })).statusCode, 404);
   const managerError = fixture({ accessOverride: { permissions: { can_edit_info: true } }, tableErrors: { venue_managers: { message: 'Manager read unavailable' } } });
   assert.equal((await managerError.run('public/venue/[id]/manage', 'GET', {}, { id: '10' })).statusCode, 503);
+});
+test('management GET disambiguates the installed duplicate profile relationships without exposing contact data', async () => {
+  const manager = { id: CLAIM, role: 'manager', is_active: true, user: { id: OWNER, username: 'venue-manager', display_name: 'Venue Manager', avatar_url: null } };
+  const f = fixture({ managerRow: null, accessOverride: { permissions: { can_edit_info: true } }, duplicateManagerProfileRelationships: true, tableRows: { venue_managers: [manager] } });
+  const result = await f.run('public/venue/[id]/manage', 'GET', {}, { id: '10' });
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual(result.body.managers, [manager]);
+  const embedded = f.calls.find(call => call.table === 'venue_managers' && call.fields?.includes('user:profiles'));
+  assert.match(embedded.fields, /user:profiles!fk_venue_managers_user_id_profiles\(id, username, display_name, avatar_url\)/);
+  assert.equal(/email|phone/.test(embedded.fields), false);
+  assert.equal(result.headers['Cache-Control'], 'private, no-store');
 });
 test('schedule GET collects every active entry beyond the former 200-row truncation with deterministic paging', async () => {
   const rows = Array.from({ length: 450 }, (_, index) => ({ id: index + 1, day_of_week: 'monday', game_name: `Game ${index + 1}`, start_time: '19:00' }));

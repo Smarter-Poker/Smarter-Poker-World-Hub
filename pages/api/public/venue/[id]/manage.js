@@ -112,7 +112,7 @@ async function handleGet(req, res, venueId, user, manager, permissions) {
             .from('venue_managers')
             .select(`
                 id, role, is_active, created_at,
-                user:profiles(id, username, display_name, avatar_url)
+                user:profiles!fk_venue_managers_user_id_profiles(id, username, display_name, avatar_url)
             `)
             .eq('venue_id', parseInt(venueId))
             .eq('is_active', true)
