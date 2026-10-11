@@ -65,3 +65,9 @@ test('planning workflow uses maintained manual main lane and configured canonica
   assert.match(job, /node scripts\/qualify-pnm-player-planning-phase5\.mjs/);
   assert.doesNotMatch(job, /TEST_USER_PASSWORD|schedule:|deploy|publish/);
 });
+test('required planning regressions run once, retaining the existing shared preference gate', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/build-safety-gate.yml', import.meta.url), 'utf8');
+  for (const file of ['__tests__/pnm-player-planning-api.test.mjs', '__tests__/pnm-player-planning-ui.test.mjs', '__tests__/pnm-player-planning-phase5-qualification-safety.test.mjs', '__tests__/page-preferences-merge-before-save.test.mjs']) {
+    assert.equal(workflow.split(file).length - 1, 1, `${file} must run exactly once`);
+  }
+});

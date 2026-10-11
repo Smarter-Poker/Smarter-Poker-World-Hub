@@ -182,7 +182,7 @@ jobs:
         run: node --test __tests__/poker-near-me-contribution-api.test.mjs __tests__/pnm-venue-contribution-ui.test.mjs __tests__/pnm-location-review-reason.test.mjs __tests__/pnm-contributions-phase4-qualification-safety.test.mjs
 
       - name: Poker Near Me Player Planning Ownership And Qualification
-        run: node --test __tests__/pnm-player-planning-api.test.mjs __tests__/pnm-player-planning-ui.test.mjs __tests__/pnm-player-planning-phase5-qualification-safety.test.mjs __tests__/page-preferences-merge-before-save.test.mjs
+        run: node --test __tests__/pnm-player-planning-api.test.mjs __tests__/pnm-player-planning-ui.test.mjs __tests__/pnm-player-planning-phase5-qualification-safety.test.mjs
 
       - name: Home Games Privacy Membership Publication And Qualification Safety
         run: node --test __tests__/poker-near-me-console-home-games.test.mjs __tests__/home-games-emergency-gate.test.mjs __tests__/home-games-join-outcome.test.mjs __tests__/home-games-alternate-privacy.test.mjs __tests__/home-games-phase3-qualification-safety.test.mjs __tests__/social-feed-author-cap.test.mjs __tests__/a-post-never-says-who-wrote-it.law.test.mjs
