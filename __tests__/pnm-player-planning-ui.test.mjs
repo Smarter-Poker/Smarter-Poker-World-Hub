@@ -224,6 +224,57 @@ test('actual debounced tab writer preserves trip inputs before the lazy consumer
   } finally { await renderer.act(async () => tree?.unmount()); }
 });
 
+test('actual delayed tab writer preserves saved search scope before the lazy overlay opens', async () => {
+  const path = 'pages/hub/poker-near-me/[pnmTab].js';
+  const source = process.env.PNM_TAB_SOURCE_REV ? require('node:child_process').execFileSync('git', ['show', `${process.env.PNM_TAB_SOURCE_REV}:${path}`], { encoding: 'utf8' }) : await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+  const marker = source.indexOf('  // ═══ DEEP LINK PERSISTENCE');
+  const writerEffect = source.slice(source.indexOf('  useEffect(', marker), source.indexOf('  // Read deep link params on mount', marker));
+  const overlay = await readFile(new URL('../src/components/poker-near-me/GlobalSearchOverlay.jsx', import.meta.url), 'utf8');
+  const resetStart = overlay.indexOf('  // Reset & focus when opened');
+  const resetEnd = overlay.indexOf('  }, [isOpen]);', resetStart) + '  }, [isOpen]);'.length;
+  assert.ok(resetStart >= 0 && resetEnd > resetStart, 'actual overlay opening effect');
+  const overlayEffect = overlay.slice(overlay.indexOf('  useEffect(', resetStart), resetEnd);
+  const discovery = await compiled('src/components/poker-near-me/discoveryController.js', {});
+  const planning = await compiled('src/lib/poker-near-me/playerPlanning.js', { '../../components/poker-near-me/discoveryController.js': discovery });
+  const noop = () => {};
+  for (const query of ['Las Vegas', 'PNM qualification no matching venue 938427651']) {
+    const document = { schemaVersion: 1, query, filters: { state: 'NV', game: '', stakes: '', date: '', type: 'venues' }, location: null };
+    const encodedDocument = JSON.stringify(document);
+    const location = { pathname: '/hub/poker-near-me/venues', search: `?${new URLSearchParams({ q: query, state: 'NV', pnm_planning: encodedDocument, unrelated: 'discard' })}` };
+    let delayedWriter; let writerTree; let overlayTree; let localQuery; let phase; let submitted;
+    const savedSearchRef = { current: null }; const timers = [];
+    function Writer() {
+      const scope = { useEffect: React.useEffect, URLSearchParams, router: { isReady: true, asPath: location.pathname + location.search },
+        window: { location, history: { state: {}, replaceState: (_, __, value) => { location.search = new URL(value, 'https://smarter.poker').search; } } },
+        paramsAbsorbed: { current: true }, deepLinkRef: { current: null }, discoveryPageExitingRef: { current: false }, buildDiscoveryUrl: discovery.buildDiscoveryUrl,
+        normalizeRouteSlug: value => value, lastRouteTabRef: { current: null }, showLiveTab: false, activeTab: 'venues', activeEventTab: 'series', activeMoreTab: 'saved', searchQuery: query, filters: { venueType: 'all' },
+        setTimeout: (callback, ms) => { assert.equal(ms, 500); delayedWriter = callback; return 1; }, clearTimeout: noop };
+      require('node:vm').runInNewContext(writerEffect, scope); return null;
+    }
+    function LazyOverlay() {
+      const scope = { useEffect: React.useEffect, isOpen: true, window: { location }, URLSearchParams, validateSearchDocument: planning.validateSearchDocument,
+        savedSearchRef, searchQuery: query, setLocalQuery: value => { localQuery = value; }, setPhase: value => { phase = value; },
+        setSearchError: noop, setDetailItem: noop, setNameMatchFallback: noop, setVenueResults: noop, setTourResults: noop, setSeriesResults: noop, setCitySuggestions: noop,
+        inputRef: { current: null }, debounceRef: { current: null }, abortControllerRef: { current: null }, submitSeqRef: { current: 0 },
+        handleSubmit: (_, value) => { submitted = { query: value, document: savedSearchRef.current }; },
+        setTimeout: (callback, ms) => { timers.push({ callback, ms }); return timers.length; }, clearTimeout: noop };
+      require('node:vm').runInNewContext(overlayEffect, scope); return null;
+    }
+    try {
+      await renderer.act(async () => { writerTree = renderer.create(React.createElement(Writer)); });
+      assert.equal(savedSearchRef.current, null, 'overlay has not mounted before the 500ms URL rewrite');
+      await renderer.act(async () => delayedWriter());
+      const retained = new URLSearchParams(location.search);
+      assert.equal(retained.get('pnm_planning'), encodedDocument, 'delayed writer must retain the exact authoritative search document');
+      assert.equal(retained.get('q'), query); assert.equal(retained.get('state'), 'NV'); assert.equal(retained.has('unrelated'), false);
+      await renderer.act(async () => { overlayTree = renderer.create(React.createElement(LazyOverlay)); });
+      await renderer.act(async () => timers.find(timer => timer.ms === 10).callback());
+      assert.equal(localQuery, query); assert.equal(phase, 'results');
+      assert.deepEqual(submitted, { query, document }, 'actual late opening effect submits the original Nevada venue scope');
+    } finally { await renderer.act(async () => { overlayTree?.unmount(); writerTree?.unmount(); }); }
+  }
+});
+
 test('actual trip restores private account fields and public single-stop links without private fallback', async () => {
   const env = await setup({}); let tree; const saves = []; const directions = [];
   const document = { schemaVersion: 1, origin: 'Private Fixture Address 123', destination: 'Reno, NV', waypoints: ['Private Stop'], corridorMi: 25, dateRange: { start: '2026-10-12', end: '2026-10-13' }, venueIds: [1828], seriesIds: [5001066] };
