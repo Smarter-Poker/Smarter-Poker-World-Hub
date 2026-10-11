@@ -13,6 +13,8 @@ const root = path.resolve(import.meta.dirname, '..');
 const fixture = JSON.parse(readFileSync(path.join(import.meta.dirname,'fixtures/pnm-contributions-installed-schema.json'),'utf8'));
 const migrationPath = path.join(root,'supabase/migrations/20261011060000_pnm_venue_contributions.sql');
 const migration = readFileSync(migrationPath,'utf8');
+const conflictMigrationPath = path.join(root,'supabase/migrations/20261011063000_pnm_contribution_conflict_codes.sql');
+const conflictMigration = readFileSync(conflictMigrationPath,'utf8');
 const q = (x) => '"'+x.replaceAll('"','""')+'"';
 
 // Real PG17, real roles/RLS, installed predecessor definitions and preserved
@@ -94,6 +96,17 @@ test('PNM contribution transaction, role, replay, CAS and ownership regression',
       await db.query('ROLLBACK');
       throw error;
     }
+    const definitionsSql = "SELECT proname,pg_get_functiondef(oid) AS definition,proacl::text AS acl,proowner,proconfig,prosecdef FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname LIKE 'pnm_%' ORDER BY proname";
+    const beforeFunctions=(await db.query(definitionsSql)).rows;
+    assert.equal(planMigrationTransactions([{name:path.basename(conflictMigrationPath),sql:conflictMigration}]).useOuterTransaction,true);
+    await db.query('BEGIN');
+    try {await db.query(conflictMigration);await db.query('COMMIT');}
+    catch(error) {await db.query('ROLLBACK');throw error;}
+    const afterFunctions=(await db.query(definitionsSql)).rows;
+    assert.deepEqual(afterFunctions,beforeFunctions.map(f=>({...f,definition:f.definition.replaceAll("ERRCODE='40001'","ERRCODE='PT409'")})),
+      'full installed definitions, signatures, ACLs, owners and security modes differ only in eight business error codes');
+    assert.equal((beforeFunctions.map(f=>f.definition).join('').match(/ERRCODE='40001'/g)||[]).length,8);
+    assert.ok(afterFunctions.every(f=>!f.definition.includes("ERRCODE='40001'")),'no explicit business serialization retry traps remain');
     const source='https://venue.example.invalid/poker';
     const claimPayload={role:'owner',contact_name:'Owned Fixture',contact_email:'fixture@example.invalid',source_url:source,notes:'Evidence supplied by the venue.'};
     let claim,approved,schedule;
@@ -112,7 +125,7 @@ test('PNM contribution transaction, role, replay, CAS and ownership regression',
       assert.equal(claim.status,'under_review');assert.equal(claim.claim.verification_code,undefined);
       assert.equal((await invoke('authenticated',actor,'pnm_venue_contribution_access',[1])).permissions.can_edit_games,false);
       assert.deepEqual(await invoke('authenticated',actor,'pnm_submit_venue_claim',[id,1,claimPayload]),claim);
-      await assert.rejects(invoke('authenticated',actor,'pnm_submit_venue_claim',[id,1,{...claimPayload,notes:'changed'}]),denied('40001'));
+      await assert.rejects(invoke('authenticated',actor,'pnm_submit_venue_claim',[id,1,{...claimPayload,notes:'changed'}]),denied('PT409'));
       const a=await client(),b=await client();const concurrent=randomUUID();
       const results=await Promise.all([invoke('authenticated',actor,'pnm_submit_venue_claim',[concurrent,1,claimPayload],a),invoke('authenticated',actor,'pnm_submit_venue_claim',[concurrent,1,claimPayload],b)]);
       assert.deepEqual(results[0],results[1]);assert.equal(results[0].claim.id,claim.claim.id);
@@ -148,7 +161,7 @@ test('PNM contribution transaction, role, replay, CAS and ownership regression',
       const a=await client(),b=await client();const payload={action:'update',id:schedule.id,expected_updated_at:schedule.updated_at,day_of_week:'tuesday',game_name:'PLO',source_url:source};
       const results=await Promise.allSettled([invoke('authenticated',actor,'pnm_mutate_venue_schedule',[randomUUID(),1,payload],a),invoke('authenticated',actor,'pnm_mutate_venue_schedule',[randomUUID(),1,payload],b)]);
       assert.equal(results.filter(x=>x.status==='fulfilled').length,1);
-      assert.equal(results.find(x=>x.status==='rejected').reason.code,'40001');
+      assert.equal(results.find(x=>x.status==='rejected').reason.code,'PT409');
       const current=(await db.query('SELECT to_jsonb(s) AS row FROM venue_game_schedules s WHERE id=$1',[schedule.id])).rows[0].row;
       await invoke('authenticated',actor,'pnm_mutate_venue_schedule',[randomUUID(),1,{action:'delete',id:current.id,expected_updated_at:current.updated_at,source_url:source}]);
       await db.query('BEGIN;SET LOCAL ROLE anon');
@@ -182,7 +195,7 @@ test('PNM contribution transaction, role, replay, CAS and ownership regression',
       assert.equal(Number((await db.query("SELECT count(*) FROM venue_game_schedules WHERE game_name='Mixed'")).rows[0].count),1);
       const stale=await create('details',{phone:'stale'});
       await db.query('UPDATE poker_venues SET location_integrity_revision=clock_timestamp() WHERE id=1');
-      await assert.rejects(apply(stale),denied('40001'));
+      await assert.rejects(apply(stale),denied('PT409'));
       const rejected=await invoke('service_role',null,'pnm_review_venue_correction',[randomUUID(),staff,stale.id,{action:'reject',expected_updated_at:stale.updated_at,source_url:source,reason:'Source information no longer matches current venue.'}]);
       assert.equal(rejected.status,'rejected');
     });

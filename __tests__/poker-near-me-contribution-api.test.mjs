@@ -116,6 +116,13 @@ test('authoritative permission, missing target and CAS errors preserve distinct 
     const f = fixture({ error: { code, message } }); assert.equal((await f.run('poker/venue-contributions', 'POST', claimBody)).statusCode, status);
   }
 });
+test('PostgREST business conflict is a definite 409 even without a PNM message prefix', async () => {
+  const f = fixture({ error: { code: 'PT409', message: 'schedule revision changed' } });
+  const result = await f.run('poker/venue-schedules', 'POST', { operation_id: OPERATION, venue_id: 10, id: 1, expected_updated_at: REVISION, source_url: source, day_of_week: 'monday', game_name: 'NLH' });
+  assert.equal(result.statusCode, 409);
+  assert.equal(result.body.error, 'schedule revision changed');
+  assert.equal(result.body.outcome, undefined);
+});
 test('staff reviews require platform role and actual MFA gate before service RPC', async () => {
   for (const options of [{ role: 'player' }, { mfa: false }]) {
     const f = fixture(options); const result = await f.run('admin/venue-contributions', 'POST', { kind: 'claim', id: CLAIM, operation_id: OPERATION, payload: { action: 'approve', expected_updated_at: REVISION, source_url: source, reason: 'Independent venue source checked' } });
