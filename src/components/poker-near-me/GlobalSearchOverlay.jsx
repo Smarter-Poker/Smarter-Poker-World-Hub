@@ -685,10 +685,11 @@ export default function GlobalSearchOverlay({
         const saved = new URLSearchParams(window.location.search).get('pnm_planning');
         if (saved) savedSearchRef.current = validateSearchDocument(JSON.parse(saved));
       } catch (_) { savedSearchRef.current = { invalid: true }; setSearchError(true); }
-      setLocalQuery(searchQuery || '');
-      if (searchQuery || savedSearchRef.current) {
+      const restoredQuery = savedSearchRef.current?.query ?? searchQuery ?? '';
+      setLocalQuery(restoredQuery);
+      if (restoredQuery || savedSearchRef.current) {
         setPhase('results');
-        submitTimer = setTimeout(() => handleSubmit(null, searchQuery), 10);
+        submitTimer = setTimeout(() => handleSubmit(null, restoredQuery), 10);
       } else {
         setPhase('input');
         setVenueResults([]); setTourResults([]); setSeriesResults([]);
