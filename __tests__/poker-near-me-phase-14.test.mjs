@@ -47,6 +47,10 @@ function fakeLeaflet() {
     tileLayer: (url, options) => ({
       url,
       options,
+      handlers: new Map(),
+      on(event, handler) { this.handlers.set(event, handler); return this; },
+      off(event, handler) { if (this.handlers.get(event) === handler) this.handlers.delete(event); return this; },
+      redraw() { return this; },
       addTo(map) { this.map = map; layers.push(this); return this; },
     }),
     control: {

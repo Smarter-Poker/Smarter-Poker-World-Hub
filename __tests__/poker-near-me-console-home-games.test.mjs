@@ -413,6 +413,20 @@ test('the public game detail server-error state is painted and its copy is intac
   assert.ok(src.includes('We Could Not Load This Home Game Right Now.'));
 });
 
+test('Home Games manual fields and public Back action retain 44px touch floors above the global cascade', () => {
+  const css = read(HOME_GAME_CONSOLE_CSS);
+  // Global body.world-poker-near-me :is(input, select, textarea) has
+  // specificity 0,2,2 and sets 42px. A lone module class loses to it.
+  assert.match(css, /\.page\s+\.fieldWell\s+\.fieldControl\s*\{[^}]*min-height:\s*44px/s);
+  const near = read(NEAR_ME);
+  assert.match(near, /<select\s+aria-label="Search Home Games By State"/);
+  assert.match(near, /<input\s+aria-label="Search Home Games By City"/);
+  const detail = read(PUBLIC_SLUG);
+  assert.match(detail, /<button\s+type="button"\s+aria-label="Back To Previous Page"[^\n]*className="hgs-back-btn"/);
+  assert.match(detail, /\.hgs-back-btn\{[^}]*min-height:44px[^}]*button-secondary\.png/s);
+  assert.match(detail, /window\.history\.back\(\) : router\.push\('\/hub\/poker-near-me\/venues'\)/);
+});
+
 test('near-me is dressed as Poker Near Me, not as Club Commander', () => {
   const src = read(NEAR_ME);
   assert.ok(src.includes('PokerNearMePanelShell'), 'states ride the painted panel');

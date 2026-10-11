@@ -728,6 +728,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   const mapSessionRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState('');
+  const [tileStatus, setTileStatus] = useState('loading');
   const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
   const handleVenueMapLayoutChange = useCallback(function () {
     mapInstanceRef.current?.invalidateSize?.({ pan: false });
@@ -1228,11 +1229,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     if (mapInstanceRef.current) return;
 
     var L = window.L;
+    var sessionActive = true;
     var session = createPokerMapSession({
       L: L,
       container: mapContainerRef.current,
       tileStyle: 'dark_all',
       attribution: false,
+      onTileStatus: ({ status }) => { if (sessionActive) setTileStatus(status); },
       mapOptions: {
         center: [venue.latitude, venue.longitude],
         zoom: 15,
@@ -1262,6 +1265,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     mapInstanceRef.current = map;
 
     return function () {
+      sessionActive = false;
       mapSessionRef.current?.destroy();
       mapSessionRef.current = null;
       mapInstanceRef.current = null;
@@ -2586,6 +2590,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   onLayoutChange={handleVenueMapLayoutChange}
                 >
                   <div className="venue-map-wrapper pnm-map-stage">
+                    {(tileStatus === 'degraded' || tileStatus === 'unavailable') && (
+                      <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
+                        <p>Map Background Unavailable Or Incomplete. Venue Marker And Directions Remain Available.</p>
+                        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
+                        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
+                      </PokerNearMePanelShell>
+                    )}
                     <div
                       ref={mapContainerRef}
                       className="venue-map-container pnm-leaflet-map"
@@ -3268,6 +3279,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     </p>
                     <button
                       onClick={() => guardAction(() => {})}
+                      className="peak-analytics-upgrade"
                       style={{
                         background: 'linear-gradient(90deg, #d4a853, #b8860b)',
                         color: '#000', border: 'none', borderRadius: 8, padding: '10px 20px',

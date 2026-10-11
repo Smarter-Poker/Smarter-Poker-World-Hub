@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live]
         default: full
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
@@ -105,6 +105,61 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  pnm-launch-phase6-live:
+    name: Published PNM Finite Launch Certification
+    if: ${{ inputs.suite == 'pnm-launch-phase6-live' && github.ref == 'refs/heads/main' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Restore locked dependencies
+        id: pnm-launch-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.pnm-launch-nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+      - name: Verify finite launch safeguards
+        run: node --test __tests__/pnm-launch-phase6-qualification-safety.test.mjs __tests__/pnm-launch-freshness.test.mjs __tests__/pnm-mobile-budget-evidence.test.mjs
+      - name: Install finite qualification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Read actual installed freshness invariants and public provenance
+        id: freshness
+        run: node scripts/ci/read-pnm-launch-freshness.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PNM_LAUNCH_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Qualify public route families maps and measured mobile budget
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/qualify-pnm-launch-phase6.mjs
+        env:
+          PNM_LAUNCH_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          PNM_LAUNCH_MODE: public-read-only
+      - name: Retain sanitized public launch certification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnm-launch-phase6-receipt
+          path: test-results/pnm-launch-phase6/
+          if-no-files-found: error
+          retention-days: 7
+
   pnm-player-planning-phase5-live:
     name: Published PNM Player Planning Task-Owned Qualification
     if: ${{ inputs.suite == 'pnm-player-planning-phase5-live' && github.ref == 'refs/heads/main' }}

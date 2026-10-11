@@ -1500,7 +1500,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             </section>
 
             <div className="hgs-footer-link">
-              <button onClick={() => typeof window !== 'undefined' && window.history.length > 1 ? window.history.back() : router.push('/hub/poker-near-me/venues')} className="hgs-back-btn">
+              <button type="button" aria-label="Back To Previous Page" onClick={() => typeof window !== 'undefined' && window.history.length > 1 ? window.history.back() : router.push('/hub/poker-near-me/venues')} className="hgs-back-btn">
                 ← Back
               </button>
             </div>
@@ -1880,7 +1880,7 @@ const pageStyles = `
 .hgs-card{padding:18px}
 .hgs-share-url{font-size:12px;color:rgba(255,255,255,.5);word-break:break-all;background:rgba(0,0,0,.3);padding:8px 10px;border-radius:6px;margin-bottom:8px;font-family:monospace}
 .hgs-footer-link{text-align:center;padding:20px 0;font-size:13px}
-.hgs-back-btn{background:transparent;border:none;color:rgba(14,165,233,.8);font-size:13px;font-weight:600;cursor:pointer;padding:0;text-decoration:none}
+.hgs-back-btn{display:inline-flex;box-sizing:border-box;width:min(100%,180px);min-width:44px;min-height:44px;aspect-ratio:348/114;align-items:center;justify-content:center;background:transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center/contain no-repeat;border:none;color:rgba(14,165,233,.8);font-size:13px;font-weight:600;cursor:pointer;padding:0 18px;text-decoration:none}
 .hgs-back-btn:hover{color:#38bdf8}
 /* ── Vouch & Reputation ── */
 .hgs-vouch-count-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:20px;color:#22d3ee;font-size:12px;font-weight:600;cursor:pointer;padding:3px 10px;transition:all .15s;white-space:nowrap}

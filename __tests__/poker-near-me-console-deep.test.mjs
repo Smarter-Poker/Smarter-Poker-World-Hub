@@ -14,6 +14,16 @@ const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const exists = (file) => fs.existsSync(path.join(root, file));
 
+test('venue map and premium actions retain full painted touch targets', () => {
+  const css = read('src/styles/worlds/poker-near-me-console-deep.css');
+  const owner = css.match(/body\.world-poker-near-me \.map-actions :is\(\.directions-btn, \.viewmap-btn\),\s*body\.world-poker-near-me \.peak-analytics-upgrade \{([^}]+)\}/);
+  assert.ok(owner, 'both map actions and the premium overlay share the painted control owner');
+  assert.match(owner[1], /min-height: 52px/);
+  assert.match(owner[1], /button-secondary\.png/);
+  assert.match(owner[1], /max-width: 100%/);
+  assert.match(read('pages/hub/venues/[id].js'), /className="peak-analytics-upgrade"/);
+});
+
 test('venue schedules expose each real calendar date without shifting or collapsing occurrences', () => {
   const page = read('pages/hub/venues/[id].js');
   assert.match(page, /<time dateTime=\{scheduleDate\.iso\}>\{scheduleDate\.label\}<\/time>/);

@@ -26,6 +26,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { assertPnmMobileBudget } from '../scripts/ci/lib/pnmMobileBudget.mjs';
 
 type Budget = { jsKb: number; lcpMs: number; converted: boolean };
 const budgets: Record<string, Budget> = JSON.parse(
@@ -34,19 +35,43 @@ const budgets: Record<string, Budget> = JSON.parse(
 
 const ROUTES = Object.keys(budgets);
 
+// Only the PNM budget needs this actual Chromium LCP measurement. Other worlds
+// retain their existing project/browser settings. No unsupported zero is a pass.
+const pnmMeasuredTest = test.extend({
+  page: async ({ playwright }, providePage) => {
+    const browser = await playwright.chromium.launch();
+    const context = await browser.newContext({ viewport: { width: 375, height: 812 }, serviceWorkers: 'block' });
+    try {
+      const page = await context.newPage();
+      const network = await context.newCDPSession(page);
+      await network.send('Network.enable');
+      await network.send('Network.setCacheDisabled', { cacheDisabled: true });
+      await providePage(page);
+    }
+    finally { await context.close(); await browser.close(); }
+  },
+});
+
 for (const route of ROUTES) {
   const budget = budgets[route];
-  test(`mobile budget: ${route}`, async ({ page }) => {
+  const routeTest = route === '/hub/poker-near-me' ? pnmMeasuredTest : test;
+  routeTest(`mobile budget: ${route}`, async ({ page }) => {
     const scripts: { url: string; bytes: number }[] = [];
-    page.on('response', async (res) => {
+    const scriptMeasurements: Promise<void>[] = [];
+    let unmeasuredScripts = 0;
+    page.on('response', (res) => {
       const req = res.request();
       if (req.resourceType() !== 'script') return;
+      scriptMeasurements.push((async () => {
       try {
+        await res.finished();
         const sizes = await req.sizes();
+        if (!Number.isFinite(sizes.responseBodySize) || sizes.responseBodySize <= 0) unmeasuredScripts += 1;
         scripts.push({ url: res.url(), bytes: sizes.responseBodySize });
       } catch (_) {
-        // Sizes are unavailable for some cached responses; skip them.
+        unmeasuredScripts += 1;
       }
+      })());
     });
 
     await page.goto(route, { waitUntil: 'load', timeout: 90_000 });
@@ -105,7 +130,13 @@ for (const route of ROUTES) {
       return { lcp, overflow, smallText, tinyTargets };
     });
 
-    const jsKb = Math.round(scripts.reduce((n, s) => n + (s.bytes || 0), 0) / 1024);
+    await Promise.all(scriptMeasurements);
+    const jsBytes = scripts.reduce((n, s) => n + (s.bytes || 0), 0);
+    const jsKb = Math.round(jsBytes / 1024);
+
+    if (route === '/hub/poker-near-me') {
+      assertPnmMobileBudget({ jsBytes, lcpMs: metrics.lcp, scriptCount: scripts.length, unmeasuredScripts, overflow: metrics.overflow }, budget);
+    }
 
     test.info().annotations.push({ type: 'budget', description: JSON.stringify({ route, jsKb, ...metrics }) });
 

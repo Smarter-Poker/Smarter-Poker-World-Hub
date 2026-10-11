@@ -514,7 +514,7 @@ test('P3 permitted controls preserve reason and show authoritative permission re
 });
 
 for (const width of [1440, 375]) {
-  test(`${width}px O1 C2 engine unknown receipt and O2 stop CAS recovery`, async ({ page }) => {
+  test(`${width}px O1 C2 engine unknown receipt and O2 stop CAS recovery`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
     await installSignedInPolicyFixture(page, [...ALL_TAB_PERMISSIONS, 'clubs.write']);
     let command: any;
@@ -563,7 +563,7 @@ for (const width of [1440, 375]) {
     await stops.getByRole('button', { name: 'Apply Stop', exact: true }).click({ timeout: 5000 });
     await expect(stops.getByRole('alert')).toHaveText('Fixture Stop Version Changed');
     expect(stop).toMatchObject({ path: 'positive_issuance', stopped: true, expectedVersion: 7 });
-    try { await expect(stops.getByRole('button', { name: 'Apply Stop', exact: true })).toBeEnabled(); } catch (failure) { await testInfo.attach('stop-final-state', { body: JSON.stringify({ state: await inspectStopState(), html: await stops.evaluate(element => element.outerHTML) }), contentType: 'application/json' }); throw failure; }
+    try { await expect(stops.getByRole('button', { name: 'Apply Stop', exact: true })).toBeEnabled(); } catch (failure) { await testInfo.attach('stop-final-state', { body: JSON.stringify({ request: stop, html: await stops.evaluate(element => element.outerHTML) }), contentType: 'application/json' }); throw failure; }
   });
 }
 
