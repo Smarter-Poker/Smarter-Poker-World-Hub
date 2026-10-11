@@ -2962,8 +2962,16 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       // Lazy trip consumers may mount after this writer. Preserve only their
       // owned incoming parameters; never synthesize private addresses here.
       const nextParams = new URLSearchParams(discoveryUrl.split('?')[1] || '');
+      const incoming = new URLSearchParams(window.location.search);
+      // The search overlay is also lazy. Keep its validated document available
+      // until it mounts; typing explicitly removes it at the search owner.
+      const planning = incoming.get('pnm_planning');
+      if (planning) {
+        nextParams.set('pnm_planning', planning);
+        const state = incoming.get('state');
+        if (state) nextParams.set('state', state);
+      }
       if (pathSlug === 'roadtrip' || pathSlug === 'more') {
-        const incoming = new URLSearchParams(window.location.search);
         for (const key of ['accountPlan', 'planVenues', 'planSeries', 'start', 'end', 'from', 'to', 'via', 'corridor']) {
           for (const value of incoming.getAll(key)) nextParams.append(key, value);
         }
