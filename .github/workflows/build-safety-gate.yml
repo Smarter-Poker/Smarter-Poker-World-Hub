@@ -178,6 +178,9 @@ jobs:
       - name: Poker Near Me Discovery Search Maps And Schedule Contracts
         run: node --test __tests__/poker-near-me-console-search.test.mjs __tests__/poker-near-me-console-map.test.mjs __tests__/poker-near-me-phase-2.test.mjs
 
+      - name: Poker Near Me Contribution Permissions And Qualification
+        run: node --test __tests__/poker-near-me-contribution-api.test.mjs __tests__/pnm-venue-contribution-ui.test.mjs __tests__/pnm-contributions-phase4-qualification-safety.test.mjs
+
       - name: Home Games Privacy Membership Publication And Qualification Safety
         run: node --test __tests__/poker-near-me-console-home-games.test.mjs __tests__/home-games-emergency-gate.test.mjs __tests__/home-games-join-outcome.test.mjs __tests__/home-games-alternate-privacy.test.mjs __tests__/home-games-phase3-qualification-safety.test.mjs __tests__/social-feed-author-cap.test.mjs __tests__/a-post-never-says-who-wrote-it.law.test.mjs
 
@@ -347,6 +350,12 @@ jobs:
         run: |
           mkdir -p "$HOME_GAMES_OWNER_POSTGRES_ROOT"
           node --test __tests__/home-games-owner-consistency-postgres.test.mjs
+
+      - name: Poker Near Me Contributions PostgreSQL 17 Contract
+        env:
+          PNM_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+          TMPDIR: ${{ runner.temp }}
+        run: node --test __tests__/pnm-contributions-postgres.test.mjs
 
       - name: Social Horse Real Name PostgreSQL 17 Contract
         env:

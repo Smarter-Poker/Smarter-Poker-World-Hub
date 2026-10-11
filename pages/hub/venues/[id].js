@@ -27,6 +27,7 @@ import {
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import VenueContributions, { VenueScheduleEditor } from '../../../src/components/poker-near-me/VenueContributions';
 import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
@@ -716,18 +717,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   const [postContent, setPostContent] = useState('');
   const [postSubmitting, setPostSubmitting] = useState(false);
 
-  // Claim Page state
+  // Account-specific permissions, never another user's claim.
   const [claimStatus, setClaimStatus] = useState(null);
-  const [showClaimForm, setShowClaimForm] = useState(false);
-  const [claimForm, setClaimForm] = useState({
-    contact_name: '',
-    contact_email: '',
-    contact_phone: '',
-    role: 'Manager',
-    verification_notes: '',
-  });
-  const [claimSubmitting, setClaimSubmitting] = useState(false);
-  const [claimError, setClaimError] = useState('');
+  const [venueContributionAccess, setVenueContributionAccess] = useState(null);
+  const canEditVenueGames = venueContributionAccess?.permissions?.can_edit_games === true;
 
   // Map state
   const mapContainerRef = useRef(null);
@@ -760,10 +753,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   // Game Schedule state (per-day cash game listings)
   const [gameSchedule, setGameSchedule] = useState(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleReadError, setScheduleReadError] = useState('');
   const [showScheduleEditor, setShowScheduleEditor] = useState(false);
-  const [scheduleForm, setScheduleForm] = useState({ day_of_week: 'monday', game_name: '', start_time: '', end_time: '', notes: '' });
-  const [scheduleSaving, setScheduleSaving] = useState(false);
-  const [scheduleDeleting, setScheduleDeleting] = useState(null);
+
 
   // Tournament Schedule state (scraped tournament listings)
   const [tournamentSchedule, setTournamentSchedule] = useState([]);
@@ -1050,27 +1042,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     fetchActivities();
   }, [id]);
 
-  // Fetch claim status
-  var fetchClaimStatus = async function () {
-    try {
-      var res = await fetch('/api/poker/claim-page?page_type=venue&page_id=' + id);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      var json = await res.json();
-      if (json.success) {
-        if (json.claimed && json.claim) {
-          setClaimStatus(json.claim.status || 'pending');
-        } else {
-          setClaimStatus(null);
-        }
-      }
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-  };
-
-  useEffect(function () {
-    if (!id) return;
-    fetchClaimStatus();
-  }, [id]);
-
   var fetchGameSchedule = async function () {
     if (venue?.venue_type === 'home_game') {
       if (venue.settings?.tables?.length > 0) {
@@ -1095,17 +1066,17 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     }
     
     setScheduleLoading(true);
+    setScheduleReadError('');
     try {
-      var res = await fetch('/api/poker/venue-schedules?venue_id=' + id);
-      if (res.ok) {
-        var json = await res.json();
-        if (json.success && json.total_entries > 0) {
-          setGameSchedule(json.schedule);
-        } else {
-          setGameSchedule(null);
-        }
+      var res = await fetch('/api/poker/venue-schedules?venue_id=' + id + '&refresh=1', { cache: 'no-store' });
+      var json = await res.json();
+      if (!res.ok || json.success !== true) throw new Error(json.error || 'Schedule Could Not Be Read');
+      if (json.total_entries > 0) {
+        setGameSchedule(json.schedule);
+      } else {
+        setGameSchedule(null);
       }
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    } catch (e) { setScheduleReadError(e?.message || 'Schedule Could Not Be Read'); }
     setScheduleLoading(false);
   };
 
@@ -1155,50 +1126,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     if (!id || !venue) return;
     fetchTournamentSchedule();
   }, [id, venue]);
-
-  var handleAddScheduleEntry = async function (e) {
-    e.preventDefault();
-    if (!scheduleForm.game_name.trim()) return;
-    setScheduleSaving(true);
-    try {
-      var authUser = getAuthUser();
-      var token = null;
-      try { token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token; } catch (e) { console.warn('[App] Handled exception:', e); }
-      if (!token) { setScheduleSaving(false); return; }
-      var res = await fetch('/api/poker/venue-schedules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({
-          venue_id: parseInt(id, 10),
-          day_of_week: scheduleForm.day_of_week,
-          game_name: scheduleForm.game_name.trim(),
-          start_time: scheduleForm.start_time.trim() || null,
-          end_time: scheduleForm.end_time.trim() || null,
-          notes: scheduleForm.notes.trim() || null,
-        }),
-      });
-      if (res.ok) {
-        setScheduleForm({ day_of_week: scheduleForm.day_of_week, game_name: '', start_time: '', end_time: '', notes: '' });
-        await fetchGameSchedule();
-      }
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
-    setScheduleSaving(false);
-  };
-
-  var handleDeleteScheduleEntry = async function (entryId) {
-    setScheduleDeleting(entryId);
-    try {
-      var token = null;
-      try { token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token; } catch (e) { console.warn('[App] Handled exception:', e); }
-      if (!token) { setScheduleDeleting(null); return; }
-      await fetch('/api/poker/venue-schedules?id=' + entryId + '&venue_id=' + id, {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
-      await fetchGameSchedule();
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
-    setScheduleDeleting(null);
-  };
 
   var SCHEDULE_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   var SCHEDULE_DAY_LABELS = { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday' };
@@ -1805,44 +1732,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       }
     } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     finally { setPostSubmitting(false); }
-  };
-
-  var handleClaimSubmit = async function (e) {
-    e.preventDefault();
-    if (!claimForm.contact_name.trim() || !claimForm.contact_email.trim()) return;
-    setClaimSubmitting(true);
-    try {
-      var res = await fetch('/api/poker/claim-page', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          page_type: 'venue',
-          page_id: id,
-          contact_name: claimForm.contact_name.trim(),
-          contact_email: claimForm.contact_email.trim(),
-          contact_phone: claimForm.contact_phone.trim() || null,
-          role: claimForm.role,
-          verification_notes: claimForm.verification_notes.trim() || null,
-          user_id: getAnonymousUserId(),
-        }),
-      });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      var json = await res.json();
-      if (json.success) {
-        setClaimStatus('pending');
-        setShowClaimForm(false);
-        setClaimError('');
-        setClaimForm({ contact_name: '', contact_email: '', contact_phone: '', role: 'Manager', verification_notes: '' });
-      } else {
-        // A 200 that answers success:false used to do nothing at all: the form
-        // stayed open with every field still filled and no word to the person.
-        setClaimError(json?.error || 'That claim could not be submitted. Please try again.');
-      }
-    } catch (err) {
-      console.warn('[App] Handled exception:', err?.message || err);
-      setClaimError('That claim could not be submitted. Check your connection and try again.');
-    }
-    finally { setClaimSubmitting(false); }
   };
 
   var openNativeMaps = function (mode) {
@@ -2594,7 +2483,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* ============================================ */}
             {/* CASH GAME SCHEDULE SECTION                  */}
             {/* ============================================ */}
-            {(gameSchedule || claimStatus === 'approved') && (
+            {(gameSchedule || canEditVenueGames || scheduleReadError) && (
               <section className="cash-game-schedule-section">
                 <div className="section-header-row">
                   <h2 className="section-title">
@@ -2606,7 +2495,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     </svg>
                     Cash Game Schedule
                   </h2>
-                  {claimStatus === 'approved' && (
+                  {canEditVenueGames && (
                     <button
                       className="section-action-btn"
                       onClick={function () { setShowScheduleEditor(!showScheduleEditor); }}
@@ -2615,6 +2504,8 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     </button>
                   )}
                 </div>
+
+                {scheduleReadError && <div role="alert"><p>Schedule Refresh Unavailable: {scheduleReadError}</p><button className="section-action-btn" onClick={fetchGameSchedule} disabled={scheduleLoading}>Retry Schedule</button></div>}
 
                 {/* Schedule Display (Read-Only) */}
                 {gameSchedule && (
@@ -2644,15 +2535,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                                       )}
                                     </div>
                                     {entry.notes && <span className="game-schedule-notes">{entry.notes}</span>}
-                                    {showScheduleEditor && claimStatus === 'approved' && (
-                                      <button
-                                        className="game-schedule-delete-btn"
-                                        onClick={function () { handleDeleteScheduleEntry(entry.id); }}
-                                        disabled={scheduleDeleting === entry.id}
-                                      >
-                                        {scheduleDeleting === entry.id ? '...' : 'Remove'}
-                                      </button>
-                                    )}
+
                                   </div>
                                 );
                               })}
@@ -2667,10 +2550,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 )}
 
                 {/* No schedule yet — empty state */}
-                {!gameSchedule && !showScheduleEditor && (
+                {!gameSchedule && !showScheduleEditor && !scheduleReadError && (
                   <div className="game-schedule-empty">
                     <p>No Cash Game Schedule Has Been Set For This Venue Yet.</p>
-                    {claimStatus === 'approved' && (
+                    {canEditVenueGames && (
                       <button className="section-action-btn" onClick={function () { setShowScheduleEditor(true); }}>
                         Add Your First Game
                       </button>
@@ -2678,73 +2561,8 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </div>
                 )}
 
-                {/* Schedule Editor (for claimed venue owners) */}
-                {showScheduleEditor && claimStatus === 'approved' && (
-                  <form className="game-schedule-editor" onSubmit={handleAddScheduleEntry}>
-                    <h4 className="editor-subtitle">Add Game To Schedule</h4>
-                    <div className="editor-row">
-                      <div className="form-group">
-                        <label className="form-label">Day</label>
-                        <select
-                          className="form-select"
-                          value={scheduleForm.day_of_week}
-                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { day_of_week: e.target.value }); }); }}
-                        >
-                          {SCHEDULE_DAYS.map(function (d) { return <option key={d} value={d}>{SCHEDULE_DAY_LABELS[d]}</option>; })}
-                        </select>
-                      </div>
-                      <div className="form-group" style={{ flex: 2 }}>
-                        <label className="form-label">Game</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={scheduleForm.game_name}
-                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { game_name: e.target.value }); }); }}
-                          placeholder="e.g. 1/2 NLH, 2/5 PLO, 5/10 Mixed"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="editor-row">
-                      <div className="form-group">
-                        <label className="form-label">Start Time</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={scheduleForm.start_time}
-                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { start_time: e.target.value }); }); }}
-                          placeholder="e.g. 10:00 AM"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">End Time</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={scheduleForm.end_time}
-                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { end_time: e.target.value }); }); }}
-                          placeholder="e.g. Close"
-                        />
-                      </div>
-                      <div className="form-group" style={{ flex: 2 }}>
-                        <label className="form-label">Notes</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={scheduleForm.notes}
-                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { notes: e.target.value }); }); }}
-                          placeholder="e.g. Must-move, runs if 6+ interested"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="submit"
-                      className="schedule-add-btn"
-                      disabled={scheduleSaving || !scheduleForm.game_name.trim()}
-                    >
-                      {scheduleSaving ? 'Adding...' : 'Add To Schedule'}
-                    </button>
-                  </form>
+                {showScheduleEditor && canEditVenueGames && (
+                  <VenueScheduleEditor venueId={id} schedule={gameSchedule} onChanged={fetchGameSchedule} />
                 )}
               </section>
             )}
@@ -3684,139 +3502,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* ============================================ */}
             {/* CLAIM THIS PAGE SECTION                      */}
             {/* ============================================ */}
-            <section className="claim-section">
-              {claimStatus === 'approved' ? (
-                <div className="claim-verified-card">
-                  <div className="claim-verified-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                  </div>
-                  <div className="claim-verified-text">
-                    <span className="claim-verified-title">Verified Page</span>
-                    <span className="claim-verified-desc">This Venue Page Is Managed By Verified Staff.</span>
-                  </div>
-                </div>
-              ) : claimStatus === 'pending' ? (
-                <div className="claim-pending-card">
-                  <div className="claim-pending-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                  </div>
-                  <div className="claim-pending-text">
-                    <span className="claim-pending-title">Claim Pending Review</span>
-                    <span className="claim-pending-desc">Your Claim For This Page Is Being Reviewed. We&apos;Ll Be In Touch Soon.</span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="claim-cta-card">
-                    <div className="claim-cta-content">
-                      <h3 className="claim-cta-title">Own Or Manage This Venue?</h3>
-                      <p className="claim-cta-desc">
-                        Claim This Page To Update Info, Respond To Reviews, And Post Updates.
-                      </p>
-                      {!showClaimForm && (
-                        <button
-                          className="claim-cta-btn"
-                          onClick={function () { setClaimError(''); setShowClaimForm(true); }}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                            <polyline points="22 4 12 14.01 9 11.01" />
-                          </svg>
-                          Claim This Page
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Claim Form */}
-                  {showClaimForm && (
-                    <form className="inline-form claim-form" onSubmit={handleClaimSubmit}>
-                      <div className="form-row">
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label className="form-label">Your Name *</label>
-                          <input
-                            type="text"
-                            className="form-input"
-                            placeholder="Full Name"
-                            value={claimForm.contact_name}
-                            onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { contact_name: e.target.value })); }}
-                            required
-                          />
-                        </div>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label className="form-label">Email *</label>
-                          <input
-                            type="email"
-                            className="form-input"
-                            placeholder="your@email.com"
-                            value={claimForm.contact_email}
-                            onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { contact_email: e.target.value })); }}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="form-row">
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label className="form-label">Phone (Optional)</label>
-                          <input
-                            type="tel"
-                            className="form-input"
-                            placeholder="Phone Number"
-                            value={claimForm.contact_phone}
-                            onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { contact_phone: e.target.value })); }}
-                          />
-                        </div>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label className="form-label">Your Role</label>
-                          <select
-                            className="form-select"
-                            value={claimForm.role}
-                            onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { role: e.target.value })); }}
-                          >
-                            <option value="Owner">Owner</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Staff">Staff</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Verification Notes</label>
-                        <textarea
-                          className="form-textarea"
-                          rows="3"
-                          placeholder="How Can We Verify Your Association With This Venue?"
-                          value={claimForm.verification_notes}
-                          onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { verification_notes: e.target.value })); }}
-                        />
-                      </div>
-                      {claimError && (
-                        <div role="alert" style={{
-                          background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
-                          borderRadius: 8, padding: '10px 14px', marginBottom: 12,
-                          color: '#ef4444', fontSize: 13, fontWeight: 600,
-                        }}>
-                          {claimError}
-                        </div>
-                      )}
-                      <div className="form-actions">
-                        <button type="submit" className="form-submit-btn" disabled={claimSubmitting || !claimForm.contact_name.trim() || !claimForm.contact_email.trim()}>
-                          {claimSubmitting ? 'Submitting...' : 'Submit Claim'}
-                        </button>
-                        <button type="button" className="form-cancel-btn" onClick={function () { setClaimError(''); setShowClaimForm(false); }}>
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  )}
-                </>
-              )}
-            </section>
+            {venue.venue_type !== 'home_game' && (
+              <VenueContributions key={id} venue={venue} onAccessChange={function (access) {
+                setVenueContributionAccess(access);
+                setClaimStatus(access?.claim?.status || null);
+                if (access?.permissions?.can_edit_games !== true) setShowScheduleEditor(false);
+              }} />
+            )}
           </>
         )}
       </main>
