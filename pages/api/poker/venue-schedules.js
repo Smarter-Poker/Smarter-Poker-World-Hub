@@ -22,6 +22,8 @@ function getSupabase() {
 }
 
 const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const SCHEDULE_PAGE_SIZE = 200;
+const SCHEDULE_MAX_PAGES = 25;
 
 // [Phase 6.1.13] Origin-scoped via shared helper. GETs used to allow `*`
 // (public venue data) but that let any site — including ad frames —
@@ -75,18 +77,39 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, error: 'Invalid venue_id' });
             }
 
-            const { data, error } = await getSupabase()
-                .from('venue_game_schedules')
-                .select('*')
-                .eq('venue_id', venueId)
-                .eq('is_active', true)
-                .order('day_of_week')
-                .order('start_time')
-                .limit(200);
-
-            if (error) {
-                console.warn('[venue-schedules] GET error:', error);
-                return res.status(500).json({ success: false, error: 'Internal server error' });
+            const data = [];
+            const seen = new Set();
+            let complete = false;
+            for (let page = 0; page < SCHEDULE_MAX_PAGES; page++) {
+                const offset = page * SCHEDULE_PAGE_SIZE;
+                const { data: rows, error } = await getSupabase()
+                    .from('venue_game_schedules')
+                    .select('*')
+                    .eq('venue_id', venueId)
+                    .eq('is_active', true)
+                    .order('day_of_week')
+                    .order('start_time')
+                    .order('id', { ascending: true })
+                    .range(offset, offset + SCHEDULE_PAGE_SIZE - 1);
+                if (error || !Array.isArray(rows)) {
+                    contributionPrivate(res);
+                    return res.status(503).json({ success: false, error: 'Venue schedules unavailable. Try again.' });
+                }
+                for (const row of rows) {
+                    // A concurrent reorder must not advertise a duplicate partial
+                    // inventory as complete. The caller can make a fresh read.
+                    if (row.id == null || seen.has(String(row.id))) {
+                        contributionPrivate(res);
+                        return res.status(503).json({ success: false, error: 'Venue schedules changed during loading. Try again.' });
+                    }
+                    seen.add(String(row.id));
+                    data.push(row);
+                }
+                if (rows.length < SCHEDULE_PAGE_SIZE) { complete = true; break; }
+            }
+            if (!complete) {
+                contributionPrivate(res);
+                return res.status(503).json({ success: false, error: 'Complete venue schedules unavailable. Try again.' });
             }
 
             // Group by day of week

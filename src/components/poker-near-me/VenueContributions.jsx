@@ -53,7 +53,13 @@ export function useContributionWrite(context, onConfirmed) {
     setRetryable(false);
     setError('');
     setNotice(`Request ${receipt.operation_id} was recorded. Its current status is shown below.`);
-    await confirmedRef.current?.(receipt);
+    // A committed write stays committed even when its subsequent refresh fails.
+    try { await confirmedRef.current?.(receipt); }
+    catch (_) {
+      if (mounted.current && keyRef.current === key && getAuthUser()?.id === request.account_id) {
+        setError('Your request was recorded, but the latest view could not be refreshed. Refresh the page to read its current status.');
+      }
+    }
   }, []);
 
   const submit = useCallback(async (url, body, method = 'POST') => {
@@ -87,12 +93,17 @@ export function useContributionWrite(context, onConfirmed) {
 
   const check = useCallback(async () => {
     if (!pending || inFlight.current) return;
+    const request = pending;
+    const key = contributionPendingKey(request.account_id, request.context);
+    const ownsRequest = () => mounted.current && keyRef.current === key && getAuthUser()?.id === request.account_id;
+    if (!ownsRequest()) return;
     inFlight.current = true; setBusy(true); setError('');
     try {
-      const receipt = await readContributionOperation(pending.body.operation_id, getSessionToken());
-      if (receipt) await finish(receipt, pending);
+      const receipt = await readContributionOperation(request.body.operation_id, getSessionToken());
+      if (!ownsRequest()) return;
+      if (receipt) await finish(receipt, request);
       else { setRetryable(true); setError('No committed receipt was found. You may retry only the original request, with its unchanged ID and details.'); }
-    } catch (failure) { setError(failure.message || 'The original request could not be checked.'); }
+    } catch (failure) { if (ownsRequest()) setError(failure.message || 'The original request could not be checked.'); }
     finally { inFlight.current = false; if (mounted.current) setBusy(false); }
   }, [finish, pending]);
 
@@ -100,7 +111,15 @@ export function useContributionWrite(context, onConfirmed) {
     if (!pending || !retryable || inFlight.current || getAuthUser()?.id !== pending.account_id) return;
     inFlight.current = true; setBusy(true); setError(''); setRetryable(false);
     try { await finish(await sendContributionRequest(pending, getSessionToken()), pending); }
-    catch (failure) { setError(failure.message || 'The original request is still unconfirmed. Check its status again.'); }
+    catch (failure) {
+      const key = contributionPendingKey(pending.account_id, pending.context);
+      if (!mounted.current || keyRef.current !== key || getAuthUser()?.id !== pending.account_id) return;
+      if (failure.confirmedRefusal) {
+        sessionStorage.removeItem(key);
+        setPending(null);
+      }
+      setError(failure.message || 'The original request is still unconfirmed. Check its status again.');
+    }
     finally { inFlight.current = false; if (mounted.current) setBusy(false); }
   }, [finish, pending, retryable]);
 
@@ -244,6 +263,11 @@ export default function VenueContributions({ venue, onAccessChange }) {
 
 const SCHEDULE_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const EMPTY_SCHEDULE = { day_of_week: 'monday', game_name: '', start_time: '', end_time: '', notes: '', source_url: '' };
+function editableScheduleTime(value) {
+  // Older stored minute-precision entries may include zero seconds. Do not
+  // silently truncate a legacy entry that actually contains nonzero seconds.
+  return typeof value === 'string' && /^\d{2}:\d{2}:00(?:\.0+)?$/.test(value) ? value.slice(0, 5) : value || '';
+}
 
 export function VenueScheduleEditor({ venueId, schedule, onChanged }) {
   const [form, setForm] = useState(EMPTY_SCHEDULE);
@@ -262,7 +286,7 @@ export function VenueScheduleEditor({ venueId, schedule, onChanged }) {
       {entry.source_url && safeSource(entry.source_url) && <a className={styles.link} href={safeSource(entry.source_url)} target="_blank" rel="noopener noreferrer">Schedule Source</a>}
       <span>Updated: {entry.updated_at || 'Revision Unavailable'}</span>
       <div className={styles.actions}>
-        <ContributionButton disabled={blocked || !entry.updated_at} onClick={() => { setEditing(entry); setForm({ ...EMPTY_SCHEDULE, ...entry, day_of_week: entry.day_of_week || SCHEDULE_DAYS.find((day) => schedule?.[day]?.includes(entry)), start_time: entry.start_time || '', end_time: entry.end_time || '', notes: entry.notes || '', source_url: entry.source_url || '' }); }}>Edit Entry</ContributionButton>
+        <ContributionButton disabled={blocked || !entry.updated_at} onClick={() => { setEditing(entry); setForm({ ...EMPTY_SCHEDULE, ...entry, day_of_week: entry.day_of_week || SCHEDULE_DAYS.find((day) => schedule?.[day]?.includes(entry)), start_time: editableScheduleTime(entry.start_time), end_time: editableScheduleTime(entry.end_time), notes: entry.notes || '', source_url: entry.source_url || '' }); }}>Edit Entry</ContributionButton>
         <ContributionButton disabled={blocked || !entry.updated_at || !safeSource(entry.source_url || form.source_url)} onClick={() => writer.submit('/api/poker/venue-schedules', { venue_id: Number(venueId), id: entry.id, expected_updated_at: entry.updated_at, source_url: entry.source_url || form.source_url, reason: 'Venue Manager Removed A Recurring Schedule Entry' }, 'DELETE')}>Remove Entry</ContributionButton>
       </div>
     </li>)}</ul>}
