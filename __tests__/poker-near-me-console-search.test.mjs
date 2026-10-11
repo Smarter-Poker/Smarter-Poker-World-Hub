@@ -102,6 +102,26 @@ function searchHelpers() {
   return scope.helpers;
 }
 
+test('actual overlay save surface preserves valid filter-only documents and excludes stale/loading/error state', async () => {
+  const require = createRequire(import.meta.url); const React = require('react'); const renderer = require('react-test-renderer'); const ts = require('typescript');
+  const source = read(SEARCH);
+  const start = source.lastIndexOf('{phase ===', source.indexOf('kind="search" context="global-search"'));
+  const end = source.indexOf('/>}', start) + 2;
+  const expression = source.slice(start + 1, end);
+  const compiled = ts.transpileModule(`const render = () => (${expression});`, { compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const saved = { schemaVersion: 1, query: '', filters: { state: 'NV', game: 'NLH', stakes: '', date: '', type: 'venues' }, location: { city: 'Las Vegas', state: 'NV' } };
+  const captured = []; let tree;
+  const SavePlayerPlan = (props) => { captured.push(props.document); return React.createElement('button', {}, 'Save Search To Account'); };
+  const render = (overrides = {}) => new Function('React', 'SavePlayerPlan', 'phase', 'isLoading', 'searchError', 'localQuery', 'savedSearchRef', 'nlIntent', `${compiled}\nreturn render();`)(React, SavePlayerPlan, overrides.phase || 'results', !!overrides.loading, !!overrides.error, overrides.query || '', { current: overrides.stale ? { ...saved, query: 'Old Query' } : saved }, null);
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement('div', {}, render())); });
+    assert.equal(tree.root.findByType('button').props.children, 'Save Search To Account'); assert.deepEqual(captured.at(-1), saved);
+    for (const state of [{ loading: true }, { error: true }, { stale: true }, { phase: 'input' }]) {
+      await renderer.act(async () => tree.update(React.createElement('div', {}, render(state)))); assert.equal(tree.root.findAllByType('button').length, 0);
+    }
+  } finally { await renderer.act(async () => tree?.unmount()); }
+});
+
 test('actual search parser keeps stakes, cities and longest state identity without keyword pollution', () => {
   const { parseNaturalLanguageQuery: parse } = searchHelpers();
   const intent = parse('1/2 PLO tonight in West Virginia');

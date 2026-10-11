@@ -32,6 +32,7 @@ export function planningBrowserError(error, privateValues = []) {
 export async function qualifyBrowser({ owner, searchName, tripName, trip, share, observations, evidenceDirectory }) {
   const { chromium } = await import('playwright');
   const { expect } = await import('@playwright/test');
+  const { buildSavedSearchUrl } = await import('../src/lib/poker-near-me/playerPlanning.js');
   const browser = await chromium.launch({ headless: true });
   try {
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
@@ -79,6 +80,11 @@ export async function qualifyBrowser({ owner, searchName, tripName, trip, share,
         const searchLayout = await page.evaluate(() => ({ clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
         assert.equal(searchLayout.clientWidth, searchLayout.scrollWidth);
         observed.structuredSavedSearchRestored = true;
+        const filterOnlyUrl = buildSavedSearchUrl({ schemaVersion: 1, query: '', filters: { state: 'NV', game: '', stakes: '', date: '', type: 'venues' }, location: { city: 'Las Vegas', state: 'NV' } });
+        await page.goto(`https://smarter.poker${filterOnlyUrl}`, { waitUntil: 'domcontentloaded' });
+        await expect(page.locator('[data-player-planning="search-scope"]')).toContainText(normalizeWorldCopy('Saved Search Filters: NV / venues'));
+        await expect(page.getByRole('button', { name: 'Save Search To Account', exact: true })).toBeVisible();
+        observed.filterOnlySearchResaveVisible = true;
         await page.goto('https://smarter.poker/hub/poker-near-me/saved', { waitUntil: 'domcontentloaded' });
         await page.getByRole('link', { name: 'Load Account Trip', exact: true }).click();
         await expect(page.getByRole('textbox', { name: /^Trip Origin$/i })).toHaveValue(trip.origin);
@@ -170,13 +176,15 @@ export async function qualify(env = process.env) {
     const publicVenue = await api('/api/public/venue/1828'); assert.equal(publicVenue.status, 200);
     const search = { schemaVersion: 1, query: 'NLH 1/2 in Nevada tonight', filters: { state: 'NV', game: 'NLH', stakes: '1/2', date: 'tonight', type: 'venues' }, location: { city: 'Las Vegas', state: 'NV' } };
     const trip = { schemaVersion: 1, origin: 'Private Fixture Address 123', destination: 'Reno, NV', waypoints: [], corridorMi: 50, dateRange: { start: '2026-10-12', end: '2026-10-15' }, venueIds: [1828], seriesIds: [] };
-    const createSearch = { action: 'create', id: randomUUID(), kind: 'search', name: searchName, document: search };
-    const requestId = randomUUID();
-    const saved = await api('/api/poker/player-plans', owner, createSearch, 'POST', requestId); assert.equal(saved.status, 201); assert.equal(saved.data.plan.id, createSearch.id);
+    // UUIDs are case-insensitive at PostgreSQL's boundary. Exercise a valid
+    // uppercase caller, then require the canonical durable receipt, not 503.
+    const createSearch = { action: 'create', id: randomUUID().toUpperCase(), kind: 'search', name: searchName, document: search };
+    const requestId = randomUUID().toUpperCase();
+    const saved = await api('/api/poker/player-plans', owner, createSearch, 'POST', requestId); assert.equal(saved.status, 201); assert.equal(saved.data.plan.id, createSearch.id.toLowerCase()); assert.equal(saved.data.operation_id, requestId.toLowerCase());
     const stored = await safe(service.from('pnm_player_plans').select('*').eq('id', createSearch.id).maybeSingle(), 'Search persistence'); assert.deepEqual(stored.document, search); assert.equal(stored.user_id, owner.id);
     const replay = await api('/api/poker/player-plans', owner, createSearch, 'POST', requestId); assert.equal(replay.status, 201); assert.equal(replay.data.plan.id, saved.data.plan.id);
     const changed = await api('/api/poker/player-plans', owner, { ...createSearch, name: 'Changed' }, 'POST', requestId); assert.equal(changed.status, 409);
-    const original = await api(`/api/poker/player-plans?operation_id=${requestId}`, owner); assert.equal(original.data.operation.operation_id, requestId);
+    const original = await api(`/api/poker/player-plans?operation_id=${requestId}`, owner); assert.equal(original.data.operation.operation_id, requestId.toLowerCase());
     const foreign = await api(`/api/poker/player-plans?operation_id=${requestId}`, stranger); assert.equal(foreign.data.operation, null);
     const foreignList = await api('/api/poker/player-plans', stranger); assert.equal(foreignList.data.plans.length, 0); assert.match(foreignList.cacheControl, /no-store/);
     const foreignEdit = await api('/api/poker/player-plans', stranger, { ...createSearch, action: 'delete', expected_revision: saved.data.plan.revision }, 'POST', randomUUID()); assert.ok([403, 404].includes(foreignEdit.status));

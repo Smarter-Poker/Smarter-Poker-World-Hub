@@ -1290,6 +1290,18 @@ export default function PokerNearMeLobby() {
     locationToastTimeoutRef.current = setTimeout(() => setLocationToast(null), 2500);
   }, []);
 
+  // Local GPS/manual settings stay useful even when account persistence fails.
+  const persistLocalPreference = useCallback((account, patch) => {
+    return updatePokerNearMePreferences(account, patch).catch((cause) => {
+      console.warn('[PokerNearMe] Account preference save not confirmed:', cause?.message || cause);
+      if (getAuthUser()?.id !== account) return;
+      setPreferenceError(cause?.confirmedRefusal
+        ? 'This Setting Is Device-Only. It Was Not Saved To Your Account.'
+        : 'This Setting Is Device-Only Until The Account Save Is Confirmed. Check The Original Preference Request Before Retrying.');
+      window.dispatchEvent(new Event('pnm-preference-request'));
+    });
+  }, []);
+
   // ─── GPS Success handler (shared between auto + manual click) ───
   const onGpsSuccess = useCallback(async (pos, options = {}) => {
     const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1312,21 +1324,21 @@ export default function PokerNearMeLobby() {
     }
     // Persist enabled state + coordinates to Supabase
     if (userId) {
-      updatePokerNearMePreferences(userId, {
+      persistLocalPreference(userId, {
         locationEnabled: true,
         lastLocation: loc,
         lastLocationCity: geo?.city || '',
         lastLocationState: geo?.state || '',
         locationEnabledAt: new Date().toISOString(),
         locationPromptDismissed: true,
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      });
     }
     // Fetch ALL venues with GPS coordinates for distance sorting
     const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50`;
     cachedFetch(gpsUrl).then(data => applyWideVenueFetch(gpsUrl, data))
       .catch(err => console.warn('GPS venue fetch failed:', err));
     // GPS updates location + venues silently — user must click search to see results
-  }, [reverseGeocode, showLocationSuccessToast, userId, applyWideVenueFetch]);
+  }, [reverseGeocode, showLocationSuccessToast, userId, applyWideVenueFetch, persistLocalPreference]);
 
   // ─── GPS Click handler (2-tier: high accuracy → low accuracy fallback) ───
   const gpsErrorTimeoutRef = useRef(null);
@@ -1358,7 +1370,7 @@ export default function PokerNearMeLobby() {
       try { localStorage.removeItem('pnm_last_state'); } catch { /* */ }
       // Keep pnm_location_prompt_dismissed so we don't re-prompt
       if (userId) {
-        updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        persistLocalPreference(userId, { locationEnabled: false });
       }
       // Re-fetch venues to clear GPS radius filter
       fetchVenues(searchQuery);
@@ -1394,7 +1406,7 @@ export default function PokerNearMeLobby() {
           openEnableLocation();
           setShowManualLocation(false); // Don't show manual — show smart popup instead
           if (userId) {
-            updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            persistLocalPreference(userId, { locationEnabled: false });
           }
           return;
         }
@@ -1422,7 +1434,7 @@ export default function PokerNearMeLobby() {
               openManualLocation();
             }
             if (userId) {
-              updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+              persistLocalPreference(userId, { locationEnabled: false });
             }
           },
           { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
@@ -1430,7 +1442,7 @@ export default function PokerNearMeLobby() {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
-  }, [gpsActive, gpsLoading, userId, onGpsSuccess, haptic, openEnableLocation, openManualLocation]);
+  }, [gpsActive, gpsLoading, userId, onGpsSuccess, haptic, openEnableLocation, openManualLocation, persistLocalPreference]);
 
   // Keep the ref used by the mount-only Permissions API listener current.
   handleGpsClickRef.current = handleGpsClick;
@@ -1492,12 +1504,12 @@ export default function PokerNearMeLobby() {
     setLocationPromptDismissed(true);
     try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* private browsing */ }
     if (userId) {
-      updatePokerNearMePreferences(userId, {
+      persistLocalPreference(userId, {
         locationEnabled: false,
         locationPromptDismissed: true,
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      });
     }
-  }, [userId]);
+  }, [userId, persistLocalPreference]);
 
   // ─── Sync Supabase dismissal flag into state (for cross-device persistence) ───
   useEffect(() => {
@@ -1576,12 +1588,12 @@ export default function PokerNearMeLobby() {
                 reverseGeocode(loc.lat, loc.lng).then(geo => {
                   if (geo?.city) {
                     showLocationSuccessToast(geo);
-                    updatePokerNearMePreferences(userId, {
+                    persistLocalPreference(userId, {
                       locationEnabled: true,
                       lastLocation: loc,
                       lastLocationCity: geo.city,
                       lastLocationState: geo.state || '',
-                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    });
                   }
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
               }
@@ -1603,12 +1615,12 @@ export default function PokerNearMeLobby() {
                     reverseGeocode(loc.lat, loc.lng).then(geo => {
                       if (geo?.city) {
                         showLocationSuccessToast(geo);
-                        updatePokerNearMePreferences(userId, {
+                        persistLocalPreference(userId, {
                           locationEnabled: true,
                           lastLocation: loc,
                           lastLocationCity: geo.city,
                           lastLocationState: geo.state || '',
-                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                        });
                       }
                     }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   }
@@ -1689,7 +1701,7 @@ export default function PokerNearMeLobby() {
         try { localStorage.setItem('pnm_last_state', manualState || ''); } catch { /* */ }
         // Persist to Supabase (cross-device)
         if (userId) {
-          updatePokerNearMePreferences(userId, {
+          persistLocalPreference(userId, {
             locationEnabled: true,
             lastLocation: loc,
             lastLocationCity: manualCity.trim(),
@@ -1697,7 +1709,7 @@ export default function PokerNearMeLobby() {
             locationEnabledAt: new Date().toISOString(),
             manualLocation: true,
             locationPromptDismissed: true,
-          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+          });
         }
         // Fetch venues near this location
         const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50`;
@@ -1717,7 +1729,7 @@ export default function PokerNearMeLobby() {
     } finally {
       setManualGeocoding(false);
     }
-  }, [manualCity, manualState, userId, showLocationSuccessToast, manualGeocoding, gpsLoading, applyWideVenueFetch]);
+  }, [manualCity, manualState, userId, showLocationSuccessToast, manualGeocoding, gpsLoading, applyWideVenueFetch, persistLocalPreference]);
 
   // ─── Pod click → navigate directly to standalone pages ───
   // All 12 lobby grid icons route to their full standalone pages.

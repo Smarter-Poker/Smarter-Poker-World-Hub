@@ -5,13 +5,17 @@ export function planningObject(value, allowed, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !allowed.includes(key))) throw planningInvalid(`Invalid ${label}`);
   return value;
 }
+export function planningSameUuid(left, right) {
+  try { return planningUuid(left) === planningUuid(right); }
+  catch (_) { return false; }
+}
 export function planningText(value, max, label, required = false) {
   if (typeof value !== 'string' || value.length > max || /[\u0000-\u001f\u007f]/.test(value) || (required && !value.trim())) throw planningInvalid(`Invalid ${label}`);
   return value.trim();
 }
 export function planningUuid(value) {
   if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) throw planningInvalid('Invalid request or plan ID');
-  return value;
+  return value.toLowerCase();
 }
 export function planningDate(value) {
   if (value === '') return value;
