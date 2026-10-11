@@ -79,6 +79,7 @@ test('planning workflow uses maintained manual main lane and configured canonica
   assert.match(job, /secrets\.SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(job, /PNM_PLANNING_MODE: task-owned-fixtures/);
   assert.match(job, /node scripts\/qualify-pnm-player-planning-phase5\.mjs/);
+  assert.ok(job.indexOf('run: npm ci --ignore-scripts') < job.indexOf('name: Verify task-owned planning safeguards'), 'Runtime safeguards require restored dependencies first');
   assert.doesNotMatch(job, /TEST_USER_PASSWORD|schedule:|deploy|publish/);
 });
 test('required planning regressions run once, retaining the existing shared preference gate', () => {
