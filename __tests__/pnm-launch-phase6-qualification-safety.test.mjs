@@ -102,7 +102,7 @@ test('missing semantics, overflow, broken media, short controls and errors fail 
 });
 test('finite qualifier actually enforces source identity, both viewports, read-only browser, faults and strict mobile metrics', () => {
   for (const invariant of ['routeWebSocket', 'socket.close()', "serviceWorkers: 'block'", 'expectedSha', 'receipt.before = await health', 'receipt.after = await health', 'receipt.manifest.length * VIEWPORTS.length', 'receipt.routes.every(row => row.passed)', 'receipt.maps.every(row => row.passed)', 'row.areaAndTiles.passed && row.runtime.passed', 'assertPnmMobileBudget(row, budget)', 'Map container is already initialized', 'Area Search Timed Out', 'context.setOffline(true)', 'context.setOffline(false)', 'beforeMarkers', 'delayReads > 0', 'hungReads > 0', "name: 'Browse Venue List'", "trigger.press('Enter')", "page.keyboard.press('Escape')"]) assert.ok(source.includes(invariant), invariant);
-  assert.doesNotMatch(source, /createUser|deleteUser|SERVICE_ROLE|TEST_USER|\.skip\(|schedule:|vercel deploy|gh pr merge/);
+  assert.doesNotMatch(source, /createUser|deleteUser|SERVICE_ROLE|TEST_USER|\.skip\(|schedule:|vercel\s+deploy|gh pr merge/);
   assert.match(source, /Math|Promise\.race/);
   for (const invariant of ['structuredQueryAndStateRetained', 'honestEmptyState', 'actualSearchResultLink', 'Query survives URL synchronization', 'No Venues Found Matching Your Criteria']) assert.ok(source.includes(invariant));
 });
@@ -119,5 +119,5 @@ test('manual Phase6 workflow has exact main-only lane and publishes only its evi
   const browserStep = job.split('      - name: Qualify public route families maps and measured mobile budget')[1]?.split('      - name:')[0];
   assert.ok(browserStep);
   assert.doesNotMatch(browserStep, /SUPABASE_SERVICE_ROLE_KEY|TEST_USER/);
-  assert.doesNotMatch(job, /TEST_USER|schedule:|vercel deploy|gh pr merge/);
+  assert.doesNotMatch(job, /TEST_USER|schedule:|vercel\s+deploy|gh pr merge/);
 });
