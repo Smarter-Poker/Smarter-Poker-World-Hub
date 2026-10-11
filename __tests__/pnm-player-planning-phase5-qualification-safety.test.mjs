@@ -1,7 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validateConfiguration, assertOwnedIdentity, allowedBrowserRead } from '../scripts/qualify-pnm-player-planning-phase5.mjs';
+import { validateConfiguration, assertOwnedIdentity, allowedBrowserRead, planningBrowserError } from '../scripts/qualify-pnm-player-planning-phase5.mjs';
+
+test('planning browser assertions use the actual Playwright test runtime', async () => {
+  const source = readFileSync(new URL('../scripts/qualify-pnm-player-planning-phase5.mjs', import.meta.url), 'utf8');
+  assert.match(source, /const \{ expect \} = await import\('@playwright\/test'\)/);
+  assert.doesNotMatch(source, /\{ chromium, expect \} = await import\('playwright'\)/);
+  const { expect } = await import('@playwright/test');
+  assert.equal(typeof expect, 'function');
+  expect('persisted').toBe('persisted');
+});
+test('browser failure evidence retains errors without session or fixture details', () => {
+  const error = new Error('Broken private-origin token-value owner@example.invalid https://example.invalid/path?token=secret');
+  const message = planningBrowserError(error, ['private-origin', 'token-value']);
+  assert.match(message, /Broken/);
+  assert.doesNotMatch(message, /private-origin|token-value|owner@example.invalid|secret/);
+  assert.match(message, /https:\/\/example.invalid\/path/);
+});
 
 test('planning qualifier refuses foreign project, unknown mode and non-qualified revision', () => {
   const env = { NEXT_PUBLIC_SUPABASE_URL: 'https://kuklfnapbkmacvwxktbh.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'placeholder', SUPABASE_SERVICE_ROLE_KEY: 'placeholder', PNM_PLANNING_EXPECTED_SHA: 'a'.repeat(40), PNM_PLANNING_MODE: 'task-owned-fixtures' };

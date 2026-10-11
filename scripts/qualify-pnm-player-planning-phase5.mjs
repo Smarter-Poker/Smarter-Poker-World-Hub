@@ -21,13 +21,22 @@ export function assertOwnedIdentity(user, expected, runId) {
 }
 export function allowedBrowserRead(method) { return ['GET', 'HEAD', 'OPTIONS'].includes(method); }
 
+export function planningBrowserError(error, privateValues = []) {
+  let message = String(error?.message || 'Unknown Browser Error');
+  for (const value of privateValues.filter(Boolean)) message = message.split(value).join('[private]');
+  return message.replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[session]')
+    .replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]+/g, '[email]')
+    .replace(/https?:\/\/[^\s)]+/g, raw => { try { const url = new URL(raw); return `${url.origin}${url.pathname}`; } catch { return '[url]'; } }).slice(0, 1500);
+}
+
 export async function qualifyBrowser({ owner, searchName, tripName, trip, share, observations, evidenceDirectory }) {
-  const { chromium, expect } = await import('playwright');
+  const { chromium } = await import('playwright');
+  const { expect } = await import('@playwright/test');
   const browser = await chromium.launch({ headless: true });
   try {
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
       const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
-      const observed = { viewport, route: '/hub/poker-near-me/saved', pageErrors: 0, blockedWrites: 0 };
+      const observed = { viewport, route: '/hub/poker-near-me/saved', pageErrors: 0, browserErrors: [], blockedWrites: 0, blockedRequests: [] };
       observations.push(observed);
       try {
         await context.addInitScript(({ session }) => {
@@ -38,10 +47,18 @@ export async function qualifyBrowser({ owner, searchName, tripName, trip, share,
         await context.route('**/*', route => {
           if (allowedBrowserRead(route.request().method())) return route.continue();
           observed.blockedWrites += 1;
+          if (observed.blockedRequests.length < 30) {
+            const url = new URL(route.request().url());
+            observed.blockedRequests.push({ method: route.request().method(), host: url.hostname, path: url.pathname });
+          }
           return route.fulfill({ status: 403, contentType: 'application/json', body: '{"success":false,"error":"Outside Qualification Scope"}' });
         });
         const page = await context.newPage();
-        page.on('pageerror', () => { observed.pageErrors += 1; });
+        page.on('pageerror', error => {
+          observed.pageErrors += 1;
+          const message = planningBrowserError({ message: `${error.name}: ${error.message}\n${String(error.stack || '').split('\n').slice(1, 4).join('\n')}` }, [owner.token, owner.session?.refresh_token, trip.origin, trip.destination, searchName, tripName]);
+          if (observed.browserErrors.length < 30 && !observed.browserErrors.includes(message)) observed.browserErrors.push(message);
+        });
         const response = await page.goto('https://smarter.poker/hub/poker-near-me/saved', { waitUntil: 'domcontentloaded', timeout: 30000 });
         assert.equal(response.status(), 200);
         await page.getByRole('heading', { name: 'Player Planning', exact: true }).waitFor({ state: 'visible' });
