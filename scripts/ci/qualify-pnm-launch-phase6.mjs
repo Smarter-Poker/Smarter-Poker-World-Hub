@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../../src/lib/poker-near-me/sitemapRoutes.js';
 import { assertPnmMobileBudget } from './lib/pnmMobileBudget.mjs';
+import { isVenueMapEligible } from '../../src/lib/poker-near-me/venueIntegrity.js';
 
 export const ORIGIN = 'https://smarter.poker';
 export const VIEWPORTS = Object.freeze([{ width: 1440, height: 900 }, { width: 390, height: 844 }]);
@@ -195,16 +196,25 @@ async function qualifyFaults(browser, viewport) {
   const context = await publicContext(browser, viewport, row);
   try {
     const page = await context.newPage(); page.setDefaultTimeout(30000);
+    const completedDirectory = page.waitForResponse(async response => {
+      const url = new URL(response.url());
+      if (url.origin !== ORIGIN || url.pathname !== '/api/poker/venues' || url.searchParams.get('view') !== 'directory' || response.status() !== 200) return false;
+      try { return completedDirectoryPage(url, await response.json()); } catch { return false; }
+    }, { timeout: 30000 }).then(response => ({ response }), error => ({ error }));
     page.on('pageerror', error => row.pageErrors.push(safeError(error)));
     // Tiles are presentation, not the authoritative directory or executable runtime.
     const blockTiles = route => route.abort('failed');
     await context.route('https://server.arcgisonline.com/**', blockTiles);
     await page.goto(`${ORIGIN}/hub/poker-near-me/map`, { waitUntil: 'domcontentloaded' });
-    const shell = page.locator('#pnm-section-map [data-pnm-map-surface]').first();
-    const map = shell.locator('[data-map-foundation="shared-v3"]');
+    let shell = page.locator('#pnm-section-map [data-pnm-map-surface]').first();
+    let map = shell.locator('[data-map-foundation="shared-v3"]');
     await map.locator('.leaflet-control-zoom').waitFor();
     await page.waitForFunction(() => Number(document.querySelector('#pnm-section-map [data-map-marker-count]')?.getAttribute('data-map-marker-count')) > 0);
     await shell.locator('[data-map-tile-warning]').waitFor();
+    const complete = await completedDirectory;
+    assert.ok(complete.response, `Complete actual directory required before map preservation: ${safeError(complete.error || '')}`);
+    await page.locator('.pnm-directory-source').waitFor({ state: 'hidden' });
+    row.scenarios.actualDirectoryCompleteBeforeSnapshot = true;
     assert.match(await map.getAttribute('data-map-tiles'), /degraded|unavailable/);
     const fallback = shell.locator('[data-map-tile-list]');
     assert.equal(await fallback.getAttribute('href'), '/hub/poker-near-me/venues');
@@ -218,7 +228,34 @@ async function qualifyFaults(browser, viewport) {
     assert.equal(await map.getAttribute('data-map-marker-count'), originalMarkers);
     row.scenarios.tileWarningAndRetryPreserveMarkersAndZoom = true;
     row.scenarios.blockedTilesRetainMarkersAndControls = true;
-    await map.focus(); await map.press('ArrowRight');
+    // The national MapTabPanel uses VenueMap; viewport search belongs to the
+    // lobby's maintained mapview pod, which mounts VenueMapPanel with it enabled.
+    const lobbyRead = path => page.waitForResponse(response => {
+      const url = new URL(response.url());
+      return url.origin === ORIGIN && url.pathname === path && response.status() === 200 && !url.searchParams.has('view');
+    }, { timeout: 30000 }).then(response => response.json()).then(body => ({ body }), error => ({ error }));
+    const venueRead = lobbyRead('/api/poker/venues'), tourRead = lobbyRead('/api/poker/tours');
+    await page.goto(`${ORIGIN}/hub/poker-near-me/lobby?pod=mapview`, { waitUntil: 'domcontentloaded' });
+    const [venueResult, tourResult] = await Promise.all([venueRead, tourRead]);
+    assert.ok(venueResult.body && tourResult.body, 'Actual lobby map sources must complete');
+    const expectedAreaMarkers = lobbyMapMarkerCount(venueResult.body, tourResult.body);
+    assert.ok(expectedAreaMarkers > 0, 'Actual source-derived lobby map markers');
+    shell = page.locator('[data-pnm-map-surface]').first();
+    map = shell.locator('[data-map-foundation="shared-v3"]');
+    await page.waitForFunction(count => Number(document.querySelector('[data-map-foundation="shared-v3"]')?.getAttribute('data-map-marker-count')) === count, expectedAreaMarkers);
+    const areaOriginalMarkers = await map.getAttribute('data-map-marker-count');
+    row.areaRoute = '/hub/poker-near-me/lobby?pod=mapview';
+    row.areaSourceMappedCount = expectedAreaMarkers;
+    // Only actual dragend enables this maintained control; arrow-key panning is moveend.
+    const dragMap = async () => {
+      await map.scrollIntoViewIfNeeded();
+      const box = await map.boundingBox();
+      const y = Math.min(viewport.height - 120, Math.max(260, box.y + box.height / 2));
+      assert.ok(y > box.y && y < box.y + box.height, 'Actual visible map drag surface');
+      await page.mouse.move(box.x + box.width * 0.5, y);
+      await page.mouse.down(); await page.mouse.move(box.x + box.width * 0.5 - 100, y + 10, { steps: 8 }); await page.mouse.up();
+    };
+    await dragMap();
     const search = shell.getByRole('button', { name: /Search This Area/i });
     await search.waitFor();
     let delayReads = 0;
@@ -237,6 +274,9 @@ async function qualifyFaults(browser, viewport) {
     await context.unroute(areaPattern);
     const reset = shell.getByRole('button', { name: 'Show All', exact: true });
     await reset.click();
+    await page.waitForFunction(markers => document.querySelector('[data-map-foundation="shared-v3"]')?.getAttribute('data-map-marker-count') === markers, areaOriginalMarkers);
+    await dragMap();
+    await search.waitFor();
     const beforeMarkers = Number(await map.getAttribute('data-map-marker-count'));
     await context.route(areaPattern, route => { hungReads += 1; return new Promise(resolve => pending.push(() => { route.abort('failed').catch(() => {}); resolve(); })); });
     await search.click();
@@ -261,6 +301,21 @@ async function qualifyFaults(browser, viewport) {
   } catch (error) { row.error = safeError(error); } finally { await closeContext(context, row); }
   const runtime = await qualifyRuntimeFault(browser, viewport);
   return { areaAndTiles: row, runtime };
+}
+export function completedDirectoryPage(url, body) {
+  const value = new URL(url);
+  const offset = Number(value.searchParams.get('offset')), limit = Number(value.searchParams.get('limit')), total = Number(body?.total);
+  return value.searchParams.get('view') === 'directory' && body?.success === true && Boolean(body?.data_integrity)
+    && body?.degraded !== true && Array.isArray(body?.data) && Number.isFinite(total) && total > 0
+    && Number.isInteger(offset) && offset >= 0 && Number.isInteger(limit) && limit > 0 && offset + limit >= total;
+}
+export function lobbyMapMarkerCount(venueBody, tourBody) {
+  const venues = venueBody?.data || venueBody?.venues || (Array.isArray(venueBody) ? venueBody : []);
+  const tours = tourBody?.data || tourBody?.tours || (Array.isArray(tourBody) ? tourBody : []);
+  assert.ok(Array.isArray(venues) && Array.isArray(tours), 'Actual lobby API arrays');
+  const pins = tours.flatMap(tour => [tour, ...(tour.upcoming_series || []), ...(tour.stops_2026 || []), ...(tour.series_2026 || [])]
+    .filter(stop => stop.latitude && stop.longitude).map(stop => ({ latitude: stop.latitude, longitude: stop.longitude })));
+  return [...venues, ...pins].filter(isVenueMapEligible).length;
 }
 export async function interceptRuntimeRoute(route, runtime, isClosing) {
   try {

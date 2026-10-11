@@ -1,11 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { allowedPublicRead, safeError, validateConfiguration, sitemapPaths, buildManifest, assertGeometry, readPublic, isRuntimeScriptURL, isLeafletRuntimeSource, scopedSitemapCount, interceptRuntimeRoute, ORIGIN, VIEWPORTS } from '../scripts/ci/qualify-pnm-launch-phase6.mjs';
+import { allowedPublicRead, safeError, validateConfiguration, sitemapPaths, buildManifest, assertGeometry, readPublic, isRuntimeScriptURL, isLeafletRuntimeSource, scopedSitemapCount, interceptRuntimeRoute, completedDirectoryPage, lobbyMapMarkerCount, ORIGIN, VIEWPORTS } from '../scripts/ci/qualify-pnm-launch-phase6.mjs';
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes.js';
 
 const source = readFileSync(new URL('../scripts/ci/qualify-pnm-launch-phase6.mjs', import.meta.url), 'utf8');
 const paths = ['/hub/poker-near-me/lobby', ...POKER_DISCOVERY_SITEMAP_ROUTES.map(row => row.path), '/hub/daily-tournaments', '/hub/events-calendar', '/hub/poker-near-me/in', '/hub/poker-near-me/in/nv', '/hub/poker-near-me/in/nv/las-vegas', '/hub/venues/1828', '/hub/poker-series', '/hub/series/5000759', '/hub/poker-tours', '/hub/tours/wsop', '/hub/home-games', '/hub/home-games/near-me', '/hub/home-games/actual-public-group', '/hub/home-games/in', '/hub/home-games/in/nv', '/hub/home-games/in/nv/las-vegas'];
+test('marker preservation waits for actual complete registry and restored Show All markers, not an early partial map', () => {
+  const body = { success: true, data_integrity: {}, data: [], total: 473 };
+  assert.equal(completedDirectoryPage(`${ORIGIN}/api/poker/venues?view=directory&offset=0&limit=160`, body), false);
+  assert.equal(completedDirectoryPage(`${ORIGIN}/api/poker/venues?view=directory&offset=320&limit=160`, body), true);
+  for (const change of [{ degraded: true }, { total: 900 }, { total: null }, { data_integrity: null }, { success: false }]) assert.equal(completedDirectoryPage(`${ORIGIN}/api/poker/venues?view=directory&offset=320&limit=160`, { ...body, ...change }), false);
+  assert.equal(completedDirectoryPage(`${ORIGIN}/api/poker/venues?offset=320&limit=160`, body), false);
+  assert.ok(source.indexOf('actualDirectoryCompleteBeforeSnapshot') < source.indexOf('const originalMarkers'));
+  const reset = source.indexOf('await reset.click()');
+  assert.ok(source.indexOf('getAttribute(\'data-map-marker-count\') === markers', reset) < source.indexOf('const beforeMarkers', reset));
+  assert.ok(source.includes("await page.mouse.down()"));
+  assert.ok(source.includes('Actual visible map drag surface'));
+  assert.ok(source.includes("assert.equal(await map.getAttribute('data-map-marker-count'), originalMarkers)"));
+  assert.ok(source.includes('/hub/poker-near-me/lobby?pod=mapview'));
+  assert.ok(source.includes('const expectedAreaMarkers = lobbyMapMarkerCount'));
+  const venues = { data: [{ latitude: 36, longitude: -115 }, { latitude: null, longitude: null }, { latitude: 35, longitude: -110, location_quality: { status: 'conflict' } }] };
+  const tours = { data: [{ latitude: 37, longitude: -116, upcoming_series: [{ latitude: 36.2, longitude: -115.2 }], stops_2026: [{ latitude: null, longitude: null }], series_2026: [{ latitude: 91, longitude: -115 }] }] };
+  assert.equal(lobbyMapMarkerCount(venues, tours), 3);
+  assert.throws(() => lobbyMapMarkerCount({ data: {} }, tours));
+});
 
 test('actual production deployment-query runtime URLs are intercepted without aborting unrelated scripts', () => {
   assert.equal(isRuntimeScriptURL(`${ORIGIN}/_next/static/chunks/25f4ac2a.181b10126efe9492.js?dpl=actual-deployment`), true);
