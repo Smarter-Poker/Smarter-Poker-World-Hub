@@ -14,6 +14,10 @@ import {
     resetPokerMapRuntime,
 } from '../../lib/poker-near-me/mapRuntime';
 import MapSurfaceFrame from './MapSurfaceFrame';
+import { getAuthUser } from '../../lib/authUtils';
+import { listPlayerPlans } from '../../services/pokerNearMePlayerPlanning';
+import { SavePlayerPlan } from './PlayerPlanningPanel';
+import { buildSafeTripShareUrl } from '../../lib/poker-near-me/playerPlanning';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 import {
     attachPokerPopupViewportGuard,
@@ -38,6 +42,7 @@ import {
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
 const TRIP_DRAFT_KEY = 'pnm_trip_draft_v1';
+const tripDraftKey = () => getAuthUser()?.id ? `pnm_trip_draft_v2:${getAuthUser().id}` : TRIP_DRAFT_KEY;
 
 // SECURITY: Leaflet's bindPopup/divIcon take raw HTML strings. Venue and stop names
 // come from scraped external sources (Bravo/PokerAtlas), so a name such as
@@ -164,10 +169,16 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
     const [shareStatus, setShareStatus] = useState(null);
     const [draftHydrated, setDraftHydrated] = useState(false);
+    const [importDeviceTrip, setImportDeviceTrip] = useState(null);
+    const [confirmDeviceOwner, setConfirmDeviceOwner] = useState(false);
+    const [publicPlan, setPublicPlan] = useState(null);
+    const [sharePreview, setSharePreview] = useState(null);
+    const [savedPublicRefs, setSavedPublicRefs] = useState(null);
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const mapSessionRef = useRef(null);
     const originAutoRef = useRef(false);
+    const draftOwner = useRef(getAuthUser()?.id || null);
     const instanceId = useId().replace(/:/g, '');
     const savedTripsId = `rtp-saved-${instanceId}`;
     const mapPanelId = `rtp-map-${instanceId}`;
@@ -179,9 +190,77 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     useEffect(() => {
         try {
             const trips = JSON.parse(localStorage.getItem('pnm_saved_trips') || '[]');
-            setSavedTrips(trips);
-        } catch { /* silent */ }
+            setSavedTrips(Array.isArray(trips) ? trips.slice(0, 10) : []);
+        } catch { setError('Device Trips Could Not Be Read. No Account Import Was Performed.'); }
     }, []);
+
+    const restoreTrip = useCallback((trip) => {
+        setOrigin(trip.origin || ''); setDestination(trip.destination || '');
+        setWaypoints(trip.waypoints || []); setCorridorMi(trip.corridorMi || 50);
+        setDateRange(trip.dateRange || { start: '', end: '' }); setRouteResult(null);
+        setSavedPublicRefs(trip.venueIds?.length || trip.seriesIds?.length ? { venueIds: trip.venueIds || [], seriesIds: trip.seriesIds || [], dateRange: trip.dateRange } : null);
+        originAutoRef.current = true;
+    }, []);
+
+    useEffect(() => {
+        const changed = (event) => {
+            if (event.key && event.key !== 'smarter-poker-auth') return;
+            const current = getAuthUser()?.id || null;
+            if (current === draftOwner.current) return;
+            draftOwner.current = current;
+            restoreTrip({ origin: '', destination: '' }); setSharePreview(null); setPublicPlan(null);
+            setImportDeviceTrip(null); setConfirmDeviceOwner(false); setError(null);
+        };
+        window.addEventListener('storage', changed);
+        return () => window.removeEventListener('storage', changed);
+    }, [restoreTrip]);
+
+    useEffect(() => {
+        const id = new URLSearchParams(window.location.search).get('accountPlan');
+        if (!id) return undefined;
+        let cancelled = false;
+        const account = getAuthUser()?.id;
+        if (!account) { setError('Sign In To Load This Private Account Trip.'); return undefined; }
+        listPlayerPlans('trip', fetch, account).then((plans) => {
+            if (cancelled || getAuthUser()?.id !== account) return;
+            const plan = plans.find((entry) => entry.id === id);
+            if (!plan) { setError('This Trip Is Not Available In Your Account.'); return; }
+            restoreTrip(plan.document);
+        }).catch(() => { if (!cancelled && getAuthUser()?.id === account) setError('Your Account Trip Could Not Be Loaded. Refresh To Try Again.'); });
+        return () => { cancelled = true; };
+    }, [restoreTrip]);
+
+    // Public links carry only catalog IDs and dates, never typed addresses or invitations.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has('planVenues') && !params.has('planSeries') && !savedPublicRefs) return undefined;
+        const controller = new AbortController();
+        const readIds = (key) => (params.get(key) || (savedPublicRefs?.[key === 'planVenues' ? 'venueIds' : 'seriesIds'] || []).join(',')).split(',').filter((id) => /^\d+$/.test(id) && Number(id) > 0).slice(0, 50);
+        const readPublic = async (kind, id) => {
+            const endpoint = kind === 'venues' ? '/api/poker/venues' : '/api/poker/series';
+            const response = await fetch(`${endpoint}?id=${encodeURIComponent(id)}`, { credentials: 'omit', cache: 'no-store', signal: controller.signal });
+            if (!response.ok) return null;
+            const payload = await response.json();
+            const value = Array.isArray(payload.data) ? payload.data[0] : payload.data;
+            return payload.success === true && value && value.venue_type !== 'home_game' && value.is_private !== true && value.is_suppressed !== true ? value : null;
+        };
+        (async () => {
+            try {
+                const [rooms, events] = await Promise.all([
+                    Promise.all(readIds('planVenues').map((id) => readPublic('venues', id))),
+                    Promise.all(readIds('planSeries').map((id) => readPublic('series', id))),
+                ]);
+                if (controller.signal.aborted) return;
+                const publicVenues = rooms.filter(Boolean); const publicEvents = events.filter(Boolean);
+                setPublicPlan({ venues: publicVenues, series: publicEvents, dateRange: savedPublicRefs?.dateRange || { start: params.get('start') || '', end: params.get('end') || '' }, unavailable: rooms.length + events.length - publicVenues.length - publicEvents.length });
+                if (publicVenues.length >= 2 && !savedPublicRefs) {
+                    const city = (venue) => [venue.city, venue.state].filter(Boolean).join(', ');
+                    restoreTrip({ origin: city(publicVenues[0]), destination: city(publicVenues.at(-1)), waypoints: publicVenues.slice(1, -1).slice(0, 8).map(city), corridorMi: 50, dateRange: { start: params.get('start') || '', end: params.get('end') || '' } });
+                }
+            } catch (cause) { if (!controller.signal.aborted) setError('Shared Public Plan Could Not Be Read. No Private Account Data Was Used As A Fallback.'); }
+        })();
+        return () => controller.abort();
+    }, [restoreTrip, savedPublicRefs]);
 
     // Restore a shared trip from the URL (?from=&to=&corridor=). The lobby's
     // deep-link reader only consumes pod/q/state/game/sort/radius, so nothing
@@ -202,8 +281,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             const start = params.get('start') || '';
             const end = params.get('end') || '';
             if (start || end) setDateRange({ start, end });
-            if (!from && !to) {
-                const draft = JSON.parse(sessionStorage.getItem(TRIP_DRAFT_KEY) || 'null');
+            if (!from && !to && !params.has('accountPlan') && !params.has('planVenues') && !params.has('planSeries')) {
+                const draft = JSON.parse(sessionStorage.getItem(tripDraftKey()) || 'null');
                 if (draft && typeof draft === 'object') {
                     setOrigin(String(draft.origin || ''));
                     if (draft.origin) originAutoRef.current = true;
@@ -220,7 +299,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     useEffect(() => {
         if (!draftHydrated) return;
         try {
-            sessionStorage.setItem(TRIP_DRAFT_KEY, JSON.stringify({ origin, destination, waypoints, corridorMi, dateRange }));
+            if ((getAuthUser()?.id || null) !== draftOwner.current) return;
+            sessionStorage.setItem(tripDraftKey(), JSON.stringify({ origin, destination, waypoints, corridorMi, dateRange }));
         } catch { /* storage unavailable */ }
     }, [draftHydrated, origin, destination, waypoints, corridorMi, dateRange]);
 
@@ -234,7 +314,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         }
     }, [locationCity, locationState, userLocation]);
 
-    const addWaypoint = () => setWaypoints(prev => [...prev, '']);
+    const addWaypoint = () => setWaypoints(prev => prev.length < 8 ? [...prev, ''] : prev);
     const removeWaypoint = (idx) => setWaypoints(prev => prev.filter((_, i) => i !== idx));
     const updateWaypoint = (idx, val) => setWaypoints(prev => prev.map((w, i) => i === idx ? val : w));
 
@@ -482,6 +562,24 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 <h2 id="pnm-road-trip-title">Poker Road Trip Planner</h2>
             </div>
 
+            {(publicPlan || sharePreview) && <div className="rtp-venues-section" data-player-planning="public-plan">
+                <h3>{publicPlan ? 'Public Plan Stops' : 'Public Share Preview'}</h3>
+                <p className="rtp-estimate-note">Only Published Venues, Public Events And Travel Dates Are Included. Private Origins, Destinations And Invitations Are Excluded.</p>
+                <p className="rtp-estimate-note">Travel Dates: {(publicPlan || sharePreview).dateRange.start || 'Not Set'} To {(publicPlan || sharePreview).dateRange.end || 'Not Set'}</p>
+                {(publicPlan || sharePreview).unavailable > 0 && <p className="rtp-error" role="status">{(publicPlan || sharePreview).unavailable} Listings Are Currently Unavailable. No Private Listing Was Substituted.</p>}
+                {(publicPlan || sharePreview).venues.map((venue) => <div className="rtp-venue-card" key={venue.id}>
+                    <a className="rtp-saved-trip-load" href={`/hub/venues/${encodeURIComponent(venue.id)}`}>{venue.name}</a>
+                    <p>{venue.city}, {venue.state}</p>
+                    <button type="button" className="rtp-saved-trip-load" onClick={() => openNativeMaps({ address: [venue.address, venue.name, venue.city, venue.state].filter(Boolean).join(', '), lat: Number(venue.latitude), lng: Number(venue.longitude), mode: 'directions' })}>Public Venue Directions</button>
+                </div>)}
+                {(publicPlan || sharePreview).series.map((event) => <div className="rtp-series-card" key={event.id}><a className="rtp-saved-trip-load" href={`/hub/series/${encodeURIComponent(event.id)}`}>{event.name}</a><p>{event.start_date} To {event.end_date || 'Date Unavailable'}</p></div>)}
+                {sharePreview && <button type="button" className="rtp-result-action" onClick={async () => {
+                    try { await navigator.clipboard.writeText(`${window.location.origin}${sharePreview.url}`); setShareStatus({ ok: true, msg: 'Public Venue And Event Plan Copied. Private Addresses Were Excluded.' }); }
+                    catch (_) { setShareStatus({ ok: false, msg: 'Could Not Copy The Safe Public Link. No Private Address Link Was Created.' }); }
+                }}>Copy Reviewed Public Plan</button>}
+                {shareStatus && <p role="status">{shareStatus.msg}</p>}
+            </div>}
+
             <div className="rtp-form">
                 {/* Every field sits in the painted search well at its native
                     ratio; the route role prints as live lit-blue type. */}
@@ -532,7 +630,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     </span>
                 </div>
 
-                <button type="button" className="rtp-add-waypoint" onClick={addWaypoint}>
+                <button type="button" className="rtp-add-waypoint" onClick={addWaypoint} disabled={waypoints.length >= 8}>
                     Add Stop
                 </button>
 
@@ -568,6 +666,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
                 {error && <div className="rtp-error" role="alert">{error}</div>}
 
+                <p className="rtp-estimate-note">Account Trips Are Private. Public Sharing Includes Only Public Venue IDs And Travel Dates, Never Your Typed Origin, Destination, Or Home-Game Details.</p>
+                {origin.trim() && destination.trim() && <SavePlayerPlan kind="trip" context="roadtrip-current" defaultName="My Poker Trip" document={{ schemaVersion: 1, origin, destination, waypoints: waypoints.filter(Boolean), corridorMi, dateRange, venueIds: routeResult ? routeResult.venues.filter((venue) => venue.venue_type !== 'home_game' && Number.isSafeInteger(Number(venue.id)) && Number(venue.id) > 0).slice(0, 50).map((venue) => Number(venue.id)) : savedPublicRefs?.venueIds || [], seriesIds: routeResult ? routeResult.series.filter((event) => Number.isSafeInteger(Number(event.id)) && Number(event.id) > 0).slice(0, 50).map((event) => Number(event.id)) : savedPublicRefs?.seriesIds || [] }} />}
+
                 {/* Saved Trips Collapsible */}
                 {savedTrips.length > 0 && (
                     <div className="rtp-saved-trips">
@@ -578,7 +679,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             aria-expanded={savedTripsOpen}
                             aria-controls={savedTripsId}
                         >
-                            {savedTripsOpen ? 'Hide' : 'Show'} Saved Trips ({savedTrips.length})
+                            {savedTripsOpen ? 'Hide' : 'Show'} Device Trips ({savedTrips.length})
                         </button>
                         {savedTripsOpen && (
                             <div className="rtp-saved-trips-list" id={savedTripsId}>
@@ -598,11 +699,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setOrigin(trip.origin || '');
-                                                    setDestination(trip.destination || '');
-                                                    setWaypoints(trip.waypoints || []);
-                                                    setCorridorMi(trip.corridorMi || 50);
-                                                    setDateRange(trip.dateRange || { start: '', end: '' });
+                                                    restoreTrip(trip);
                                                     setSavedTripsOpen(false);
                                                 }}
                                                 className="rtp-saved-trip-load"
@@ -613,13 +710,14 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                                 type="button"
                                                 onClick={() => {
                                                     const updated = savedTrips.filter((_, idx) => idx !== i);
-                                                    setSavedTrips(updated);
-                                                    try { localStorage.setItem('pnm_saved_trips', JSON.stringify(updated)); } catch { /* silent */ }
+                                                    try { localStorage.setItem('pnm_saved_trips', JSON.stringify(updated)); setSavedTrips(updated); }
+                                                    catch { setError('Device Trip Could Not Be Deleted. It Has Been Retained.'); }
                                                 }}
                                                 className="rtp-saved-trip-delete"
                                             >
                                                 Delete
                                             </button>
+                                            <button type="button" className="rtp-saved-trip-load" onClick={() => { setImportDeviceTrip(trip); setConfirmDeviceOwner(false); }}>Import Device Trip</button>
                                         </div>
                                     </div>
                                 ))}
@@ -627,6 +725,12 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         )}
                     </div>
                 )}
+                {importDeviceTrip && <div className="rtp-saved-trips">
+                    <p className="rtp-estimate-note">This Device May Be Shared. Confirm This Trip Is Yours Before Copying It Into Your Account. The Device Copy Will Be Retained.</p>
+                    <label className="rtp-device-owner"><input type="checkbox" checked={confirmDeviceOwner} onChange={(event) => setConfirmDeviceOwner(event.target.checked)} />This Device Trip Is Mine</label>
+                    {confirmDeviceOwner && <SavePlayerPlan kind="trip" context="roadtrip-device-import" defaultName="Imported Poker Trip" document={{ schemaVersion: 1, origin: importDeviceTrip.origin, destination: importDeviceTrip.destination, waypoints: importDeviceTrip.waypoints || [], corridorMi: importDeviceTrip.corridorMi || 50, dateRange: importDeviceTrip.dateRange || { start: '', end: '' }, venueIds: [] }} />}
+                    <button type="button" className="rtp-saved-trip-delete" onClick={() => { setImportDeviceTrip(null); setConfirmDeviceOwner(false); }}>Close Import</button>
+                </div>}
             </div>
 
             {/* Results */}
@@ -688,26 +792,18 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 // it resolved told users a link was copied when the
                                 // write had been rejected.
                                 try {
-                                    const params = new URLSearchParams();
-                                    params.set('pod', 'roadtrip');
-                                    if (origin) params.set('from', origin);
-                                    if (destination) params.set('to', destination);
-                                    waypoints.filter(Boolean).slice(0, 8).forEach((waypoint) => params.append('via', waypoint));
-                                    if (corridorMi !== 50) params.set('corridor', String(corridorMi));
-                                    if (dateRange.start) params.set('start', dateRange.start);
-                                    if (dateRange.end) params.set('end', dateRange.end);
-                                    const url = `${window.location.origin}/hub/poker-near-me/lobby?${params.toString()}`;
-                                    if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
-                                    await navigator.clipboard.writeText(url);
-                                    setShareStatus({ ok: true, msg: 'Trip link copied to clipboard.' });
-                                } catch {
-                                    setShareStatus({ ok: false, msg: 'Could not copy the link. Copy the page URL instead.' });
+                                    const venueIds = routeResult.venues.filter((venue) => venue.venue_type !== 'home_game' && Number.isSafeInteger(Number(venue.id)) && Number(venue.id) > 0).slice(0, 50).map((venue) => Number(venue.id));
+                                    const events = routeResult.series.filter((event) => Number.isSafeInteger(Number(event.id)) && Number(event.id) > 0).slice(0, 50);
+                                    const url = buildSafeTripShareUrl({ schemaVersion: 1, origin, destination, waypoints: waypoints.filter(Boolean), corridorMi, dateRange, venueIds, seriesIds: events.map((event) => Number(event.id)) });
+                                    setSharePreview({ url, venues: routeResult.venues.filter((venue) => venueIds.includes(Number(venue.id))), series: events, dateRange, unavailable: 0 });
+                                    setShareStatus(null);
+                                } catch (cause) {
+                                    setShareStatus({ ok: false, msg: cause.message || 'A Safe Public Plan Could Not Be Created.' });
                                 }
-                                setTimeout(() => setShareStatus(null), 4000);
                             }}
                             className="rtp-result-action rtp-result-action--share"
                         >
-                            Share Trip
+                            Review Public Share
                         </button>
                         <button
                             type="button"

@@ -39,6 +39,8 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../../src/services/pokerNearMeSearchHistory';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../../src/services/pokerNearMePreferences';
+import { getAuthUser } from '../../../src/lib/authUtils';
+import { PreferenceRecovery } from '../../../src/components/poker-near-me/PlayerPlanningPanel';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
@@ -295,6 +297,10 @@ export default function PokerNearMeLobby() {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
   const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
+  const [preferenceError, setPreferenceError] = useState('');
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
+  const preferenceWrites = useRef(new Map());
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [geofenceAlert, setGeofenceAlert] = useState(null);
   const [geofenceStatus, setGeofenceStatus] = useState(null); // 'active' | 'denied' | 'error'
@@ -435,6 +441,10 @@ export default function PokerNearMeLobby() {
     const params = new URLSearchParams(window.location.search);
     const pod = params.get('pod');
     const q = params.get('q');
+    if (params.has('pnm_planning')) {
+      setSearchQuery(q || '');
+      requestAnimationFrame(() => requestAnimationFrame(() => setShowGlobalSearch(true)));
+    }
     if (q) {
       setSearchQuery(q);
       // Deep-link search: fetch venues matching the URL query
@@ -495,6 +505,8 @@ export default function PokerNearMeLobby() {
     if (!hasHydratedRef.current) return;
 
     const params = new URLSearchParams();
+    const planning = new URLSearchParams(window.location.search).get('pnm_planning');
+    if (planning) params.set('pnm_planning', planning);
     if (activePod) params.set('pod', activePod);
     if (searchQuery) params.set('q', searchQuery);
     // Persist filter state for shareable URLs
@@ -730,9 +742,9 @@ export default function PokerNearMeLobby() {
     }
     try {
       const prefs = await getPokerNearMePreferences(userId);
-      setPreferences(prefs);
+      if (getAuthUser()?.id === userId) setPreferences(prefs);
     } catch (err) {
-      console.warn('Failed to fetch preferences:', err);
+      if (getAuthUser()?.id === userId) setPreferenceError('Account Preferences Could Not Be Read. Current Local Settings Are Not Confirmed Saved.');
     } finally {
       setPrefsLoaded(true);
     }
@@ -1428,10 +1440,20 @@ export default function PokerNearMeLobby() {
   // Optimistic local update + write-through to the same Supabase preference
   // store the rest of this page uses (getPokerNearMePreferences).
   const updateMenuPreference = useCallback((key, value) => {
+    const prior = preferencesRef.current[key];
+    const operation = Symbol(key);
+    preferenceWrites.current.set(key, operation);
+    const account = userId;
+    setPreferenceError('');
     setPreferences(prev => ({ ...prev, [key]: value }));
     if (userId) {
       updatePokerNearMePreferences(userId, { [key]: value })
-        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        .catch(() => {
+          if (getAuthUser()?.id !== account || preferenceWrites.current.get(key) !== operation) return;
+          setPreferences(prev => ({ ...prev, [key]: prior }));
+          setPreferenceError('Preference Save Was Not Confirmed. The Previous Setting Has Been Restored. Check The Original Request Before Retrying.');
+          window.dispatchEvent(new Event('pnm-preference-request'));
+        });
     }
   }, [userId]);
 
@@ -2561,6 +2583,8 @@ export default function PokerNearMeLobby() {
 
         <PullToRefresh onRefresh={handleRefreshAll} disabled={anySheetOpen}>
         <section id="pnm-lobby-main" className="pnm-lobby-stage" aria-label="Poker Near Me discovery lobby">
+          {preferenceError && <p role="alert" className="pnm-section__hint">{preferenceError}</p>}
+          <PreferenceRecovery userId={userId} />
           {/* Layer 1 — Background */}
           <LobbyCanvas />
 

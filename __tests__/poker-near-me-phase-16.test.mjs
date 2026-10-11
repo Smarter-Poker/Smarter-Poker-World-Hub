@@ -204,7 +204,10 @@ test('bounded analytics persistence evicts cache data and strips large payloads'
   const runtimeWindow = { localStorage: analyticsStorage, __SEARCH_ANALYTICS__: [] };
   assert.equal(trackSearchEvent('search', { query: 'St Augustine', venues: Array(500) }, runtimeWindow), true);
   const persisted = JSON.parse(values.get('sp-search-analytics'));
-  assert.equal(persisted.at(-1).query, 'St Augustine');
+  assert.equal(persisted.at(-1).queryLength, 'St Augustine'.length);
+  assert.equal(persisted.at(-1).privacyVersion, 1);
+  assert.equal('query' in persisted.at(-1), false);
+  assert.equal('query' in runtimeWindow.__SEARCH_ANALYTICS__.at(-1).data, false);
   assert.equal('venues' in persisted.at(-1), false);
 });
 

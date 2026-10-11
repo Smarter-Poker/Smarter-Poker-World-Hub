@@ -20,6 +20,8 @@ import { openNativeMaps } from '../../utils/openNativeMaps';
 import { acquireScrollLock } from '../../lib/scrollLock';
 import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 import PokerNearMeConsole, { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import { SavePlayerPlan } from './PlayerPlanningPanel';
+import { validateSearchDocument } from '../../lib/poker-near-me/playerPlanning';
 
 const VenueMap = dynamic(
   () => import('./VenueMap').catch(() => () => null),
@@ -624,6 +626,7 @@ export default function GlobalSearchOverlay({
   const abortControllerRef = useRef(null);
   // Monotonic submit counter — only the newest submit may clear the loading flag
   const submitSeqRef = useRef(0);
+  const savedSearchRef = useRef(null);
   // A11Y: dialog element (focus trap) + the control that had focus before opening
   const dialogRef = useRef(null);
   const restoreFocusRef = useRef(null);
@@ -677,8 +680,13 @@ export default function GlobalSearchOverlay({
     let submitTimer;
     let focusTimer;
     if (isOpen) {
+      savedSearchRef.current = null;
+      try {
+        const saved = new URLSearchParams(window.location.search).get('pnm_planning');
+        if (saved) savedSearchRef.current = validateSearchDocument(JSON.parse(saved));
+      } catch (_) { savedSearchRef.current = { invalid: true }; setSearchError(true); }
       setLocalQuery(searchQuery || '');
-      if (searchQuery) {
+      if (searchQuery || savedSearchRef.current) {
         setPhase('results');
         submitTimer = setTimeout(() => handleSubmit(null, searchQuery), 10);
       } else {
@@ -835,6 +843,10 @@ export default function GlobalSearchOverlay({
     setMissingFilterCoverage(0);
     setVisibleResultCount(20);
     setNameMatchFallback(false);
+    savedSearchRef.current = null;
+    const typedUrl = new URL(window.location.href);
+    typedUrl.searchParams.delete('pnm_planning');
+    window.history.replaceState(null, '', typedUrl.pathname + typedUrl.search);
     // A keystroke invalidates both submit and typeahead ownership immediately.
     // Debouncing a replacement request must not leave the old one authoritative.
     ++submitSeqRef.current;
@@ -894,8 +906,9 @@ export default function GlobalSearchOverlay({
   // Full search on submit — supports natural language queries
   const handleSubmit = useCallback(async (e, overrideQuery) => {
     e?.preventDefault?.();
-    const rawQuery = (overrideQuery || localQuery).trim();
-    if (!rawQuery) return;
+    const rawQuery = (overrideQuery ?? localQuery).trim();
+    if (!rawQuery && !savedSearchRef.current) return;
+    if (savedSearchRef.current?.invalid) { setSearchError(true); setIsLoading(false); return; }
     inputRef.current?.blur();
     setPhase('results');
     setIsLoading(true);
@@ -915,6 +928,24 @@ export default function GlobalSearchOverlay({
 
     // Parse for natural language intent
     const intent = parseNaturalLanguageQuery(rawQuery);
+    const saved = savedSearchRef.current?.query === rawQuery ? savedSearchRef.current : null;
+    if (saved) {
+      const filters = saved.filters;
+      if (filters.state || saved.location?.state) intent.stateCode = filters.state || saved.location.state;
+      if (filters.game) intent.gameType = filters.game;
+      if (filters.date) intent.timeWindow = filters.date === 'tonight' ? 'today' : filters.date;
+      if (filters.stakes) {
+        const stakes = filters.stakes.match(/^\$?(\d+(?:\.\d+)?)\/\$?(\d+(?:\.\d+)?)$/);
+        if (!stakes) { setSearchError(true); setIsLoading(false); return; }
+        intent.stakes = [Number(stakes[1]), Number(stakes[2])];
+      }
+      if ((intent.timeWindow && !timeWindowRange(intent.timeWindow)) || (intent.gameType && !['NLH', 'PLO', 'Mixed', 'cash', 'live', 'tournament'].includes(intent.gameType))) {
+        setSearchError(true); setIsLoading(false); return;
+      }
+      if (filters.type === 'tournaments') intent.tournament = true;
+      if (filters.type === 'live' && !intent.gameType) intent.gameType = 'cash';
+      intent.isNaturalLanguage = true;
+    }
     setNlIntent(null);
     setSelectedIndex(-1);
     const apiQuery = intent.isNaturalLanguage ? intent.cleanQuery : rawQuery;
@@ -927,6 +958,8 @@ export default function GlobalSearchOverlay({
     const params = new URLSearchParams({ limit: '200', offset: '0', sort: 'trust' });
     if (apiQuery) params.set('search', apiQuery);
     if (intent.stateCode) params.set('state', intent.stateCode);
+    if (saved?.location?.city) params.set('city', saved.location.city);
+    if (saved?.filters.type === 'home-games') params.set('type', 'home_game');
     // The venues API supports tournaments=true — honour a "tournaments" intent server-side
     if (intent.tournament) { params.set('tournaments', 'true'); applied.tournament = true; if (intent.gameType === 'tournament') applied.gameType = true; }
     if (userLocation?.lat && userLocation?.lng) {
@@ -991,6 +1024,7 @@ export default function GlobalSearchOverlay({
         list = list.filter(v => venueMatchesStakes(v, intent.stakes));
         applied.stakes = true;
       }
+      if (saved?.filters.type === 'series' || saved?.filters.type === 'tours') list = [];
       setVenueResults(list);
     } catch (err) {
       if (!isCurrentSubmit()) return;
@@ -1016,14 +1050,17 @@ export default function GlobalSearchOverlay({
       matchedSeries = matchedSeries.filter(s => overlapsWindow(s, range));
       applied.timeWindow = true;
     }
-    setTourResults(matchTours(keyword, Infinity).filter(t => tourMatchesDiscoveryFilters(t, intent.stateCode, range)));
-    setSeriesResults(matchedSeries);
+    const category = saved?.filters.type || 'all';
+    if (saved?.location?.city) matchedSeries = matchedSeries.filter((item) => String(item.city || '').toLowerCase() === saved.location.city.toLowerCase());
+    setTourResults(['all', 'tours'].includes(category) ? matchTours(keyword, Infinity).filter(t => tourMatchesDiscoveryFilters(t, intent.stateCode, range) && (!saved?.location?.city || String(t.city || '').toLowerCase() === saved.location.city.toLowerCase())) : []);
+    setSeriesResults(['all', 'series', 'tournaments'].includes(category) ? matchedSeries : []);
     setNlIntent(intent.isNaturalLanguage && (applied.stateCode || applied.timeWindow || applied.gameType || applied.stakes)
       ? { ...intent, applied }
       : null);
     if (isCurrentSubmit()) setIsLoading(false);
 
     // Save to recents
+    if (!rawQuery) return;
     const normalized = rawQuery.toLowerCase();
     setRecentSearches(prev => {
       const next = [normalized, ...prev.filter(q => q !== normalized)].slice(0, 5);
@@ -1235,7 +1272,7 @@ export default function GlobalSearchOverlay({
 
           {/* Always present so the header never jumps on the first keystroke;
               an empty query leaves it disabled on the steel plate. */}
-          <button type="button" className="gso-console-submit" onClick={handleSubmit} disabled={!localQuery.trim()}>
+          <button type="button" className="gso-console-submit" onClick={handleSubmit} disabled={!localQuery.trim() && !savedSearchRef.current}>
             <span className="gso-console-submit__label">Search</span>
           </button>
         </div>
@@ -1393,6 +1430,16 @@ export default function GlobalSearchOverlay({
                   )}
                 </div>
               )}
+              {phase === 'results' && !isLoading && !searchError && localQuery.trim() && <SavePlayerPlan
+                kind="search" context="global-search" defaultName="My Poker Search"
+                document={savedSearchRef.current?.query === localQuery.trim() ? savedSearchRef.current : { schemaVersion: 1, query: localQuery.trim(), filters: {
+                  state: nlIntent?.stateCode || '', game: nlIntent?.gameType || '',
+                  stakes: nlIntent?.stakes?.join('/') || '', date: nlIntent?.timeWindow || '', type: 'all',
+                }, location: savedSearchRef.current?.query === localQuery.trim() ? savedSearchRef.current.location : null }}
+              />}
+              {phase === 'results' && !isLoading && !searchError && savedSearchRef.current?.query === localQuery.trim() && <p className="gso-summary__scope" data-player-planning="search-scope">
+                Saved Search Filters: {Object.values(savedSearchRef.current.filters).filter(Boolean).join(' / ')}. Location: {[savedSearchRef.current.location?.city, savedSearchRef.current.location?.state].filter(Boolean).join(', ') || 'Not Saved'}.
+              </p>}
 
               {/* ───── MAP — under the summary, inside the one scroller. Pinned
                    above the list it took 360-520px with its own inner scroll, so its

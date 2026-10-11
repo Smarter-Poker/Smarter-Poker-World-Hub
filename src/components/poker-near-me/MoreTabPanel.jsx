@@ -27,7 +27,7 @@ const TOOL_CARDS = [
     { id: 'besttime', title: 'Best Time To Go', desc: 'Busiest Hours When Enough Qualified Observed History Is Available', icon: 'calendar' },
     { id: 'roadtrip', title: 'Road Trip Planner', desc: 'Plan Multi-Stop Poker Road Trips Along Your Travel Route', icon: 'directions' },
     { id: 'social', title: 'Social Feed', desc: 'Connect With Players At Nearby Venues And Share Updates', icon: 'globe' },
-    { id: 'alerts', title: 'Game Alerts', desc: 'Get Notified When Your Favorite Games And Stakes Go Live', icon: 'saved' },
+    { id: 'alerts', title: 'Game Alerts', desc: 'Match Published Tournaments And Review Notification Availability', icon: 'saved' },
     { id: 'nearmenow', title: 'Near Me Now', desc: 'Instantly Find The Closest Poker Rooms To Your Location', icon: 'location' },
     { id: 'tripcost', title: 'Trip Cost Calculator', desc: 'Estimate Gas, Hotel, And Total Trip Expenses Before You Go', icon: 'directions' },
 ];

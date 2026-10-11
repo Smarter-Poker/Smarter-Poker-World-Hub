@@ -21,6 +21,8 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Vary', 'Authorization, Cookie');
   const supabase = getSupabase();
 
   try {
@@ -58,7 +60,7 @@ export default async function handler(req, res) {
       }
       
       // Check for duplicate
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('venue_game_alerts')
         .select('id')
         .eq('user_id', user_id)
@@ -66,9 +68,10 @@ export default async function handler(req, res) {
         .eq('game_type', game_type)
         .eq('active', true)
         .maybeSingle();
+      if (existingError) throw existingError;
       
       if (existing) {
-        return res.status(200).json({ message: 'Alert already exists', alert: existing });
+        return res.status(200).json({ message: 'Game Preference Saved. Background Game-Start Delivery Is Not Available.', delivery_status: 'preference_only', alert: existing });
       }
       
       const { data, error } = await supabase
@@ -85,7 +88,8 @@ export default async function handler(req, res) {
         .maybeSingle();
       
       if (error) throw error;
-      return res.status(201).json({ alert: data });
+      if (!data) throw new Error('Game preference persistence could not be confirmed');
+      return res.status(201).json({ message: 'Game Preference Saved. Background Game-Start Delivery Is Not Available.', delivery_status: 'preference_only', alert: data });
     }
     
     if (req.method === 'DELETE') {

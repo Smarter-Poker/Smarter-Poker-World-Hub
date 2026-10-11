@@ -1700,3 +1700,4 @@
     animation: none;
   }
 }
+.rtp-device-owner { display: flex; align-items: center; gap: 12px; min-height: 48px; }

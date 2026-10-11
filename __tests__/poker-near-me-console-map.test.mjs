@@ -272,7 +272,9 @@ test('road-trip markers and popups print on the shared painted map presentation'
   assert.match(planner, /validateTravelDateRange\(dateRange\)/);
   assert.match(planner, /filterSeriesForRoute\(/);
   assert.match(planner, /localStorage\.setItem\('pnm_saved_trips'/);
-  assert.match(planner, /sessionStorage\.setItem\(TRIP_DRAFT_KEY/);
+  assert.match(planner, /sessionStorage\.setItem\(tripDraftKey\(\)/);
+  assert.match(planner, /pnm_trip_draft_v2:\$\{getAuthUser\(\)\.id\}/);
+  assert.match(planner, /const TRIP_DRAFT_KEY = 'pnm_trip_draft_v1'/);
 });
 
 test('road-trip form controls sit in painted wells and plates without frames on frames', async () => {

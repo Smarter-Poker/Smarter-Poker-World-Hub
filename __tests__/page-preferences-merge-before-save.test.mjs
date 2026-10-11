@@ -46,6 +46,9 @@ async function loadService(file, fake) {
   let src = read(file);
   const key = `__fake_${Math.random().toString(36).slice(2)}`;
   globalThis[key] = fake;
+  const storage = new Map();
+  globalThis[key].storage = { getItem: name => storage.get(name) || null, setItem: (name, value) => storage.set(name, value), removeItem: name => storage.delete(name) };
+  src = `const sessionStorage = globalThis['${key}'].storage;\n${src}`;
   globalThis[key].derivePreferenceSyncState = derivePreferenceSyncState;
   src = src.replace(
     /import \{ supabase \} from '\.\.\/lib\/supabase';/,
@@ -59,6 +62,9 @@ async function loadService(file, fake) {
     /import \{ derivePreferenceSyncState \} from '\.\.\/lib\/trivia\/progressAccount\.mjs';/,
     `const derivePreferenceSyncState = (...a) => globalThis['${key}'].derivePreferenceSyncState(...a);`
   );
+  src = src.replace(/import \{ newPlanningOperationId, patchPlayerPreferences, checkPlanningOperation \} from '\.\/pokerNearMePlayerPlanning';/, `const newPlanningOperationId = () => '11111111-1111-4111-8111-111111111111'; const patchPlayerPreferences = async ({operation_id,patch}) => { const result = await supabase.rpc('pnm_patch_preferences', {p_request_id:operation_id,p_patch:patch}); if(result.error) throw result.error; return {operation_id,action:'preferences',preferences:result.data}; }; const checkPlanningOperation = async () => null;`);
+  src = src.replace(/import \{ validatePreferencePatch \} from '\.\.\/lib\/poker-near-me\/playerPlanning';/, 'const validatePreferencePatch = value => value;');
+  src = src.replace(/import \{ getAuthUser \} from '\.\.\/lib\/authUtils';/, `const getAuthUser = () => ({id:'${USER}'});`);
   assert.doesNotMatch(src, /^import /m, `${file} gained an import this harness does not stub`);
   const out = join(TMP, `${key}.mjs`);
   writeFileSync(out, src);
@@ -89,6 +95,7 @@ function fakeClient({ column, stored, readError = null, rpcError = null }) {
     async rpc(name, args) {
       calls.rpc.push({ name, args });
       if (rpcError) return { data: null, error: rpcError };
+      if (name === 'pnm_patch_preferences') return { data: { ...(stored || {}), ...args.p_patch }, error: null };
       if (name === 'update_trivia_preferences_cas') {
         return {
           data: {
@@ -137,13 +144,6 @@ const SERVICES = [
     patch: { emailDigest: true },
   },
   {
-    file: 'src/services/pokerNearMePreferences.js',
-    fn: 'updatePokerNearMePreferences',
-    column: 'poker_near_me_preferences',
-    stored: { geofenceAlerts: false, lastLocationCity: 'Austin' },
-    patch: { showNewcomerFriendly: false },
-  },
-  {
     file: 'src/services/triviaPreferences.js',
     fn: 'updateTriviaPreferences',
     column: 'trivia_preferences',
@@ -152,6 +152,19 @@ const SERVICES = [
     rpc: 'update_trivia_preferences_cas',
   },
 ];
+
+test('Poker Near Me sends a scoped atomic patch instead of replacing the stored blob', async () => {
+  const fake = fakeClient({ column: 'poker_near_me_preferences', stored: { lastLocationCity: 'Austin', geofenceAlerts: false }, readError: new Error('Client read unavailable') });
+  const mod = await loadService('src/services/pokerNearMePreferences.js', fake);
+  const result = await mod.updatePokerNearMePreferences(USER, { showNewcomerFriendly: false });
+  assert.equal(fake.calls.reads, 0, 'A browser read is not used to manufacture a replacement');
+  assert.equal(fake.calls.rpc[0].name, 'pnm_patch_preferences');
+  assert.deepEqual(fake.calls.rpc[0].args.p_patch, { showNewcomerFriendly: false });
+  assert.equal(fake.calls.rpc[0].args.p_user_id, undefined, 'JWT owns the account');
+  assert.equal(result.lastLocationCity, 'Austin');
+  assert.equal(result.geofenceAlerts, false);
+  assert.equal(result.showNewcomerFriendly, false);
+});
 
 for (const svc of SERVICES) {
   test(`${svc.fn} merges the patch over the stored value before saving`, async () => {
@@ -212,6 +225,15 @@ test('Poker Near Me does not disguise any save error as a pending migration', as
   const mod = await loadService('src/services/pokerNearMePreferences.js', fake);
   await assert.rejects(() => mod.updatePokerNearMePreferences(USER, { geofenceAlerts: false }));
 });
+test('Poker Near Me authenticated preference read errors are unavailable, not loaded defaults', async () => {
+  for (const code of ['42703', '57014', '42501']) {
+    const readError = { code, message: 'Preference read unavailable' };
+    const fake = fakeClient({ column: 'poker_near_me_preferences', stored: {}, readError });
+    const mod = await loadService('src/services/pokerNearMePreferences.js', fake);
+    await assert.rejects(mod.getPokerNearMePreferences(USER), error => error === readError);
+    assert.deepEqual(await mod.getPokerNearMePreferences(null), { geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true }, 'Signed-out defaults remain supported');
+  }
+});
 
 test('every Poker Near Me call site handles a rejected save', () => {
   for (const file of ['pages/hub/poker-near-me/lobby.js', 'pages/hub/poker-near-me/[pnmTab].js']) {
@@ -265,7 +287,7 @@ test('no caller sends update_page_preferences a column it does not accept', () =
   };
   walk('src');
   walk('pages');
-  assert.ok(callers >= 4, 'sanity: the four page-preference services call the RPC');
+  assert.ok(callers >= 3, 'sanity: remaining generic preference services call their existing RPC');
   assert.deepEqual(offenders, [],
     `update_page_preferences accepts only maintained non-Trivia columns: ${ACCEPTED_COLUMNS.join(', ')}`);
 });

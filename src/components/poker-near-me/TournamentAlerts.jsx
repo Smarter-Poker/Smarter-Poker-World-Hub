@@ -300,6 +300,8 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
                 </button>
             </div>
 
+            <p className="ta-empty" role="status">Tournament Match Notifications Run While This Page Is Open And Browser Permission Is Granted. Saved Preferences Do Not Guarantee Background Tournament Delivery.</p>
+
             {/* Alert matches banner */}
             {prefs.enabled && matches.length > 0 && (
                 <div className="ta-matches-banner">
