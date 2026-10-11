@@ -1,0 +1,1525 @@
+{
+"grants": [{"table_name":"page_claims","grantee":"postgres","privilege_type":"INSERT"},{"table_name":"page_claims","grantee":"postgres","privilege_type":"SELECT"},{"table_name":"page_claims","grantee":"postgres","privilege_type":"UPDATE"},{"table_name":"page_claims","grantee":"postgres","privilege_type":"DELETE"},{"table_name":"page_claims","grantee":"postgres","privilege_type":"TRUNCATE"},{"table_name":"page_claims","grantee":"postgres","privilege_type":"REFERENCES"},{"table_name":"page_claims","grantee":"postgres","privilege_type":"TRIGGER"},{"table_name":"page_claims","grantee":"authenticated","privilege_type":"SELECT"},{"table_name":"page_claims","grantee":"authenticated","privilege_type":"REFERENCES"},{"table_name":"page_claims","grantee":"authenticated","privilege_type":"TRIGGER"},{"table_name":"page_claims","grantee":"service_role","privilege_type":"INSERT"},{"table_name":"page_claims","grantee":"service_role","privilege_type":"SELECT"},{"table_name":"page_claims","grantee":"service_role","privilege_type":"UPDATE"},{"table_name":"page_claims","grantee":"service_role","privilege_type":"DELETE"},{"table_name":"page_claims","grantee":"service_role","privilege_type":"TRUNCATE"},{"table_name":"page_claims","grantee":"service_role","privilege_type":"REFERENCES"},{"table_name":"page_claims","grantee":"service_role","privilege_type":"TRIGGER"},{"table_name":"poker_venues","grantee":"postgres","privilege_type":"INSERT"},{"table_name":"poker_venues","grantee":"postgres","privilege_type":"SELECT"},{"table_name":"poker_venues","grantee":"postgres","privilege_type":"UPDATE"},{"table_name":"poker_venues","grantee":"postgres","privilege_type":"DELETE"},{"table_name":"poker_venues","grantee":"postgres","privilege_type":"TRUNCATE"},{"table_name":"poker_venues","grantee":"postgres","privilege_type":"REFERENCES"},{"table_name":"poker_venues","grantee":"postgres","privilege_type":"TRIGGER"},{"table_name":"poker_venues","grantee":"anon","privilege_type":"SELECT"},{"table_name":"poker_venues","grantee":"anon","privilege_type":"REFERENCES"},{"table_name":"poker_venues","grantee":"anon","privilege_type":"TRIGGER"},{"table_name":"poker_venues","grantee":"authenticated","privilege_type":"SELECT"},{"table_name":"poker_venues","grantee":"authenticated","privilege_type":"REFERENCES"},{"table_name":"poker_venues","grantee":"authenticated","privilege_type":"TRIGGER"},{"table_name":"poker_venues","grantee":"service_role","privilege_type":"INSERT"},{"table_name":"poker_venues","grantee":"service_role","privilege_type":"SELECT"},{"table_name":"poker_venues","grantee":"service_role","privilege_type":"UPDATE"},{"table_name":"poker_venues","grantee":"service_role","privilege_type":"DELETE"},{"table_name":"poker_venues","grantee":"service_role","privilege_type":"TRUNCATE"},{"table_name":"poker_venues","grantee":"service_role","privilege_type":"REFERENCES"},{"table_name":"poker_venues","grantee":"service_role","privilege_type":"TRIGGER"},{"table_name":"social_pages","grantee":"postgres","privilege_type":"INSERT"},{"table_name":"social_pages","grantee":"postgres","privilege_type":"SELECT"},{"table_name":"social_pages","grantee":"postgres","privilege_type":"UPDATE"},{"table_name":"social_pages","grantee":"postgres","privilege_type":"DELETE"},{"table_name":"social_pages","grantee":"postgres","privilege_type":"TRUNCATE"},{"table_name":"social_pages","grantee":"postgres","privilege_type":"REFERENCES"},{"table_name":"social_pages","grantee":"postgres","privilege_type":"TRIGGER"},{"table_name":"social_pages","grantee":"anon","privilege_type":"INSERT"},{"table_name":"social_pages","grantee":"anon","privilege_type":"SELECT"},{"table_name":"social_pages","grantee":"anon","privilege_type":"UPDATE"},{"table_name":"social_pages","grantee":"anon","privilege_type":"DELETE"},{"table_name":"social_pages","grantee":"anon","privilege_type":"REFERENCES"},{"table_name":"social_pages","grantee":"anon","privilege_type":"TRIGGER"},{"table_name":"social_pages","grantee":"authenticated","privilege_type":"INSERT"},{"table_name":"social_pages","grantee":"authenticated","privilege_type":"SELECT"},{"table_name":"social_pages","grantee":"authenticated","privilege_type":"UPDATE"},{"table_name":"social_pages","grantee":"authenticated","privilege_type":"DELETE"},{"table_name":"social_pages","grantee":"authenticated","privilege_type":"REFERENCES"},{"table_name":"social_pages","grantee":"authenticated","privilege_type":"TRIGGER"},{"table_name":"social_pages","grantee":"service_role","privilege_type":"INSERT"},{"table_name":"social_pages","grantee":"service_role","privilege_type":"SELECT"},{"table_name":"social_pages","grantee":"service_role","privilege_type":"UPDATE"},{"table_name":"social_pages","grantee":"service_role","privilege_type":"DELETE"},{"table_name":"social_pages","grantee":"service_role","privilege_type":"TRUNCATE"},{"table_name":"social_pages","grantee":"service_role","privilege_type":"REFERENCES"},{"table_name":"social_pages","grantee":"service_role","privilege_type":"TRIGGER"},{"table_name":"venue_claims","grantee":"postgres","privilege_type":"INSERT"},{"table_name":"venue_claims","grantee":"postgres","privilege_type":"SELECT"},{"table_name":"venue_claims","grantee":"postgres","privilege_type":"UPDATE"},{"table_name":"venue_claims","grantee":"postgres","privilege_type":"DELETE"},{"table_name":"venue_claims","grantee":"postgres","privilege_type":"TRUNCATE"},{"table_name":"venue_claims","grantee":"postgres","privilege_type":"REFERENCES"},{"table_name":"venue_claims","grantee":"postgres","privilege_type":"TRIGGER"},{"table_name":"venue_claims","grantee":"service_role","privilege_type":"INSERT"},{"table_name":"venue_claims","grantee":"service_role","privilege_type":"SELECT"},{"table_name":"venue_claims","grantee":"service_role","privilege_type":"UPDATE"},{"table_name":"venue_claims","grantee":"service_role","privilege_type":"DELETE"},{"table_name":"venue_claims","grantee":"service_role","privilege_type":"TRUNCATE"},{"table_name":"venue_claims","grantee":"service_role","privilege_type":"REFERENCES"},{"table_name":"venue_claims","grantee":"service_role","privilege_type":"TRIGGER"},{"table_name":"venue_game_schedules","grantee":"postgres","privilege_type":"INSERT"},{"table_name":"venue_game_schedules","grantee":"postgres","privilege_type":"SELECT"},{"table_name":"venue_game_schedules","grantee":"postgres","privilege_type":"UPDATE"},{"table_name":"venue_game_schedules","grantee":"postgres","privilege_type":"DELETE"},{"table_name":"venue_game_schedules","grantee":"postgres","privilege_type":"TRUNCATE"},{"table_name":"venue_game_schedules","grantee":"postgres","privilege_type":"REFERENCES"},{"table_name":"venue_game_schedules","grantee":"postgres","privilege_type":"TRIGGER"},{"table_name":"venue_game_schedules","grantee":"anon","privilege_type":"INSERT"},{"table_name":"venue_game_schedules","grantee":"anon","privilege_type":"SELECT"},{"table_name":"venue_game_schedules","grantee":"anon","privilege_type":"UPDATE"},{"table_name":"venue_game_schedules","grantee":"anon","privilege_type":"DELETE"},{"table_name":"venue_game_schedules","grantee":"anon","privilege_type":"REFERENCES"},{"table_name":"venue_game_schedules","grantee":"anon","privilege_type":"TRIGGER"},{"table_name":"venue_game_schedules","grantee":"authenticated","privilege_type":"INSERT"},{"table_name":"venue_game_schedules","grantee":"authenticated","privilege_type":"SELECT"},{"table_name":"venue_game_schedules","grantee":"authenticated","privilege_type":"UPDATE"},{"table_name":"venue_game_schedules","grantee":"authenticated","privilege_type":"DELETE"},{"table_name":"venue_game_schedules","grantee":"authenticated","privilege_type":"REFERENCES"},{"table_name":"venue_game_schedules","grantee":"authenticated","privilege_type":"TRIGGER"},{"table_name":"venue_game_schedules","grantee":"service_role","privilege_type":"INSERT"},{"table_name":"venue_game_schedules","grantee":"service_role","privilege_type":"SELECT"},{"table_name":"venue_game_schedules","grantee":"service_role","privilege_type":"UPDATE"},{"table_name":"venue_game_schedules","grantee":"service_role","privilege_type":"DELETE"},{"table_name":"venue_game_schedules","grantee":"service_role","privilege_type":"TRUNCATE"},{"table_name":"venue_game_schedules","grantee":"service_role","privilege_type":"REFERENCES"},{"table_name":"venue_game_schedules","grantee":"service_role","privilege_type":"TRIGGER"},{"table_name":"venue_managers","grantee":"postgres","privilege_type":"INSERT"},{"table_name":"venue_managers","grantee":"postgres","privilege_type":"SELECT"},{"table_name":"venue_managers","grantee":"postgres","privilege_type":"UPDATE"},{"table_name":"venue_managers","grantee":"postgres","privilege_type":"DELETE"},{"table_name":"venue_managers","grantee":"postgres","privilege_type":"TRUNCATE"},{"table_name":"venue_managers","grantee":"postgres","privilege_type":"REFERENCES"},{"table_name":"venue_managers","grantee":"postgres","privilege_type":"TRIGGER"},{"table_name":"venue_managers","grantee":"anon","privilege_type":"SELECT"},{"table_name":"venue_managers","grantee":"anon","privilege_type":"REFERENCES"},{"table_name":"venue_managers","grantee":"anon","privilege_type":"TRIGGER"},{"table_name":"venue_managers","grantee":"authenticated","privilege_type":"SELECT"},{"table_name":"venue_managers","grantee":"authenticated","privilege_type":"REFERENCES"},{"table_name":"venue_managers","grantee":"authenticated","privilege_type":"TRIGGER"},{"table_name":"venue_managers","grantee":"service_role","privilege_type":"INSERT"},{"table_name":"venue_managers","grantee":"service_role","privilege_type":"SELECT"},{"table_name":"venue_managers","grantee":"service_role","privilege_type":"UPDATE"},{"table_name":"venue_managers","grantee":"service_role","privilege_type":"DELETE"},{"table_name":"venue_managers","grantee":"service_role","privilege_type":"TRUNCATE"},{"table_name":"venue_managers","grantee":"service_role","privilege_type":"REFERENCES"},{"table_name":"venue_managers","grantee":"service_role","privilege_type":"TRIGGER"},{"table_name":"venue_verification_log","grantee":"postgres","privilege_type":"INSERT"},{"table_name":"venue_verification_log","grantee":"postgres","privilege_type":"SELECT"},{"table_name":"venue_verification_log","grantee":"postgres","privilege_type":"UPDATE"},{"table_name":"venue_verification_log","grantee":"postgres","privilege_type":"DELETE"},{"table_name":"venue_verification_log","grantee":"postgres","privilege_type":"TRUNCATE"},{"table_name":"venue_verification_log","grantee":"postgres","privilege_type":"REFERENCES"},{"table_name":"venue_verification_log","grantee":"postgres","privilege_type":"TRIGGER"},{"table_name":"venue_verification_log","grantee":"anon","privilege_type":"INSERT"},{"table_name":"venue_verification_log","grantee":"anon","privilege_type":"SELECT"},{"table_name":"venue_verification_log","grantee":"anon","privilege_type":"UPDATE"},{"table_name":"venue_verification_log","grantee":"anon","privilege_type":"DELETE"},{"table_name":"venue_verification_log","grantee":"anon","privilege_type":"REFERENCES"},{"table_name":"venue_verification_log","grantee":"anon","privilege_type":"TRIGGER"},{"table_name":"venue_verification_log","grantee":"authenticated","privilege_type":"INSERT"},{"table_name":"venue_verification_log","grantee":"authenticated","privilege_type":"SELECT"},{"table_name":"venue_verification_log","grantee":"authenticated","privilege_type":"UPDATE"},{"table_name":"venue_verification_log","grantee":"authenticated","privilege_type":"DELETE"},{"table_name":"venue_verification_log","grantee":"authenticated","privilege_type":"REFERENCES"},{"table_name":"venue_verification_log","grantee":"authenticated","privilege_type":"TRIGGER"},{"table_name":"venue_verification_log","grantee":"service_role","privilege_type":"INSERT"},{"table_name":"venue_verification_log","grantee":"service_role","privilege_type":"SELECT"},{"table_name":"venue_verification_log","grantee":"service_role","privilege_type":"UPDATE"},{"table_name":"venue_verification_log","grantee":"service_role","privilege_type":"DELETE"},{"table_name":"venue_verification_log","grantee":"service_role","privilege_type":"TRUNCATE"},{"table_name":"venue_verification_log","grantee":"service_role","privilege_type":"REFERENCES"},{"table_name":"venue_verification_log","grantee":"service_role","privilege_type":"TRIGGER"}],
+  "observedAt": "2026-10-11T05:12:25.204Z",
+  "columns": [
+    {
+      "table_name": "page_claims",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "page_type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "page_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "contact_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "contact_email",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "contact_phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "role",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "verification_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'pending'::text"
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "page_claims",
+      "column_name": "reviewed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('poker_venues_id_seq'::regclass)"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "venue_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "city",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "state",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "website",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "games_offered",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "stakes_cash",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "poker_tables",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "trust_score",
+      "data_type": "real",
+      "is_nullable": "YES",
+      "column_default": "4.0"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "is_featured",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "lat",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "lng",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "country",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'US'::character varying"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "hours_weekday",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "hours_weekend",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "tournament_schedule",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'[]'::jsonb"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "last_verified_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "latitude",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "longitude",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "pokeratlas_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "pokeratlas_slug",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "scrape_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "scrape_source",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'pending'::text"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "last_scraped",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "scrape_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'pending'::text"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "captain_enabled",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "captain_tier",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'free'::text"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "captain_activated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "commission_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'time'::text"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "accepts_home_games",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "auto_text_enabled",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "waitlist_settings",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "tournament_settings",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "staff_pin_required",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "primary_contact_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "cover_photo_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "profile_photo_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "tagline",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "about",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "follower_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "social_links",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "slug",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "has_tournaments",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "poker_atlas_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "hours",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "last_scraped_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "commander_enabled",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "commander_tier",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'free'::text"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "commander_activated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "source",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "is_claimed",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "claimed_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "claimed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "social_hub_page_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "social_hub_page_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "registration_completed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "onboarding_step",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "data_quality",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'unverified'::text"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "scrape_html_hash",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "scrape_timestamp",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "scrape_confidence",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'unverified'::text"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "scrape_batch_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "logo_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "schedule_scrape_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "schedule_last_scraped_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "is_suppressed",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "home_group_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "commander_home_table_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "search_vector",
+      "data_type": "tsvector",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "timezone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "zip",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "source_priority",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "location_integrity_revision",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "canonical_venue_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "retired_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "retired_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "poker_venues",
+      "column_name": "retired_reason",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "page_type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "slug",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "avatar_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "cover_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "category",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'general'::text"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "website",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "contact_email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "location_city",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "location_state",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "location_country",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'US'::text"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "linked_venue_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "linked_entity_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "linked_entity_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "follower_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "post_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "member_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "is_verified",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "is_public",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "allow_member_posts",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "require_post_approval",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "metadata",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "view_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "social_pages",
+      "column_name": "avg_rating",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "venue_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'pending'::text"
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "verification_method",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "claimant_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "claimant_title",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "claimant_email",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "claimant_phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "verification_code",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "verification_attempts",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "verified_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "verified_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "documents",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'[]'::jsonb"
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "claimant_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "admin_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "rejection_reason",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "venue_claims",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": "nextval('venue_game_schedules_id_seq'::regclass)"
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "venue_id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "day_of_week",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "game_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "start_time",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "end_time",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "updated_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "venue_game_schedules",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "venue_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "role",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'manager'::text"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "can_edit_info",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "can_edit_hours",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "can_edit_games",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "can_post_updates",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "can_respond_reviews",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "can_manage_promotions",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "can_view_analytics",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "can_invite_staff",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "invited_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "approved_via",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "venue_managers",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "claim_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "venue_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "action",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "details",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "performed_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "ip_address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "user_agent",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "venue_verification_log",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    }
+  ],
+  "constraints": [
+    {
+      "relname": "page_claims",
+      "conname": "fk_page_claims_user_profile",
+      "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "relname": "page_claims",
+      "conname": "page_claims_page_type_check",
+      "definition": "CHECK ((page_type = ANY (ARRAY['venue'::text, 'tour'::text, 'series'::text])))"
+    },
+    {
+      "relname": "page_claims",
+      "conname": "page_claims_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "relname": "page_claims",
+      "conname": "page_claims_role_check",
+      "definition": "CHECK ((role = ANY (ARRAY['owner'::text, 'manager'::text, 'staff'::text])))"
+    },
+    {
+      "relname": "page_claims",
+      "conname": "page_claims_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))"
+    },
+    {
+      "relname": "poker_venues",
+      "conname": "fk_poker_venues_home_group",
+      "definition": "FOREIGN KEY (home_group_id) REFERENCES commander_home_groups(id) ON DELETE CASCADE"
+    },
+    {
+      "relname": "poker_venues",
+      "conname": "poker_venues_canonical_not_self",
+      "definition": "CHECK (((canonical_venue_id IS NULL) OR (canonical_venue_id <> id)))"
+    },
+    {
+      "relname": "poker_venues",
+      "conname": "poker_venues_canonical_venue_id_fkey",
+      "definition": "FOREIGN KEY (canonical_venue_id) REFERENCES poker_venues(id) ON DELETE SET NULL"
+    },
+    {
+      "relname": "poker_venues",
+      "conname": "poker_venues_name_city_state_key",
+      "definition": "UNIQUE (name, city, state)"
+    },
+    {
+      "relname": "poker_venues",
+      "conname": "poker_venues_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "relname": "poker_venues",
+      "conname": "poker_venues_retired_by_fkey",
+      "definition": "FOREIGN KEY (retired_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "relname": "poker_venues",
+      "conname": "poker_venues_slug_key",
+      "definition": "UNIQUE (slug)"
+    },
+    {
+      "relname": "social_pages",
+      "conname": "ck_home_group_link_is_home_game",
+      "definition": "CHECK (((linked_entity_type IS DISTINCT FROM 'home_group'::text) OR (page_type = 'home_game'::text)))"
+    },
+    {
+      "relname": "social_pages",
+      "conname": "fk_social_pages_owner_id_profiles",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "relname": "social_pages",
+      "conname": "fk_social_pages_owner_profile",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "relname": "social_pages",
+      "conname": "social_pages_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "relname": "social_pages",
+      "conname": "social_pages_page_type_check",
+      "definition": "CHECK ((page_type = ANY (ARRAY['venue'::text, 'group'::text, 'brand'::text, 'community'::text, 'club'::text, 'home_game'::text, 'charity'::text])))"
+    },
+    {
+      "relname": "social_pages",
+      "conname": "social_pages_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "relname": "social_pages",
+      "conname": "social_pages_slug_key",
+      "definition": "UNIQUE (slug)"
+    },
+    {
+      "relname": "venue_claims",
+      "conname": "fk_venue_claims_user_id_profiles",
+      "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "relname": "venue_claims",
+      "conname": "fk_venue_claims_user_profile",
+      "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "relname": "venue_claims",
+      "conname": "venue_claims_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "relname": "venue_game_schedules",
+      "conname": "venue_game_schedules_day_of_week_check",
+      "definition": "CHECK ((day_of_week = ANY (ARRAY['monday'::text, 'tuesday'::text, 'wednesday'::text, 'thursday'::text, 'friday'::text, 'saturday'::text, 'sunday'::text])))"
+    },
+    {
+      "relname": "venue_game_schedules",
+      "conname": "venue_game_schedules_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "relname": "venue_managers",
+      "conname": "fk_venue_managers_user_id_profiles",
+      "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "relname": "venue_managers",
+      "conname": "fk_venue_managers_user_profile",
+      "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "relname": "venue_managers",
+      "conname": "venue_managers_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "relname": "venue_verification_log",
+      "conname": "venue_verification_log_pkey",
+      "definition": "PRIMARY KEY (id)"
+    }
+  ],
+  "policies": [
+    {
+      "tablename": "page_claims",
+      "policyname": "page_claims_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(user_id = ( SELECT auth.uid() AS uid))",
+      "with_check": null
+    },
+    {
+      "tablename": "venue_claims",
+      "policyname": "venue_claims_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{service_role}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "tablename": "venue_game_schedules",
+      "policyname": "vgs_insert_policy",
+      "permissive": "PERMISSIVE",
+      "roles": "{service_role}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(( SELECT auth.uid() AS uid) IS NOT NULL)"
+    },
+    {
+      "tablename": "venue_game_schedules",
+      "policyname": "vgs_select_policy",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "tablename": "venue_game_schedules",
+      "policyname": "vgs_update_policy",
+      "permissive": "PERMISSIVE",
+      "roles": "{service_role}",
+      "cmd": "UPDATE",
+      "qual": "(( SELECT auth.uid() AS uid) IS NOT NULL)",
+      "with_check": null
+    },
+    {
+      "tablename": "venue_managers",
+      "policyname": "venue_managers_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "tablename": "venue_verification_log",
+      "policyname": "deny_all_venue_verification_log",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "false",
+      "with_check": null
+    }
+  ],
+  "functions": [
+    {
+      "proname": "approve_venue_claim",
+      "identity_arguments": "p_claim_id uuid, p_admin_user_id uuid, p_admin_notes text",
+      "arguments": "p_claim_id uuid, p_admin_user_id uuid, p_admin_notes text DEFAULT NULL::text",
+      "result": "jsonb",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public"
+      ],
+      "proacl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "hash": "c076ef0bfe060824c788a2115b769522",
+      "definition": "CREATE OR REPLACE FUNCTION public.approve_venue_claim(p_claim_id uuid, p_admin_user_id uuid, p_admin_notes text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n    v_claim RECORD; v_admin_role text; v_previous_owner uuid;\nBEGIN\n    IF auth.uid() IS NULL OR auth.uid() <> p_admin_user_id THEN \n        RAISE EXCEPTION 'UNAUTHORIZED'; \n    END IF;\n\n    -- Only admins can approve\n    SELECT role INTO v_admin_role FROM profiles WHERE id = p_admin_user_id;\n    IF v_admin_role IS NULL OR v_admin_role NOT IN ('admin','superadmin','moderator') THEN\n        RAISE EXCEPTION 'NOT_ADMIN';\n    END IF;\n\n    SELECT id, venue_id, user_id, status INTO v_claim FROM venue_claims\n     WHERE id = p_claim_id;\n    IF NOT FOUND THEN RAISE EXCEPTION 'CLAIM_NOT_FOUND'; END IF;\n    IF v_claim.status NOT IN ('pending','under_review') THEN\n        RAISE EXCEPTION 'CLAIM_NOT_ACTIONABLE';\n    END IF;\n\n    -- Check if venue already claimed by someone else\n    SELECT claimed_by INTO v_previous_owner FROM poker_venues WHERE id = v_claim.venue_id;\n    IF v_previous_owner IS NOT NULL AND v_previous_owner <> v_claim.user_id THEN\n        RAISE EXCEPTION 'VENUE_ALREADY_CLAIMED_BY_ANOTHER';\n    END IF;\n\n    -- Update claim\n    UPDATE venue_claims \n       SET status = 'approved', verified_at = now(), \n           verified_by = p_admin_user_id,\n           admin_notes = COALESCE(p_admin_notes, admin_notes),\n           updated_at = now()\n     WHERE id = p_claim_id;\n\n    -- Flip the venue to claimed - this fires trg_venue_claim_wiring which:\n    --   (a) auto-creates social_page, and\n    --   (b) sets commander_enabled=true\n    UPDATE poker_venues\n       SET is_claimed = true,\n           claimed_by = v_claim.user_id,\n           claimed_at = COALESCE(claimed_at, now())\n     WHERE id = v_claim.venue_id;\n\n    -- Add claimant as the venue's primary manager\n    INSERT INTO venue_managers (\n        venue_id, user_id, role,\n        can_edit_info, can_edit_hours, can_edit_games, can_post_updates,\n        can_respond_reviews, can_manage_promotions, can_view_analytics, can_invite_staff,\n        is_active, invited_by\n    ) VALUES (\n        v_claim.venue_id, v_claim.user_id, 'owner',\n        true, true, true, true, true, true, true, true, true, p_admin_user_id\n    ) ON CONFLICT DO NOTHING;\n\n    -- Dismiss other pending claims for the same venue\n    UPDATE venue_claims\n       SET status = 'rejected',\n           rejection_reason = 'Another claim was approved first',\n           updated_at = now()\n     WHERE venue_id = v_claim.venue_id AND id <> p_claim_id \n       AND status IN ('pending','under_review');\n\n    RETURN jsonb_build_object(\n        'success', true, 'claim_id', p_claim_id, 'venue_id', v_claim.venue_id,\n        'new_owner_id', v_claim.user_id,\n        'commander_enabled', true, 'social_page_auto_provisioned', true\n    );\nEND; $function$\n"
+    },
+    {
+      "proname": "fn_ensure_social_page_for_venue",
+      "identity_arguments": "p_venue_id integer",
+      "arguments": "p_venue_id integer",
+      "result": "uuid",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public"
+      ],
+      "proacl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "hash": "3a5ae71c8da37990824731ce12dc3f9c",
+      "definition": "CREATE OR REPLACE FUNCTION public.fn_ensure_social_page_for_venue(p_venue_id integer)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE v_existing_id uuid; v_venue RECORD; v_new_id uuid; v_cover text;\nBEGIN\n    SELECT id INTO v_existing_id FROM social_pages\n     WHERE linked_entity_type = 'venue' AND linked_entity_id = p_venue_id::text\n     LIMIT 1;\n    IF v_existing_id IS NOT NULL THEN RETURN v_existing_id; END IF;\n\n    SELECT id, name, tagline, about, city, state, country, phone, website,\n           is_claimed, claimed_by, venue_type\n      INTO v_venue FROM poker_venues WHERE id = p_venue_id;\n    IF NOT FOUND THEN RETURN NULL; END IF;\n\n    SELECT url INTO v_cover FROM commander_venue_photos\n     WHERE venue_id = p_venue_id AND is_cover_photo = true LIMIT 1;\n\n    INSERT INTO social_pages (\n        owner_id, page_type, name, description, cover_url, category,\n        website, phone, location_city, location_state, location_country,\n        linked_entity_type, linked_entity_id, linked_venue_id,\n        is_public, metadata\n    ) VALUES (\n        v_venue.claimed_by, 'venue', v_venue.name,\n        COALESCE(v_venue.tagline, v_venue.about),\n        v_cover, 'poker',\n        v_venue.website, v_venue.phone,\n        v_venue.city, v_venue.state, COALESCE(v_venue.country, 'US'),\n        'venue', v_venue.id::text, v_venue.id::text,\n        true,\n        jsonb_build_object('auto_provisioned', true, 'source', 'phase29',\n                           'at', now(), 'is_claimed', v_venue.is_claimed)\n    ) RETURNING id INTO v_new_id;\n    RETURN v_new_id;\nEXCEPTION WHEN OTHERS THEN\n    RAISE WARNING 'fn_ensure_social_page_for_venue failed for %: %', p_venue_id, SQLERRM;\n    RETURN NULL;\nEND; $function$\n"
+    },
+    {
+      "proname": "resolve_venue_location_integrity",
+      "identity_arguments": "p_venue_id integer, p_expected_updated_at timestamp with time zone, p_address text, p_city text, p_state text, p_latitude double precision, p_longitude double precision, p_reason text, p_actor_id uuid, p_integrity_status text, p_integrity_reason text",
+      "arguments": "p_venue_id integer, p_expected_updated_at timestamp with time zone, p_address text, p_city text, p_state text, p_latitude double precision, p_longitude double precision, p_reason text, p_actor_id uuid, p_integrity_status text, p_integrity_reason text",
+      "result": "jsonb",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ],
+      "proacl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "hash": "d8393cd4043f5ebbe9193f6299ac9c0c",
+      "definition": "CREATE OR REPLACE FUNCTION public.resolve_venue_location_integrity(p_venue_id integer, p_expected_updated_at timestamp with time zone, p_address text, p_city text, p_state text, p_latitude double precision, p_longitude double precision, p_reason text, p_actor_id uuid, p_integrity_status text, p_integrity_reason text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nDECLARE\n  v_before public.poker_venues%ROWTYPE;\n  v_after public.poker_venues%ROWTYPE;\n  v_actor_role text;\nBEGIN\n  SELECT p.role::text INTO v_actor_role\n  FROM public.profiles p\n  WHERE p.id = p_actor_id;\n\n  IF v_actor_role IS NULL OR v_actor_role NOT IN ('admin', 'superadmin', 'god') THEN\n    RAISE EXCEPTION 'platform admin role required' USING ERRCODE = '42501';\n  END IF;\n  IF p_expected_updated_at IS NULL THEN\n    RAISE EXCEPTION 'expected venue revision required' USING ERRCODE = '22023';\n  END IF;\n  IF char_length(trim(coalesce(p_reason, ''))) < 12 OR char_length(trim(p_reason)) > 500 THEN\n    RAISE EXCEPTION 'audit reason must contain 12 to 500 characters' USING ERRCODE = '22023';\n  END IF;\n  IF p_integrity_status NOT IN ('verified', 'border') THEN\n    RAISE EXCEPTION 'only verified or border corrections may be applied' USING ERRCODE = '22023';\n  END IF;\n  IF p_latitude IS NULL OR p_longitude IS NULL\n     OR p_latitude < -90 OR p_latitude > 90\n     OR p_longitude < -180 OR p_longitude > 180 THEN\n    RAISE EXCEPTION 'coordinates outside valid range' USING ERRCODE = '22023';\n  END IF;\n\n  SELECT * INTO v_before\n  FROM public.poker_venues\n  WHERE id = p_venue_id\n  FOR UPDATE;\n\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'venue not found' USING ERRCODE = 'P0002';\n  END IF;\n  IF v_before.location_integrity_revision IS DISTINCT FROM p_expected_updated_at THEN\n    RAISE EXCEPTION 'venue revision changed' USING ERRCODE = '40001';\n  END IF;\n\n  UPDATE public.poker_venues\n  SET address = nullif(trim(p_address), ''),\n      city = trim(p_city),\n      state = upper(trim(p_state)),\n      latitude = p_latitude,\n      longitude = p_longitude,\n      lat = p_latitude,\n      lng = p_longitude,\n      last_verified_at = now(),\n      location_integrity_revision = clock_timestamp()\n  WHERE id = p_venue_id\n  RETURNING * INTO v_after;\n\n  INSERT INTO public.venue_location_integrity_log (\n    venue_id,\n    actor_id,\n    reason,\n    integrity_status,\n    integrity_reason,\n    before_record,\n    after_record\n  ) VALUES (\n    p_venue_id,\n    p_actor_id,\n    trim(p_reason),\n    p_integrity_status,\n    p_integrity_reason,\n    jsonb_build_object(\n      'address', v_before.address,\n      'city', v_before.city,\n      'state', v_before.state,\n      'latitude', coalesce(v_before.latitude, v_before.lat),\n      'longitude', coalesce(v_before.longitude, v_before.lng),\n      'location_integrity_revision', v_before.location_integrity_revision\n    ),\n    jsonb_build_object(\n      'address', v_after.address,\n      'city', v_after.city,\n      'state', v_after.state,\n      'latitude', coalesce(v_after.latitude, v_after.lat),\n      'longitude', coalesce(v_after.longitude, v_after.lng),\n      'location_integrity_revision', v_after.location_integrity_revision\n    )\n  );\n\n  RETURN jsonb_build_object(\n    'venue_id', v_after.id,\n    'name', v_after.name,\n    'location_integrity_revision', v_after.location_integrity_revision,\n    'integrity_status', p_integrity_status\n  );\nEND;\n$function$\n"
+    }
+  ],
+  "triggers": [
+    {
+      "relname": "poker_venues",
+      "tgname": "trg_venue_claim_wiring",
+      "definition": "CREATE TRIGGER trg_venue_claim_wiring BEFORE UPDATE ON public.poker_venues FOR EACH ROW WHEN ((old.is_claimed IS DISTINCT FROM new.is_claimed)) EXECUTE FUNCTION trg_fn_venue_claim_wiring()",
+      "function_definition": "CREATE OR REPLACE FUNCTION public.trg_fn_venue_claim_wiring()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public'\nAS $function$\nDECLARE v_social_page_id uuid;\nBEGIN\n    IF COALESCE(OLD.is_claimed, false) = false AND COALESCE(NEW.is_claimed, false) = true THEN\n        -- 1. Auto-enable Commander\n        IF NOT COALESCE(NEW.commander_enabled, false) THEN\n            NEW.commander_enabled := true;\n            IF NEW.commander_activated_at IS NULL THEN NEW.commander_activated_at := now(); END IF;\n        END IF;\n        -- 2. Ensure social_page exists (may have owner_id=null because claimed_by isn't committed yet)\n        v_social_page_id := public.fn_ensure_social_page_for_venue(NEW.id);\n        -- 3. Force-set owner_id to the incoming claimed_by on the social_page\n        IF v_social_page_id IS NOT NULL AND NEW.claimed_by IS NOT NULL THEN\n            UPDATE social_pages \n               SET owner_id = NEW.claimed_by,\n                   metadata = COALESCE(metadata, '{}'::jsonb) \n                              || jsonb_build_object('is_claimed', true, \n                                                    'claim_wired_at', now())\n             WHERE id = v_social_page_id;\n        END IF;\n    END IF;\n    RETURN NEW;\nEXCEPTION WHEN OTHERS THEN\n    RAISE WARNING 'venue claim wiring failed for venue %: %', NEW.id, SQLERRM;\n    RETURN NEW;\nEND; $function$\n"
+    }
+  ]
+}

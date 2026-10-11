@@ -36,13 +36,31 @@ function buildFollowFilter(follows) {
 
 /**
  * Can this user publish official notifications for a page?
- * - Admin/superadmin role, OR
- * - Approved page_claims row for this page, OR
- * - Active venue_managers row with can_post_updates for a venue page.
- * Mirrors isAuthorizedEditor() in pages/api/poker/venue-schedules.js.
+ * Venue permissions come exclusively from the participant access RPC, which
+ * reconciles explicit manager denials and revoked grants with historical claims.
+ * Other page families retain their existing admin/approved-claim policy.
  */
-async function canPublishForPage(userId, pageType, pageId) {
+async function canPublishForPage(req, userId, pageType, pageId) {
     if (!userId || !pageType || !pageId) return false;
+
+    if (pageType === 'venue') {
+        const venueId = Number(pageId);
+        if (!/^[1-9]\d*$/.test(String(pageId)) || !Number.isSafeInteger(venueId)) return false;
+        const authorization = req.headers?.authorization;
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!anonKey || typeof authorization !== 'string' || !/^Bearer\s+\S+$/i.test(authorization)) {
+            throw new Error('Venue participant authorization unavailable');
+        }
+        // Identity was verified by the handler. Never substitute a service key
+        // for the participant RPC: its auth.uid() must be the original caller.
+        const participant = createClient(undefined, anonKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+            global: { headers: { Authorization: authorization } },
+        });
+        const { data: access, error } = await participant.rpc('pnm_venue_contribution_access', { p_venue_id: venueId });
+        if (error || !access) throw error || new Error('Venue permissions unavailable');
+        return access.permissions?.can_post_updates === true;
+    }
 
     try {
         const { data: profile } = await getSupabase()
@@ -65,40 +83,6 @@ async function canPublishForPage(userId, pageType, pageId) {
             .maybeSingle();
         if (claim) return true;
     } catch (_err) { /* continue to manager check */ }
-
-    if (pageType === 'venue') {
-        const venueIdNum = parseInt(pageId, 10);
-        if (!isNaN(venueIdNum) && venueIdNum > 0) {
-            try {
-                const { data: manager } = await getSupabase()
-                    .from('venue_managers')
-                    .select('id, can_post_updates')
-                    .eq('venue_id', venueIdNum)
-                    .eq('user_id', userId)
-                    .eq('is_active', true)
-                    .limit(1)
-                    .maybeSingle();
-                if (manager && manager.can_post_updates !== false) return true;
-            } catch (_err) { /* not a manager */ }
-
-            // There are two parallel claim systems: page_claims (this route's
-            // /api/poker/claim-page flow) and venue_claims (the
-            // /api/public/venue/claim flow). Authorising from page_claims alone
-            // meant an owner verified through the venue_claims flow could never
-            // post an update for their own venue.
-            try {
-                const { data: venueClaim } = await getSupabase()
-                    .from('venue_claims')
-                    .select('id')
-                    .eq('venue_id', venueIdNum)
-                    .eq('user_id', userId)
-                    .eq('status', 'approved')
-                    .limit(1)
-                    .maybeSingle();
-                if (venueClaim) return true;
-            } catch (_err) { /* no approved venue claim */ }
-        }
-    }
 
     return false;
 }
@@ -137,7 +121,7 @@ try {
 
         // SECURITY: notifications are pushed to every follower of the page, so only
         // page owners/managers (or admins) may publish them.
-        const allowed = await canPublishForPage(authenticatedUserId, page_type, page_id);
+        const allowed = await canPublishForPage(req, authenticatedUserId, page_type, page_id);
         if (!allowed) {
           return res.status(403).json({
             success: false,

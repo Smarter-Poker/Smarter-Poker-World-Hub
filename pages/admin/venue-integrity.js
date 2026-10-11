@@ -293,6 +293,7 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
               <div>
                 <h1>Venue Integrity Operations</h1>
                 <p>Quarantined Map Signals, Missing Coordinates And Duplicate Identities-Resolved Through One Auditable Control Surface.</p>
+                <a href="/admin/venue-contributions">Review Venue Claims And Corrections</a>
               </div>
               <div className={styles.livePlate} data-queue-health={summary.actionable ? 'attention' : 'clear'}>
                 <span className={styles.liveDot} />

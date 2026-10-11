@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live]
         default: full
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
@@ -105,6 +105,56 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  pnm-contributions-phase4-live:
+    name: Published PNM Contribution Task-Owned Qualification
+    if: ${{ inputs.suite == 'pnm-contributions-phase4-live' && github.ref == 'refs/heads/main' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Verify task-owned qualification safeguards
+        run: node --test __tests__/pnm-contributions-phase4-qualification-safety.test.mjs
+      - name: Restore locked dependencies
+        id: pnm-contributions-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.pnm-contributions-nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+      - name: Install finite qualification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Qualify actual persisted contributions using task-owned identities
+        run: node scripts/qualify-pnm-contributions-phase4.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PNM_CONTRIBUTIONS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          PNM_CONTRIBUTIONS_MODE: task-owned-fixtures
+      - name: Retain sanitized qualification and exact owned cleanup receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnm-contributions-phase4-receipt
+          path: test-results/pnm-contributions-phase4/result.json
+          if-no-files-found: error
+          retention-days: 7
+
   home-games-phase3-live:
     name: Published Home Games Task-Owned Qualification
     if: ${{ inputs.suite == 'home-games-phase3-live' && github.ref == 'refs/heads/main' }}

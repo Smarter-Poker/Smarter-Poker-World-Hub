@@ -3,6 +3,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { contributionPrivate, contributionSession, contributionAccess, contributionBody, contributionId, contributionUuid, claimPayload, contributionRpc, contributionError } from '../../../src/lib/poker-near-me/venueContributionsServer';
 
 let _supabase = null;
 function getSupabase() {
@@ -18,6 +19,27 @@ function getSupabase() {
 
 export default async function handler(req, res) {
     if (!applyCors(req, res, { methods: 'GET, POST, PUT, DELETE, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
+    contributionPrivate(res);
+    if (req.method === 'POST') {
+      try { req.body = contributionBody(req); }
+      catch (error) { return contributionError(res, error); }
+    }
+    if ((req.method === 'POST' && req.body?.page_type === 'venue') || (req.method === 'GET' && req.query.page_type === 'venue')) {
+      let operationId;
+      try {
+        if (!applyRateLimit(req, res, req.method === 'POST' ? LIMITS.write : LIMITS.read)) return;
+        const session = await contributionSession(req, res, { required: req.method === 'POST' });
+        if (!session) return;
+        if (req.method === 'GET') {
+          const access = await contributionAccess(session, contributionId(req.query.page_id, 'page_id'));
+          return res.status(200).json({ success: true, claimed: access.is_claimed, claim: access.claim ? { ...access.claim, is_yours: true } : access.legacy_claim ? { ...access.legacy_claim, is_yours: true } : null, access });
+        }
+        const body = contributionBody(req);
+        operationId = contributionUuid(body.operation_id);
+        const receipt = await contributionRpc(session.client, 'pnm_submit_venue_claim', { p_request_id: operationId, p_venue_id: contributionId(body.page_id, 'page_id'), p_payload: claimPayload(body) }, operationId);
+        return res.status(201).json({ success: true, ...receipt });
+      } catch (error) { if (operationId && !error.code && !error.status) error.operationId = operationId; return contributionError(res, error); }
+    }
 try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
