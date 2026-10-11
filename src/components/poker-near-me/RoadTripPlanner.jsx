@@ -3,6 +3,7 @@
  * Multi-stop trip builder with route overlay showing poker venues along the way.
  */
 import { useState, useCallback, useRef, useEffect, useId } from 'react';
+import { useRouter } from 'next/router';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
@@ -154,6 +155,8 @@ async function geocodeCity(query) {
 }
 
 export default function RoadTripPlanner({ venues = [], userLocation, dailyTournaments = [], series = [], locationCity = '', locationState = '' }) {
+    const router = useRouter();
+    const accountPlanId = typeof router.query.accountPlan === 'string' ? router.query.accountPlan : '';
     const [origin, setOrigin] = useState('');
     const [destination, setDestination] = useState('');
     const [waypoints, setWaypoints] = useState([]);
@@ -216,7 +219,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     }, [restoreTrip]);
 
     useEffect(() => {
-        const id = new URLSearchParams(window.location.search).get('accountPlan');
+        if (!router.isReady) return undefined;
+        const id = accountPlanId;
         if (!id) return undefined;
         let cancelled = false;
         const account = getAuthUser()?.id;
@@ -228,7 +232,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             restoreTrip(plan.document);
         }).catch(() => { if (!cancelled && getAuthUser()?.id === account) setError('Your Account Trip Could Not Be Loaded. Refresh To Try Again.'); });
         return () => { cancelled = true; };
-    }, [restoreTrip]);
+    }, [restoreTrip, router.isReady, accountPlanId]);
 
     // Public links carry only catalog IDs and dates, never typed addresses or invitations.
     useEffect(() => {

@@ -10,8 +10,20 @@ const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
 const ID = '33333333-3333-4333-8333-333333333333';
 function storage() { const map = new Map(); return { getItem: (key) => map.get(key) ?? null, setItem: (key, value) => map.set(key, value), removeItem: (key) => map.delete(key), map }; }
+test('planning name field owns the unwarped painted aperture rather than an unconstrained desktop row', async () => {
+  const path = 'src/components/poker-near-me/PlayerPlanningPanel.module.css';
+  const css = process.env.PNM_PLANNING_CSS_REV ? require('node:child_process').execFileSync('git', ['show', `${process.env.PNM_PLANNING_CSS_REV}:${path}`], { encoding: 'utf8' }) : await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+  const well = css.match(/\.well\s*\{([^}]+)\}/)?.[1] || '';
+  const input = css.match(/\.input\s*\{([^}]+)\}/)?.[1] || '';
+  assert.match(well, /width:\s*min\(100%,\s*420px\)/);
+  assert.match(well, /aspect-ratio:\s*1829\s*\/\s*313/);
+  assert.match(well, /box-sizing:\s*border-box/);
+  assert.match(well, /center\s*\/\s*contain\s+no-repeat/);
+  assert.match(input, /min-height:\s*48px/); assert.match(input, /font-size:\s*16px/);
+  assert.match(input, /padding:\s*12px\s+24px/);
+});
 async function compiled(path, dependencies) {
-  const text = await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+  const text = process.env.PNM_TRIP_SOURCE_REV && path === 'src/components/poker-near-me/RoadTripPlanner.jsx' ? require('node:child_process').execFileSync('git', ['show', `${process.env.PNM_TRIP_SOURCE_REV}:${path}`], { encoding: 'utf8' }) : await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
   const code = ts.transpileModule(text, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const mod = { exports: {} };
   new Function('require', 'module', 'exports', code)((name) => {
@@ -190,11 +202,34 @@ test('actual lobby GPS preference refusal is visible and account-guarded without
   } finally { await renderer.act(async () => tree?.unmount()); }
 });
 
+test('actual debounced tab writer preserves trip inputs before the lazy consumer mounts', async () => {
+  const path = 'pages/hub/poker-near-me/[pnmTab].js';
+  const source = process.env.PNM_TAB_SOURCE_REV ? require('node:child_process').execFileSync('git', ['show', `${process.env.PNM_TAB_SOURCE_REV}:${path}`], { encoding: 'utf8' }) : await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+  const marker = source.indexOf('  // ═══ DEEP LINK PERSISTENCE');
+  const effect = source.slice(source.indexOf('  useEffect(', marker), source.indexOf('  // Read deep link params on mount', marker));
+  const discovery = await compiled('src/components/poker-near-me/discoveryController.js', {});
+  const search = `?accountPlan=${ID}&planVenues=1828&planSeries=5001066&start=2026-10-12&end=2026-10-13&from=Reno&to=Vegas&via=One&via=Two&corridor=25&unrelated=discard`;
+  const location = { pathname: '/hub/poker-near-me/roadtrip', search }; let tree;
+  function Fixture() {
+    const scope = { useEffect: React.useEffect, URLSearchParams, router: { isReady: true, asPath: location.pathname + location.search }, window: { location, history: { state: {}, replaceState: (_, __, value) => { location.search = new URL(value, 'https://smarter.poker').search; } } },
+      paramsAbsorbed: { current: true }, deepLinkRef: { current: null }, discoveryPageExitingRef: { current: false }, buildDiscoveryUrl: discovery.buildDiscoveryUrl,
+      normalizeRouteSlug: (value) => value, lastRouteTabRef: { current: null }, showLiveTab: false, activeTab: 'more', activeEventTab: 'series', activeMoreTab: 'roadtrip', searchQuery: '', filters: {}, setTimeout: (fn) => { fn(); return 1; }, clearTimeout() {} };
+    require('node:vm').runInNewContext(effect, scope); return null;
+  }
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Fixture)); });
+    const original = new URLSearchParams(search), retained = new URLSearchParams(location.search);
+    for (const key of ['accountPlan', 'planVenues', 'planSeries', 'start', 'end', 'from', 'to', 'via', 'corridor']) assert.deepEqual(retained.getAll(key), original.getAll(key), key);
+    assert.equal(retained.has('unrelated'), false);
+  } finally { await renderer.act(async () => tree?.unmount()); }
+});
+
 test('actual trip restores private account fields and public single-stop links without private fallback', async () => {
   const env = await setup({}); let tree; const saves = []; const directions = [];
   const document = { schemaVersion: 1, origin: 'Private Fixture Address 123', destination: 'Reno, NV', waypoints: ['Private Stop'], corridorMi: 25, dateRange: { start: '2026-10-12', end: '2026-10-13' }, venueIds: [1828], seriesIds: [5001066] };
   const noop = () => null;
   const ui = await compiled('src/components/poker-near-me/RoadTripPlanner.jsx', {
+    'next/router': { useRouter: () => ({ isReady: true, query: Object.fromEntries(new URLSearchParams(globalThis.window.location.search)) }) },
     './pnm-utils': { getVenueLogoUrl: noop, getVenueLogoFallback: noop, haversineMiles: () => 1 },
     '../../utils/openNativeMaps': { openNativeMaps: (value) => directions.push(value), openMultiStopRoute: noop },
     '../../lib/poker-near-me/mapRuntime': {}, './MapSurfaceFrame': { default: noop, __esModule: true },
@@ -218,6 +253,14 @@ test('actual trip restores private account fields and public single-stop links w
     const button = tree.root.findAllByType('button').find((entry) => entry.props.children === 'Public Venue Directions');
     await renderer.act(async () => button.props.onClick());
     assert.equal(directions.length, 1); assert.doesNotMatch(JSON.stringify(directions), /Private/);
+    await renderer.act(async () => tree.unmount());
+    globalThis.window.location.search = '';
+    globalThis.sessionStorage.map.clear();
+    await renderer.act(async () => { tree = renderer.create(React.createElement(ui.default)); });
+    assert.equal(tree.root.findByProps({ 'aria-label': 'Trip origin' }).props.value, '');
+    globalThis.window.location.search = `?accountPlan=${ID}`;
+    await renderer.act(async () => tree.update(React.createElement(ui.default)));
+    assert.equal(tree.root.findByProps({ 'aria-label': 'Trip origin' }).props.value, document.origin, 'a mounted consumer must react to a new account-plan route');
     await renderer.act(async () => tree.unmount());
     globalThis.window.location.search = '?planVenues=1828&planSeries=5001066&start=2026-10-12&end=2026-10-13';
     await renderer.act(async () => { tree = renderer.create(React.createElement(ui.default)); });

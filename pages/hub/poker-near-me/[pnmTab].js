@@ -2951,7 +2951,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       // independently ('daily' vs 'daily-tournaments'), so the crawled URL
       // declared a canonical pointing at a DIFFERENT URL that renders the same
       // content — creating a duplicate instead of consolidating it.
-      const { pathSlug, url: newUrl } = buildDiscoveryUrl({
+      const { pathSlug, url: discoveryUrl } = buildDiscoveryUrl({
         showLiveTab,
         activeTab,
         activeEventTab,
@@ -2959,6 +2959,17 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         searchQuery,
         venueType: filters.venueType,
       });
+      // Lazy trip consumers may mount after this writer. Preserve only their
+      // owned incoming parameters; never synthesize private addresses here.
+      const nextParams = new URLSearchParams(discoveryUrl.split('?')[1] || '');
+      if (pathSlug === 'roadtrip' || pathSlug === 'more') {
+        const incoming = new URLSearchParams(window.location.search);
+        for (const key of ['accountPlan', 'planVenues', 'planSeries', 'start', 'end', 'from', 'to', 'via', 'corridor']) {
+          for (const value of incoming.getAll(key)) nextParams.append(key, value);
+        }
+      }
+      const nextQuery = nextParams.toString();
+      const newUrl = `/hub/poker-near-me/${pathSlug}${nextQuery ? `?${nextQuery}` : ''}`;
 
       // A Back followed quickly by Forward can outpace React's effect cleanup,
       // especially in WebKit. Never let a delayed writer from the prior history

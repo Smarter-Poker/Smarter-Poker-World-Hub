@@ -21,6 +21,16 @@ export function assertOwnedIdentity(user, expected, runId) {
 }
 export function allowedBrowserRead(method) { return ['GET', 'HEAD', 'OPTIONS'].includes(method); }
 
+export function assertPlanningFieldGeometry({ well, input, paddingLeft, paddingRight, assetWidth, assetHeight }) {
+  assert.ok(well.width > 0 && well.height > 0 && input.width > 0, 'Planning field must actually render');
+  const scale = Math.min(well.width / assetWidth, well.height / assetHeight);
+  const paintedWidth = assetWidth * scale;
+  const paintedLeft = well.left + (well.width - paintedWidth) / 2;
+  assert.ok(input.left + paddingLeft >= paintedLeft + 12, 'Planning value must start inside the painted aperture');
+  assert.ok(input.left + input.width - paddingRight <= paintedLeft + paintedWidth - 12, 'Planning value must end inside the painted aperture');
+  assert.ok(input.height >= 44, 'Planning field keeps its touch target');
+}
+
 export function planningBrowserError(error, privateValues = []) {
   let message = String(error?.message || 'Unknown Browser Error');
   for (const value of privateValues.filter(Boolean)) message = message.split(value).join('[private]');
@@ -55,6 +65,12 @@ export async function qualifyBrowser({ owner, searchName, tripName, trip, share,
           return route.fulfill({ status: 403, contentType: 'application/json', body: '{"success":false,"error":"Outside Qualification Scope"}' });
         });
         const page = await context.newPage();
+        page.on('response', response => {
+          const url = new URL(response.url());
+          if (url.pathname !== '/api/poker/player-plans') return;
+          observed.planningReads ??= [];
+          if (observed.planningReads.length < 30) observed.planningReads.push({ path: url.pathname, method: response.request().method(), status: response.status() });
+        });
         page.on('pageerror', error => {
           observed.pageErrors += 1;
           const message = planningBrowserError({ message: `${error.name}: ${error.message}\n${String(error.stack || '').split('\n').slice(1, 4).join('\n')}` }, [owner.token, owner.session?.refresh_token, trip.origin, trip.destination, searchName, tripName]);
@@ -85,10 +101,26 @@ export async function qualifyBrowser({ owner, searchName, tripName, trip, share,
         await expect(page.locator('[data-player-planning="search-scope"]')).toContainText(normalizeWorldCopy('Saved Search Filters: NV / venues'));
         await expect(page.getByRole('button', { name: 'Save Search To Account', exact: true })).toBeVisible();
         observed.filterOnlySearchResaveVisible = true;
+        const planningField = await page.locator('[data-player-planning="save"] input').evaluate(async input => {
+          const well = input.parentElement;
+          const asset = new Image();
+          asset.src = '/images/pnm-console/painted-controls-v1/search-well.webp';
+          await asset.decode();
+          const style = getComputedStyle(input);
+          const rect = node => { const r = node.getBoundingClientRect(); return { left: r.left, width: r.width, height: r.height }; };
+          return { well: rect(well), input: rect(input), paddingLeft: parseFloat(style.paddingLeft), paddingRight: parseFloat(style.paddingRight), assetWidth: asset.naturalWidth, assetHeight: asset.naturalHeight };
+        });
+        assertPlanningFieldGeometry(planningField);
+        observed.planningFieldInsidePaintedAperture = true;
         await page.goto('https://smarter.poker/hub/poker-near-me/saved', { waitUntil: 'domcontentloaded' });
-        await page.getByRole('link', { name: 'Load Account Trip', exact: true }).click();
+        const tripLink = page.getByRole('link', { name: 'Load Account Trip', exact: true });
+        const accountPlanId = new URL(await tripLink.getAttribute('href'), 'https://smarter.poker').searchParams.get('accountPlan');
+        assert.ok(accountPlanId, 'Private trip link must carry its account-owned identifier');
+        await tripLink.click();
         await expect(page.getByRole('textbox', { name: /^Trip Origin$/i })).toHaveValue(trip.origin);
         await expect(page.getByRole('textbox', { name: /^Trip Destination$/i })).toHaveValue(trip.destination);
+        assert.equal(new URL(page.url()).searchParams.get('accountPlan'), accountPlanId, 'Discovery URL writer must retain the private trip handoff');
+        observed.privateTripUrlRetained = true;
         observed.privateAccountTripRestored = true;
         await page.evaluate(async () => { await Promise.all([...document.images].map(image => image.decode().catch(() => {}))); });
         Object.assign(observed, await page.evaluate(() => ({

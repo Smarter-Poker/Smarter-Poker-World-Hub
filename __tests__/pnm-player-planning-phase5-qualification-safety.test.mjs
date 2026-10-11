@@ -1,7 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validateConfiguration, assertOwnedIdentity, allowedBrowserRead, planningBrowserError } from '../scripts/qualify-pnm-player-planning-phase5.mjs';
+import { validateConfiguration, assertOwnedIdentity, allowedBrowserRead, planningBrowserError, assertPlanningFieldGeometry } from '../scripts/qualify-pnm-player-planning-phase5.mjs';
+
+test('planning painted aperture proof rejects the original desktop contain mismatch', () => {
+  const original = { well: { left: 376, width: 688, height: 56 }, input: { left: 376, width: 688, height: 48 }, paddingLeft: 24, paddingRight: 24, assetWidth: 1829, assetHeight: 313 };
+  assert.throws(() => assertPlanningFieldGeometry(original), /start inside the painted aperture/);
+  for (const width of [327, 360]) assertPlanningFieldGeometry({ ...original, well: { left: 0, width, height: width * 313 / 1829 }, input: { left: 0, width, height: 48 } });
+  const source = readFileSync(new URL('../scripts/qualify-pnm-player-planning-phase5.mjs', import.meta.url), 'utf8');
+  assert.match(source, /assertPlanningFieldGeometry\(planningField\)/);
+  assert.match(source, /planningFieldInsidePaintedAperture = true/);
+});
 
 test('planning browser assertions use the actual Playwright test runtime', async () => {
   const source = readFileSync(new URL('../scripts/qualify-pnm-player-planning-phase5.mjs', import.meta.url), 'utf8');
@@ -70,6 +79,8 @@ test('planning qualifier independently reads persistence, permissions, CAS, pref
     'preferenceStored.poker_near_me_preferences.geofenceAlerts, false',
     'preferenceStored.poker_near_me_preferences.showNewcomerFriendly, false',
     'await page.reload', 'structuredSavedSearchRestored = true', 'safePublicPlanAndDirectionsRendered = true', 'remaining.length, 0']) assert.ok(source.includes(invariant), invariant);
+  assert.ok(source.includes('privateTripUrlRetained = true'));
+  assert.ok(source.includes("searchParams.get('accountPlan'), accountPlanId"));
 });
 test('planning workflow uses maintained manual main lane and configured canonical secrets', () => {
   const source = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
