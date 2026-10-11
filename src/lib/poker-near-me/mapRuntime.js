@@ -125,6 +125,7 @@ export function createPokerMapSession({
   mapOptions = {},
   tileStyle = 'dark_nolabels',
   tileOptions = {},
+  onTileStatus,
   attribution = true,
 } = {}) {
   if (!L || !container) throw new Error('Poker map session requires Leaflet and a container');
@@ -136,7 +137,35 @@ export function createPokerMapSession({
     crossOrigin: true,
     ...tileOptions,
   };
-  const tiles = L.tileLayer(POKER_MAP_TILE_PROVIDER.baseUrl, sharedTileOptions).addTo(map);
+  let destroyed = false;
+  const tileObservers = [];
+  const publishTiles = () => {
+    if (destroyed) return;
+    const loaded = tileObservers.reduce((count, entry) => count + entry.loaded, 0);
+    const failed = tileObservers.reduce((count, entry) => count + entry.failed, 0);
+    const loading = tileObservers.some((entry) => entry.loading);
+    const status = failed ? (loading || loaded ? 'degraded' : 'unavailable') : loading || !loaded ? 'loading' : 'ready';
+    if (container.dataset) container.dataset.mapTiles = status;
+    onTileStatus?.({ status, loaded, failed });
+  };
+  const observeTiles = (layer) => {
+    const entry = { layer, loading: true, loaded: 0, failed: 0, tiles: new WeakMap() };
+    const loading = () => { entry.loading = true; entry.loaded = 0; entry.failed = 0; entry.tiles = new WeakMap(); publishTiles(); };
+    const start = (event) => { if (event.tile) entry.tiles.set(event.tile, true); };
+    const settled = (failed) => (event) => {
+      // Redraw removes old tiles. Their late image events cannot certify or
+      // fail the new batch, nor count one tile twice.
+      if (event.tile && !entry.tiles.has(event.tile)) return;
+      if (event.tile) entry.tiles.delete(event.tile);
+      entry[failed ? 'failed' : 'loaded']++;
+      publishTiles();
+    };
+    entry.handlers = { loading, tileloadstart: start, tileload: settled(false), tileerror: settled(true), load: () => { entry.loading = false; publishTiles(); } };
+    tileObservers.push(entry);
+    for (const [event, handler] of Object.entries(entry.handlers)) layer.on(event, handler);
+    return layer;
+  };
+  const tiles = observeTiles(L.tileLayer(POKER_MAP_TILE_PROVIDER.baseUrl, sharedTileOptions));
   let referencePane = 'overlayPane';
   if (tileStyle === 'dark_all' && typeof map.createPane === 'function') {
     const pane = (typeof map.getPane === 'function' && map.getPane('pnmReferencePane'))
@@ -146,11 +175,14 @@ export function createPokerMapSession({
     referencePane = 'pnmReferencePane';
   }
   const referenceTiles = tileStyle === 'dark_all'
-    ? L.tileLayer(POKER_MAP_TILE_PROVIDER.referenceUrl, {
+    ? observeTiles(L.tileLayer(POKER_MAP_TILE_PROVIDER.referenceUrl, {
         ...sharedTileOptions,
         pane: referencePane,
-      }).addTo(map)
+      }))
     : null;
+  publishTiles();
+  tiles.addTo(map);
+  referenceTiles?.addTo(map);
   const brandCredit = attribution
     ? ' · Powered By <a href="https://smarter.poker">Smarter.Poker</a>'
     : '';
@@ -159,14 +191,23 @@ export function createPokerMapSession({
   L.control.attribution({ prefix: false })
     .addAttribution(`${POKER_MAP_TILE_PROVIDER.attribution}${brandCredit}`)
     .addTo(map);
-  let destroyed = false;
   return {
     map,
     tiles,
     referenceTiles,
+    retryTiles() {
+      if (destroyed) return;
+      for (const entry of tileObservers) {
+        entry.loading = true; entry.loaded = 0; entry.failed = 0; entry.tiles = new WeakMap();
+      }
+      publishTiles();
+      tiles.redraw();
+      referenceTiles?.redraw();
+    },
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      for (const entry of tileObservers) for (const [event, handler] of Object.entries(entry.handlers)) entry.layer.off(event, handler);
       // Leaflet has no public API for cancelling its 250ms zoom-transition
       // fallback. A map can therefore unmount between fitBounds() starting and
       // _onZoomTransitionEnd() firing; that callback then reads the removed

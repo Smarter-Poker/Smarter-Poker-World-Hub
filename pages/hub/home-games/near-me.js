@@ -443,6 +443,7 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
                 <span className={homeGameStyles.fieldLabel}>State</span>
                 <span className={homeGameStyles.fieldWell}>
                   <select
+                    aria-label="Search Home Games By State"
                     value={manualState}
                     onChange={(e) => setManualState(e.target.value)}
                     className={homeGameStyles.fieldControl}
@@ -456,6 +457,7 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
                 <span className={homeGameStyles.fieldLabel}>City</span>
                 <span className={homeGameStyles.fieldWell}>
                   <input
+                    aria-label="Search Home Games By City"
                     type="text"
                     value={manualCity}
                     onChange={(e) => setManualCity(e.target.value)}

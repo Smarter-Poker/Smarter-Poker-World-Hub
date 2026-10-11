@@ -206,6 +206,11 @@
   opacity: 1;
 }
 
+/* Outrank the global PNM 42px input rule without changing the painted well. */
+.page .fieldWell .fieldControl {
+  min-height: 44px;
+}
+
 .noticeRow {
   align-items: flex-start;
 }

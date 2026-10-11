@@ -35,7 +35,9 @@ body.world-poker-near-me .venue-console-body :is(.day-header, .schedule-cards) {
 body.world-poker-near-me .venue-console-body :is(.empty-tournaments, .empty-section-card) { padding: 18px 0; }
 body.world-poker-near-me .venue-console-body :is(.empty-tournaments p, .empty-section-card p, .bttg-loading span, .bttg-empty small) { color: #aebdca; }
 body.world-poker-near-me .venue-console-body .section-header-row { flex-wrap: wrap; align-items: center; }
-body.world-poker-near-me .venue-console-body :is(.section-action-btn, .form-submit-btn, .bttg-game-tab, .bttg-heatmap-toggle, .pa-link) {
+body.world-poker-near-me .venue-console-body :is(.section-action-btn, .form-submit-btn, .bttg-game-tab, .bttg-heatmap-toggle, .pa-link),
+body.world-poker-near-me .map-actions :is(.directions-btn, .viewmap-btn),
+body.world-poker-near-me .peak-analytics-upgrade {
   display: inline-flex;
   align-items: center;
   justify-content: center;

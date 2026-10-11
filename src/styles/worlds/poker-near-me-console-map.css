@@ -1438,6 +1438,50 @@ body.world-poker-near-me :is(.pnm-map-status__action, .pnm-map-status button):fo
   outline-offset: -8px;
 }
 
+/* Tile-provider failures do not replace the interactive venue map. The small
+   painted notice leaves zoom controls, markers and provider credit available. */
+body.world-poker-near-me .pnm-map-surface .pnm-map-tile-warning {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  left: 62px;
+  z-index: 1050;
+  width: auto;
+  max-width: 430px;
+  margin: 0 0 0 auto;
+  color: #eef5fb;
+}
+
+body.world-poker-near-me .pnm-map-tile-warning .pnc-panel__body {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  padding: 0 8%;
+  font: 600 12px/1.35 var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+body.world-poker-near-me .pnm-map-tile-warning p {
+  margin: 0;
+}
+
+body.world-poker-near-me .pnm-map-tile-warning .pnm-map-tile-warning__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+body.world-poker-near-me .pnm-map-tile-warning .pnm-map-status__action {
+  flex: 1 1 130px;
+  width: auto;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding-inline: 12px !important;
+  font-size: 12px !important;
+  white-space: normal;
+  text-align: center;
+}
+
 /* Error boundary fallback (outside any mounted map). */
 body.world-poker-near-me .pnm-map-boundary {
   width: min(100%, 520px);

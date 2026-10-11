@@ -12,6 +12,7 @@ import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { isVenueMapEligible, summarizeVenueIntegrity } from '../../lib/poker-near-me/venueIntegrity';
 import MapCoverageReadout from './MapCoverageReadout';
 import MapSurfaceFrame from './MapSurfaceFrame';
+import { PokerNearMePanelShell } from './PokerNearMeConsole';
 import {
   attachPokerPopupViewportGuard,
   buildPokerTourPopupHtml,
@@ -108,6 +109,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   const fittedGeoSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState('');
+  const [tileStatus, setTileStatus] = useState('loading');
   const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
   const [clusteringAvailable, setClusteringAvailable] = useState(false);
   const [viewportCount, setViewportCount] = useState(0);
@@ -183,6 +185,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       const session = createPokerMapSession({
         L,
         container: mapRef.current,
+        onTileStatus: ({ status }) => { if (mountedRef.current) setTileStatus(status); },
         mapOptions: {
           center,
           zoom: userLocation ? 10 : 5,
@@ -423,15 +426,35 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     viewportAbortRef.current = controller;
     setAreaSearchBusy(true);
     setAreaSearchError('');
+    let timedOut = false;
+    let deadline = null;
+    let rejectInterrupted;
+    const interrupted = new Promise((_resolve, reject) => { rejectInterrupted = reject; });
+    const onAbort = () => {
+      clearTimeout(deadline);
+      rejectInterrupted(controller.signal.reason || new Error('Map area search interrupted'));
+    };
+    controller.signal.addEventListener('abort', onAbort, { once: true });
+    // One deadline covers transport AND response parsing. Explicit settlement
+    // also releases the UI when a browser/provider ignores AbortSignal.
+    deadline = setTimeout(() => {
+      timedOut = true;
+      controller.abort(new Error('Map area search timed out'));
+    }, 30000);
     try {
       const params = appendPokerMapBounds(new URLSearchParams({ limit: '1000', offset: '0' }), bounds);
       const normalizedState = String(viewportState || '').toUpperCase();
       if (/^[A-Z]{2}$/.test(normalizedState)) params.set('state', normalizedState);
-      const response = await fetch(`/api/poker/venues?${params.toString()}`, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' },
-      });
-      const payload = await response.json().catch(() => null);
+      const { response, payload } = await Promise.race([interrupted, (async () => {
+        const response = await fetch(`/api/poker/venues?${params.toString()}`, {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        });
+        if (controller.signal.aborted) throw controller.signal.reason;
+        const payload = await response.json().catch(() => null);
+        if (controller.signal.aborted) throw controller.signal.reason;
+        return { response, payload };
+      })()]);
       // Reset, changed filters or unmount revoke this request's ownership even
       // if a transport completes after aborting.
       if (!mountedRef.current || controller.signal.aborted || viewportAbortRef.current !== controller) return;
@@ -466,9 +489,17 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         held_count: mergedIntegrity.held,
       });
     } catch (error) {
-      if (mountedRef.current && !controller.signal.aborted && viewportAbortRef.current === controller
-        && error?.name !== 'AbortError') setAreaSearchError('Area search unavailable · try again');
+      if (mountedRef.current && viewportAbortRef.current === controller) {
+        if (timedOut) {
+          setAreaSearchError('Area Search Timed Out. Existing Map Results Were Kept. Try Again.');
+          setAreaSearchAvailable(true);
+        } else if (!controller.signal.aborted && error?.name !== 'AbortError') {
+          setAreaSearchError('Area search unavailable · try again');
+        }
+      }
     } finally {
+      clearTimeout(deadline);
+      controller.signal.removeEventListener('abort', onAbort);
       if (mountedRef.current && viewportAbortRef.current === controller) {
         viewportAbortRef.current = null;
         setAreaSearchBusy(false);
@@ -495,6 +526,11 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       onLayoutChange={handleMapLayoutChange}
     >
     <div className="pnm-map-stage" style={{ position: 'relative', height: '100%' }}>
+      {['degraded', 'unavailable'].includes(tileStatus) && <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
+        <p>Map Background Unavailable Or Incomplete. Venue Markers And Controls Remain Available.</p>
+        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
+        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
+      </PokerNearMePanelShell>}
       <p id={mapInstructionsId} className="sr-only">
         Interactive Poker Venue Map. Use Arrow Keys To Pan, Plus And Minus To Zoom, And Tab To Move Between Venue Markers.
       </p>

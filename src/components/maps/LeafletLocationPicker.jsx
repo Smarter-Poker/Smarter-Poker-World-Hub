@@ -76,27 +76,42 @@ function stateAbbrev(name) {
 }
 
 // Nominatim forward search. US-only, limit 5, address details on.
-async function nominatimSearch(query) {
+async function readLocationJson(url, controller) {
+  let deadline;
+  let rejectInterrupted;
+  const interrupted = new Promise((_resolve, reject) => { rejectInterrupted = reject; });
+  const onAbort = () => rejectInterrupted(new Error('Location Lookup Interrupted'));
+  controller.signal.addEventListener('abort', onAbort, { once: true });
+  try {
+    if (controller.signal.aborted) throw new Error('Location Lookup Interrupted');
+    deadline = setTimeout(() => controller.abort(), 30000);
+    return await Promise.race([interrupted, (async () => {
+      const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+      if (!response.ok) throw new Error('Location Lookup Unavailable');
+      const json = await response.json();
+      if (controller.signal.aborted) throw new Error('Location Lookup Interrupted');
+      return json;
+    })()]);
+  } finally {
+    clearTimeout(deadline);
+    controller.signal.removeEventListener('abort', onAbort);
+  }
+}
+
+async function nominatimSearch(query, controller) {
   if (!query?.trim()) return [];
   const url = 'https://nominatim.openstreetmap.org/search'
     + '?format=json&limit=5&addressdetails=1&countrycodes=us'
     + '&q=' + encodeURIComponent(query);
-  try {
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch (_e) {
-    return [];
-  }
+  const results = await readLocationJson(url, controller);
+  if (!Array.isArray(results)) throw new Error('Location Lookup Unavailable');
+  return results;
 }
 
 // Nominatim reverse geocode (lat,lng → address parts)
-async function nominatimReverse(lat, lng) {
+async function nominatimReverse(lat, lng, controller) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
-  try {
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    if (!res.ok) return null;
-    const json = await res.json();
+    const json = await readLocationJson(url, controller);
     const a = json.address || {};
     return {
       city: a.city || a.town || a.village || a.hamlet || '',
@@ -105,9 +120,6 @@ async function nominatimReverse(lat, lng) {
       neighborhood: a.neighbourhood || a.suburb || '',
       country: (a.country_code || '').toUpperCase(),
     };
-  } catch (_e) {
-    return null;
-  }
 }
 
 export default function LeafletLocationPicker({ value, onChange, approximateOnly = true, height = 300 }) {
@@ -118,13 +130,29 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
   const markerRef = useRef(null);
   const circleRef = useRef(null);
   const onChangeRef = useRef(onChange);
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const reverseAbortRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
+  const [tileStatus, setTileStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [reverseError, setReverseError] = useState('');
+  const [searchAttempt, setSearchAttempt] = useState(0);
   const searchDebounceRef = useRef(null);
+  const updateManualLocation = useCallback((field, nextValue) => {
+    // A manual correction revokes the pending provider's ownership. Keep the
+    // selected point and synchronously retain edits across batched React events.
+    reverseAbortRef.current?.abort();
+    reverseAbortRef.current = null;
+    const next = { ...valueRef.current, [field]: nextValue };
+    valueRef.current = next;
+    onChangeRef.current?.(next);
+  }, []);
   const handleMapLayoutChange = useCallback(() => {
     mapInstance.current?.invalidateSize?.({ pan: false });
   }, []);
@@ -161,11 +189,13 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     if (!loaded || !mapRef.current || mapInstance.current) return;
     const L = mapRuntimeRef.current?.L;
     if (!L) return;
+    let sessionActive = true;
 
     const session = createPokerMapSession({
       L,
       container: mapRef.current,
       tileStyle: 'dark_all',
+      onTileStatus: ({ status }) => { if (sessionActive) setTileStatus(status); },
       mapOptions: {
         center: [defaultCenter.lat, defaultCenter.lng],
         zoom: 13,
@@ -211,9 +241,26 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
       const approxPos = approximateOnly ? approximateLocation(lat, lng) : { lat, lng };
       if (markerRef.current) markerRef.current.setLatLng([approxPos.lat, approxPos.lng]);
       if (circleRef.current) circleRef.current.setLatLng([approxPos.lat, approxPos.lng]);
-      const geo = await nominatimReverse(approxPos.lat, approxPos.lng);
-      if (onChangeRef.current) {
-        onChangeRef.current({ ...approxPos, ...(geo || {}), approximate: approximateOnly });
+      reverseAbortRef.current?.abort();
+      const controller = new AbortController();
+      reverseAbortRef.current = controller;
+      setReverseError('');
+      // The selected privacy-safe point is form data, not a geocoder result.
+      // Commit it immediately; a slow provider must not discard the selection.
+      const selected = { ...valueRef.current, ...approxPos, approximate: approximateOnly };
+      valueRef.current = selected;
+      onChangeRef.current?.(selected);
+      try {
+        const geo = await nominatimReverse(approxPos.lat, approxPos.lng, controller);
+        if (sessionActive && reverseAbortRef.current === controller && !controller.signal.aborted) {
+          onChangeRef.current?.({ ...valueRef.current, ...approxPos, ...geo, approximate: approximateOnly });
+        }
+      } catch {
+        if (sessionActive && reverseAbortRef.current === controller) {
+          setReverseError('Location Details Unavailable. Your Selected Approximate Point Was Kept. Enter City And State Below.');
+        }
+      } finally {
+        if (reverseAbortRef.current === controller) reverseAbortRef.current = null;
       }
     };
 
@@ -260,6 +307,9 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     propagate(defaultCenter.lat, defaultCenter.lng);
 
     return () => {
+      sessionActive = false;
+      reverseAbortRef.current?.abort();
+      reverseAbortRef.current = null;
       markerElement?.removeEventListener('keydown', handleMarkerKeyDown);
       mapSessionRef.current?.destroy();
       mapSessionRef.current = null;
@@ -279,6 +329,9 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
 
   // Debounced search against Nominatim
   useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    setSearchError('');
     if (!searchInput.trim()) {
       setSearchResults([]);
       setSearching(false);
@@ -287,14 +340,22 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     setSearching(true);
     searchDebounceRef.current = setTimeout(async () => {
-      const results = await nominatimSearch(searchInput);
-      setSearchResults(results);
-      setSearching(false);
+      try {
+        const results = await nominatimSearch(searchInput, controller);
+        if (active) setSearchResults(results);
+      } catch {
+        if (active) {
+          setSearchResults([]);
+          setSearchError('Location Search Unavailable. Try Again Or Enter City And State Below.');
+        }
+      } finally { if (active) setSearching(false); }
     }, 700); // 700ms keeps us comfortably under Nominatim's 1 req/sec
     return () => {
+      active = false;
+      controller.abort();
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
-  }, [searchInput]);
+  }, [searchInput, searchAttempt]);
 
   const pickResult = useCallback(async (r) => {
     const lat = parseFloat(r.lat);
@@ -306,9 +367,11 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     if (circleRef.current) circleRef.current.setLatLng([approxPos.lat, approxPos.lng]);
     setSearchResults([]);
     setSearchInput('');
+    reverseAbortRef.current?.abort();
+    reverseAbortRef.current = null;
+    setReverseError('');
     const a = r.address || {};
-    if (onChangeRef.current) {
-      onChangeRef.current({
+    const selected = {
         ...approxPos,
         city: a.city || a.town || a.village || a.hamlet || '',
         state: stateAbbrev(a.state || ''),
@@ -316,8 +379,9 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
         neighborhood: a.neighbourhood || a.suburb || '',
         country: (a.country_code || '').toUpperCase(),
         approximate: approximateOnly,
-      });
-    }
+      };
+    valueRef.current = selected;
+    onChangeRef.current?.(selected);
   }, [approximateOnly]);
 
   // Fallback if Leaflet itself failed to load — manual city/state inputs.
@@ -337,11 +401,11 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
         <div className="pnm-location-picker-fallback__fields">
           <span className="pnm-map-well">
             <input type="text" aria-label="City" autoComplete="address-level2" placeholder="City" value={value?.city || ''}
-              onChange={e => onChangeRef.current?.({ ...value, city: e.target.value })} />
+              onChange={e => updateManualLocation('city', e.target.value)} />
           </span>
           <span className="pnm-map-well">
             <input type="text" aria-label="State" autoComplete="address-level1" placeholder="State" value={value?.state || ''}
-              onChange={e => onChangeRef.current?.({ ...value, state: e.target.value })} />
+              onChange={e => updateManualLocation('state', e.target.value)} />
           </span>
         </div>
       </PokerNearMePanelShell>
@@ -357,6 +421,13 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
       onLayoutChange={handleMapLayoutChange}
     >
     <div className="pnm-location-picker pnm-map-stage">
+      {(tileStatus === 'degraded' || tileStatus === 'unavailable') && (
+        <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
+          <p>Map Background Unavailable Or Incomplete. Location Controls Remain Available.</p>
+          <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
+          <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
+        </PokerNearMePanelShell>
+      )}
       {/* Search: live text printed inside the painted search well */}
       <div className="pnm-location-picker__search">
         <span className="pnm-map-well">
@@ -372,6 +443,16 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
           <span className="pnm-location-picker__searching" role="status">
             Searching…
           </span>
+        )}
+        {(searchError || reverseError) && (
+          <PokerNearMePanelShell as="div" className="pnm-location-picker-fallback" bodyClassName="pnm-location-picker-fallback__body" data-location-lookup-error="true">
+            <p role="status">{searchError || reverseError}</p>
+            {searchError && <button type="button" className="pnm-map-status__action" onClick={() => setSearchAttempt(attempt => attempt + 1)}>Retry Location Search</button>}
+            <div className="pnm-location-picker-fallback__fields">
+              <span className="pnm-map-well"><input type="text" aria-label="City" autoComplete="address-level2" value={value?.city || ''} onChange={event => updateManualLocation('city', event.target.value)} /></span>
+              <span className="pnm-map-well"><input type="text" aria-label="State" autoComplete="address-level1" value={value?.state || ''} onChange={event => updateManualLocation('state', event.target.value)} /></span>
+            </div>
+          </PokerNearMePanelShell>
         )}
         {searchResults.length > 0 && (
           <PokerNearMePanelShell as="div" className="pnm-location-picker__results" bodyClassName="pnm-location-picker__results-body">

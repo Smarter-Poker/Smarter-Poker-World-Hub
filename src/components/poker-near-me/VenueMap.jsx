@@ -217,6 +217,7 @@ export default function VenueMap({
   const fittedGeographyRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState('');
+  const [tileStatus, setTileStatus] = useState('loading');
   const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
   const [clusteringAvailable, setClusteringAvailable] = useState(false);
   const mapInstructionsId = `pnm-map-instructions-${useId().replace(/:/g, '')}`;
@@ -286,6 +287,7 @@ export default function VenueMap({
   // Initialize map once Leaflet is ready
   useEffect(() => {
     if (!mapReady || !mapContainerRef.current) return;
+    let sessionActive = true;
     
     const handlePopupClicks = createPokerPopupClickHandler({
       onOpenDetails: (path, title) => {
@@ -324,6 +326,7 @@ export default function VenueMap({
     const session = createPokerMapSession({
       L,
       container,
+      onTileStatus: ({ status }) => { if (sessionActive) setTileStatus(status); },
       mapOptions: {
         maxBounds: usBounds.pad(0.05),
         maxBoundsViscosity: 1.0,
@@ -502,6 +505,7 @@ export default function VenueMap({
     }
 
     return () => {
+      sessionActive = false;
       container.removeEventListener('click', handlePopupClicks);
       detachPopupGuard();
       keyboardObserverRef.current?.disconnect();
@@ -823,6 +827,11 @@ export default function VenueMap({
           <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }}>Try Map Again</button>
         </div>
       )}
+      {['degraded', 'unavailable'].includes(tileStatus) && <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
+        <p>Map Background Unavailable Or Incomplete. Venue Markers And Controls Remain Available.</p>
+        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
+        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
+      </PokerNearMePanelShell>}
       <div
         ref={mapContainerRef}
         className="pnm-leaflet-map"
