@@ -104,7 +104,12 @@ export function useContributionWrite(context, onConfirmed) {
     finally { inFlight.current = false; if (mounted.current) setBusy(false); }
   }, [finish, pending, retryable]);
 
-  return { busy, pending, error, notice, submit, check, retryable, retryOriginal };
+  const clearRefusal = useCallback(() => {
+    if (inFlight.current || busy || pending) return;
+    setError(''); setNotice('');
+  }, [busy, pending]);
+
+  return { busy, pending, error, notice, submit, check, retryable, retryOriginal, clearRefusal };
 }
 
 export function ContributionWriteState({ writer }) {
@@ -209,8 +214,8 @@ export default function VenueContributions({ venue, onAccessChange }) {
     {!signedIn && !loading && <a className={`${styles.button} ${styles.primary}`} href={login}>Sign In To Contribute</a>}
     {ownClaim && <div className={styles.receipt}><strong>Your Claim: {ownClaim.status}</strong><span>Claim Receipt: {ownClaim.id}</span>{ownClaim.rejection_reason && <span>Review Note: {ownClaim.rejection_reason}</span>}</div>}
     {signedIn && <div className={styles.actions}>
-      <ContributionButton disabled={!canSubmit} onClick={() => setMode('correction')}>Suggest A Correction</ContributionButton>
-      <ContributionButton disabled={!canSubmit || ['pending', 'under_review', 'approved'].includes(ownClaim?.status)} onClick={() => setMode('claim')}>Claim This Venue</ContributionButton>
+      <ContributionButton disabled={!canSubmit} onClick={() => { writer.clearRefusal(); setMode('correction'); }}>Suggest A Correction</ContributionButton>
+      <ContributionButton disabled={!canSubmit || ['pending', 'under_review', 'approved'].includes(ownClaim?.status)} onClick={() => { writer.clearRefusal(); setMode('claim'); }}>Claim This Venue</ContributionButton>
     </div>}
     <ContributionWriteState writer={writer} />
     {mode === 'claim' && <form className={styles.form} onSubmit={submitClaim}>
@@ -221,7 +226,7 @@ export default function VenueContributions({ venue, onAccessChange }) {
         <ContributionField label="Your Role"><select className={styles.control} value={claim.role} onChange={(event) => setClaim({ ...claim, role: event.target.value })}><option value="owner">Owner</option><option value="manager">Manager</option><option value="staff">Staff</option></select></ContributionField>
       </div>
       <ContributionField label="Verification Notes"><textarea className={`${styles.control} ${styles.textarea}`} required maxLength={2000} value={claim.verification_notes} onChange={(event) => setClaim({ ...claim, verification_notes: event.target.value })} /></ContributionField>
-      <div className={styles.actions}><ContributionButton primary type="submit" disabled={!canSubmit}>{writer.busy ? 'Recording...' : 'Submit Claim'}</ContributionButton><ContributionButton disabled={writer.busy || Boolean(writer.pending)} onClick={() => setMode(null)}>Cancel</ContributionButton></div>
+      <div className={styles.actions}><ContributionButton primary type="submit" disabled={!canSubmit}>{writer.busy ? 'Recording...' : 'Submit Claim'}</ContributionButton><ContributionButton disabled={writer.busy || Boolean(writer.pending)} onClick={() => { writer.clearRefusal(); setMode(null); }}>Cancel</ContributionButton></div>
     </form>}
     {mode === 'correction' && <form className={styles.form} onSubmit={submitCorrection}>
       <h3 className={styles.title}>Suggest A Sourced Correction</h3>
@@ -231,7 +236,7 @@ export default function VenueContributions({ venue, onAccessChange }) {
       <div className={styles.grid}>{CORRECTION_FIELDS[category].map(([name, label]) => <ContributionField key={name} label={`Proposed ${label}`}><input className={styles.control} type={name.endsWith('_time') ? 'time' : ['latitude', 'longitude'].includes(name) ? 'number' : 'text'} step={['latitude', 'longitude'].includes(name) ? 'any' : undefined} required={category === 'location' || (category === 'schedule' && name === 'game_name')} minLength={name === 'name' || name === 'game_name' ? 2 : undefined} maxLength={name === 'game_name' ? 120 : name === 'name' ? 200 : name === 'about' || name === 'notes' ? 2000 : 1000} value={changes[name] ?? ''} onChange={(event) => setChanges({ ...changes, [name]: event.target.value })} /></ContributionField>)}</div>
       <ContributionField label="Evidence Source URL"><input className={styles.control} type="url" required maxLength={1000} value={source} onChange={(event) => setSource(event.target.value)} /></ContributionField>
       <ContributionField label="Reason For The Correction"><textarea className={`${styles.control} ${styles.textarea}`} required maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} /></ContributionField>
-      <div className={styles.actions}><ContributionButton primary type="submit" disabled={!canSubmit || !revision || !Object.values(changes).some((value) => String(value).trim())}>{writer.busy ? 'Recording...' : 'Submit Correction'}</ContributionButton><ContributionButton disabled={writer.busy || Boolean(writer.pending)} onClick={() => setMode(null)}>Cancel</ContributionButton></div>
+      <div className={styles.actions}><ContributionButton primary type="submit" disabled={!canSubmit || !revision || !Object.values(changes).some((value) => String(value).trim())}>{writer.busy ? 'Recording...' : 'Submit Correction'}</ContributionButton><ContributionButton disabled={writer.busy || Boolean(writer.pending)} onClick={() => { writer.clearRefusal(); setMode(null); }}>Cancel</ContributionButton></div>
     </form>}
     {access?.corrections?.length > 0 && <><h3 className={styles.title}>Your Correction Requests</h3><ul className={styles.list}>{access.corrections.map((item) => <li className={styles.receipt} key={item.id}><strong>{item.category}: {item.status}</strong><span>Receipt: {item.id}</span>{item.review_reason && <span>Review Note: {item.review_reason}</span>}</li>)}</ul></>}
   </PokerNearMePanelShell>;

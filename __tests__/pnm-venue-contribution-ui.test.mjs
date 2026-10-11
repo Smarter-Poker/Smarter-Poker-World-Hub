@@ -87,6 +87,9 @@ test('actual write hook suppresses duplicate clicks, retains unknown operations 
     assert.equal(writer.pending.body.operation_id, writes[0].operation_id);
     assert.equal(confirmed, 0);
     assert.match(writer.error, /not confirmed/);
+    await renderer.act(async () => writer.clearRefusal());
+    assert.match(writer.error, /not confirmed/, 'unknown feedback cannot be discarded');
+    assert.equal(writer.pending.body.operation_id, writes[0].operation_id);
     await renderer.act(async () => { await writer.check(); });
     assert.equal(writer.pending, null);
     assert.equal(confirmed, 1);
@@ -150,6 +153,29 @@ test('actual venue claim form sends lowercase authenticated sourced payload and 
     assert.equal(accesses.at(-1).permissions.can_edit_games, false);
     assert.equal(tree.root.findAllByType('form').length, 0);
     assert.equal(globalThis.sessionStorage.data.size, 0);
+  } finally { await renderer.act(async () => tree?.unmount()); Object.assign(globalThis, previous); }
+});
+
+test('actual claim refusal is visible and cancel/reopen starts clean', async () => {
+  const previous = { window: globalThis.window, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
+  globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  globalThis.sessionStorage = storage();
+  const ui = await loadUi({ getAuthUser: () => ({ id: ACTOR }), getSessionToken: () => 'isolated-token' });
+  globalThis.fetch = async (url, options) => options.method === 'POST'
+    ? response({ success: false, error: 'Association evidence was refused' }, 403)
+    : response({ success: true, access: { venue_id: 12, revision: '2026-10-11T00:00:00Z', claim: null, permissions: {}, corrections: [] } });
+  let tree;
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(ui.default, { venue: { id: 12 } })); });
+    const click = async (label) => renderer.act(async () => tree.root.findAllByType('button').find((button) => button.props.children === label).props.onClick());
+    await click('Claim This Venue');
+    await renderer.act(async () => tree.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+    assert.equal(tree.root.findByProps({ role: 'alert' }).props.children, 'Association evidence was refused');
+    await click('Cancel');
+    assert.equal(tree.root.findAllByProps({ role: 'alert' }).length, 0);
+    await click('Claim This Venue');
+    assert.equal(tree.root.findAllByProps({ role: 'alert' }).length, 0);
+    assert.equal(tree.root.findAllByType('form').length, 1);
   } finally { await renderer.act(async () => tree?.unmount()); Object.assign(globalThis, previous); }
 });
 

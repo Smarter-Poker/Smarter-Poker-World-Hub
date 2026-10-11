@@ -10,6 +10,8 @@ const VENUE = read('pages/hub/venues/[id].js');
 const REVIEWS = read('src/components/poker/VenueReviews.js');
 const HOME_GAMES = read('pages/hub/home-games/near-me.js');
 const BANNER = read('src/components/poker-near-me/GeofenceAlertBanner.jsx');
+const CONTRIBUTIONS = read('src/components/poker-near-me/VenueContributions.jsx');
+const CONTRIBUTION_CLIENT = read('src/components/poker-near-me/venueContributionClient.mjs');
 
 test('the write a review deep link opens the form', () => {
     // ?action=review set showReviewForm, and nothing read it. The rating row on
@@ -36,13 +38,19 @@ test('the write a review deep link opens the form', () => {
 test('claiming a venue and reporting a game say when they fail', () => {
     // Both caught, logged to console and returned, leaving the form open and
     // full with no word to the person. A 200 carrying success:false did nothing.
-    for (const [state, setter] of [['claimError', 'setClaimError'], ['reportError', 'setReportError']]) {
+    assert.match(VENUE, /<VenueContributions key=\{id\}/, 'venue claims reach the shared contribution form');
+    assert.match(CONTRIBUTIONS, /const writer = useContributionWrite\(`venue:\$\{venueId\}`/, 'claims use the authenticated durable writer');
+    assert.match(CONTRIBUTION_CLIENT, /!response.ok \|\| payload\?\.success !== true/, 'success:false is a failure even with HTTP 200');
+    assert.match(CONTRIBUTIONS, /failure.confirmedRefusal[\s\S]{0,180}setError\(failure.message\)/, 'confirmed refusal reaches visible feedback');
+    assert.match(CONTRIBUTIONS, /<ContributionWriteState writer=\{writer\}/, 'shared feedback is actually mounted');
+    assert.match(CONTRIBUTIONS, /writer.error && <p role="alert"[^>]*>\{writer.error\}/, 'claim failure renders its own alert');
+    for (const [state, setter] of [['reportError', 'setReportError']]) {
         assert.match(VENUE, new RegExp(`const \\[${state}, ${setter}\\] = useState\\(''\\)`), `${state} must exist`);
         assert.match(VENUE, new RegExp(`${setter}\\(json\\?\\.error`), `${state} must cover success:false`);
         assert.match(VENUE, new RegExp(`\\{${state} && \\(`), `${state} must be rendered, not just held`);
         assert.match(VENUE, new RegExp(`\\{${state}\\}`), `${state} must print its message`);
     }
-    for (const state of ['claimError', 'reportError']) {
+    for (const state of ['reportError']) {
         // the alert element and the state must be in the same block, not merely
         // both present somewhere in a 3,900 line file
         assert.match(
@@ -59,15 +67,17 @@ test('a failed attempt does not haunt the next one', () => {
     // not happened yet. VenueReviews already clears its own error on toggle;
     // these two now match it.
     assert.match(
-        VENUE,
-        /setClaimError\(''\); setShowClaimForm\(true\)/,
+        CONTRIBUTIONS,
+        /writer.clearRefusal\(\); setMode\('claim'\)/,
         'opening the claim form starts clean',
     );
     assert.match(
-        VENUE,
-        /setClaimError\(''\); setShowClaimForm\(false\)/,
+        CONTRIBUTIONS,
+        /writer.clearRefusal\(\); setMode\(null\)/,
         'cancelling drops the message with the form',
     );
+    assert.match(CONTRIBUTIONS, /if \(inFlight.current \|\| busy \|\| pending\) return;\s*setError\(''\)/,
+        'clearing a definite refusal must never discard an unknown or running request');
     assert.match(
         VENUE,
         /setReportError\(''\); setShowReportGame\(!showReportGame\)/,
