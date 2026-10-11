@@ -262,22 +262,40 @@ async function qualifyFaults(browser, viewport) {
   const runtime = await qualifyRuntimeFault(browser, viewport);
   return { areaAndTiles: row, runtime };
 }
+export async function interceptRuntimeRoute(route, runtime, isClosing) {
+  try {
+    const response = await route.fetch({ timeout: 30000 });
+    const body = await response.text();
+    if (isLeafletRuntimeSource(body)) {
+      runtime.abortedRuntimeChunks += 1;
+      runtime.refusedRuntimePath = new URL(route.request().url()).pathname;
+      await route.abort('failed');
+      return;
+    }
+    await route.fulfill({ response });
+  } catch (error) {
+    if (!isClosing()) {
+      runtime.instrumentationErrors.push(safeError(error));
+      runtime.passed = false;
+    }
+    await route.abort('failed').catch(() => {});
+  }
+}
 export async function qualifyRuntimeFault(browser, viewport) {
   // The separate cold context proves a failed actual npm runtime chunk, not an unused remote CDN.
   const runtime = { viewport, blockedWrites: 0, pageErrors: [], abortedRuntimeChunks: 0, passed: false };
   let runtimeContext;
+  let closing = false;
+  const handlers = new Set();
+  runtime.instrumentationErrors = [];
   try {
     runtimeContext = await publicContext(browser, viewport, runtime);
     // Next production script URLs include ?dpl=...; a glob ending .js never intercepts them.
-    await runtimeContext.route(isRuntimeScriptURL, async route => {
-      const response = await route.fetch({ timeout: 30000 });
-      const body = await response.text();
-      if (isLeafletRuntimeSource(body)) {
-        runtime.abortedRuntimeChunks += 1;
-        runtime.refusedRuntimePath = new URL(route.request().url()).pathname;
-        return route.abort('failed');
-      }
-      return route.fulfill({ response });
+    await runtimeContext.route(isRuntimeScriptURL, route => {
+      const handler = interceptRuntimeRoute(route, runtime, () => closing);
+      handlers.add(handler);
+      void handler.finally(() => handlers.delete(handler));
+      return handler;
     });
     const page = await runtimeContext.newPage(); page.setDefaultTimeout(30000);
     page.on('pageerror', error => runtime.pageErrors.push(safeError(error)));
@@ -289,9 +307,11 @@ export async function qualifyRuntimeFault(browser, viewport) {
     assert.equal(await list.getAttribute('href'), '/hub/poker-near-me/venues');
     await list.focus(); await list.press('Enter');
     await page.waitForURL(/\/hub\/poker-near-me\/venues(?:\?|$)/);
+    await Promise.all([...handlers]);
+    assert.equal(runtime.instrumentationErrors.length, 0, 'Runtime fault instrumentation must complete without hidden failures');
     assert.equal(runtime.pageErrors.length, 0, 'Handled runtime failure must not crash the application');
     runtime.passed = true;
-  } catch (error) { runtime.error = safeError(error); } finally { if (runtimeContext) await closeContext(runtimeContext, runtime); }
+  } catch (error) { runtime.error = safeError(error); } finally { closing = true; if (runtimeContext) await closeContext(runtimeContext, runtime); await Promise.all([...handlers]); }
   return runtime;
 }
 async function qualifyMobileBudget(browser) {

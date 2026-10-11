@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { allowedPublicRead, safeError, validateConfiguration, sitemapPaths, buildManifest, assertGeometry, readPublic, isRuntimeScriptURL, isLeafletRuntimeSource, scopedSitemapCount, ORIGIN, VIEWPORTS } from '../scripts/ci/qualify-pnm-launch-phase6.mjs';
+import { allowedPublicRead, safeError, validateConfiguration, sitemapPaths, buildManifest, assertGeometry, readPublic, isRuntimeScriptURL, isLeafletRuntimeSource, scopedSitemapCount, interceptRuntimeRoute, ORIGIN, VIEWPORTS } from '../scripts/ci/qualify-pnm-launch-phase6.mjs';
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes.js';
 
 const source = readFileSync(new URL('../scripts/ci/qualify-pnm-launch-phase6.mjs', import.meta.url), 'utf8');
@@ -16,6 +16,24 @@ test('actual production deployment-query runtime URLs are intercepted without ab
   assert.equal(isLeafletRuntimeSource('unrelated application chunk'), false);
   assert.ok(source.includes('runtime.abortedRuntimeChunks > 0'));
   assert.ok(source.includes('runtime.refusedRuntimePath'));
+});
+test('actual runtime interceptor contains transport and teardown rejection without hiding active failures', async () => {
+  const runtime = { instrumentationErrors: [], passed: true, abortedRuntimeChunks: 0 };
+  const refused = { fetch: async () => { throw new Error('Transport refused'); }, abort: async () => { throw new Error('Target closed'); } };
+  await interceptRuntimeRoute(refused, runtime, () => false);
+  assert.equal(runtime.passed, false);
+  assert.deepEqual(runtime.instrumentationErrors, ['Transport refused']);
+  await interceptRuntimeRoute(refused, runtime, () => true);
+  assert.equal(runtime.instrumentationErrors.length, 1, 'intentional teardown is distinct from active measurement');
+  let aborted = 0;
+  await interceptRuntimeRoute({ fetch: async () => ({ text: async () => 'Map container is already initialized _leaflet_id' }), request: () => ({ url: () => `${ORIGIN}/_next/static/chunks/leaflet.js?dpl=actual` }), abort: async () => { aborted++; } }, runtime, () => false);
+  assert.equal(aborted, 1);
+  assert.equal(runtime.abortedRuntimeChunks, 1);
+  let fulfilled = 0;
+  await interceptRuntimeRoute({ fetch: async () => ({ text: async () => 'Unrelated chunk' }), fulfill: async () => { fulfilled++; } }, runtime, () => false);
+  assert.equal(fulfilled, 1);
+  assert.ok(source.includes('await Promise.all([...handlers])'));
+  assert.ok(source.includes("runtime.instrumentationErrors.length, 0"));
 });
 test('sitemap counts include every maintained shared family and partial receipts never become success', () => {
   assert.equal(scopedSitemapCount([...paths, '/hub/training', '/hub/poker-series-other']), paths.length);
