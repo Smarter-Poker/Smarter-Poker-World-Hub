@@ -39,6 +39,8 @@ import {
   addSearchHistory as addSearchHistoryToDb,
   getSearchHistory as getSearchHistoryFromDb,
 } from '../../../src/services/pokerNearMeSearchHistory';
+import PlayerPlanningPanel from '../../../src/components/poker-near-me/PlayerPlanningPanel';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import { eventBus, busEmit, EventType } from '../../../src/engine/EventBus';
 import useTourMapStops from '../../../src/hooks/useTourMapStops';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
@@ -854,6 +856,8 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // preferences through this ref rather than the mount-time snapshot.
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
+  const [preferenceError, setPreferenceError] = useState('');
+  const preferenceWrites = useRef(new Map());
 
   // Intro video state - ONLY show when navigated directly from World Hub card click
   // NOT when navigating via lobby pods (which add ?tab= params)
@@ -2501,7 +2505,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // Load preferences, venue favorites, and search history from Supabase on mount
   useEffect(() => {
     if (userId) {
-      getPokerNearMePreferences(userId).then(setPreferences);
+      getPokerNearMePreferences(userId).then((value) => {
+        if (getAuthUser()?.id === userId) setPreferences(value);
+      }).catch(() => { if (getAuthUser()?.id === userId) setPreferenceError('Account Preferences Could Not Be Read. Current Local Settings Are Not Confirmed Saved.'); });
 
       // Load venue favorites from Supabase
       getVenueFavorites(userId)
@@ -2538,13 +2544,22 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const updatePreference = useCallback(
     async (key, value) => {
       if (!requireOnline()) return;
+      const prior = preferencesRef.current[key];
+      const operation = Symbol(key);
+      preferenceWrites.current.set(key, operation);
+      const account = userId;
+      setPreferenceError('');
       setPreferences((prev) => ({ ...prev, [key]: value }));
 
       if (userId) {
         try {
           await updatePokerNearMePreferences(userId, { [key]: value });
         } catch (error) {
-          console.warn('Failed to save preference:', error);
+          if (preferenceWrites.current.get(key) === operation && getAuthUser()?.id === account) {
+            setPreferences((prev) => ({ ...prev, [key]: prior }));
+            setPreferenceError('Preference Save Was Not Confirmed. The Previous Setting Has Been Restored. Check The Original Request Before Retrying.');
+            window.dispatchEvent(new Event('pnm-preference-request'));
+          }
         }
       }
     },
@@ -3387,7 +3402,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         <h2 id="pnm-section-saved-title" className="pnm-section__title">Saved Poker Places</h2>
         <p className="pnm-section__hint">Rooms, Tours And Series You Have Favourited, In One Place.</p>
       </PokerNearMePanelShell>
+      {preferenceError && <p role="alert" className="pnm-section__hint">{preferenceError}</p>}
       <TabErrorBoundary>
+        <PlayerPlanningPanel userId={userId} />
         <FavoritesTabPanel
           allVenuesForMap={allVenuesForMap}
           venues={venues}

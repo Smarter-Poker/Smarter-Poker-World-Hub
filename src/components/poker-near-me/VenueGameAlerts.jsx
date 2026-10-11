@@ -166,7 +166,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setFeedback({ type: 'success', msg: data.message || 'Alert created. You will be notified when this game starts.' });
+        setFeedback({ type: 'success', msg: 'Game Preference Saved. Background Game-Start Delivery Is Not Available.' });
         setShowCreate(false);
         setSelectedVenue('');
         setSelectedGame('');
@@ -246,6 +246,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
           {showCreate ? 'Cancel' : 'New Alert'}
         </button>
       </div>
+      <p role="status" style={{ color: '#b9c8d7', fontSize: 14, lineHeight: 1.6 }}>Saved Game Preferences Are Not Background Subscriptions. Game-Start Delivery Is Not Available. Current Context Below Is Labelled Observed Or Estimated.</p>
 
       {/* Feedback toast */}
       {feedback && (
@@ -302,8 +303,8 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
           textAlign: 'center', padding: 24, color: '#64748b', fontSize: 14,
         }}>
           {userId 
-            ? 'No active alerts. Create one to get notified when your game drops.'
-            : 'Sign in to create game alerts and get notified when your game starts running.'}
+            ? 'No Saved Game Preferences. Background Game-Start Delivery Is Not Available.'
+            : 'Sign In To Save Game Preferences. Background Game-Start Delivery Is Not Available.'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

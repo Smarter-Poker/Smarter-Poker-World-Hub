@@ -308,20 +308,28 @@ export function safeSetItem(key, value, storageOverride) {
 export function trackSearchEvent(eventName, data, runtimeWindow) {
   try {
     const browserWindow = runtimeWindow || window;
+    const safeEvent = String(eventName || '').replace(/[^a-z0-9_]/gi, '').slice(0, 60);
+    const safeData = {};
+    if (typeof data?.query === 'string') safeData.queryLength = Math.min(200, data.query.trim().length);
+    for (const key of ['queryLength', 'resultCount', 'durationMs', 'missingCoverageCount']) {
+      if (Number.isFinite(data?.[key]) && data[key] >= 0) safeData[key] = Math.min(100000, Math.round(data[key]));
+    }
+    for (const key of ['hasGameFilter', 'hasLocationFilter', 'hasDateFilter', 'noResults']) {
+      if (typeof data?.[key] === 'boolean') safeData[key] = data[key];
+    }
     if (browserWindow.__SEARCH_ANALYTICS__) {
       browserWindow.__SEARCH_ANALYTICS__.push({
-        event: eventName,
-        data,
+        event: safeEvent,
+        data: safeData,
         timestamp: Date.now(),
       });
+      if (browserWindow.__SEARCH_ANALYTICS__.length > 50) browserWindow.__SEARCH_ANALYTICS__.splice(0, browserWindow.__SEARCH_ANALYTICS__.length - 50);
     }
     const storage = browserWindow.localStorage;
-    const existing = JSON.parse(storage.getItem('sp-search-analytics') || '[]');
-    const safeData = { ...data };
-    delete safeData.venues;
-    delete safeData.results;
-    delete safeData.filteredData;
-    existing.push({ event: eventName, ...safeData, ts: Date.now() });
+    const stored = JSON.parse(storage.getItem('sp-search-analytics') || '[]');
+    // Drop historical raw-query records during the next explicit user event.
+    const existing = Array.isArray(stored) ? stored.filter((item) => item?.privacyVersion === 1).slice(-49) : [];
+    existing.push({ event: safeEvent, ...safeData, privacyVersion: 1, ts: Date.now() });
     if (existing.length > 50) existing.splice(0, existing.length - 50);
     return safeSetItem('sp-search-analytics', JSON.stringify(existing), storage);
   } catch (error) {

@@ -34,7 +34,11 @@ test('every Poker Near Me map uses the local shared Leaflet runtime and control 
   assert.match(controls, /focus-visible/);
   assert.match(controls, /prefers-reduced-motion/);
   assert.doesNotMatch(primaryMap, /\.leaflet-control-zoom\s*\{/);
-  assert.match(planner, /\/hub\/poker-near-me\/lobby\?\$\{params\.toString\(\)\}/);
+  assert.match(planner, /buildSafeTripShareUrl\(/);
+  const planning = await source('src/lib/poker-near-me/playerPlanning.js');
+  assert.match(planning, /\/hub\/poker-near-me\/roadtrip\?\$\{params\}/);
+  const shareBuilder = planning.split('export function buildSafeTripShareUrl')[1];
+  assert.doesNotMatch(shareBuilder, /params\.(?:set|append)\(['"](?:from|to|via|accountPlan|origin|destination)['"]/);
 });
 
 test('road-trip planner controls cannot submit an ancestor form', async () => {

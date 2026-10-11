@@ -99,7 +99,7 @@ test('the actual submit callback refuses an older cached failure after a newer r
   const state = {};
   Object.assign(scope, {
     localQuery: '', userLocation: null, inputRef: { current: null },
-    submitSeqRef: { current: 0 }, debounceRef: { current: null }, abortControllerRef: { current: null },
+    submitSeqRef: { current: 0 }, savedSearchRef: { current: null }, debounceRef: { current: null }, abortControllerRef: { current: null },
     cachedFetch: url => new Promise((resolve, reject) => pending.push({ url, resolve, reject })),
     matchTours: () => [], matchSeries: () => [], useCallback: fn => fn,
     setRecentSearches: () => {},
@@ -155,6 +155,32 @@ test('the actual submit callback refuses an older cached failure after a newer r
   assert.equal(state.SearchError, false);
   assert.equal(state.VenueResults[0].id, 999);
   assert.equal(state.NameMatchFallback, false);
+  scope.savedSearchRef.current = { schemaVersion: 1, query: 'poker', filters: { state: 'NV', game: 'NLH', stakes: '1/2', date: 'tonight', type: 'venues' }, location: { city: 'Las Vegas', state: 'NV' } };
+  const saved = scope.submit(null, 'poker');
+  const savedRequest = pending.at(-1);
+  const savedParams = new URL(savedRequest.url, 'https://smarter.poker').searchParams;
+  assert.equal(savedParams.get('state'), 'NV'); assert.equal(savedParams.get('city'), 'Las Vegas');
+  savedRequest.resolve({ data: [{ id: 1828, games_offered: ['NLH'], stakes_cash: ['1/2'] }, { id: 9, games_offered: ['PLO'], stakes_cash: ['1/2'] }], has_more: false });
+  await saved;
+  assert.equal(state.VenueResults.length, 1); assert.equal(state.VenueResults[0].id, 1828);
+  assert.equal(state.TourResults.length, 0); assert.equal(state.SeriesResults.length, 0);
+  assert.equal(state.NlIntent.timeWindow, 'today'); assert.deepEqual(Array.from(state.NlIntent.stakes), [1, 2]);
+  scope.savedSearchRef.current = { schemaVersion: 1, query: '', filters: { state: 'NV', game: 'NLH', stakes: '', date: '', type: 'venues' }, location: { city: 'Las Vegas', state: 'NV' } };
+  const beforeFiltered = pending.length;
+  const filterOnly = scope.submit(null, '');
+  assert.equal(pending.length, beforeFiltered + 1, 'filter-only saved search must execute the actual submit callback');
+  assert.match(pending.at(-1).url, /state=NV/); assert.match(pending.at(-1).url, /city=Las\+Vegas/);
+  pending.at(-1).resolve({ data: [{ id: 1828, games_offered: ['NLH'] }], has_more: false });
+  await filterOnly;
+  assert.equal(state.VenueResults[0].id, 1828);
+});
+
+test('saved search deep links preserve structured scope and open the actual search overlay', () => {
+  const lobby = read(LOBBY);
+  assert.match(lobby, /if \(params\.has\('pnm_planning'\)\) \{[\s\S]*?setShowGlobalSearch\(true\)/);
+  assert.match(lobby, /const planning = new URLSearchParams\(window\.location\.search\)\.get\('pnm_planning'\)/);
+  assert.match(lobby, /if \(planning\) params\.set\('pnm_planning', planning\)/);
+  assert.match(read(SEARCH), /if \(searchQuery \|\| savedSearchRef\.current\)/);
 });
 
 test('venue typo suggestions require every published name or city word and remain labelled', () => {
@@ -274,7 +300,7 @@ test('the Search plate flows under the well on phones and is a real 44px target'
   assert.match(css, /@media \(max-width: 600px\) \{[\s\S]*?\.gso-console-header \{[\s\S]*?grid-template-columns: 48px minmax\(0, 1fr\);[\s\S]*?\.gso-console-submit \{\s*grid-column: 2;\s*justify-self: end;/);
   assert.match(css, /\.gso-console-submit \{[^}]*height: 44px;[^}]*min-height: 44px;/);
   // Rendered in DOM order after the field; disabled (steel plate) for an empty query.
-  assert.match(src, /<\/form>\s*\{\/\*[\s\S]*?\*\/\}\s*<button type="button" className="gso-console-submit" onClick=\{handleSubmit\} disabled=\{!localQuery\.trim\(\)\}>/);
+  assert.match(src, /<\/form>\s*\{\/\*[\s\S]*?\*\/\}\s*<button type="button" className="gso-console-submit" onClick=\{handleSubmit\} disabled=\{!localQuery\.trim\(\) && !savedSearchRef\.current\}>/);
   assert.match(css, /\.gso-console-submit:disabled \{[^}]*button-secondary\.png/);
   // Clear keeps its 44px target inside the well.
   assert.match(css, /\.gso-console-form \.gso-clear \{[^}]*width: 44px !important;[^}]*height: 44px !important;/);
