@@ -72,6 +72,7 @@ const REVIEWED = {
   'pages/api/horses/mint.js': 'STAFF: withOperatorRoute money.read / money.write',
   'pages/api/live-help/start-conversation.js': 'SELF: greets the caller in their own support thread',
   'pages/api/poker/ai-hand-reader.js': "SELF: the caller's own balance gates VIP, never returned",
+  'pages/api/poker/player-preferences.js': "SELF: verified contributionSession JWT selects only session.user.id; private no-store response goes only to that caller",
   'pages/api/public/home-games/[slug].js': 'not profiles: city/state there are the group\'s own columns',
   'pages/api/rewards/progress.js': "SELF: the caller's own multiplier",
   'pages/api/store/checkout-status.js': "SELF: the caller's own wallet after the session is proved theirs",

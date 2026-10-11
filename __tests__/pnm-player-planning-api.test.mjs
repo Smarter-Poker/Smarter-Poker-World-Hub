@@ -68,6 +68,18 @@ test('preferences PATCH validates then atomically merges with the original UUID'
 test('preference unknown keys, unsafe coordinates, invalid strings and toggles fail closed', async () => {
   for (const patch of [{ role: 'admin' }, { geofenceAlerts: 'true' }, { lastLocation: { lat: 91, lng: 1 } }, { lastLocation: { lat: 1, lng: 1, address: 'Private' } }, { locationEnabledAt: 'wrong' }, { locationEnabledAt: '2026-02-30T12:00:00Z' }, { locationEnabledAt: '2026-10-11T24:00:00Z' }, { locationEnabledAt: '2026-10-11T12:00:00' }, {}]) { const f = fixture(); assert.equal((await f.run('player-preferences', 'PATCH', { operation_id: OP, patch })).statusCode, 400); assert.equal(f.calls.length, 0); }
 });
+test('private preference reads refuse unsigned callers and ignore supplied stranger identity', async () => {
+  const unsigned = fixture({ noUser: true });
+  assert.equal((await unsigned.run('player-preferences', 'GET')).statusCode, 401);
+  assert.deepEqual(unsigned.calls, []);
+  const owner = fixture();
+  const response = await owner.run('player-preferences', 'GET', { user_id: ID }, { user_id: ID, id: ID });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers['Cache-Control'], 'private, no-store');
+  assert.equal(response.headers.Vary, 'Authorization, Cookie');
+  assert.deepEqual(owner.calls, [{ table: 'profiles', fields: 'poker_near_me_preferences' }, { key: 'id', value: OWNER }]);
+  assert.deepEqual(response.body.preferences, { geofenceAlerts: false });
+});
 test('saved search preserves the exact structured filter/location document in the actual consumer parameter', () => {
   const url = new URL(contracts.buildSavedSearchUrl(search), 'https://smarter.poker');
   assert.equal(url.pathname, '/hub/poker-near-me/lobby'); assert.equal(url.searchParams.get('q'), search.query); assert.deepEqual(JSON.parse(url.searchParams.get('pnm_planning')), search);

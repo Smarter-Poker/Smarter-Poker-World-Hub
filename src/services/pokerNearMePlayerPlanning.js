@@ -39,8 +39,8 @@ export async function mutatePlayerPlan(request, fetcher = fetch, expectedUserId 
   }
 }
 export async function checkPlanningOperation(operationId, { kind = 'plan', fetcher = fetch, expectedUserId = null } = {}) {
-  const endpoint = kind === 'preferences' ? 'player-preferences' : 'player-plans';
-  const operation = (await planningRequest(`/api/poker/${endpoint}?operation_id=${encodeURIComponent(operationId)}`, {}, fetcher, expectedUserId)).operation;
+  const endpoint = kind === 'preferences' ? '/api/poker/player-preferences' : '/api/poker/player-plans';
+  const operation = (await planningRequest(`${endpoint}?operation_id=${encodeURIComponent(operationId)}`, {}, fetcher, expectedUserId)).operation;
   if (operation && (operation.operation_id !== operationId || !['create', 'update', 'delete', 'preferences'].includes(operation.action))) throw new Error('The original planning receipt could not be verified.');
   return operation;
 }

@@ -237,7 +237,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         const controller = new AbortController();
         const readIds = (key) => (params.get(key) || (savedPublicRefs?.[key === 'planVenues' ? 'venueIds' : 'seriesIds'] || []).join(',')).split(',').filter((id) => /^\d+$/.test(id) && Number(id) > 0).slice(0, 50);
         const readPublic = async (kind, id) => {
-            const response = await fetch(`/api/poker/${kind}?id=${encodeURIComponent(id)}`, { credentials: 'omit', cache: 'no-store', signal: controller.signal });
+            const endpoint = kind === 'venues' ? '/api/poker/venues' : '/api/poker/series';
+            const response = await fetch(`${endpoint}?id=${encodeURIComponent(id)}`, { credentials: 'omit', cache: 'no-store', signal: controller.signal });
             if (!response.ok) return null;
             const payload = await response.json();
             const value = Array.isArray(payload.data) ? payload.data[0] : payload.data;
