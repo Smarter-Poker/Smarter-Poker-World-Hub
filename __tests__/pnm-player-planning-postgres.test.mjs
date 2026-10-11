@@ -11,10 +11,13 @@ import { planMigrationTransactions } from '../scripts/lib/sql-transaction-contro
 
 const migrationPath=path.resolve(import.meta.dirname,'../supabase/migrations/20261011160000_pnm_player_planning.sql');
 const sql=readFileSync(migrationPath,'utf8');
+const repairPath=path.resolve(import.meta.dirname,'../supabase/migrations/20261011164500_pnm_preferences_variable_collision.sql');
+const repairSql=readFileSync(repairPath,'utf8');
 const search={schemaVersion:1,query:'Austin NLH',filters:{state:'TX',game:'NLH',stakes:'',date:'tonight',type:'venues'},location:{city:'Austin',state:'TX'}};
 const trip={schemaVersion:1,origin:'Austin, TX',destination:'Dallas, TX',waypoints:[],corridorMi:50,dateRange:{start:'',end:''},venueIds:[1],seriesIds:[101]};
 test('PNM player plans qualify actual PG17 ownership, receipts, CAS, concurrency and atomic patches',{timeout:120000},async(t)=>{
   assert.equal(planMigrationTransactions([{name:path.basename(migrationPath),sql}]).useOuterTransaction,true);
+  assert.equal(planMigrationTransactions([{name:path.basename(repairPath),sql:repairSql}]).useOuterTransaction,true);
   const bin=[process.env.PNM_POSTGRES_BIN,'/opt/homebrew/opt/postgresql@17/bin','/usr/lib/postgresql/17/bin'].filter(Boolean).find(x=>existsSync(path.join(x,'initdb')));
   assert.ok(bin,'PG17 binaries required, not skipped');
   assert.match(execFileSync(path.join(bin,'postgres'),['--version']).toString(),/PostgreSQL\) 17\./);
@@ -42,12 +45,12 @@ test('PNM player plans qualify actual PG17 ownership, receipts, CAS, concurrency
     await db.query(`CREATE SCHEMA auth;CREATE SCHEMA extensions;CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;
       CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
       GRANT USAGE ON SCHEMA auth,public TO anon,authenticated,service_role;GRANT EXECUTE ON FUNCTION auth.uid() TO anon,authenticated,service_role;
-      CREATE TABLE profiles(id uuid PRIMARY KEY,poker_near_me_preferences jsonb,updated_at timestamptz);`);
+      CREATE TABLE profiles(id uuid PRIMARY KEY,poker_near_me_preferences jsonb,preferences jsonb DEFAULT '{"unrelated":"preserve"}',updated_at timestamptz);`);
     const predecessor=readFileSync(path.resolve(import.meta.dirname,'../supabase/migrations/20261006014100_trivia_preferences_atomic_cas.sql'),'utf8');
     const generic=predecessor.slice(predecessor.indexOf('CREATE OR REPLACE FUNCTION public.update_page_preferences('),predecessor.indexOf('REVOKE ALL ON FUNCTION public.update_page_preferences(uuid, text, jsonb)'));
     await db.query(generic);
     const before=(await db.query("SELECT pg_get_functiondef('public.update_page_preferences(uuid,text,jsonb)'::regprocedure) AS definition")).rows[0].definition;
-    await db.query('INSERT INTO profiles VALUES($1,$3,now()),($2,$3,now())',[actor,stranger,{existing:'preserve',geofenceAlerts:true,locationEnabled:true}]);
+    await db.query('INSERT INTO profiles(id,poker_near_me_preferences,updated_at) VALUES($1,$3,now()),($2,$3,now())',[actor,stranger,{existing:'preserve',geofenceAlerts:true,locationEnabled:true}]);
     // Reproduces the old read/replace lost update without any mocked database.
     const original=(await db.query('SELECT poker_near_me_preferences AS p FROM profiles WHERE id=$1',[actor])).rows[0].p;
     await db.query('UPDATE profiles SET poker_near_me_preferences=$2 WHERE id=$1',[actor,{...original,locationEnabled:false}]);
@@ -55,6 +58,18 @@ test('PNM player plans qualify actual PG17 ownership, receipts, CAS, concurrency
     assert.equal((await db.query('SELECT poker_near_me_preferences AS p FROM profiles WHERE id=$1',[actor])).rows[0].p.locationEnabled,true,'old snapshot replacement loses concurrent location toggle');
     await db.query('BEGIN');try{await db.query(sql);await db.query('COMMIT');}catch(e){await db.query('ROLLBACK');throw e;}
     assert.equal((await db.query("SELECT pg_get_functiondef('public.update_page_preferences(uuid,text,jsonb)'::regprocedure) AS definition")).rows[0].definition,before,'shared Trivia-protecting generic RPC unchanged');
+    await t.test('production preferences column reproduces 42702 and forward repair preserves metadata',async()=>{
+      const request=randomUUID();
+      const baseline=(await db.query('SELECT poker_near_me_preferences AS p,preferences FROM profiles WHERE id=$1',[actor])).rows[0];
+      await assert.rejects(invoke('authenticated',actor,'pnm_patch_preferences',[request,{locationEnabled:false}]),fail('42702'));
+      assert.deepEqual((await db.query('SELECT poker_near_me_preferences AS p,preferences FROM profiles WHERE id=$1',[actor])).rows[0],baseline);
+      assert.equal(await invoke('authenticated',actor,'pnm_player_plan_operation',[request]),null);
+      const metadataSql="SELECT oid,proowner,proacl,proconfig,prosecdef,proargtypes::text,prorettype FROM pg_proc WHERE oid='public.pnm_patch_preferences(uuid,jsonb)'::regprocedure";
+      const metadata=(await db.query(metadataSql)).rows[0];
+      await db.query('BEGIN');try{await db.query(repairSql);await db.query('COMMIT');}catch(e){await db.query('ROLLBACK');throw e;}
+      assert.deepEqual((await db.query(metadataSql)).rows[0],metadata);
+      assert.equal((await db.query("SELECT pg_get_functiondef('public.update_page_preferences(uuid,text,jsonb)'::regprocedure) AS definition")).rows[0].definition,before);
+    });
     let saved;
     await t.test('own user RLS and RPC only mutations enforce identity',async()=>{
       await assert.rejects(invoke('anon',null,'pnm_mutate_player_plan',[randomUUID(),create('search',search)]),fail('42501'));
@@ -95,7 +110,10 @@ test('PNM player plans qualify actual PG17 ownership, receipts, CAS, concurrency
       await Promise.all([invoke('authenticated',actor,'pnm_patch_preferences',[randomUUID(),{locationEnabled:false}],a),invoke('authenticated',actor,'pnm_patch_preferences',[randomUUID(),{geofenceAlerts:true}],b)]);
       const prefs=(await db.query('SELECT poker_near_me_preferences AS p FROM profiles WHERE id=$1',[actor])).rows[0].p;
       assert.deepEqual(prefs,{existing:'preserve',locationEnabled:false,geofenceAlerts:true});
+      assert.deepEqual((await db.query('SELECT preferences FROM profiles WHERE id=$1',[actor])).rows[0].preferences,{unrelated:'preserve'});
       const request=randomUUID(),patch={showNewcomerFriendly:false};const first=await invoke('authenticated',actor,'pnm_patch_preferences',[request,patch]);
+      assert.deepEqual(Object.keys(first).sort(),['action','operation_id','preferences']);
+      assert.equal(first.preferences.showNewcomerFriendly,false);
       await invoke('authenticated',actor,'pnm_patch_preferences',[randomUUID(),{showNewcomerFriendly:true}]);
       assert.deepEqual(await invoke('authenticated',actor,'pnm_patch_preferences',[request,patch]),first,'retry original receipt must not reapply old toggle');
       assert.equal((await db.query('SELECT poker_near_me_preferences AS p FROM profiles WHERE id=$1',[actor])).rows[0].p.showNewcomerFriendly,true);
