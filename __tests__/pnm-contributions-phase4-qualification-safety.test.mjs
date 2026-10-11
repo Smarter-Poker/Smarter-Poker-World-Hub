@@ -1,7 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validateConfiguration, assertOwnedVenue, allowedBrowserRead } from '../scripts/qualify-pnm-contributions-phase4.mjs';
+import { validateConfiguration, assertOwnedVenue, allowedBrowserRead, venueHeadingName, staffMarkerPattern } from '../scripts/qualify-pnm-contributions-phase4.mjs';
+import { normalizeWorldCopy } from '../src/lib/world-copy-policy.mjs';
+
+test('rendered fixture names match the actual copy policy without losing exact venue identity', () => {
+  const marker = 'PNM Contribution Qualification 80429866-ddc2-40c7-a273-76d4d7ca9137';
+  const rendered = normalizeWorldCopy(marker);
+  assert.notEqual(rendered, marker, 'reproduces the original exact-heading mismatch');
+  assert.equal(venueHeadingName(marker), 'PNM Contribution Qualification 80429866-Ddc2-40c7-A273-76d4d7ca9137');
+  assert.equal(venueHeadingName(marker), rendered);
+  assert.equal(staffMarkerPattern(marker).test(`Contact: ${marker}`), true);
+  assert.equal(staffMarkerPattern(marker).test(`Contact: ${rendered}`), true);
+  assert.equal(staffMarkerPattern(marker).test(marker.replace('80429866', '80429867')), false);
+  assert.equal(staffMarkerPattern('Owned [test].').test('Owned XtestYz'), false);
+  const source = readFileSync(new URL('../scripts/qualify-pnm-contributions-phase4.mjs', import.meta.url), 'utf8');
+  assert.match(source, /name: venueHeadingName\(marker\), level: 1, exact: true/);
+  assert.match(source, /assert\.equal\(venue\.name, marker\)/);
+});
 
 test('phase4 qualification rejects unknown mode, foreign project or unqualified SHA before mutations', () => {
   const env = { NEXT_PUBLIC_SUPABASE_URL: 'https://kuklfnapbkmacvwxktbh.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'placeholder', SUPABASE_SERVICE_ROLE_KEY: 'placeholder', PNM_CONTRIBUTIONS_EXPECTED_SHA: 'a'.repeat(40), PNM_CONTRIBUTIONS_MODE: 'task-owned-fixtures' };

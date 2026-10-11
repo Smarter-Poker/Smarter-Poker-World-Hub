@@ -5,6 +5,14 @@ import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { normalizeWorldCopy } from '../src/lib/world-copy-policy.mjs';
+
+// World routes normalize rendered copy after hydration, including UUID word
+// boundaries. Keep the stored marker unchanged for every ownership assertion.
+export function venueHeadingName(marker) { return normalizeWorldCopy(marker); }
+export function staffMarkerPattern(marker) {
+  return new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+}
 
 export function validateConfiguration(env) {
   for (const name of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) assert.ok(env[name], `${name} required`);
@@ -51,7 +59,7 @@ export async function qualifyBrowserConsumers({ owner, staff, venue, marker, obs
         const response = await page.goto(`https://smarter.poker${observation.route}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
         assert.equal(response.status(), 200);
         if (scenario.name === 'claim' || scenario.name === 'venue') {
-          await page.getByRole('heading', { name: marker, level: 1, exact: true }).waitFor({ state: 'visible' });
+          await page.getByRole('heading', { name: venueHeadingName(marker), level: 1, exact: true }).waitFor({ state: 'visible' });
           await page.getByRole('heading', { name: 'Keep This Venue Accurate', exact: true }).waitFor({ state: 'visible' });
           if (scenario.name === 'claim') {
             await page.getByRole('button', { name: 'Claim This Venue', exact: true }).click();
@@ -70,7 +78,7 @@ export async function qualifyBrowserConsumers({ owner, staff, venue, marker, obs
         } else {
           await page.getByRole('heading', { name: 'Venue Contribution Review', level: 1, exact: true }).waitFor({ state: 'visible' });
           await page.getByRole('combobox', { name: 'Queue Status', exact: true }).selectOption('all');
-          await page.getByText(marker, { exact: false }).first().waitFor({ state: 'visible' });
+          await page.getByText(staffMarkerPattern(marker)).first().waitFor({ state: 'visible' });
           await page.getByRole('button', { name: 'Review Contribution', exact: true }).click();
           await page.getByRole('textbox', { name: 'Independent Verification Source URL', exact: true }).waitFor({ state: 'visible' });
           observation.actualStaffReviewFormVisible = true;
