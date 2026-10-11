@@ -65,6 +65,12 @@ export async function qualifyBrowser({ owner, searchName, tripName, trip, share,
           return route.fulfill({ status: 403, contentType: 'application/json', body: '{"success":false,"error":"Outside Qualification Scope"}' });
         });
         const page = await context.newPage();
+        page.on('response', response => {
+          const url = new URL(response.url());
+          if (url.pathname !== '/api/poker/player-plans') return;
+          observed.planningReads ??= [];
+          if (observed.planningReads.length < 30) observed.planningReads.push({ path: url.pathname, method: response.request().method(), status: response.status() });
+        });
         page.on('pageerror', error => {
           observed.pageErrors += 1;
           const message = planningBrowserError({ message: `${error.name}: ${error.message}\n${String(error.stack || '').split('\n').slice(1, 4).join('\n')}` }, [owner.token, owner.session?.refresh_token, trip.origin, trip.destination, searchName, tripName]);
@@ -107,9 +113,14 @@ export async function qualifyBrowser({ owner, searchName, tripName, trip, share,
         assertPlanningFieldGeometry(planningField);
         observed.planningFieldInsidePaintedAperture = true;
         await page.goto('https://smarter.poker/hub/poker-near-me/saved', { waitUntil: 'domcontentloaded' });
-        await page.getByRole('link', { name: 'Load Account Trip', exact: true }).click();
+        const tripLink = page.getByRole('link', { name: 'Load Account Trip', exact: true });
+        const accountPlanId = new URL(await tripLink.getAttribute('href'), 'https://smarter.poker').searchParams.get('accountPlan');
+        assert.ok(accountPlanId, 'Private trip link must carry its account-owned identifier');
+        await tripLink.click();
         await expect(page.getByRole('textbox', { name: /^Trip Origin$/i })).toHaveValue(trip.origin);
         await expect(page.getByRole('textbox', { name: /^Trip Destination$/i })).toHaveValue(trip.destination);
+        assert.equal(new URL(page.url()).searchParams.get('accountPlan'), accountPlanId, 'Discovery URL writer must retain the private trip handoff');
+        observed.privateTripUrlRetained = true;
         observed.privateAccountTripRestored = true;
         await page.evaluate(async () => { await Promise.all([...document.images].map(image => image.decode().catch(() => {}))); });
         Object.assign(observed, await page.evaluate(() => ({

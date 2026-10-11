@@ -79,6 +79,8 @@ test('planning qualifier independently reads persistence, permissions, CAS, pref
     'preferenceStored.poker_near_me_preferences.geofenceAlerts, false',
     'preferenceStored.poker_near_me_preferences.showNewcomerFriendly, false',
     'await page.reload', 'structuredSavedSearchRestored = true', 'safePublicPlanAndDirectionsRendered = true', 'remaining.length, 0']) assert.ok(source.includes(invariant), invariant);
+  assert.ok(source.includes('privateTripUrlRetained = true'));
+  assert.ok(source.includes("searchParams.get('accountPlan'), accountPlanId"));
 });
 test('planning workflow uses maintained manual main lane and configured canonical secrets', () => {
   const source = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
