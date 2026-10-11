@@ -1883,7 +1883,7 @@ const pageStyles = `
 .hgs-back-btn{display:inline-flex;box-sizing:border-box;width:min(100%,180px);min-width:44px;min-height:44px;aspect-ratio:348/114;align-items:center;justify-content:center;background:transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center/contain no-repeat;border:none;color:rgba(14,165,233,.8);font-size:13px;font-weight:600;cursor:pointer;padding:0 18px;text-decoration:none}
 .hgs-back-btn:hover{color:#38bdf8}
 /* ── Vouch & Reputation ── */
-.hgs-vouch-count-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:20px;color:#22d3ee;font-size:12px;font-weight:600;cursor:pointer;padding:3px 10px;transition:all .15s;white-space:nowrap}
+.hgs-vouch-count-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;min-width:44px;min-height:44px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:20px;color:#22d3ee;font-size:12px;font-weight:600;cursor:pointer;padding:3px 10px;transition:all .15s;white-space:nowrap}
 .hgs-vouch-count-btn:hover{background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.5)}
 .hgs-vouch-count-btn strong{color:#fff;font-weight:700}
 .hgs-rep-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;margin-top:8px;letter-spacing:.3px}

@@ -139,6 +139,11 @@ test('the family nav keeps ten routes, aria-current and a 44px plate', () => {
   assert.equal(links.length, 10, 'the discovery deck carries ten routes');
   assert.match(navComponent, /aria-current=\{active \? 'page' : undefined\}/);
   assert.match(navComponent, /aria-label="Poker Near Me"/);
+  assert.match(
+    navComponent,
+    /<Link[\s\S]{0,300}?href=\{item\.href\}[\s\S]{0,300}?prefetch=\{false\}/,
+    'the discovery deck must not compete with the active page by prefetching every inactive route on visibility',
+  );
   assert.match(nav, /min-height:\s*44px/);
   assert.match(nav, /grid-template-columns:\s*repeat\(10, minmax\(0, 1fr\)\)/);
   assert.match(nav, /@media \(max-width: 480px\)[\s\S]*?grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);

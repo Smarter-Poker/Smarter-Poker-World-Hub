@@ -96,6 +96,13 @@ test('map failures have direct list alternatives and unknown GPS remains request
   assert.doesNotMatch(tab, /mapTitle="Live poker map"/);
 });
 
+test('the lobby map state selector keeps a named 44px route-owned target', async () => {
+  const lobby = await source('pages/hub/poker-near-me/lobby.js');
+  assert.match(lobby, /<select\s+className="pnm-lobby-map-state-select"\s+aria-label="Filter Map By State"/);
+  assert.match(lobby, /style=\{\{[^}]*minWidth: 100, minHeight: 44, boxSizing: 'border-box'/);
+  assert.match(lobby, /value=\{mapStateFilter\}[\s\S]*?setFilters\(prev => \(\{ \.\.\.prev, mapState: e\.target\.value \}\)\)/);
+});
+
 function fakeLeaflet() {
   return { divIcon: (options) => ({ options }) };
 }

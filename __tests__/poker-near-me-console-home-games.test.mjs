@@ -427,6 +427,17 @@ test('Home Games manual fields and public Back action retain 44px touch floors a
   assert.match(detail, /window\.history\.back\(\) : router\.push\('\/hub\/poker-near-me\/venues'\)/);
 });
 
+test('the public vouch disclosure keeps a 44px target on desktop and mobile', () => {
+  const detail = read(PUBLIC_SLUG);
+  const owner = detail.match(/\.hgs-vouch-count-btn\{([^}]+)\}/);
+  assert.ok(owner, 'the vouch disclosure keeps its route-owned rule');
+  assert.match(owner[1], /min-width:44px/);
+  assert.match(owner[1], /min-height:44px/);
+  assert.match(owner[1], /box-sizing:border-box/);
+  assert.match(owner[1], /justify-content:center/);
+  assert.match(detail, /className="hgs-vouch-count-btn"[\s\S]*?Player' : 'Players'\} Vouched/);
+});
+
 test('near-me is dressed as Poker Near Me, not as Club Commander', () => {
   const src = read(NEAR_ME);
   assert.ok(src.includes('PokerNearMePanelShell'), 'states ride the painted panel');

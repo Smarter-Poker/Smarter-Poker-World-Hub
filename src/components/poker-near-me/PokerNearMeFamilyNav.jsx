@@ -52,6 +52,7 @@ export default function PokerNearMeFamilyNav({ className = '' }) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`pnm-console-family-nav__link${active ? ' is-active' : ''}${item.live ? ' is-live' : ''}`}
               aria-current={active ? 'page' : undefined}
             >
