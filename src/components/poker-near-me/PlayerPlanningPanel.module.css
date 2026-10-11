@@ -8,7 +8,7 @@
 .button:disabled { opacity: .5; cursor: wait; }
 .button:focus-visible, .input:focus-visible { outline: 3px solid #8fd4ff; outline-offset: 2px; }
 .field { display: grid; gap: 6px; min-width: 0; font-size: 14px; }
-.well { display: flex; align-items: center; min-width: 0; min-height: 56px; background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat; }
+.well { display: flex; align-items: center; box-sizing: border-box; width: min(100%, 420px); aspect-ratio: 1829 / 313; min-width: 0; min-height: 56px; background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat; }
 .input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 48px; padding: 12px 24px; border: 0; border-radius: 0; background: transparent; color: #fff; font-size: 16px; }
 .error { color: #ffb9b9; }
 .check { display: flex; align-items: center; gap: 10px; min-height: 48px; font-size: 14px; }

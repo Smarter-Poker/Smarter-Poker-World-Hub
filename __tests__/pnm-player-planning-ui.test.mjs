@@ -10,6 +10,18 @@ const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
 const ID = '33333333-3333-4333-8333-333333333333';
 function storage() { const map = new Map(); return { getItem: (key) => map.get(key) ?? null, setItem: (key, value) => map.set(key, value), removeItem: (key) => map.delete(key), map }; }
+test('planning name field owns the unwarped painted aperture rather than an unconstrained desktop row', async () => {
+  const path = 'src/components/poker-near-me/PlayerPlanningPanel.module.css';
+  const css = process.env.PNM_PLANNING_CSS_REV ? require('node:child_process').execFileSync('git', ['show', `${process.env.PNM_PLANNING_CSS_REV}:${path}`], { encoding: 'utf8' }) : await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+  const well = css.match(/\.well\s*\{([^}]+)\}/)?.[1] || '';
+  const input = css.match(/\.input\s*\{([^}]+)\}/)?.[1] || '';
+  assert.match(well, /width:\s*min\(100%,\s*420px\)/);
+  assert.match(well, /aspect-ratio:\s*1829\s*\/\s*313/);
+  assert.match(well, /box-sizing:\s*border-box/);
+  assert.match(well, /center\s*\/\s*contain\s+no-repeat/);
+  assert.match(input, /min-height:\s*48px/); assert.match(input, /font-size:\s*16px/);
+  assert.match(input, /padding:\s*12px\s+24px/);
+});
 async function compiled(path, dependencies) {
   const text = await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
   const code = ts.transpileModule(text, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
