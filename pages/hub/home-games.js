@@ -438,40 +438,86 @@ export default function HomeGamesPage() {
     // geolocation requests are always initiated by the visible Enable GPS
     // control; never steal focus with a browser prompt or recovery dialog on
     // page load, including after the user dismissed that prompt before.
-    const gpsAutoRef = useRef(false);
+    const gpsRequestRef = useRef(0);
+    const gpsMountedRef = useRef(false);
+    const reverseGeocodeRef = useRef(null);
+    const invalidateGpsRequest = () => {
+        gpsRequestRef.current += 1;
+        reverseGeocodeRef.current?.abort();
+        reverseGeocodeRef.current = null;
+    };
     useEffect(() => {
-        if (gpsAutoRef.current) return;
-        gpsAutoRef.current = true;
-        // Try saved location
-        try {
-            const saved = localStorage.getItem('sp-user-gps');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed.lat && parsed.lng && parsed.time && (Date.now() - parsed.time) < 86400000) {
-                    setUserLocation({ lat: parsed.lat, lng: parsed.lng });
-                    setGpsLocationLabel(parsed.label || `${parsed.lat.toFixed(3)}, ${parsed.lng.toFixed(3)}`);
-                    return;
+        gpsMountedRef.current = true;
+        const restoreLocation = () => {
+            invalidateGpsRequest();
+            setGpsLoading(false);
+            setUserLocation(null);
+            setGpsLocationLabel(null);
+            try {
+                const saved = localStorage.getItem('sp-user-gps');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Number.isFinite(parsed.lat) && Number.isFinite(parsed.lng)
+                        && Math.abs(parsed.lat) <= 90 && Math.abs(parsed.lng) <= 180
+                        && parsed.time && (Date.now() - parsed.time) >= 0 && (Date.now() - parsed.time) < 86400000) {
+                        setUserLocation({ lat: parsed.lat, lng: parsed.lng });
+                        setGpsLocationLabel(parsed.label || `${parsed.lat.toFixed(3)}, ${parsed.lng.toFixed(3)}`);
+                    }
                 }
-            }
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        try {
-            if (localStorage.getItem('pnm_location_prompt_dismissed') === '1') return;
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        };
+        const handleStorage = (event) => {
+            if (event.key === 'sp-user-gps' || event.key === null) restoreLocation();
+        };
+        restoreLocation();
+        window.addEventListener('sp_user_gps_updated', restoreLocation);
+        window.addEventListener('storage', handleStorage);
         // No saved location: wait for an explicit Enable GPS action.
+        return () => {
+            gpsMountedRef.current = false;
+            invalidateGpsRequest();
+            window.removeEventListener('sp_user_gps_updated', restoreLocation);
+            window.removeEventListener('storage', handleStorage);
+        };
     }, []);
+
+    const clearLocation = () => {
+        invalidateGpsRequest();
+        setUserLocation(null);
+        setGpsLocationLabel(null);
+        setGpsLoading(false);
+        setShowLocationModal(false);
+        // Match discovery's persisted clear contract so sibling pages cannot
+        // restore this location from a second key on the next visit.
+        try {
+            for (const key of ['sp-user-gps', 'pnm_last_location', 'pnm_last_city', 'pnm_last_state', 'pnm_last_selected_city']) {
+                localStorage.removeItem(key);
+            }
+            localStorage.setItem('pnm_location_enabled', '0');
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        window.dispatchEvent(new Event('sp_user_gps_updated'));
+    };
 
     const requestGpsLocation = () => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+        invalidateGpsRequest();
+        const request = gpsRequestRef.current;
+        const isCurrent = () => gpsMountedRef.current && request === gpsRequestRef.current;
         setGpsLoading(true);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
+                if (!isCurrent()) return;
                 const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 setUserLocation(loc);
+                setGpsLocationLabel(`${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`);
                 setGpsLoading(false);
                 // Reverse geocode
-                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${loc.lat}&lon=${loc.lng}&format=json`)
+                const ac = new AbortController();
+                reverseGeocodeRef.current = ac;
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${loc.lat}&lon=${loc.lng}&format=json`, { signal: ac.signal })
                     .then(r => r.json())
                     .then(data => {
+                        if (!isCurrent()) return;
                         const city = data?.address?.city || data?.address?.town || data?.address?.village || '';
                         const state = data?.address?.state || '';
                         const stateAbbr = state.length > 2 ? getStateAbbr(state) : state;
@@ -482,10 +528,12 @@ export default function HomeGamesPage() {
                         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     })
                     .catch(() => {
+                        if (!isCurrent()) return;
                         setGpsLocationLabel(`${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`);
                     });
             },
             (err) => {
+                if (!isCurrent()) return;
                 setGpsLoading(false);
                 if (err && err.code === 1) {
                     // The location instructions are themselves a modal dialog.
@@ -705,10 +753,7 @@ export default function HomeGamesPage() {
                                     <button
                                         type="button"
                                         className="hgd-icon-button"
-                                        onClick={() => {
-                                            setUserLocation(null);
-                                            setGpsLocationLabel(null);
-                                        }}
+                                        onClick={clearLocation}
                                         aria-label="Clear Location"
                                         title="Clear Location"
                                     >

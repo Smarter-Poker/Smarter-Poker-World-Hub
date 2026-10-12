@@ -5,6 +5,120 @@ import test from 'node:test';
 const root = new URL('../', import.meta.url);
 const source = (path) => readFile(new URL(path, root), 'utf8');
 
+// Execute the actual pod's hooks and request handlers, including their cleanup.
+// No JSX transform or browser/database writes are needed for these races.
+async function homeGamePod(fetchPage) {
+  const text = await source('src/components/poker-near-me/lobby/PodHomeGames.jsx');
+  const body = text.slice(text.indexOf('  const hgSearch ='), text.indexOf('  // Unified per-card navigation'));
+  const slots = []; const cleanups = []; let cursor = 0;
+  const state = { filters: {}, games: [], sharedLoadingWrites: 0 };
+  const scope = {
+    useState(initial) { const slot = cursor++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === 'function' ? value(slots[slot]) : value; }]; },
+    useRef(initial) { const slot = cursor++; if (!(slot in slots)) slots[slot] = { current: initial }; return slots[slot]; },
+    useEffect(fn) { const slot = cursor++; if (!(slot in slots)) { slots[slot] = true; cleanups.push(fn()); } },
+    useCallback: fn => fn, cachedFetch: fetchPage,
+    adaptHomeGameToVenueShape: row => ({ ...row, venue_type: 'home_game' }),
+    setFilters: update => { state.filters = update(state.filters); },
+    setPodHomeGames: update => { state.games = typeof update === 'function' ? update(state.games) : update; },
+    setLoading: () => { state.sharedLoadingWrites++; }, URLSearchParams,
+    console: { warn() {} },
+  };
+  return {
+    state,
+    render() {
+      cursor = 0;
+      const args = { ...scope, filters: state.filters, podHomeGames: state.games, userLocation: { lat: 30, lng: -97 }, loading: false };
+      return new Function(...Object.keys(args), `${body}; return { search: handleSearch, more: typeof handleLoadMore === 'function' ? handleLoadMore : null, clear: typeof handleClearSearch === 'function' ? handleClearSearch : null, busy: typeof discovering === 'boolean' ? discovering : false, error: discoverError };`)(...Object.values(args));
+    },
+    unmount() { cleanups.forEach(fn => fn?.()); },
+  };
+}
+const settlePod = async () => { for (let n = 0; n < 15; n++) await Promise.resolve(); };
+const deferredPod = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
+
+test('legacy home games exposes row 101 through scoped continuation with stable unique cards', async () => {
+  const urls = [];
+  const pod = await homeGamePod(async url => {
+    urls.push(new URL(url, 'https://example.test'));
+    return urls.length === 1
+      ? { groups: Array.from({ length: 100 }, (_, i) => ({ id: `g${i}`, name: `Game ${i}` })), pagination: { has_more: true, next_offset: 100, total: 101 } }
+      : { groups: [{ id: 'g99' }, { id: 'g100', name: 'Game 101' }], pagination: { has_more: false, next_offset: null, total: 101 } };
+  });
+  pod.state.filters = { hgState: 'TX', hgSearch: 'Austin' };
+  pod.render().search(); await settlePod();
+  assert.equal(pod.state.games.length, 100);
+  const next = pod.render(); assert.equal(typeof next.more, 'function'); next.more(); await settlePod();
+  assert.equal(pod.state.games.length, 101); assert.equal(pod.state.games.at(-1).name, 'Game 101');
+  assert.deepEqual(urls.map(url => url.searchParams.get('offset')), ['0', '100']);
+  assert.ok(urls.every(url => url.searchParams.get('state') === 'TX' && url.searchParams.get('search') === 'Austin' && !url.searchParams.has('lat')));
+  assert.equal(pod.state.sharedLoadingWrites, 0);
+});
+
+test('legacy paging keeps partial cards and exposes retry on failed continuation', async () => {
+  let count = 0;
+  const pod = await homeGamePod(async () => {
+    if (++count === 2) throw new Error('Unavailable');
+    return { groups: [{ id: `g${count}` }], pagination: { has_more: count === 1, next_offset: count === 1 ? 100 : null } };
+  });
+  pod.render().search(); await settlePod(); pod.render().more(); await settlePod();
+  assert.equal(pod.state.games.length, 1); assert.match(pod.render().error, /unavailable/i); assert.equal(pod.render().busy, false);
+  pod.render().more(); await settlePod(); assert.equal(pod.state.games.length, 2); assert.equal(pod.render().error, '');
+});
+
+test('legacy paging refuses malformed or nonadvancing cursor and invalid response', async () => {
+  for (const next_offset of [0, -1, '100', 1.5, null]) {
+    let count = 0;
+    const pod = await homeGamePod(async () => { count++; return { groups: [{ id: 'g1' }], pagination: { has_more: true, next_offset } }; });
+    pod.render().search(); await settlePod();
+    assert.match(pod.render().error, /unavailable/i); assert.equal(count, 1); assert.equal(pod.state.games.length, 0);
+  }
+  const pod = await homeGamePod(async () => ({ error: 'Refused' }));
+  pod.render().search(); await settlePod(); assert.match(pod.render().error, /unavailable/i);
+});
+
+test('legacy continuation refuses repeated cursor, prevents duplicate in-flight loads and preserves its scope', async () => {
+  const next = deferredPod(); const urls = [];
+  const pod = await homeGamePod(url => {
+    urls.push(new URL(url, 'https://example.test'));
+    return urls.length === 1 ? Promise.resolve({ groups: [{ id: 'first' }], pagination: { has_more: true, next_offset: 100 } }) : next.promise;
+  });
+  pod.state.filters = { hgState: 'TX' }; pod.render().search(); await settlePod();
+  pod.state.filters = { ...pod.state.filters, hgState: 'NY' };
+  pod.render().more(); pod.render().more(); assert.equal(urls.length, 2);
+  assert.equal(urls[1].searchParams.get('state'), 'TX');
+  next.resolve({ groups: [{ id: 'wrong' }], pagination: { has_more: true, next_offset: 100 } }); await settlePod();
+  assert.deepEqual(pod.state.games.map(row => row.id), ['first']); assert.match(pod.render().error, /unavailable/i);
+});
+
+test('legacy clear revokes pending continuation and a genuine empty page stays empty without error', async () => {
+  const next = deferredPod(); let count = 0;
+  const pod = await homeGamePod(() => ++count === 1 ? Promise.resolve({ groups: [{ id: 'first' }], pagination: { has_more: true, next_offset: 100 } }) : next.promise);
+  pod.render().search(); await settlePod(); pod.render().more(); pod.render().clear();
+  next.resolve({ groups: [{ id: 'late' }], pagination: { has_more: false } }); await settlePod();
+  assert.deepEqual(pod.state.games, []); assert.equal(pod.render().busy, false); assert.equal(pod.state.filters.hgHasSearched, false);
+  const empty = await homeGamePod(async () => ({ groups: [], pagination: { has_more: false } }));
+  empty.render().search(); await settlePod(); assert.deepEqual(empty.state.games, []); assert.equal(empty.render().error, '');
+  const text = await source('src/components/poker-near-me/lobby/PodHomeGames.jsx');
+  assert.match(text, /onClear=\{handleClearSearch\}/);
+  assert.match(text, /onClick=\{handleLoadMore\} disabled=\{discovering\}/);
+  assert.match(text, /Load More Home Games/); assert.match(text, /More Games Available/); assert.match(text, /Retry More Home Games/);
+});
+
+test('legacy clear, replacement search and unmount revoke late success/error/loading writes', async () => {
+  for (const action of ['clear', 'search', 'unmount']) {
+    for (const outcome of ['resolve', 'reject']) {
+      const old = deferredPod(); let count = 0;
+      const pod = await homeGamePod(() => ++count === 1 ? old.promise : Promise.resolve({ groups: [{ id: 'new' }], pagination: { has_more: false } }));
+      pod.render().search();
+      if (action === 'unmount') pod.unmount(); else { assert.equal(typeof pod.render()[action], 'function'); pod.render()[action](); }
+      await settlePod(); const before = JSON.stringify(pod.state); const view = pod.render();
+      if (outcome === 'resolve') old.resolve({ groups: [{ id: 'old' }], pagination: { has_more: false } }); else old.reject(new Error('Late refusal'));
+      await settlePod();
+      assert.equal(JSON.stringify(pod.state), before); assert.equal(pod.render().error, view.error); assert.equal(pod.render().busy, view.busy);
+    }
+  }
+});
+
 test('discovery navigation distinguishes user history from filter synchronization', async () => {
   const page = await source('pages/hub/poker-near-me/[pnmTab].js');
 

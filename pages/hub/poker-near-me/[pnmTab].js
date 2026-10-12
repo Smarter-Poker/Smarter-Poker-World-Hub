@@ -3211,6 +3211,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   }, []);
 
   const clearFilters = useCallback(() => {
+    setMapFilters({ cashGames: false, tournaments: false, is24Hours: false, lowStakes: false, topRated: false });
     setSelectedCity(null);
     setUserLocation(null);
     setGpsLocationLabel(null);

@@ -13,7 +13,7 @@
  * "Near You" tab of the PNM lobby.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import VenueCard from '../VenueCard';
 import { cachedFetch } from './PnmApiCache';
@@ -157,7 +157,6 @@ export default function PodHomeGames({
   venues, podHomeGames, setPodHomeGames,
   userId,
   userLocation,
-  loading, setLoading,
   favorites, handleToggleFavorite,
   checkinCounts, reviewStatsMap,
   handleVenueNavigate
@@ -170,14 +169,77 @@ export default function PodHomeGames({
   const hgState = filters.hgState || 'all';
   const hgHasSearched = filters.hgHasSearched || false;
   const [discoverError, setDiscoverError] = useState('');
+  const [discovering, setDiscovering] = useState(false);
+  const [nextOffset, setNextOffset] = useState(null);
+  const [discoverTotal, setDiscoverTotal] = useState(null);
+  const requestRef = useRef(null);
+  useEffect(() => () => { requestRef.current = null; }, []);
 
   // Only the canonical home-game feed populates this list. We no longer
   // pull from `venues.filter(v => v.venue_type === 'home_game')` — that
   // table is for commercial poker rooms and never contains home games.
   const displayGames = Array.isArray(podHomeGames) ? podHomeGames : [];
 
-  const handleSearch = useCallback(() => {
+  const fetchPage = useCallback(async (request, offset) => {
+    if (requestRef.current !== request || request.busy) return;
+    request.busy = true;
+    setDiscovering(true);
     setDiscoverError('');
+    const params = new URLSearchParams(request.params);
+    params.set('offset', String(offset));
+    try {
+      const data = await cachedFetch(`/api/public/home-games/discover?${params.toString()}`);
+      if (requestRef.current !== request) return;
+      if (!Array.isArray(data?.groups) || data.success === false) throw new Error('Invalid discover response');
+      const pagination = data.pagination;
+      if (typeof pagination?.has_more !== 'boolean') throw new Error('Invalid discover pagination');
+      let next = null;
+      if (pagination?.has_more === true) {
+        next = pagination.next_offset;
+        if (!Number.isSafeInteger(next) || next <= offset || request.offsets.has(next)) {
+          throw new Error('Invalid discover continuation');
+        }
+      } else if (pagination?.has_more != null && pagination.has_more !== false) {
+        throw new Error('Invalid discover pagination');
+      }
+      const rows = new Map(request.rows.map(row => [String(row.id), row]));
+      for (const group of data.groups) {
+        if (group?.id == null || String(group.id).trim() === '') throw new Error('Missing home game identity');
+        const id = String(group.id);
+        if (!rows.has(id)) rows.set(id, adaptHomeGameToVenueShape(group));
+      }
+      request.rows = [...rows.values()];
+      request.offsets.add(offset);
+      request.next = next;
+      setPodHomeGames(request.rows);
+      setNextOffset(next);
+      const total = pagination?.total ?? data.total;
+      setDiscoverTotal(Number.isSafeInteger(total) && total >= request.rows.length ? total : null);
+    } catch (err) {
+      if (requestRef.current !== request) return;
+      console.warn('[PodHomeGames] discover fetch failed:', err);
+      setDiscoverError(request.rows.length
+        ? 'More Home Games Are Temporarily Unavailable. Your Loaded Games Were Kept.'
+        : 'Home Game Search Is Temporarily Unavailable.');
+    } finally {
+      if (requestRef.current === request) {
+        request.busy = false;
+        setDiscovering(false);
+      }
+    }
+  }, [setPodHomeGames]);
+
+  const handleClearSearch = useCallback(() => {
+    requestRef.current = null;
+    setDiscovering(false);
+    setDiscoverError('');
+    setNextOffset(null);
+    setDiscoverTotal(null);
+    setPodHomeGames([]);
+    setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }));
+  }, [setFilters, setPodHomeGames]);
+
+  const handleSearch = useCallback(() => {
     setFilters(prev => ({ ...prev, hgHasSearched: true }));
     const params = new URLSearchParams();
     params.set('limit', '100');
@@ -208,20 +270,18 @@ export default function PodHomeGames({
       const parsedRadius = parseInt(filters.hgRadius, 10);
       params.set('radius_miles', String(!parsedRadius || isNaN(parsedRadius) ? 150 : Math.min(parsedRadius, 150)));
     }
-    const url = `/api/public/home-games/discover?${params.toString()}`;
-    setLoading(true);
-    cachedFetch(url)
-      .then(data => {
-        const groups = Array.isArray(data?.groups) ? data.groups : [];
-        setPodHomeGames(groups.map(adaptHomeGameToVenueShape));
-      })
-      .catch(err => {
-        console.warn('[PodHomeGames] discover fetch failed:', err);
-        setDiscoverError('Home Game Search Is Temporarily Unavailable.');
-        setPodHomeGames([]);
-      })
-      .finally(() => setLoading(false));
-  }, [hgSearch, hgState, filters.hgRadius, userLocation, setFilters, setLoading, setPodHomeGames]);
+    const request = { params: params.toString(), rows: [], offsets: new Set(), next: null, busy: false };
+    requestRef.current = request;
+    setPodHomeGames([]);
+    setNextOffset(null);
+    setDiscoverTotal(null);
+    void fetchPage(request, 0);
+  }, [hgSearch, hgState, filters.hgRadius, userLocation, setFilters, setPodHomeGames, fetchPage]);
+
+  const handleLoadMore = useCallback(() => {
+    const request = requestRef.current;
+    if (request && request.next != null) void fetchPage(request, request.next);
+  }, [fetchPage]);
 
   // Unified per-card navigation: always route to the canonical
   // /hub/home-games/[slug] page, never /hub/venues/[id] (which is for
@@ -272,8 +332,8 @@ export default function PodHomeGames({
           </LobbyPodField>
         </div>
         <div className="pnm-lobby-pod__actions">
-          <LobbyPodAction variant="primary" onClick={handleSearch} disabled={loading}>
-            {loading ? 'Searching Home Games' : 'Find Home Games'}
+          <LobbyPodAction variant="primary" onClick={handleSearch} disabled={discovering}>
+            {discovering ? 'Searching Home Games' : 'Find Home Games'}
           </LobbyPodAction>
         </div>
       </LobbyPodControlPanel>
@@ -281,14 +341,11 @@ export default function PodHomeGames({
       {hgHasSearched ? (
         <>
           <LobbyPodResultsBar
-            onClear={() => {
-              setDiscoverError('');
-              setPodHomeGames([]);
-              setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }));
-            }}
+            onClear={handleClearSearch}
             clearLabel="Clear Home Game Search"
           >
             <strong>{displayGames.length}</strong> {displayGames.length === 1 ? 'Home Game' : 'Home Games'}
+            {nextOffset != null ? ` Loaded${discoverTotal != null ? ` Of ${discoverTotal}` : ''}. More Games Available.` : ''}
           </LobbyPodResultsBar>
 
           {discoverError ? (
@@ -296,8 +353,8 @@ export default function PodHomeGames({
               kind="error"
               title="Home Game Search Unavailable"
               action={(
-                <LobbyPodAction variant="danger" onClick={handleSearch} disabled={loading}>
-                  {loading ? 'Retrying Search' : 'Retry Search'}
+                <LobbyPodAction variant="danger" onClick={nextOffset != null ? handleLoadMore : handleSearch} disabled={discovering}>
+                  {discovering ? 'Retrying Search' : nextOffset != null ? 'Retry More Home Games' : 'Retry Search'}
                 </LobbyPodAction>
               )}
             >
@@ -305,7 +362,7 @@ export default function PodHomeGames({
             </LobbyPodState>
           ) : null}
 
-          {loading ? (
+          {discovering ? (
             <LobbyPodState kind="loading" title="Searching Home Games">
               <p>Checking The Club Commander Directory For Matching Public Games.</p>
             </LobbyPodState>
@@ -328,7 +385,15 @@ export default function PodHomeGames({
             </LobbyPodCardList>
           ) : null}
 
-          {displayGames.length === 0 && !loading && !discoverError ? (
+          {nextOffset != null && !discoverError ? (
+            <div className="pnm-lobby-pod__actions">
+              <LobbyPodAction onClick={handleLoadMore} disabled={discovering}>
+                {discovering ? 'Loading More Home Games' : 'Load More Home Games'}
+              </LobbyPodAction>
+            </div>
+          ) : null}
+
+          {displayGames.length === 0 && !discovering && !discoverError ? (
             <LobbyPodState kind="empty" title="No Home Games Found">
               <p>Try A Different Search Or State Filter.</p>
             </LobbyPodState>

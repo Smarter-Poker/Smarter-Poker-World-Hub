@@ -1,5 +1,5 @@
 /**
- * MapTabPanel — Full Map view (no internal filter sidebar — all filters live in the page top bar)
+ * MapTabPanel — Full Map view with compact, reachable map filters.
  */
 import React from 'react';
 import dynamic from 'next/dynamic';
@@ -10,6 +10,13 @@ import { MapErrorBoundary } from './VenueMap';
 
 // Helper: identify tour stops — these are MTT venues, NOT cash game venues
 const isTour = (v) => v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour';
+const MAP_FILTER_OPTIONS = [
+    ['cashGames', 'Cash Games'],
+    ['tournaments', 'Tournaments'],
+    ['is24Hours', 'Open 24 Hours'],
+    ['lowStakes', 'Low Stakes'],
+    ['topRated', 'Top Rated'],
+];
 
 // SCHEMA FIX: the "Open 24 Hours" chip used to test `v.is_24_hours` and
 // `v.hours_of_operation`. Neither column exists on poker_venues (the real columns
@@ -76,11 +83,26 @@ export default function MapTabPanel({
     const toggleMapFilter = (key) => {
         setMapFilters(prev => ({ ...prev, [key]: !prev[key] }));
     };
+    const activeMapFilterCount = MAP_FILTER_OPTIONS.filter(([key]) => mapFilters[key]).length;
+    const resetMapFilters = () => {
+        setMapFilters(Object.fromEntries(MAP_FILTER_OPTIONS.map(([key]) => [key, false])));
+    };
 
     return (
         <div className="map-desktop-layout">
-            {/* Full-width Map — filters live in the page-level top bar */}
+            {/* Full-width map; saved predicates always have reachable controls. */}
             <div className="map-main-section">
+                <details className="pnm-map-filter-disclosure">
+                    <summary>Map Filters{activeMapFilterCount > 0 ? ` · ${activeMapFilterCount} Active` : ''}</summary>
+                    <div className="pnm-map-filter-options" role="group" aria-label="Map Filters">
+                        {MAP_FILTER_OPTIONS.map(([key, label]) => (
+                            <button type="button" key={key} aria-pressed={Boolean(mapFilters[key])} onClick={() => toggleMapFilter(key)}>
+                                {label}
+                            </button>
+                        ))}
+                        <button type="button" onClick={resetMapFilters} disabled={activeMapFilterCount === 0}>Reset Map Filters</button>
+                    </div>
+                </details>
                 <div className="map-tab-container" style={{ position: 'relative' }}>
                     <MapErrorBoundary>
                         <VenueMap

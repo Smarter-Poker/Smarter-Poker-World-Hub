@@ -348,7 +348,11 @@ test('map fullscreen and location dialogs transfer one accessible interaction ow
   assert.match(dialogHook, /sibling\.setAttribute\('aria-hidden', 'true'\)/);
   assert.match(dialogHook, /acquireScrollLock\('PokerNearMeAccessibleDialog'\)/);
 
-  assert.match(homeGames, /localStorage\.getItem\('pnm_location_prompt_dismissed'\) === '1'/);
+  // Restoring/synchronizing a saved location never requests GPS, even when
+  // the prompt has not been dismissed. Only the explicit visible action does.
+  const homeLocationEffect = homeGames.slice(homeGames.indexOf('const gpsRequestRef'), homeGames.indexOf('const requestGpsLocation'));
+  assert.doesNotMatch(homeLocationEffect, /getCurrentPosition\(|requestGpsLocation\(/);
+  assert.match(homeGames, /onClick=\{requestGpsLocation\}/);
   assert.doesNotMatch(homeGames, /setTimeout\(\(\) => requestGpsLocation\(\),\s*600\)/);
 
   // 2026-09-29: the venue profile marker and popup moved onto the shared painted
