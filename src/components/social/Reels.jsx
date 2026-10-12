@@ -59,6 +59,11 @@ import ReelPlayerFrame from '../reels/ReelPlayerFrame';
 import ReelFeedbackActions from '../reels/ReelFeedbackActions';
 import { reelSourceKey } from '../../lib/reelsFeedback.mjs';
 import styles from './ReelsConsole.module.css';
+import immersiveStyles from '../reels/ImmersiveReels.module.css';
+import ReelActionVisual, { ReelIcon } from '../reels/ReelActionVisual';
+import ReelProgress from '../reels/ReelProgress';
+import ReelYouTubePlayer from '../reels/ReelYouTubePlayer';
+import ReelsStatusScreen from '../reels/ReelsStatusScreen';
 
 // ReelsConsole.module.css keeps every full-screen close action below env(safe-area-inset-top).
 
@@ -121,25 +126,7 @@ function formatConsoleMessage(value) {
 }
 
 function ReelViewerConsoleState({ title, subtitle, pill, pillInk = 'blue', copy, rows, secondary, primary }) {
-  return (
-    <main className={styles.shell} aria-label={title}>
-      <VideoLibraryConsole
-        eyebrow="Video Library"
-        title={title}
-        subtitle={subtitle}
-        pill={pill}
-        pillInk={pillInk}
-        titleAs="h1"
-        foot="plates"
-        plates={{ secondary, primary }}
-        className={styles.console}
-        aria-label={title}
-      >
-        <ConsoleCopy align="center">{copy}</ConsoleCopy>
-        {rows.map((row) => <ConsoleDataRow key={row.label} {...row} />)}
-      </VideoLibraryConsole>
-    </main>
-  );
+  return <ReelsStatusScreen title={title} copy={copy} subtitle={subtitle} rows={rows} primary={primary} secondary={secondary} />;
 }
 
 // Full-screen Reel Viewer
@@ -323,6 +310,7 @@ export function ReelsViewer({ onClose }) {
   const handleSaveRef = useRef(null);
   const handleCommentsRef = useRef(null);
   const ytIframeRef = useRef(null); // Persistent YouTube iframe ref
+  const youtubeEventRef = useRef(null);
   // userInteractedRef is session-sticky: once any user gesture happens (click,
   // keydown, wheel, touchstart, pointerdown) we record it in sessionStorage so
   // re-renders, slot transitions, and even client-side route changes within the
@@ -625,11 +613,11 @@ export function ReelsViewer({ onClose }) {
       'https://youtube.com',
     ];
     const handleYTMessage = (event) => {
-      if (!YOUTUBE_ORIGINS.includes(event.origin)) return;
+      if (!YOUTUBE_ORIGINS.includes(event.origin) || event.source !== ytIframeRef.current?.contentWindow) return;
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data?.event === 'onStateChange') {
-          if (data.info === 0) goNextRef.current?.(); // Video ended to auto advance (ref-routed, see TDZ fix below)
+
           if (data.info === 1) {
             // Playing
             setYtReady(true);
@@ -651,12 +639,15 @@ export function ReelsViewer({ onClose }) {
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
           }
         }
+        if (data?.event === 'infoDelivery' && Number.isFinite(data.info?.currentTime) && data.info?.duration > 0) setProgress(Math.max(0, Math.min(100, data.info.currentTime / data.info.duration * 100)));
+        if (data?.event === 'onReady') setYtReady(true);
+        if (data?.event === 'onAutoplayBlocked') { setYtReady(true); setPaused(true); }
         if (data?.event === 'onError' && data?.info) {
           const errCode = Number(data.info);
           setYtError(errCode);
           // Report to server (best-effort)
           try {
-            const vid = getYouTubeVideoId(reels[currentIndex]?.video_url);
+            const vid = data.videoId;
             if (vid) {
               reportFailureToServer(vid, errCode, 'Reels');
             }
@@ -668,8 +659,8 @@ export function ReelsViewer({ onClose }) {
         /* not a YouTube message */
       }
     };
-    window.addEventListener('message', handleYTMessage);
-    return () => window.removeEventListener('message', handleYTMessage);
+    youtubeEventRef.current = handleYTMessage;
+    return () => { youtubeEventRef.current = null; };
     // BUG FIX (revised 2026-05-11): the prior version had `[currentIndex, goNext]`
     // in the dep array, but `const goNext = useCallback(...)` is declared ~400
     // lines below - referencing it here put it in the TDZ and crashed the viewer
@@ -704,9 +695,7 @@ export function ReelsViewer({ onClose }) {
     onLoadRetryTimersRef.current.forEach((t) => clearTimeout(t));
     onLoadRetryTimersRef.current = [];
 
-    // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
-    // If ytReady is still false after 5s, force it true so the play button appears.
-    const ytReadyFallback = setTimeout(() => setYtReady(true), 5000);
+
 
     // Cancel any running RAF from the previous reel immediately
     if (progressRAF.current) {
@@ -722,7 +711,7 @@ export function ReelsViewer({ onClose }) {
     const video = isNativeVideo ? videoRef.current : null;
     if (!video)
       return () => {
-        clearTimeout(ytReadyFallback);
+
         clearTimeout(viewCountTimer);
       };
     // For native video, set ytReady immediately when play starts
@@ -741,7 +730,7 @@ export function ReelsViewer({ onClose }) {
       video.addEventListener('canplay', onCanPlay, { once: true });
     }
     return () => {
-      clearTimeout(ytReadyFallback);
+
       clearTimeout(viewCountTimer);
       video.removeEventListener('canplay', onCanPlay);
       video.removeEventListener('play', onPlay);
@@ -1133,14 +1122,9 @@ export function ReelsViewer({ onClose }) {
     return () => clearTimeout(watchTimer);
   }, [currentReel?.id, currentUserId]);
 
-  // Helper: send YouTube postMessage command to persistent iframe ref
-  const sendYTCmd = useCallback((cmd, args = []) => {
-    const iframe = ytIframeRef.current;
-    if (iframe?.contentWindow) {
-      iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-      iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args }), '*');
-    }
-  }, []);
+  // Explicit user commands go through the ready official API owner.
+  const youtubeCommandRef = useRef(null);
+  const sendYTCmd = (command, args = []) => youtubeCommandRef.current?.(command, args);
 
   const goNext = useCallback(() => {
     setCurrentIndex((prev) => {
@@ -2132,39 +2116,6 @@ export function ReelsViewer({ onClose }) {
           const newIdx = parseInt(entry.target.dataset.reelIndex, 10);
           if (isNaN(newIdx)) return;
           setCurrentIndex(newIdx);
-          // Only attempt to flip the UI/DOM mute state if a real gesture
-          // has been captured AND the user wants sound. The IO callback
-          // runs asynchronously (post-scroll) so the gesture context may
-          // have expired. We rely on the onPlaying handler (called inside
-          // the actual playback event) for the authoritative unmute, and
-          // verify the DOM honored it before lying to React state.
-          const activeMedia = entry.target.querySelector('video, iframe');
-          if (activeMedia?.tagName === 'VIDEO') {
-            if (userInteractedRef.current && userWantsSoundRef.current) {
-              activeMedia.muted = false;
-              activeMedia.play().catch(() => {});
-              // Verify-after-unmute: only update React state if DOM honored.
-              if (!activeMedia.muted) setMuted(false);
-            } else {
-              activeMedia.muted = true;
-              activeMedia.play().catch(() => {});
-            }
-          } else if (activeMedia?.tagName === 'IFRAME') {
-            activeMedia.contentWindow?.postMessage(
-              JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
-              '*'
-            );
-            if (userInteractedRef.current && userWantsSoundRef.current) {
-              activeMedia.contentWindow?.postMessage(
-                JSON.stringify({ event: 'command', func: 'unMute', args: [] }),
-                '*'
-              );
-              activeMedia.contentWindow?.postMessage(
-                JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }),
-                '*'
-              );
-            }
-          }
           container.querySelectorAll('[data-reel-index]').forEach((el) => {
             if (parseInt(el.dataset.reelIndex, 10) === newIdx) return;
             const vid = el.querySelector('video');
@@ -2315,59 +2266,24 @@ export function ReelsViewer({ onClose }) {
     );
   }
 
-  const handleTap = (e) => {
-    // Don't trigger on comment drawer clicks
+  const handleTap = () => {
     if (showCommentInput) return;
     const now = Date.now();
-    const DOUBLE_TAP_WINDOW = 300;
-    const isYT = isYouTubeUrl(currentReel?.video_url);
-    userInteractedRef.current = true; // Mark user as having interacted
-
-    // First tap EVER: force play + unmute (iOS requires user gesture)
-    if ((paused || muted) && isYT) {
-      sendYTCmd('playVideo');
-      sendYTCmd('unMute');
-      sendYTCmd('setVolume', [100]);
-      setPaused(false);
-      setMuted(false);
-      setYtReady(true);
-      userWantsSoundRef.current = true;
-      lastTapRef.current = now;
-      revealOverlay();
-      return;
-    }
-
-    if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
-      // Double-tap = toggle play/pause
-      haptic(15);
-      if (!isYT && videoRef.current) {
-        if (videoRef.current.paused) {
-          const playPromise = videoRef.current.play();
-          if (playPromise !== undefined)
-            playPromise.catch((e) => console.warn('Play intercepted:', e));
-          setPaused(false);
-        } else {
-          videoRef.current.pause();
-          setPaused(true);
-          if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-        }
-      } else if (isYT) {
-        if (paused) {
-          sendYTCmd('playVideo');
-          setPaused(false);
-        } else {
-          sendYTCmd('pauseVideo');
-          setPaused(true);
-          if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-        }
-      }
+    userInteractedRef.current = true;
+    if (now - lastTapRef.current < 300) {
       lastTapRef.current = 0;
+      if (!liked[currentReel?.id]) handleLike();
+      if (currentUserId) {
+        setShowHeart(true);
+        clearTimeout(showHeartTimerRef.current);
+        showHeartTimerRef.current = setTimeout(() => setShowHeart(false), 800);
+      }
+      if (isYouTubeUrl(currentReel?.video_url)) sendYTCmd('playVideo');
+      else videoRef.current?.play().catch(() => showErrorToast('Tap Play To Resume'));
       return;
     }
     lastTapRef.current = now;
-
-    // Single tap = show overlay ONLY (no play/pause)
-    revealOverlay();
+    togglePlayback();
   };
 
   const togglePlayback = () => {
@@ -2784,6 +2700,7 @@ export function ReelsViewer({ onClose }) {
         >
           Keyboard Help
         </button>
+        <button type="button" className={styles.wordAction} onClick={() => { setShowMoreMenu(false); setShowReactionPicker(true); }}>Reactions</button>
         <ReelFeedbackActions buttonClassName={styles.wordActionDanger} onFeedback={handleRecommendationFeedback} />
         <button
           type="button"
@@ -2992,25 +2909,24 @@ export function ReelsViewer({ onClose }) {
   }
 
   return (
-    <main className={styles.shell} aria-label={`Embedded ${topicLabel} Reels Viewer`}>
-      <VideoLibraryConsole
-        eyebrow="Video Library"
-        title="Reels"
-        subtitle={`By ${authorName}`}
-        pill={`${currentIndex + 1} Of ${reels.length}`}
-        pillInk="blue"
-        titleAs="h1"
-        foot="foot"
-        className={`${styles.console} ${activeDialogKey ? styles.liveConsoleHidden : ''}`}
-        aria-label={`Embedded ${topicLabel} Reels Viewer`}
-        aria-hidden={activeDialogKey ? 'true' : undefined}
-        inert={activeDialogKey ? '' : undefined}
-      >
+    <main className={`${styles.shell} ${immersiveStyles.root}`} data-reels-experience="immersive" aria-label={`Embedded ${topicLabel} Reels Viewer`}>
+      <section className={styles.console} data-reels-console aria-label={`Embedded ${topicLabel} Reels Viewer`}>
+        <header data-reels-topbar>
+          <button type="button" onClick={onClose} aria-label="Close"><ReelIcon name="back" /></button>
+          <h1 className="sp-reels-top-title">Reels</h1>
+          <button type="button" onClick={toggleSound} aria-label={muted ? 'Unmute' : 'Mute'}><ReelIcon name={muted ? 'muted' : 'sound'} /></button>
+        </header>
+        <nav data-reels-navigation aria-label="Reel Navigation">
+          <button type="button" onClick={goPrev} disabled={currentIndex === 0} aria-label="Previous Reel"><ReelIcon name="up" /></button>
+          <button type="button" onClick={goNext} disabled={currentIndex >= reels.length - 1} aria-label="Next Reel"><ReelIcon name="down" /></button>
+        </nav>
         <div className={styles.liveArea}>
-          <div className={styles.liveGrid} aria-hidden={activeDialogKey ? 'true' : undefined}>
+          <div data-reels-layout className={styles.liveGrid} aria-hidden={activeDialogKey ? 'true' : undefined}>
             <div
               ref={containerRef}
               className={styles.viewport}
+              data-reels-stage
+              data-reels-scroll-stage
               onTouchStart={handleLongPressTouchStart}
               onTouchEnd={cancelLongPress}
               onTouchMove={cancelLongPress}
@@ -3028,12 +2944,6 @@ export function ReelsViewer({ onClose }) {
                 if (!reel) return null;
                 const isActive = index === currentIndex;
                 const videoId = getYouTubeVideoId(reel.video_url);
-                const embedOrigin = typeof window !== 'undefined'
-                  ? window.location.origin
-                  : 'https://smarter.poker';
-                const embedSource = videoId
-                  ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&rel=0&playsinline=1&controls=1&iv_load_policy=3&fs=1&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(embedOrigin)}&widget_referrer=${encodeURIComponent(embedOrigin)}`
-                  : null;
 
                 return (
                   <ReelPlayerFrame
@@ -3045,7 +2955,7 @@ export function ReelsViewer({ onClose }) {
                     className={styles.slide}
                     data-reel-index={index}
                     aria-label={`Reel ${index + 1} Of ${reels.length}`}
-                    onClick={isActive ? handleTap : undefined}
+                    onClick={undefined}
                   >
                     {reel.thumbnail_url ? (
                       <img
@@ -3057,30 +2967,10 @@ export function ReelsViewer({ onClose }) {
                     ) : null}
 
                     {isActive && videoId ? (
-                      <iframe
-                        ref={ytIframeRef}
-                        className={styles.media}
-                        key={reel.id}
-                        src={embedSource}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        title={reel.caption || `${reelTopicLabel(reel)} Reel`}
-                        onLoad={() => {
-                          onLoadRetryTimersRef.current.forEach((timer) => clearTimeout(timer));
-                          sendYTCmd('playVideo');
-                          autoUnmute();
-                          onLoadRetryTimersRef.current = [300, 800, 1500].map((delay) =>
-                            setTimeout(() => {
-                              sendYTCmd('playVideo');
-                              if (userInteractedRef.current && userWantsSoundRef.current) {
-                                sendYTCmd('unMute');
-                                sendYTCmd('setVolume', [100]);
-                              }
-                            }, delay)
-                          );
-                        }}
-                      />
+                      <ReelYouTubePlayer videoId={videoId} iframeRef={ytIframeRef} eventRef={youtubeEventRef}
+                      commandRef={youtubeCommandRef}
+                        muted={!(userGesturedThisLoadRef.current && userWantsSoundRef.current)} onMutedChange={setMuted}
+                        title={reel.caption || `${reelTopicLabel(reel)} Reel`} />
                     ) : isActive && reel.video_url ? (
                       <video
                         ref={videoRef}
@@ -3151,11 +3041,11 @@ export function ReelsViewer({ onClose }) {
                           if (!isActive) return;
                           if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
                           setProgress(0);
-                          goNext();
                         }}
                       />
                     ) : null}
 
+                    {isActive ? <div data-reels-tap onClick={handleTap} style={{ position: 'absolute', inset: 0, zIndex: 5, touchAction: 'pan-y' }} /> : null}
                     {isActive && !reel.video_url ? (
                       <div className={styles.stageSignal}>Video Unavailable</div>
                     ) : null}
@@ -3169,32 +3059,15 @@ export function ReelsViewer({ onClose }) {
                       />
                     ) : null}
                     {isActive && paused && ytReady && !ytError ? (
-                      <div className={styles.stageSignal}>Playback Paused</div>
+                      <div className={styles.stageSignal}><ReelIcon name="play" filled /></div>
                     ) : null}
-                    {isActive ? (
-                      <div
-                        className={styles.stageInfo}
-                        data-visible={showOverlay || paused}
-                        style={videoId ? { bottom: 64 } : undefined}
-                      >
-                        <span>{authorName}</span>
-                        {visibleCaption ? <span className={styles.stageCaption}>{visibleCaption}</span> : null}
-                      </div>
-                    ) : null}
-                    {isActive && progress > 0 ? (
-                      <div className={styles.progressTrack} aria-hidden="true">
-                        <div
-                          className={styles.progressValue}
-                          style={{ '--reel-progress': Math.max(0, Math.min(1, progress / 100)) }}
-                        />
-                      </div>
-                    ) : null}
+                    {isActive ? <ReelProgress value={progress} isYouTube={Boolean(videoId)} videoRef={videoRef} commandRef={youtubeCommandRef} /> : null}
                   </ReelPlayerFrame>
                 );
               })}
             </div>
 
-            <aside className={styles.commandPanel} aria-label="Reel Commands">
+            <aside className={styles.commandPanel} data-reels-copy aria-label="Reel Commands">
               {currentReel?.profiles?.username ? (
                 <Link
                   href={`/hub/user/${currentReel.profiles.username}`}
@@ -3246,37 +3119,19 @@ export function ReelsViewer({ onClose }) {
               ) : null}
 
               <ReelResponsibleGamingNotice topic={currentReel?.topic} />
-              <ReelTrustStrip reel={currentReel} compact />
+              <ReelTrustStrip reel={currentReel} compact immersive />
 
-              <div className={styles.actionGrid}>
-                <button type="button" className={styles.wordAction} onClick={onClose}>
-                  Close Viewer
-                </button>
+                {authorId && currentUserId && authorId !== currentUserId ? (
+                  <button type="button" className={styles.wordAction} onClick={handleFollow}>
+                    {following[authorId] ? 'Unfollow Creator' : 'Follow Creator'}
+                  </button>
+                ) : null}
+              <div className={styles.actionGrid} data-reels-actions>
                 <button
                   type="button"
                   className={styles.wordAction}
-                  onClick={goPrev}
-                  disabled={currentIndex === 0}
-                >
-                  Previous Reel
-                </button>
-                <button
-                  type="button"
-                  className={styles.wordAction}
-                  onClick={goNext}
-                  disabled={currentIndex >= reels.length - 1 && !hasMore}
-                >
-                  Next Reel
-                </button>
-                <button type="button" className={styles.wordAction} onClick={togglePlayback}>
-                  {paused ? 'Play Reel' : 'Pause Reel'}
-                </button>
-                <button type="button" className={styles.wordAction} onClick={toggleSound}>
-                  {muted ? 'Unmute Reel' : 'Mute Reel'}
-                </button>
-                <button
-                  type="button"
-                  className={styles.wordAction}
+                  aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'}
+                  aria-pressed={Boolean(liked[currentReel?.id])}
                   onClick={handleLike}
                   onPointerDown={() => {
                     reactionTimerRef.current = setTimeout(() => {
@@ -3287,48 +3142,31 @@ export function ReelsViewer({ onClose }) {
                   onPointerUp={() => clearTimeout(reactionTimerRef.current)}
                   onPointerLeave={() => clearTimeout(reactionTimerRef.current)}
                 >
-                  {liked[currentReel?.id] ? 'Unlike' : 'Like'} {likeCounts[currentReel?.id] || 0}
+                  <ReelActionVisual icon="heart" filled={Boolean(liked[currentReel?.id])} count={likeCounts[currentReel?.id] || 0} />
                 </button>
-                <button type="button" className={styles.wordAction} onClick={handleOpenComments}>
-                  Comments {commentCounts[currentReel?.id] || 0}
+                <button type="button" className={styles.wordAction} onClick={handleOpenComments} aria-label="Comments">
+                  <ReelActionVisual icon="comment" count={commentCounts[currentReel?.id] || 0} />
                 </button>
-                <button type="button" className={styles.wordAction} onClick={handleShare}>
-                  Share Reel
+                <button type="button" className={styles.wordAction} onClick={handleShare} aria-label="Share">
+                  <ReelActionVisual icon="share" count={currentReel?.share_count || 0} />
                 </button>
-                <button type="button" className={styles.wordAction} onClick={handleSave}>
-                  {saved[currentReel?.id] ? 'Remove Save' : 'Save Reel'}
+                <button type="button" className={styles.wordAction} data-reel-action="save" onClick={handleSave} aria-label={saved[currentReel?.id] ? 'Unsave' : 'Save'} aria-pressed={Boolean(saved[currentReel?.id])}>
+                  <ReelActionVisual icon="bookmark" filled={Boolean(saved[currentReel?.id])} />
                 </button>
-                {authorId && currentUserId && authorId !== currentUserId ? (
-                  <button type="button" className={styles.wordAction} onClick={handleFollow}>
-                    {following[authorId] ? 'Unfollow Creator' : 'Follow Creator'}
-                  </button>
-                ) : null}
+
                 <button
                   type="button"
                   className={styles.wordAction}
-                  onClick={() => setShowReactionPicker(true)}
-                >
-                  Reactions
-                </button>
-                <button
-                  type="button"
-                  className={styles.wordAction}
+                  aria-label="More Options"
                   onClick={() => setShowMoreMenu(true)}
                 >
-                  More Options
-                </button>
-                <button
-                  type="button"
-                  className={styles.wordAction}
-                  onClick={() => setShowShortcutsOverlay(true)}
-                >
-                  Keyboard Help
+                  <ReelActionVisual icon="more" />
                 </button>
               </div>
             </aside>
           </div>
 
-          <div className={styles.statusStack} aria-live="polite" aria-atomic="true">
+          <div className={styles.statusStack} data-reels-status aria-live="polite" aria-atomic="true">
             {showHeart ? <p className={styles.status}>Reel Liked</p> : null}
             {shareToast || copyToast ? <p className={styles.status}>Link Copied</p> : null}
             {sharedToFeed ? <p className={styles.status}>Shared To My Feed</p> : null}
@@ -3355,31 +3193,23 @@ export function ReelsViewer({ onClose }) {
             </button>
           ) : null}
         </div>
-      </VideoLibraryConsole>
+      </section>
       {activeDialogKey ? (
-        <div className={styles.dialogLayer} onClick={() => closeDialog(activeDialogKey)}>
+        <div className={immersiveStyles.sheetBackdrop} onClick={() => closeDialog(activeDialogKey)}>
           <div
             ref={dialogRef}
-            className={styles.dialogShell}
+            className={immersiveStyles.sheet}
+            data-reels-sheet={activeDialogKey === 'comments' ? 'comments' : undefined}
             role="dialog"
             aria-modal="true"
             aria-labelledby="embedded-reel-dialog-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <VideoLibraryConsole
-              eyebrow="Reel Command"
-              title={dialogTitles[activeDialogKey]}
-              titleId="embedded-reel-dialog-title"
-              subtitle={dialogSubtitles[activeDialogKey]}
-              pill={dialogPills[activeDialogKey]}
-              pillInk={activeDialogKey === 'report' ? 'red' : 'blue'}
-              titleAs="h1"
-              foot="foot"
-              className={styles.dialogConsole}
-              aria-label={dialogTitles[activeDialogKey]}
-            >
-              {dialogContent}
-            </VideoLibraryConsole>
+            <div className="sp-reels-sheet-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 id="embedded-reel-dialog-title">{dialogTitles[activeDialogKey]}</h2>
+              <button type="button" aria-label="Close panel" onClick={() => closeDialog(activeDialogKey)}><ReelIcon name="close" /></button>
+            </div>
+            {dialogContent}
           </div>
         </div>
       ) : null}

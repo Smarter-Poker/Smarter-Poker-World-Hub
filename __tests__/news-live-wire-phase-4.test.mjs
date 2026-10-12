@@ -177,14 +177,16 @@ test('reels pagination and route modes do not skip or ignore requested feeds', (
   assert.match(REELS_PAGE, /const \[preferencesLoaded, setPreferencesLoaded\] = useState\(false\)/);
   assert.match(REELS_PAGE, /reelsPreferences\.get\(ownerRequest\.ownerId\)/);
   assert.match(REELS_PAGE, /autoPlay=\{preferencesLoaded && preferences\.autoplay\}/);
-  assert.match(REELS_PAGE, /preferences\.autoplay \? 'loadVideoById' : 'cueVideoById'/);
+  assert.match(REELS_PAGE, /autoplay=\{preferencesLoaded && preferences.autoplay\}/);
+  const player = readFileSync(new URL('../src/components/reels/ReelYouTubePlayer.jsx', import.meta.url), 'utf8');
+  assert.match(player, /desired.autoplay \? 'loadVideoById' : 'cueVideoById'/);
   assert.match(REELS_PAGE, /if \(!userGesturedThisLoadRef\.current\) return/);
   assert.match(REELS_PAGE, /router\.query\.upload !== '1'/);
   assert.match(REELS_PAGE, /reelsPreferences\.update\(ownerRequest\.ownerId, newPrefs\)/);
   assert.doesNotMatch(REELS_PAGE, /\{\/\* Back button \*\/\}[\s\S]{0,400}href="\/hub\/social-media"/);
   assert.match(REELS_PAGE, /duration < 1/);
   assert.match(REELS_PAGE, /onDurationChange=\{handleNativeVideoMetadata\}/);
-  assert.doesNotMatch(REELS_PAGE, /\n\s+loop\n\s+playsInline/);
+  assert.match(REELS_PAGE, /\n\s+loop\n/);
   assert.doesNotMatch(REELS_PAGE, /user-scalable=no/);
 });
 

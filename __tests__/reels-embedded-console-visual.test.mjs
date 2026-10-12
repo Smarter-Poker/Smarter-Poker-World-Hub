@@ -5,21 +5,18 @@ import test from 'node:test';
 const read = relativePath => readFileSync(new URL(relativePath, import.meta.url), 'utf8');
 const VIEWER = read('../src/components/social/Reels.jsx');
 const STYLES = read('../src/components/social/ReelsConsole.module.css');
+const IMMERSIVE = read('../src/components/reels/ImmersiveReels.module.css');
 const COMBINED = `${VIEWER}\n${STYLES}`;
 
-test('embedded Reels renders every lifecycle through the exact shared console', () => {
-  assert.match(VIEWER, /import VideoLibraryConsole/);
-  assert.match(VIEWER, /import styles from ['"]\.\/ReelsConsole\.module\.css['"]/);
-  assert.match(VIEWER, /titleAs="h1"/);
-  assert.match(VIEWER, /title="Tuning Reel Signal"/);
-  assert.match(VIEWER, /title="Signal Interrupted"/);
-  assert.match(VIEWER, /title="No Reels Yet"/);
-  assert.match(VIEWER, /<main className=\{styles\.shell\} aria-label=\{`Embedded \$\{topicLabel\} Reels Viewer`\}>/);
-  assert.match(VIEWER, /foot="foot"/);
-  assert.match(VIEWER, /className=\{styles\.viewport\}/);
-  assert.match(VIEWER, /className=\{styles\.media\}/);
-  assert.match(VIEWER, /className=\{styles\.poster\}/);
+test('embedded Reels shares full-height playback and honest lifecycle states', () => {
+  assert.match(VIEWER, /ImmersiveReels\.module\.css/);
+  assert.match(VIEWER, /data-reels-experience="immersive"/);
+  assert.match(VIEWER, /data-reels-scroll-stage/);
+  assert.match(VIEWER, /<ReelsStatusScreen/);
+  for (const title of ['Tuning Reel Signal','Signal Interrupted','No Reels Yet']) assert.ok(VIEWER.includes(title));
+  assert.match(VIEWER, /<ReelYouTubePlayer/);
   assert.match(VIEWER, /<YouTubeErrorOverlay/);
+  assert.match(IMMERSIVE, /height: 100dvh !important/);
 });
 
 test('embedded Reels has no generic icon or constructed control language', () => {
@@ -34,18 +31,18 @@ test('embedded Reels has no generic icon or constructed control language', () =>
   assert.doesNotMatch(VIEWER, /default-avatar/i);
 });
 
-test('all embedded Reel actions remain reachable as words', () => {
+test('embedded icon controls retain accessible names and secondary actions', () => {
   for (const label of [
     'Close Viewer',
     'Previous Reel',
     'Next Reel',
-    'Play Reel',
+    'togglePlayback',
     'Mute Reel',
     'Like',
     'Comments',
     'Share Reel',
     'Save Reel',
-    'Follow Creator',
+    'handleFollow',
     'Reactions',
     'More Options',
     'Keyboard Help',
@@ -94,13 +91,11 @@ test('every embedded Reel popup renders through the shared master console', () =
     assert.match(VIEWER, new RegExp(title), `${title} must be printed by the master chassis`);
   }
 
-  assert.match(
-    VIEWER,
-    /\{activeDialogKey \? \([\s\S]*?<VideoLibraryConsole[\s\S]*?title=\{dialogTitles\[activeDialogKey\]\}[\s\S]*?\{dialogContent\}/
-  );
-  assert.match(VIEWER, /className=\{styles\.dialogConsole\}/);
-  assert.match(VIEWER, /titleId="embedded-reel-dialog-title"/);
-  assert.match(VIEWER, /activeDialogKey \? styles\.liveConsoleHidden : ''/);
+  assert.match(VIEWER, /className=\{immersiveStyles.sheetBackdrop\}/);
+  assert.match(VIEWER, /className=\{immersiveStyles.sheet\}/);
+  assert.match(VIEWER, /<h2 id="embedded-reel-dialog-title">\{dialogTitles\[activeDialogKey\]\}/);
+  assert.match(VIEWER, /\{dialogContent\}/);
+  assert.match(IMMERSIVE, /background: #fff !important/);
   assert.doesNotMatch(VIEWER, /styles\.panel/);
   assert.doesNotMatch(STYLES, /^\.panel\s*\{/m);
   assert.doesNotMatch(STYLES, /^\.overlay(?:Centered)?\s*\{/m);

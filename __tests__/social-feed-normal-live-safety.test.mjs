@@ -46,8 +46,8 @@ test('a complete receipt requires both viewports, stable identity, and every aff
     abortedMutationAttempts: 2,
     blockedMutationClasses: ['first-party-write'],
     checks: Object.fromEntries([
-      'authenticated', 'articleImages', 'textBeforeMedia', 'plainReels',
-      'viewerTextBeforeMedia', 'noAutomaticFeedReset', 'manualRefresh',
+      'authenticated', 'articleImages', 'textBeforeMedia', 'reelPreviews',
+      'immersiveViewer', 'desktopReelControls', 'noAutomaticFeedReset', 'manualRefresh',
       'reactionsPresent', 'noForbiddenMutation', 'stableDeployment',
     ].map((key) => [key, true])),
   };

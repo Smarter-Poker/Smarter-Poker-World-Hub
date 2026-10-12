@@ -96,9 +96,10 @@ test('shared Reel wrappers use the same plain text-first social card', () => {
   assert.match(shared, /router\.push\(sharedReelPath\)/, 'canonical Reel click path stays wired');
 });
 
-test('social Reel cards put creator, disclosures and caption before their preview media', () => {
+test('social Reel previews overlay the real creator on media while retaining caption semantics', () => {
   const reelCard = readFileSync(new URL('../src/components/reels/ReelCard.jsx', import.meta.url), 'utf8');
-  assert.match(reels, /<ReelCard[\s\S]*?textFirst/);
+  assert.doesNotMatch(reels, /<ReelCard[\s\S]{0,100}textFirst/);
+  assert.match(reels, /\.vlc-reel-card \.vlc-reel-card__author \{[\s\S]*?position: absolute/);
   assert.match(reelCard, /const content = textFirst \? <>\{words\}\{media\}<\/> : <>\{media\}\{words\}<\/>;/);
   assert.ok(reelCard.indexOf('const words') < reelCard.indexOf('const content = textFirst'));
   assert.ok(reelCard.indexOf('const media') < reelCard.indexOf('const content = textFirst'));
@@ -403,7 +404,7 @@ test('preview images accept local and protocol-relative artwork without acceptin
 });
 
 test('Reel artwork fills the aspect-ratio frame without intrinsic grid sizing', () => {
-  assert.match(reels, /\.vlc-reel-card__media \{\s*position: relative;/);
+  assert.match(reels, /\.vlc-reel-card__media \{\s*position: absolute;/);
   assert.match(reels, /\.vlc-feed-console-shell \.vlc-reel-card \.vlc-reel-card__media video \{\s*position: absolute;\s*inset: 0;/);
   assert.match(reels, /\.vlc-feed-console-shell \.vlc-reel-card \.vlc-reel-card__media img,/);
 });

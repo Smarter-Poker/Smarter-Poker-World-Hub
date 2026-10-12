@@ -23,6 +23,12 @@ import { getAuthUser } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 import ReelPublicationRecoveryBanner from '../../src/components/reels/ReelPublicationRecoveryBanner';
 import ReelsModeRail from '../../src/components/reels/ReelsModeRail';
+import ReelActionVisual, { ReelIcon } from '../../src/components/reels/ReelActionVisual';
+import ReelProgress from '../../src/components/reels/ReelProgress';
+import ReelYouTubePlayer from '../../src/components/reels/ReelYouTubePlayer';
+import ReelsStatusScreen from '../../src/components/reels/ReelsStatusScreen';
+import immersiveStyles from '../../src/components/reels/ImmersiveReels.module.css';
+import { createReelWheelGesture, verticalReelSwipe } from '../../src/lib/reelGestureNavigation.mjs';
 import ReelPlayerFrame from '../../src/components/reels/ReelPlayerFrame';
 import ReelFeedbackActions from '../../src/components/reels/ReelFeedbackActions';
 import ReelTrustStrip from '../../src/components/reels/ReelTrustStrip';
@@ -121,36 +127,19 @@ function ReelsConsoleScreen({
   primary,
   titleAs = 'h1',
 }) {
-  return (
-    <main className={styles.screen}>
-      <VideoLibraryConsole
-        eyebrow={eyebrow}
-        title={title}
-        subtitle={subtitle}
-        pill={pill}
-        pillInk={pillInk}
-        titleAs={titleAs}
-        foot="plates"
-        plates={{ secondary, primary }}
-        aria-label={title}
-      >
-        <ConsoleCopy align="center">{consoleText(copy)}</ConsoleCopy>
-        {rows.map((row) => <ConsoleDataRow key={row.label} {...row} />)}
-      </VideoLibraryConsole>
-    </main>
-  );
+  return <ReelsStatusScreen title={title} copy={consoleText(copy)} subtitle={subtitle} rows={rows} primary={primary} secondary={secondary} />;
 }
 
 function consoleText(value) {
   return String(value || '').replace(/\\u2014|—/g, ' - ').replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
 }
 
-function ReelAction({ children, className = '', ...props }) {
+function ReelAction({ children, icon, count, className = '', ...props }) {
   const text = Array.isArray(children) ? children.join('') : String(children ?? '');
   const fitRef = useFitText(text, 1, 0.5);
   return (
-    <button type="button" {...props} className={`${styles.action} ${className}`}>
-      <span className={styles.actionFace}><span ref={fitRef}>{children}</span></span>
+    <button type="button" aria-label={icon ? text : undefined} {...props} className={`${styles.action} ${className}`}>
+      {icon ? <ReelActionVisual icon={icon} count={count} filled={Boolean(props['aria-pressed'])} /> : <span className={styles.actionFace}><span ref={fitRef}>{children}</span></span>}
     </button>
   );
 }
@@ -194,15 +183,12 @@ function ReelsConsoleDialog({ title, children, onClose, primary, ...rest }) {
   }, []);
   if (typeof document === 'undefined') return null;
   return createPortal(
-    <div data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" className={styles.dialogBackdrop} onClick={() => closeRef.current?.()}>
-      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true"
-        aria-labelledby={titleId} tabIndex={-1} data-sp-skip-a11y="propagation guard, not a control" onClick={(event) => event.stopPropagation()} {...rest}>
-        <VideoLibraryConsole eyebrow="Reel Controls" title={title} titleId={titleId}
-          foot={primary ? 'plates' : 'foot'}
-          plates={primary ? { secondary: { label: 'Close', onClick: onClose }, primary } : undefined}>
-          {children}
-          {!primary && <ReelAction onClick={onClose}>Close</ReelAction>}
-        </VideoLibraryConsole>
+    <div data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" className={`${styles.dialogBackdrop} ${immersiveStyles.sheetBackdrop}`} onClick={() => closeRef.current?.()}>
+      <div ref={dialogRef} className={`${styles.dialog} ${immersiveStyles.sheet}`} role="dialog" aria-modal="true"
+        aria-labelledby={titleId} data-reels-sheet={title === 'Comments' ? 'comments' : undefined} tabIndex={-1} data-sp-skip-a11y="propagation guard, not a control" onClick={(event) => event.stopPropagation()} {...rest}>
+        <header className="sp-reels-sheet-heading"><h2 id={titleId}>{title}</h2><button type="button" onClick={onClose} aria-label="Close"><ReelIcon name="close" /></button></header>
+        {children}
+        {primary ? <ReelAction onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</ReelAction> : null}
       </div>
     </div>, document.body
   );
@@ -405,6 +391,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const commentFileInputRef = useRef(null);
   const containerRef = useRef(null);
   const iframeRef = useRef(null);
+  const youtubeEventRef = useRef(null);
   const videoRef = useRef(null);
   const [isPaused, setIsPaused] = useState(true); // Start true — autoplay may fail, first tap should always send playVideo
   const isPausedRef = useRef(true); // Sync ref for stale-closure-safe keyboard handler (matches initial isPaused=true)
@@ -543,8 +530,6 @@ export default function ReelsPage({ reelsListing = null }) {
     hudTimerRef.current = setTimeout(() => {
       if (menuOpenRef.current) return;
       setShowOverlay(false);
-      setShowReactionPicker(false);
-      setShowMoreMenu(false);
     }, 5000);
   };
   const revealOverlay = () => {
@@ -556,6 +541,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const handleCommandMenuOpenChange = (open) => {
     menuOpenRef.current = open;
     setMenuOpen(open);
+    if (open) { setShowMoreMenu(false); setShowContextMenu(false); }
     clearTimeout(hudTimerRef.current);
     setShowOverlay(true);
     if (!open) scheduleHudHide();
@@ -746,25 +732,12 @@ export default function ReelsPage({ reelsListing = null }) {
     };
   }, [reels, user?.id]);
 
-  // YouTube API: Send command to iframe via postMessage
-  // The 'listening' handshake initializes the command bridge
-  const sendYouTubeCommand = (command, args = []) => {
-    if (iframeRef.current?.contentWindow) {
-      // Ensure the API bridge is active
-      iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func: command,
-          args: args,
-        }),
-        '*'
-      );
-    }
-  };
+  // Send explicit user commands through the ready official API owner.
+  const youtubeCommandRef = useRef(null);
+  const sendYouTubeCommand = (command, args = []) => youtubeCommandRef.current?.(command, args);
 
   // On every reel change: load the new YouTube video into the persistent iframe
-  // (no remount — use loadVideoById postMessage) and retry playVideo.
+  // The shared API owner switches clips; this effect stops the other media type.
   // Keyed on the active Reel's identity and playback address, never on the
   // array length: a background merge or an appended page must not restart
   // the Reel that is already playing.
@@ -781,66 +754,10 @@ export default function ReelsPage({ reelsListing = null }) {
     playVideoOnLoadTimersRef.current = [];
 
     if (ytId) {
-      // GESTURE COORDINATION (2026-05-11 — fixes "press play for sound on 90%
-      // of videos"): if the wheel/touch/key gesture handler already loaded
-      // this same video INSIDE its gesture-event tick, skip the mute-pivot
-      // (which would re-mute what the gesture just unMuted) and only schedule
-      // the safety-net retry timers. Chrome's transient activation window
-      // expires before this useEffect runs (~120ms+ later via setTimeout +
-      // setCurrentIndex + re-render), so an unMute fired from here is
-      // rejected by YT. The gesture-handler path keeps the unMute inside
-      // the activation window, which Chrome honors.
-      const alreadyLoadedInGesture = lastLoadedVideoIdRef.current === ytId;
-      const wantsSoundAtSwipe = preferences.soundOnScroll && userWantsSoundRef.current;
+      if (videoRef.current && !videoRef.current.paused) videoRef.current.pause();
+    } else sendYouTubeCommand('pauseVideo');
 
-      if (!alreadyLoadedInGesture) {
-        // No-gesture path (auto-advance: YT video-ended, ytError 3s skip,
-        // stall watchdog). Mute the player BEFORE loadVideoById so the
-        // new video boots muted (Chrome unconditionally allows muted
-        // autoplay). The 200ms retry below tries to unMute — will succeed
-        // if the document has high Media Engagement Index, otherwise
-        // YT keeps it muted but at least the video plays.
-        if (wantsSoundAtSwipe) sendYouTubeCommand('mute');
-        sendYouTubeCommand(preferences.autoplay ? 'loadVideoById' : 'cueVideoById', [
-          { videoId: ytId, startSeconds: 0 },
-        ]);
-      } else {
-        // Gesture-handler already issued loadVideoById + unMute. Don't
-        // re-mute. Clear the marker so a subsequent same-video re-render
-        // (e.g., a hot-reload) doesn't suppress correct behavior.
-        lastLoadedVideoIdRef.current = null;
-      }
-
-      // Retry playVideo + unMute — YT API may not be ready immediately after loadVideoById.
-      // The unMute fires AFTER playVideo so Chrome sees an already-playing video.
-      // For the gesture path, these retries reinforce the unMute YT already
-      // accepted; for the non-gesture path, they're a best-effort attempt.
-      if (preferences.autoplay) {
-        playVideoOnLoadTimersRef.current = [200, 500, 1000, 2000].map((delay) =>
-          setTimeout(() => {
-            sendYouTubeCommand('playVideo');
-            if (wantsSoundAtSwipe) {
-              sendYouTubeCommand('unMute');
-              sendYouTubeCommand('setVolume', [100]);
-            }
-            autoUnmute();
-          }, delay)
-        );
-      } else {
-        sendYouTubeCommand('pauseVideo');
-      }
-      // Pause native video if it was playing (switching FROM native TO YouTube)
-      if (videoRef.current && !videoRef.current.paused) {
-        videoRef.current.pause();
-      }
-    } else {
-      // Native video — pause YouTube first to prevent audio bleed
-      sendYouTubeCommand('pauseVideo');
-    }
-
-    setIsPaused(true); // reset — actual play state set by onPlay / onStateChange
-    setYtReady(false); // suppress phantom play button during autoplay startup
-    setYtError(null);
+    if (!ytId && !preferences.autoplay) videoRef.current?.pause();
 
     return () => {
       playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
@@ -2283,7 +2200,7 @@ export default function ReelsPage({ reelsListing = null }) {
     // Reset isPaused to true — the play button overlay is guarded by (isPaused && ytReady)
     // and ytReady starts false, so the play button won't show during autoplay startup.
     // If autoplay succeeds, YT fires onStateChange(1) → sets isPaused=false before ytReady=true.
-    // If autoplay fails, ytReady=true after 3s fallback → play button correctly appears.
+    // Readiness and blocked autoplay come from actual provider events.
     // Without this reset, isPaused holds STALE state from the previous reel, making the
     // tap-to-play/pause logic inverted on the new video.
     setIsPaused(true);
@@ -2299,12 +2216,7 @@ export default function ReelsPage({ reelsListing = null }) {
     playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
     playVideoOnLoadTimersRef.current = [];
 
-    // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
-    // If ytReady is still false after 3s, force it true so the play button appears
-    // and the user can manually tap to start playback.
-    const ytReadyFallback = setTimeout(() => setYtReady(true), 3000);
     return () => {
-      clearTimeout(ytReadyFallback);
       // Also cancel any in-flight retry timers on unmount
       autoUnmuteRetryTimersRef.current.forEach((t) => clearTimeout(t));
       autoUnmuteRetryTimersRef.current = [];
@@ -2481,40 +2393,6 @@ export default function ReelsPage({ reelsListing = null }) {
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
 
-      if (
-        e.key === 'ArrowDown' ||
-        e.key === 'ArrowRight' ||
-        e.key === 'ArrowUp' ||
-        e.key === 'ArrowLeft'
-      ) {
-        // GESTURE-CONTEXT FAST PATH (2026-05-11): same pattern as
-        // handleTouchEnd + handleWheel — pre-load the next/prev reel and
-        // unMute it inside this synchronous keydown event, before any
-        // slideTo* setTimeout drops us out of Chrome's transient activation
-        // window. Sets lastLoadedVideoIdRef so the useEffect skips its
-        // mute-pivot and doesn't re-mute the player.
-        const direction = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
-        const nextIdx = currentIndexRef.current + direction;
-        const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
-        const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
-        if (
-          preferencesRef.current.autoplay &&
-          preferencesRef.current.soundOnScroll &&
-          userWantsSoundRef.current
-        ) {
-          sendYouTubeCommand('unMute');
-          sendYouTubeCommand('setVolume', [100]);
-          setMuted(false);
-          setUserWantsSound(true);
-          if (nextYtId) {
-            sendYouTubeCommand('loadVideoById', [{ videoId: nextYtId, startSeconds: 0 }]);
-            sendYouTubeCommand('playVideo');
-            sendYouTubeCommand('unMute');
-            sendYouTubeCommand('setVolume', [100]);
-            lastLoadedVideoIdRef.current = nextYtId;
-          }
-        }
-      }
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') slideToNextRef.current();
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') slideToPrevRef.current();
       // The command drawer owns Escape while it is open. Without this guard,
@@ -2578,6 +2456,7 @@ export default function ReelsPage({ reelsListing = null }) {
   }, [router]);
 
   // Use refs to avoid stale closures in event handlers
+  const swipeConsumedRef = useRef(false);
   const currentIndexRef = useRef(currentIndex);
   const reelsLengthRef = useRef(reels.length);
   // 2026-05-11: full reels array ref — the gesture-handler fast path
@@ -2635,132 +2514,14 @@ export default function ReelsPage({ reelsListing = null }) {
     slideToPrevRef.current = slideToPrev;
   });
 
-  // DOCUMENT-LEVEL touch capture to intercept BEFORE YouTube iframe gets them
+  // One owner for touch navigation: the full-video tap surface below.
   useEffect(() => {
-    const handleTouchStart = (e) => {
-      touchStartY.current = e.touches[0].clientY;
-      touchStartX.current = e.touches[0].clientX;
-      // Track pull-to-refresh start when at first reel
-      if (currentIndexRef.current === 0) {
-        pullStartY.current = e.touches[0].clientY;
-      }
-    };
-
-    // CRITICAL: Block default scroll during vertical swipe so our handler works
-    const handleTouchMove = (e) => {
-      const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
-      const dx = Math.abs(e.touches[0].clientX - (touchStartX.current || 0));
-      // Only prevent default for vertical swipes (not horizontal)
-      if (dy > 10 && dy > dx) {
-        e.preventDefault();
-      }
-    };
-
-    const handleTouchEnd = (e) => {
-      const endY = e.changedTouches[0].clientY;
-      const diff = touchStartY.current - endY;
-      const threshold = 50;
-
-      // Pull-to-refresh: pull down while at reel 0
-      if (pullStartY.current !== null && currentIndexRef.current === 0 && diff < -100) {
-        pullStartY.current = null;
-        setRefreshing(true);
-        loadReels().finally(() => setRefreshing(false));
-        return;
-      }
-      pullStartY.current = null;
-
-      if (Math.abs(diff) > threshold) {
-        try {
-          navigator?.vibrate?.(10);
-        } catch (e) {
-          console.warn('[App] Handled exception:', e);
-        }
-        // GESTURE-CONTEXT FAST PATH (2026-05-11): pre-load the NEXT reel and
-        // unMute it INSIDE this synchronous gesture event, before the slide
-        // animation's 120ms setTimeout drops us out of Chrome's transient
-        // activation window. Without this, the useEffect's loadVideoById
-        // ran ~120ms later — outside activation — and YT silently rejected
-        // the unMute → 90% of swipes appeared muted with a play-button
-        // overlay. The lastLoadedVideoIdRef tells the useEffect that this
-        // video is already loaded so it won't re-mute.
-        const direction = diff > 0 ? 1 : -1;
-        const nextIdx = currentIndexRef.current + direction;
-        const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
-        const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
-        if (
-          preferencesRef.current.autoplay &&
-          preferencesRef.current.soundOnScroll &&
-          userWantsSoundRef.current
-        ) {
-          // First unMute the current iframe (visible during the slide animation)
-          sendYouTubeCommand('unMute');
-          sendYouTubeCommand('setVolume', [100]);
-          setMuted(false);
-          setUserWantsSound(true);
-          // Then pre-load + unMute the NEXT reel SYNCHRONOUSLY — same iframe,
-          // same gesture tick, YT accepts the unMute because activation is live.
-          if (nextYtId) {
-            sendYouTubeCommand('loadVideoById', [{ videoId: nextYtId, startSeconds: 0 }]);
-            sendYouTubeCommand('playVideo');
-            sendYouTubeCommand('unMute');
-            sendYouTubeCommand('setVolume', [100]);
-            lastLoadedVideoIdRef.current = nextYtId; // useEffect will skip its mute-pivot
-          }
-        }
-        if (diff > 0) {
-          slideToNextRef.current();
-        } else {
-          slideToPrevRef.current();
-        }
-      }
-    };
-
-    // Mouse wheel with debounce
-    // BUG FIX (R-3): capture the wheelTimeout ID in the outer closure scope so the
-    // cleanup function can clear it on unmount. Without this, the 400ms timeout fires
-    // into a stale closure if the user navigates away during the cooldown.
-    let wheelTimeout = null;
+    const wheelGesture = createReelWheelGesture();
     const handleWheel = (e) => {
-      if (wheelTimeout) return;
-      wheelTimeout = setTimeout(() => {
-        wheelTimeout = null;
-      }, 400);
-      if (Math.abs(e.deltaY) > 30) {
-        // GESTURE-CONTEXT FAST PATH (2026-05-11): same pattern as
-        // handleTouchEnd — pre-load the NEXT reel and unMute it inside
-        // this synchronous wheel-event tick, before the slideTo* setTimeout
-        // drops us outside Chrome's transient activation window. The
-        // useEffect on currentIndex will see lastLoadedVideoIdRef matches
-        // and skip its mute-pivot so it doesn't re-mute the player.
-        const direction = e.deltaY > 0 ? 1 : -1;
-        const nextIdx = currentIndexRef.current + direction;
-        const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
-        const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
-        if (
-          preferencesRef.current.autoplay &&
-          preferencesRef.current.soundOnScroll &&
-          userWantsSoundRef.current
-        ) {
-          sendYouTubeCommand('unMute');
-          sendYouTubeCommand('setVolume', [100]);
-          setMuted(false);
-          setUserWantsSound(true);
-          if (nextYtId) {
-            sendYouTubeCommand('loadVideoById', [{ videoId: nextYtId, startSeconds: 0 }]);
-            sendYouTubeCommand('playVideo');
-            sendYouTubeCommand('unMute');
-            sendYouTubeCommand('setVolume', [100]);
-            lastLoadedVideoIdRef.current = nextYtId;
-          }
-        }
-      }
-      if (e.deltaY > 30) {
-        slideToNextRef.current();
-      }
-      if (e.deltaY < -30) {
-        slideToPrevRef.current();
-      }
+      if (e.target.closest('button, input, textarea, [role="dialog"], [data-reels-copy]')) return;
+      const direction = wheelGesture(e.deltaY, Date.now());
+      if (direction > 0) slideToNextRef.current();
+      if (direction < 0) slideToPrevRef.current();
     };
 
     // YouTube API message listener - auto-advance on video end
@@ -2772,12 +2533,12 @@ export default function ReelsPage({ reelsListing = null }) {
     ];
     const handleYTMessage = (e) => {
       // Security: reject messages not from YouTube
-      if (!YOUTUBE_ORIGINS.includes(e.origin)) return;
+      if (!YOUTUBE_ORIGINS.includes(e.origin) || e.source !== iframeRef.current?.contentWindow) return;
       try {
         const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
         if (!data?.event) return;
         if (data?.event === 'onStateChange') {
-          if (data.info === 0) slideToNextRef.current();
+
           if (data.info === 1) {
             // Playing
             setYtReady(true); // YouTube confirmed playback — safe to show play button now
@@ -2794,9 +2555,7 @@ export default function ReelsPage({ reelsListing = null }) {
             ) {
               autoUnmute();
               // Retry: iframe API sometimes isn't ready for unMute on first call
-              autoUnmuteRetryTimersRef.current = [100, 300, 600].map((d) =>
-                setTimeout(() => autoUnmute(), d)
-              );
+              autoUnmuteRetryTimersRef.current = [];
             } else {
               autoUnmuteRetryTimersRef.current = [];
             }
@@ -2811,6 +2570,8 @@ export default function ReelsPage({ reelsListing = null }) {
             if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
           }
         }
+        if (data.event === 'onReady') setYtReady(true);
+        if (data.event === 'onAutoplayBlocked') { setYtReady(true); setIsPaused(true); }
         // YouTube onError event — code 150 = age-restricted, 100 = not found, 101 = embed disabled
         if (data?.event === 'onError' && data?.info) {
           const errorCode = Number(data.info);
@@ -2818,7 +2579,7 @@ export default function ReelsPage({ reelsListing = null }) {
           setYtError({ code: errorCode });
           // Report to server (best-effort)
           try {
-            const vid = iframeRef.current?.src ? getYouTubeVideoId(iframeRef.current.src) : null;
+            const vid = data.videoId;
             if (vid) {
               reportFailureToServer(vid, errorCode, 'HubReels');
             }
@@ -2835,19 +2596,11 @@ export default function ReelsPage({ reelsListing = null }) {
       }
     };
 
-    document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true, capture: true });
     window.addEventListener('wheel', handleWheel, { passive: true });
-    window.addEventListener('message', handleYTMessage);
+    youtubeEventRef.current = handleYTMessage;
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart, { capture: true });
-      document.removeEventListener('touchmove', handleTouchMove, { capture: true });
-      document.removeEventListener('touchend', handleTouchEnd, { capture: true });
       window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('message', handleYTMessage);
-      // BUG FIX (R-3): clear the wheelTimeout closure variable on unmount
-      if (wheelTimeout) clearTimeout(wheelTimeout);
+      youtubeEventRef.current = null;
     };
   }, []);
   // Fail-closed removal that keeps the active Reel when it survives and hands
@@ -3013,7 +2766,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const followingSignInRequired = activeFeedMode === 'following'
     && (!user?.id || followingReauthRequired);
   const reelsNavigationHeader = (
-    <div key="reels-navigation-header" style={{ position: 'relative', zIndex: 10001 }}>
+    <div key="reels-navigation-header" style={{ position: 'relative', zIndex: menuOpen ? 10100 : 10001 }}>
       <UniversalHeader
         pageDepth={1}
         commandMenuOpen={menuOpen}
@@ -3163,9 +2916,6 @@ export default function ReelsPage({ reelsListing = null }) {
   }
 
   const videoId = getYouTubeVideoId(currentReel?.video_url);
-  const youtubeEmbedSrc = videoId
-    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${preferencesLoaded && preferences.autoplay ? 1 : 0}&mute=1&controls=1&rel=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&iv_load_policy=3&fs=1&cc_load_policy=${preferences.showCaptions ? 1 : 0}`
-    : null;
   const handleNativeVideoMetadata = (event) => {
     const duration = Number(event.currentTarget?.duration);
     // Some synthetic health checks announce metadata before their final
@@ -3222,31 +2972,30 @@ export default function ReelsPage({ reelsListing = null }) {
       {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
 
       {/* Universal Header */}
-      {showOverlay && reelsNavigationHeader}
+      {menuOpen && reelsNavigationHeader}
 
       {/* Upload Modal */}
       {uploadModal}
 
-      <main key="reels-viewer" className={styles.viewerShell}>
-        <VideoLibraryConsole
-          eyebrow="Video Library"
-          title="Reels"
-          subtitle={`By ${currentSourceName}`}
-          pill={`${currentIndex + 1} Of ${reels.length}`}
-          pillInk="blue"
-          titleAs="h1"
-          foot="plates"
-          plates={{
-            secondary: { label: 'Previous Reel', onClick: () => slideToPrevRef.current(), disabled: currentIndex === 0 },
-            primary: { label: 'Next Reel', onClick: () => slideToNextRef.current() },
-          }}
-          className={styles.liveConsole}
-          aria-label={`${currentTopicLabel} Reels Viewer`}
-        >
+      <main key="reels-viewer" className={`${styles.viewerShell} ${immersiveStyles.root}`} data-reels-experience="immersive">
+        <section className={styles.liveConsole} data-reels-console aria-label={`${currentTopicLabel} Reels Viewer`}>
+          <h1 className="sp-reels-sr-only">Reels</h1>
+          <header data-reels-topbar>
+            <ReelAction icon="back" onClick={() => router.push('/hub/social-media')}>Back To Feed</ReelAction>
+            <nav className="sp-reels-feed-tabs" aria-label="Reels Feeds">
+              {['following', 'for-you'].map((mode) => <button type="button" key={mode} aria-current={activeFeedMode === mode ? 'page' : undefined} onClick={() => { const contract = reelsFeedModeContract(mode, { signedIn: true }); void router.push({ pathname: '/hub/reels', query: { mode, category: contract.category } }, undefined, { shallow: true, scroll: false }); }}>{mode === 'following' ? 'Following' : 'For You'}</button>)}
+            </nav>
+            <ReelAction icon={muted ? 'muted' : 'sound'} onClick={() => muted ? handleUnmute() : handleMute()}>{muted ? 'Unmute' : 'Mute'}</ReelAction>
+          </header>
+          <nav data-reels-navigation aria-label="Reel Navigation">
+            <ReelAction icon="up" onClick={() => slideToPrevRef.current()} disabled={currentIndex === 0}>Previous Reel</ReelAction>
+            <ReelAction icon="down" onClick={() => slideToNextRef.current()} disabled={currentIndex >= reels.length - 1}>Next Reel</ReelAction>
+          </nav>
       {/* Live video stage */}
       <div
         ref={containerRef}
         className={styles.stage}
+        data-reels-stage
         style={{
           position: 'fixed',
           inset: 0,
@@ -3254,25 +3003,7 @@ export default function ReelsPage({ reelsListing = null }) {
           overflow: 'hidden',
         }}
       >
-        {/* Title — fades with overlay so it doesn't block video content */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 20,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            color: 'white',
-            fontWeight: 700,
-            fontSize: 18,
-            zIndex: 100,
-            opacity: showOverlay ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: 'none',
-          }}
-        >
-          Reels
-        </div>
-
+        <span className="sp-reels-bottom-shade" />
         {/* Engagement Stats Pill REMOVED - duplicated the sidebar heart/comment buttons */}
 
         {/* VIDEO WRAPPER with slide animation */}
@@ -3304,64 +3035,11 @@ export default function ReelsPage({ reelsListing = null }) {
 
           {/* Auto-play immediately - muted for browser compliance */}
           {videoId ? (
-            <iframe
-              ref={iframeRef}
-              key="yt-player-persistent"
-              src={youtubeEmbedSrc}
-              title={`${currentTopicLabel} Reel From ${currentSourceName}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-              onLoad={(e) => {
-                // A failed shallow channel transition can make Chromium
-                // self-navigate the retained iframe to about:blank. React
-                // still owns the same Reel and therefore does not rewrite an
-                // unchanged src prop. Restore the exact verified embed on the
-                // blank load without replacing the player or changing index.
-                if (e.currentTarget.getAttribute('src') === 'about:blank' && youtubeEmbedSrc) {
-                  e.currentTarget.src = youtubeEmbedSrc;
-                  return;
-                }
-                // BUG FIX: With key="yt-player-persistent" this onLoad fires ONCE at
-                // mount (not on every reel swipe). Establish the postMessage API bridge
-                // here; subsequent video switches go through loadVideoById in the
-                // currentIndex useEffect (no player reinitialisation needed).
-                const iframeWindow = e.target.contentWindow;
-                try {
-                  iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                  if (preferencesLoaded && preferences.autoplay) iframeWindow.postMessage(
-                    JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*'
-                  );
-                  // Retry playVideo — YT API inside the iframe may not be ready yet.
-                  playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
-                  playVideoOnLoadTimersRef.current = [300, 800, 1500].map((delay) =>
-                    setTimeout(() => {
-                      try {
-                        iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                        if (preferencesLoaded && preferences.autoplay) iframeWindow.postMessage(
-                          JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
-                          '*'
-                        );
-                      } catch (err) {
-                        console.warn('[Reels] YT command retry failed:', err);
-                      }
-                    }, delay)
-                  );
-                } catch (err) {
-                  console.warn('[Reels] YT onLoad init failed:', err);
-                }
-              }}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                pointerEvents: 'auto',
-              }}
-            />
+            <ReelYouTubePlayer videoId={videoId} iframeRef={iframeRef} eventRef={youtubeEventRef}
+                      commandRef={youtubeCommandRef}
+              autoplay={preferencesLoaded && preferences.autoplay}
+              muted={!(userGesturedThisLoadRef.current && userWantsSoundRef.current)} onMutedChange={setMuted}
+              title={`${currentTopicLabel} Reel From ${currentSourceName}`} />
           ) : currentReel?.video_url ? (
             /* Native video (mp4/webm/mov) - user-uploaded content */
             <>
@@ -3378,6 +3056,7 @@ export default function ReelsPage({ reelsListing = null }) {
                 // always show YouTube's poster underneath the player).
                 poster={currentReel?.thumbnail_url || undefined}
                 autoPlay={preferencesLoaded && preferences.autoplay}
+                loop
                 preload={preferences.dataSaver ? 'metadata' : 'auto'}
                 playsInline
                 // Always render muted=true — guarantees autoplay regardless
@@ -3388,6 +3067,7 @@ export default function ReelsPage({ reelsListing = null }) {
                 muted={muted}
                 onPlay={() => setIsPaused(false)}
                 onPlaying={(e) => {
+                  setYtReady(true);
                   // Successful playback — clear the stall watchdog so it
                   // doesn't auto-skip a video that just took longer to
                   // start (cold storage, slow network, etc).
@@ -3415,7 +3095,6 @@ export default function ReelsPage({ reelsListing = null }) {
                 onPause={() => setIsPaused(true)}
                 onEnded={() => {
                   setIsPaused(false);
-                  goNext();
                 }}
                 onTimeUpdate={(e) => {
                   const v = e.currentTarget;
@@ -3463,7 +3142,7 @@ export default function ReelsPage({ reelsListing = null }) {
           ) : null}
         </ReelPlayerFrame>
 
-        <progress className={styles.progress} value={Math.round(videoProgress)} max={100} aria-label="Video Progress" />
+        <ReelProgress value={videoProgress} isYouTube={Boolean(videoId)} videoRef={videoRef} commandRef={youtubeCommandRef} />
 
         {/* FULL-SCREEN TOUCH OVERLAY — captures ALL touch events over the iframe */}
         {/* This is the ONLY reliable way to handle touches on iOS Safari over YouTube embeds */}
@@ -3478,6 +3157,7 @@ export default function ReelsPage({ reelsListing = null }) {
               t: Date.now(),
             };
             swipeDeltaRef.current = 0;
+            swipeConsumedRef.current = false;
             handleLongPressTouchStart();
           }}
           onTouchMove={(e) => {
@@ -3485,22 +3165,27 @@ export default function ReelsPage({ reelsListing = null }) {
             const dy = e.touches[0].clientY - swipeStartRef.current.y;
             swipeDeltaRef.current = dy;
             cancelLongPress();
-            // Block page scroll
-            e.preventDefault();
+            const dx = e.touches[0].clientX - swipeStartRef.current.x;
+            if (Math.abs(dy) > Math.abs(dx) * 1.2) e.currentTarget.closest('[data-reels-stage]')?.style.setProperty('--reel-drag-y', `${dy * 0.35}px`);
+            if (e.cancelable) e.preventDefault();
           }}
+          onTouchCancel={(e) => { cancelLongPress(); swipeStartRef.current = null; e.currentTarget.closest('[data-reels-stage]')?.style.setProperty('--reel-drag-y', '0px'); }}
           onTouchEnd={(e) => {
             cancelLongPress();
-            const delta = swipeDeltaRef.current;
-            const elapsed = Date.now() - (swipeStartRef.current?.t || Date.now());
+            e.currentTarget.closest('[data-reels-stage]')?.style.setProperty('--reel-drag-y', '0px');
+            const start = swipeStartRef.current;
+            const touch = e.changedTouches[0];
+            const direction = start ? verticalReelSwipe({ startX: start.x, startY: start.y, endX: touch.clientX, endY: touch.clientY, elapsedMs: Date.now() - start.t }) : 0;
             swipeStartRef.current = null;
 
             // Swipe gesture (more than 50px vertical)
-            if (Math.abs(delta) > 50) {
+            if (direction) {
+              swipeConsumedRef.current = true;
               if (e.cancelable) e.preventDefault();
               try {
                 navigator?.vibrate?.(10);
               } catch (_) {}
-              if (delta < 0) {
+              if (direction > 0) {
                 // Swiped UP = next video
                 slideToNextRef.current();
               } else {
@@ -3517,64 +3202,29 @@ export default function ReelsPage({ reelsListing = null }) {
             e.preventDefault();
             setShowContextMenu(true);
           }}
-          onClick={(e) => {
+          data-reels-tap
+          onClick={() => {
+            if (swipeConsumedRef.current) { swipeConsumedRef.current = false; return; }
             const now = Date.now();
-            const tapX = e.clientX;
-            const screenW = window.innerWidth;
-
-            // First tap EVER on this reel: auto-unmute + force play (iOS requires user gesture)
-            if (isPaused || muted) {
-              sendYouTubeCommand('playVideo');
-              sendYouTubeCommand('unMute');
-              sendYouTubeCommand('setVolume', [100]);
-              setIsPaused(false);
-              setMuted(false);
-              setYtReady(true);
-              lastTapRef.current = now;
-              revealOverlay();
-              return;
-            }
-
-            // LEFT 30% = previous
-            if (tapX < screenW * 0.3) {
-              slideToPrevRef.current();
-              return;
-            }
-            // RIGHT 30% = next
-            if (tapX > screenW * 0.7) {
-              slideToNextRef.current();
-              return;
-            }
-
-            // CENTER 40%: double-tap / single-tap
             if (now - lastTapRef.current < 300) {
-              // Double tap = toggle play/pause
-              haptic(15);
-              if (videoId) {
-                if (isPaused) {
-                  sendYouTubeCommand('playVideo');
-                  setIsPaused(false);
-                } else {
-                  sendYouTubeCommand('pauseVideo');
-                  setIsPaused(true);
-                  clearTimeout(hudTimerRef.current);
-                }
-              } else if (videoRef.current) {
-                if (videoRef.current.paused) {
-                  videoRef.current
-                    .play()
-                    .catch((e) => console.warn('[Reels] play() failed:', e?.message));
-                } else {
-                  videoRef.current.pause();
-                  clearTimeout(hudTimerRef.current);
-                }
-              }
               lastTapRef.current = 0;
-            } else {
-              // Single tap = show/hide overlay ONLY
-              revealOverlay();
-              lastTapRef.current = now;
+              if (!liked[currentReel?.id]) handleLike();
+              if (user?.id) {
+                setShowHeart(true);
+                clearTimeout(showHeartTimerRef.current);
+                showHeartTimerRef.current = setTimeout(() => setShowHeart(false), 800);
+              }
+              if (videoId) sendYouTubeCommand('playVideo');
+              else videoRef.current?.play().catch(() => showErrorToast('Tap Play To Resume'));
+              return;
             }
+            lastTapRef.current = now;
+            if (videoId) sendYouTubeCommand(isPaused ? 'playVideo' : 'pauseVideo');
+            else if (videoRef.current) {
+              if (videoRef.current.paused) videoRef.current.play().catch(() => showErrorToast('Tap Play To Resume'));
+              else videoRef.current.pause();
+            }
+            revealOverlay();
           }}
           style={{
             position: 'absolute',
@@ -3600,8 +3250,8 @@ export default function ReelsPage({ reelsListing = null }) {
         )}
 
 {!videoId && !currentReel?.video_url && <div className={styles.stageSignal}>Video Unavailable</div>}
-        {isPaused && ytReady && <div className={styles.stageSignal}>Paused</div>}
-        {showHeart && <div className={`${styles.stageSignal} ${styles.likedSignal}`}>Liked</div>}
+        {isPaused && ytReady && <div data-reels-play-indicator className={styles.stageSignal}><ReelIcon name="play" filled /></div>}
+        {showHeart && <div className={`${styles.stageSignal} ${styles.likedSignal}`}><ReelIcon name="heart" filled /></div>}
         {/* Bound the live media-resource window to current + next. YouTube gets
             a poster-only warmup and native media gets one preload hint; no
             second player or ten-video mobile download window is created. */}
@@ -3648,24 +3298,7 @@ export default function ReelsPage({ reelsListing = null }) {
 
       </div>
       <div className={styles.body}>
-        <nav className={styles.actions} aria-label="Reel Navigation">
-          <ReelAction onClick={() => router.push('/hub/social-media')}>Back To Feed</ReelAction>
-          <ReelAction onClick={() => handleCommandMenuOpenChange(true)} aria-haspopup="dialog" aria-expanded={menuOpen}>Menu</ReelAction>
-          <ReelAction onClick={() => setShowShortcutsOverlay(true)}>Keyboard Help</ReelAction>
-        </nav>
-        <div className={styles.actions} aria-label="Playback Controls">
-          <ReelAction onClick={() => {
-            if (videoRef.current) {
-              if (videoRef.current.paused) videoRef.current.play().catch(() => showErrorToast('Playback Could Not Start'));
-              else videoRef.current.pause();
-            } else {
-              sendYouTubeCommand(isPaused ? 'playVideo' : 'pauseVideo');
-              setIsPaused(!isPaused);
-            }
-          }}>{isPaused ? 'Play' : 'Pause'}</ReelAction>
-          <ReelAction onClick={() => muted ? handleUnmute() : handleMute()}>{muted ? 'Unmute' : 'Mute'}</ReelAction>
-          <ReelAction onClick={handleSpeedToggle}>Speed {Math.round(playbackSpeed * 100)}%</ReelAction>
-        </div>
+        <div data-reels-copy>
         <div className={styles.creator}>
           {currentReel?.profiles?.avatar_url && <img src={currentReel.profiles.avatar_url} alt="" className={styles.avatar} loading="lazy" onError={(event) => { event.currentTarget.hidden = true; }} />}
           {currentReel?.profiles?.username
@@ -3682,13 +3315,10 @@ export default function ReelsPage({ reelsListing = null }) {
             View Original On {currentSourceName}
           </a>
         ) : null}
-        <ReelTrustStrip reel={currentReel} />
+        <ReelTrustStrip reel={currentReel} compact immersive />
         {currentReel?.profiles?.id && user?.id && currentReel.profiles.id !== user.id && (
           <ReelAction onClick={handleFollow} aria-pressed={Boolean(following[currentReel.profiles.id])}>{following[currentReel.profiles.id] ? 'Following' : 'Follow'}</ReelAction>
         )}
-        <ConsoleDataRow label="Views" value={Math.floor(viewCounts[currentReel?.id] || currentReel?.view_count || 0)} />
-        <ConsoleDataRow label="Published" value={timeAgo(currentReel?.created_at)} />
-        {watchedReelIds.includes(currentReel?.id) && <p className={styles.status}>Watched</p>}
         {preferences.showCaptions && currentReel?.caption && (
           <>
             <p className={styles.copy}>{captionExpanded || currentReel.caption.length <= 100 ? currentReel.caption : currentReel.caption.slice(0, 100) + '...'}</p>
@@ -3696,26 +3326,12 @@ export default function ReelsPage({ reelsListing = null }) {
           </>
         )}
         <ReelResponsibleGamingNotice topic={currentReel?.topic} />
-        <VideoLearningLoop
-          compact
-          title="Carry This Reel Into Practice"
-          source={currentSourceName}
-          topic={currentTopicLabel}
-          reason={currentReel?.selection_reason || currentReel?.recommendation_reason}
-          mode={activeFeedMode}
-          saved={savedReels.has(currentReel?.id)}
-          onSave={handleStudySave}
-          chronologicalHref="/hub/reels?mode=latest"
-          fullVideoHref={videoId ? `/hub/video-library?v=${encodeURIComponent(videoId)}` : null}
-          onAskGeeves={() => window.dispatchEvent(new window.CustomEvent('geeves-open'))}
-          quizHref={`/hub/trivia?topic=${encodeURIComponent(currentTopicLabel || 'poker')}`}
-          sandboxHref="/hub/personal-assistant/sandbox"
-        />
-        <div className={styles.actions} aria-label="Reel Actions">
-          <ReelAction aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} aria-pressed={Boolean(liked[currentReel?.id])}
+        </div>
+        <div className={styles.actions} data-reels-actions aria-label="Reel Actions">
+          <ReelAction icon="heart" count={likeCounts[currentReel?.id] ?? currentReel?.like_count ?? 0} aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} aria-pressed={Boolean(liked[currentReel?.id])}
             onClick={() => {
               handleLike();
-              if (!liked[currentReel?.id]) {
+              if (!liked[currentReel?.id] && user?.id) {
                 setShowHeart(true);
                 if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
                 showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800);
@@ -3726,26 +3342,12 @@ export default function ReelsPage({ reelsListing = null }) {
             onPointerLeave={() => clearTimeout(reactionTimerRef.current)}
             onPointerCancel={() => clearTimeout(reactionTimerRef.current)}
           >{liked[currentReel?.id] ? 'Liked' : 'Like'}</ReelAction>
-          <ReelAction onClick={handleComment} aria-label="Comments">Comments</ReelAction>
-          <ReelAction onClick={handleShare} aria-label="Share">Share</ReelAction>
-          <ReelAction onClick={handleSave} aria-label={savedReels.has(currentReel?.id) ? 'Unsave' : 'Save'} aria-pressed={savedReels.has(currentReel?.id)}>{savedReels.has(currentReel?.id) ? 'Saved' : 'Save'}</ReelAction>
-          <ReelAction onClick={() => {
-            const ytVid = getYouTubeVideoId(currentReel?.video_url);
-            const title = (currentReel?.caption || '').slice(0, 80);
-            const ctx = { ref: 'reels', vid: ytVid || currentReel?.id || '', title, source: 'Reels', tags: currentReel?.tags || [] };
-            const gameIds = findBestGames(ctx);
-            const { getGameById: lookupGame } = require('../../src/data/TRAINING_LIBRARY');
-            const games = gameIds.map((id) => lookupGame(id)).filter(Boolean).slice(0, 3);
-            setTtsOverlay({ ctx, games });
-            fetch('/api/training/log-request', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ref: 'reels', vid: ctx.vid, title: ctx.title, source: 'Reels', matchedGameIds: gameIds.slice(0, 3) }),
-            }).catch((error) => console.warn('[Reels] Training Analytics Failed:', error));
-          }} aria-label="Train This Spot">Train This Spot</ReelAction>
-          <ReelAction onClick={() => setShowMoreMenu(true)} aria-label="More options">More</ReelAction>
+          <ReelAction icon="comment" count={commentCounts[currentReel?.id] ?? currentReel?.comment_count ?? 0} onClick={handleComment} aria-label="Comments">Comments</ReelAction>
+          <ReelAction icon="share" count={currentReel?.share_count || 0} onClick={handleShare} aria-label="Share">Share</ReelAction>
+          <ReelAction icon="bookmark" data-reel-action="save" onClick={handleSave} aria-label={savedReels.has(currentReel?.id) ? 'Unsave' : 'Save'} aria-pressed={savedReels.has(currentReel?.id)}>{savedReels.has(currentReel?.id) ? 'Saved' : 'Save'}</ReelAction>
+          <ReelAction icon="more" onClick={() => setShowMoreMenu(true)} aria-label="More options">More</ReelAction>
         </div>
-        <ConsoleDataRow label="Likes" value={Math.floor(likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0))} />
-        <ConsoleDataRow label="Comments" value={Math.floor(commentCounts[currentReel?.id] || comments.length || 0)} />
+        <div data-reels-status>
         {(shareToast || copyToast) && <p role="status" className={styles.status}>Link Copied</p>}
         {errorToast && <p role="alert" className={`${styles.status} ${styles.error}`}>{consoleText(errorToast)}</p>}
         {refreshing && <p role="status" className={styles.status}>Refreshing</p>}
@@ -3763,9 +3365,10 @@ export default function ReelsPage({ reelsListing = null }) {
             </ReelAction>
           </>
         )}
-        {hasMore && !loadingMore && !loadMoreError && <ReelAction onClick={() => void loadMoreReels()}>Continue Finding Reels</ReelAction>}
+        {hasMore && currentIndex >= reels.length - 1 && !loadingMore && !loadMoreError && <ReelAction onClick={() => void loadMoreReels()}>Continue Finding Reels</ReelAction>}
+        </div>
       </div>
-        </VideoLibraryConsole>
+        </section>
       </main>
 
       {showShortcutsOverlay && (
@@ -3776,6 +3379,38 @@ export default function ReelsPage({ reelsListing = null }) {
 
       {(showContextMenu || showMoreMenu) && (
         <ReelsConsoleDialog title="Reel Options" onClose={() => { setShowContextMenu(false); setShowMoreMenu(false); }}>
+        <VideoLearningLoop
+          compact
+          title="Carry This Reel Into Practice"
+          source={currentSourceName}
+          topic={currentTopicLabel}
+          reason={currentReel?.selection_reason || currentReel?.recommendation_reason}
+          mode={activeFeedMode}
+          saved={savedReels.has(currentReel?.id)}
+          onSave={handleStudySave}
+          chronologicalHref="/hub/reels?mode=latest"
+          fullVideoHref={videoId ? `/hub/video-library?v=${encodeURIComponent(videoId)}` : null}
+          onAskGeeves={() => window.dispatchEvent(new window.CustomEvent('geeves-open'))}
+          quizHref={`/hub/trivia?topic=${encodeURIComponent(currentTopicLabel || 'poker')}`}
+          sandboxHref="/hub/personal-assistant/sandbox"
+        />
+          <ReelAction onClick={() => {
+            const ytVid = getYouTubeVideoId(currentReel?.video_url);
+            const title = (currentReel?.caption || '').slice(0, 80);
+            const ctx = { ref: 'reels', vid: ytVid || currentReel?.id || '', title, source: 'Reels', tags: currentReel?.tags || [] };
+            const gameIds = findBestGames(ctx);
+            const { getGameById: lookupGame } = require('../../src/data/TRAINING_LIBRARY');
+            const games = gameIds.map((id) => lookupGame(id)).filter(Boolean).slice(0, 3);
+            setTtsOverlay({ ctx, games });
+            fetch('/api/training/log-request', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ref: 'reels', vid: ctx.vid, title: ctx.title, source: 'Reels', matchedGameIds: gameIds.slice(0, 3) }),
+            }).catch((error) => console.warn('[Reels] Training Analytics Failed:', error));
+          }} aria-label="Train This Spot">Train This Spot</ReelAction>
+
+          <ReelsModeRail activeMode={activeFeedMode} signedIn={Boolean(user?.id)} onChange={(mode) => { const contract = reelsFeedModeContract(mode, { signedIn: true }); void router.push({ pathname: '/hub/reels', query: { mode, category: contract.category } }, undefined, { shallow: true, scroll: false }); }} />
+          <ReelAction onClick={() => setShowShortcutsOverlay(true)}>Keyboard Help</ReelAction>
+          <ReelAction onClick={() => handleCommandMenuOpenChange(true)}>Menu</ReelAction>
           <ReelAction onClick={() => { setShowContextMenu(false); setShowMoreMenu(false); handleSave(); }}>{savedReels.has(currentReel?.id) ? 'Unsave' : 'Save Reel'}</ReelAction>
           <ReelAction onClick={() => { setShowContextMenu(false); setShowMoreMenu(false); handleShare(); }}>Share / Repost</ReelAction>
           <ReelAction onClick={() => { muted ? handleUnmute() : handleMute(); setShowMoreMenu(false); }}>{muted ? 'Unmute' : 'Mute'}</ReelAction>

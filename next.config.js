@@ -819,7 +819,7 @@ const nextConfig = {
       // wildcard: measured live, /commander/login reported 13 violations per
       // load. The exact host, not https://*.smarter.poker, because a wildcard
       // in script-src would authorise execution from every subdomain we own.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://commander.smarter.poker",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://commander.smarter.poker https://www.youtube.com",
       // Styles: self + inline + Google Fonts
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://commander.smarter.poker",
       // Fonts: Google Fonts CDN

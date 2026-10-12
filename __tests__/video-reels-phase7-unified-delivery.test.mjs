@@ -73,10 +73,14 @@ test('delivery metrics are aggregate-only and service-role protected', () => {
   assert.match(METRICS_API, /SUPABASE_SERVICE_ROLE_KEY/);
 });
 
-test('the mobile category rail and shared text-first card are wired into public delivery', () => {
+test('the mobile category rail and media-first Reel preview remain wired into public delivery', () => {
   assert.match(PAGE, /<ReelsModeRail/);
   assert.match(SOCIAL, /import ReelCard from '..\/reels\/ReelCard'/);
-  assert.match(SOCIAL, /<ReelCard[\s\S]*?key=\{reel\.id\}[\s\S]*?textFirst/);
+  assert.match(SOCIAL, /<ReelCard[\s\S]*?key=\{reel\.id\}/);
+  assert.doesNotMatch(SOCIAL, /<ReelCard[\s\S]{0,150}textFirst/);
+  assert.match(SOCIAL, /\.vlc-reel-card \.vlc-reel-card__author \{[^}]*position: absolute/);
+  assert.match(SOCIAL, /height: 292px/);
+  assert.match(SOCIAL, /flex: 0 0 164px/);
   assert.match(PAGE, /recordReelsDeliveryMetric/);
   assert.match(LIBRARY, /recordReelsDeliveryMetric/);
   assert.match(SOCIAL, /recordReelsDeliveryMetric/);

@@ -201,7 +201,10 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   assert.match(friendsSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
   assert.match(messengerSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
   assert.match(reelsSource, /const reelsNavigationHeader = \([\s\S]*?<UniversalHeader/);
-  assert.match(reelsSource, /\{showOverlay && reelsNavigationHeader\}/);
+  assert.match(reelsSource, /\{menuOpen && reelsNavigationHeader\}/);
+  assert.match(reelsSource, /<ReelAction onClick=\{\(\) => handleCommandMenuOpenChange\(true\)\}>Menu<\/ReelAction>/);
+  assert.match(reelsSource, /zIndex: menuOpen \? 10100 : 10001/);
+  assert.match(reelsSource, /commandMenuOpen=\{menuOpen\}/);
   assert.equal(
     (reelsSource.match(/<UniversalHeader\b/g) || []).length,
     1,

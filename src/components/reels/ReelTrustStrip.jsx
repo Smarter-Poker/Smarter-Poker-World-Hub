@@ -8,25 +8,26 @@ const DISCLOSURES = Object.freeze({
   organic: null,
 });
 
-export default function ReelTrustStrip({ reel, compact = false }) {
+export default function ReelTrustStrip({ reel, compact = false, immersive = false }) {
   if (!reel) return null;
   const disclosure = DISCLOSURES[reel.disclosure_kind] || null;
   const casino = ['slots', 'casino'].includes(String(reel.topic || '').toLowerCase());
   const labels = [
     disclosure,
     reel.made_for_kids === true ? 'Made For Kids' : null,
-    reel.rights_status === 'owned' || reel.rights_status === 'licensed' ? 'Rights Cleared' : null,
+    !immersive && (reel.rights_status === 'owned' || reel.rights_status === 'licensed') ? 'Rights Cleared' : null,
     casino ? 'Responsible Play' : null,
   ].filter(Boolean);
   const attribution = reel.channel_name || reel.source_name || reel.attribution_name || 'Creator Unavailable';
   const sourceUrl = reel.source_attribution_url || reel.attribution_url || reel.source_url || null;
 
+  if (immersive && labels.length === 0 && !reel.sponsor_name && !casino) return null;
   return (
-    <aside className={`${styles.strip}${compact ? ` ${styles.compact}` : ''}`} aria-label="Source and media disclosures" data-reel-trust-strip>
-      <div className={styles.source}>
+    <aside className={`${styles.strip}${compact ? ` ${styles.compact}` : ''}${immersive ? ` ${styles.immersive}` : ''}`} aria-label="Source and media disclosures" data-reel-trust-strip>
+      {!immersive && <div className={styles.source}>
         <span>Verified Source</span>
         {sourceUrl ? <a href={sourceUrl} target="_blank" rel="noopener noreferrer">{attribution}</a> : <strong>{attribution}</strong>}
-      </div>
+      </div>}
       {labels.length ? <div className={styles.labels}>{labels.map((label) => <span key={label}>{label}</span>)}</div> : null}
       {reel.sponsor_name && ['sponsored', 'promotional'].includes(reel.disclosure_kind) ? <p>Presented By {reel.sponsor_name}</p> : null}
       {casino ? <p>Entertainment Only. Set Limits And Play Responsibly.</p> : null}

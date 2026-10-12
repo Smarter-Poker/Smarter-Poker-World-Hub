@@ -11,42 +11,21 @@ const viewer = source.slice(
   source.indexOf('// Main Reels Feed Carousel component')
 );
 
-test('social carousel and every viewer state avoid decorative console chrome', () => {
-  assert.doesNotMatch(
-    source,
-    /<svg\b|(?:linear|radial|conic)-gradient|:hover\b|onMouseEnter|onMouseLeave/
-  );
-  assert.doesNotMatch(
-    source,
-    /borderRadius\s*:|(?:default-avatar|placeholder\.(?:png|jpg|svg))|\\u\{1F/
-  );
-  assert.doesNotMatch(source, /[\u{1F300}-\u{1FAFF}]/u);
-  for (const match of source.matchAll(/border-radius:\s*([^;]+)/g)) {
-    assert.equal(match[1].replace(/!important/g, '').trim(), '0');
-  }
-  assert.doesNotMatch(
-    source,
-    /VideoLibraryConsole|ConsoleCopy|ConsoleDataRow|eyebrow=|pillInk=|foot="plates"/
-  );
-  assert.match(viewer, /<section className="vlc-carousel-viewer-console">/);
-  assert.match(viewer, /hidden=\{Boolean\(panelTitle\)\}/);
-  for (const label of [
-    'Report This Reel',
-    'Share This Reel',
-    'Reel Actions',
-    'Keyboard Shortcuts',
-    'Choose A Reaction',
-    'Playback Options',
-    'Reel Comments',
-  ]) {
-    assert.ok(viewer.includes(label), `Missing console state: ${label}`);
-  }
-  assert.match(source, /aria-label=\{`\$\{categoryDefinition\.title\} Loading`\}/);
-  assert.match(source, /aria-label=\{`\$\{categoryDefinition\.title\} Connection Recovery`\}/);
-  assert.match(source, /\.vlc-feed-console-shell \{[\s\S]*?background: #fff;/);
-  assert.match(source, /font-family: Arial, Helvetica, sans-serif/);
-  assert.match(source, /@media \(min-width: 900px\)/);
-  assert.match(source, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/);
+test('social previews and viewer use the owner-requested immersive short-video contract', () => {
+  assert.match(source, /ImmersiveReels\.module\.css/);
+  assert.match(viewer, /data-reels-experience="immersive"/);
+  assert.match(viewer, /data-reels-stage/);
+  assert.match(viewer, /data-reels-copy/);
+  assert.match(viewer, /data-reels-actions/);
+  assert.match(viewer, /ReelIcon/);
+  assert.match(viewer, /verticalReelSwipe/);
+  assert.match(viewer, /createReelWheelGesture/);
+  assert.match(viewer, /if \(!liked\[currentReel.id\]\) handleLike/);
+  assert.doesNotMatch(viewer, /<VideoLibraryConsole/);
+  for (const label of ['Report This Reel', 'Share This Reel', 'Reel Actions', 'Keyboard Shortcuts', 'Choose A Reaction', 'Playback Options', 'Reel Comments']) assert.ok(viewer.includes(label), label);
+  assert.match(source, /aria-label=\{`\$\{categoryDefinition.title\} Loading`\}/);
+  assert.match(source, /aria-label=\{`\$\{categoryDefinition.title\} Connection Recovery`\}/);
+  assert.match(source, /border-radius: 12px !important/);
 });
 
 test('master controls retain real actions, accessible focus and persistent playback', () => {
@@ -76,7 +55,7 @@ test('master controls retain real actions, accessible focus and persistent playb
   assert.match(viewer, /role="dialog"\s+aria-modal="true"\s+aria-labelledby="carousel-viewer-title"/);
   assert.match(viewer, /returnFocus\?\.isConnected/);
   assert.match(viewer, /element\.getClientRects\(\)\.length > 0/);
-  assert.match(viewer, /ref=\{ytIframeRef\}/);
+  assert.match(viewer, /iframeRef=\{ytIframeRef\}/);
   assert.match(viewer, /ref=\{videoRef\}/);
   assert.match(viewer, /<YouTubeErrorOverlay/);
   assert.match(viewer, /<GiphyPicker/);
