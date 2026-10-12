@@ -1,7 +1,13 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { isVideoLibraryVideoAllowed } from '../../../src/lib/videoLibraryAvailability';
+import { VIDEO_LIBRARY_ALLOWED_TYPES, isVideoLibraryVideoAllowed } from '../../../src/lib/videoLibraryAvailability';
+import {
+  VIDEO_LIBRARY_POKER_TYPES,
+  cleanVideoTitle,
+  dedupeVideos,
+  isCuratedFeedVideo,
+} from '../../../src/lib/videoLibraryCuration.mjs';
 import {
   chronologicalVideos,
   learningActions,
@@ -25,7 +31,7 @@ function video(row) {
     attributionName: row.attribution_name || row.source_name || row.source_id,
     attributionUrl: row.attribution_url || null,
     disclosureKind: row.disclosure_kind || 'organic', sponsorName: row.sponsor_name || null,
-    madeForKids: row.made_for_kids ?? null, type: row.type || 'cash', title: row.title,
+    madeForKids: row.made_for_kids ?? null, type: row.type || 'cash', title: cleanVideoTitle(row.title), rawTitle: row.title,
     thumbnail: row.thumbnail_url, views: row.views_text, viewsCount: Number(row.views_count || 0),
     duration: row.duration || '', publishedAt: row.published_at, scrapedAt: row.scraped_at,
     tags: Array.isArray(row.tags) ? row.tags : [], availabilityStatus: row.availability_status,
@@ -110,8 +116,13 @@ export default async function handler(req, res) {
     }
     const source = String(one(req.query.source) || '').trim().toUpperCase().slice(0, 48);
     const type = String(one(req.query.type) || '').trim().toLowerCase().slice(0, 32);
-    videos = videos.filter((item) => (source && source !== 'ALL' ? item.source === source : true)
-      && (type && type !== 'all' ? item.type === type : true));
+    // Poker first (owner update 2026-10-12): a search with no type chosen
+    // returns cash games and tournaments; the Sports and Slots chips search
+    // their own types.
+    const typeFilter = VIDEO_LIBRARY_ALLOWED_TYPES.includes(type) ? [type] : VIDEO_LIBRARY_POKER_TYPES;
+    videos = dedupeVideos(videos.filter((item) => (source && source !== 'ALL' ? item.source === source : true)
+      && typeFilter.includes(item.type)
+      && isCuratedFeedVideo(item)));
     const publicProgress = Object.fromEntries(videos.map((item) => [item.id, progressById[item.internalVideoId]]).filter(([, value]) => value));
     const publicSaved = new Set(videos.filter((item) => savedIds.has(item.internalVideoId)).map((item) => item.id));
     const context = { query: queryText, seenIds, savedIds: publicSaved, progressById: publicProgress, learningGoals: searchTerms(one(req.query.goals)) };

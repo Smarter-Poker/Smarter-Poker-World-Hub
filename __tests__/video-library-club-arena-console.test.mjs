@@ -39,7 +39,7 @@ test('the browse page is search, one chip row, round channels, then the feed', (
 });
 
 test('feed cards are YouTube cards: full-width 16:9 media, avatar, title, one meta line, menu', () => {
-  assert.match(PAGE, /src=\{getThumbnail\(video\.videoId\)\}/);
+  assert.match(PAGE, /<VideoThumbnail video=\{video\} priority=\{index === 0\} \/>/);
   assert.match(PAGE, /className={`vl-video-card/);
   assert.match(PAGE, /<ChannelAvatar video=\{video\} channel=\{channel\} \/>/);
   assert.match(PAGE, /className="vl-card-meta">\{getVideoMetaLine\(video\)\}/);

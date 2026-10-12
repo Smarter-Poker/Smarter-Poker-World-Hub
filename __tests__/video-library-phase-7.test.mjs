@@ -76,7 +76,10 @@ test('mobile cards and supporting sheets keep 16:9 media and touch-safe geometry
 });
 
 test('runtime warnings and failed training analytics writes remain observable', () => {
-  assert.match(PAGE, /fetchpriority=\{index === 0 \? 'high' : 'auto'\}/);
+  // Phase 1 (2026-10-12): the first card's image keeps its high fetch
+  // priority through the shared VideoThumbnail element.
+  assert.match(PAGE, /fetchpriority=\{priority \? 'high' : 'auto'\}/);
+  assert.match(PAGE, /<VideoThumbnail video=\{video\} priority=\{index === 0\} \/>/);
   assert.doesNotMatch(PAGE, /fetchPriority=/);
   assert.match(TRAINING_LOG, /status\(503\)\.json\(\{ ok: false/);
   assert.doesNotMatch(TRAINING_LOG, /status\(200\)\.json\(\{ ok: true, warn:/);
