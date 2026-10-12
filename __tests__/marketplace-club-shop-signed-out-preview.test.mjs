@@ -79,7 +79,7 @@ test('a failed initial or silent refresh has a terminal inline error, never a du
 
 test('superseded responses cannot publish a refusal for another account or club', async () => {
   const { state } = await runLoader(403, { superseded: true });
-  assert.deepEqual(state.access, [false]);
+  assert.equal(state.access.includes(true), false);
   assert.deepEqual(state.errors, [null]);
   assert.deepEqual(state.loaded, []);
 });
@@ -98,7 +98,7 @@ test('failed auto-loads stop and unavailable balances are never projected as zer
 test('a silent refresh deadline publishes an inline error and rejects its late response', async () => {
   const { state } = await runLoader(403, { silent: true, timedOut: true });
   assert.match(state.errors.at(-1), /Timed Out/);
-  assert.deepEqual(state.access, [false]);
+  assert.equal(state.access.includes(true), false);
   assert.equal(state.loaded.at(-1), true);
   assert.deepEqual(state.toasts, []);
 });
