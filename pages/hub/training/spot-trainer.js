@@ -103,6 +103,10 @@ export default function SpotTrainerPage() {
       if (position) params.set('position', position);
 
       for (let attempt = 0; attempt <= MAX_SPOT_RETRIES; attempt += 1) {
+        // Spot Study is open to everyone (Dan, 2026-10-12). authedFetch adds
+        // the Authorization header only when a session token exists, so a
+        // signed-out visitor sends an anonymous request and gets the same
+        // answer-revealed study spot; no sign-in screen is shown.
         const response = await authedFetch(
           `/api/training/spot-drill?${params.toString()}`,
           { signal: controller.signal },

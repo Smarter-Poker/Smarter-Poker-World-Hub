@@ -8293,9 +8293,7 @@
             "src/hooks/useCurrentUser.js",
             "src/lib/authUtils.js"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         },
         "empty": {
           "status": "implemented-or-detected",
@@ -8315,9 +8313,7 @@
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         },
         "error": {
           "status": "implemented-or-detected",
@@ -8344,9 +8340,7 @@
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         },
         "retry": {
           "status": "implemented-or-detected",
@@ -8362,9 +8356,7 @@
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         },
         "success": {
           "status": "implemented-or-detected",
@@ -8385,9 +8377,7 @@
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         },
         "stale": {
           "status": "implemented-or-detected",
@@ -8412,9 +8402,7 @@
             "src/tutorials/index.js",
             "src/tutorials/personal-assistant.js"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -8423,9 +8411,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/contexts/AvatarContext.jsx"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -8437,14 +8423,10 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         }
       },
-      "existingTests": [
-        "__tests__/training-reference-is-public-a.test.mjs"
-      ],
+      "existingTests": [],
       "uncoveredStates": []
     },
     {
@@ -12605,7 +12587,6 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
-            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12621,7 +12602,6 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
-            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12640,7 +12620,6 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
-            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12654,7 +12633,6 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
-            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12670,7 +12648,6 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
-            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12687,7 +12664,6 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
-            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12700,7 +12676,6 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
-            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12714,7 +12689,6 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
-            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         }
@@ -12722,7 +12696,6 @@
       "existingTests": [
         "__tests__/page-tutorials.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs",
-        "__tests__/training-reference-is-public-a.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ],
       "uncoveredStates": []
@@ -14221,33 +14194,25 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ],
+          "tests": [],
           "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ],
+          "tests": [],
           "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ],
+          "tests": [],
           "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ],
+          "tests": [],
           "followUpPhase": 15
         },
         "success": {
@@ -14255,38 +14220,28 @@
           "evidence": [
             "pages/hub/training/range-explorer.js"
           ],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ]
+          "tests": []
         },
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ],
+          "tests": [],
           "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ],
+          "tests": [],
           "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [
-            "__tests__/training-reference-is-public-a.test.mjs"
-          ],
+          "tests": [],
           "followUpPhase": 8
         }
       },
-      "existingTests": [
-        "__tests__/training-reference-is-public-a.test.mjs"
-      ],
+      "existingTests": [],
       "uncoveredStates": [
         "loading",
         "empty",
@@ -15381,6 +15336,7 @@
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
             "__tests__/training-solver-contract.test.mjs"
@@ -15401,6 +15357,7 @@
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
             "__tests__/training-solver-contract.test.mjs"
@@ -15424,6 +15381,7 @@
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
             "__tests__/training-solver-contract.test.mjs"
@@ -15443,6 +15401,7 @@
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
             "__tests__/training-solver-contract.test.mjs"
@@ -15460,6 +15419,7 @@
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
             "__tests__/training-solver-contract.test.mjs"
@@ -15478,6 +15438,7 @@
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
             "__tests__/training-solver-contract.test.mjs"
@@ -15494,6 +15455,7 @@
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
             "__tests__/training-solver-contract.test.mjs"
@@ -15513,6 +15475,7 @@
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
             "__tests__/training-solver-contract.test.mjs"
@@ -15525,6 +15488,7 @@
         "__tests__/training-authored-model-honesty.test.mjs",
         "__tests__/training-bookmark-authority.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
+        "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-solutions-v2-authority.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
@@ -15560,6 +15524,7 @@
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs"
           ]
@@ -15573,6 +15538,7 @@
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs"
           ]
@@ -15589,6 +15555,7 @@
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs"
           ]
@@ -15603,6 +15570,7 @@
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs"
           ]
@@ -15616,6 +15584,7 @@
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs"
           ]
@@ -15630,6 +15599,7 @@
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs"
           ]
@@ -15640,6 +15610,7 @@
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs"
           ],
@@ -15654,6 +15625,7 @@
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
+            "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs"
           ]
@@ -15662,6 +15634,7 @@
       "existingTests": [
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
         "__tests__/training-question-integrity.test.mjs",
+        "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-spot-study-authority.test.mjs"
       ],
@@ -19016,7 +18989,6 @@
       "imports": [
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/utils/trainingApiUtils.js",
@@ -19037,9 +19009,9 @@
         "error": true,
         "retry": true,
         "offline": false,
-        "stale": false,
+        "stale": true,
         "success": true,
-        "authExpiry": true
+        "authExpiry": false
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -19058,15 +19030,15 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 44,
-          "references": 3,
+          "line": 46,
+          "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "verifiedIdentity",
-          "line": 57,
+          "line": 59,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -19074,7 +19046,7 @@
         },
         {
           "name": "listSpot",
-          "line": 62,
+          "line": 64,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -19082,7 +19054,7 @@
         },
         {
           "name": "buildGridData",
-          "line": 81,
+          "line": 83,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -19090,7 +19062,7 @@
         },
         {
           "name": "fullSpot",
-          "line": 106,
+          "line": 108,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -19098,23 +19070,15 @@
         },
         {
           "name": "catalogCandidates",
-          "line": 145,
+          "line": 147,
           "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "requireUser",
-          "line": 159,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "handler",
-          "line": 166,
+          "line": 161,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -20742,6 +20706,8 @@
       "imports": [
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/serverAuth.js",
+        "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -20761,7 +20727,7 @@
         "offline": false,
         "stale": false,
         "success": true,
-        "authExpiry": false
+        "authExpiry": true
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -20779,8 +20745,16 @@
       },
       "functions": [
         {
+          "name": "getSupabase",
+          "line": 24,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "computeICM",
-          "line": 35,
+          "line": 44,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20788,7 +20762,7 @@
         },
         {
           "name": "recurse",
-          "line": 47,
+          "line": 56,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20796,7 +20770,7 @@
         },
         {
           "name": "computeBubbleFactor",
-          "line": 86,
+          "line": 95,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20804,7 +20778,7 @@
         },
         {
           "name": "handler",
-          "line": 113,
+          "line": 122,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -21040,6 +21014,8 @@
         "src/config/solverRanges.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/serverAuth.js",
+        "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -21057,9 +21033,9 @@
         "error": true,
         "retry": false,
         "offline": false,
-        "stale": true,
+        "stale": false,
         "success": true,
-        "authExpiry": false
+        "authExpiry": true
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -21077,8 +21053,16 @@
       },
       "functions": [
         {
+          "name": "getSupabase",
+          "line": 36,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "singleQueryValue",
-          "line": 38,
+          "line": 46,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -21086,7 +21070,7 @@
         },
         {
           "name": "computeRangeStats",
-          "line": 43,
+          "line": 51,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21094,7 +21078,7 @@
         },
         {
           "name": "resolveExactSpot",
-          "line": 80,
+          "line": 88,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21102,7 +21086,7 @@
         },
         {
           "name": "buildGrid",
-          "line": 118,
+          "line": 126,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21110,7 +21094,7 @@
         },
         {
           "name": "handler",
-          "line": 143,
+          "line": 151,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -21123,7 +21107,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 38,
+          "line": 46,
           "excerpt": "function singleQueryValue(value, fallback = '') {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -21131,7 +21115,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 40,
+          "line": 48,
           "excerpt": "return value == null || value === '' ? fallback : String(value);",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -22457,7 +22441,7 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 73,
+          "line": 77,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -22465,7 +22449,7 @@
         },
         {
           "name": "durableRequestFingerprint",
-          "line": 86,
+          "line": 90,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22473,7 +22457,7 @@
         },
         {
           "name": "familySetForFormat",
-          "line": 99,
+          "line": 103,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22481,7 +22465,7 @@
         },
         {
           "name": "isContractStack",
-          "line": 105,
+          "line": 109,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22489,7 +22473,7 @@
         },
         {
           "name": "rowMatchesTrainingSolverContract",
-          "line": 109,
+          "line": 113,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -22497,7 +22481,7 @@
         },
         {
           "name": "exactContractPairs",
-          "line": 116,
+          "line": 120,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22505,7 +22489,7 @@
         },
         {
           "name": "solverDecisionNodeIsLegal",
-          "line": 122,
+          "line": 126,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22513,7 +22497,7 @@
         },
         {
           "name": "formatBbTarget",
-          "line": 271,
+          "line": 275,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -22521,7 +22505,7 @@
         },
         {
           "name": "actionLabel",
-          "line": 276,
+          "line": 280,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22529,7 +22513,7 @@
         },
         {
           "name": "hasCompleteSealedIcmInputs",
-          "line": 297,
+          "line": 301,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22537,7 +22521,7 @@
         },
         {
           "name": "cardFromIndex",
-          "line": 310,
+          "line": 314,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -22545,7 +22529,7 @@
         },
         {
           "name": "cardsToHoldingClass",
-          "line": 316,
+          "line": 320,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22553,7 +22537,7 @@
         },
         {
           "name": "selectExactHolding",
-          "line": 336,
+          "line": 340,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22561,7 +22545,7 @@
         },
         {
           "name": "buildStudySpot",
-          "line": 382,
+          "line": 386,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22569,7 +22553,7 @@
         },
         {
           "name": "studyGameType",
-          "line": 484,
+          "line": 488,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -22577,7 +22561,7 @@
         },
         {
           "name": "buildReferenceActions",
-          "line": 491,
+          "line": 495,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22585,7 +22569,7 @@
         },
         {
           "name": "referenceStudyQuestionIsValid",
-          "line": 514,
+          "line": 518,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22593,7 +22577,7 @@
         },
         {
           "name": "buildCanonicalStudyQuestion",
-          "line": 547,
+          "line": 551,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22601,7 +22585,7 @@
         },
         {
           "name": "buildCatalogQuery",
-          "line": 635,
+          "line": 639,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22609,7 +22593,7 @@
         },
         {
           "name": "pageCursorIsStrict",
-          "line": 653,
+          "line": 657,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22617,7 +22601,7 @@
         },
         {
           "name": "executeBoundedQuery",
-          "line": 672,
+          "line": 676,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22625,7 +22609,7 @@
         },
         {
           "name": "findCanonicalStudyCandidate",
-          "line": 688,
+          "line": 692,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22633,7 +22617,7 @@
         },
         {
           "name": "handler",
-          "line": 798,
+          "line": 802,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -22649,7 +22633,7 @@
         },
         {
           "name": "headerValue",
-          "line": 87,
+          "line": 91,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -32523,8 +32507,8 @@
       "ctas": [
         {
           "element": "button",
-          "name": "isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'",
-          "line": 135,
+          "name": "!canBookmark\n          ? 'Sign in to bookmark this spot'\n          : isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'",
+          "line": 140,
           "handler": "(e) => {\n          e.stopPropagation();\n          onToggleBookmark && onToggleBookmark(spot);\n        }",
           "destination": null,
           "type": null,
@@ -32534,7 +32518,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 486,
+          "line": 496,
           "handler": "() => setRenderError(null)",
           "destination": null,
           "type": null,
@@ -32544,7 +32528,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 853,
+          "line": 881,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -32554,7 +32538,7 @@
         {
           "element": "button",
           "name": "`Filter by ${gt.label}`",
-          "line": 900,
+          "line": 928,
           "handler": "() => setGameType(gt.value)",
           "destination": null,
           "type": null,
@@ -32564,7 +32548,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 948,
+          "line": 976,
           "handler": "() => {\n                    setStackDepth(sd);\n                    setPage(1);\n                  }",
           "destination": null,
           "type": null,
@@ -32574,7 +32558,7 @@
         {
           "element": "button",
           "name": "Filter by All positions",
-          "line": 987,
+          "line": 1015,
           "handler": "() => {\n                  setPosition('');\n                  setPage(1);\n                }",
           "destination": null,
           "type": null,
@@ -32584,7 +32568,7 @@
         {
           "element": "button",
           "name": "`Filter by position ${p}`",
-          "line": 1008,
+          "line": 1036,
           "handler": "() => {\n                    setPosition(p);\n                    setPage(1);\n                  }",
           "destination": null,
           "type": null,
@@ -32594,7 +32578,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1038,
+          "line": 1066,
           "handler": "() => {\n                    setFilter('rxTexture', tex);\n                    setPage(1);\n                  }",
           "destination": null,
           "type": null,
@@ -32604,7 +32588,7 @@
         {
           "element": "button",
           "name": "Show all spots",
-          "line": 1126,
+          "line": 1154,
           "handler": "() => setShowBookmarksOnly(false)",
           "destination": null,
           "type": null,
@@ -32614,8 +32598,8 @@
         {
           "element": "button",
           "name": "Show bookmarked spots only",
-          "line": 1148,
-          "handler": "() => setShowBookmarksOnly(true)",
+          "line": 1176,
+          "handler": "() => {\n                      if (!viewerSignedIn) {\n                        router.push(BOOKMARK_SIGN_IN_ROUTE);\n                        return;\n                      }\n                      setShowBookmarksOnly(true);\n                    }",
           "destination": null,
           "type": null,
           "disabled": null,
@@ -32624,7 +32608,7 @@
         {
           "element": "button",
           "name": "← Prev",
-          "line": 1202,
+          "line": 1238,
           "handler": "() => setPage((p) => Math.max(1, p - 1))",
           "destination": null,
           "type": null,
@@ -32634,7 +32618,7 @@
         {
           "element": "button",
           "name": "Next →",
-          "line": 1228,
+          "line": 1264,
           "handler": "() => setPage((currentPage) => currentPage + 1)",
           "destination": null,
           "type": null,
@@ -32644,7 +32628,7 @@
         {
           "element": "button",
           "name": "Retry Audited Lookup",
-          "line": 1272,
+          "line": 1308,
           "handler": "() => loadSpotDetail(selectedSpot)",
           "destination": null,
           "type": null,
@@ -32654,7 +32638,7 @@
         {
           "element": "button",
           "name": "`View ${tab.label}`",
-          "line": 1434,
+          "line": 1470,
           "handler": "() => setActiveTab(tab.key)",
           "destination": null,
           "type": null,
@@ -32664,7 +32648,7 @@
         {
           "element": "button",
           "name": "`Color by ${mode.label}`",
-          "line": 1475,
+          "line": 1511,
           "handler": "() => setColorMode(mode.key)",
           "destination": null,
           "type": null,
@@ -32704,7 +32688,7 @@
       "functions": [
         {
           "name": "SpotCard",
-          "line": 93,
+          "line": 98,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32712,7 +32696,7 @@
         },
         {
           "name": "ClassificationSidebar",
-          "line": 162,
+          "line": 172,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32720,7 +32704,7 @@
         },
         {
           "name": "isPlainRecord",
-          "line": 271,
+          "line": 281,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -32728,7 +32712,7 @@
         },
         {
           "name": "isAuditedListResponse",
-          "line": 275,
+          "line": 285,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32736,7 +32720,7 @@
         },
         {
           "name": "isAuditedSpot",
-          "line": 300,
+          "line": 310,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32744,7 +32728,7 @@
         },
         {
           "name": "formatAuditedAt",
-          "line": 344,
+          "line": 354,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32752,7 +32736,7 @@
         },
         {
           "name": "AuditedProvenanceSeal",
-          "line": 349,
+          "line": 359,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -32760,7 +32744,7 @@
         },
         {
           "name": "AuditedStrategyReport",
-          "line": 390,
+          "line": 400,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32768,7 +32752,7 @@
         },
         {
           "name": "SolutionsBrowser",
-          "line": 476,
+          "line": 486,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -32776,7 +32760,7 @@
         },
         {
           "name": "SolutionsBrowserInner",
-          "line": 498,
+          "line": 508,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32784,7 +32768,7 @@
         },
         {
           "name": "classifyBoardTexture",
-          "line": 598,
+          "line": 611,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32792,7 +32776,7 @@
         },
         {
           "name": "loadBookmarks",
-          "line": 646,
+          "line": 659,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -32800,7 +32784,7 @@
         },
         {
           "name": "setGameType",
-          "line": 525,
+          "line": 535,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32808,7 +32792,7 @@
         },
         {
           "name": "setStackDepth",
-          "line": 526,
+          "line": 536,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32816,7 +32800,7 @@
         },
         {
           "name": "setPosition",
-          "line": 527,
+          "line": 537,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -32824,7 +32808,7 @@
         },
         {
           "name": "setColorMode",
-          "line": 528,
+          "line": 538,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32835,7 +32819,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 622,
+          "line": 635,
           "excerpt": "console.warn('[Solutions] Board classification engine unavailable; using local fallback:', message);",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -32843,7 +32827,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 625,
+          "line": 638,
           "excerpt": "// Inline fallback",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -32852,7 +32836,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 730,
+          "line": 766,
           "excerpt": "// Do not crash the app, just fallback to empty classification",
           "disposition": "visible-ui-resilience",
           "review": "documented-follow-up",
@@ -32861,7 +32845,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 774,
+          "line": 806,
           "excerpt": "setFetchError('Audited PioSOLVER Artifacts Are Temporarily Unavailable. No Unverified Fallback Will Be Shown.');",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -32887,7 +32871,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 165,
+          "line": 169,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32897,7 +32881,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 232,
+          "line": 236,
           "handler": "() => setFormat(option.value)",
           "destination": null,
           "type": "button",
@@ -32907,7 +32891,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 244,
+          "line": 248,
           "handler": "() => setPosition(option.value)",
           "destination": null,
           "type": "button",
@@ -32917,7 +32901,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 271,
+          "line": 275,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -32927,7 +32911,7 @@
         {
           "element": "button",
           "name": "Load Another",
-          "line": 313,
+          "line": 317,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -32937,7 +32921,7 @@
         {
           "element": "button",
           "name": "Load Another Audited Spot",
-          "line": 439,
+          "line": 443,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -58822,10 +58806,6 @@
     },
     {
       "from": "pages/api/training/browse-solutions.js",
-      "to": "src/lib/serverAuth.js"
-    },
-    {
-      "from": "pages/api/training/browse-solutions.js",
       "to": "src/lib/supabaseServerClient.js"
     },
     {
@@ -59250,6 +59230,14 @@
     },
     {
       "from": "pages/api/training/icm-calc.js",
+      "to": "src/lib/serverAuth.js"
+    },
+    {
+      "from": "pages/api/training/icm-calc.js",
+      "to": "src/lib/supabaseServerClient.js"
+    },
+    {
+      "from": "pages/api/training/icm-calc.js",
       "to": "src/utils/trainingApiUtils.js"
     },
     {
@@ -59351,6 +59339,14 @@
     {
       "from": "pages/api/training/preflop-ranges.js",
       "to": "src/lib/apiRateLimit.js"
+    },
+    {
+      "from": "pages/api/training/preflop-ranges.js",
+      "to": "src/lib/serverAuth.js"
+    },
+    {
+      "from": "pages/api/training/preflop-ranges.js",
+      "to": "src/lib/supabaseServerClient.js"
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
@@ -62748,7 +62744,7 @@
     "__tests__/training-question-order-contract.test.mjs",
     "__tests__/training-question-selection-contract.test.mjs",
     "__tests__/training-range-builder-authored-reference.test.mjs",
-    "__tests__/training-reference-is-public-a.test.mjs",
+    "__tests__/training-reference-is-public-b.test.mjs",
     "__tests__/training-reissue-authority.test.mjs",
     "__tests__/training-request-deadline.test.mjs",
     "__tests__/training-retired-achievement-challenge-authority.test.mjs",
@@ -65712,11 +65708,11 @@
       "effectRef": "pages/hub/training/skill-tree.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:135:1",
+      "id": "pages/hub/training/solutions.js:140:1",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
-      "name": "isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'",
-      "line": 135,
+      "name": "!canBookmark\n          ? 'Sign in to bookmark this spot'\n          : isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'",
+      "line": 140,
       "handler": "(e) => {\n          e.stopPropagation();\n          onToggleBookmark && onToggleBookmark(spot);\n        }",
       "destination": null,
       "type": null,
@@ -65725,11 +65721,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:486:2",
+      "id": "pages/hub/training/solutions.js:496:2",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Retry",
-      "line": 486,
+      "line": 496,
       "handler": "() => setRenderError(null)",
       "destination": null,
       "type": null,
@@ -65738,11 +65734,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:853:3",
+      "id": "pages/hub/training/solutions.js:881:3",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "← Training",
-      "line": 853,
+      "line": 881,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -65751,11 +65747,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:900:4",
+      "id": "pages/hub/training/solutions.js:928:4",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`Filter by ${gt.label}`",
-      "line": 900,
+      "line": 928,
       "handler": "() => setGameType(gt.value)",
       "destination": null,
       "type": null,
@@ -65764,11 +65760,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:948:5",
+      "id": "pages/hub/training/solutions.js:976:5",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "BB",
-      "line": 948,
+      "line": 976,
       "handler": "() => {\n                    setStackDepth(sd);\n                    setPage(1);\n                  }",
       "destination": null,
       "type": null,
@@ -65777,11 +65773,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:987:6",
+      "id": "pages/hub/training/solutions.js:1015:6",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Filter by All positions",
-      "line": 987,
+      "line": 1015,
       "handler": "() => {\n                  setPosition('');\n                  setPage(1);\n                }",
       "destination": null,
       "type": null,
@@ -65790,11 +65786,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1008:7",
+      "id": "pages/hub/training/solutions.js:1036:7",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`Filter by position ${p}`",
-      "line": 1008,
+      "line": 1036,
       "handler": "() => {\n                    setPosition(p);\n                    setPage(1);\n                  }",
       "destination": null,
       "type": null,
@@ -65803,11 +65799,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1038:8",
+      "id": "pages/hub/training/solutions.js:1066:8",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1038,
+      "line": 1066,
       "handler": "() => {\n                    setFilter('rxTexture', tex);\n                    setPage(1);\n                  }",
       "destination": null,
       "type": null,
@@ -65816,11 +65812,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1126:9",
+      "id": "pages/hub/training/solutions.js:1154:9",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Show all spots",
-      "line": 1126,
+      "line": 1154,
       "handler": "() => setShowBookmarksOnly(false)",
       "destination": null,
       "type": null,
@@ -65829,12 +65825,12 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1148:10",
+      "id": "pages/hub/training/solutions.js:1176:10",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Show bookmarked spots only",
-      "line": 1148,
-      "handler": "() => setShowBookmarksOnly(true)",
+      "line": 1176,
+      "handler": "() => {\n                      if (!viewerSignedIn) {\n                        router.push(BOOKMARK_SIGN_IN_ROUTE);\n                        return;\n                      }\n                      setShowBookmarksOnly(true);\n                    }",
       "destination": null,
       "type": null,
       "disabled": null,
@@ -65842,11 +65838,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1202:11",
+      "id": "pages/hub/training/solutions.js:1238:11",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "← Prev",
-      "line": 1202,
+      "line": 1238,
       "handler": "() => setPage((p) => Math.max(1, p - 1))",
       "destination": null,
       "type": null,
@@ -65855,11 +65851,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1228:12",
+      "id": "pages/hub/training/solutions.js:1264:12",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Next →",
-      "line": 1228,
+      "line": 1264,
       "handler": "() => setPage((currentPage) => currentPage + 1)",
       "destination": null,
       "type": null,
@@ -65868,11 +65864,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1272:13",
+      "id": "pages/hub/training/solutions.js:1308:13",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Retry Audited Lookup",
-      "line": 1272,
+      "line": 1308,
       "handler": "() => loadSpotDetail(selectedSpot)",
       "destination": null,
       "type": null,
@@ -65881,11 +65877,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1434:14",
+      "id": "pages/hub/training/solutions.js:1470:14",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`View ${tab.label}`",
-      "line": 1434,
+      "line": 1470,
       "handler": "() => setActiveTab(tab.key)",
       "destination": null,
       "type": null,
@@ -65894,11 +65890,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1475:15",
+      "id": "pages/hub/training/solutions.js:1511:15",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`Color by ${mode.label}`",
-      "line": 1475,
+      "line": 1511,
       "handler": "() => setColorMode(mode.key)",
       "destination": null,
       "type": null,
@@ -65907,11 +65903,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:165:1",
+      "id": "pages/hub/training/spot-trainer.js:169:1",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "← Training",
-      "line": 165,
+      "line": 169,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -65920,11 +65916,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:232:2",
+      "id": "pages/hub/training/spot-trainer.js:236:2",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 232,
+      "line": 236,
       "handler": "() => setFormat(option.value)",
       "destination": null,
       "type": "button",
@@ -65933,11 +65929,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:244:3",
+      "id": "pages/hub/training/spot-trainer.js:248:3",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 244,
+      "line": 248,
       "handler": "() => setPosition(option.value)",
       "destination": null,
       "type": "button",
@@ -65946,11 +65942,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:271:4",
+      "id": "pages/hub/training/spot-trainer.js:275:4",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Retry",
-      "line": 271,
+      "line": 275,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -65959,11 +65955,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:313:5",
+      "id": "pages/hub/training/spot-trainer.js:317:5",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Load Another",
-      "line": 313,
+      "line": 317,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -65972,11 +65968,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:439:6",
+      "id": "pages/hub/training/spot-trainer.js:443:6",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Load Another Audited Spot",
-      "line": 439,
+      "line": 443,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -68724,7 +68720,8 @@
       "realtime": [],
       "tests": [
         "__tests__/training-bookmark-authority.test.mjs",
-        "__tests__/training-final-honesty-surfaces.test.mjs"
+        "__tests__/training-final-honesty-surfaces.test.mjs",
+        "__tests__/training-reference-is-public-b.test.mjs"
       ]
     },
     {
@@ -68733,8 +68730,6 @@
         "pages/api/training/browse-solutions.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/horses/playerSessionAccess.mjs",
-        "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/utils/trainingApiUtils.js",
@@ -68763,21 +68758,11 @@
             "deletes": 1,
             "rpc": 1
           }
-        },
-        {
-          "file": "src/lib/horses/playerSessionAccess.mjs",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 1
-          }
         }
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-solutions-v2-authority.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
@@ -69655,6 +69640,9 @@
         "pages/api/training/icm-calc.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
+        "src/lib/serverAuth.js",
+        "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -69669,12 +69657,21 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
-      "tests": [
-        "__tests__/training-reference-is-public-a.test.mjs"
-      ]
+      "tests": []
     },
     {
       "file": "pages/api/training/leaderboard.js",
@@ -69952,6 +69949,9 @@
         "src/config/solverRanges.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/horses/playerSessionAccess.mjs",
+        "src/lib/serverAuth.js",
+        "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -69966,13 +69966,23 @@
             "deletes": 1,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/horses/playerSessionAccess.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
       "tests": [
         "__tests__/training-final-honesty-surfaces.test.mjs",
-        "__tests__/training-preflop-chart-authority.test.mjs",
-        "__tests__/training-reference-is-public-a.test.mjs"
+        "__tests__/training-preflop-chart-authority.test.mjs"
       ]
     },
     {
@@ -70853,6 +70863,7 @@
       "realtime": [],
       "tests": [
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
+        "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-solver-contract.test.mjs",
         "__tests__/training-spot-study-authority.test.mjs"
@@ -78502,6 +78513,7 @@
         "__tests__/training-authored-model-honesty.test.mjs",
         "__tests__/training-bookmark-authority.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
+        "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-solutions-v2-authority.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
@@ -78552,6 +78564,7 @@
       "tests": [
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
         "__tests__/training-question-integrity.test.mjs",
+        "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-spot-study-authority.test.mjs"
       ]
@@ -86456,7 +86469,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "kind": "FALLBACK",
-        "line": 38,
+        "line": 46,
         "excerpt": "function singleQueryValue(value, fallback = '') {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -86465,7 +86478,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "kind": "FALLBACK",
-        "line": 40,
+        "line": 48,
         "excerpt": "return value == null || value === '' ? fallback : String(value);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -86957,7 +86970,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 622,
+        "line": 635,
         "excerpt": "console.warn('[Solutions] Board classification engine unavailable; using local fallback:', message);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -86966,7 +86979,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 625,
+        "line": 638,
         "excerpt": "// Inline fallback",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -86976,7 +86989,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 730,
+        "line": 766,
         "excerpt": "// Do not crash the app, just fallback to empty classification",
         "disposition": "visible-ui-resilience",
         "review": "documented-follow-up",
@@ -86986,7 +86999,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 774,
+        "line": 806,
         "excerpt": "setFetchError('Audited PioSOLVER Artifacts Are Temporarily Unavailable. No Unverified Fallback Will Be Shown.');",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -89513,7 +89526,7 @@
       {
         "file": "pages/api/training/browse-solutions.js",
         "name": "handler",
-        "line": 166,
+        "line": 161,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89734,7 +89747,7 @@
       {
         "file": "pages/api/training/icm-calc.js",
         "name": "handler",
-        "line": 113,
+        "line": 122,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89786,7 +89799,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "name": "handler",
-        "line": 143,
+        "line": 151,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89981,7 +89994,7 @@
       {
         "file": "pages/api/training/spot-drill.js",
         "name": "handler",
-        "line": 798,
+        "line": 802,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -95559,7 +95572,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "kind": "FALLBACK",
-        "line": 38,
+        "line": 46,
         "excerpt": "function singleQueryValue(value, fallback = '') {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -95568,7 +95581,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "kind": "FALLBACK",
-        "line": 40,
+        "line": 48,
         "excerpt": "return value == null || value === '' ? fallback : String(value);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -96060,7 +96073,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 622,
+        "line": 635,
         "excerpt": "console.warn('[Solutions] Board classification engine unavailable; using local fallback:', message);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -96069,7 +96082,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 625,
+        "line": 638,
         "excerpt": "// Inline fallback",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -96079,7 +96092,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 730,
+        "line": 766,
         "excerpt": "// Do not crash the app, just fallback to empty classification",
         "disposition": "visible-ui-resilience",
         "review": "documented-follow-up",
@@ -96089,7 +96102,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 774,
+        "line": 806,
         "excerpt": "setFetchError('Audited PioSOLVER Artifacts Are Temporarily Unavailable. No Unverified Fallback Will Be Shown.');",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -98616,7 +98629,7 @@
       {
         "file": "pages/api/training/browse-solutions.js",
         "name": "handler",
-        "line": 166,
+        "line": 161,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98837,7 +98850,7 @@
       {
         "file": "pages/api/training/icm-calc.js",
         "name": "handler",
-        "line": 113,
+        "line": 122,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98889,7 +98902,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "name": "handler",
-        "line": 143,
+        "line": 151,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -99084,7 +99097,7 @@
       {
         "file": "pages/api/training/spot-drill.js",
         "name": "handler",
-        "line": 798,
+        "line": 802,
         "references": 1,
         "exported": true,
         "defaultExport": true,

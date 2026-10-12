@@ -1,4 +1,3 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, sanitizeParam, VALID_STREETS, withTiming } from '../../../src/utils/trainingApiUtils';
@@ -39,6 +38,9 @@ const FAMILY_STACK_PAIRS = [...TRAINING_SOLVER_CONTRACTS.entries()].flatMap(
 );
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SOLVER_QUERY_TIMEOUT_MS = 8_000;
+// A verified library page is identical for every viewer, so a successful read
+// may be shared briefly by the CDN. Every other path stays private, no-store.
+const PUBLIC_LIBRARY_CACHE = 'public, s-maxage=60, stale-while-revalidate=300';
 
 let _supabase = null;
 function getSupabase() {
@@ -156,13 +158,6 @@ async function catalogCandidates(args) {
     }
 }
 
-async function requireUser(req) {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return null;
-    const { user, error } = await getServerUserWithFallback(req, getSupabase());
-    return error ? null : user;
-}
-
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     res.setHeader('Vary', 'Authorization');
@@ -174,8 +169,11 @@ export default async function handler(req, res) {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
 
-        const user = await requireUser(req);
-        if (!user) return res.status(401).json({ success: false, error: 'Authentication required' });
+        // The shared solution library is open to everyone (Dan, 2026-10-12:
+        // "THEY SHOULD OPEN TO EVERYONE"). No sign-in is required to read it
+        // and no identity is consulted: responses carry no per-user fields,
+        // and bookmarks stay behind the signed-in bookmark-solution endpoint.
+        // The read rate limit above still bounds every caller.
 
         const spotId = req.query.spotId ? sanitizeParam(req.query.spotId, 180) : null;
         const scenarioHash = req.query.scenarioHash ? sanitizeParam(req.query.scenarioHash, 200) : null;
@@ -240,6 +238,7 @@ export default async function handler(req, res) {
                     error: 'No provenance-complete solver artifact exists for this exact identity',
                 });
             }
+            res.setHeader('Cache-Control', PUBLIC_LIBRARY_CACHE);
             return res.status(200).json({ success: true, spot: matches[0] });
         }
 
@@ -292,6 +291,7 @@ export default async function handler(req, res) {
         const queried = data || [];
         const hasMore = queried.length > limit;
         const spots = queried.slice(0, limit).map(listSpot).filter(Boolean);
+        res.setHeader('Cache-Control', PUBLIC_LIBRARY_CACHE);
         return res.status(200).json({
             success: true,
             spots,

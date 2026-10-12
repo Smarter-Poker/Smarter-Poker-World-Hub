@@ -287,6 +287,8 @@ import './training-phase-3-closeout.test.mjs';
 import './training-phase6-release-harness.test.mjs';
 import './training-production-smoke-auth.test.mjs';
 import './training-production-smoke-contract.test.mjs';
+// Dan, 2026-10-12: the Training reference charts open to everyone.
+import './training-reference-is-public-b.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
 import './training-request-deadline.test.mjs';
 import './training-reference-is-public-a.test.mjs';
