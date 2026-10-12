@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { POKER_IQ_ORBS, COMMANDER_ORB, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../../orbs/manifest/registry';
 import { getHiddenCardIds, setHiddenCardIds } from '../../state/userPreferences';
 import { getAuthUser } from '../../lib/authUtils';
+import { getOwnerOnlyHiddenCardIds } from '../../config/ownerOnlyHubCards';
 
 // ── Card emoji map for display ───────────────────────────────────────────────
 const CARD_EMOJI: Record<string, string> = {
@@ -95,7 +96,10 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
     if (!isOpen) return null;
 
     // Filter the customizer list to only show cards available to this user
+    // Owner-only cards (Dan, 2026-10-11) are not offered to anyone else.
+    const ownerOnlyHidden = getOwnerOnlyHiddenCardIds(getAuthUser()?.id);
     const visibleCards = ALL_CUSTOMIZABLE.filter(orb => {
+        if (ownerOnlyHidden.includes(orb.id)) return false;
         if (orb.id === 'club-commander') return unlockedSpecialIds.includes('club-commander');
         return true; // Standard + toke-tracker always listed
     });
