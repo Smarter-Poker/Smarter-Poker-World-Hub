@@ -81,7 +81,15 @@ export default function TutorialPrompt({ tutorial, onStart, onDismiss, durationM
       onPointerCancel={() => setPaused(false)}
       onPointerLeave={() => setPaused(false)}
     >
-      <style>{promptInteractionCss}</style>
+      <style>{promptInteractionCss + `
+        @media (max-width: 600px) {
+          .sp-tutorial-prompt-row { display: grid; grid-template-columns: 40px 1fr 45px; gap: 10px; }
+          .sp-tutorial-prompt-icon { grid-column: 1; grid-row: 1; }
+          .sp-tutorial-prompt-text { grid-column: 2 / 4; grid-row: 1; }
+          .sp-tutorial-prompt-start { grid-column: 2; grid-row: 2; justify-self: end; }
+          .sp-tutorial-prompt-close { grid-column: 3; grid-row: 2; padding: 0 !important; }
+        }
+      `}</style>
       <div className="sp-tutorial-prompt-row">
         <div className="sp-tutorial-prompt-icon"><SparkIcon /></div>
         <div className="sp-tutorial-prompt-text">
