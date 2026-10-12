@@ -88,8 +88,8 @@ test('shared clusters retain density tiers on both map surfaces', () => {
   const cluster = (count) => ({ getChildCount: () => count });
   assert.deepEqual(createPokerClusterIcon(L, cluster(125)).options.iconSize, [58, 58]);
   assert.deepEqual(createPokerClusterIcon(L, cluster(125), { variant: 'compact' }).options.iconSize, [54, 54]);
-  assert.deepEqual(createPokerClusterIcon(L, cluster(4)).options.iconSize, [44, 44]);
-  assert.deepEqual(createPokerClusterIcon(L, cluster(4), { variant: 'compact' }).options.iconSize, [44, 44]);
+  assert.deepEqual(createPokerClusterIcon(L, cluster(4)).options.iconSize, [48, 48]);
+  assert.deepEqual(createPokerClusterIcon(L, cluster(4), { variant: 'compact' }).options.iconSize, [48, 48]);
   assert.match(createPokerClusterIcon(L, cluster(125)).options.html, /data-pnm-cluster-count="125" aria-hidden="true"/);
 });
 
