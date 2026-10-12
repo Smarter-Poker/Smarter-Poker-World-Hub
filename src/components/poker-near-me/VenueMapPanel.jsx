@@ -458,7 +458,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       // Reset, changed filters or unmount revoke this request's ownership even
       // if a transport completes after aborting.
       if (!mountedRef.current || controller.signal.aborted || viewportAbortRef.current !== controller) return;
-      if (!response.ok || payload?.success === false || !Array.isArray(payload?.data)) {
+      // The API can answer 200 with a stale/empty JSON fallback. Preserve the
+      // established map rather than certify that fallback as a fresh area scan.
+      if (!response.ok || payload?.success === false || payload?.degraded === true || !Array.isArray(payload?.data)) {
         throw new Error(payload?.error || `Area search returned ${response.status}`);
       }
 
