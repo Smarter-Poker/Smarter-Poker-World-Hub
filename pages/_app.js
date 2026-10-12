@@ -674,7 +674,18 @@ function NavigationGuard({ children }) {
       document.head.appendChild(style);
     }
 
-    const handleStart = (nextUrl) => {
+    const handleStart = (nextUrl, routeOptions) => {
+      // Reels owns shallow channel/bookmark changes and commits the next media
+      // only after its feed response succeeds. A failed channel request must
+      // keep the current player, including a deliberate pause, intact.
+      if (routeOptions?.shallow && window.location.pathname === '/hub/reels') {
+        try {
+          const target = new URL(nextUrl, window.location.href);
+          if (target.origin === window.location.origin && target.pathname === '/hub/reels') return;
+        } catch (_urlError) {
+          // Invalid or real navigation still follows the media shutdown below.
+        }
+      }
       // SYNCHRONOUS: Add class immediately (no React state delay)
       document.body.classList.add('page-transitioning');
 

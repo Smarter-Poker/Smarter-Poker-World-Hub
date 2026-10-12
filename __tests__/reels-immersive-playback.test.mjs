@@ -184,3 +184,35 @@ test('persistent Reel sheets stay open through playback and the canonical menu o
   assert.match(source, /if \(open\) \{ setShowMoreMenu\(false\); setShowContextMenu\(false\); \}/);
   assert.match(source, /zIndex: menuOpen \? 10100 : 10001/);
 });
+
+ test('the actual navigation handler preserves Reel query updates and stops media on real exits', () => {
+  const source = readFileSync(new URL('../pages/_app.js', import.meta.url), 'utf8');
+  const start = source.indexOf('    const handleStart = (nextUrl');
+  const end = source.indexOf('    const handleComplete =', start);
+  const body = source.slice(start, end) + '\nreturn handleStart;';
+  function run(nextUrl, options, current = 'https://smarter.poker/hub/reels?category=poker') {
+    const calls = [];
+    const video = {src:'native.mp4',currentTime:7,pause(){calls.push('pause');},load(){calls.push('load');}};
+    const frame = {src:'https://www.youtube-nocookie.com/embed/abcdefghijk'};
+    const document = {body:{classList:{add(){calls.push('hide');}}},querySelectorAll(type){return type === 'video' ? [video] : type === 'iframe' ? [frame] : [];}};
+    const window = {location:new URL(current)};
+    const handler = new Function('window','document','setIsNavigating','advanceScrollLockGeneration',body)(window,document,()=>calls.push('navigating'),()=>calls.push('generation'));
+    handler(nextUrl, options);
+    return {calls,video,frame};
+  }
+  const changed = run('/hub/reels?category=sports', {shallow:true});
+  assert.deepEqual(changed.calls,[]);
+  assert.equal(changed.video.src,'native.mp4');
+  assert.equal(changed.video.currentTime,7);
+  assert.match(changed.frame.src,/youtube-nocookie/);
+  for (const [target, options, current] of [
+    ['/hub/social-media', {shallow:true}],
+    ['/hub/reels?category=sports', {shallow:false}],
+    ['https://example.com/hub/reels', {shallow:true}],
+    ['/hub/news?q=poker', {shallow:true}, 'https://smarter.poker/hub/news'],
+  ]) {
+    const exited = run(target,options,current);
+    assert.ok(exited.calls.includes('pause'));
+    assert.equal(exited.frame.src,'about:blank');
+  }
+ });
