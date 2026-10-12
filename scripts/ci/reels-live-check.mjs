@@ -1086,7 +1086,7 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
 
     report.stage = 'public-mobile-hostile-drop';
     state.failNextSports = true;
-    await page.getByRole('button', { name: 'More options', exact: true }).click();
+    await page.getByRole('button', { name: /^More Options$/i }).click();
     await page.getByRole('dialog', { name: 'Reel Options', exact: true }).getByRole('button', { name: 'Menu', exact: true }).click();
     const sportsLink = page.locator('a[href="/hub/reels?category=sports"]').last();
     await sportsLink.waitFor();
