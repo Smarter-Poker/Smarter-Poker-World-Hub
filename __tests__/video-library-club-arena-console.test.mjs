@@ -46,7 +46,7 @@ test('feed cards are YouTube cards: full-width 16:9 media, avatar, title, one me
   assert.match(PAGE, /className="vl-card-menu-button"[\s\S]{0,300}setCardMenuVideo\(video\)/);
   assert.match(CSS, /\.vl-video-grid \{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
   assert.match(CSS, /\.vl-video-thumb[\s\S]*aspect-ratio: 16 \/ 9/);
-  assert.match(CSS, /\.vl-card-info \{[\s\S]*grid-template-columns: 36px minmax\(0, 1fr\) 40px/);
+  assert.match(CSS, /\.vl-card-info \{[\s\S]*grid-template-columns: 36px minmax\(0, 1fr\) 44px/);
   assert.match(CSS, /\.vl-card-info \{[\s\S]*pointer-events: none/);
   assert.match(CSS, /\.vl-card-menu-button \{[\s\S]*pointer-events: auto/);
   assert.match(CSS, /\.vl-media-failed::after \{[\s\S]*Preview unavailable/);
@@ -104,6 +104,14 @@ test('account-scoped mutations invalidate stale completions and stale local filt
   assert.match(PAGE, /Old localStorage values from retired filters fail closed/);
   assert.match(PAGE, /\['ALL', 'cash', 'tournament', 'slots', 'sports'\]\.includes\(filters\.selectedType\)/);
   assert.doesNotMatch(PAGE, /catch\s*\([^)]*\)\s*=>\s*\{\s*\}/);
+});
+
+test('the 375px budget holds: no text under 12px and every control is a 44px target', () => {
+  // Global Footer E2E measures this on the live build (e2e/mobile-budget.spec.ts).
+  for (const size of CSS.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) {
+    assert.ok(Number(size[1]) >= 12, `font-size ${size[1]}px is under the 12px floor`);
+  }
+  assert.match(CSS, /\.vl-card-menu-button \{[\s\S]*width: 44px;[\s\S]*height: 44px/);
 });
 
 test('no emoji or decorative glyphs ship in the page source', () => {

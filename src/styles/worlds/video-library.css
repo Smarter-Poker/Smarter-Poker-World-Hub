@@ -368,7 +368,7 @@
     width: 100%;
     overflow: hidden;
     color: var(--vl-muted);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     line-height: 1.2;
     text-align: center;
@@ -639,7 +639,7 @@
     border-radius: 4px;
     background: rgb(0 0 0 / 80%);
     color: var(--vl-silver);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 18px;
 }
@@ -674,7 +674,7 @@
 
 .vl-card-info {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) 40px;
+    grid-template-columns: 36px minmax(0, 1fr) 44px;
     gap: 12px;
     align-items: start;
     padding: 12px 0 20px 12px;
@@ -734,7 +734,7 @@
     z-index: 2;
     display: grid;
     place-items: center;
-    width: 40px;
+    width: 44px;
     height: 44px;
     margin-top: -10px;
     padding: 0;
@@ -1470,7 +1470,7 @@
 
 .vl-tts-drill-name em {
     color: var(--vl-teal);
-    font-size: 11px;
+    font-size: 12px;
     font-style: normal;
     font-weight: 700;
     text-transform: uppercase;
