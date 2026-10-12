@@ -225,9 +225,8 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
   });
 }
 
-for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
+for (const path of ['/hub/friends', '/hub/messenger']) {
   test(`Social Media fallback stays tappable in mobile WebKit on ${path}`, async ({ page }) => {
-    if (path === '/hub/reels') await installReelsFixture(page);
     await page.goto(path, { waitUntil: 'domcontentloaded' });
     const trigger = page.locator('[data-world-menu-trigger="route-fallback"]');
     await expect(page.locator('[data-world-menu-trigger]')).toHaveCount(1);
@@ -246,30 +245,34 @@ for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
     await expect(drawer).toBeHidden();
     await expect(trigger).toBeFocused();
 
-    if (path === '/hub/reels') {
-      const reelsOverlay = page.locator('[data-reels-overlay-trigger="true"]');
-      await expect(reelsOverlay).toHaveCount(1);
-      await trigger.click();
-      await reelsOverlay.evaluate((element: HTMLElement) => element.click());
-      const approvedTrigger = page.locator('[data-world-menu-trigger="approved-header"]');
-      await expect(approvedTrigger).toHaveCount(1);
-      // The open fallback hands ownership to the approved header without
-      // dropping the user's tap or flashing two visible drawers.
-      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(1);
-      await expect(approvedTrigger).toHaveAttribute('aria-expanded', 'true');
-      await page.waitForTimeout(5_500);
-      await expect(approvedTrigger).toHaveCount(1);
-      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(1);
-      await page.keyboard.press('Escape');
-      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(0);
-      await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toHaveCount(1, {
-        timeout: 7_000,
-      });
-      await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toBeFocused();
-      await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(0);
-    }
   });
 }
+
+test('immersive Reels keeps the canonical Social Media menu tappable above the player', async ({ page }) => {
+  await installReelsFixture(page);
+  await page.goto('/hub/reels', { waitUntil: 'domcontentloaded' });
+  const more = page.getByRole('button', { name: /^More Options$/i });
+  await expect(more).toBeVisible();
+  await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toBeHidden();
+  await more.click();
+  await page.getByRole('dialog', { name: 'Reel Options', exact: true }).getByRole('button', { name: 'Menu', exact: true }).click();
+  const trigger = page.locator('[data-world-menu-trigger="approved-header"]');
+  const drawer = page.locator('[data-world-command-menu="social-media"]');
+  await expect(trigger).toHaveCount(1);
+  await expect(trigger).toHaveAttribute('data-menu-symbol', 'hamburger');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(drawer).toBeVisible();
+  await expect(drawer).toHaveAttribute('data-world-menu-scheme', 'facebook');
+  await expect(drawer).toHaveAttribute('data-responsive-composition', 'preserved');
+  await expect(drawer.locator('[data-world-primary-commands="social-media"] .sp-grid-tile')).toHaveCount(6);
+  await page.waitForTimeout(5_500);
+  await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(0);
+  await expect(more).toBeVisible();
+  await more.click();
+  await expect(page.getByRole('dialog', { name: 'Reel Options', exact: true })).toBeVisible();
+});
 
 
 for (const closeBeforeHydration of [true, false]) {
