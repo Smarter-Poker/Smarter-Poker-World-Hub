@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import * as gate from '../src/lib/push/push-gate.js';
 import { buildFcmMessage } from '../src/lib/push/fcm.js';
+import * as deliveryPolicy from '../src/lib/notifications/deliveryPolicy.mjs';
 import * as accountingDisplay from '../src/lib/push/accounting-display.mjs';
 import { ALERT_OWNER_ID, routeOperationalPushRows, routeQueuedOperationalPushes } from '../src/lib/push/operational-push-routing.mjs';
 
@@ -78,6 +79,7 @@ function fixture(count = 1, recipientId = 'recipient') {
         './accounting-display.mjs': accountingDisplay,
     });
     const cron = load('../pages/api/cron/push-dispatch.js', {
+        '../../../src/lib/notifications/deliveryPolicy.mjs': deliveryPolicy,
         '../../../src/lib/supabaseServerClient': { createClient: () => db },
         '../../../src/utils/cron-auth': { validateCronAuth: () => true },
         '../../../src/lib/cronHealth': { withCronHealth: (_name, handler) => handler },

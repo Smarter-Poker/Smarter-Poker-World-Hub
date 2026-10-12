@@ -58,6 +58,7 @@ import {
     decideNudge, readNudgeState, writeLedger, recordShown, recordDismissed,
     NUDGE_EVENT, takePendingNudge,
 } from '../../lib/push/enrollment-nudge.mjs';
+import { promptInteractionCss, promptPanel, promptPrimary, promptSecondary, promptEyebrow } from '../pwa/promptMaterials';
 import InstallAppSheet from '../pwa/InstallAppSheet';
 
 /**
@@ -283,6 +284,7 @@ export default function FirstRunNotificationPrompt({ userId }) {
             aria-modal={modal ? 'true' : 'false'}
             aria-label="Enable notifications"
             data-push-nudge={moment}
+            data-startup-prompt="notifications"
             style={modal ? {
                 position: 'fixed', inset: 0, zIndex: 99998,
                 display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -298,23 +300,23 @@ export default function FirstRunNotificationPrompt({ userId }) {
             <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                    width: '100%', maxWidth: 420, borderRadius: 18,
-                    background: '#111827', color: '#fff', pointerEvents: 'auto',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)', padding: 22,
+                    ...promptPanel, width: '100%', maxWidth: 440, pointerEvents: 'auto',
+                    padding: 22, boxSizing: 'border-box', maxHeight: '85dvh', overflowY: 'auto',
                 }}
             >
+                <style>{promptInteractionCss}</style>
+                <div style={promptEyebrow}>Your Game. Your Alerts.</div>
                 {state === 'success' ? (
                     <>
                         <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>You Are All Set</h3>
-                        <p style={{ marginTop: 8, fontSize: 14, color: '#9CA3AF' }}>
+                        <p style={{ marginTop: 8, fontSize: 14, color: '#b3c2d1' }}>
                             Notifications Are On For This Device.
                         </p>
                     </>
                 ) : state === 'blocked' ? (
                     <>
                         <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Notifications Are Blocked</h3>
-                        <p style={{ marginTop: 8, fontSize: 14, color: '#9CA3AF', lineHeight: 1.5 }}>
+                        <p style={{ marginTop: 8, fontSize: 14, color: '#b3c2d1', lineHeight: 1.5 }}>
                             {isIos() && !isIosStandalonePwa()
                                 ? 'On iPhone and iPad, add Smarter Poker to your Home Screen first. Tap Share, then Add to Home Screen, then open it from there.'
                                 : 'Open your browser site settings for smarter.poker, switch Notifications to Allow, then reload this page.'}
@@ -330,7 +332,7 @@ export default function FirstRunNotificationPrompt({ userId }) {
                 ) : (
                     <>
                         <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{copy.title}</h3>
-                        <p style={{ marginTop: 8, fontSize: 14, color: '#9CA3AF', lineHeight: 1.5 }}>
+                        <p style={{ marginTop: 8, fontSize: 14, color: '#b3c2d1', lineHeight: 1.5 }}>
                             {copy.body}
                         </p>
                         {error && (
@@ -351,13 +353,5 @@ export default function FirstRunNotificationPrompt({ userId }) {
     );
 }
 
-const btnPrimary = {
-    flex: 1, marginTop: 4, padding: '12px 16px', borderRadius: 12, border: 'none',
-    background: '#14B8A6', color: '#04211E', fontSize: 15, fontWeight: 700, cursor: 'pointer',
-};
-
-const btnGhost = {
-    flex: 1, marginTop: 4, padding: '12px 16px', borderRadius: 12,
-    border: '1px solid rgba(255,255,255,0.15)', background: 'transparent',
-    color: '#D1D5DB', fontSize: 15, fontWeight: 600, cursor: 'pointer',
-};
+const btnPrimary = { ...promptPrimary, flex: 1, marginTop: 4 };
+const btnGhost = { ...promptSecondary, flex: 1, marginTop: 4 };

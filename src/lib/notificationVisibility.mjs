@@ -2,7 +2,9 @@
 // paint that cached personal list after the destination cutover.
 import { isOwnerOperationalRow } from './notifications/ownerOperationalClassifier.mjs';
 
-const CACHE_VERSION = 4;
+import { mayDeliverNotification, isPushOnlyNotification } from './notifications/deliveryPolicy.mjs';
+
+const CACHE_VERSION = 5;
 const CACHE_MAX_AGE_MS = 300_000;
 
 // `/api/notifications/feed` reads from the `personal_notifications` view,
@@ -23,7 +25,7 @@ const CACHE_MAX_AGE_MS = 300_000;
 // silently start hiding a normal customer's own financial_incident-shaped
 // row if one is ever added) is never affected.
 export function isVisibleNotification(row, userId) {
-    return !!row && row.type !== 'accounting_invoice_detail' && !isOwnerOperationalRow(userId, row);
+    return !!row && mayDeliverNotification(userId, row) && !isPushOnlyNotification(row) && row.type !== 'accounting_invoice_detail' && !isOwnerOperationalRow(userId, row);
 }
 
 export function notificationCache(rows, userId, now = Date.now()) {

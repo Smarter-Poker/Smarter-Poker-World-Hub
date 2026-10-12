@@ -37,6 +37,7 @@ import {
     isRunningAsApp, isKnownInstalled, isInstallable, canPromptInstall,
     isIos, subscribeInstallState, PWA_INSTALLED_KEY,
 } from '../../lib/pwaInstall';
+import { promptInteractionCss, promptPanel, promptPrimary, promptSecondary, promptEyebrow } from '../pwa/promptMaterials';
 import InstallAppSheet from '../pwa/InstallAppSheet';
 
 const DISMISS_UNTIL_KEY = 'sp_pwa_prompt_snooze_until';
@@ -171,14 +172,15 @@ export default function PWAInstallPrompt() {
     const oneTap = canPromptInstall();
 
     return (
-        <div className="sp-pwa-install-bar" style={S.bar} role="dialog" aria-label="Install Smarter Poker">
+        <div data-startup-prompt="install" className="sp-pwa-install-bar" style={S.bar} role="dialog" aria-label="Install Smarter Poker">
             <div className="sp-pwa-install-spade" style={S.spade} aria-hidden="true">♠</div>
             <div className="sp-pwa-install-copy" style={S.copy}>
-                <div className="sp-pwa-install-title" style={S.title}>Install Smarter.Poker</div>
+                <div style={promptEyebrow}>Smarter.Poker App</div>
+                <div className="sp-pwa-install-title" style={S.title}>Your Seat. Always Within Reach.</div>
                 <div className="sp-pwa-install-sub" style={S.sub}>
                     {isIos() && !oneTap
-                        ? 'Add to your Home Screen to get alerts'
-                        : 'Get seat alerts and messages on your phone'}
+                        ? 'Add To Your Home Screen For Seat Alerts And Messages.'
+                        : 'Seat Alerts And Messages, Straight To Your Phone.'}
                 </div>
             </div>
             <div className="sp-pwa-install-actions" style={S.actions}>
@@ -187,7 +189,7 @@ export default function PWAInstallPrompt() {
                     {oneTap ? 'Install' : 'Show Me'}
                 </button>
             </div>
-            <style>{`
+            <style>{promptInteractionCss + `
                 @keyframes slideUp {
                     from { transform: translateX(-50%) translateY(20px); opacity: 0; }
                     to { transform: translateX(-50%) translateY(0); opacity: 1; }
@@ -198,33 +200,33 @@ export default function PWAInstallPrompt() {
                         width: calc(100% - 16px) !important;
                         padding: 10px 12px !important;
                         gap: 10px !important;
-                        border-radius: 0 !important;
+                        border-radius: 12px !important;
                     }
                     .sp-pwa-install-spade { font-size: 24px !important; }
-                    .sp-pwa-install-title { font-size: 12px !important; }
+                    .sp-pwa-install-title { font-size: 15px !important; }
                     .sp-pwa-install-sub {
-                        overflow: hidden;
-                        font-size: 10px !important;
+                        font-size: 12px !important;
                         line-height: 1.25;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
+                        white-space: normal;
                     }
-                    .sp-pwa-install-actions { gap: 5px !important; }
+                    .sp-pwa-install-actions { gap: 8px !important; width: 100%; justify-content: flex-end; }
+                    .sp-pwa-install-bar { flex-wrap: wrap; }
+                    .sp-pwa-install-copy { flex-basis: calc(100% - 70px); }
                     .sp-pwa-install-later, .sp-pwa-install-action {
                         min-height: 42px;
                         padding: 5px 10px !important;
-                        border-radius: 0 !important;
+                        border-radius: 12px !important;
                     }
                 }
                 @media (max-width: 360px) {
                     .sp-pwa-install-bar { gap: 7px !important; padding: 8px 9px !important; }
                     .sp-pwa-install-spade { display: none; }
-                    .sp-pwa-install-title { font-size: 11px !important; }
-                    .sp-pwa-install-sub { max-width: 118px; font-size: 9px !important; }
+                    .sp-pwa-install-title { font-size: 15px !important; }
+                    .sp-pwa-install-sub { font-size: 12px !important; }
                     .sp-pwa-install-later, .sp-pwa-install-action {
-                        min-height: 40px;
+                        min-height: 44px;
                         padding-inline: 8px !important;
-                        font-size: 10px !important;
+                        font-size: 12px !important;
                     }
                 }
             `}</style>
@@ -234,27 +236,19 @@ export default function PWAInstallPrompt() {
 
 const S = {
     bar: {
-        position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
-        width: 'calc(100% - 32px)', maxWidth: 420,
-        background: 'linear-gradient(135deg, #1a1f2e, #0f1318)',
-        border: '1px solid rgba(255,215,0,0.3)', borderRadius: 16,
-        padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16,
-        zIndex: 9999, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        animation: 'slideUp 0.3s ease',
+        ...promptPanel, position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+        width: 'calc(100% - 32px)', maxWidth: 560, boxSizing: 'border-box',
+        padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16,
+        zIndex: 9999, animation: 'slideUp 0.3s ease',
     },
-    spade: { fontSize: 36, flexShrink: 0 },
+    spade: { fontSize: 32, flexShrink: 0, color: '#b8e7ff', width: 48, height: 48,
+        display: 'grid', placeItems: 'center', borderRadius: 10, border: '1px solid #536676',
+        background: 'linear-gradient(145deg, #334552, #101b25)',
+        boxShadow: 'inset 0 1px 0 #8194a0, 0 4px 12px #020507' },
     copy: { flex: 1, minWidth: 0 },
-    title: { fontWeight: 700, color: '#fff', fontSize: 14, marginBottom: 2 },
-    sub: { color: 'rgba(255,255,255,0.5)', fontSize: 12 },
+    title: { fontWeight: 700, color: '#f3f7fc', fontSize: 16, lineHeight: 1.3, marginBottom: 5 },
+    sub: { color: '#b3c2d1', fontSize: 12, lineHeight: 1.5 },
     actions: { display: 'flex', gap: 8, flexShrink: 0 },
-    later: {
-        background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
-        borderRadius: 8, color: 'rgba(255,255,255,0.5)', padding: '6px 12px',
-        fontSize: 12, cursor: 'pointer',
-    },
-    install: {
-        background: 'linear-gradient(135deg, #FFD700, #FF8C00)', border: 'none',
-        borderRadius: 8, color: '#0a0a15', padding: '6px 14px',
-        fontSize: 12, fontWeight: 700, cursor: 'pointer',
-    },
+    later: promptSecondary,
+    install: promptPrimary,
 };

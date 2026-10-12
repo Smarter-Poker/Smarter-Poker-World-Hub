@@ -1257,6 +1257,8 @@ const nextConfig = {
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
       // Club Arena — /hub/club-arena IS the lobby (the SPA). The native lobby.js was removed.
       { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
+      // Push producers still emit /table/<id>; keep their seat alert click live.
+      { source: '/table/:id', destination: '/hub/club-arena/table/:id', permanent: true },
       // Redirect legacy/broken Club Arena share links to the correct SPA mount point
       { source: '/clubs/:slug*', destination: '/hub/club-arena/clubs/:slug*', permanent: true },
       { source: '/tournaments/:id*', destination: '/hub/club-arena/tournaments/:id*', permanent: true },

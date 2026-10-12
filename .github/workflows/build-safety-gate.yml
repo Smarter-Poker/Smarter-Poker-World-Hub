@@ -315,6 +315,13 @@ jobs:
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
 
+      - name: Notification Delivery Policy And Database Guards
+        env:
+          NOTIFICATION_POLICY_POSTGRES_ROOT: ${{ runner.temp }}
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+        run: node --test __tests__/notification-delivery-policy.test.mjs __tests__/notification-delivery-policy-postgres.test.mjs
+
+
       - name: Stable Admin Restrictions And Private Exports Native PostgreSQL 17
         env:
           PLAYER_CONTROL_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}

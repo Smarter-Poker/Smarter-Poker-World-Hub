@@ -1,3 +1,4 @@
+import { mayDeliverNotification, isPushOnlyNotification, PLATFORM_ALERT_RECIPIENTS } from '../src/lib/notifications/deliveryPolicy.mjs';
 /**
  * The shared harness for push-health's Production Alerts tests (not a test
  * file itself: push-health-owner-alert-episodes.test.mjs,
@@ -44,7 +45,7 @@ export const ROUTE_SOURCE = readFileSync(new URL('../pages/api/cron/push-health.
 const NOTIFY_SOURCE = readFileSync(new URL('../src/lib/notify.js', import.meta.url), 'utf8');
 export const SOURCE = 'worldhub.push-health';
 export const OWNER = ALERT_OWNER_ID;
-export const ADMIN_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+export const ADMIN_A = '3bb71bfe-f723-427c-aac7-a853ba04a014';
 export const ADMIN_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 export const PLAYER = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 export const PUBLIC_KEY = 'test-vapid-public-key';
@@ -65,7 +66,7 @@ export const pgUtc = (at) => {
 };
 
 const NOTIFY_IMPORTS = ['randomUUID', 'enqueuePush', 'isOwnerOperationalNotification',
-  'retryOwnerNotificationDestination', 'ROUTED_REASON', 'ALERT_TASK_ID'];
+  'retryOwnerNotificationDestination', 'ROUTED_REASON', 'ALERT_TASK_ID', 'mayDeliverNotification', 'isPushOnlyNotification', 'PLATFORM_ALERT_RECIPIENTS'];
 
 export const importsOf = (source) => {
   const imported = {};
@@ -259,6 +260,7 @@ export function gateway(phone) {
     randomUUID,
     enqueuePush: async (_client, args) => { phone.push({ userId: args.userId, event: args.event, title: args.title }); return { sent: true }; },
     isOwnerOperationalNotification, retryOwnerNotificationDestination, ROUTED_REASON, ALERT_TASK_ID,
+    mayDeliverNotification, isPushOnlyNotification, PLATFORM_ALERT_RECIPIENTS,
     console: { warn() {} },
   };
   const source = NOTIFY_SOURCE.replace(/^import[^\n]+;\s*$/gm, '')

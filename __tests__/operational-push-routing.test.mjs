@@ -1,3 +1,4 @@
+import { mayDeliverNotification } from '../src/lib/notifications/deliveryPolicy.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -99,6 +100,7 @@ function recorder(options = {}) {
 // Load the actual entrypoint body, replacing only external imports. This
 // executes its branching/ordering, not a copied routing implementation.
 function entrypoint(path, exported, dependencies) {
+  dependencies = { mayDeliverNotification, ...dependencies };
   let source = readFileSync(new URL(path, import.meta.url), 'utf8');
   source = source.replace(/^import[^\n]+;\s*$/gm, '')
     .replace(/^export default[^\n]+;\s*$/gm, '').replace(/^export /gm, '');
@@ -272,7 +274,7 @@ test(`caller-supplied owner UUID cannot bypass operational routing: ${owner}`, a
 });
 }
 
-for (const [userId, event] of [[ALERT_OWNER_ID, 'new_message'], [ordinary, 'engine_break_failed']]) {
+for (const [userId, event] of [[ALERT_OWNER_ID, 'new_message'], [ordinary, 'new_message']]) {
   test(`actual inline customer delivery is preserved for ${userId}/${event}`, async () => {
     const db = database(); let providerCalls = 0;
     const enqueue = entrypoint('../src/lib/push/push-enqueue.js', 'enqueuePush', {
@@ -351,3 +353,14 @@ for (const fault of [null, 'inbox', 'query', 'null', 'object']) {
     assert.ok(filter.includes('and(event.eq.system,or(title.eq.Push Health Alert,title.eq.Notifications May Not Be Reaching This Device,title.like.Horse Fleet Alert: *,title.like.Horse Fleet Recovered: *))'));
   });
 }
+
+test('actual inline entrypoint refuses non-owner operational pushes even when forced',async()=>{
+ const db=database();let providerCalls=0;
+ const enqueue=entrypoint('../src/lib/push/push-enqueue.js','enqueuePush',{
+  deliverPushNow:()=>{providerCalls++;},loadGateContext:()=>{throw new Error('forbidden notice reached preferences');},
+  isOwnerOperationalPush,enqueueOperationalPush:()=>{throw new Error('forbidden destination');},
+ });
+ const out=await enqueue(db,{userId:ordinary,event:'system',title:'Push Health Alert',force:true});
+ assert.equal(out.reason,'platform_alert_recipient_not_allowed');assert.equal(out.skipped,true);
+ assert.equal(providerCalls,0);assert.equal(db.calls.length,0);
+});

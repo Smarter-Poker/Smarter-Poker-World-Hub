@@ -17,6 +17,7 @@
  * CONTRACT: never throws. Returns { sent, outboxId, skipped, reason, accepted }.
  */
 
+import { mayDeliverNotification } from '../notifications/deliveryPolicy.mjs';
 import { deliverPushNow } from './push-deliver';
 import { loadGateContext, gateDecision, needsDailyCount, countSentToday } from './push-gate';
 import { isPushConfigured } from './web-push';
@@ -54,6 +55,10 @@ export async function enqueuePush(supabase, args = {}) {
         out.skipped = true;
         out.reason = 'missing_supabase_or_user';
         return out;
+    }
+
+    if (!mayDeliverNotification(userId, args)) {
+        return { ...out, skipped: true, reason: 'platform_alert_recipient_not_allowed' };
     }
 
     // The owner's incident destination applies even to force:true callers and
