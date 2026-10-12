@@ -179,7 +179,7 @@ jobs:
         run: node --test __tests__/poker-near-me-console-search.test.mjs __tests__/poker-near-me-console-map.test.mjs __tests__/poker-near-me-phase-2.test.mjs
 
       - name: Poker Near Me Launch Certification And Bounded Map Recovery
-        run: node --test __tests__/pnm-map-area-deadline.test.mjs __tests__/pnm-map-tile-recovery.test.mjs __tests__/pnm-location-picker-recovery.test.mjs __tests__/pnm-launch-phase6-qualification-safety.test.mjs __tests__/pnm-launch-freshness.test.mjs __tests__/pnm-mobile-budget-evidence.test.mjs
+        run: node --test __tests__/pnm-map-area-deadline.test.mjs __tests__/pnm-map-tile-recovery.test.mjs __tests__/pnm-location-picker-recovery.test.mjs __tests__/pnm-launch-phase6-qualification-safety.test.mjs __tests__/pnm-launch-freshness.test.mjs __tests__/pnm-mobile-budget-evidence.test.mjs __tests__/poker-near-me-console-discovery.test.mjs __tests__/poker-near-me-console-deep.test.mjs
 
       - name: Poker Near Me Contribution Permissions And Qualification
         run: node --test __tests__/poker-near-me-contribution-api.test.mjs __tests__/pnm-venue-contribution-ui.test.mjs __tests__/pnm-location-review-reason.test.mjs __tests__/pnm-contributions-phase4-qualification-safety.test.mjs

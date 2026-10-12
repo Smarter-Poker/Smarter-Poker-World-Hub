@@ -1,9 +1,100 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
+
+// Exercise the real page, replacing only unrelated chrome and external reads.
+// A render-time wall clock makes cached HTML disagree with a later first paint.
+const require = createRequire(import.meta.url);
+function dailyHydrationFixture() {
+  const React = require('react');
+  const ts = require('typescript');
+  const path = 'pages/hub/daily-tournaments.js';
+  const source = process.env.PNM_DAILY_HYDRATION_REV
+    ? execFileSync('git', ['show', `${process.env.PNM_DAILY_HYDRATION_REV}:${path}`], { encoding: 'utf8' }) : read(path);
+  const keys = [];
+  const chrome = () => null;
+  const dependencies = {
+    'next/link': ({ children, ...props }) => React.createElement('a', props, children),
+    'next/router': { useRouter: () => ({ pathname: '/hub/daily-tournaments', query: {} }) },
+    'swr': (key) => { keys.push(key); return { isLoading: true, mutate() {} }; },
+    'lucide-react': { Calendar: chrome, X: chrome, ChevronLeft: chrome, ChevronRight: chrome },
+    '../../src/lib/poker-near-me/scheduleTemporal.mjs': { sourceVerificationTime: () => null },
+    '../../src/hooks/useVenueRealtime': () => {},
+    '../../src/config/hamburgerMenus': { getMenuConfig: () => ({}) },
+    '../../src/lib/home-games/urls': { homeGameUrl: () => '#' },
+    '../../src/lib/poker-near-me/structuredData': { buildDailyTournamentSchema: () => null, serializePokerJsonLd: () => 'null' },
+    '../../src/components/poker-near-me/PokerNearMeConsole': { PokerNearMeConsoleIcon: chrome },
+  };
+  const code = ts.transpileModule(source, { compilerOptions: { esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const module = { exports: {} };
+  new Function('require', 'module', 'exports', code)((name) => {
+    if (name === 'react' || name === 'react/jsx-runtime') return require(name);
+    if (Object.hasOwn(dependencies, name)) return dependencies[name];
+    if (name.startsWith('../../src/components/')) return chrome;
+    throw new Error(`Unexpected daily dependency ${name}`);
+  }, module, module.exports);
+  return { React, Page: module.exports.default, keys };
+}
+function withDailyClock(instant, callback) {
+  const OriginalDate = globalThis.Date;
+  globalThis.Date = class extends OriginalDate {
+    constructor(...args) { super(...(args.length ? args : [instant])); }
+    static now() { return OriginalDate.parse(instant); }
+  };
+  try { return callback(); } finally { globalThis.Date = OriginalDate; }
+}
+test('actual cached daily page and first browser paint agree across a day and year rollover', () => {
+  const { React, Page } = dailyHydrationFixture();
+  const { renderToString } = require('react-dom/server');
+  const first = withDailyClock('2026-12-31T12:00:00Z', () => renderToString(React.createElement(Page)));
+  const later = withDailyClock('2027-01-01T12:00:00Z', () => renderToString(React.createElement(Page)));
+  assert.equal(later, first, 'Cached markup must not select a build-time day or mark it Today');
+});
+test('actual daily initial markup agrees when the viewer and build use different local weekdays', () => {
+  const { React, Page } = dailyHydrationFixture();
+  const { renderToString } = require('react-dom/server');
+  const originalZone = process.env.TZ;
+  try {
+    process.env.TZ = 'UTC';
+    const server = withDailyClock('2026-10-12T03:00:00Z', () => renderToString(React.createElement(Page)));
+    process.env.TZ = 'America/Los_Angeles';
+    const browser = withDailyClock('2026-10-12T03:00:00Z', () => renderToString(React.createElement(Page)));
+    assert.equal(browser, server, 'A local Sunday must not disagree with the build Monday');
+  } finally { if (originalZone === undefined) delete process.env.TZ; else process.env.TZ = originalZone; }
+});
+test('actual daily page initializes browser-local schedule and keeps explicit weekday choice', async () => {
+  const { React, Page, keys } = dailyHydrationFixture();
+  const renderer = require('react-test-renderer');
+  const OriginalDate = globalThis.Date;
+  let instant = '2026-10-12T12:00:00Z';
+  globalThis.Date = class extends OriginalDate {
+    constructor(...args) { super(...(args.length ? args : [instant])); }
+    static now() { return OriginalDate.parse(instant); }
+  };
+  let tree;
+  try {
+    await renderer.act(async () => { tree = renderer.create(React.createElement(Page)); });
+    const tabs = tree.root.findAll(node => node.type === 'button' && node.props.className?.startsWith('day-tab'));
+    assert.equal(tabs.filter(node => node.props['aria-pressed']).length, 1);
+    assert.equal(tabs[1].props['aria-pressed'], true, 'Monday is independently known for 2026-10-12');
+    assert.match(keys.at(-1), /day=Monday/);
+    instant = '2026-10-13T12:00:00Z';
+    await renderer.act(async () => tabs[5].props.onClick());
+    assert.match(keys.at(-1), /day=Friday/);
+    assert.equal(tabs[2].findAll(node => node.props.className === 'day-today-dot').length, 1, 'date interaction after midnight refreshes Today without changing the selected Friday');
+    const calendar = tree.root.findAll(node => node.type === 'button').find(node => node.props['aria-label'] === 'Browse by calendar date');
+    assert.ok(calendar); assert.equal(calendar.props.disabled, false);
+    await renderer.act(async () => calendar.props.onClick());
+    const date = tree.root.findAll(node => node.type === 'button').find(node => node.props['aria-label'] === 'October 13, 2026 (today)');
+    assert.ok(date); await renderer.act(async () => date.props.onClick());
+    assert.match(keys.at(-1), /day=Tuesday/); assert.match(keys.at(-1), /exact_date=2026-10-13/);
+  } finally { await renderer.act(async () => tree?.unmount()); globalThis.Date = OriginalDate; }
+});
 
 const surfaces = read('src/styles/worlds/poker-near-me-console-surfaces.css');
 const dialogs = read('src/styles/worlds/poker-near-me-console-dialogs.css');
