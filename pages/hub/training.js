@@ -119,6 +119,11 @@ function formatSignedValue(value) {
   return number >= 0 ? `+${number}` : number;
 }
 
+// Cards rendered before the reader scrolls (about three phone screens), and
+// how many more mount each time the grid's end comes within 1200px.
+const INITIAL_GAME_CARDS = 12;
+const GAME_CARD_BATCH = 24;
+
 export default function TrainingPage() {
   const router = useRouter();
   // Mobile phase 5 foundation (docs/mobile-standard/ROLLOUT-PLAN.md).
@@ -193,6 +198,36 @@ export default function TrainingPage() {
           || (CATEGORY_META[g.category]?.label || '').toLowerCase().includes(ql);
     });
   }, [activeCat, debouncedQuery]);
+
+  // PROGRESSIVE GAME GRID (2026-10-12). The full library is 107 cards of ~49
+  // elements each - 5,250 of the page's 5,600 elements - and every one of them
+  // is matched against the site's ~6,300 style rules on each style pass. In
+  // Safari's engine that kept the hub unresponsive for ~7s after load. The
+  // first screenfuls render immediately (server and first client render agree
+  // on the same count, so hydration is unchanged) and the rest mount in
+  // batches as the reader scrolls toward them. The cards are buttons, not
+  // links, so crawlers lose nothing; the HubPageSummary keeps the hub's
+  // crawlable text.
+  const [visibleCardCount, setVisibleCardCount] = useState(INITIAL_GAME_CARDS);
+  useEffect(() => { setVisibleCardCount(INITIAL_GAME_CARDS); }, [activeCat, debouncedQuery]);
+  const visibleGames = filtered.slice(0, visibleCardCount);
+  const moreGamesPending = visibleCardCount < filtered.length;
+  const gridSentinelRef = useRef(null);
+  useEffect(() => {
+    const sentinel = gridSentinelRef.current;
+    if (!moreGamesPending || !sentinel) return undefined;
+    if (typeof IntersectionObserver !== 'function') {
+      setVisibleCardCount(filtered.length);
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setVisibleCardCount((count) => Math.min(filtered.length, count + GAME_CARD_BATCH));
+      }
+    }, { rootMargin: '1200px 0px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [moreGamesPending, filtered.length, visibleCardCount]);
 
   // BUG FIX (TRAIN-SETUP-MODAL-1): originally startDrill mounted the arena
   // directly. The May 8 training-overhaul handoff (issue #288) called for a
@@ -615,17 +650,22 @@ export default function TrainingPage() {
               </div>
 
               {filtered.length > 0 ? (
-                <div className="sp-grid" data-tutorial="games">
-                  {filtered.map(g => (
-                    <GameCardNew
-                      key={g.id}
-                      game={g}
-                      progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
-                      isRecommended={g.id === jarvisPick?.id}
-                      onStart={() => startDrill(g)}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="sp-grid" data-tutorial="games">
+                    {visibleGames.map(g => (
+                      <GameCardNew
+                        key={g.id}
+                        game={g}
+                        progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
+                        isRecommended={g.id === jarvisPick?.id}
+                        onStart={() => startDrill(g)}
+                      />
+                    ))}
+                  </div>
+                  {moreGamesPending && (
+                    <div ref={gridSentinelRef} className="sp-grid-sentinel" aria-hidden="true" />
+                  )}
+                </>
               ) : (
                 <div className="sp-empty" role="status">
                   <p>No Drills Match - Try A Different Search.</p>
@@ -1478,6 +1518,7 @@ function GlobalStyle() {
       .sp-cat-chip[aria-pressed="true"] .sp-cat-count { color: rgba(0,26,34,0.55); }
 
       .sp-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+      .sp-grid-sentinel { height: 1px; }
       @media (max-width: 600px) { .sp-grid { grid-template-columns: 1fr; } }
 
       .sp-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); overflow: hidden; transition: transform .15s, border-color .15s, background .15s; text-align: left; width: 100%; cursor: pointer; padding: 0; color: inherit; }
