@@ -759,6 +759,78 @@ function failureStatus(error) {
   return Number.isInteger(error?.status) ? error.status : 409;
 }
 
+/**
+ * Read-only resolution of today's shared hand for a signed-out visitor.
+ *
+ * Dan, 2026-10-12: "THEY SHOULD OPEN TO EVERYONE." The question is shared
+ * reference content, so a visitor without a session may read it. Nothing here
+ * writes: an existing global seal is served as is, and an unsealed day is
+ * previewed from the same deterministic selection the first signed-in request
+ * will seal. Sealing, attempts, receipts and served-question records belong
+ * to signed-in requests only.
+ */
+async function readPublicDailyQuestion(today, dailyId) {
+  if (await dailyQuestionHasConflict(dailyId)) {
+    return { integrityCode: 'TRAINING_DAILY_SNAPSHOT_CONFLICT' };
+  }
+  const sealed = await readSealedDailyQuestion(dailyId);
+  if (sealed?.integrityCode) return sealed;
+  if (sealed) return { ...sealed, sealed: true };
+  const candidate = await selectDailyCanonicalQuestion(today);
+  return candidate ? { ...candidate, sealed: false } : null;
+}
+
+/**
+ * The anonymous response carries the question only. The answer key,
+ * explanation, solver mix and EV data stay behind the signed answer path
+ * (record-question reveals them after a durable, user-bound submission), and
+ * no grading receipt is issued because a receipt is bound to a user. Every
+ * per-user field (completion, pending answer, streak history) is absent.
+ */
+async function servePublicDailyQuestion(res) {
+  try {
+    const today = getTodayCST();
+    const dailyId = `daily-${today}`;
+    const candidate = await readPublicDailyQuestion(today, dailyId);
+    if (candidate?.integrityCode) {
+      return res.status(503).json({
+        success: false,
+        code: candidate.integrityCode,
+        error: candidate.integrityCode === 'TRAINING_DAILY_SNAPSHOT_CONFLICT'
+          ? 'Today’s Daily Challenge has conflicting sealed evidence. Please contact support.'
+          : 'Today’s sealed Daily Challenge could not be verified. Please retry.',
+        retryable: candidate.integrityCode !== 'TRAINING_DAILY_SNAPSHOT_CONFLICT',
+      });
+    }
+    if (!candidate?.question) {
+      return res.status(503).json({
+        success: false,
+        code: 'TRAINING_DAILY_QUESTION_UNAVAILABLE',
+        error: 'Today’s canonical Daily Challenge is temporarily unavailable.',
+      });
+    }
+    const servedQuestion = applyDifficultyToQuestion(candidate.question, 'standard');
+    return res.status(200).json({
+      success: true,
+      viewer: 'anonymous',
+      signInRequired: true,
+      dailyId,
+      sealed: candidate.sealed === true,
+      question: toPublicTrainingQuestion(servedQuestion),
+      completion: null,
+      completionPending: false,
+      feedback: null,
+      expiresAt: tomorrowAtChicagoMidnight(today),
+    });
+  } catch (error) {
+    console.warn('[HandOfTheDay] Public read error:', error?.message || error);
+    if (isTrainingPersistenceUnavailable(error)) {
+      return res.status(503).json(trainingPersistenceUnavailableBody());
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
 export default async function handler(req, res) {
   try {
     withTiming(res);
@@ -773,7 +845,10 @@ export default async function handler(req, res) {
 
     const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
     if (!token) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
+      // Signed-out visitors read the shared hand (Dan, 2026-10-12). A request
+      // that presents a credential is still verified below, so an invalid or
+      // revoked token keeps its 401 and its client-side refresh path.
+      return servePublicDailyQuestion(res);
     }
     const { user, error: authError } = await getServerUserWithFallback(req, getSupabase());
     if (authError || !user?.id) {

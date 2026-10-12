@@ -98,6 +98,8 @@ async function loadHandler(client) {
       withTiming: () => {},
     },
     '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    // The read rate limit added when the lobby opened to everyone (Dan, 2026-10-12).
+    '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {} } },
   };
   const module = new SourceTextModule(API_SOURCE, { identifier: API_PATH });
   await module.link(async (specifier) => {

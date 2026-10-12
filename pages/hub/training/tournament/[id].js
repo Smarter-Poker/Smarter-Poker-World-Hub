@@ -25,8 +25,18 @@ import PageTransition from '../../../../src/components/transitions/PageTransitio
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { getAuthUserId, authedFetch } from '../../../../src/lib/authUtils';
 import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
+import TrainingSignInPrompt from '../../../../src/components/training/TrainingSignInPrompt';
 
-const fetcher = (url) => authedFetch(url).then((r) => r.json());
+// Standings are open to everyone (Dan, 2026-10-12). authedFetch attaches
+// Authorization only when a session exists; a stale session that cannot be
+// refreshed falls back to the shared, signed-out read.
+const fetcher = async (url) => {
+  let response = await authedFetch(url);
+  if (response.status === 401) {
+    response = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } });
+  }
+  return response.json();
+};
 
 function fmtTime(ts) {
   if (!ts) return '--';
@@ -233,7 +243,14 @@ export default function TrainingTournamentDetail() {
               </div>
             )}
 
-            {isLive && !userEntry && (
+            {!userId && (isLive || status === 'scheduled') && (
+              <TrainingSignInPrompt
+                returnPath={`/hub/training/tournament/${encodeURIComponent(String(id || ''))}`}
+                message="Sign In To Register And Track Your Entry."
+              />
+            )}
+
+            {userId && isLive && !userEntry && (
               <p style={{ fontSize: 13, opacity: 0.75 }}>
                 You Are Not Registered For This Tournament. Register From the{' '}
                 <Link href="/hub/training/tournaments" style={{ color: '#ffd700' }}>

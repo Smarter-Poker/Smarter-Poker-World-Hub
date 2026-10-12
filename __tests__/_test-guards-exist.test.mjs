@@ -293,6 +293,9 @@ import './training-route-runtime-inventory.test.mjs';
 import './training-request-deadline.test.mjs';
 import './training-reference-is-public-a.test.mjs';
 import './training-surface-inventory.test.mjs';
+// Training reference pages open to everyone (Dan, 2026-10-12: "THEY SHOULD
+// OPEN TO EVERYONE"): anonymous reads, signed-in writes, no anonymous writes.
+import './training-reference-is-public-c.test.mjs';
 // The Trivia console redesign, 2026-09-21: every Trivia surface stays on the
 // painted Club Arena chassis with the master inks, the footer law, thirteen
 // distinct middle artworks, a black canvas, the schema focus ring and the

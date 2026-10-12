@@ -20,6 +20,7 @@ import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 // TRAIN-WIRE-EMPTY-5a — adoption: shared empty-state primitive
 
@@ -137,6 +138,7 @@ function TargetIcon({ size = 16 }) {
 export default function TournamentsPage() {
   useTrainingBus('tournaments');
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState('live'); // 'live', 'scheduled', 'completed'
 
   // Load auth user once
@@ -146,6 +148,7 @@ export default function TournamentsPage() {
     try {
       setUser(getAuthUser());
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+    setAuthChecked(true);
     return () => _c.abort();
   }, []);
   // SWR key includes tab + user so switching tabs is instant on revisit
@@ -156,7 +159,13 @@ export default function TournamentsPage() {
     error: tournamentsError,
     mutate: refreshTournaments,
   } = useSWR(swrKey, async (url) => {
-    const response = await authedFetch(url);
+    // The lobby is open to everyone (Dan, 2026-10-12). authedFetch attaches
+    // Authorization only when a session exists; a stale session that cannot
+    // be refreshed falls back to the shared, signed-out listing.
+    let response = await authedFetch(url);
+    if (response.status === 401) {
+      response = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } });
+    }
     const payload = await response.json().catch(() => null);
     if (!response.ok || payload?.success !== true || !Array.isArray(payload.tournaments)) {
       throw new Error(payload?.error || 'Tournament Data Could Not Be Loaded');
@@ -281,6 +290,13 @@ export default function TournamentsPage() {
               </button>
             ))}
           </div>
+
+          {authChecked && !user?.id && (
+            <TrainingSignInPrompt
+              returnPath="/hub/training/tournaments"
+              message="Sign In To Register And Track Your Tournament Entries."
+            />
+          )}
 
           {/* Tournament List */}
           {loading ? (
