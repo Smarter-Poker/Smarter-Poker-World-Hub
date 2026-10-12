@@ -391,6 +391,7 @@ import './user-reel-publication-recovery.test.mjs';
 import './video-embed-report-adjudication.test.mjs';
 import './video-library-access-phase-9.test.mjs';
 import './video-library-club-arena-console.test.mjs';
+import './video-library-curation.test.mjs';
 import './video-library-phase-5.test.mjs';
 import './video-library-phase-6.test.mjs';
 import './video-library-phase-7.test.mjs';
