@@ -358,6 +358,8 @@ User logs into smarter.poker, all sub-apps share the session.
 11. No exceptions. Every rule, every task, every session.
 12. Never ask "should I?" -- just do it. Only stop for genuine forks.
 13. **Preserve work in an owned checkout.** Commit explicit paths with normal hooks and follow `PUBLISHING.md`. Do not rely on or restart any reset loop or shared-clone push service.
+14. **Never hand Dan a job you can do (Dan, 2026-10-12, BINDING).** Dan, verbatim: "DON'T EVER ASK THE HUMAN TO DO A JOB YOU CAN DO AND SHOULD DO." That includes merging your own PR, waiting on its checks, and verifying the change live. Finish the delivery yourself through PUBLISHING.md. If a tool genuinely refuses an action, say exactly what refused and what you did about it - never end with "you can merge it here".
+15. **The footer is locked to the bottom (Dan, 2026-10-12, BINDING).** The bottom navigation bar is `position: fixed` at `bottom: 0` on every page and width, never floating mid-page. Its hide-while-scrolling-down behaviour (section on `useHideOnScroll` in `src/components/ui/BottomNavBar.jsx`) slides it off the bottom edge and back; it never moves anywhere else. Note: a full-page screenshot paints a fixed bar wherever the viewport was, which looks like a mid-page footer - check footer position with a viewport screenshot or `getBoundingClientRect()`, never a full-page capture.
 
 ---
 
