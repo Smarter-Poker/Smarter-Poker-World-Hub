@@ -7,6 +7,18 @@ import { parse } from '@babel/parser';
 
 const source = readFileSync(new URL('../scripts/ci/qualify-pnm-launch-phase6.mjs', import.meta.url), 'utf8');
 const paths = ['/hub/poker-near-me/lobby', ...POKER_DISCOVERY_SITEMAP_ROUTES.map(row => row.path), '/hub/daily-tournaments', '/hub/events-calendar', '/hub/poker-near-me/in', '/hub/poker-near-me/in/nv', '/hub/poker-near-me/in/nv/las-vegas', '/hub/venues/1828', '/hub/poker-series', '/hub/series/5000759', '/hub/poker-tours', '/hub/tours/wsop', '/hub/home-games', '/hub/home-games/near-me', '/hub/home-games/actual-public-group', '/hub/home-games/in', '/hub/home-games/in/nv', '/hub/home-games/in/nv/las-vegas'];
+test('keyboard list qualification opens the actual collapsed discovery controls before focusing section buttons', () => {
+  const start = source.indexOf('export async function qualifyMap(');
+  assert.ok(start >= 0);
+  const keyboard = source.slice(start, source.indexOf('async function qualifyFaults(', start));
+  const opened = keyboard.indexOf("await summary.focus(); await summary.press('Enter')");
+  const asserted = keyboard.indexOf("'Keyboard opens discovery controls'");
+  const listFocus = keyboard.indexOf('await venueButton.focus()');
+  assert.ok(opened >= 0 && asserted > opened && listFocus > asserted);
+  assert.ok(keyboard.includes("page.locator('.pnm-discovery-controls')"));
+  assert.ok(keyboard.includes("await disclosure.getAttribute('open') !== null, true"));
+  assert.ok(keyboard.includes('row.keyboardListAlternative = true'));
+});
 test('shared daily route has one authoritative main containing its heading, filters and every feed state', () => {
   const daily = readFileSync(new URL('../pages/hub/daily-tournaments.js', import.meta.url), 'utf8');
   const ast = parse(daily, { sourceType: 'module', plugins: ['jsx'] });

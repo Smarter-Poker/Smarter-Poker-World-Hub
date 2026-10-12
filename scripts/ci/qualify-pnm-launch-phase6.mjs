@@ -212,7 +212,7 @@ export async function qualifyRoute(browser, viewport, entry, directory) {
   } catch (error) { row.error = safeError(error); } finally { await closeContext(context, row); }
   return row;
 }
-async function qualifyMap(browser, viewport) {
+export async function qualifyMap(browser, viewport) {
   const row = { viewport, blockedWrites: 0, pageErrors: [], passed: false };
   const context = await publicContext(browser, viewport, row);
   try {
@@ -230,6 +230,11 @@ async function qualifyMap(browser, viewport) {
     assert.equal(await trigger.evaluate(node => document.activeElement === node), true, 'Escape restores focus');
     assert.deepEqual(await page.evaluate(() => ({ body: document.body.style.overflow, root: document.documentElement.style.overflow })), { body: '', root: '' });
     row.keyboardFullscreenAndEscape = true;
+    const disclosure = page.locator('.pnm-discovery-controls');
+    const summary = disclosure.locator('summary');
+    await summary.focus(); await summary.press('Enter');
+    assert.equal(await disclosure.getAttribute('open') !== null, true, 'Keyboard opens discovery controls');
+    row.keyboardFilterDisclosure = true;
     const venueButton = page.getByRole('navigation', { name: 'Poker Near Me sections' }).getByRole('button', { name: /^Venues/i });
     await venueButton.focus(); await venueButton.press('Enter');
     await page.waitForURL(/\/hub\/poker-near-me\/venues(?:\?|$)/);
