@@ -57,3 +57,13 @@ Standalone iframe identity is keyed to the video, so old-document messages canno
 - Final source build passed with 508 pages; focused source tests pass 65/65; current complete repository guard passes 2,953/2,953.
 - Final compiled browser matrix passes 25 executable Chromium desktop/phone checks with one intentional desktop skip for the phone-only geometry case; WebKit desktop/phone playback checks pass 4/4. The regression now also proves full-screen exit on minimization and clicking the already-playing card after changing autoplay preserves the same iframe URL.
 - The final player start snapshot and iframe video key preserve continuity and old-frame rejection without changing account persistence or rewards. All app/source changes are qualified; the final correction is ready for ordinary submission. Production publication and final live proof remain pending.
+
+## Final Submitted Candidate
+
+Final head 7faf232c678623c4c346a12127e646033c9327e0 is pushed on PR #2343. Ordinary pre-push checks passed, including exact-candidate TypeScript baseline. Required hosted Build Safety Gate 38277753745 (pre-deploy job 114907290781, TypeScript job 114907291198), invariants 38277753781, identifier guard 38277753751, conflict guard 38277753976, and audit marker 38277753748 are pending/queued. Provider job metadata reports no assigned runner for the queued safety jobs. This is a provider-worker wait, not an engine/hourly dependency or a local failure.
+
+Final current-source standalone checks at 375/393/768/1440 widths pass actual next iframe source identity and responsive layout. Real WebKit playback verified again with a condition-based wait for actual playback readiness before seeking; the real next video advanced beyond four seconds. No production claim until protected merge, Vercel READY, serving identity and live affected behavior.
+
+## Footer Verification Repair
+
+Prior-head hosted Global Footer run 38268350412 failed specifically on the new watch-route template. The generic dynamic sampler substituted `sample` for videoId and left the optional catch-all template in the URL, so getServerSideProps correctly returned 404 and the fixture tested the 404 footer. This is in-scope verification repair, not a footer layout change. The footer test now obtains an eligible ID from the public catalog and checks a real watch route, retaining the existing status/artwork assertions and full route coverage. A dedicated two-engine server-rendered watch-footer case plus the maintained footer-law regression protect this sample mapping.

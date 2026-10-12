@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type BrowserContext, type Page, type APIRequestContext } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import footerRegistry from '../src/config/world-footer-navigation.json';
@@ -121,6 +121,20 @@ const redirectOwnedRoutes: Record<string, { pathname: string }> = {
     pathname: '/hub/training/arena/quiz-gauntlet',
   },
 };
+
+const VIDEO_WATCH_SOURCE_ROUTE = '/hub/video-library/watch/[videoId]/[[...slug]]';
+
+// The watch page requires a verified catalog ID. A generic "sample" renders
+// the 404 world, so choose a currently eligible public video rather than a
+// hard-coded ID that may later be removed or become stale.
+async function watchFooterSample(request: APIRequestContext): Promise<string> {
+  const response = await request.get('/api/video-library/catalog?limit=1');
+  expect(response.ok(), 'The Footer Watch Sample Needs A Working Public Catalog').toBe(true);
+  const payload = await response.json();
+  const videoId = payload?.data?.[0]?.videoId;
+  expect(videoId, 'The Footer Watch Sample Needs A Verified Public Video').toMatch(/^[A-Za-z0-9_-]{11}$/);
+  return `/hub/video-library/watch/${videoId}/footer-proof`;
+}
 
 const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
   .filter(
@@ -297,6 +311,15 @@ const arenaRoutesExcluded = (matrixDoc.match(/^\|\s*`?\/hub\/training\/arena\//g
 const EXPECTED_ROUTES = documentedTotal - arenaRoutesExcluded;
 
 test.describe('dynamic World Hub footer route and visual contract', () => {
+  test('a verified video watch sample server-renders the Video Library footer', async ({ request }) => {
+    const route = await watchFooterSample(request);
+    const response = await request.get(route);
+    expect(response.status()).toBe(200);
+    const html = await response.text();
+    expect(html.match(/<nav[^>]+data-footer-world="video-library"/g) || []).toHaveLength(1);
+    expect(html).toContain('footer-video-library-v2.png');
+  });
+
   test('Diamond Marketplace owns one in-flow footer without losing its copy policy', async ({
     page,
   }) => {
@@ -336,11 +359,12 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         `If you added or removed a route, regenerate that document in the same commit.`
     ).toHaveLength(EXPECTED_ROUTES);
 
+    const watchRoute = await watchFooterSample(request);
     for (let offset = 0; offset < routeMatrix.length; offset += 8) {
       const batch = routeMatrix.slice(offset, offset + 8);
       await Promise.all(
         batch.map(async ({ sourceRoute, reachableRoute, world }) => {
-          const response = await request.get(reachableRoute, {
+          const response = await request.get(sourceRoute === VIDEO_WATCH_SOURCE_ROUTE ? watchRoute : reachableRoute, {
             failOnStatusCode: false,
             timeout: 30_000,
           });

@@ -340,3 +340,12 @@ test('the local PWA browser build never impersonates HTTPS Vercel hosting', () =
     assert.match(config, /disable: !\(process.env.VERCEL \|\| process.env.PWA_ENABLED === '1'\)/);
     assert.match(config, /process.env.VERCEL \? \['upgrade-insecure-requests'\]/);
 });
+
+
+test('the watch footer uses a verified catalog ID instead of unresolved dynamic parameters', () => {
+    const spec = read('e2e/global-footer-visual.spec.ts');
+    assert.match(spec, /VIDEO_WATCH_SOURCE_ROUTE = '\/hub\/video-library\/watch\/\[videoId\]\/\[\[\.\.\.slug\]\]'/);
+    assert.match(spec, /request\.get\('\/api\/video-library\/catalog\?limit=1'\)/);
+    assert.match(spec, /sourceRoute === VIDEO_WATCH_SOURCE_ROUTE \? watchRoute : reachableRoute/);
+    assert.match(spec, /expect\(response\.status\(\)\)\.toBe\(200\)/);
+});
