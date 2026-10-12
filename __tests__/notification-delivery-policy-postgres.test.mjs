@@ -6,10 +6,15 @@ import { join,resolve } from 'node:path';
 import net from 'node:net';
 const root=resolve(import.meta.dirname,'..');
 const migration=join(root,'supabase/migrations/20261012152000_notification_delivery_policy.sql');
+// Fixture identity data comes from the immutable routing preflight, never a
+// sign-in identity or credential. This test uses only its disposable localhost DB.
+const policySql=readFileSync(migration,'utf8');
+const accountBindings=[...policySql.matchAll(/\(id='([0-9a-f-]+)' AND lower\(email\)='([^']+)'\)/g)].map(match=>({id:match[1],email:match[2]}));
 const original=readFileSync(join(root,'__tests__/fixtures/notification-delivery/original.sql'),'utf8');
 const owner='47965354-0e56-43ef-931c-ddaab82af765', gmail='3bb71bfe-f723-427c-aac7-a853ba04a014',player='11111111-1111-4111-8111-111111111111';
 const bin=process.env.PG17_BINDIR || (existsSync('/opt/homebrew/opt/postgresql@17/bin')?'/opt/homebrew/opt/postgresql@17/bin':'/usr/lib/postgresql/17/bin');
 test('real PostgreSQL routes the original seat trigger to push only and guards every database writer',async()=>{
+ assert.deepEqual(accountBindings.map(row=>row.id).sort(),[owner,gmail].sort(),'exact verified routing accounts seed only the local fixture');
  const base=process.env.NOTIFICATION_POLICY_POSTGRES_ROOT;
  assert.ok(base && existsSync(base),'An owned PostgreSQL scratch directory is required');
  const scratch=mkdtempSync(join(base,'notification-pg-'));const data=join(scratch,'data');
@@ -21,7 +26,7 @@ test('real PostgreSQL routes the original seat trigger to push only and guards e
   execFileSync(join(bin,'initdb'),['-D',data,'-U','postgres','-A','trust','--no-locale'],{stdio:'pipe'});
   execFileSync(join(bin,'pg_ctl'),['-D',data,'-l',join(scratch,'postgres.log'),'-o',`-p ${port} -h 127.0.0.1 -k ''`,'-w','start'],{stdio:'pipe'});started=true;
   q(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE SCHEMA auth;
-   CREATE TABLE auth.users(id uuid PRIMARY KEY,email text);INSERT INTO auth.users VALUES('${owner}','daniel@bekavactrading.com'),('${gmail}','danbek4545@gmail.com'),('${player}','player@example.invalid');
+   CREATE TABLE auth.users(id uuid PRIMARY KEY,email text);INSERT INTO auth.users VALUES ${accountBindings.map(row=>`('${row.id}','${row.email}')`).join(',')},('${player}','player@example.invalid');
    CREATE TABLE notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,type text,title text,message text,link text,action_url text,data jsonb,created_at timestamptz DEFAULT now());
    CREATE TABLE push_outbox(id uuid DEFAULT gen_random_uuid(),recipient_user_id uuid,title text,body text,url text,event text,tag text,status text,claimed_at timestamptz,failure_reason text,related_entity_id uuid);
    CREATE FUNCTION fn_mirror_notification_to_push_outbox() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN INSERT INTO push_outbox(recipient_user_id,event,title,status) VALUES(NEW.user_id,NEW.type,NEW.title,'pending');RETURN NEW;END $$;
