@@ -33,15 +33,16 @@ function timeAgo(date) {
     return `${Math.floor(seconds / 31536000)}y ago`;
 }
 
-// Source accent colors (canonical — matches SOURCE_COLORS in pages/hub/news.js)
+// Uniform source accent (matches SOURCE_COLORS in pages/hub/news.js)
 const SOURCE_COLORS_LOCAL = {
-    'PokerNews': '#e53935',
-    'MSPT': '#1565c0',
-    'CardPlayer': '#43a047',
-    'Card Player': '#43a047',
-    'WSOP': '#f9a825',
-    'Poker.org': '#7b1fa2',
-    'Pokerfuse': '#00897b'
+    'PokerNews': '#00d4ff',
+    'MSPT': '#00d4ff',
+    'CardPlayer': '#00d4ff',
+    'Card Player': '#00d4ff',
+    'WSOP': '#00d4ff',
+    'Poker.org': '#00d4ff',
+    'Pokerfuse': '#00d4ff',
+    'PokerStars Blog': '#00d4ff'
 };
 
 // Minimal HTML entity decoder for excerpt text (named + numeric entities)
@@ -219,8 +220,8 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
     const fallbackUrl = typeof categoryFallback === 'string' ? categoryFallback : FALLBACK_IMAGES.news;
     const imageUrl = newsImageUrl(rawImageUrl) || fallbackUrl;
 
-    const srcAccent = pickOwn(SOURCE_COLORS_LOCAL, article.source_name, '#5ef5f0');
-    const srcColor = typeof srcAccent === 'string' ? srcAccent : '#5ef5f0';
+    const srcAccent = pickOwn(SOURCE_COLORS_LOCAL, article.source_name, '#00d4ff');
+    const srcColor = typeof srcAccent === 'string' ? srcAccent : '#00d4ff';
 
     const title = safeText(article.title);
     const sourceLabel = safeText(article.source_name) || 'Smarter.Poker';

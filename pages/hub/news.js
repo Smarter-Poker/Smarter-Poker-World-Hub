@@ -148,16 +148,16 @@ const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 
 const SECTION_TABS = ['news', 'reels', 'videos', 'events'];
 const NAV_SECTION_TABS = [...SECTION_TABS, 'later'];
 
-// Source accent colors for color-coded borders
+// Uniform electric blue source names and selected source chips
 const SOURCE_COLORS = {
-    'PokerNews': '#e53935',
-    'MSPT': '#1565c0',
-    'CardPlayer': '#43a047',
-    'Card Player': '#43a047',
-    'WSOP': '#f9a825',
-    'Poker.org': '#7b1fa2',
-    'Pokerfuse': '#00897b',
-    'PokerStars Blog': '#d81e45'
+    'PokerNews': '#00d4ff',
+    'MSPT': '#00d4ff',
+    'CardPlayer': '#00d4ff',
+    'Card Player': '#00d4ff',
+    'WSOP': '#00d4ff',
+    'Poker.org': '#00d4ff',
+    'Pokerfuse': '#00d4ff',
+    'PokerStars Blog': '#00d4ff'
 };
 
 function normalizeSourceName(value) {
@@ -1647,7 +1647,7 @@ function NewsHub() {
                                         type="button"
                                         className={`source-chip ${sourceFilters[src] ? 'active' : ''}`}
                                         onClick={() => toggleSource(src)}
-                                        style={{ '--source-color': SOURCE_COLORS[src] || '#5ef5f0' }}
+                                        style={{ '--source-color': SOURCE_COLORS[src] || '#00d4ff' }}
                                         aria-pressed={!!sourceFilters[src]}
                                         aria-label={`${sourceFilters[src] ? 'Remove' : 'Add'} ${src} source filter`}
                                     >
@@ -1729,7 +1729,7 @@ function NewsHub() {
                                                     onMouseDown={(e) => e.preventDefault() /* keep input focus so blur doesn't race the click */}
                                                     onClick={() => { openArticle(a); setSearchQuery(''); setActiveSuggestionIdx(-1); }}
                                                 >
-                                                    <span className="suggestion-source" style={{ color: SOURCE_COLORS[a.source_name] || '#5ef5f0' }}>{a.source_name}</span>
+                                                    <span className="suggestion-source" style={{ color: SOURCE_COLORS[a.source_name] || '#00d4ff' }}>{a.source_name}</span>
                                                     <span className="suggestion-title">{a.title}</span>
                                                 </button>
                                             ))}
@@ -1935,7 +1935,7 @@ function NewsHub() {
                                                                             </button>
                                                                         </h4>
                                                                         <div className="list-meta">
-                                                                            <span style={{ color: SOURCE_COLORS[article.source_name] || '#888' }}>{article.source_name || 'Source'}</span>
+                                                                            <span style={{ color: SOURCE_COLORS[article.source_name] || '#00d4ff' }}>{article.source_name || 'Source'}</span>
                                                                             <span>•</span>
                                                                             <span>{hasMounted ? timeAgo(article.published_at) : ''}</span>
                                                                             {article.category && <span className="category-pill" style={{ background: `rgba(${article.category === 'tournament' ? '251,191,36' : article.category === 'strategy' ? '124,58,237' : article.category === 'industry' ? '34,197,94' : '59,130,246'}, 0.2)`, color: article.category === 'tournament' ? '#fbbf24' : article.category === 'strategy' ? '#a78bfa' : article.category === 'industry' ? '#22c55e' : '#3b82f6' }}>{article.category}</span>}
