@@ -4,14 +4,26 @@ import { loadReelYouTubeAPI } from '../../lib/loadReelYouTubeAPI.mjs';
 
 // React owns the host, the official API owns its iframe. Swiping changes the
 // video in one player; cleanup destroys only that API-owned child.
-export default function ReelYouTubePlayer({ videoId, active = true, autoplay = true, muted = true, iframeRef, eventRef, onMutedChange, commandRef, title }) {
+export default function ReelYouTubePlayer({ videoId, active = true, autoplay = true, muted = true, iframeRef, eventRef, onMutedChange, commandRef, title, playbackScopeKey = null }) {
   const hostRef = useRef(null);
   const playerRef = useRef(null);
   const readyRef = useRef(false);
   const loadedIdRef = useRef(null);
   const desiredRef = useRef(null);
-  desiredRef.current = { videoId, active, autoplay, muted, title };
+  desiredRef.current = { videoId, active, autoplay, muted, title, playbackScopeKey };
   const playbackIntentRef = useRef(null);
+  const pageHiddenRef = useRef(false);
+  const visible = () => !pageHiddenRef.current && (typeof document === 'undefined' || (document.visibilityState !== 'hidden' && document.hidden !== true));
+  const visibilityHoldRef = useRef(!visible());
+  const visibilityResumeRef = useRef(null);
+  const observedIdentityRef = useRef({ videoId, active, playbackScopeKey });
+  const previousIdentity = observedIdentityRef.current;
+  if (previousIdentity.videoId !== videoId || previousIdentity.active !== active || previousIdentity.playbackScopeKey !== playbackScopeKey) {
+    visibilityResumeRef.current = null;
+    // A newly selected clip while hidden must remain cued on return.
+    visibilityHoldRef.current = !visible();
+    observedIdentityRef.current = { videoId, active, playbackScopeKey };
+  }
   const stopProgressRef = useRef(() => {});
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -28,10 +40,11 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
       stopProgressRef.current();
       playbackIntentRef.current = null;
       player.mute();
-      const method = desired.autoplay ? 'loadVideoById' : 'cueVideoById';
+      const method = desired.autoplay && visible() && !visibilityHoldRef.current ? 'loadVideoById' : 'cueVideoById';
       player[method]({ videoId: desired.videoId, startSeconds: 0 });
       loadedIdRef.current = desired.videoId;
     }
+    if (!visible() || visibilityHoldRef.current) { stopProgressRef.current(); player.mute(); player.pauseVideo(); return; }
     if (desired.muted) player.mute();
     else { player.unMute(); player.setVolume(100); }
     if ((!desired.autoplay && playbackIntentRef.current !== 'playVideo') || playbackIntentRef.current === 'pauseVideo') player.pauseVideo();
@@ -48,7 +61,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
     stopProgressRef.current = stopProgress;
     const drawProgress = (at) => {
       progressFrame = null;
-      if (disposed || !player || !readyRef.current || !desiredRef.current.active) return;
+      if (disposed || !player || !readyRef.current || !desiredRef.current.active || !visible() || visibilityHoldRef.current) return;
       if (at - lastProgressAt >= 100) {
         const currentTime = player.getCurrentTime?.(), duration = player.getDuration?.();
         if (Number.isFinite(currentTime) && duration > 0) forward('infoDelivery', { currentTime, duration });
@@ -71,7 +84,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
       if (disposed || !hostRef.current) return;
       const initial = desiredRef.current;
       const frame = document.createElement('iframe');
-      const params = new URLSearchParams({ autoplay: initial.active && initial.autoplay ? '1' : '0', mute: '1', playsinline: '1', controls: '0', rel: '0', enablejsapi: '1', origin: window.location.origin, widget_referrer: window.location.origin });
+      const params = new URLSearchParams({ autoplay: initial.active && initial.autoplay && visible() && !visibilityHoldRef.current ? '1' : '0', mute: '1', playsinline: '1', controls: '0', rel: '0', enablejsapi: '1', origin: window.location.origin, widget_referrer: window.location.origin });
       frame.src = `https://www.youtube-nocookie.com/embed/${initial.videoId}?${params}`;
       frame.title = initial.title || 'Reel Video';
       frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
@@ -82,11 +95,12 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
       if (iframeRef) iframeRef.current = frame;
       loadedIdRef.current = initial.videoId;
       player = new YT.Player(frame, { events: {
-        onReady: () => { if (disposed) return; readyRef.current = true; setReady(true); if (iframeRef) iframeRef.current = player.getIframe(); applyDesired(); forward('onReady'); const state = player.getPlayerState?.(); if (Number.isFinite(state)) forward('onStateChange', state); if (state === 1) startProgress(); if (desiredRef.current.active && (desiredRef.current.autoplay || playbackIntentRef.current === 'playVideo') && playbackIntentRef.current !== 'pauseVideo') player.playVideo(); },
+        onReady: () => { if (disposed) return; readyRef.current = true; setReady(true); if (iframeRef) iframeRef.current = player.getIframe(); applyDesired(); forward('onReady'); const state = player.getPlayerState?.(); if (Number.isFinite(state) && visible() && !visibilityHoldRef.current) forward('onStateChange', state); if (state === 1 && visible() && !visibilityHoldRef.current) startProgress(); if (visible() && !visibilityHoldRef.current && desiredRef.current.active && (desiredRef.current.autoplay || playbackIntentRef.current === 'playVideo') && playbackIntentRef.current !== 'pauseVideo') player.playVideo(); },
         onStateChange: (event) => {
           if (disposed) return;
           const desired = desiredRef.current;
           if (!desired.active) { player.pauseVideo(); return; }
+          if (!visible() || visibilityHoldRef.current) { stopProgress(); if (event.data === 1) { player.mute(); player.pauseVideo(); } return; }
           const observedId = player.getVideoData?.()?.video_id;
           if (observedId && observedId !== desired.videoId) return;
           // The provider state is authoritative; no timed play/unmute retries.
@@ -113,21 +127,61 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
     if (!commandRef) return;
     const command = (name, args = []) => {
       if (!desiredRef.current.active) return;
-      if (name === 'playVideo' || name === 'pauseVideo') playbackIntentRef.current = name;
+      if (name === 'playVideo' || name === 'pauseVideo') {
+        playbackIntentRef.current = name;
+        if (name === 'pauseVideo') visibilityResumeRef.current = null;
+        if (name === 'playVideo' && visible()) visibilityHoldRef.current = false;
+      }
       const player = playerRef.current;
       if (!readyRef.current || !player || !desiredRef.current.active) return;
+      if (!visible() && ['playVideo', 'unMute', 'setVolume'].includes(name)) return;
       if (name === 'seekToPercent') { const seconds = reelSeekSeconds(args[0], player.getDuration()); if (seconds !== null) player.seekTo(seconds, true); return; }
       if (['playVideo', 'pauseVideo', 'mute', 'unMute', 'setVolume', 'setPlaybackRate', 'seekTo'].includes(name)) player[name](...args);
     };
     commandRef.current = command;
     return () => { if (commandRef.current === command) commandRef.current = null; };
   }, [commandRef]);
-  useEffect(applyDesired, [videoId, active, autoplay, muted, title]);
-  useEffect(() => { if (readyRef.current && active && autoplay && playbackIntentRef.current !== 'pauseVideo') playerRef.current?.playVideo(); }, [active, autoplay]);
+  useEffect(applyDesired, [videoId, active, autoplay, muted, title, playbackScopeKey]);
+  useEffect(() => { if (visible() && !visibilityHoldRef.current && readyRef.current && active && autoplay && playbackIntentRef.current !== 'pauseVideo') playerRef.current?.playVideo(); }, [active, autoplay]);
+  useEffect(() => {
+    const suspend = () => {
+      const desired = desiredRef.current;
+      const player = playerRef.current;
+      if (!visibilityHoldRef.current) {
+        visibilityResumeRef.current = desired.active && readyRef.current && player?.getPlayerState?.() === 1 && playbackIntentRef.current !== 'pauseVideo'
+          ? { videoId: desired.videoId, playbackScopeKey: desired.playbackScopeKey } : null;
+      }
+      visibilityHoldRef.current = true;
+      stopProgressRef.current();
+      if (readyRef.current) { player?.mute(); player?.pauseVideo(); }
+    };
+    const change = () => {
+      if (!visible()) { suspend(); return; }
+      const saved = visibilityResumeRef.current;
+      visibilityResumeRef.current = null;
+      const desired = desiredRef.current;
+      if (!saved || !desired.active || saved.videoId !== desired.videoId || saved.playbackScopeKey !== desired.playbackScopeKey || playbackIntentRef.current === 'pauseVideo') return;
+      visibilityHoldRef.current = false;
+      applyDesired();
+      if (readyRef.current) playerRef.current?.playVideo();
+    };
+    const pageHide = () => { pageHiddenRef.current = true; suspend(); };
+    const pageShow = () => { pageHiddenRef.current = false; change(); };
+    document.addEventListener?.('visibilitychange', change);
+    window.addEventListener('pagehide', pageHide);
+    window.addEventListener('pageshow', pageShow);
+    if (!visible()) suspend();
+    return () => {
+      visibilityResumeRef.current = null;
+      document.removeEventListener?.('visibilitychange', change);
+      window.removeEventListener('pagehide', pageHide);
+      window.removeEventListener('pageshow', pageShow);
+    };
+  }, []);
   useEffect(() => {
     const observeSound = (event) => {
       const frame = iframeRef?.current;
-      if (!desiredRef.current.active || !frame || event.source !== frame.contentWindow || !['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(event.origin)) return;
+      if (!visible() || visibilityHoldRef.current || !desiredRef.current.active || !frame || event.source !== frame.contentWindow || !['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(event.origin)) return;
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data?.event === 'infoDelivery') {

@@ -131,6 +131,7 @@ export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
   'Retired browser cache is removed before playback',
   'Revoked and expired saved sessions fail closed into reauthentication without mounting private media',
   'A mid-flight category drop retains one mounted player and retry recovers',
+  'Actual native video honors controlled visibility pause, playing-intent resume, and manual pause',
   'Casino And Slots displays the responsible-gaming notice with one player',
   'Ordinary social articles still open in the protected in-app reader',
   'My Reels and Saved Reels pages synchronize with their authoritative populated or empty state',
@@ -1006,6 +1007,85 @@ async function installReadOnlyNetworkGuard(context, state) {
   });
 }
 
+async function verifyNativeVisibility(browser, validatedRows, report) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  const state = createReadOnlyBrowserState();
+  await installReadOnlyNetworkGuard(context, state);
+  const page = await context.newPage();
+  const candidates = validatedRows.filter(row => row.playback_type === 'native').slice(0, 7);
+  candidates.sort((a, b) => Number(b.id === 'b3258975-db9f-42d5-a581-6c305b180b8f') - Number(a.id === 'b3258975-db9f-42d5-a581-6c305b180b8f'));
+  let selected = null;
+  let candidatesWithoutObservedPlayback = 0;
+  try {
+    report.stage = 'native-visibility-select-playable';
+    for (const row of candidates) {
+      await page.goto(`${APP_ORIGIN}/hub/reels?category=for-you&id=${row.id}`, { waitUntil: 'domcontentloaded' });
+      try {
+        await page.waitForFunction(url => {
+          const video = document.querySelector('main video');
+          return video?.currentSrc === url && video.readyState >= 2 && !video.error && !video.paused;
+        }, row.video_url, { timeout: 12000 });
+        selected = row;
+        break;
+      } catch {
+        // No observed playback is retained without guessing whether the cause
+        // was codec support or transport. It cannot stand in for live proof.
+        candidatesWithoutObservedPlayback++;
+      }
+    }
+    assert.ok(selected, 'No validated native candidate actually played; visibility proof is unavailable');
+    const native = page.locator('main video');
+    assert.equal(await native.count(), 1, 'Native visibility setup mounted multiple videos');
+    await page.evaluate(() => {
+      const descriptors = new Map(['hidden', 'visibilityState'].map(key => [key, Object.getOwnPropertyDescriptor(document, key)]));
+      window.__reelsLiveVisibilityProof = { descriptors, hidden: false };
+      for (const key of descriptors.keys()) Object.defineProperty(document, key, {
+        configurable: true,
+        get: () => key === 'hidden' ? window.__reelsLiveVisibilityProof.hidden : window.__reelsLiveVisibilityProof.hidden ? 'hidden' : 'visible',
+      });
+    });
+    const visibility = hidden => page.evaluate(hidden => {
+      window.__reelsLiveVisibilityProof.hidden = hidden;
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+    report.stage = 'native-controlled-visibility-playing';
+    await visibility(true);
+    await page.waitForFunction(() => document.querySelector('main video')?.paused === true);
+    const pausedTime = await native.evaluate(video => video.currentTime);
+    await page.waitForTimeout(300);
+    assert.ok(Math.abs(await native.evaluate(video => video.currentTime) - pausedTime) < 0.05, 'Hidden native video continued advancing');
+    await visibility(false);
+    await page.waitForFunction(url => {
+      const video = document.querySelector('main video');
+      return video?.currentSrc === url && !video.paused;
+    }, selected.video_url);
+    report.stage = 'native-controlled-visibility-manual-pause';
+    await page.locator('[data-reels-tap]').click({ position: { x: 150, y: 200 } });
+    await page.waitForFunction(() => document.querySelector('main video')?.paused === true);
+    await visibility(true);
+    await visibility(false);
+    await page.waitForTimeout(300);
+    assert.equal(await native.evaluate(video => video.paused), true, 'Visibility return overrode the user pause');
+    assert.equal(await native.evaluate(video => video.currentSrc), selected.video_url, 'Visibility transition changed the active native clip');
+    report.coverage.nativeVisibility = {
+      controlledVisibilityEvent: true, realBackgroundTabSwitch: false,
+      hiddenPaused: true, visibleResumedPlayingIntent: true, manualPausePreserved: true,
+      activePlayers: 1, candidatesWithoutObservedPlayback, ...readOnlyGuardReceipt(state),
+    };
+  } finally {
+    await page.evaluate(() => {
+      const proof = window.__reelsLiveVisibilityProof;
+      if (!proof) return;
+      for (const [key, descriptor] of proof.descriptors) {
+        if (descriptor) Object.defineProperty(document, key, descriptor);
+        else delete document[key];
+      }
+      delete window.__reelsLiveVisibilityProof;
+    }).catch(() => {});
+    await context.close();
+  }
+}
+
 async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, report) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   const state = createReadOnlyBrowserState();
@@ -1553,6 +1633,14 @@ export function validateReceipt(report) {
     assert.equal(pageReceipt?.synchronized, true, `${collection} collection page did not synchronize`);
     assert.equal(pageReceipt?.state, receipt.records > 0 ? 'populated' : 'empty', `${collection} collection UI disagrees with the API`);
   }
+  const nativeVisibility = report.coverage?.nativeVisibility;
+  assert.equal(nativeVisibility?.controlledVisibilityEvent, true, 'Native controlled visibility proof is missing');
+  assert.equal(nativeVisibility?.realBackgroundTabSwitch, false, 'Controlled visibility cannot be claimed as a real tab switch');
+  for (const key of ['hiddenPaused', 'visibleResumedPlayingIntent', 'manualPausePreserved']) {
+    assert.equal(nativeVisibility?.[key], true, `Native visibility proof omitted ${key}`);
+  }
+  assert.equal(nativeVisibility?.activePlayers, 1, 'Native visibility proof did not retain one actual video');
+  validateReadOnlyGuardProof(nativeVisibility, 'Native visibility verification');
   assert.equal(report.coverage?.publicMobile?.oldBookmarkCanonicalized, true, 'Old bookmark query was not canonicalized');
   assert.equal(report.coverage?.publicMobile?.loserAliasRenderedCanonicalWinner, true, 'Old loser bookmark did not render its canonical winner');
   assert.equal(report.coverage?.publicMobile?.staleStorageRetired, true, 'Hostile stale storage was not retired');
@@ -1709,6 +1797,7 @@ async function run() {
     const article = await findOrdinaryArticle(session.access_token);
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
+    await verifyNativeVisibility(browser, collections['for-you'].rows, report);
     report.stage = 'public-mobile';
     await verifyPublicBrowser(
       browser,

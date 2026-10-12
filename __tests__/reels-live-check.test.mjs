@@ -571,6 +571,12 @@ test('workflow retains and independently asserts the complete sanitized receipt'
     coverage: {
       healthStable: true,
       followingApi: { signedOutStatus: 401, signedInStatus: 200, reels: 0 },
+      nativeVisibility: {
+        controlledVisibilityEvent: true, realBackgroundTabSwitch: false,
+        hiddenPaused: true, visibleResumedPlayingIntent: true, manualPausePreserved: true,
+        activePlayers: 1, candidatesWithoutObservedPlayback: 0, readOnlyGuardInstalled: true,
+        blockedMutationAttempts: 0, blockedMutationClasses: [], allowedMutationAttempts: 0,
+      },
       publicMobile: {
         oldBookmarkCanonicalized: true,
         loserAliasRenderedCanonicalWinner: true,

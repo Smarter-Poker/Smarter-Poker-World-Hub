@@ -415,7 +415,7 @@ jobs:
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
 
       - name: Social Articles And Immersive Reel Playback
-        run: node --test __tests__/social-feed-normal-ui.test.mjs __tests__/social-feed-normal-live-safety.test.mjs __tests__/reels-carousel-console.test.mjs __tests__/reels-embedded-console-visual.test.mjs __tests__/reels-immersive-playback.test.mjs
+        run: node --test __tests__/social-feed-normal-ui.test.mjs __tests__/social-feed-normal-live-safety.test.mjs __tests__/reels-carousel-console.test.mjs __tests__/reels-embedded-console-visual.test.mjs __tests__/reels-immersive-playback.test.mjs __tests__/reels-native-visibility.test.mjs __tests__/reels-prefetch-boundary.test.mjs
 
       - name: Historical User Reels Rights PostgreSQL Contracts
         run: npm run audit:video-reels:post-rights-db
