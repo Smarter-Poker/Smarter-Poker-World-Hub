@@ -2241,7 +2241,7 @@ export default function DiamondStorePage({
           throw new Error('The Club Shop Catalog Could Not Be Bound To Your Current Account.');
         }
         const verifiedBalance =
-          Number.isSafeInteger(data.balance) && data.balance >= 0 ? data.balance : null;
+          Number.isSafeInteger(data.balance) ? data.balance : null;
         const verifiedItems = normalizeVerifiedClubShopItems(data.items, verifiedBalance);
         const verifiedPurchases = normalizeVerifiedClubShopPurchases(data.purchases);
         const verifiedContext = normalizeVerifiedClubShopContext(

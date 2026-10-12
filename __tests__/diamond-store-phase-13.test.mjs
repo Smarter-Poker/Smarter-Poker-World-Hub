@@ -161,6 +161,23 @@ test('Club Shop settlement success is bound to the exact confirmed purchase', ()
     item: { name: expected.name, type: expected.itemType },
   };
   assert.equal(normalizeVerifiedClubPurchaseSuccess(success, expected)?.newBalance, 8000);
+  // The catalog and settlement must agree on the installed seeded club ID.
+  const seededClubId = 'fade0000-0000-0000-0000-000000000001';
+  const seededExpected = { ...expected, clubId: seededClubId };
+  assert.equal(
+    normalizeVerifiedClubPurchaseSuccess({ ...success, clubId: seededClubId }, seededExpected)
+      ?.newBalance,
+    8000
+  );
+  assert.equal(normalizeVerifiedClubPurchaseSuccess(success, seededExpected), null);
+  assert.equal(
+    normalizeVerifiedClubPurchaseSuccess(
+      { ...success, clubId: seededClubId, pricePaid: 1 },
+      seededExpected
+    ),
+    null
+  );
+
   assert.equal(normalizeVerifiedClubPurchaseSuccess({ ...success, pricePaid: 1 }, expected), null);
   assert.equal(
     normalizeVerifiedClubPurchaseSuccess({ ...success, itemId: expected.clubId }, expected),
