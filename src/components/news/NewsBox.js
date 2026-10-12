@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Eye, Bookmark, BookmarkCheck, Share2, CheckCircle, Clock, Trophy, BookOpen, Briefcase, Newspaper, Monitor } from 'lucide-react';
 import { newsImageUrl } from '../../lib/security/imageHosts.js';
+import useHasMounted from '../../hooks/useHasMounted';
 
 // Fallback images for different categories
 const FALLBACK_IMAGES = {
@@ -185,6 +186,11 @@ function NewsBoxFallback({ article }) {
 }
 
 function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead, priority = false }) {
+    // "8h Ago" is computed from the clock, and /hub/news HTML is served from a
+    // cache for up to 15 minutes, so the server's label and the browser's can
+    // differ - React #425 on every such visit. The relative time is filled in
+    // after hydration instead (2026-10-12).
+    const hasMounted = useHasMounted();
     // Read time: trust any positive stored value; otherwise estimate from real
     // content at ~200 wpm. When there is nothing to estimate, show no badge
     // rather than a fabricated number.
@@ -345,7 +351,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                 <div className="box-meta">
                     <span className="source" style={{ color: srcColor }}>{sourceLabel}</span>
                     <span className="separator">•</span>
-                    <span className="time">{timeAgo(article.published_at)}</span>
+                    <span className="time">{hasMounted ? timeAgo(article.published_at) : ''}</span>
                     <span className="separator">•</span>
                     <span className="views"><Eye size={10} /> {formatViews(article.views || 0)}</span>
                 </div>
