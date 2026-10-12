@@ -7,4 +7,3 @@ export default function ReelThumbnail({ thumbnail, fallback, caption }) {
   if (!source) return <span className="vlc-reel-card__fallback">Preview Unavailable</span>;
   return <img src={source} alt={caption || 'Reel preview'} loading="lazy" decoding="async" onError={() => setFailed((urls) => [...urls, source])} />;
 }
-
