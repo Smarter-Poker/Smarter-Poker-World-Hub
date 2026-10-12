@@ -27,16 +27,16 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   const {create, act} = require('react-test-renderer');
   const ts = require('typescript');
   const instances = [], messages = new Set(), delivered = [], observedSound = [];
-  const calls = [];
+  const calls = [], frames = new Map(); let frameId = 0;
   const host = {appendChild(frame){ this.frame = frame; }};
   const frame = () => ({src:'',style:{},contentWindow:{},dataset:{}});
-  const win = {location:{origin:'https://smarter.poker'}, addEventListener(name,fn){ if(name==='message')messages.add(fn); },removeEventListener(name,fn){messages.delete(fn);},YT:{Player: class {
+  const win = {requestAnimationFrame(fn){frames.set(++frameId,fn);return frameId;},cancelAnimationFrame(id){frames.delete(id);},location:{origin:'https://smarter.poker'}, addEventListener(name,fn){ if(name==='message')messages.add(fn); },removeEventListener(name,fn){messages.delete(fn);},YT:{Player: class {
     constructor(iframe,options){this.frame=iframe;this.events=options.events; instances.push(this);}
     getIframe(){return this.frame;}
     mute(){calls.push(['mute']);} unMute(){calls.push(['unMute']);} setVolume(n){calls.push(['setVolume',n]);}
     playVideo(){calls.push(['playVideo']);} pauseVideo(){calls.push(['pauseVideo']);}
     loadVideoById(value){calls.push(['load',value.videoId]);} cueVideoById(value){calls.push(['cue',value.videoId]);}
-    getDuration(){return 92;} seekTo(n){calls.push(['seekTo',n]);} destroy(){calls.push(['destroy']);}
+    getCurrentTime(){return 23;} getDuration(){return 92;} seekTo(n){calls.push(['seekTo',n]);} destroy(){calls.push(['destroy']);}
   }}};
   const doc = {createElement:frame};
   const compile = path => ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'), {fileName:path.replace('.mjs','.js'),compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
@@ -72,6 +72,11 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   player.events.onStateChange({data:0});
   assert.ok(calls.some(c=>c[0]==='seekTo'&&c[1]===0),'ended loops current clip');
   assert.equal(instances.length,1,'switching clips keeps one iframe');
+  player.events.onStateChange({data:1});
+  const [id, draw] = frames.entries().next().value; frames.delete(id); draw(100);
+  assert.ok(delivered.some(e=>e.data.event==='infoDelivery' && e.data.info.currentTime===23 && e.data.info.duration===92), 'progress is observed through official getters');
+  player.events.onStateChange({data:2});
+  assert.equal(frames.size,0, 'paused playback stops the presentation clock');
   player.events.onError({data:100});
   assert.equal(delivered.at(-1).data.videoId, 'BBBBBBBBBBB', 'failure reports bind the active clip, never the original iframe URL');
   await act(async()=>tree.update(React.createElement(Component,{...props,videoId:'BBBBBBBBBBB',autoplay:false})));
@@ -97,7 +102,7 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   player.events.onStateChange({data:0});
   assert.deepEqual(calls.slice(before),[['pauseVideo']],'late inactive event cannot play hidden audio');
   await act(async()=>tree.unmount());
-  assert.equal(iframeRef.current,null);assert.equal(commandRef.current,null);assert.equal(messages.size,0);
+  assert.equal(iframeRef.current,null);assert.equal(commandRef.current,null);assert.equal(messages.size,0);assert.equal(frames.size,0);
   const after=calls.length; player.events.onStateChange({data:1});player.events.onReady();
   assert.equal(calls.length,after,'disposed provider callbacks are ignored');
   assert.equal(calls.filter(c=>c[0]==='destroy').length,1);

@@ -12,6 +12,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
   const desiredRef = useRef(null);
   desiredRef.current = { videoId, active, autoplay, muted, title };
   const playbackIntentRef = useRef(null);
+  const stopProgressRef = useRef(() => {});
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [failure, setFailure] = useState(null);
@@ -20,8 +21,9 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
     const player = playerRef.current;
     const desired = desiredRef.current;
     if (!readyRef.current || !player || !desired) return;
-    if (!desired.active || !desired.videoId) { player.pauseVideo(); return; }
+    if (!desired.active || !desired.videoId) { stopProgressRef.current(); player.pauseVideo(); return; }
     if (loadedIdRef.current !== desired.videoId) {
+      stopProgressRef.current();
       playbackIntentRef.current = null;
       player.mute();
       const method = desired.autoplay ? 'loadVideoById' : 'cueVideoById';
@@ -38,6 +40,23 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
   useEffect(() => {
     let disposed = false;
     let player = null;
+    let progressFrame = null;
+    let lastProgressAt = -Infinity;
+    const stopProgress = () => { if (progressFrame !== null) window.cancelAnimationFrame(progressFrame); progressFrame = null; };
+    stopProgressRef.current = stopProgress;
+    const drawProgress = (at) => {
+      progressFrame = null;
+      if (disposed || !player || !readyRef.current || !desiredRef.current.active) return;
+      if (at - lastProgressAt >= 100) {
+        const currentTime = player.getCurrentTime?.(), duration = player.getDuration?.();
+        if (Number.isFinite(currentTime) && duration > 0) forward('infoDelivery', { currentTime, duration });
+        const observedMuted = player.isMuted?.();
+        if (typeof observedMuted === 'boolean') onMutedChange?.(observedMuted);
+        lastProgressAt = at;
+      }
+      progressFrame = window.requestAnimationFrame(drawProgress);
+    };
+    const startProgress = () => { stopProgress(); lastProgressAt = -Infinity; progressFrame = window.requestAnimationFrame(drawProgress); };
     readyRef.current = false;
     setFailure(null);
     setReady(false);
@@ -61,7 +80,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
       if (iframeRef) iframeRef.current = frame;
       loadedIdRef.current = initial.videoId;
       player = new YT.Player(frame, { events: {
-        onReady: () => { if (disposed) return; readyRef.current = true; setReady(true); if (iframeRef) iframeRef.current = player.getIframe(); applyDesired(); forward('onReady'); const state = player.getPlayerState?.(); if (Number.isFinite(state)) forward('onStateChange', state); if (desiredRef.current.active && (desiredRef.current.autoplay || playbackIntentRef.current === 'playVideo') && playbackIntentRef.current !== 'pauseVideo') player.playVideo(); },
+        onReady: () => { if (disposed) return; readyRef.current = true; setReady(true); if (iframeRef) iframeRef.current = player.getIframe(); applyDesired(); forward('onReady'); const state = player.getPlayerState?.(); if (Number.isFinite(state)) forward('onStateChange', state); if (state === 1) startProgress(); if (desiredRef.current.active && (desiredRef.current.autoplay || playbackIntentRef.current === 'playVideo') && playbackIntentRef.current !== 'pauseVideo') player.playVideo(); },
         onStateChange: (event) => {
           if (disposed) return;
           const desired = desiredRef.current;
@@ -70,15 +89,17 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
           if (observedId && observedId !== desired.videoId) return;
           // The provider state is authoritative; no timed play/unmute retries.
           forward('onStateChange', event.data);
+          if (event.data === 1) startProgress(); else stopProgress();
           if (event.data === 0 && (desired.autoplay || playbackIntentRef.current === 'playVideo') && playbackIntentRef.current !== 'pauseVideo') { player.seekTo(0, true); player.playVideo(); }
         },
-        onError: (event) => forward('onError', event.data),
+        onError: (event) => { stopProgress(); forward('onError', event.data); },
         onAutoplayBlocked: () => forward('onAutoplayBlocked'),
       } });
       playerRef.current = player;
     }).catch((error) => { if (!disposed) setFailure(error.message); });
     return () => {
       disposed = true;
+      stopProgress();
       readyRef.current = false;
       playerRef.current = null;
       if (iframeRef) iframeRef.current = null;
