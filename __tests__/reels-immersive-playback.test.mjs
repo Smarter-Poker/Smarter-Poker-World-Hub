@@ -166,3 +166,11 @@ test('mounted scrubber commits one drag seek, supports keyboard seeks and ignore
   assert.deepEqual(calls,[['seekToPercent',[25]]]);
   await act(async()=>tree.unmount());
 });
+
+test('persistent Reel sheets stay open through playback and the canonical menu opens above the viewer', () => {
+  const source = readFileSync(new URL('../pages/hub/reels.js', import.meta.url), 'utf8');
+  const hud = source.slice(source.indexOf('  const scheduleHudHide ='), source.indexOf('  const revealOverlay ='));
+  assert.doesNotMatch(hud, /setShowMoreMenu|setShowReactionPicker/);
+  assert.match(source, /if \(open\) \{ setShowMoreMenu\(false\); setShowContextMenu\(false\); \}/);
+  assert.match(source, /zIndex: menuOpen \? 10100 : 10001/);
+});

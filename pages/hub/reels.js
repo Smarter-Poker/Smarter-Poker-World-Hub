@@ -530,8 +530,6 @@ export default function ReelsPage({ reelsListing = null }) {
     hudTimerRef.current = setTimeout(() => {
       if (menuOpenRef.current) return;
       setShowOverlay(false);
-      setShowReactionPicker(false);
-      setShowMoreMenu(false);
     }, 5000);
   };
   const revealOverlay = () => {
@@ -543,6 +541,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const handleCommandMenuOpenChange = (open) => {
     menuOpenRef.current = open;
     setMenuOpen(open);
+    if (open) { setShowMoreMenu(false); setShowContextMenu(false); }
     clearTimeout(hudTimerRef.current);
     setShowOverlay(true);
     if (!open) scheduleHudHide();
@@ -2767,7 +2766,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const followingSignInRequired = activeFeedMode === 'following'
     && (!user?.id || followingReauthRequired);
   const reelsNavigationHeader = (
-    <div key="reels-navigation-header" style={{ position: 'relative', zIndex: 10001 }}>
+    <div key="reels-navigation-header" style={{ position: 'relative', zIndex: menuOpen ? 10100 : 10001 }}>
       <UniversalHeader
         pageDepth={1}
         commandMenuOpen={menuOpen}
