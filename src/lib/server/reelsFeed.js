@@ -1408,7 +1408,7 @@ async function readPage(client, { limit, cursor, sort, scope, category, followed
     };
 }
 
-async function readDetail(client, id, scope, sort, category, followedAuthorIds = null) {
+async function readDetail(client, id, scope, sort, category, followedAuthorIds = null, ownerViewerId = null) {
     if (!id) return { status: 'none', row: null };
     if (!UUID_RE.test(id)) throw new ReelsFeedInputError('Invalid Reel reference');
     if (scope === 'following' && !followedAuthorIds?.size) {
@@ -1444,9 +1444,20 @@ async function readDetail(client, id, scope, sort, category, followedAuthorIds =
         category,
         allowUnknownNativeUpload: scope !== 'following',
     };
-    const directEligible = await eligibleRows(client, directRows, scope, eligibilityOptions);
+    let directEligible = await eligibleRows(client, directRows, scope, eligibilityOptions);
+    let winnerByKey;
+    // A verified creator's direct bookmark can open their private native Reel.
+    // This never participates in readPage, anonymous listings or Following.
+    if (!directEligible.length && scope !== 'following' && UUID_RE.test(String(ownerViewerId || ''))) {
+        const ownedNativeRows = directRows.filter(row => row.author_id === ownerViewerId
+            && row.playback_type === 'native' && row.rights_status === 'user_authorized');
+        directEligible = await eligibleRows(client, ownedNativeRows, scope, {
+            ...eligibilityOptions, allowOwnerPrivate: true, ownerId: ownerViewerId,
+        });
+        if (directEligible.length) winnerByKey = await canonicalOwnerWinners(client, ownedNativeRows, ownerViewerId);
+    }
     if (!directEligible.length) return { status: 'unavailable', row: null };
-    const winnerByKey = await canonicalWinners(client, directRows, scope, eligibilityOptions);
+    if (!winnerByKey) winnerByKey = await canonicalWinners(client, directRows, scope, eligibilityOptions);
     const requested = directEligible.find(row => row.id === resolvedId || row.source_post_id === resolvedId)
         || directEligible[0];
     const winner = winnerByKey.get(requested.canonical_asset_key) || requested;
@@ -2025,7 +2036,7 @@ export async function readPokerReelsFeed(options = {}) {
         // A cursor always denotes continuation. In particular the explicit
         // start sentinel lets a pinned limit=1 response continue from the
         // first natural feed row without pinning the detail again.
-        readDetail(client, cursor ? '' : id, scope, sort, category, followedAuthorIds),
+        readDetail(client, cursor ? '' : id, scope, sort, category, followedAuthorIds, viewerId),
     ]);
 
     if (detail.status === 'not_found' || detail.status === 'unavailable') {

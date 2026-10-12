@@ -53,6 +53,8 @@ import { withCronHealth } from '../../../src/lib/cronHealth';
 
 // Vercel Pro: max 300s per function. HEVC re-encode of a 1-min 1080p clip
 // is ~60–90s; we leave headroom for download + upload.
+export const NATIVE_WORKER_EXCLUSION = 'metadata->>native_reels_worker.is.null,metadata->>native_reels_worker.neq.sp-transcode';
+
 export const config = {
     maxDuration: 300,
 };
@@ -252,7 +254,7 @@ async function handler(req, res) {
     try {
         await supa.from('social_posts')
             .update({ transcode_status: 'queued' })
-            .eq('transcode_status', 'running')
+            .eq('transcode_status', 'running').or(NATIVE_WORKER_EXCLUSION)
             .lt('transcoded_at', new Date(Date.now() - 10 * 60 * 1000).toISOString());
     } catch (_) { /* best-effort */ }
 
@@ -263,7 +265,7 @@ async function handler(req, res) {
     const { data: queue, error: qErr } = await supa
         .from('social_posts')
         .select('id, author_id, media_urls, original_media_url, content_type, metadata, thumbnail_url, cover_frame_index')
-        .eq('transcode_status', 'queued')
+        .eq('transcode_status', 'queued').or(NATIVE_WORKER_EXCLUSION)
         .order('created_at', { ascending: true })
         .limit(1);
 
@@ -276,12 +278,15 @@ async function handler(req, res) {
     }
 
     const post = queue[0];
+    if(post.metadata?.native_reels_worker==='sp-transcode') {
+        return res.status(200).json({processed:0,message:'Native Reel queue belongs to sp-transcode'});
+    }
     const srcUrl = post.original_media_url || (post.media_urls && post.media_urls[0]);
     if (!srcUrl) {
         await supa.from('social_posts').update({
             transcode_status: 'failed',
             transcode_error: 'No source URL on post',
-        }).eq('id', post.id);
+        }).eq('id', post.id).or(NATIVE_WORKER_EXCLUSION);
         return res.status(200).json({ processed: 0, error: 'no_source', post_id: post.id });
     }
 
@@ -293,7 +298,7 @@ async function handler(req, res) {
         await supa.from('social_posts').update({
             transcode_status: 'failed',
             transcode_error: 'Source URL is not a parseable public storage URL',
-        }).eq('id', post.id);
+        }).eq('id', post.id).or(NATIVE_WORKER_EXCLUSION);
         return res.status(200).json({ processed: 0, error: 'unparseable_url', post_id: post.id });
     }
     const srcBucket = parsed.bucket;
@@ -315,7 +320,7 @@ async function handler(req, res) {
         .from('social_posts')
         .update({ transcode_status: 'running', transcoded_at: new Date().toISOString() })
         .eq('id', post.id)
-        .eq('transcode_status', 'queued')
+        .eq('transcode_status', 'queued').or(NATIVE_WORKER_EXCLUSION)
         .select('id');
     if (claimErr || !claim || claim.length === 0) {
         return res.status(200).json({
@@ -353,7 +358,7 @@ async function handler(req, res) {
                 transcode_status: 'invalid',
                 transcode_error: validation.reason,
                 transcoded_at: new Date().toISOString(),
-            }).eq('id', post.id);
+            }).eq('id', post.id).or(NATIVE_WORKER_EXCLUSION);
             try { await rm(work, { recursive: true, force: true }); } catch (_) {}
             return res.status(200).json({
                 processed: 0,
@@ -560,7 +565,8 @@ async function handler(req, res) {
                 updatePayload.thumbnail_url = thumbPublicUrl;
             }
         }
-        await supa.from('social_posts').update(updatePayload).eq('id', post.id);
+        const {data:published,error:publishError}=await supa.from('social_posts').update(updatePayload).eq('id', post.id).or(NATIVE_WORKER_EXCLUSION).select('id');
+        if(publishError || !published?.length) throw new Error('Native ownership changed; cron publication not committed');
 
         await supa.from('social_reels')
             .update({ video_url: newPublicUrl })
@@ -617,7 +623,7 @@ async function handler(req, res) {
         await supa.from('social_posts').update({
             transcode_status: 'failed',
             transcode_error: msg,
-        }).eq('id', post.id);
+        }).eq('id', post.id).or(NATIVE_WORKER_EXCLUSION);
         return res.status(500).json({ processed: 0, error: msg, post_id: post.id });
     } finally {
         try { await rm(work, { recursive: true, force: true }); } catch (_) {}

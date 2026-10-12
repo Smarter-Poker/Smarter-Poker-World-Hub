@@ -181,9 +181,9 @@ test('the upload deep link remains reachable while the feed is loading, empty, o
 
 test('late comment mutations cannot restore a previous Reel over the active drawer', () => {
   for (const [name, source, deleteStart, deleteEnd] of [
-    ['standalone', REELS_PAGE, 'const handleDeleteComment = async', 'const handleEditComment'],
-    ['library viewer', REELS_COMPONENT, 'const handleDeleteComment = async', 'const handleEditComment'],
-    ['social carousel', REELS_CAROUSEL, 'const handleDeleteComment = async', 'const handleEditComment'],
+    ['standalone', REELS_PAGE, "const handleDeleteComment = withReelMutation('comment-delete'", 'const handleEditComment'],
+    ['library viewer', REELS_COMPONENT, "const handleDeleteComment = withReelMutation('comment-delete'", 'const handleEditComment'],
+    ['social carousel', REELS_CAROUSEL, "const handleDeleteComment = withReelMutation('comment-delete'", 'const handleEditComment'],
   ]) {
     assert.match(source, /activeCommentReelIdRef\.current\s*=\s*currentReel\?\.id\s*\|\|\s*null/,
       `${name} must synchronously track which Reel owns the comment drawer`);
@@ -205,15 +205,17 @@ test('late comment mutations cannot restore a previous Reel over the active draw
 
 test('Reel comments target social_reels directly and never manufacture proxy posts', () => {
   const submitSections = [
-    between(REELS_PAGE, 'const submitComment = async', 'const handleCommentLike'),
-    between(REELS_COMPONENT, 'const handleSubmitComment = async', 'const handleCommentLike'),
-    between(REELS_CAROUSEL, 'const handleSubmitComment = async', 'const handleCommentLike'),
+    between(REELS_PAGE, "const submitComment = withReelMutation('comment'", 'const handleCommentLike'),
+    between(REELS_COMPONENT, "const handleSubmitComment = withReelMutation('comment'", 'const handleCommentLike'),
+    between(REELS_CAROUSEL, "const handleSubmitComment = withReelMutation('comment'", 'const handleCommentLike'),
   ];
 
   for (const section of submitSections) {
     assert.doesNotMatch(section, /\.from\(['"]social_posts['"]\)/);
     assert.doesNotMatch(section, /proxy post/i);
-    assert.match(section, /\.from\(['"]social_comments['"]\)\.insert\(payload\)/);
+    assert.match(section, /postReelComment\(supabase, \{ \.\.\.payload, id: tempId \}\)/);
+    assert.match(section, /post_id: reelId/);
+    assert.match(section, /getReelCommentAttempt/);
   }
 });
 
@@ -343,7 +345,10 @@ test('every Reel surface delegates YouTube lifecycle to one official player owne
     assert.equal((source.match(/<ReelYouTubePlayer\b/g) || []).length, 1, `${name} has one API player implementation`);
     assert.equal((source.match(/<iframe\b/g) || []).length, 0, `${name} cannot create competing iframes`);
     assert.match(source, /commandRef=\{youtubeCommandRef\}/);
-    assert.match(source, /eventRef=\{youtubeEventRef\}/);
+    assert.match(source, /eventRef=\{enhancedYouTubeEventRef\}/);
+    assert.match(source, /event\?\.source === frame\.contentWindow/);
+    assert.match(source, /enhancements\.youtubeEvent\(event\)/);
+    assert.match(source, /youtubeEventRef\.current\?\.\(event\)/);
     assert.doesNotMatch(source, /setTimeout\(\(\) => setYtReady\(true\)/);
   }
   const player = readFileSync(new URL('../src/components/reels/ReelYouTubePlayer.jsx', import.meta.url), 'utf8');

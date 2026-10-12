@@ -157,7 +157,7 @@ test('a pinned limit-one page emits and accepts an explicit start cursor', () =>
   assert.deepEqual({ ...context.__parseCursor(encoded, 'recent') }, { start: true });
   assert.throws(() => context.__parseCursor(encoded, 'popular'));
   assert.match(REELS_SERVER, /if \(!cursor \|\| cursor\.start === true\) return query/);
-  assert.match(REELS_SERVER, /readDetail\(client, cursor \? '' : id, scope, sort, category, followedAuthorIds\)/);
+  assert.match(REELS_SERVER, /readDetail\(client, cursor \? '' : id, scope, sort, category, followedAuthorIds, viewerId\)/);
   assert.match(REELS_SERVER, /encodeCursor\(\{ sort, start: true \}\)/);
 });
 
@@ -258,7 +258,7 @@ test('interaction hydration chunks and scopes every query to loaded Reel IDs', a
   assert.match(INTERACTION_HELPER, /options\.loadSavedReels/);
   for (const source of [REELS_COMPONENT, REELS_CAROUSEL]) {
     assert.match(source, /loadSavedReels:[\s\S]*savedReelsService\.getSavedReels/);
-    assert.match(source, /savedTargetsByReelRef\.current = new Map\(Object\.entries\(state\.savedTargets\)\)/);
+    assert.match(source, /savedTargetsByReelRef\.current = new Map\(Object\.entries\(hydration\.merge\('save', state\.savedTargets, Object\.fromEntries\(savedTargetsByReelRef\.current\)\)\)\)/);
     assert.match(source, /savedReelsService\.unsaveReel\([\s\S]*savedTargets\?\.length/);
   }
 });

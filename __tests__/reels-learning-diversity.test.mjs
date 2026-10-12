@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
-import { selectLearningRows } from '../src/lib/reelsLearningRanking.mjs';
+import { selectLearningRows, learningSourceKey } from '../src/lib/reelsLearningRanking.mjs';
 import { reelsFeedModeContract } from '../src/lib/reelsDeliveryContract.mjs';
 
 // The controller imports the browser feed classifier, whose canonical storage
@@ -23,6 +23,12 @@ function row(source, index, sourceIndex) {
     created_at: new Date(Date.UTC(2026, 9, 9, 12, 0, -(sourceIndex * 10 + index))).toISOString(),
   };
 }
+
+test('Learning folds equivalent attributed creator names and preserves canonical source IDs', () => {
+  assert.equal(learningSourceKey({source_name:'  Natural8  ', author_id:'a'}), learningSourceKey({source_name:'natural8',author_id:'b'}));
+  assert.notEqual(learningSourceKey({source_id:'UCAb'}), learningSourceKey({source_id:'UCA b'}));
+  assert.equal(learningSourceKey({channel_id:'creator-a',author_id:'a'}), learningSourceKey({channel_id:'creator-a',author_id:'b'}));
+});
 
 test('Learning is source-diverse while Latest remains strict recent chronology', async () => {
   assert.equal(reelsFeedModeContract('learning').sort, 'learning');

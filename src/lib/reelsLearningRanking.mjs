@@ -8,10 +8,13 @@ function compareChronology(a, b) {
 
 /** Stable source identity used only for Learning-feed diversity. */
 export function learningSourceKey(row) {
+  // Display-name casing/spacing is not a different creator. Provider IDs stay
+  // exact because their case can be significant; never inspect player origin.
+  const providerId = String(row?.source_id || row?.channel_id || '').trim();
+  const providerName = String(row?.source_name || row?.channel_name || row?.attribution_name || '').trim().replace(/\s+/g, ' ').toLowerCase();
   const identity = String(
-    row?.source_id
-      || row?.source_name
-      || row?.attribution_name
+    providerId
+      || providerName
       || row?.author_id
       || row?.canonical_asset_key
       || row?.id

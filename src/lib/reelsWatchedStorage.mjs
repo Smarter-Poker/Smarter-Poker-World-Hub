@@ -107,3 +107,36 @@ export function safeSetReelsSessionStorage(key, value) {
     return false;
   }
 }
+
+const FEEDBACK_REELS_KEY = 'smarter-reels-feedback:v1';
+const FEEDBACK_FIELDS = ['hiddenReelIds', 'watchedReelIds', 'hiddenSourceKeys', 'watchedAssetKeys', 'skippedAssetKeys'];
+
+// Each preference set is finite and account scoped, including anonymous use.
+function normalizeFeedbackState(state) {
+  return Object.fromEntries(FEEDBACK_FIELDS.map((field) => {
+    const values = state?.[field] instanceof Set ? [...state[field]] : state?.[field];
+    const valid = Array.isArray(values) ? values.filter((value) => typeof value === 'string' && value.trim() && value.length <= 256).map((value) => value.trim()) : [];
+    return [field, new Set([...new Set(valid)].slice(-MAX_WATCHED_REELS))];
+  }));
+}
+
+export function loadReelFeedbackState(ownerId = null) {
+  try {
+    const raw = globalThis.localStorage?.getItem(ownerStorageKey(FEEDBACK_REELS_KEY, ownerId));
+    return normalizeFeedbackState(raw ? JSON.parse(raw) : {});
+  } catch (error) {
+    console.warn('[Reels] Ignoring invalid feedback storage:', error?.message || error);
+    return normalizeFeedbackState({});
+  }
+}
+
+export function persistReelFeedbackState(state, ownerId = null) {
+  const normalized = normalizeFeedbackState(state);
+  try {
+    const payload = Object.fromEntries(FEEDBACK_FIELDS.map((field) => [field, [...normalized[field]]]));
+    globalThis.localStorage?.setItem(ownerStorageKey(FEEDBACK_REELS_KEY, ownerId), JSON.stringify(payload));
+  } catch (error) {
+    console.warn('[Reels] Feedback storage unavailable:', error?.message || error);
+  }
+  return normalized;
+}

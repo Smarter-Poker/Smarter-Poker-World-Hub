@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-const source = await readFile(new URL('../src/lib/reelsPrefetcher.js', import.meta.url), 'utf8');
+let source = await readFile(new URL('../src/lib/reelsPrefetcher.js', import.meta.url), 'utf8');
+const contractSource = await readFile(new URL('../src/lib/reelsDeliveryContract.mjs', import.meta.url), 'utf8');
+source = source.replace('./reelsDeliveryContract.mjs', `data:text/javascript;base64,${Buffer.from(contractSource).toString('base64')}`);
 const author = '11111111-1111-4111-8111-111111111111';
 const media = n => `https://test-project.supabase.co/storage/v1/object/public/social-media/videos/${author}/${n}.mp4`;
 const settle = async () => { for (let n = 0; n < 4; n++) await new Promise(resolve => setImmediate(resolve)); };
@@ -104,4 +106,17 @@ test('opaque, oversized and cancelled-before-start responses do not warm media',
     prefetchVideoStart(media(2));
     await settle();
     assert.equal(cancelled, 4);
+}));
+
+
+test('adaptive prefetch honors Saver, observed budget and constrained network', () => scenario(async ({ prefetchVideoStart }) => {
+    const calls = [];
+    globalThis.fetch = async (url, options) => { calls.push(options); return rangeResponse(); };
+    prefetchVideoStart(media(1), { dataSaver: true });
+    prefetchVideoStart(media(2), { observedBytes: 6_000_000 });
+    await settle();
+    assert.equal(calls.length, 0);
+    prefetchVideoStart(media(3), { connection: { effectiveType: '3g' } });
+    await settle();
+    assert.equal(calls[0].headers.Range, 'bytes=0-299999');
 }));

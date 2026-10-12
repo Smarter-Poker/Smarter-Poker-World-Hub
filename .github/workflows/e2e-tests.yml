@@ -41,8 +41,16 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live]
         default: full
+      reels_qa_setup_run:
+        description: Exact successful private Reels QA setup run
+        type: string
+        default: ''
+      reels_fixture_safety:
+        description: Fresh parent-verified installed-trigger and private-fixture receipt JSON
+        type: string
+        default: ''
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
         type: string
@@ -996,5 +1004,112 @@ jobs:
         with:
           name: horses-phase9-postgrest-receipt
           path: test-results/horses-phase9-postgrest/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  reels-qa-setup:
+    name: Prepare Private Original Reels QA Fixture
+    if: github.ref == 'refs/heads/main' && inputs.suite == 'reels-qa-setup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Generate the small private original qualification clip
+        run: |
+          set -euo pipefail
+          mkdir -p test-results/reels-qa
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=240x426:rate=24 -f lavfi -i sine=frequency=440:sample_rate=44100 -t 6 -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p -c:a aac -b:a 48k -movflags +faststart test-results/reels-qa/original.mp4
+      - name: Prepare only explicitly marked QA identities and private media
+        run: node scripts/ci/reels-qa-fixture-setup.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REELS_QA_PASSWORD: ${{ secrets.REELS_QA_PASSWORD }}
+          REELS_QA_VIDEO_FILE: test-results/reels-qa/original.mp4
+          REELS_QA_SETUP_RECEIPT: test-results/reels-qa/setup.json
+      - name: Retain the exact private fixture receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reels-qa-setup-receipt
+          path: test-results/reels-qa/setup.json
+          if-no-files-found: error
+          retention-days: 7
+
+  reels-enhancements-live:
+    name: Published Reels Private Fixture Persistence And Playback
+    if: github.ref == 'refs/heads/main' && inputs.suite == 'reels-enhancements-live'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: reels-qa-setup-receipt
+          run-id: ${{ inputs.reels_qa_setup_run }}
+          github-token: ${{ github.token }}
+          path: test-results/reels-qa
+      - name: Resolve the exact fixture and fresh safety receipt
+        env:
+          SAFETY_RECEIPT: ${{ inputs.reels_fixture_safety }}
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync,writeFileSync,appendFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const fixture=JSON.parse(readFileSync('test-results/reels-qa/setup.json','utf8'));
+          assert.equal(fixture.status,'fixture-prepared-not-certified');
+          const receipt=JSON.parse(process.env.SAFETY_RECEIPT);
+          assert.equal(receipt.actorId,fixture.actorId);assert.equal(receipt.reelId,fixture.reelId);assert.equal(receipt.followTargetId,fixture.followTargetId);
+          writeFileSync('test-results/reels-qa/safety.json',JSON.stringify(receipt));
+          for(const [key,value]of Object.entries({REELS_TEST_USER_ID:fixture.actorId,REELS_TEST_REEL_ID:fixture.reelId,REELS_TEST_FOLLOW_USER_ID:fixture.followTargetId})) {
+            assert.match(value,/^[a-f0-9-]{36}$/);appendFileSync(process.env.GITHUB_ENV,`${key}=${value}\n`);
+          }
+          JS
+      - name: Verify actual persisted interactions and exact cleanup
+        run: node scripts/ci/reels-interaction-live-check.mjs --execute
+        env:
+          TEST_USER_EMAIL: reels-qa@smarter.poker
+          TEST_USER_PASSWORD: ${{ secrets.REELS_QA_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REELS_INTERACTION_SAFETY_RECEIPT: test-results/reels-qa/safety.json
+          REELS_INTERACTION_JOURNAL: test-results/reels-qa/interactions.json
+      - name: Install the verification browser
+        run: npx playwright install --with-deps chromium
+      - name: Verify actual published controls captions playback and native processing
+        run: node scripts/ci/reels-enhancements-live-check.mjs
+        env:
+          REELS_QA_PASSWORD: ${{ secrets.REELS_QA_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REELS_QA_SETUP_RECEIPT: test-results/reels-qa/setup.json
+          REELS_ENHANCEMENTS_JOURNAL: test-results/reels-qa/enhancements.json
+          REELS_INTERACTION_SAFETY_RECEIPT: test-results/reels-qa/safety.json
+      - name: Retain the sanitized operations and browser proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reels-enhancements-live-receipt
+          path: test-results/reels-qa/
           if-no-files-found: error
           retention-days: 7

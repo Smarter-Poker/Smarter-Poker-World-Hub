@@ -3,10 +3,12 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const SURFACES = new Set(['standalone', 'social', 'library']);
 const MODES = new Set(['for-you', 'following', 'latest', 'learning', 'shorts']);
+const EVENT_KINDS = new Set(['startup', 'swipe', 'summary']);
 const PLAYBACK = new Set(['youtube_embed', 'native', 'unknown']);
 let client;
 
 function bounded(value, min, max) {
+  if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) && number >= min && number <= max ? number : null;
 }
@@ -33,12 +35,19 @@ export default async function handler(req, res) {
   const surface = String(req.body?.surface || '');
   const feedMode = String(req.body?.feed_mode || '');
   const playbackType = String(req.body?.playback_type || 'unknown');
+  const eventKind = String(req.body?.event_kind || 'startup');
   const viewportWidth = bounded(req.body?.viewport_width, 240, 10000);
-  if (!SURFACES.has(surface) || !MODES.has(feedMode) || !PLAYBACK.has(playbackType) || viewportWidth === null) {
+  if (!EVENT_KINDS.has(eventKind) || !SURFACES.has(surface) || !MODES.has(feedMode) || !PLAYBACK.has(playbackType) || viewportWidth === null) {
     return res.status(400).json({ success: false, error: 'Invalid delivery metric' });
   }
   const row = {
     surface,
+    event_kind: eventKind,
+    swipe_ms: bounded(req.body?.swipe_ms, 0, 120000),
+    stall_ms: bounded(req.body?.stall_ms, 0, 3600000),
+    stall_count: bounded(req.body?.stall_count, 0, 10000),
+    transfer_observable: req.body?.transfer_observable === true,
+    data_budget_exceeded: typeof req.body?.data_budget_exceeded === 'boolean' ? req.body.data_budget_exceeded : null,
     feed_mode: feedMode,
     playback_type: playbackType,
     viewport_width: Math.round(viewportWidth),

@@ -1,157 +1,171 @@
-/**
- * SMARTER POKER — Video Transcode Worker v1.0
- * scripts/transcode-worker/index.js
- *
- * Polls social_posts for transcode_status='queued' every 60 seconds.
- * Downloads the original video (typically HEVC/H.265 .mov from iPhone),
- * transcodes to H.264/AAC MP4 via ffmpeg, uploads the result to Supabase
- * Storage, and updates both social_posts and social_reels.
- *
- * Runs as a systemd service on the openclaw-dispatcher Hetzner VM
- * (server id 127861894, nbg1). The YouTube/MP4 sibling worker
- * (sp-yt-transcode.service) lives on the dedicated reels-transcode-worker
- * VM (server id 128782737, ash) — not on this box.
- *
- * Environment:
- *   SUPABASE_SERVICE_ROLE_KEY — required
- *   NEXT_PUBLIC_SUPABASE_URL  — optional, defaults to production
- *
- * Requirements:
- *   - ffmpeg in $PATH (apt install ffmpeg)
- *   - Node.js >= 18 (for native fetch + fs/promises)
- */
-
+/** Existing sp-transcode consumer: authorized native post queue, bounded work. */
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile, readFile, stat } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdtemp, rm, open, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+const POLL_MS = 60_000;
+export const MAX_FILE_SIZE = 500_000_000; // Retain the existing business limit.
+const FFMPEG_TIMEOUT = 600_000;
+const NATIVE_COLUMNS = 'id,author_id,media_urls,original_media_url,transcode_status,playback_type,rights_status,is_deleted,metadata,thumbnail_url,moderation_state,taken_down_at';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const log = (...args) => console.log('[native-transcode]', ...args);
+const warn = (...args) => console.warn('[native-transcode]', ...args);
 
-// ─── Config ──────────────────────────────────────────────────────────────────
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SERVICE_KEY) {
-  console.error('[transcode] FATAL: missing SUPABASE_SERVICE_ROLE_KEY');
-  process.exit(1);
+export function nativeSourceForPost(post, origin, expectedSource = null) {
+  if (!post || !UUID.test(String(post.id || '')) || !UUID.test(String(post.author_id || ''))
+    || post.moderation_state === 'taken_down' || post.taken_down_at || post.metadata?.native_reels_worker !== 'sp-transcode' || post.is_deleted !== false || post.playback_type !== 'native' || post.rights_status !== 'user_authorized') return null;
+  const value = post.original_media_url || post.media_urls?.[0];
+  if (!value || post.media_urls?.[0] !== value || expectedSource && value !== expectedSource) return null;
+  try {
+    const url = new URL(value); const configured = new URL(origin);
+    if (configured.protocol !== 'https:' || configured.pathname !== '/' || configured.search || configured.hash
+      || configured.username || configured.password || configured.port || url.protocol !== 'https:'
+      || url.origin !== configured.origin || url.username || url.password || url.port || url.search || url.hash
+      || /[%\\]/.test(url.pathname)) return null;
+    if (!new RegExp(`^/storage/v1/object/public/social-media/(?:videos|reels)/${post.author_id}/[^/]+$`, 'i').test(url.pathname)) return null;
+    return url.href;
+  } catch { return null; }
 }
 
-const supa = createClient(SUPABASE_URL, SERVICE_KEY);
-const POLL_MS = 60_000;          // Poll every 60 seconds
-const MAX_FILE_SIZE = 500_000_000; // 500 MB — skip files larger than this
-const FFMPEG_TIMEOUT = 600_000;  // 10 minutes max per transcode
-
-// ─── Logging ─────────────────────────────────────────────────────────────────
-const log = (...args) => console.log(`[transcode ${new Date().toISOString()}]`, ...args);
-const warn = (...args) => console.warn(`[transcode ${new Date().toISOString()}]`, ...args);
-
-// ─── Core transcode loop ─────────────────────────────────────────────────────
-async function tick() {
-  // Grab the oldest queued video post
-  const { data: posts, error } = await supa
-    .from('social_posts')
-    .select('id, author_id, media_urls, original_media_url, transcode_status')
-    .eq('transcode_status', 'queued')
-    .order('created_at', { ascending: true })
-    .limit(1);
-
-  if (error) { warn('poll error:', error.message); return; }
-  if (!posts || posts.length === 0) return; // Nothing to do
-
-  const post = posts[0];
-  const srcUrl = post.original_media_url || post.media_urls?.[0];
-  if (!srcUrl) {
-    await supa.from('social_posts')
-      .update({ transcode_status: 'failed', transcode_error: 'no source URL' })
-      .eq('id', post.id);
-    return;
-  }
-
-  log(`Processing post ${post.id} — src: ${srcUrl.slice(-60)}`);
-  await supa.from('social_posts')
-    .update({ transcode_status: 'running' })
-    .eq('id', post.id);
-
-  const dir = await mkdtemp(join(tmpdir(), 'tx-'));
-  const inFile = join(dir, 'input.mov');
-  const outFile = join(dir, 'output.mp4');
-
+export async function downloadNativeSource(source, output, { fetchImpl = fetch, timeoutMs = FFMPEG_TIMEOUT } = {}) {
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), timeoutMs);
+  let file; let reader;
   try {
-    // ── 1. Download ─────────────────────────────────────────────────────────
-    log('  Downloading...');
-    const r = await fetch(srcUrl);
-    if (!r.ok) throw new Error(`download_status_${r.status}`);
-
-    const contentLength = parseInt(r.headers.get('content-length') || '0', 10);
-    if (contentLength > MAX_FILE_SIZE) {
-      throw new Error(`file_too_large_${contentLength}_bytes`);
+    const response = await fetchImpl(source, { signal: controller.signal, redirect: 'error', credentials: 'omit' });
+    if (!response.ok || Number(response.headers.get('content-length')) > MAX_FILE_SIZE) throw new Error('native_download_rejected');
+    reader = response.body?.getReader(); if (!reader) throw new Error('native_download_body_missing');
+    file = await open(output, 'w'); let bytes = 0;
+    while (true) {
+      const chunk = await reader.read(); if (chunk.done) break;
+      bytes += chunk.value.byteLength;
+      if (controller.signal.aborted || bytes > MAX_FILE_SIZE) throw new Error('native_download_limit');
+      await file.write(chunk.value);
     }
-
-    const buf = Buffer.from(await r.arrayBuffer());
-    await writeFile(inFile, buf);
-    const fileSizeMB = (buf.length / (1024 * 1024)).toFixed(1);
-    log(`  Downloaded ${fileSizeMB} MB`);
-
-    // ── 2. Probe codec (skip transcode if already H.264) ────────────────────
-    const probeResult = await probeCodec(inFile);
-    if (probeResult === 'h264') {
-      log('  Already H.264 — marking done without re-encoding');
-      // If it's .mov but already H.264, just re-mux to .mp4 (fast copy)
-      await remuxToMp4(inFile, outFile);
-    } else {
-      // ── 3. Transcode — H.264 baseline + AAC, web-safe ──────────────────
-      log(`  Transcoding (codec: ${probeResult})...`);
-      await transcode(inFile, outFile);
-    }
-
-    const outStat = await stat(outFile);
-    const outSizeMB = (outStat.size / (1024 * 1024)).toFixed(1);
-    log(`  Output: ${outSizeMB} MB`);
-
-    // ── 4. Upload to Supabase Storage ──────────────────────────────────────
-    const originalPath = (post.media_urls?.[0] || srcUrl)
-      .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/public\/social-media\//, '');
-    const newPath = originalPath
-      .replace(/\.(mov|hevc|heic|mkv|avi|m4v|3gpp?|3g2)(\?.*)?$/i, '.mp4');
-
-    log(`  Uploading to ${newPath}...`);
-    const file = await readFile(outFile);
-    const { error: upErr } = await supa.storage
-      .from('social-media')
-      .upload(newPath, file, {
-        contentType: 'video/mp4',
-        upsert: true,
-      });
-    if (upErr) throw upErr;
-
-    const { data: pub } = supa.storage.from('social-media').getPublicUrl(newPath);
-    const newUrl = pub.publicUrl;
-
-    // ── 5. Update database rows ────────────────────────────────────────────
-    const newMediaUrls = [newUrl, ...(post.media_urls || []).slice(1)];
-    await supa.from('social_posts').update({
-      media_urls: newMediaUrls,
-      transcode_status: 'done',
-      transcode_error: null,
-      original_media_url: srcUrl,
-    }).eq('id', post.id);
-
-    // Mirror update to social_reels (if this post has a reel entry)
-    await supa.from('social_reels')
-      .update({ video_url: newUrl })
-      .eq('source_post_id', post.id);
-
-    log(`✓ Transcoded post ${post.id} → ${newUrl}`);
-
-  } catch (e) {
-    warn(`✗ Failed post ${post.id}:`, e.message);
-    await supa.from('social_posts').update({
-      transcode_status: 'failed',
-      transcode_error: (e.message || String(e)).slice(0, 500),
-    }).eq('id', post.id);
+    if (!bytes) throw new Error('native_download_empty');
+    return bytes;
   } finally {
-    // Clean up temp files
-    try { await rm(dir, { recursive: true, force: true }); } catch (_) {}
+    clearTimeout(deadline);controller.abort();
+    await reader?.cancel().catch(() => {});await file?.close();
   }
+}
+
+/** Actual queued operation owner; explicit stages recheck authority, no retries. */
+export async function processNativePost(post, { origin, claim, read, download, render, upload, publish, discard } = {}) {
+  const source = nativeSourceForPost(post, origin);
+  if (!source || post.transcode_status !== 'queued') return { state: 'denied' };
+  const claimed = await claim(post, source);
+  if (!claimed || !nativeSourceForPost(claimed, origin, source) || claimed.transcode_status !== 'running') return { state: 'not-claimed' };
+  const beforeDownload = await read(post.id);
+  if (!nativeSourceForPost(beforeDownload, origin, source) || beforeDownload.transcode_status !== 'running') return { state: 'revoked' };
+  await download(source); await render();
+  const beforeUpload = await read(post.id);
+  if (!nativeSourceForPost(beforeUpload, origin, source) || beforeUpload.transcode_status !== 'running') return { state: 'revoked' };
+  const artifact = await upload(post);
+  try {
+    const result = await publish(post, source, artifact.url, artifact.thumbnailUrl || null);
+    if (!result?.completed || result.postId !== post.id) throw new Error('native_publish_not_committed');
+    return { state: 'done', postId: post.id, outputUrl: artifact.url };
+  } catch (error) {
+    // A timeout is not proof that the publication failed. Read durable outcome
+    // before deleting a potentially committed object. Unknown bytes are retained.
+    let observed;try { observed=await read(post.id); } catch { observed=null; }
+    if(observed?.transcode_status==='done' && observed?.media_urls?.[0]===artifact.url
+      && observed?.original_media_url===source && observed?.author_id===post.author_id) {
+      return {state:'done',postId:post.id,outputUrl:artifact.url,recoveredAcknowledgment:true};
+    }
+    if(error.definitiveRejection===true) { await discard(artifact).catch(()=>warn('Native artifact cleanup unavailable'));throw error; }
+    const unknown=new Error('native_publish_outcome_unknown');unknown.code='NATIVE_PUBLISH_UNKNOWN';throw unknown;
+  }
+}
+
+async function runMain() {
+  const origin = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) throw new Error('Native worker service identity unavailable');
+  const client = createClient(origin, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: async (input,options={}) => {
+    const controller=new AbortController();const abort=()=>controller.abort();
+    options.signal?.addEventListener('abort',abort,{once:true});if(options.signal?.aborted)controller.abort();
+    const timeout=setTimeout(abort,FFMPEG_TIMEOUT);
+    try{return await fetch(input,{...options,signal:controller.signal});}
+    finally{clearTimeout(timeout);options.signal?.removeEventListener('abort',abort);}
+  } } });
+  let working = false;
+  const read = async id => {
+    const { data, error } = await client.from('social_posts').select(NATIVE_COLUMNS).eq('id', id).maybeSingle();
+    if (error) throw new Error('native_authority_read_failed');return data;
+  };
+  const tick = async () => {
+    if (working) return;working = true;
+    let post;let dir;
+    try {
+      const { data, error } = await client.from('social_posts').select(NATIVE_COLUMNS)
+        .eq('transcode_status', 'queued').eq('metadata->>native_reels_worker','sp-transcode').order('created_at', { ascending: true }).limit(1);
+      if (error) throw new Error('native_queue_read_failed');post=data?.[0];if (!post) return;
+      dir=await mkdtemp(join(tmpdir(), 'tx-'));const input=join(dir,'input');const output=join(dir,'output.mp4');const thumbnail=join(dir,'thumbnail.jpg');
+      const result=await processNativePost(post, {
+        origin, read,
+        claim: async (candidate, source) => {
+          let query = client.from('social_posts').update({transcode_status:'running',original_media_url:source})
+            .eq('id',candidate.id).eq('author_id',candidate.author_id).eq('transcode_status','queued')
+            .eq('rights_status','user_authorized').eq('playback_type','native').eq('is_deleted',false).eq('metadata->>native_reels_worker','sp-transcode')
+            ;
+          query=candidate.original_media_url ? query.eq('original_media_url',source) : query.is('original_media_url',null);
+          const {data,error}=await query.select(NATIVE_COLUMNS).maybeSingle();
+          if (error) throw new Error('native_claim_failed');return data;
+        },
+        download: source => downloadNativeSource(source,input),
+        render: async () => {const codec=await probeCodec(input);if(codec==='h264')await remuxToMp4(input,output);else await transcode(input,output);await extractThumbnail(output,thumbnail);},
+        upload: async candidate => {
+          const size=(await stat(output)).size;if(!size || size>MAX_FILE_SIZE)throw new Error('native_output_limit');
+          const artifactId=randomUUID();const path=`videos/${candidate.author_id}/native-${candidate.id}-${artifactId}.mp4`;
+          const thumbnailPath=path.replace(/\.mp4$/,'.jpg');
+          const thumbnailSize=(await stat(thumbnail)).size;if(!thumbnailSize || thumbnailSize>1_000_000)throw new Error('native_thumbnail_limit');
+          try {
+            const videoResult=await client.storage.from('social-media').upload(path,await readFile(output),{contentType:'video/mp4',upsert:false});
+            if(videoResult.error)throw new Error('native_upload_failed');
+            const imageResult=await client.storage.from('social-media').upload(thumbnailPath,await readFile(thumbnail),{contentType:'image/jpeg',upsert:false});
+            if(imageResult.error)throw new Error('native_thumbnail_upload_failed');
+            const {data}=client.storage.from('social-media').getPublicUrl(path);
+            const thumbnailPublic=client.storage.from('social-media').getPublicUrl(thumbnailPath);
+            return {path,url:data.publicUrl,thumbnailPath,thumbnailUrl:thumbnailPublic.data.publicUrl};
+          } catch(error) {await client.storage.from('social-media').remove([path,thumbnailPath]);throw error;}
+        },
+        publish: async (candidate,source,url,thumbnailUrl) => {
+          const {data,error}=await client.rpc('complete_owned_native_upload',{p_post_id:candidate.id,p_author_id:candidate.author_id,p_source_url:source,p_output_url:url,p_thumbnail_url:thumbnailUrl});
+          if(error){const failure=new Error('native_publish_rejected');failure.definitiveRejection=/^[0-9A-Z]{5}$/.test(String(error.code||''));throw failure;}return data;
+        },
+        discard: async artifact => {const {error}=await client.storage.from('social-media').remove([artifact.path,artifact.thumbnailPath].filter(Boolean));if(error)throw new Error('native_artifact_cleanup_failed');},
+      });
+      if(result.state!=='done' && result.state!=='not-claimed') {
+        await client.from('social_posts').update({transcode_status:'failed',transcode_error:'native_authority_denied'})
+          .eq('id',post.id).eq('author_id',post.author_id).in('transcode_status',['queued','running']);
+      }
+      log('Native operation', result.state);
+    } catch (error) {
+      warn('Native operation failed:',error.message);
+      if(post && error.code!=='NATIVE_PUBLISH_UNKNOWN')await client.from('social_posts').update({transcode_status:'failed',transcode_error:String(error.message).slice(0,120)})
+        .eq('id',post.id).eq('author_id',post.author_id).eq('transcode_status','running');
+    } finally {if(dir)await rm(dir,{recursive:true,force:true});working=false;}
+  };
+  // Retain the existing service's startup recovery and business polling schedule.
+  const {error}=await client.from('social_posts').update({transcode_status:'queued',transcode_error:'worker_restarted'})
+    .eq('transcode_status','running').eq('rights_status','user_authorized').eq('playback_type','native').eq('is_deleted',false).eq('metadata->>native_reels_worker','sp-transcode');
+  if(error)throw new Error('native_startup_recovery_failed');
+  await tick();setInterval(()=>{void tick();},POLL_MS);
+  process.on('SIGTERM',()=>process.exit(0));process.on('SIGINT',()=>process.exit(0));
+}
+
+async function extractThumbnail(video, output) {
+  await new Promise((resolve,reject)=>{
+    const child=spawn('ffmpeg',['-v','error','-ss','0','-i',video,'-frames:v','1','-vf',"scale=w='min(640,iw)':h='min(640,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",'-q:v','3','-y',output]);
+    const deadline=setTimeout(()=>{child.kill('SIGKILL');reject(new Error('native_thumbnail_timeout'));},30000);
+    child.on('error',error=>{clearTimeout(deadline);reject(error);});
+    child.on('close',code=>{clearTimeout(deadline);code===0?resolve():reject(new Error('native_thumbnail_failed'));});
+  });
 }
 
 // ─── ffmpeg helpers ──────────────────────────────────────────────────────────
@@ -171,7 +185,9 @@ function probeCodec(filePath) {
     ]);
     let out = '';
     proc.stdout.on('data', (d) => { out += d.toString(); });
-    proc.on('close', () => resolve(out.trim().toLowerCase() || 'unknown'));
+    const deadline = setTimeout(() => { proc.kill('SIGKILL'); resolve('unknown'); }, 30000);
+    proc.on('error', () => { clearTimeout(deadline); resolve('unknown'); });
+    proc.on('close', () => { clearTimeout(deadline); resolve(out.trim().toLowerCase() || 'unknown'); });
   });
 }
 
@@ -191,9 +207,10 @@ function remuxToMp4(inPath, outPath) {
     ff.on('close', (code) => code === 0 ? resolve() : reject(new Error(`remux_exit_${code}`)));
     // Timeout
     const timer = setTimeout(() => {
-      ff.kill('SIGTERM');
+      ff.kill('SIGKILL');
       reject(new Error('remux_timeout'));
     }, FFMPEG_TIMEOUT);
+    ff.on('error', error => { clearTimeout(timer); reject(error); });
     ff.on('close', () => clearTimeout(timer));
   });
 }
@@ -203,59 +220,27 @@ function remuxToMp4(inPath, outPath) {
  * This is the most cross-compatible web container — plays on every browser
  * since Safari 5 / Chrome 4.
  */
+export function nativeEncodingArguments(inPath,outPath) {
+  const scale="scale=w='if(gt(iw,ih),min(1920,trunc(iw/2)*2),min(1080,trunc(iw/2)*2))':h='if(gt(iw,ih),min(1080,trunc(ih/2)*2),min(1920,trunc(ih/2)*2))':force_original_aspect_ratio=decrease:force_divisible_by=2";
+  return ['-i',inPath,'-c:v','libx264','-preset','fast','-crf','23','-vf',scale,
+    '-fpsmax','30','-pix_fmt','yuv420p','-profile:v','main','-level','4.0','-c:a','aac','-b:a','128k',
+    '-movflags','+faststart','-y',outPath];
+}
+
 function transcode(inPath, outPath) {
   return new Promise((resolve, reject) => {
-    const ff = spawn('ffmpeg', [
-      '-i', inPath,
-      '-c:v', 'libx264',
-      '-preset', 'fast',
-      '-crf', '23',
-      '-pix_fmt', 'yuv420p',
-      '-profile:v', 'baseline',
-      '-level', '3.1',
-      '-c:a', 'aac',
-      '-b:a', '128k',
-      '-movflags', '+faststart',
-      '-y', outPath,
-    ]);
+    const ff = spawn('ffmpeg', nativeEncodingArguments(inPath,outPath));
     ff.stderr.on('data', (d) => process.stdout.write(d));
     ff.on('close', (code) => code === 0 ? resolve() : reject(new Error(`ffmpeg_exit_${code}`)));
     // Timeout
     const timer = setTimeout(() => {
-      ff.kill('SIGTERM');
+      ff.kill('SIGKILL');
       reject(new Error('ffmpeg_timeout_10min'));
     }, FFMPEG_TIMEOUT);
+    ff.on('error', error => { clearTimeout(timer); reject(error); });
     ff.on('close', () => clearTimeout(timer));
   });
 }
 
-// ─── Crash recovery: reset any 'running' rows back to 'queued' on startup ───
-async function resetStaleRunning() {
-  const { data, error } = await supa.from('social_posts')
-    .update({ transcode_status: 'queued', transcode_error: 'worker_restarted' })
-    .eq('transcode_status', 'running')
-    .select('id');
-  if (data?.length) {
-    log(`Reset ${data.length} stale 'running' row(s) back to 'queued'`);
-  }
-}
 
-// ─── Main ────────────────────────────────────────────────────────────────────
-log('Starting transcode worker');
-log(`  Supabase: ${SUPABASE_URL}`);
-log(`  Poll interval: ${POLL_MS / 1000}s`);
-log(`  Max file size: ${MAX_FILE_SIZE / (1024 * 1024)} MB`);
-
-await resetStaleRunning();
-await tick(); // First poll immediately
-setInterval(() => tick().catch((e) => warn('tick error:', e)), POLL_MS);
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  log('SIGTERM received — shutting down');
-  process.exit(0);
-});
-process.on('SIGINT', () => {
-  log('SIGINT received — shutting down');
-  process.exit(0);
-});
+if(process.argv[1] && pathToFileURL(process.argv[1]).href===import.meta.url) await runMain();

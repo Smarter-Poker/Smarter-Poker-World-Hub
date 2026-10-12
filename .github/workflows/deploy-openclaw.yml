@@ -20,9 +20,15 @@ on:
       - 'scripts/openclaw-requirements.lock'
       - 'scripts/openclaw.service'
       - 'supabase/migrations/20260906235959_video_reels_integrity_foundation.sql'
+      - 'scripts/ci/openclaw-component-diff.mjs'
       - '.github/workflows/deploy-openclaw.yml'
   workflow_dispatch:
     inputs:
+      component:
+        description: Existing Open Claw component to publish
+        type: choice
+        default: dispatcher
+        options: [dispatcher, native-reels]
       source_registry_max_sources:
         description: Bounded registry sources to ingest after exact-main promotion
         required: false
@@ -56,8 +62,26 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
+  select-component:
+    name: Select Only The Changed Existing Component
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      dispatcher: ${{ steps.selection.outputs.dispatcher }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Classify source changes without a host operation
+        id: selection
+        env:
+          SELECTED_COMPONENT: ${{ inputs.component || 'dispatcher' }}
+        run: node scripts/ci/openclaw-component-diff.mjs
+
+  deploy:
+    needs: select-component
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.component != 'native-reels') && needs.select-component.outputs.dispatcher == 'true'
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 120
@@ -1053,4 +1077,107 @@ jobs:
             sudo systemctl reset-failed "$unit" >/dev/null 2>&1 || true
             printf 'Reel backfill custody revoked: %s\n' "$unit"
           done
+          EOSSH
+
+  native-reels:
+    name: Publish Existing Native Reels Consumer
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.component == 'native-reels'
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Require the exact merged main revision
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
+          node --check scripts/transcode-worker/index.js
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
+        with:
+          ssh-private-key: ${{ secrets.OPENCLAW_SSH_PRIVATE_KEY }}
+      - name: Trust the independently pinned existing host
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -T 10 -t ed25519 -H "$HOST" > ~/.ssh/known_hosts 2>/dev/null
+          test "$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}' | sort -u)" = SHA256:MnBhnIy9+ocCKI8Dlg74XgqBIdMK+M7TNFKMC9OeVyM
+          chmod 0600 ~/.ssh/known_hosts
+      - name: Refuse to interrupt an in-flight transcode operation
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const origin=process.env.NEXT_PUBLIC_SUPABASE_URL;
+          assert.equal(origin.replace(/\/$/,''),'https://kuklfnapbkmacvwxktbh.supabase.co');
+          assert.ok(process.env.SUPABASE_SERVICE_ROLE_KEY);
+          const url=new URL('/rest/v1/social_posts',origin);url.search='select=id&transcode_status=eq.running&limit=1';
+          const response=await fetch(url,{headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`},signal:AbortSignal.timeout(15000)});
+          assert.ok(response.ok,'Transcode ownership read is unavailable');
+          const rows=await response.json();assert.ok(Array.isArray(rows));assert.equal(rows.length,0,'An in-flight processing owner must finish before native source publication');
+          console.log('No in-flight transcode operation will be interrupted');
+          JS
+      - name: Publish only the incumbent native worker with rollback
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+        run: |
+          set -euo pipefail
+          source_hash="$(sha256sum scripts/transcode-worker/index.js | awk '{print $1}')"
+          upload="native-reels-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.js"
+          scp -o StrictHostKeyChecking=yes scripts/transcode-worker/index.js "$SSH_USER@$HOST:$upload"
+          ssh -o StrictHostKeyChecking=yes "$SSH_USER@$HOST" 'bash -s' -- "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$source_hash" "$GITHUB_SHA" <<'EOSSH'
+          set -euo pipefail
+          run_id="$1"; attempt="$2"; expected_hash="$3"; revision="$4"
+          [[ "$run_id" =~ ^[0-9]+$ && "$attempt" =~ ^[0-9]+$ && "$expected_hash" =~ ^[a-f0-9]{64}$ && "$revision" =~ ^[a-f0-9]{40}$ ]]
+          worker=/opt/smarter-poker/transcode-worker
+          upload="$HOME/native-reels-${run_id}-${attempt}.js"
+          backup="$worker/index.js.previous-${run_id}-${attempt}"
+          stage="$worker/index.next-${run_id}-${attempt}.js"
+          test -f "$upload"; test ! -L "$upload"
+          test "$(sha256sum "$upload" | awk '{print $1}')" = "$expected_hash"
+          test -d "$worker"; test ! -L "$worker"
+          test -f "$worker/index.js"; test ! -L "$worker/index.js"
+          test "$(systemctl show sp-transcode.service -p WorkingDirectory --value)" = "$worker"
+          systemctl show sp-transcode.service -p ExecStart --value | grep -F '/usr/bin/node' >/dev/null
+          systemctl show sp-transcode.service -p ExecStart --value | grep -F 'index.js' >/dev/null
+          test -f /etc/sp-transcode.env; test ! -L /etc/sp-transcode.env
+          # Preserve the host-managed environment; never read or copy its values.
+          test "$(stat -c '%a' /etc/sp-transcode.env)" = 600
+          test "$(systemctl is-active sp-transcode.service)" = active
+          enabled_before="$(systemctl is-enabled sp-transcode.service)"
+          old_hash="$(sha256sum "$worker/index.js" | awk '{print $1}')"
+          previous_invocation="$(systemctl show sp-transcode.service -p InvocationID --value)"
+          test -n "$previous_invocation"
+          test ! -e "$backup"; test ! -e "$stage"
+          cp -a "$worker/index.js" "$backup"
+          rollback() {
+            rc=$?; trap - ERR
+            if test -f "$backup"; then mv -Tf "$backup" "$worker/index.js"; systemctl restart sp-transcode.service; fi
+            test "$(sha256sum "$worker/index.js" | awk '{print $1}')" = "$old_hash"
+            rm -f -- "$stage" "$upload"
+            exit "$rc"
+          }
+          trap rollback ERR
+          install -o root -g root -m 0644 "$upload" "$stage"
+          /usr/bin/node --check "$stage"
+          # Require existing dependencies and codecs; this route does not install infrastructure.
+          (cd "$worker" && /usr/bin/node --input-type=module -e "await import('@supabase/supabase-js')")
+          command -v ffmpeg >/dev/null; command -v ffprobe >/dev/null
+          mv -Tf "$stage" "$worker/index.js"
+          systemctl restart sp-transcode.service
+          invocation="$(systemctl show sp-transcode.service -p InvocationID --value)"
+          test -n "$invocation"; test "$invocation" != "$previous_invocation"
+          sleep 8
+          systemctl is-active --quiet sp-transcode.service
+          test "$(systemctl show sp-transcode.service -p InvocationID --value)" = "$invocation"
+          test "$(systemctl is-enabled sp-transcode.service)" = "$enabled_before"
+          test "$(sha256sum "$worker/index.js" | awk '{print $1}')" = "$expected_hash"
+          trap - ERR
+          rm -f -- "$backup" "$upload"
+          printf '{"component":"sp-transcode","revision":"%s","sourceHash":"%s","active":true,"newInvocation":true,"freshProcessingProven":false}\n' "$revision" "$expected_hash"
           EOSSH
