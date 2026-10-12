@@ -112,3 +112,10 @@ test('the library links, shares and lists the watch pages', () => {
     assert.match(SITEMAP, /res\.statusCode = 503/);
     assert.match(ROBOTS, /^Sitemap: https:\/\/smarter\.poker\/sitemap-videos\.xml$/m);
 });
+
+test('the About section channel link is a 44px phone tap target', () => {
+    const css = readFileSync(new URL('../src/styles/worlds/video-library.css', import.meta.url), 'utf8');
+    const rule = css.match(/\.vl-watch-about a \{([^}]*)\}/);
+    assert.ok(rule, 'About link rule exists');
+    assert.match(rule[1], /min-height: 44px/);
+});
