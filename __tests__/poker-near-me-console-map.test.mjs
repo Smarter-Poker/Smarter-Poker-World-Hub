@@ -25,6 +25,72 @@ import {
 const root = new URL('../', import.meta.url);
 const source = (path) => readFile(new URL(path, root), 'utf8');
 
+test('saved map filters have real pressed controls and reset restores the same map/list feed', async () => {
+  const require = createRequire(import.meta.url); const React = require('react'); const ts = require('typescript');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const text = await source('src/components/poker-near-me/MapTabPanel.jsx');
+  const code = ts.transpileModule(text, { compilerOptions: { esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS } }).outputText;
+  const module = { exports: {} };
+  let mapped;
+  const Map = props => { mapped = props.venues; return React.createElement('div', { 'data-map-list-ids': props.venues.map(v => v.id).join(',') }, props.mapControls); };
+  new Function('require', 'module', 'exports', code)(name => {
+    if (name === 'react') return { ...React, useMemo: fn => fn() };
+    if (name === 'next/dynamic') return () => Map;
+    if (name === './VenueMap') return { MapErrorBoundary: props => props.children };
+    if (name === './PokerNearMeConsole') return { PokerNearMeConsoleIcon: () => null };
+    return require(name);
+  }, module, module.exports);
+  const keys = ['cashGames', 'tournaments', 'is24Hours', 'lowStakes', 'topRated'];
+  let flags = Object.fromEntries(keys.map(key => [key, false]));
+  const page = await source('pages/hub/poker-near-me/[pnmTab].js');
+  const restoreStart = page.indexOf('  useEffect(() => {', page.indexOf('const mapFiltersPersistSkipRef'));
+  const restore = page.slice(restoreStart + '  useEffect(() => {'.length, page.indexOf('  }, []);', restoreStart));
+  new Function('localStorage', 'setMapFilters', restore)({ getItem: () => JSON.stringify({ ...flags, topRated: true }) }, value => { flags = value; });
+  const venues = [
+    { id: 'high', trust_score: 5, games_offered: ['NLH'], stakes_cash: ['1/2'], has_tournaments: true, hours: '24/7' },
+    { id: 'low', trust_score: 1, games_offered: [], stakes_cash: ['5/10'], has_tournaments: false, hours: '9-5' },
+  ];
+  const render = () => module.exports.default({ allVenuesForMap: venues, mapFilters: flags, setMapFilters: update => { flags = typeof update === 'function' ? update(flags) : update; }, filters: { radius: 50 }, setFilters() {} });
+  const buttons = tree => {
+    const found = []; const walk = node => { if (!node || typeof node !== 'object') return; if (node.type === 'button') found.push(node); React.Children.forEach(node.props?.children, walk); }; walk(tree); return found;
+  };
+  let tree = render(); let html = renderToStaticMarkup(tree);
+  assert.deepEqual(mapped.map(v => v.id), ['high']);
+  assert.match(html, /<details[^>]*pnm-map-filter-disclosure/); assert.match(html, /Map Filters[^<]*1 Active/);
+  assert.equal(buttons(tree).filter(button => 'aria-pressed' in button.props).length, 5);
+  const rated = buttons(tree).find(button => button.props.children === 'Top Rated');
+  assert.ok(rated); assert.equal(rated.props['aria-pressed'], true); rated.props.onClick();
+  html = renderToStaticMarkup(render()); assert.deepEqual(mapped.map(v => v.id), ['high', 'low']);
+  for (const key of keys) flags[key] = true;
+  tree = render(); const reset = buttons(tree).find(button => button.props.children === 'Reset Map Filters');
+  assert.ok(reset); reset.props.onClick(); renderToStaticMarkup(render());
+  assert.ok(keys.every(key => flags[key] === false)); assert.deepEqual(mapped.map(v => v.id), ['high', 'low']);
+  for (const [key, label] of [['cashGames', 'Cash Games'], ['tournaments', 'Tournaments'], ['is24Hours', 'Open 24 Hours'], ['lowStakes', 'Low Stakes'], ['topRated', 'Top Rated']]) {
+    const button = buttons(render()).find(item => item.props.children === label);
+    assert.ok(button); assert.equal(button.props.type, 'button'); button.props.onClick();
+    assert.equal(flags[key], true); assert.equal(keys.filter(item => flags[item]).length, 1);
+    renderToStaticMarkup(render()); assert.deepEqual(mapped.map(v => v.id), ['high']);
+    buttons(render()).find(item => item.props.children === label).props.onClick();
+    renderToStaticMarkup(render()); assert.deepEqual(mapped.map(v => v.id), ['high', 'low']);
+  }
+  const css = await source('src/styles/worlds/poker-near-me-console-map.css');
+  assert.match(css, /pnm-map-filter-disclosure[\s\S]*min-height:\s*44px/);
+  assert.match(css, /pnm-map-filter-options button\[aria-pressed='true'\]/);
+});
+
+test('actual general Clear Filters also resets every persisted map flag', async () => {
+  const page = await source('pages/hub/poker-near-me/[pnmTab].js');
+  const start = page.indexOf('  const clearFilters = useCallback(');
+  const callback = page.slice(start, page.indexOf('  // Loading skeleton component', start));
+  let mapFlags = { cashGames: true, tournaments: true, is24Hours: true, lowStakes: true, topRated: true };
+  const names = [...new Set([...callback.matchAll(/\b(set[A-Z]\w*)\(/g)].map(match => match[1]))];
+  // Include the required setter independently so its absence really fails the old source.
+  const scope = Object.fromEntries(names.map(name => [name, () => {}]));
+  Object.assign(scope, { useCallback: fn => fn, setMapFilters: value => { mapFlags = value; }, clearPersistedLocation() {}, getCurrentDay: () => 'Monday', INITIAL_VISIBLE: 20 });
+  new Function(...Object.keys(scope), `${callback}; return clearFilters;`)(...Object.values(scope))();
+  assert.deepEqual(mapFlags, { cashGames: false, tournaments: false, is24Hours: false, lowStakes: false, topRated: false });
+});
+
 test('the real map frame opens map-first without a modal or redundant frame and retains one map', async () => {
   const require = createRequire(import.meta.url);
   const React = require('react');

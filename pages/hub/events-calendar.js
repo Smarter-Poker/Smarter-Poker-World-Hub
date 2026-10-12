@@ -365,26 +365,45 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [locError, setLocError] = useState('');
   const isMountedRef = useRef(true);
+  const gpsRequestRef = useRef(0);
+  const invalidateGps = () => { gpsRequestRef.current += 1; };
+  const closeModal = () => {
+    invalidateGps();
+    setGpsLoading(false);
+    onClose();
+  };
   const { dialogRef, initialFocusRef } = useAccessibleDialog({
     open: isOpen,
-    onClose,
+    onClose: closeModal,
   });
-  useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; invalidateGps(); };
+  }, []);
+  useEffect(() => {
+    if (!isOpen) { invalidateGps(); setGpsLoading(false); }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleUseGps = () => {
+    const request = ++gpsRequestRef.current;
     setLocError('');
     setGpsLoading(true);
+    if (!navigator.geolocation) {
+      setGpsLoading(false);
+      setLocError('GPS Not Available. Please Enter A City.');
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current || request !== gpsRequestRef.current) return;
         onSetLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'My Location (GPS)', source: 'gps' });
         setGpsLoading(false);
-        onClose();
+        closeModal();
       },
       () => {
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current || request !== gpsRequestRef.current) return;
         setGpsLoading(false);
         setLocError('GPS Not Available. Please Enter A City.');
       },
@@ -393,32 +412,36 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
   };
 
   const handleCitySelect = (cityStr) => {
+    invalidateGps();
+    setGpsLoading(false);
     setLocError('');
     const coords = resolveCityCoords(cityStr);
     if (coords) {
       onSetLocation({ lat: coords.lat, lng: coords.lng, label: cityStr, source: 'city' });
-      onClose();
+      closeModal();
     }
   };
 
   const handleManualSubmit = (e) => {
     e.preventDefault();
+    invalidateGps();
+    setGpsLoading(false);
     setLocError('');
     const locationStr = stateInput ? `${cityInput}, ${stateInput}` : cityInput;
     const coords = resolveCityCoords(locationStr);
     if (coords) {
       onSetLocation({ lat: coords.lat, lng: coords.lng, label: locationStr, source: 'manual' });
-      onClose();
+      closeModal();
     } else if (stateInput) {
       onSetLocation({ lat: null, lng: null, label: stateInput, source: 'state', state: stateInput });
-      onClose();
+      closeModal();
     } else {
       setLocError('City Not Found. Try Selecting From The List Or Enter A State.');
     }
   };
 
   return (
-    <div className="loc-overlay" onClick={onClose}>
+    <div className="loc-overlay" onClick={closeModal}>
       <PokerNearMePanelShell
         as="section"
         className="loc-modal"
@@ -432,7 +455,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
       >
         <div className="loc-modal-header">
           <h2 id="loc-modal-title">Change Location</h2>
-          <button ref={initialFocusRef} type="button" className="loc-close sp-icon-btn" onClick={onClose} aria-label="Close">
+          <button ref={initialFocusRef} type="button" className="loc-close sp-icon-btn" onClick={closeModal} aria-label="Close">
             <PokerNearMeConsoleIcon name="close" className="ec-control-icon" />
           </button>
         </div>
@@ -553,6 +576,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
 
   // Location
   const [userLocation, setUserLocation] = useState(null);
+  const locationRequestRef = useRef(0);
 
   // Pagination
   const [visibleCount, setVisibleCount] = useState(50);
@@ -572,6 +596,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
   // Try GPS on mount and restore previous location from PNM
   useEffect(() => {
     let isMounted = true;
+    const request = ++locationRequestRef.current;
     
     // Attempt to restore location from localStorage (poker-near-me shared state)
     const saved = localStorage.getItem('pnm_last_location') || localStorage.getItem('sp-user-gps');
@@ -597,7 +622,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          if (!isMounted) return;
+          if (!isMounted || request !== locationRequestRef.current) return;
           setUserLocation({
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
@@ -609,7 +634,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
         { timeout: 5000 }
       );
     }
-    return () => { isMounted = false; };
+    return () => { isMounted = false; locationRequestRef.current += 1; };
   }, []);
 
   // Deferred search for 120hz unblocked input
@@ -789,6 +814,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
   }, [events]);
 
   const clearFilters = () => {
+    locationRequestRef.current += 1;
     setDateRange('week');
     setBuyInTier('all');
     setGameType('all');
@@ -802,6 +828,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
   };
 
   const handleLocationChange = (loc) => {
+    locationRequestRef.current += 1;
     setUserLocation(loc);
     if (loc?.lat) setDistance('50');
   };
@@ -926,7 +953,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
             <button
               type="button"
               className="ec-gps-btn"
-              onClick={() => setShowLocationModal(true)}
+              onClick={() => { locationRequestRef.current += 1; setShowLocationModal(true); }}
               id="ec-location-btn"
             >
               <PokerNearMeConsoleIcon name="location" className="ec-control-icon" />

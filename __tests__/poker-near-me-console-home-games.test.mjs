@@ -18,8 +18,8 @@ import { homeGameSocialWriteAccess } from '../src/lib/home-games/socialPrivacySe
  *      must stay true; they are here because a visual pass over these files
  *      is exactly the kind of change that breaks them by accident.
  *
- * Everything is read from source. Nothing here renders a page or touches a
- * network, so it runs in the same plain `node --test` lane as its siblings.
+ * Source contracts and isolated actual React page behavior run in the same
+ * plain `node --test` lane. Browser location and transport are controlled locally.
  */
 
 const root = new URL('../', import.meta.url);
@@ -44,6 +44,120 @@ const HOST_BUTTON = 'src/components/poker-near-me/HostHomeGameButton.jsx';
 const HOME_GAME_CONSOLE_CSS = 'src/components/poker-near-me/PokerNearMeHomeGameConsole.module.css';
 const HOME_GAME_DIRECTORY_CSS = 'src/styles/worlds/poker-near-me-home-games-directory.css';
 const DISCOVER_API = 'pages/api/public/home-games/discover.js';
+
+function homeGamesLocationFixture(saved = {}) {
+  const React = nodeRequire('react');
+  const renderer = nodeRequire('react-test-renderer');
+  const compiled = nodeRequire('typescript').transpileModule(read(PUBLIC_INDEX), {
+    compilerOptions: { jsx: 2, module: 1, target: 7, esModuleInterop: true },
+    fileName: PUBLIC_INDEX,
+  }).outputText;
+  const storage = new Map(Object.entries(saved));
+  const window = new EventTarget();
+  const gps = []; const reverse = []; const events = [];
+  window.addEventListener('sp_user_gps_updated', () => events.push('updated'));
+  const component = () => null;
+  const module = { exports: {} };
+  vm.runInNewContext(compiled, {
+    module, exports: module.exports, console, Date, Event, AbortController, URLSearchParams,
+    window, navigator: { geolocation: { getCurrentPosition: (success, error) => gps.push({ success, error }) } },
+    localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
+    fetch: (url, options) => {
+      if (url.startsWith('https://nominatim')) return new Promise((resolve, reject) => reverse.push({ resolve, reject, options }));
+      return Promise.resolve({ ok: true, json: async () => ({ success: true, groups: [], pagination: { has_more: false } }) });
+    },
+    require(specifier) {
+      if (specifier === 'react') return React;
+      if (specifier === 'next/router') return { useRouter: () => ({ push() {}, back() {} }) };
+      if (specifier === 'next/dynamic') return () => props => React.createElement('fixture-map', props);
+      if (specifier.endsWith('/AvatarContext')) return { useAvatar: () => ({ user: null }) };
+      if (specifier.endsWith('/authUtils')) return { getAccessToken: () => null };
+      if (specifier.endsWith('/hubPageSchema')) return { hubProductSchema: () => ({}) };
+      if (specifier.endsWith('/locationUtils')) return { US_STATES_BY_CODE: { TX: 'Texas', IL: 'Illinois' } };
+      if (specifier.endsWith('/urls')) return { homeGameUrl: () => '/home-game' };
+      if (specifier.endsWith('/pokerNearMeFavorites')) return { getVenueFavorites: async () => [], addVenueFavorite() {}, removeVenueFavorite() {} };
+      if (specifier.endsWith('/VenueMap')) return { MapErrorBoundary: ({ children }) => children };
+      if (specifier.endsWith('/LocationEnableModal')) return { __esModule: true, default: props => React.createElement('fixture-location-modal', props) };
+      if (specifier.endsWith('/PokerNearMeConsole')) return {
+        PokerNearMeConsoleIcon: component,
+        PokerNearMePanelShell: ({ as = 'section', children, ...props }) => React.createElement(as, props, children),
+      };
+      return { __esModule: true, default: component };
+    },
+  }, { filename: PUBLIC_INDEX });
+  let tree;
+  const act = renderer.act;
+  return {
+    storage, window, gps, reverse, events, act,
+    async mount() { await act(async () => { tree = renderer.create(React.createElement(module.exports.default)); }); },
+    async unmount() { await act(async () => tree?.unmount()); },
+    click(label) { return act(async () => tree.root.findAllByType('button').find(node => node.props['aria-label'] === label || node.findAllByType('span').some(span => span.children.includes(label))).props.onClick()); },
+    location() { return tree.root.findByType('fixture-map').props.userLocation; },
+    label() { return tree.root.findAll(node => node.type === 'strong').map(node => node.children.join('')).at(-1); },
+    modal() { return tree.root.findByType('fixture-location-modal').props; },
+    async position(index, lat, lng) { await act(async () => gps[index].success({ coords: { latitude: lat, longitude: lng } })); },
+    async geocode(index, city, state) { await act(async () => reverse[index].resolve({ json: async () => ({ address: { city, state } }) })); },
+  };
+}
+
+test('actual Home Games Clear Location removes every saved location and survives a fresh mount', async () => {
+  const saved = { 'sp-user-gps': JSON.stringify({ lat: 30.267, lng: -97.743, time: Date.now(), label: 'Austin, TX' }),
+    pnm_last_location: 'stale', pnm_last_city: 'Austin', pnm_last_state: 'TX', pnm_last_selected_city: 'Austin', pnm_location_enabled: '1' };
+  const fixture = homeGamesLocationFixture(saved);
+  try {
+    await fixture.mount(); assert.equal(fixture.label(), 'Austin, TX');
+    await fixture.click('Clear Location'); assert.equal(fixture.location(), null);
+    for (const key of Object.keys(saved).filter(key => key !== 'pnm_location_enabled')) assert.equal(fixture.storage.has(key), false, key);
+    assert.equal(fixture.storage.get('pnm_location_enabled'), '0'); assert.equal(fixture.events.length, 1);
+    await fixture.unmount(); await fixture.mount(); assert.equal(fixture.location(), null); assert.equal(fixture.gps.length, 0);
+  } finally { await fixture.unmount(); }
+});
+
+test('actual Home Games clear invalidates delayed reverse geocoding and stale GPS permission errors', async () => {
+  const fixture = homeGamesLocationFixture();
+  try {
+    await fixture.mount(); await fixture.click('Enable GPS'); await fixture.position(0, 30.267, -97.743);
+    await fixture.click('Clear Location'); await fixture.geocode(0, 'Austin', 'Texas');
+    assert.equal(fixture.location(), null); assert.equal(fixture.label(), 'GPS Not Enabled'); assert.equal(fixture.storage.has('sp-user-gps'), false);
+    await fixture.click('Enable GPS');
+    fixture.storage.delete('sp-user-gps'); await fixture.act(async () => fixture.window.dispatchEvent(new Event('sp_user_gps_updated')));
+    await fixture.position(1, 34.05, -118.24); assert.equal(fixture.location(), null); assert.equal(fixture.reverse.length, 1);
+    await fixture.act(async () => fixture.gps[1].error({ code: 1 })); assert.equal(fixture.modal().isOpen, false);
+    await fixture.click('Enable GPS'); await fixture.act(async () => fixture.gps[2].error({ code: 1 }));
+    assert.equal(fixture.modal().isOpen, true, 'current permission denial keeps the location help');
+    await fixture.act(async () => fixture.modal().onRetry()); assert.equal(fixture.modal().isOpen, false); assert.equal(fixture.gps.length, 4);
+  } finally { await fixture.unmount(); }
+});
+
+test('actual Home Games accepts only its newest GPS request and ignores callbacks after unmount', async () => {
+  const fixture = homeGamesLocationFixture();
+  try {
+    await fixture.mount(); await fixture.click('Enable GPS'); await fixture.position(0, 30.267, -97.743);
+    await fixture.click('Clear Location'); await fixture.click('Enable GPS'); await fixture.position(1, 41.878, -87.629);
+    await fixture.position(0, 34.05, -118.24); assert.equal(fixture.reverse.length, 2, 'a superseded GPS callback never starts another lookup');
+    await fixture.geocode(1, 'Chicago', 'Illinois'); await fixture.geocode(0, 'Austin', 'Texas');
+    assert.equal(fixture.label(), 'Chicago, IL'); assert.equal(JSON.parse(fixture.storage.get('sp-user-gps')).lat, 41.878);
+    await fixture.unmount(); await fixture.position(1, 34.05, -118.24);
+    assert.equal(fixture.reverse.length, 2, 'unmounted GPS callback never starts another reverse lookup');
+  } finally { await fixture.unmount(); }
+});
+
+test('actual Home Games unmount prevents delayed reverse geocoding from writing browser storage', async () => {
+  const fixture = homeGamesLocationFixture();
+  await fixture.mount(); await fixture.click('Enable GPS'); await fixture.position(0, 30.267, -97.743);
+  await fixture.unmount(); await fixture.geocode(0, 'Austin', 'Texas');
+  assert.equal(fixture.storage.has('sp-user-gps'), false); assert.equal(fixture.reverse[0].options.signal.aborted, true);
+});
+
+test('actual Home Games follows sibling storage clears while reverse geocoding is pending', async () => {
+  const fixture = homeGamesLocationFixture();
+  try {
+    await fixture.mount(); await fixture.click('Enable GPS'); await fixture.position(0, 30.267, -97.743);
+    const event = new Event('storage'); Object.defineProperty(event, 'key', { value: 'sp-user-gps' });
+    await fixture.act(async () => fixture.window.dispatchEvent(event)); await fixture.geocode(0, 'Austin', 'Texas');
+    assert.equal(fixture.location(), null); assert.equal(fixture.storage.has('sp-user-gps'), false);
+  } finally { await fixture.unmount(); }
+});
 
 function runPublicHomeGameHandler(file, tables, query = {}, request = {}) {
   class Query {

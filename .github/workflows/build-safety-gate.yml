@@ -176,7 +176,7 @@ jobs:
         run: node --test __tests__/poker-near-me-tour-calendar-truth.test.mjs __tests__/poker-near-me-tour-db-schedule.test.mjs __tests__/poker-near-me-tour-stop-scope.test.mjs __tests__/poker-near-me-data-truth.test.mjs __tests__/poker-near-me-coordinate-repair.test.mjs __tests__/poker-near-me-schedule-artifact-truth.test.mjs
 
       - name: Poker Near Me Discovery Search Maps And Schedule Contracts
-        run: node --test __tests__/poker-near-me-console-search.test.mjs __tests__/poker-near-me-console-map.test.mjs __tests__/poker-near-me-phase-2.test.mjs
+        run: node --test __tests__/poker-near-me-console-search.test.mjs __tests__/poker-near-me-console-map.test.mjs __tests__/poker-near-me-phase-2.test.mjs __tests__/events-calendar-ssr-fallback.test.mjs __tests__/poker-near-me-phase-17.test.mjs
 
       - name: Poker Near Me Launch Certification And Bounded Map Recovery
         run: node --test __tests__/pnm-map-area-deadline.test.mjs __tests__/pnm-map-tile-recovery.test.mjs __tests__/pnm-location-picker-recovery.test.mjs __tests__/pnm-launch-phase6-qualification-safety.test.mjs __tests__/pnm-launch-freshness.test.mjs __tests__/pnm-mobile-budget-evidence.test.mjs __tests__/poker-near-me-console-discovery.test.mjs __tests__/poker-near-me-console-deep.test.mjs
