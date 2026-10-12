@@ -674,7 +674,18 @@ function NavigationGuard({ children }) {
       document.head.appendChild(style);
     }
 
-    const handleStart = (nextUrl) => {
+    const preservesReelsMedia = (nextUrl, routeOptions) => {
+      if (!routeOptions?.shallow || window.location.pathname !== '/hub/reels') return false;
+      try {
+        const target = new URL(nextUrl, window.location.href);
+        return target.origin === window.location.origin && target.pathname === '/hub/reels';
+      } catch (_urlError) {
+        return false;
+      }
+    };
+    const handleStart = (nextUrl, routeOptions) => {
+      // Reels commits channel media only after its feed response succeeds.
+      if (preservesReelsMedia(nextUrl, routeOptions)) return;
       // SYNCHRONOUS: Add class immediately (no React state delay)
       document.body.classList.add('page-transitioning');
 
@@ -720,7 +731,8 @@ function NavigationGuard({ children }) {
       setIsNavigating(true);
     };
 
-    const handleComplete = () => {
+    const handleComplete = (nextUrl, routeOptions) => {
+      if (preservesReelsMedia(nextUrl, routeOptions)) return;
       // Remove the hiding class
       document.body.classList.remove('page-transitioning');
       setIsNavigating(false);
@@ -770,16 +782,18 @@ function NavigationGuard({ children }) {
       }
     };
 
+    const handleError = (_error, nextUrl, routeOptions) => handleComplete(nextUrl, routeOptions);
+
     router.events.on('routeChangeStart', handleStart);
     router.events.on('routeChangeStart', handleMediaRelease);
     router.events.on('routeChangeComplete', handleComplete);
-    router.events.on('routeChangeError', handleComplete);
+    router.events.on('routeChangeError', handleError);
 
     return () => {
       router.events.off('routeChangeStart', handleMediaRelease);
       router.events.off('routeChangeStart', handleStart);
       router.events.off('routeChangeComplete', handleComplete);
-      router.events.off('routeChangeError', handleComplete);
+      router.events.off('routeChangeError', handleError);
       // Cleanup class if component unmounts during transition
       document.body.classList.remove('page-transitioning');
     };
