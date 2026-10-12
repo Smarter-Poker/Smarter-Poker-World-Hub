@@ -27,3 +27,6 @@ Initial checks: locked private dependencies installed on SSD; changed JSX parsed
 - Required repository/build qualification is running; no hosted submission or completion claimed yet.
 - Full required meta-guard on the corrected external temporary path: 2,952/2,952 pass, no skips. Tests now use a temporary folder outside the repository to preserve private-credential fixture boundaries and missing-dependency isolation.
 - The final playback control also cancels a pending next transition when the proposed next title changes and retains at least a 200px mini-player height. No media is downloaded or duplicated.
+- Exact production-source build on committed implementation dfd060dbaa8412fe253f0da20eb81ef76213a4e4: build:vercel passed, 508/508 pages generated. Full npm build also passed. Build runs without production credentials; runtime catalog access is verified separately.
+- Final production-bundle browser matrix: 25/25 executable Chromium desktop/phone checks passed (one explicitly conditional desktop skip for the phone-only geometry case). Safari/WebKit desktop/phone Phase 3 matrix passed 4/4, including seek, markers, countdown cancellation and same-iframe minimize/expand.
+- All local source gates and exact candidate compilation passed. Hosted required checks, protected merge, Vercel READY, live health identity and final affected live proof remain pending.
