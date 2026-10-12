@@ -1289,7 +1289,7 @@ function NewsHub() {
     const bookmarkedArticles = news.filter(a => bookmarks.includes(a.id));
 
     // Breaking news = most recent real article from top sources (fallback data never qualifies)
-    const breakingNews = news.find(a => !a.is_fallback && a.source_name !== 'Smarter.Poker' && (Date.now() - new Date(a.published_at).getTime()) < 3600000);
+    const breakingNews = hasMounted && news.find(a => !a.is_fallback && a.source_name !== 'Smarter.Poker' && (Date.now() - new Date(a.published_at).getTime()) < 3600000);
 
     // Trending = sorted by views
     const trendingNews = [...news].filter(a => a.source_name !== 'Smarter.Poker')
@@ -1547,7 +1547,7 @@ function NewsHub() {
                                 </div>
                                 {lastRefreshed && (
                                     <div className="news-desk-freshness">
-                                        <span>Updated {timeAgo(lastRefreshed)}</span>
+                                        <span>Updated {hasMounted ? timeAgo(lastRefreshed) : ''}</span>
                                         <button type="button" onClick={() => refreshNewsFeed()}>Refresh</button>
                                     </div>
                                 )}
@@ -1874,7 +1874,8 @@ function NewsHub() {
                                                     let lastGroup = '';
                                                     return remainingStories.map((article, storyIndex) => {
                                                         const group = getTimeGroup(article.published_at);
-                                                        const showHeader = storySort === 'latest' && group !== lastGroup;
+                                                        // Clock-dependent, and the HTML is cached: headers appear after hydration.
+                                                        const showHeader = hasMounted && storySort === 'latest' && group !== lastGroup;
                                                         lastGroup = group;
                                                         const isKeyFocused = focusedArticleIdx === topArticles.length + storyIndex;
                                                         return (
@@ -1936,7 +1937,7 @@ function NewsHub() {
                                                                         <div className="list-meta">
                                                                             <span style={{ color: SOURCE_COLORS[article.source_name] || '#888' }}>{article.source_name || 'Source'}</span>
                                                                             <span>•</span>
-                                                                            <span>{timeAgo(article.published_at)}</span>
+                                                                            <span>{hasMounted ? timeAgo(article.published_at) : ''}</span>
                                                                             {article.category && <span className="category-pill" style={{ background: `rgba(${article.category === 'tournament' ? '251,191,36' : article.category === 'strategy' ? '124,58,237' : article.category === 'industry' ? '34,197,94' : '59,130,246'}, 0.2)`, color: article.category === 'tournament' ? '#fbbf24' : article.category === 'strategy' ? '#a78bfa' : article.category === 'industry' ? '#22c55e' : '#3b82f6' }}>{article.category}</span>}
                                                                             {(article.views || 0) > 0 && <><span>•</span><span><Eye size={10} /> {formatViews(article.views)}</span></>}
                                                                         </div>
@@ -2265,7 +2266,7 @@ function NewsHub() {
                                                 <div className="mspt-item">
                                                     <span className="mspt-title">{item.title}</span>
                                                     <div className="mspt-meta">
-                                                        <span className="mspt-time">{timeAgo(item.published_at)}</span>
+                                                        <span className="mspt-time">{hasMounted ? timeAgo(item.published_at) : ''}</span>
                                                         {item.prize_pool && (
                                                             <span className="mspt-prize">{item.prize_pool}</span>
                                                         )}

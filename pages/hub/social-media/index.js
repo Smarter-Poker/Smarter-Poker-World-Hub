@@ -3929,11 +3929,14 @@ function SocialMediaPage() {
   // be hammered anonymously.
   useEffect(() => {
     const token = getAccessToken();
+    // The route refuses anyone signed out, so a signed-out visit only produced
+    // a 401 in the console on every load (2026-10-12 sweep). Skip it.
+    if (!token) return;
     fetch('/api/live/cleanup-stale', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Authorization: `Bearer ${token}`,
       },
       credentials: 'same-origin',
     }).catch(() => {

@@ -135,26 +135,25 @@ export default function SettingsPage() {
     useTrainingBus('settings');
     const { avatar, isVip, user: contextUser, initializing, setActiveAvatar } = useAvatar();
     // SWR: Read cached profile from localStorage for instant UI (same pattern as UniversalHeader)
-    const [userProfile, setUserProfile] = useState(() => {
-        if (typeof window === 'undefined') return null;
+    // Browser-only caches are read AFTER the first render (effect below), not in
+    // useState initializers. Reading them during render made a returning or
+    // signed-in visitor's first client render differ from the server HTML -
+    // React #418, which throws the server markup away (2026-10-12).
+    const [userProfile, setUserProfile] = useState(null);
+    const [localUser, setLocalUser] = useState(null);
+    useEffect(() => {
         try {
             const cached = localStorage.getItem('sp-cached-settings-profile');
-            if (cached) return JSON.parse(cached);
+            if (cached) setUserProfile((prev) => prev || JSON.parse(cached));
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        return null;
-    });
-    const [localUser, setLocalUser] = useState(() => {
-        //  BULLETPROOF: Read from localStorage immediately to prevent "Not Logged In" flash
-        if (typeof window === 'undefined') return null;
         try {
             const explicitAuth = localStorage.getItem('smarter-poker-auth');
             if (explicitAuth) {
                 const tokenData = JSON.parse(explicitAuth);
-                if (tokenData?.user) return tokenData.user;
+                if (tokenData?.user) setLocalUser((prev) => prev || tokenData.user);
             }
         } catch (_) {}
-        return null;
-    });
+    }, []);
     const [activeSection, setActiveSection] = usePersistedState('sp-settings-active-section', 'account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
@@ -215,10 +214,11 @@ export default function SettingsPage() {
     const [notificationsLoaded, setNotificationsLoaded] = useState(false);
 
     // Mobile Responsive State
-    const [isMobile, setIsMobile] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        return window.innerWidth < 768;
-    });
+    // Starts false on BOTH server and first client render, then the effect
+    // below reads the real width. Reading window in the initializer made the
+    // phone's first render differ from the server HTML (React #418 on every
+    // phone visit, which throws the server markup away).
+    const [isMobile, setIsMobile] = useState(false);
 
     // Data Export State
     const [exportLoading, setExportLoading] = useState(false);
@@ -337,6 +337,7 @@ export default function SettingsPage() {
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const handleResize = () => setIsMobile(window.innerWidth < 768);
+        handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -379,14 +380,14 @@ export default function SettingsPage() {
         notificationSounds: true,
         masterVolume: 80,
     };
-    const [settings, setSettings] = useState(() => {
-        if (typeof window === 'undefined') return SETTINGS_DEFAULTS;
+    const [settings, setSettings] = useState(SETTINGS_DEFAULTS);
+    useEffect(() => {
         try {
             const cached = localStorage.getItem('sp-user-settings');
-            if (cached) return { ...SETTINGS_DEFAULTS, ...withoutRetiredSettings(JSON.parse(cached)) };
+            if (cached) setSettings((prev) => ({ ...prev, ...withoutRetiredSettings(JSON.parse(cached)) }));
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        return SETTINGS_DEFAULTS;
-    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // TIER 3 REALTIME: Settings/Preferences Sync

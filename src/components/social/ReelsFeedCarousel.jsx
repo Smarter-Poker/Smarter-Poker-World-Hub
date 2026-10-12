@@ -3161,10 +3161,22 @@ export function ReelsFeedCarousel() {
     if (followingUnavailable) selectCategory('for-you');
   }, [followingUnavailable, selectCategory]);
 
+  // Keep the selected category button visible INSIDE the rail, sideways only.
+  // This used scrollIntoView({ block: 'nearest' }), which also moves every
+  // scrollable ancestor - the document included. The rail sits below the fold
+  // on Social Media, so on every page load it dragged the whole page ~640px
+  // down to the Reels section: the reader landed mid-feed and the footer read
+  // that jump as downward travel and hid itself (2026-10-12).
   useEffect(() => {
-    categoryRailRef.current
-      ?.querySelector(`#vlc-reel-category-${selectedCategoryId}`)
-      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    const rail = categoryRailRef.current;
+    const chip = rail?.querySelector?.(`#vlc-reel-category-${selectedCategoryId}`);
+    if (!rail || !chip) return;
+    const railBox = rail.getBoundingClientRect();
+    const chipBox = chip.getBoundingClientRect();
+    let left = rail.scrollLeft;
+    if (chipBox.left < railBox.left) left -= railBox.left - chipBox.left;
+    else if (chipBox.right > railBox.right) left += chipBox.right - railBox.right;
+    if (left !== rail.scrollLeft) rail.scrollLeft = left;
   }, [selectedCategoryId]);
 
   const renderCategoryRail = () => (
