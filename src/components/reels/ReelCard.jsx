@@ -1,3 +1,4 @@
+import ReelThumbnail from './ReelThumbnail';
 import Link from 'next/link';
 import { buildReelPath } from '../../lib/reelsFeedClient';
 import { reelCreatorName } from '../../lib/reelCreatorName.mjs';
@@ -12,11 +13,12 @@ function youtubeId(reel) {
 export default function ReelCard({ reel, onOpen, className = '', textFirst = false }) {
   const id = youtubeId(reel);
   const creator = reelCreatorName(reel, { preferProfile: textFirst });
-  const thumbnail = reel?.thumbnail_url || (id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null);
+  const fallback = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+  const thumbnail = reel?.thumbnail_url || fallback;
   const native = reel?.playback_type === 'native' || reel?.source_type === 'native';
   const media = (
     <span className="sp-reel-card__media vlc-reel-card__media">
-      {thumbnail ? <img src={thumbnail} alt="" loading="lazy" decoding="async" /> : native ? (
+      {thumbnail ? <ReelThumbnail key={`${thumbnail}|${fallback}`} thumbnail={thumbnail} fallback={fallback} caption={reel?.caption} /> : native ? (
         <video src={reel?.video_url} muted playsInline preload="none" aria-label={reel?.caption || 'Reel preview'} />
       ) : <span>Verified Reel</span>}
       <span className="sp-reel-card__play" aria-hidden="true">▶</span>

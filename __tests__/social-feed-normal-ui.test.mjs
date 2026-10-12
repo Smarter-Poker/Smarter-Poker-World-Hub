@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   articlePreviewNeedsHydration,
+  internalArticlePath,
   isArticlePreviewImage,
   mergeArticleMetadata,
   suppliedArticleMetadata,
@@ -269,6 +270,7 @@ test('mounted shared previews hydrate, order copy before media, and activate the
         esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
     }).outputText;
     function localRequire(specifier) {
+      if (specifier === 'next/router') return { useRouter: () => ({ push: (path) => { calls.push(['internal', path]); return Promise.resolve(true); } }) };
       if (specifier.endsWith('/ExternalLinkModal')) {
         return { useExternalLink: () => ({ openExternal: () => assert.fail('caller reader was bypassed') }) };
       }
@@ -342,14 +344,60 @@ test('mounted shared previews hydrate, order copy before media, and activate the
     assert.equal(nodes().filter((node) => node.type === 'img').length, 0, 'failed image disappears without fake media');
     assert.ok(nodes().some((node) => node.value === 'Ace & King'), 'copy remains available after image failure');
 
+    renderer.flushPassiveEffects();
+    assert.equal(pending.length, 2, 'failed image triggers one uncached recovery');
+    await settle(pending[1], { image: 'https://upswingpoker.com/uploads/recovered-story.jpg' });
+    const recoveredImage = nodes().find((node) => node.type === 'img');
+    assert.ok(recoveredImage.props.src.includes('recovered-story.jpg'));
+    renderer.flushSync(() => recoveredImage.props.onError());
+    renderer.flushPassiveEffects();
+    assert.equal(nodes().filter((node) => node.type === 'img').length, 0);
+    assert.equal(pending.length, 2, 'second failure cannot start a recovery loop');
+
     render({ url: 'https://upswingpoker.com/replacement-preview/', title: 'Replacement Title',
       image: 'https://upswingpoker.com/uploads/replacement-story.jpg' });
-    assert.equal(pending.length, 1, 'complete supplied preview does not fetch');
+    assert.equal(pending.length, 2, 'complete supplied preview does not fetch');
     tree = nodes();
     assert.ok(tree.find((node) => node.type === 'img').props.src.includes('replacement-story.jpg'), 'URL change clears prior image error');
     assert.ok(!tree.some((node) => node.value === 'Ace & King'), 'URL change cannot retain prior title');
+    render({ url: '/hub/poker-near-me', title: 'Find Local Poker' });
+    assert.equal(pending.length, 2, 'internal destinations never request publisher metadata');
+    tree = nodes();
+    tree.find((node) => node.props?.role === 'button').props.onClick(event());
+    assert.deepEqual(calls.at(-1), ['internal', '/hub/poker-near-me']);
+    assert.ok(tree.some((node) => node.value === 'Open On Smarter.Poker →'));
+
+    const Thumbnail = load(resolve(rootDir, 'src/components/reels/ReelThumbnail.jsx')).default;
+    const thumbnailProps = { thumbnail: 'https://publisher.example/expired.jpg',
+      fallback: 'https://img.youtube.com/vi/DbqylStwTaY/hqdefault.jpg', caption: 'Real Reel' };
+    renderer.flushSync(() => renderer.updateContainer(React.createElement(Thumbnail, thumbnailProps), root, null, null));
+    let cover = nodes().find((node) => node.type === 'img');
+    assert.equal(cover.props.src, '/api/proxy?url=https%3A%2F%2Fpublisher.example%2Fexpired.jpg');
+    renderer.flushSync(() => cover.props.onError());
+    cover = nodes().find((node) => node.type === 'img');
+    assert.equal(cover.props.src, thumbnailProps.fallback, 'failed persisted cover reaches actual YouTube artwork');
+    renderer.flushSync(() => cover.props.onError());
+    assert.equal(nodes().filter((node) => node.type === 'img').length, 0, 'both failures terminate without a retry loop');
+    assert.ok(nodes().some((node) => node.value === 'Preview Unavailable'));
+
   } finally {
     renderer.flushSync(() => renderer.updateContainer(null, root, null, null));
     renderer.flushPassiveEffects();
   }
+});
+
+test('internal destinations bypass publisher hydration while external articles still hydrate', () => {
+  for (const url of ['/hub/poker-near-me', 'https://smarter.poker/hub/poker-near-me?city=Reno#events']) {
+    assert.ok(internalArticlePath(url)?.startsWith('/hub/poker-near-me'));
+    assert.equal(articlePreviewNeedsHydration(url, {}), false);
+  }
+  for (const url of ['//evil.example/hub', 'https://smarter.poker.evil.example/hub', 'javascript:alert(1)', '/\\evil.example', 'https://user:pass@smarter.poker/hub']) {
+    assert.equal(internalArticlePath(url), null);
+  }
+  assert.equal(articlePreviewNeedsHydration('https://poker.org/story', {}), true);
+});
+
+test('preview images accept local and protocol-relative artwork without accepting unsafe sources', () => {
+  for (const value of ['/images/story.webp', '//media.poker.org/story.jpg', 'https://media.poker.org/story.jpg']) assert.equal(isArticlePreviewImage(value), true);
+  for (const value of ['javascript:alert(1)', '/\\evil.example/story.jpg', 'https://user:pass@example.com/story.jpg', '/images/default-placeholder.jpg']) assert.equal(isArticlePreviewImage(value), false);
 });
