@@ -27,3 +27,25 @@ test('session hand markers are sorted, bounded, unique and capped', () => {
     assert.equal(timestamp(3725), '1:02:05');
     assert.equal(timestamp(65), '1:05');
 });
+
+test('saving watch progress cannot change the running iframe start position', async () => {
+    const { readFileSync } = await import('node:fs');
+    const page = readFileSync(new URL('../pages/hub/video-library.js', import.meta.url), 'utf8');
+    const block = page.slice(page.indexOf('    const selectedLearningProgress ='), page.indexOf('    const refreshLibrary ='));
+    const resume = new Function('selectedVideo', 'learningProgressByVideo', 'getProgressPercent', 'watchProgress', 'iframeKey', 'playerResumeRef', `${block}\nreturn selectedVideoResumeSeconds;`);
+    const video = { id: 'video-a', videoId: 'video-a', duration: '3:20' };
+    const progress = new Map([['video-a', { watchedSeconds: 20 }]]);
+    const learning = new Map();
+    const snapshot = { current: { key: null, seconds: 0 } };
+    const percent = () => progress.get('video-a').watchedSeconds / 2;
+    assert.equal(resume(video, learning, percent, progress, 1, snapshot), 20);
+    progress.set('video-a', { watchedSeconds: 35 });
+    assert.equal(resume(video, learning, percent, progress, 1, snapshot), 20, 'a heartbeat must not navigate the iframe');
+    assert.equal(resume(video, learning, percent, progress, 2, snapshot), 35, 'a new viewing session resumes saved progress');
+    learning.set('video-a', { percent_complete: .5, position_seconds: 100 });
+    assert.equal(resume(video, learning, percent, progress, 2, snapshot), 35, 'late study-state refresh must not interrupt playback');
+    assert.equal(resume(video, learning, percent, progress, 3, snapshot), 100);
+    learning.set('video-a', { percent_complete: .96, position_seconds: 192 });
+    assert.equal(resume(video, learning, percent, progress, 3, snapshot), 100, 'completion cannot rewind a playing video');
+    assert.equal(resume(video, learning, percent, progress, 4, snapshot), 0, 'a new viewing session restarts a completed video');
+});

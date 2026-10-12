@@ -643,6 +643,7 @@ export default function VideoLibraryPage() {
     // YouTube-style "more actions" sheet for a feed card (owner update 2026-10-11).
     const [cardMenuVideo, setCardMenuVideo] = useState(null);
     const playerAutoplayRef = useRef(true);
+    const playerResumeRef = useRef({ key: null, seconds: 0 });
     const [miniPlayer, setMiniPlayer] = useState(false);
     const [nextAutoplay, setNextAutoplay] = useState(true);
     const [shortsVisible, setShortsVisible] = useState(INITIAL_RAIL_CARDS);
@@ -1117,9 +1118,9 @@ export default function VideoLibraryPage() {
     const handleOpenVideo = useCallback(async (video) => {
         if (!isVideoLibraryVideoAllowed(video)) return;
         setMiniPlayer(false);
-        playerAutoplayRef.current = preferences.autoplay !== false;
         const hadActiveSession = Boolean(currentWatchingVideoRef.current);
         if (currentWatchingVideoRef.current?.id === video.id) return;
+        playerAutoplayRef.current = preferences.autoplay !== false;
         if (hadActiveSession && watchStartTimeRef.current) {
             const previousVideo = currentWatchingVideoRef.current;
             const previousStartTime = watchStartTimeRef.current;
@@ -1200,6 +1201,23 @@ export default function VideoLibraryPage() {
             document.exitFullscreen?.() || document.webkitExitFullscreen?.();
         }
     }, []);
+
+    const handleMiniPlayerChange = useCallback((nextMini) => {
+        const currentVideoId = currentWatchingVideoRef.current?.videoId;
+        const apply = () => {
+            if (currentWatchingVideoRef.current?.videoId === currentVideoId) setMiniPlayer(nextMini);
+        };
+        if (nextMini && (document.fullscreenElement || document.webkitFullscreenElement)) {
+            try {
+                const exit = document.exitFullscreen || document.webkitExitFullscreen;
+                Promise.resolve(exit.call(document)).then(apply).catch(() => {
+                    showActionNotice('Exit Fullscreen To Browse The Library.', { tone: 'error' });
+                });
+            } catch {
+                showActionNotice('Exit Fullscreen To Browse The Library.', { tone: 'error' });
+            }
+        } else apply();
+    }, [showActionNotice]);
 
     const restoreVideoTriggerFocus = useCallback(() => {
         if (typeof window === 'undefined') return;
@@ -1969,9 +1987,16 @@ export default function VideoLibraryPage() {
         : selectedVideo
             ? getProgressPercent(selectedVideo.id, selectedVideo.duration)
             : 0;
-    const selectedVideoResumeSeconds = selectedVideo && selectedVideoProgress > 0 && selectedVideoProgress < 95
+    const latestSavedResumeSeconds = selectedVideo && selectedVideoProgress > 0 && selectedVideoProgress < 95
         ? Math.floor(selectedLearningProgress?.position_seconds || watchProgress.get(selectedVideo.id)?.watchedSeconds || 0)
         : 0;
+
+    // Watch-history saves update the displayed progress, never the active
+    // iframe URL. A new player key captures the latest saved resume point.
+    if (playerResumeRef.current.key !== iframeKey) {
+        playerResumeRef.current = { key: iframeKey, seconds: latestSavedResumeSeconds };
+    }
+    const selectedVideoResumeSeconds = playerResumeRef.current.seconds;
 
     const refreshLibrary = useCallback(async () => {
         if (!requireOnline()) return;
@@ -2592,26 +2617,16 @@ export default function VideoLibraryPage() {
                             referrerPolicy="strict-origin-when-cross-origin"
                             allowFullScreen
                             onLoad={(e) => {
-                                // mute=1 in URL ensures mobile autoplay compliance.
-                                // Now unmute immediately — the user tapped a card (valid gesture), so audio is allowed.
-                                // BUG-K FIX: track timer IDs so they can be cancelled if modal closes < 1200ms
+                                // One requested sound-on start. The playback tools handle an
+                                // explicit provider autoplay-block event with one muted start.
                                 iframeUnmuteTimers.current.forEach(clearTimeout);
                                 iframeUnmuteTimers.current = [];
                                 try {
                                     const win = e.target.contentWindow;
-                                    win.postMessage(JSON.stringify({ event: 'listening' }), '*');
-
-                                    // Autoplay: mobile uses mute=0 (user gesture from card tap allows it).
-                                    // Desktop uses mute=1 + postMessage unmute.
-                                    if (!isTouchDevice) {
-                                        iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
-                                            try {
-                                                win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                                win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                            } catch (error) {
-                                                reportVideoLibraryIssue('youtube_unmute_command', error);
-                                            }
-                                        }, d));
+                                    win.postMessage(JSON.stringify({ event: 'listening' }), 'https://www.youtube-nocookie.com');
+                                    if (!isTouchDevice && playerAutoplayRef.current) {
+                                        win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), 'https://www.youtube-nocookie.com');
+                                        win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), 'https://www.youtube-nocookie.com');
                                     }
                                 } catch (error) {
                                     reportVideoLibraryIssue('youtube_player_handshake', error);
@@ -2642,10 +2657,10 @@ export default function VideoLibraryPage() {
 
                     <div className="vl-watch-tools">
                         <WatchPlaybackTools key={selectedVideo.videoId} iframeRef={playerIframeRef}
-                            duration={parseDuration(selectedVideo.duration)}
+                            duration={parseDuration(selectedVideo.duration)} attemptPlayback={playerAutoplayRef.current}
                             autoplay={nextAutoplay && preferences.autoplay !== false} onAutoplayChange={value => { setNextAutoplay(value); void updatePreference('autoplay', value); }}
                             nextTitle={videos.length > 1 ? videos[(videos.findIndex(item => item.videoId === selectedVideo.videoId) + 1) % videos.length]?.title : null}
-                            onNext={handleNextVideo} mini={miniPlayer} onMiniChange={setMiniPlayer} />
+                            onNext={handleNextVideo} mini={miniPlayer} onMiniChange={handleMiniPlayerChange} />
                     </div>
                     {/* Title, channel, actions and study tools */}
                     <div className="vl-info-bar">

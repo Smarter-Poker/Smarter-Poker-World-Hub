@@ -325,6 +325,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                 <div className={`vl-player-stage vl-watch-page-player${miniPlayer ? ' is-mini-player' : ''}${seconds > 0 && seconds <= 180 ? ' is-vertical-player' : ''}`}>
                                     {playing ? (
                                         <iframe
+                                            key={video.videoId}
                                             ref={iframeRef}
                                             onLoad={event => subscribeWatchPlayer(event.currentTarget)}
                                             src={`https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=1&rel=0&playsinline=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}

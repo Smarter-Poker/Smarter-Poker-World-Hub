@@ -2014,3 +2014,4 @@
 .vl-timeline-marks { position: relative; height: 8px; margin-bottom: 8px; }
 .vl-timeline-marks span { position: absolute; width: 3px; height: 8px; background: #389aff; transform: translateX(-50%); }
 .vl-viewer.is-mini-player .vl-player-stage, .vl-watch-page-player.is-mini-player { min-height: 200px; }
+.vl-sound-notice { font-size: 12px; color: #aaa; padding-block: 4px; }

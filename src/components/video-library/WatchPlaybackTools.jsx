@@ -3,12 +3,13 @@ import { addHandMarker, boundedPosition, playbackMessage, PLAYER_ORIGIN, timesta
 
 // Both watch surfaces talk to the one existing embed. No replacement player,
 // media download, made-up chapters, or second hidden iframe.
-export function subscribeWatchPlayer(iframe) {
+export function subscribeWatchPlayer(iframe, attemptPlayback = false) {
     const send = data => iframe?.contentWindow?.postMessage(JSON.stringify(data), PLAYER_ORIGIN);
     send({ event: 'listening' });
-    for (const event of ['onStateChange', 'onError']) {
+    for (const event of ['onStateChange', 'onError', 'onAutoplayBlocked']) {
         send({ event: 'command', func: 'addEventListener', args: [event] });
     }
+    if (attemptPlayback && !document.hidden) send({ event: 'command', func: 'playVideo', args: [] });
 }
 
 export function WatchDescription({ text }) {
@@ -20,7 +21,7 @@ export function WatchDescription({ text }) {
     </section>;
 }
 
-export default function WatchPlaybackTools({ iframeRef, active = true, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange }) {
+export default function WatchPlaybackTools({ iframeRef, active = true, attemptPlayback = true, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange }) {
     const [position, setPosition] = useState(0);
     const [duration, setDuration] = useState(catalogDuration);
     const knownDurationRef = useRef(catalogDuration);
@@ -28,19 +29,37 @@ export default function WatchPlaybackTools({ iframeRef, active = true, duration:
     const [markers, setMarkers] = useState([]);
     const [countdown, setCountdown] = useState(null);
     const endedRef = useRef(false);
+    const mutedFallbackRef = useRef(false);
+    const [soundOff, setSoundOff] = useState(false);
     const nextRef = useRef(onNext);
     nextRef.current = onNext;
     const command = (func, args = []) => iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), PLAYER_ORIGIN);
+    // Loading a player is the only place that requests playback. Changing
+    // Autoplay Next must never resume a video the viewer has paused.
     useEffect(() => {
         if (!active) return undefined;
         const iframe = iframeRef.current;
-        const subscribe = () => subscribeWatchPlayer(iframe);
-        subscribe();
-        iframe?.addEventListener('load', subscribe);
+        subscribeWatchPlayer(iframe);
+        const loaded = () => {
+            mutedFallbackRef.current = false;
+            subscribeWatchPlayer(iframe, attemptPlayback);
+        };
+        iframe?.addEventListener('load', loaded);
+        return () => iframe?.removeEventListener('load', loaded);
+    }, [active, iframeRef, attemptPlayback]);
+    useEffect(() => {
+        if (!active) return undefined;
         const receive = event => {
             const data = playbackMessage(event, iframeRef.current?.contentWindow);
             if (!data) return;
+            if (data.event === 'onAutoplayBlocked' && attemptPlayback && !document.hidden && !mutedFallbackRef.current) {
+                mutedFallbackRef.current = true;
+                setSoundOff(true);
+                command('mute');
+                command('playVideo');
+            }
             if (data.event === 'infoDelivery') {
+                if (typeof data.info?.muted === 'boolean') setSoundOff(data.info.muted);
                 const length = Number(data.info?.duration);
                 if (Number.isFinite(length) && length > 0) knownDurationRef.current = length;
                 const effectiveDuration = knownDurationRef.current;
@@ -63,11 +82,10 @@ export default function WatchPlaybackTools({ iframeRef, active = true, duration:
         window.addEventListener('message', receive);
         document.addEventListener('visibilitychange', visibility);
         return () => {
-            iframe?.removeEventListener('load', subscribe);
             window.removeEventListener('message', receive);
             document.removeEventListener('visibilitychange', visibility);
         };
-    }, [active, iframeRef, autoplay, nextTitle, catalogDuration]);
+    }, [active, iframeRef, autoplay, nextTitle, catalogDuration, attemptPlayback]);
     useEffect(() => { if (!autoplay || !active) setCountdown(null); }, [autoplay, active]);
     useEffect(() => { setCountdown(null); }, [nextTitle]);
     useEffect(() => {
@@ -90,6 +108,7 @@ export default function WatchPlaybackTools({ iframeRef, active = true, duration:
             <button type="button" onClick={() => onMiniChange(!mini)}>{mini ? 'Expand Player' : 'Mini-Player'}</button>
             {nextTitle && <label><input type="checkbox" checked={autoplay} onChange={event => onAutoplayChange(event.target.checked)} />Autoplay Next</label>}
         </div>
+        {soundOff && <p className="vl-sound-notice" role="status">Sound Starts Off. Turn It On In The Player.</p>}
         <div className="vl-hand-timeline">
             <label>Hand Timeline <span>{timestamp(position)} / {timestamp(duration)}</span>
                 <input type="range" aria-label="Seek Video" aria-valuetext={timestamp(position)} min="0" max={duration || 1} step="1" value={position} disabled={!ready} onChange={event => seek(event.target.value)} />

@@ -316,7 +316,7 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     await expect(page).toHaveURL(/\/auth\/login\?redirect=%2Fhub%2Fvideo-library/);
   });
 
-  test('Phase 3 timeline markers, description and mini-player use one retained iframe', async ({ page }) => {
+  test('Phase 3 timeline markers, description and mini-player use one retained iframe', async ({ page }, testInfo) => {
     await page.route('https://www.youtube-nocookie.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>Player Fixture</body></html>' }));
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
     await page.getByRole('link', { name: `Play ${VIDEO_A.title}` }).click();
@@ -338,11 +338,30 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     expect(await frame!.evaluate(() => (window as any).seekCommands[0])).toEqual([73, true]);
     await page.getByRole('button', { name: 'Show More', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Show Less', exact: true })).toHaveAttribute('aria-expanded', 'true');
+    await frame!.evaluate(() => {
+      (window as any).autoplayCommands = [];
+      addEventListener('message', event => { try { const value = JSON.parse(event.data); if (['mute', 'playVideo'].includes(value.func)) (window as any).autoplayCommands.push(value.func); } catch {} });
+      parent.postMessage(JSON.stringify({ event: 'onAutoplayBlocked' }), '*');
+      parent.postMessage(JSON.stringify({ event: 'onAutoplayBlocked' }), '*');
+    });
+    await expect.poll(() => frame!.evaluate(() => (window as any).autoplayCommands.filter((value: string) => value === 'mute').length)).toBe(1);
+    await expect(page.getByText('Sound Starts Off. Turn It On In The Player.', { exact: true })).toBeVisible();
     await player.evaluate(element => element.setAttribute('data-retained-player', 'yes'));
+    if (testInfo.project.name === 'chromium') {
+      await page.keyboard.press('f');
+      await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
+    }
     await page.getByRole('button', { name: 'Mini-Player', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(false);
     await expect(page.locator('.vl-viewer')).toHaveClass(/is-mini-player/);
     expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
     await expect(player).toHaveAttribute('data-retained-player', 'yes');
+    const retainedSource = await player.getAttribute('src');
+    await page.getByRole('checkbox', { name: 'Autoplay Next' }).uncheck();
+    await page.getByRole('link', { name: `Play ${VIDEO_A.title}` }).click();
+    await expect(page.locator('.vl-viewer')).not.toHaveClass(/is-mini-player/);
+    await expect(player).toHaveAttribute('src', retainedSource!);
+    await page.getByRole('button', { name: 'Mini-Player', exact: true }).click();
     await page.getByRole('button', { name: 'Expand Player', exact: true }).click();
     await expect(player).toHaveAttribute('data-retained-player', 'yes');
     expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
@@ -367,7 +386,13 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     await expect(page.locator('.vl-autoplay-countdown')).toBeVisible();
     await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 2 }), '*'));
     await expect(page.locator('.vl-autoplay-countdown')).toHaveCount(0);
+    await frame!.evaluate(() => {
+      (window as any).pauseCommands = [];
+      addEventListener('message', event => { try { const value = JSON.parse(event.data); if (value.func === 'playVideo') (window as any).pauseCommands.push(value.func); } catch {} });
+    });
     await page.getByRole('checkbox', { name: 'Autoplay Next' }).uncheck();
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    expect(await frame!.evaluate(() => (window as any).pauseCommands)).toEqual([]);
     await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 0 }), '*'));
     await expect(page.locator('.vl-autoplay-countdown')).toHaveCount(0);
     await page.getByRole('checkbox', { name: 'Autoplay Next' }).check();
