@@ -22,6 +22,7 @@
 
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
+import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
@@ -1873,6 +1874,13 @@ export default function MemoryGamesPage() {
         canonical="/hub/preflop-charts"
         jsonLd={PREFLOP_SCHEMA}
       />
+      {/* The Daily Local Practice card is the largest thing on a phone's first
+          screen, and its art is a CSS background the browser only finds after
+          building that card: it painted at ~3.2s on a cold visit, over the
+          2.5s phone budget. Fetch it with the document instead (2026-10-12). */}
+      <Head>
+        <link key="preflop-daily-art" rel="preload" as="image" href="/images/lobby-pods/daily.webp" type="image/webp" fetchPriority="high" />
+      </Head>
 
     <PageTransition disableInitialAnimation>
 
