@@ -3,7 +3,7 @@
  * Browse and watch complete hands from HCL, The Lodge, Triton, and more
  */
 
-import { Component, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Component, Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager } from '../../src/hooks/useYouTubeErrorManager';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -33,9 +33,6 @@ import { useLoadFailsafe } from '../../src/hooks/useLoadFailsafe';
 import { useHaptics } from '../../src/hooks/useHaptics';
 import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
 import { useModalHistory } from '../../src/hooks/useModalHistory';
-import VideoLibraryConsole, {
-    ConsoleCopy,
-} from '../../src/components/video-library/console/VideoLibraryConsole';
 import { isVideoLibraryVideoAllowed } from '../../src/lib/videoLibraryAvailability';
 import { createVideoLibraryOwnerScope } from '../../src/lib/videoLibraryOwnerScope.mjs';
 
@@ -133,22 +130,14 @@ class VideoLibraryReelsBoundary extends Component {
         if (!this.state.hasError) return this.props.children;
         return (
             <div className="vl-reels-fallback" role="alert">
-                <VideoLibraryConsole
-                    eyebrow="Reels Signal Interrupted"
-                    title="Reopen The Feed"
-                    subtitle="Your Library Place Is Safe"
-                    pill="Offline"
-                    pillInk="red"
-                    foot="plates"
-                    plates={{
-                        secondary: { label: 'Back To Library', onClick: this.props.onClose },
-                        primary: { label: 'Try Again', ink: 'white', onClick: () => this.setState({ hasError: false }) },
-                    }}
-                >
-                    <ConsoleCopy align="center">
-                        The Full Library Is Still Available. Retry Reels Or Return Without Losing Your Place.
-                    </ConsoleCopy>
-                </VideoLibraryConsole>
+                <div className="vl-sheet-card">
+                    <h2>Reels Did Not Load</h2>
+                    <p>The Full Library Is Still Available. Retry Reels Or Go Back Without Losing Your Place.</p>
+                    <div className="vl-sheet-actions">
+                        <button type="button" className="vl-pill-button" onClick={this.props.onClose}>Back To Library</button>
+                        <button type="button" className="vl-pill-button is-primary" onClick={() => this.setState({ hasError: false })}>Try Again</button>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -224,6 +213,61 @@ function recoverYouTubeThumbnail(event, videoId) {
         image.hidden = true;
         image.parentElement?.classList.add('vl-media-failed');
     }
+}
+
+// YouTube-style card copy (owner update 2026-10-11). Creator uploads carry a
+// UUID as their source id and the catalog falls back to that id when the row
+// has no attribution name, which put raw database ids under every creator
+// video. A channel line shows a real name or a plain fallback, never an id.
+const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getVideoChannel(video) {
+    const sourceId = String(video?.source || '');
+    const known = SOURCES.find(source => source?.id && source.id !== 'ALL'
+        && source.id.toUpperCase() === sourceId.toUpperCase());
+    const name = [known?.name, video?.attributionName, video?.sourceName, sourceId.replace(/_/g, ' ')]
+        .map(value => String(value || '').trim())
+        .find(value => value && !UUID_LIKE.test(value)) || 'Independent Creator';
+    const initials = name.split(/\s+/).map(word => word[0] || '').join('').slice(0, 2).toUpperCase();
+    return { name, logo: known?.logo || null, initials };
+}
+
+function formatViewCount(views) {
+    const raw = String(views ?? '').trim();
+    if (!raw || raw === '0') return '';
+    if (/^\d+$/.test(raw)) {
+        const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(raw));
+        return `${compact} Views`;
+    }
+    return /views?$/i.test(raw) ? raw.replace(/views?$/i, match => match[0].toUpperCase() + match.slice(1)) : `${raw} Views`;
+}
+
+function formatVideoAge(value) {
+    const time = new Date(value || 0).getTime();
+    if (!Number.isFinite(time) || time <= 0) return '';
+    const seconds = Math.max(0, (Date.now() - time) / 1000);
+    const units = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
+    for (const [unit, size] of units) {
+        const count = Math.floor(seconds / size);
+        if (count >= 1) return `${count} ${unit[0].toUpperCase()}${unit.slice(1)}${count === 1 ? '' : 's'} Ago`;
+    }
+    return 'Just Now';
+}
+
+function getVideoMetaLine(video) {
+    return [getVideoChannel(video).name, formatViewCount(video?.views), formatVideoAge(video?.publishedAt || video?.scrapedAt)]
+        .filter(Boolean)
+        .join(' \u00b7 ');
+}
+
+function ChannelAvatar({ video, channel = getVideoChannel(video) }) {
+    return (
+        <span className="vl-avatar" aria-hidden="true">
+            {channel.logo
+                ? <img src={channel.logo} alt="" loading="lazy" decoding="async" />
+                : <span>{channel.initials}</span>}
+        </span>
+    );
 }
 
 function reportVideoLibraryIssue(event, error) {
@@ -427,7 +471,6 @@ export default function VideoLibraryPage() {
         return false;
     }, [online]);
     const [cwVisible, setCwVisible] = useState(INITIAL_RAIL_CARDS);
-    const [newWeekVisible, setNewWeekVisible] = useState(INITIAL_RAIL_CARDS);
     const [sourcesExpanded, setSourcesExpanded] = useState(false);
     const mobileFilterRailRef = useRef(null);
     const reelsDialogRef = useRef(null);
@@ -605,9 +648,10 @@ export default function VideoLibraryPage() {
         vlHudTimer.current = setTimeout(hideHudIfIdle, 5000);
     }, [hideHudIfIdle]);
 
-    // "New This Week" rail dismiss state
-    const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
     const [discoveryView, setDiscoveryView] = useState('new-today');
+    // YouTube-style "more actions" sheet for a feed card (owner update 2026-10-11).
+    const [cardMenuVideo, setCardMenuVideo] = useState(null);
+    const [shortsVisible, setShortsVisible] = useState(INITIAL_RAIL_CARDS);
 
     const isPlayerPlayingRef = useRef(false);
     const handlePlaybackInfo = useCallback((info) => {
@@ -1720,19 +1764,6 @@ export default function VideoLibraryPage() {
         return scored;
     }, [selectedVideo, allVideos]); // ← recomputes only when modal video or library changes
 
-    // "New This Week" — videos scraped in the past 7 days, sorted newest first
-    // useMemo: inline .filter().sort() on 345 videos on every render was causing
-    // unnecessary CPU work on every state change (HUD, modal open, etc.)
-    const newThisWeek = useMemo(() => allVideos
-        .filter(v => {
-            const scraped = v.scrapedAt || v.publishedAt;
-            if (!scraped) return false;
-            const age = (Date.now() - new Date(scraped).getTime()) / 1000;
-            return age < 7 * 24 * 3600;
-        })
-        .sort((a, b) => new Date(b.scrapedAt || b.publishedAt) - new Date(a.scrapedAt || a.publishedAt))
-        .slice(0, 20)
-    , [allVideos]); // ← stable: recomputes only when library refreshes
 
     const discoveryViews = useMemo(() => {
         const now = Date.now();
@@ -1751,7 +1782,14 @@ export default function VideoLibraryPage() {
             { id: 'duration', label: 'Under 10 Min', videos: sorted.filter(video => parseDuration(video.duration) > 0 && parseDuration(video.duration) <= 600) },
         ];
     }, [allVideos]);
-    const activeDiscoveryView = discoveryViews.find(view => view.id === discoveryView) || discoveryViews[0];
+    // Explore shelf: every discovery view except Shorts, which has its own shelf.
+    // An empty default tab falls through to the first view that has videos.
+    const exploreViews = useMemo(() => discoveryViews.filter(view => view.id !== 'shorts'), [discoveryViews]);
+    const activeDiscoveryView = exploreViews.find(view => view.id === discoveryView && view.videos.length > 0)
+        || exploreViews.find(view => view.id === discoveryView)
+        || exploreViews.find(view => view.videos.length > 0)
+        || discoveryViews[0];
+    const shortsVideos = useMemo(() => discoveryViews.find(view => view.id === 'shorts')?.videos || [], [discoveryViews]);
 
     // Cleanup share toast timer on unmount
     useEffect(() => () => { if (shareToastTimer.current) clearTimeout(shareToastTimer.current); }, []);
@@ -1993,65 +2031,21 @@ export default function VideoLibraryPage() {
                     onRefresh={refreshLibrary}
                     disabled={menuOpen || Boolean(selectedVideo) || showReelsModal || Boolean(showPlaylistModal)}
                 >
-                <div className="vl-command-layout">
-                    <VideoLibraryCommandRail
-                        mode="desktop"
-                        selectedType={selectedType}
-                        libraryFilter={libraryFilter}
-                        sortMode={sortMode}
-                        libraryViews={LIBRARY_VIEW_OPTIONS}
-                        personalViewCounts={personalViewCounts}
-                        visibleCount={videos.length}
-                        onBrowse={selectBrowseView}
-                        onLibrary={selectPersonalView}
-                        onSort={selectSortView}
-                        onOpenReels={() => setShowReelsModal(true)}
-                        reelsTriggerRef={reelsTriggerRef}
-                    />
+                <div className="vl-yt" data-tutorial="main">
+                    <h1 className="vl-sr-only">{currentViewMeta.title}</h1>
 
-                <section className="vl-command-main" data-tutorial="main">
-                    <VideoLibraryConsole
-                        eyebrow={currentViewMeta.kicker}
-                        title={currentViewMeta.title}
-                        titleAs="h1"
-                        subtitle={activeFilterLabels.length ? activeFilterLabels.join(' / ') : 'Verified Poker Broadcasts'}
-                        pill={catalogLoading ? 'Loading' : `${videos.length} Videos`}
-                        pillInk={catalogRefreshFailed ? 'red' : 'blue'}
-                        foot="foot"
-                        className="vl-library-console"
-                    >
-                    <VideoLibraryCommandRail
-                        mode="mobile"
-                        ref={mobileFilterRailRef}
-                        selectedType={selectedType}
-                        libraryFilter={libraryFilter}
-                        sortMode={sortMode}
-                        libraryViews={LIBRARY_VIEW_OPTIONS}
-                        personalViewCounts={personalViewCounts}
-                        visibleCount={videos.length}
-                        onBrowse={selectBrowseView}
-                        onLibrary={selectPersonalView}
-                        onSort={selectSortView}
-                        onOpenReels={() => setShowReelsModal(true)}
-                        reelsTriggerRef={mobileReelsTriggerRef}
-                    />
-                    <div className="vl-console-content">
-                    <div className="vl-command-bar">
-                        <div className="vl-command-heading">
-                            <span>{currentViewMeta.kicker}</span>
-                            <h2>{currentViewMeta.title}</h2>
-                            <p>{currentViewMeta.description}</p>
-                        </div>
-
-                        {/* Search Input */}
+                    {/* Search, then one row of chips: the YouTube phone layout. */}
+                    <div className="vl-topbar">
                         <div className="vl-search-wrap" data-tutorial="search">
+                            <span className="vl-search-icon" aria-hidden="true" />
                             <input
                                 ref={searchInputRef}
-                                type="text"
-                                aria-label="Search titles, creators, concepts, chapters, and transcripts"
+                                type="search"
+                                enterKeyHint="search"
+                                aria-label="Search the poker video library"
                                 aria-keyshortcuts="/"
                                 aria-controls="video-library-grid"
-                                placeholder={libraryFilter === 'ALL' ? 'Search Concepts, Creators, Or Hands...' : `Search ${currentViewMeta.title}...`}
+                                placeholder={libraryFilter === 'ALL' ? 'Search Poker Videos' : `Search ${currentViewMeta.title}`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(event) => {
@@ -2061,7 +2055,7 @@ export default function VideoLibraryPage() {
                                     }
                                 }}
                             />
-                            {searchQuery ? (
+                            {searchQuery && (
                                 <button
                                     type="button"
                                     className="vl-search-clear"
@@ -2071,35 +2065,30 @@ export default function VideoLibraryPage() {
                                         searchInputRef.current?.focus();
                                     }}
                                 >Clear</button>
-                            ) : (
-                                <kbd className="vl-search-shortcut" aria-hidden="true">/</kbd>
                             )}
                             <span className="vl-sr-only">Search Includes Titles, Creators, Poker Concepts, Chapters, And Approved Transcript Text.</span>
                         </div>
+                        <VideoLibraryCommandRail
+                            ref={mobileFilterRailRef}
+                            selectedType={selectedType}
+                            libraryFilter={libraryFilter}
+                            sortMode={sortMode}
+                            libraryViews={LIBRARY_VIEW_OPTIONS}
+                            personalViewCounts={personalViewCounts}
+                            onBrowse={selectBrowseView}
+                            onLibrary={selectPersonalView}
+                            onSort={selectSortView}
+                            onOpenReels={() => setShowReelsModal(true)}
+                            reelsTriggerRef={reelsTriggerRef}
+                        />
                     </div>
 
-                    {/* Search results count — shown when query is active */}
-                    {searchQuery && (
-                        <div className="vl-search-results">
-                            {videos.length} result{videos.length !== 1 ? 's' : ''} For <strong>&ldquo;{searchQuery}&rdquo;</strong>
-                            {videos.length === 0 && (
-                                <button
-                                    type="button"
-                                    onClick={clearAllFilters}
-                                    className="vl-glass-action"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
-                        </div>
-                    )}
-
-
-                    {/* Premium Creator Cards */}
-                    <div className={`vl-source-pills${sourcesExpanded ? ' is-expanded' : ''}`} data-tutorial="sources">
-                        {[{ id: 'ALL', name: 'All Sources', logo: null }, ...SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL')].map(source => {
+                    {/* Channels: round avatars like YouTube subscriptions, laid out
+                        in rows (no hidden sideways rail), the rest behind Show All. */}
+                    <div className={`vl-source-pills${sourcesExpanded ? ' is-expanded' : ''}`} data-tutorial="sources" role="group" aria-label="Channels">
+                        {[{ id: 'ALL', name: 'All Channels', logo: null }, ...SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL')].map(source => {
                             const isActive = selectedSource === source.id;
-                            const initials = (source.name || source.id || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                            const initials = source.id === 'ALL' ? 'All' : (source.name || source.id || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                             return (
                                 <button
                                     type="button"
@@ -2126,45 +2115,66 @@ export default function VideoLibraryPage() {
                                         )}
                                     </span>
                                     <span className="vl-source-name">
-                                        {source.name}
+                                        {source.id === 'ALL' ? 'All' : source.name}
                                     </span>
-                                    {isActive && <span className="vl-source-active-dot" aria-hidden="true" />}
                                 </button>
                             );
                         })}
                     </div>
-                    {!sourcesExpanded && SOURCES.length > 10 && (
+                    {SOURCES.length > 10 && (
                         <button
                             type="button"
-                            className="vl-show-all-sources vl-show-more"
-                            onClick={() => { haptic('light'); setSourcesExpanded(true); }}
+                            className="vl-text-button vl-show-all-sources"
+                            aria-expanded={sourcesExpanded}
+                            onClick={() => { haptic('light'); setSourcesExpanded(expanded => !expanded); }}
                         >
-                            Show All {SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL').length + 1} Sources
+                            {sourcesExpanded
+                                ? 'Show Fewer Channels'
+                                : `Show All ${SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL').length} Channels`}
                         </button>
+                    )}
+
+                    {/* Search results count — shown when query is active */}
+                    {searchQuery && (
+                        <div className="vl-search-results">
+                            <span>{videos.length} result{videos.length !== 1 ? 's' : ''} For <strong>&ldquo;{searchQuery}&rdquo;</strong></span>
+                            {videos.length === 0 && (
+                                <button
+                                    type="button"
+                                    onClick={clearAllFilters}
+                                    className="vl-text-button"
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
+                        </div>
                     )}
 
                     {libraryFilter !== 'ALL' && (
                         <section className="vl-subview-banner" aria-labelledby="vl-subview-title">
                             <div className="vl-subview-copy">
-                                <span>{currentViewMeta.kicker}</span>
                                 <h2 id="vl-subview-title">{currentViewMeta.title}</h2>
-                                <p>{currentViewMeta.description}</p>
-                            </div>
-                            <div className="vl-subview-status">
-                                <strong>{catalogTotal}</strong>
                                 <span>
-                                    {catalogTotal === 1 ? 'matching video' : 'matching videos'}
+                                    {catalogTotal} {catalogTotal === 1 ? 'video' : 'videos'}
                                     {userId ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                                 </span>
-                                {!userId && <em>Sign In To Sync</em>}
                             </div>
+                            {!userId && (
+                                <button
+                                    type="button"
+                                    className="vl-pill-button is-primary"
+                                    onClick={() => void router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`)}
+                                >
+                                    Sign In To Sync
+                                </button>
+                            )}
                         </section>
                     )}
 
                     {userId && libraryFilter !== 'ALL' && visibleLibrarySyncState === 'loading' && (
                         <div className="vl-sync-panel is-loading" role="status" aria-live="polite">
                             <span className="vl-sync-pulse" aria-hidden="true" />
-                            <div><strong>Syncing Your Library</strong><span>Loading Saved Videos And Cross-Device Progress.</span></div>
+                            <div><strong>Syncing Your Library</strong><span>Loading Saved Videos And Progress.</span></div>
                         </div>
                     )}
 
@@ -2174,44 +2184,32 @@ export default function VideoLibraryPage() {
                                 <strong>{visibleLibrarySyncState === 'error' ? 'Your Library Did Not Load' : 'Part Of Your Library Is Offline'}</strong>
                                 <span>{visibleLibrarySyncErrors.length ? `Retry ${visibleLibrarySyncErrors.join(', ')}.` : 'Retry the saved-library connection.'}</span>
                             </div>
-                            <button type="button" onClick={() => void refreshUserLibraryRef.current?.({ force: true })}>Retry Sync</button>
+                            <button type="button" className="vl-pill-button" onClick={() => void refreshUserLibraryRef.current?.({ force: true })}>Retry Sync</button>
                         </div>
                     )}
 
                     {hasActiveFilters && (
                         <div className="vl-active-view" aria-label="Active video filters">
-                            <div className="vl-active-view-copy">
-                                <span>Active View</span>
-                                <div className="vl-active-filter-list">
-                                    {activeFilterLabels.map(label => <strong key={label}>{label}</strong>)}
-                                </div>
-                            </div>
-                            <button type="button" onClick={clearAllFilters}>Reset View</button>
+                            <span className="vl-active-filter-list">{activeFilterLabels.join(' · ')}</span>
+                            <button type="button" className="vl-text-button" onClick={clearAllFilters}>Reset</button>
                         </div>
                     )}
 
-                {/* Watch Stats moved to hamburger menu - removed from main page */}
-
-                {/* Continue Watching / Recently Watched Section */}
+                {/* Continue Watching: a laid-out grid of cards with a progress bar */}
                 {continueWatchingVideos.length > 0 && (
-                    <section className="vl-continue-watching" data-tutorial="continue" aria-labelledby="vl-continue-title">
-                        <div className="vl-continuity-header">
-                            <div>
-                                <span className="vl-continuity-kicker">Session Continuity</span>
-                                <h2 id="vl-continue-title">Continue Watching</h2>
-                            </div>
-                            <div className="vl-continuity-actions">
-                                <span>{continueWatchingVideos.length} {continueWatchingVideos.length === 1 ? 'session' : 'sessions'} Ready</span>
-                                <button
-                                    type="button"
-                                    onClick={() => handleOpenVideo(continueWatchingVideos[0].video)}
-                                    aria-label={`Resume latest video: ${continueWatchingVideos[0].video.title}`}
-                                >
-                                    Resume Latest
-                                </button>
-                            </div>
+                    <section className="vl-shelf vl-continue-watching" data-tutorial="continue" aria-labelledby="vl-continue-title">
+                        <div className="vl-shelf-header">
+                            <h2 id="vl-continue-title">Continue Watching</h2>
+                            <button
+                                type="button"
+                                className="vl-text-button"
+                                onClick={() => handleOpenVideo(continueWatchingVideos[0].video)}
+                                aria-label={`Resume latest video: ${continueWatchingVideos[0].video.title}`}
+                            >
+                                Resume Latest
+                            </button>
                         </div>
-                        <div className="vl-cw-scroll vl-cw-grid">
+                        <div className="vl-shelf-grid">
                             {continueWatchingVideos.slice(0, cwVisible).map(({ item, video, progress }) => {
                                 const roundedProgress = Math.round(progress);
                                 return (
@@ -2222,9 +2220,9 @@ export default function VideoLibraryPage() {
                                         role="button"
                                         tabIndex={0}
                                         aria-label={`Resume ${video.title}, ${roundedProgress}% complete`}
-                                        className="vl-continuity-card"
+                                        className="vl-shelf-card"
                                     >
-                                        <div className="vl-continuity-media">
+                                        <div className="vl-shelf-media">
                                             <img
                                                 src={getThumbnail(video.videoId)}
                                                 alt=""
@@ -2233,148 +2231,48 @@ export default function VideoLibraryPage() {
                                                 onLoad={event => recoverYouTubeThumbnail(event, video.videoId)}
                                                 onError={event => recoverYouTubeThumbnail(event, video.videoId)}
                                             />
-                                            {/* Resume play button */}
-                                            <div className="vl-continuity-play">
-                                                <span>Resume</span>
-                                            </div>
-                                            {/* Progress bar */}
+                                            {video.duration && <span className="vl-duration">{video.duration}</span>}
                                             <div
-                                                className="vl-continuity-progress"
+                                                className="vl-progress-track"
                                                 role="progressbar"
                                                 aria-label={`${video.title} watch progress`}
                                                 aria-valuemin="0"
                                                 aria-valuemax="100"
                                                 aria-valuenow={roundedProgress}
                                             >
-                                                <span style={{ '--vl-progress': `${progress}%` }} />
+                                                <span className="vl-progress-fill" style={{ '--vl-progress': `${progress}%` }} />
                                             </div>
                                         </div>
-                                        <div className="vl-continuity-copy">
-                                            <strong>
-                                                {video.title}
-                                            </strong>
-                                            <span>
-                                                {roundedProgress}% Complete · {formatTime(item.watch_duration_seconds || 0)} Watched
-                                            </span>
-                                        </div>
+                                        <strong className="vl-shelf-title">{video.title}</strong>
+                                        <span className="vl-shelf-meta">{formatTime(item.watch_duration_seconds || 0)} Watched</span>
                                     </div>
                                 );
                             })}
                         </div>
                         {continueWatchingVideos.length > cwVisible && (
                             <button type="button" className="vl-show-more" onClick={() => { haptic('light'); setCwVisible(continueWatchingVideos.length); }}>
-                                Show All {continueWatchingVideos.length} Sessions
+                                Show All {continueWatchingVideos.length}
                             </button>
                         )}
                     </section>
                 )}
-
-                {/* New This Week: videos scraped in the last 7 days, a grid of four then Show More */}
-                {newThisWeek.length > 0 && !newThisWeekDismissed && (
-                    <section className="vl-new-this-week" aria-labelledby="vl-new-week-title">
-                        <div className="vl-new-week-header">
-                            <h2 id="vl-new-week-title">
-                                <span>New</span>
-                                New This Week
-                            </h2>
-                            <button type="button" onClick={() => setNewThisWeekDismissed(true)}>Dismiss</button>
-                        </div>
-                        <div className="vl-new-week-scroll vl-new-week-grid">
-                            {newThisWeek.slice(0, newWeekVisible).map(video => (
-                                <div
-                                    key={video.videoId}
-                                    className="vl-new-week-card"
-                                    onClick={() => handleOpenVideo(video)}
-                                    onKeyDown={(event) => handleVideoCardKeyDown(event, video)}
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-label={`Play ${video.title}`}
-                                >
-                                    <div className="vl-new-week-media">
-                                        <img src={getThumbnail(video.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
-                                        <span className="vl-new-week-stamp">New</span>
-                                        {video.duration && (
-                                            <span className="vl-new-week-duration">{video.duration}</span>
-                                        )}
-                                    </div>
-                                    <div className="vl-new-week-copy">
-                                        <strong>{video.title}</strong>
-                                        <span>{video.source.replace('_', ' ')}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {newThisWeek.length > newWeekVisible && (
-                            <button type="button" className="vl-show-more" onClick={() => { haptic('light'); setNewWeekVisible(newThisWeek.length); }}>
-                                Show All {newThisWeek.length} New Videos
-                            </button>
-                        )}
-                    </section>
-                )}
-
-                <section className="vl-new-this-week" aria-labelledby="vl-discovery-title" data-video-library-discovery>
-                    <div className="vl-new-week-header">
-                        <h2 id="vl-discovery-title"><span>Explore</span>Discovery Deck</h2>
-                    </div>
-                    <div className="vl-type-toggle-row" role="tablist" aria-label="Video discovery views">
-                        {discoveryViews.map(view => (
-                            <button
-                                type="button"
-                                role="tab"
-                                key={view.id}
-                                className={`vl-filter-button${discoveryView === view.id ? ' is-active' : ''}`}
-                                aria-selected={discoveryView === view.id}
-                                onClick={() => setDiscoveryView(view.id)}
-                            >
-                                {view.label} <span>{view.videos.length}</span>
-                            </button>
-                        ))}
-                    </div>
-                    {activeDiscoveryView.videos.length > 0 ? (
-                        <div className="vl-new-week-scroll vl-new-week-grid" role="tabpanel" aria-label={activeDiscoveryView.label}>
-                            {activeDiscoveryView.videos.slice(0, 8).map(video => (
-                                <div
-                                    key={`${activeDiscoveryView.id}-${video.videoId}`}
-                                    className="vl-new-week-card"
-                                    onClick={() => handleOpenVideo(video)}
-                                    onKeyDown={(event) => handleVideoCardKeyDown(event, video)}
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-label={`Play ${video.title}`}
-                                >
-                                    <div className="vl-new-week-media">
-                                        <img src={getThumbnail(video.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
-                                        {video.duration ? <span className="vl-new-week-duration">{video.duration}</span> : null}
-                                    </div>
-                                    <div className="vl-new-week-copy">
-                                        <strong>{video.title}</strong>
-                                        <span>{String(video.attributionName || video.sourceName || 'Creator Unavailable').replace('_', ' ')}</span>
-                                        <small>{[
-                                            video.disclosureKind && video.disclosureKind !== 'organic' ? String(video.disclosureKind).replace('_', ' ') : null,
-                                            video.madeForKids === true ? 'Made For Kids' : null,
-                                        ].filter(Boolean).join(' / ')}</small>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : <p className="vl-empty-copy" role="status">No Verified Videos Match This View Yet.</p>}
-                </section>
 
                 {/* Video Grid */}
                 {catalogRefreshFailed && (
                     <div className="vl-catalog-notice" role="alert">
                         <span>Live Catalog Refresh Is Temporarily Unavailable. Unverified Cached Videos Stay Hidden.</span>
-                        <button type="button" onClick={() => void fetchCatalogPage({ append: false })}>Retry Catalog</button>
+                        <button type="button" className="vl-pill-button" onClick={() => void fetchCatalogPage({ append: false })}>Retry Catalog</button>
                     </div>
                 )}
                 {deepLinkStatus && (
                     <div className="vl-catalog-notice" role="alert" data-video-deep-link-status={deepLinkStatus.type}>
                         <span>{deepLinkStatus.message}</span>
                         {deepLinkStatus.type === 'error' ? (
-                            <button type="button" onClick={() => setDeepLinkRetryNonce(value => value + 1)}>Retry Video</button>
+                            <button type="button" className="vl-pill-button" onClick={() => setDeepLinkRetryNonce(value => value + 1)}>Retry Video</button>
                         ) : (
                             <button
                                 type="button"
+                                className="vl-pill-button"
                                 onClick={() => void router.replace(
                                     { pathname: router.pathname, query: { ...router.query, v: undefined } },
                                     undefined,
@@ -2402,8 +2300,13 @@ export default function VideoLibraryPage() {
                     {catalogLoading && videos.length === 0 && Array.from({ length: 6 }, (_, index) => (
                         <div key={`catalog-skeleton-${index}`} className="vl-video-skeleton" aria-hidden="true">
                             <span className="vl-skeleton-media" />
-                            <span className="vl-skeleton-line is-wide" />
-                            <span className="vl-skeleton-line" />
+                            <span className="vl-skeleton-row">
+                                <span className="vl-skeleton-avatar" />
+                                <span className="vl-skeleton-lines">
+                                    <span className="vl-skeleton-line is-wide" />
+                                    <span className="vl-skeleton-line" />
+                                </span>
+                            </span>
                         </div>
                     ))}
                     {/* Only verified live rows render. Loading has an explicit
@@ -2414,9 +2317,12 @@ export default function VideoLibraryPage() {
                         const roundedProgress = Math.round(progress);
                         const openLabel = progress > 0 && progress < 95 ? 'Resume' : 'Play';
                         const isFeatured = index === 0 && !hasActiveFilters && videos.length > 0;
+                        const channel = getVideoChannel(video);
+                        const showShortsShelf = index === 3 && !hasActiveFilters && shortsVideos.length > 0;
+                        const showExploreShelf = index === Math.min(7, videos.length - 1) && !hasActiveFilters && exploreViews.length > 0;
                         return (
+                        <Fragment key={video.id}>
                         <div
-                            key={video.id}
                             className={`vl-video-card${isFeatured ? ' is-featured' : ''}`}
                         >
                             <button
@@ -2429,31 +2335,17 @@ export default function VideoLibraryPage() {
                             <div className="vl-video-thumb">
                                 <img
                                     src={getThumbnail(video.videoId)}
-                                        alt=""
+                                    alt=""
                                     loading={index === 0 ? 'eager' : 'lazy'}
                                     fetchpriority={index === 0 ? 'high' : 'auto'}
                                     decoding="async"
                                     onLoad={(event) => recoverYouTubeThumbnail(event, video.videoId)}
                                     onError={(event) => recoverYouTubeThumbnail(event, video.videoId)}
                                 />
-                                {/* Duration badge */}
-                                <div className="vl-duration">
-                                    {video.duration}
-                                </div>
-                                {/* Watched badge — tappable to mark-unwatched */}
-                                {watchedVideos.has(video.id) && (
-                                    <button
-                                        type="button"
-                                        className="vl-watched-badge"
-                                        aria-label={`Mark ${video.title} as unwatched`}
-                                        title="Mark as unwatched"
-                                        onClick={e => { e.stopPropagation(); void handleMarkUnwatched(video); }}
-                                    >
-                                        Watched
-                                    </button>
+                                {video.duration && <span className="vl-duration">{video.duration}</span>}
+                                {watchedVideos.has(video.id) && progress <= 0 && (
+                                    <span className="vl-watched-badge">Watched</span>
                                 )}
-                                {/* AI badge removed per user request */}
-                                {/* Progress bar */}
                                 {progress > 0 && (
                                     <div
                                         className="vl-progress-track"
@@ -2466,54 +2358,105 @@ export default function VideoLibraryPage() {
                                         <span className="vl-progress-fill" style={{ '--vl-progress': `${progress}%` }} />
                                     </div>
                                 )}
-                                {/* Play button overlay */}
-                                <div className="vl-play-button" aria-hidden="true">
-                                    <span>{openLabel}</span>
-                                </div>
                             </div>
 
-                            {/* Info */}
+                            {/* Info: channel avatar, title, one meta line, more-actions */}
                             <div className="vl-card-info">
-                                <h3 className="vl-card-title">
-                                    {video.title}
-                                </h3>
-
-                                {progress > 0 && (
-                                    <div className="vl-watch-signal" aria-hidden="true">
-                                        <span>{progress >= 95 ? 'Watched' : 'Resume'}</span>
-                                        <strong>{roundedProgress}%</strong>
-                                    </div>
-                                )}
-
-                                <div className="vl-card-meta">
-                                    <span className="vl-source-chip">
-                                        {SOURCES.find(s => s.id === video.source)?.logo && (
-                                            <span className="vl-source-chip-logo" aria-hidden="true">
-                                                <img
-                                                    src={SOURCES.find(s => s.id === video.source)?.logo}
-                                                    alt=""
-                                                />
-                                            </span>
-                                        )}
-                                        {video.source.replace('_', ' ')}
-                                    </span>
-                                    <span className="vl-card-views">
-                                        {video.views} Views
-                                    </span>
-                                    {/* Share button */}
-                                    <button
-                                        type="button"
-                                        id={`vl-share-${video.videoId}`}
-                                        className="vl-share-button"
-                                        title="Copy link"
-                                        onClick={e => { e.stopPropagation(); handleShareVideo(video); }}
-                                        data-copied={visibleShareToast?.kind === 'share' && visibleShareToast?.tone === 'success' && visibleShareToast?.videoId === video.videoId ? 'true' : 'false'}
-                                    >
-                                        {visibleShareToast?.kind === 'share' && visibleShareToast?.tone === 'success' && visibleShareToast?.videoId === video.videoId ? 'Copied' : 'Share'}
-                                    </button>
+                                <ChannelAvatar video={video} channel={channel} />
+                                <div className="vl-card-text">
+                                    <h3 className="vl-card-title">
+                                        {video.title}
+                                    </h3>
+                                    <p className="vl-card-meta">{getVideoMetaLine(video)}</p>
                                 </div>
+                                <button
+                                    type="button"
+                                    id={`vl-share-${video.videoId}`}
+                                    className="vl-card-menu-button"
+                                    aria-label={`More actions for ${video.title}`}
+                                    aria-haspopup="dialog"
+                                    onClick={e => { e.stopPropagation(); haptic('light'); setCardMenuVideo(video); }}
+                                >
+                                    <span aria-hidden="true" />
+                                </button>
                             </div>
                         </div>
+                        {showShortsShelf && (
+                            <section className="vl-shelf vl-shorts-shelf" aria-labelledby="vl-shorts-title">
+                                <div className="vl-shelf-header">
+                                    <h2 id="vl-shorts-title">Shorts</h2>
+                                    <button type="button" className="vl-text-button" onClick={() => setShowReelsModal(true)}>Open Reels</button>
+                                </div>
+                                <div className="vl-shorts-grid">
+                                    {shortsVideos.slice(0, shortsVisible).map(short => (
+                                        <div
+                                            key={`short-${short.videoId}`}
+                                            className="vl-short-card"
+                                            onClick={() => handleOpenVideo(short)}
+                                            onKeyDown={(event) => handleVideoCardKeyDown(event, short)}
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-label={`Play ${short.title}`}
+                                        >
+                                            <img src={getThumbnail(short.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, short.videoId)} onError={event => recoverYouTubeThumbnail(event, short.videoId)} />
+                                            <div className="vl-short-copy">
+                                                <strong>{short.title}</strong>
+                                                <span>{formatViewCount(short.views) || short.duration}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {shortsVideos.length > shortsVisible && (
+                                    <button type="button" className="vl-show-more" onClick={() => { haptic('light'); setShortsVisible(value => value + 4); }}>
+                                        Show More Shorts
+                                    </button>
+                                )}
+                            </section>
+                        )}
+                        {showExploreShelf && (
+                            <section className="vl-shelf vl-explore-shelf" aria-labelledby="vl-discovery-title" data-video-library-discovery>
+                                <div className="vl-shelf-header">
+                                    <h2 id="vl-discovery-title">Explore</h2>
+                                </div>
+                                <div className="vl-explore-tabs" role="tablist" aria-label="Video discovery views">
+                                    {exploreViews.map(view => (
+                                        <button
+                                            type="button"
+                                            role="tab"
+                                            key={view.id}
+                                            className={`vl-filter-button${activeDiscoveryView.id === view.id ? ' is-active' : ''}`}
+                                            aria-selected={activeDiscoveryView.id === view.id}
+                                            onClick={() => setDiscoveryView(view.id)}
+                                        >
+                                            <span>{view.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                {activeDiscoveryView.videos.length > 0 ? (
+                                    <div className="vl-shelf-grid" role="tabpanel" aria-label={activeDiscoveryView.label}>
+                                        {activeDiscoveryView.videos.slice(0, 4).map(item => (
+                                            <div
+                                                key={`${activeDiscoveryView.id}-${item.videoId}`}
+                                                className="vl-shelf-card"
+                                                onClick={() => handleOpenVideo(item)}
+                                                onKeyDown={(event) => handleVideoCardKeyDown(event, item)}
+                                                role="button"
+                                                tabIndex={0}
+                                                aria-label={`Play ${item.title}`}
+                                            >
+                                                <div className="vl-shelf-media">
+                                                    <img src={getThumbnail(item.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, item.videoId)} onError={event => recoverYouTubeThumbnail(event, item.videoId)} />
+                                                    {item.duration ? <span className="vl-duration">{item.duration}</span> : null}
+                                                </div>
+                                                <strong className="vl-shelf-title">{item.title}</strong>
+                                                <span className="vl-shelf-meta">{getVideoChannel(item).name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : <p className="vl-empty-copy" role="status">No Verified Videos Match This View Yet.</p>}
+                            </section>
+                        )}
+                        </Fragment>
                         );
                     })}
                 </div>
@@ -2528,12 +2471,12 @@ export default function VideoLibraryPage() {
                 {/* No results */}
                 {!catalogLoading && videos.length === 0 && (
                     <div className="vl-empty-state">
-                        <div className="vl-empty-signal" aria-hidden="true"><span /></div>
                         <span className="vl-empty-kicker">{emptyState.eyebrow}</span>
                         <h3>{emptyState.title}</h3>
                         <p>{emptyState.copy}</p>
                         <button
                             type="button"
+                            className="vl-pill-button is-primary"
                             onClick={handleEmptyStateAction}
                         >
                             {emptyState.action}
@@ -2542,20 +2485,25 @@ export default function VideoLibraryPage() {
                 )}
 
                 {/* Video count */}
-                <div className="vl-video-count">
-                    Showing {videos.length} Of {catalogTotal} Matching
-                    {libraryFilter !== 'ALL' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
-                </div>
+                {videos.length > 0 && (
+                    <div className="vl-video-count">
+                        Showing {videos.length} Of {catalogTotal}
+                        {libraryFilter !== 'ALL' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                     </div>
-                    </VideoLibraryConsole>
-                </section>
+                )}
                 </div>
                 </PullToRefresh>
                 </HubPageShell>
             </div>
 
-            {/* Video Modal */}
-            {selectedVideo && (
+            {/* Video Modal: YouTube watch layout. The player sits at the top
+                (pinned while the page below it scrolls on a phone), then the
+                title, channel, one row of actions, study tools and Up Next.
+                On desktop Up Next moves into a right-hand column. */}
+            {selectedVideo && (() => {
+                const selectedChannel = getVideoChannel(selectedVideo);
+                const selectedVideoKey = selectedVideo?.id || selectedVideo?.videoId;
+                return (
                 <div
                     ref={modalOverlayRef}
                     className="vl-viewer"
@@ -2567,40 +2515,40 @@ export default function VideoLibraryPage() {
                     <p id="vl-viewer-help" className="vl-sr-only">
                         Use The Arrow Keys For The Previous Or Next Video, F For Fullscreen, And Escape To Close.
                     </p>
-                    {/* Close button — positioned top-right, clear of YouTube's title bar */}
-                    <button
-                        ref={modalCloseButtonRef}
-                        type="button"
-                        onClick={handleCloseVideo}
-                        className="vl-modal-close"
-                        aria-label="Close"
-                    >Close</button>
 
-                    {/* Fullscreen & sound are handled by YouTube's native controls at bottom of iframe */}
+                    <div className="vl-watch">
+                    <div className="vl-watch-player">
+                        <div className="vl-watch-topbar">
+                            <button
+                                ref={modalCloseButtonRef}
+                                type="button"
+                                onClick={handleCloseVideo}
+                                className="vl-modal-close"
+                                aria-label="Close"
+                            ><span className="vl-back-chevron" aria-hidden="true" />Close</button>
+                            {/* Prev / Next — desktop only (JS detection, no CSS tricks) */}
+                            {!isTouchDevice && (
+                              <span className="vl-player-nav-group">
+                                <button
+                                    type="button"
+                                    className="vl-player-nav"
+                                    data-side="previous"
+                                    onClick={handlePrevVideo}
+                                    aria-label="Play previous video"
+                                    title="Previous Video"
+                                >Previous</button>
+                                <button
+                                    type="button"
+                                    className="vl-player-nav"
+                                    data-side="next"
+                                    onClick={handleNextVideo}
+                                    aria-label="Play next video"
+                                    title="Next Video"
+                                >Next</button>
+                              </span>
+                            )}
+                        </div>
 
-                    {/* Prev / Next navigation arrows — desktop only (JS detection, no CSS tricks) */}
-                    {!isTouchDevice && (
-                      <>
-                        <button
-                            type="button"
-                            className="vl-player-nav"
-                            data-side="previous"
-                            onClick={handlePrevVideo}
-                            aria-label="Play previous video"
-                            title="Previous Video"
-                        >Previous</button>
-                        <button
-                            type="button"
-                            className="vl-player-nav"
-                            data-side="next"
-                            onClick={handleNextVideo}
-                            aria-label="Play next video"
-                            title="Next Video"
-                        >Next</button>
-                      </>
-                    )}
-
-                    {/* YouTube embed — takes FULL viewport on mobile */}
                     <div
                         className="vl-player-stage"
                         onMouseMove={!isTouchDevice ? vlRevealHud : undefined}
@@ -2610,7 +2558,6 @@ export default function VideoLibraryPage() {
                             Center 70% remains fully interactive for YouTube controls/playback. */}
                         {isTouchDevice && (
                           <>
-                            {/* Left edge swipe zone (15% width) */}
                             <div
                                 onTouchStart={e => {
                                     swipeTouchStart.current = e.touches[0].clientX;
@@ -2626,7 +2573,6 @@ export default function VideoLibraryPage() {
                                 }}
                                 className="vl-swipe-zone vl-swipe-zone--previous"
                             />
-                            {/* Right edge swipe zone (15% width) */}
                             <div
                                 onTouchStart={e => {
                                     swipeTouchStart.current = e.touches[0].clientX;
@@ -2644,83 +2590,6 @@ export default function VideoLibraryPage() {
                             />
                           </>
                         )}
-
-                        {/* Right-side HUD — Heart / Share / Save */}
-                        <div
-                            className={`vl-hud ${vlHudVisible ? 'vl-hud--visible' : ''}`}
-                            data-always-visible={isTouchDevice ? 'true' : 'false'}
-                            aria-hidden={!isTouchDevice && !vlHudVisible}
-                            onFocusCapture={vlRevealHud}
-                        >
-                            {/* Heart / Like */}
-                            <button
-                                type="button"
-                                aria-label={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Remove video from favorites' : 'Add video to favorites'}
-                                aria-pressed={favorites.has(selectedVideo?.id || selectedVideo?.videoId)}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (selectedVideo) void toggleFavorite(selectedVideo);
-                                    vlRevealHud(); // reset auto-hide timer
-                                }}
-                                title="Like"
-                            >
-                                <span className="vl-hud-command">
-                                    {favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Liked' : 'Like'}
-                                </span>
-                            </button>
-
-
-                            {/* Share */}
-                            <button
-                                type="button"
-                                aria-label="Copy video link"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (selectedVideo) handleShareVideo(selectedVideo);
-                                    vlRevealHud();
-                                }}
-                                title="Share"
-                            >
-                                <span className="vl-hud-command">Share</span>
-                            </button>
-
-                            {/* Save / Watch Later */}
-                            <button
-                                type="button"
-                                aria-label={watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Remove video from watch later' : 'Save video to watch later'}
-                                aria-pressed={watchLater.has(selectedVideo?.id || selectedVideo?.videoId)}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (selectedVideo) void toggleWatchLater(selectedVideo);
-                                    vlRevealHud();
-                                }}
-                                title="Save"
-                            >
-                                <span className="vl-hud-command">
-                                    {watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Saved' : 'Save'}
-                                </span>
-                            </button>
-
-                            {/* Playlist */}
-                            <button
-                                ref={playlistTriggerRef}
-                                type="button"
-                                aria-label="Save video to a playlist"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    if (!userId) {
-                                        showActionNotice('Sign in to use playlists.', { videoId: selectedVideo.videoId, tone: 'info' });
-                                    } else {
-                                        setPlaylistActionError(null);
-                                        setShowPlaylistModal(selectedVideo);
-                                    }
-                                    vlRevealHud();
-                                }}
-                                title="Playlist"
-                            >
-                                <span className="vl-hud-command">Playlist</span>
-                            </button>
-                        </div>
 
                         <iframe
                             ref={playerIframeRef}
@@ -2762,94 +2631,149 @@ export default function VideoLibraryPage() {
                         {vlYtManaged && (
                             <div className="vl-youtube-error" role="alert">
                                 {vlThumbnailUrl && <img src={vlThumbnailUrl} alt="" aria-hidden="true" />}
-                                <VideoLibraryConsole
-                                    eyebrow={`Playback Signal ${vlYtManaged}`}
-                                    title={vlYtErrorInfo?.title || 'Video Unavailable'}
-                                    subtitle="Closing In 3 Seconds"
-                                    pill="Offline"
-                                    pillInk="red"
-                                    foot="plates"
-                                    plates={{
-                                        secondary: { label: 'Close Viewer', onClick: handleCloseVideo },
-                                        primary: {
-                                            label: 'Open On YouTube',
-                                            ink: 'white',
-                                            onClick: () => window.open(`https://www.youtube.com/watch?v=${selectedVideo.videoId}`, '_blank', 'noopener,noreferrer'),
-                                        },
-                                    }}
-                                >
-                                    <ConsoleCopy align="center">
-                                        {vlYtErrorInfo?.description || 'This Video Cannot Be Played In The Embedded Viewer Right Now.'}
-                                    </ConsoleCopy>
-                                </VideoLibraryConsole>
+                                <div className="vl-sheet-card">
+                                    <span className="vl-empty-kicker">Playback Signal {vlYtManaged}</span>
+                                    <h2>{vlYtErrorInfo?.title || 'Video Unavailable'}</h2>
+                                    <p>{vlYtErrorInfo?.description || 'This video cannot be played in the embedded viewer right now.'}</p>
+                                    <div className="vl-sheet-actions">
+                                        <button type="button" className="vl-pill-button" onClick={handleCloseVideo}>Close Viewer</button>
+                                        <button
+                                            type="button"
+                                            className="vl-pill-button is-primary"
+                                            onClick={() => window.open(`https://www.youtube.com/watch?v=${selectedVideo.videoId}`, '_blank', 'noopener,noreferrer')}
+                                        >Open On YouTube</button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
+                    </div>
 
-
-                    {/* Video info bar + Related Videos Rail — ABSOLUTE on mobile, flex child on desktop */}
+                    {/* Title, channel, actions and study tools */}
                     <div className="vl-info-bar">
-                        {/* Info Row */}
                         <div className="vl-info-copy">
                             <h2 id="vl-viewer-title">
                                 {selectedVideo.title}
                             </h2>
-                            <div className="vl-info-meta">
-                                <span className="vl-info-source">
-                                    {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
-                                        <img src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
-                                            alt="" decoding="async" />
-                                    )}
-                                    {selectedVideo.source.replace('_', ' ')}
+                            <p className="vl-info-meta">
+                                {[formatViewCount(selectedVideo.views), formatVideoAge(selectedVideo.publishedAt || selectedVideo.scrapedAt), selectedVideo.duration].filter(Boolean).join(' · ')}
+                            </p>
+                        </div>
+
+                        <div className="vl-info-channel">
+                            <ChannelAvatar video={selectedVideo} channel={selectedChannel} />
+                            <span className="vl-info-source">{selectedChannel.name}</span>
+                        </div>
+
+                        {/* Action row — Like / Share / Save / Playlist / Train This Spot */}
+                        <div
+                            className="vl-hud"
+                            role="group"
+                            aria-label="Video actions"
+                            onFocusCapture={vlRevealHud}
+                        >
+                            <button
+                                type="button"
+                                aria-label={favorites.has(selectedVideoKey) ? 'Remove video from favorites' : 'Add video to favorites'}
+                                aria-pressed={favorites.has(selectedVideoKey)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedVideo) void toggleFavorite(selectedVideo);
+                                    vlRevealHud();
+                                }}
+                                title="Like"
+                            >
+                                <span className="vl-hud-command">
+                                    {favorites.has(selectedVideoKey) ? 'Liked' : 'Like'}
                                 </span>
-                                <span>
-                                    {selectedVideo.views} Views
+                            </button>
+                            <button
+                                type="button"
+                                aria-label="Copy video link"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedVideo) handleShareVideo(selectedVideo);
+                                    vlRevealHud();
+                                }}
+                                title="Share"
+                            >
+                                <span className="vl-hud-command">Share</span>
+                            </button>
+                            <button
+                                type="button"
+                                aria-label={watchLater.has(selectedVideoKey) ? 'Remove video from watch later' : 'Save video to watch later'}
+                                aria-pressed={watchLater.has(selectedVideoKey)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedVideo) void toggleWatchLater(selectedVideo);
+                                    vlRevealHud();
+                                }}
+                                title="Save"
+                            >
+                                <span className="vl-hud-command">
+                                    {watchLater.has(selectedVideoKey) ? 'Saved' : 'Save'}
                                 </span>
-                                <span>
-                                    {selectedVideo.duration}
-                                </span>
-                                {/* ── Train This Spot — in-place overlay ── */}
-                                <button
-                                    ref={ttsTriggerRef}
-                                    type="button"
-                                    className="vl-train-spot-button"
-                                    onClick={() => {
-                                        const tags = Array.isArray(selectedVideo.tags)
-                                            ? selectedVideo.tags.filter(t => t && t.trim())
-                                            : [];
-                                        const ctx = {
-                                            ref: 'video-library',
-                                            vid: selectedVideo.videoId,
-                                            title: selectedVideo.title.slice(0, 80),
-                                            source: selectedVideo.source,
-                                            tags,
-                                        };
-                                        const gameIds = findBestGames(ctx);
-                                        // Lazy-load to avoid Webpack circular initialization
-                                        const { getGameById: lookupGame } = require('../../src/data/TRAINING_LIBRARY');
-                                        const games = gameIds.map(id => lookupGame(id)).filter(Boolean).slice(0, 3);
-                                        setTtsOverlay({ ctx, games });
-                                        // Fire analytics
-                                        const analyticsToken = getAccessToken();
-                                        fetch('/api/training/log-request', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                                ...(analyticsToken ? { Authorization: `Bearer ${analyticsToken}` } : {}),
-                                            },
-                                            body: JSON.stringify({ ref: 'video-library', vid: ctx.vid, title: ctx.title, source: ctx.source, tags, matchedGameIds: gameIds.slice(0, 3) }),
-                                        }).catch(error => reportVideoLibraryIssue('training_log_request', error));
-                                    }}
-                                    title="Open GTO Trainer with AI-matched drills from this video"
-                                >
-                                    Train This Spot
-                                </button>
-                            </div>
+                            </button>
+                            <button
+                                ref={playlistTriggerRef}
+                                type="button"
+                                aria-label="Save video to a playlist"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    if (!userId) {
+                                        showActionNotice('Sign in to use playlists.', { videoId: selectedVideo.videoId, tone: 'info' });
+                                    } else {
+                                        setPlaylistActionError(null);
+                                        setShowPlaylistModal(selectedVideo);
+                                    }
+                                    vlRevealHud();
+                                }}
+                                title="Playlist"
+                            >
+                                <span className="vl-hud-command">Playlist</span>
+                            </button>
+                            {/* ── Train This Spot — in-place overlay ── */}
+                            <button
+                                ref={ttsTriggerRef}
+                                type="button"
+                                className="vl-train-spot-button"
+                                onClick={() => {
+                                    const tags = Array.isArray(selectedVideo.tags)
+                                        ? selectedVideo.tags.filter(t => t && t.trim())
+                                        : [];
+                                    const ctx = {
+                                        ref: 'video-library',
+                                        vid: selectedVideo.videoId,
+                                        title: selectedVideo.title.slice(0, 80),
+                                        source: selectedVideo.source,
+                                        sourceName: selectedChannel.name,
+                                        tags,
+                                    };
+                                    const gameIds = findBestGames(ctx);
+                                    // Lazy-load to avoid Webpack circular initialization
+                                    const { getGameById: lookupGame } = require('../../src/data/TRAINING_LIBRARY');
+                                    const games = gameIds.map(id => lookupGame(id)).filter(Boolean).slice(0, 3);
+                                    setTtsOverlay({ ctx, games });
+                                    // Fire analytics
+                                    const analyticsToken = getAccessToken();
+                                    fetch('/api/training/log-request', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            ...(analyticsToken ? { Authorization: `Bearer ${analyticsToken}` } : {}),
+                                        },
+                                        body: JSON.stringify({ ref: 'video-library', vid: ctx.vid, title: ctx.title, source: ctx.source, tags, matchedGameIds: gameIds.slice(0, 3) }),
+                                    }).catch(error => reportVideoLibraryIssue('training_log_request', error));
+                                }}
+                                title="Open GTO Trainer with AI-matched drills from this video"
+                            >
+                                <span className="vl-hud-command">Train This Spot</span>
+                            </button>
                         </div>
 
                         <VideoLearningLoop
                             title="Build Your Next Study Rep"
-                            source={selectedVideo.source}
+                            source={selectedChannel.name}
                             topic={(selectedVideo.tags || [selectedVideo.type])[0]}
                             reason={selectedVideo.recommendationReasons || selectedVideo.recommendationReason || selectedVideo.selectionReason}
                             mode={sortMode === 'default' ? 'latest' : 'learning'}
@@ -2863,48 +2787,94 @@ export default function VideoLibraryPage() {
                             quizHref={`/hub/trivia?topic=${encodeURIComponent((selectedVideo.tags || [selectedVideo.type || 'poker'])[0])}`}
                             sandboxHref="/hub/personal-assistant/sandbox"
                         />
+                    </div>
 
-                        {/* ── P3: Related Videos Rail ── */}
-                        {relatedVideos.length > 0 && (
-                            <div className="vl-up-next-rail">
-                                <div className="vl-up-next-label">
-                                    Up Next
-                                </div>
-                                <div className="vl-up-next-scroll vl-up-next-grid">
-                                    {relatedVideos.map(v => (
-                                        <div
-                                            key={v.id}
-                                            onClick={() => handleOpenVideo(v)}
-                                            onKeyDown={(event) => handleVideoCardKeyDown(event, v)}
-                                            role="button"
-                                            tabIndex={0}
-                                            aria-label={`Play ${v.title}`}
-                                            className="vl-up-next-card"
-                                        >
-                                            <div className="vl-up-next-media">
-                                                <img
-                                                    src={getThumbnail(v.videoId)}
-                                                    alt=""
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                    onLoad={event => recoverYouTubeThumbnail(event, v.videoId)}
-                                                    onError={event => recoverYouTubeThumbnail(event, v.videoId)}
-                                                />
-                                                {v.duration && (
-                                                    <span className="vl-up-next-duration">{v.duration}</span>
-                                                )}
-                                            </div>
-                                            <div className="vl-up-next-copy">
-                                                <strong>{v.title}</strong>
-                                                <span>
-                                                    {v.source.replace('_', ' ')}
-                                                </span>
-                                            </div>
+                    {/* ── Up Next ── */}
+                    {relatedVideos.length > 0 && (
+                        <div className="vl-up-next-rail">
+                            <h3 className="vl-up-next-label">Up Next</h3>
+                            <div className="vl-up-next-grid">
+                                {relatedVideos.map(v => (
+                                    <div
+                                        key={v.id}
+                                        onClick={() => handleOpenVideo(v)}
+                                        onKeyDown={(event) => handleVideoCardKeyDown(event, v)}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={`Play ${v.title}`}
+                                        className="vl-up-next-card"
+                                    >
+                                        <div className="vl-up-next-media">
+                                            <img
+                                                src={getThumbnail(v.videoId)}
+                                                alt=""
+                                                loading="lazy"
+                                                decoding="async"
+                                                onLoad={event => recoverYouTubeThumbnail(event, v.videoId)}
+                                                onError={event => recoverYouTubeThumbnail(event, v.videoId)}
+                                            />
+                                            {v.duration && (
+                                                <span className="vl-duration">{v.duration}</span>
+                                            )}
                                         </div>
-                                    ))}
-                                </div>
+                                        <div className="vl-up-next-copy">
+                                            <strong>{v.title}</strong>
+                                            <span>{getVideoMetaLine(v)}</span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        )}
+                        </div>
+                    )}
+                    </div>
+                </div>
+                );
+            })()}
+
+            {/* Card "more actions" sheet (YouTube's three-dot menu) */}
+            {cardMenuVideo && (
+                <div className="vl-card-menu-overlay" role="presentation" onClick={() => setCardMenuVideo(null)}>
+                    <div
+                        className="vl-card-menu-sheet"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="vl-card-menu-title"
+                        onClick={event => event.stopPropagation()}
+                        onKeyDown={event => {
+                            if (event.key === 'Escape') { event.stopPropagation(); setCardMenuVideo(null); }
+                            containDialogFocus(event, event.currentTarget);
+                        }}
+                    >
+                        <p id="vl-card-menu-title" className="vl-card-menu-title">{cardMenuVideo.title}</p>
+                        {[
+                            { label: 'Play', run: () => handleOpenVideo(cardMenuVideo) },
+                            { label: watchLater.has(cardMenuVideo.id) ? 'Remove From Watch Later' : 'Save To Watch Later', run: () => void toggleWatchLater(cardMenuVideo) },
+                            { label: favorites.has(cardMenuVideo.id) ? 'Remove From Favorites' : 'Add To Favorites', run: () => void toggleFavorite(cardMenuVideo) },
+                            {
+                                label: 'Save To Playlist',
+                                run: () => {
+                                    if (!userId) {
+                                        showActionNotice('Sign in to use playlists.', { videoId: cardMenuVideo.videoId, tone: 'info' });
+                                    } else {
+                                        setPlaylistActionError(null);
+                                        setShowPlaylistModal(cardMenuVideo);
+                                    }
+                                },
+                            },
+                            { label: 'Share', run: () => handleShareVideo(cardMenuVideo) },
+                            ...(watchedVideos.has(cardMenuVideo.id) ? [{ label: 'Mark As Unwatched', run: () => void handleMarkUnwatched(cardMenuVideo) }] : []),
+                        ].map((action, actionIndex) => (
+                            <button
+                                key={action.label}
+                                type="button"
+                                className="vl-card-menu-item"
+                                autoFocus={actionIndex === 0}
+                                onClick={() => { setCardMenuVideo(null); action.run(); }}
+                            >
+                                {action.label}
+                            </button>
+                        ))}
+                        <button type="button" className="vl-card-menu-item is-cancel" onClick={() => setCardMenuVideo(null)}>Cancel</button>
                     </div>
                 </div>
             )}
@@ -2913,16 +2883,8 @@ export default function VideoLibraryPage() {
                 /* The viewer Close control clears the status bar. The page that
                    owns the full-screen overlay carries the inset itself
                    (overlays-leave-room-to-close.law), matching the world sheet. */
-                .vl-modal-close { top: calc(env(safe-area-inset-top, 0px) + 12px); }
-                .vl-show-more { display: block; width: 100%; min-height: 44px; margin-top: 12px; }
-                .vl-show-all-sources { display: none; }
-                @media (max-width: 768px) {
-                    .vl-search-wrap { width: 100% !important; flex-basis: 100% !important; margin-left: 0 !important; }
-                    .vl-show-all-sources { display: block; }
-                    .vl-info-bar { position: relative !important; max-height: 46dvh !important; flex: 0 0 auto; pointer-events: auto; z-index: 6; }
-                    .vl-up-next-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-                }
-                @media (min-width: 769px) { .vl-info-bar { max-height: min(25dvh, 200px); } }
+                .vl-watch-topbar { padding-top: env(safe-area-inset-top, 0px); }
+                .vl-card-menu-sheet { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
             `}</style>
 
             {/* Reels Modal — full-screen TikTok doom-scroll */}
@@ -2956,19 +2918,11 @@ export default function VideoLibraryPage() {
                         aria-labelledby="vl-playlist-title"
                         onClick={e => e.stopPropagation()}
                     >
-                        <VideoLibraryConsole
-                            eyebrow="Personal Library"
-                            title="Save To Playlist"
-                            titleId="vl-playlist-title"
-                            subtitle="Choose A Playlist Or Create One"
-                            pill={`${playlists.length} Lists`}
-                            pillInk="gold"
-                            foot="foot"
-                        >
                         <div className="vl-playlist-header">
+                            <h2 id="vl-playlist-title">Save To Playlist</h2>
                             <button onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}
                                 type="button" aria-label="Close playlist dialog"
-                                className="vl-glass-action">Close</button>
+                                className="vl-text-button">Close</button>
                         </div>
                         <div className="vl-playlist-list">
                             {playlists.length === 0 && (
@@ -3060,7 +3014,6 @@ export default function VideoLibraryPage() {
                                 {isCreatingPlaylist ? '...' : 'Create'}
                             </button>
                         </div>
-                        </VideoLibraryConsole>
                     </div>
                 </div>
             )}
@@ -3070,17 +3023,12 @@ export default function VideoLibraryPage() {
                 <div className="vl-tts-sheet" role="presentation">
                     <div className="vl-tts-backdrop" onClick={() => setTtsOverlay(null)} />
                     <div ref={ttsDialogRef} className="vl-tts-dialog" role="dialog" aria-modal="true" aria-labelledby="vl-tts-title">
-                        <VideoLibraryConsole
-                            eyebrow="Smarter Training"
-                            title="Train This Spot"
-                            titleId="vl-tts-title"
-                            subtitle="Matched Drills For This Video"
-                            pill={`${ttsOverlay.games.length} Drills`}
-                            pillInk="green"
-                            foot="foot"
-                        >
                         <div className="vl-tts-header">
-                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close" className="vl-glass-action" onClick={() => setTtsOverlay(null)}>Close</button>
+                            <div>
+                                <h2 id="vl-tts-title">Train This Spot</h2>
+                                <span>{ttsOverlay.games.length} Matched {ttsOverlay.games.length === 1 ? 'drill' : 'drills'} For This Video</span>
+                            </div>
+                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close" className="vl-text-button" onClick={() => setTtsOverlay(null)}>Close</button>
                         </div>
                         <div className="vl-tts-video">
                             <div className="vl-tts-video-media">
@@ -3089,7 +3037,7 @@ export default function VideoLibraryPage() {
                             <div className="vl-tts-video-copy">
                                 <strong>{ttsOverlay.ctx.title || 'Poker Video'}</strong>
                                 <div className="vl-tts-source">
-                                    <span>{(ttsOverlay.ctx.source || '').replace(/_/g, ' ')}</span>
+                                    <span>{ttsOverlay.ctx.sourceName || ''}</span>
                                 </div>
                             </div>
                         </div>
@@ -3115,7 +3063,6 @@ export default function VideoLibraryPage() {
                             </button>
                             <button onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }}>Browse All 100 Training Games</button>
                         </div>
-                        </VideoLibraryConsole>
                     </div>
                 </div>
             )}

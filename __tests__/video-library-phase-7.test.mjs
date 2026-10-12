@@ -60,16 +60,19 @@ test('personal subviews receive distinct responsive identity and signed-out guid
   assert.match(PAGE, /Favorites Need Your Profile/);
   assert.match(PAGE, /History Needs Your Profile/);
   assert.match(CSS, /\.vl-subview-banner/);
-  // PIN MOVED (mobile phase 9): the phone block is at the standard's 768px.
-  assert.match(CSS, /@media \(max-width: 768px\)[\s\S]*\.vl-subview-banner/);
+  // OWNER UPDATE (YouTube layout, 2026-10-11): the stylesheet is mobile first,
+  // so the banner's phone styling is the base rule, and signing in is a button.
+  assert.match(PAGE, /<button[\s\S]{0,200}auth\/login\?redirect=[\s\S]{0,120}Sign In To Sync/);
 });
 
-test('mobile scan rows and supporting consoles keep compact, touch-safe geometry', () => {
+test('mobile cards and supporting sheets keep 16:9 media and touch-safe geometry', () => {
+  // OWNER UPDATE (YouTube layout, 2026-10-11): the scan rows became YouTube
+  // cards and the consoles became plain sheets. Touch targets stay 44px.
   assert.match(CSS, /aspect-ratio: 16 \/ 9/);
-  assert.match(CSS, /\.vl-playlist-overlay,[\s\S]*background: rgb\(0 0 0 \/ 88%\)/);
-  assert.doesNotMatch(CSS, /border-radius|backdrop-filter|linear-gradient|:hover/);
+  assert.match(CSS, /\.vl-playlist-overlay,[\s\S]*position: fixed/);
   assert.match(CSS, /\.vl-playlist-create input \{[\s\S]*min-height: 44px/);
-  assert.match(CSS, /\.vl-share-button \{[\s\S]*min-height: 44px/);
+  assert.match(CSS, /\.vl-card-menu-button \{[\s\S]*height: 44px/);
+  assert.match(CSS, /\.vl-hud button \{[\s\S]*min-height: 44px/);
 });
 
 test('runtime warnings and failed training analytics writes remain observable', () => {

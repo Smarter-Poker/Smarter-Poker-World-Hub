@@ -109,7 +109,9 @@ test('favorite and Watch Later controls use rollback-capable handlers', () => {
 });
 
 test('mark-unwatched persists and clears every local watch-state projection', () => {
-  assert.match(PAGE, /handleMarkUnwatched\(video\)/);
+  // OWNER UPDATE (YouTube layout, 2026-10-11): Mark As Unwatched lives in the
+  // card's three-dot menu, which passes the menu's video.
+  assert.match(PAGE, /handleMarkUnwatched\(cardMenuVideo\)/);
   assert.match(PAGE, /await removeFromWatchHistory/);
   assert.match(PAGE, /next\.delete\(videoId\)/);
   assert.match(PAGE, /prev\.filter\(item => item\.video_id !== videoId\)/);
@@ -292,13 +294,15 @@ test('the hamburger exposes every canonical Video Library view and source', () =
 test('a collapsed mobile source list keeps its deep-linked active source visible', () => {
   assert.match(PAGE, /requestedSource === 'ALL' \|\| SOURCES\.some\(source => source\?\.id === requestedSource\)/);
   assert.match(PAGE, /className={`vl-source-button\$\{isActive \? ' is-active' : ''\}`}/);
+  // OWNER UPDATE (YouTube layout, 2026-10-11): channels are a grid of round
+  // avatars, two rows by default; a deep-linked active channel stays visible.
   assert.match(
     CSS,
-    /\.vl-source-pills:not\(\.is-expanded\) > \.vl-source-button:nth-child\(n \+ 11\):not\(\.is-active\) \{ display: none !important; \}/
+    /\.vl-source-pills:not\(\.is-expanded\) > \.vl-source-button:nth-child\(n \+ 11\):not\(\.is-active\) \{\s*display: none;/
   );
   assert.doesNotMatch(
     CSS,
-    /\.vl-source-pills:not\(\.is-expanded\) > \.vl-source-button:nth-child\(n \+ 11\) \{ display: none !important; \}/
+    /\.vl-source-pills:not\(\.is-expanded\) > \.vl-source-button:nth-child\(n \+ 11\) \{/
   );
 });
 

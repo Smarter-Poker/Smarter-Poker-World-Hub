@@ -1,76 +1,76 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { CONSOLE_ZONES } from '../src/components/video-library/console/consoleGeometry.mjs';
+
+/*
+ * OWNER UPDATE (Video Library, 2026-10-11) — supersedes the painted-console
+ * pins that used to live in this file.
+ *
+ * Dan: "THIS NEEDS TO LOOK MORE LIKE YOUTUBE, AND IT CURRENTLY LOOKS LIKE SHIT
+ * AND IS A HOT MESS ... REMOVE THE UN NECESSARY FRAMES AND OPTIMIZE THIS WHOLE
+ * PAGE FOR MOBILE, INSPIRED BY YOUTUBE LAYOUT AND FUNCTIONALITY."
+ *
+ * The spade-console artwork no longer wraps the library, the rail, or any
+ * dialog on this page. These tests pin the YouTube layout so the frames and
+ * the old scan rows cannot quietly return.
+ */
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const PAGE = read('../pages/hub/video-library.js');
 const RAIL = read('../src/components/video-library/VideoLibraryCommandRail.jsx');
 const CSS = read('../src/styles/worlds/video-library.css');
-const CONSOLE = read('../src/components/video-library/console/VideoLibraryConsole.jsx');
-const CONSOLE_CSS = read('../src/components/video-library/console/VideoLibraryConsole.module.css');
 
-const VISUAL_SOURCE = `${PAGE}\n${RAIL}\n${CSS}`;
-
-test('desktop and mobile use the approved painted console hierarchy', () => {
-  assert.match(PAGE, /<VideoLibraryConsole[\s\S]*titleAs="h1"/);
-  assert.match(PAGE, /<VideoLibraryCommandRail[\s\S]*mode="desktop"/);
-  assert.match(PAGE, /<VideoLibraryConsole[\s\S]*<VideoLibraryCommandRail[\s\S]*mode="mobile"/);
-  assert.match(RAIL, /<VideoLibraryConsole[\s\S]*className="vl-command-console"/);
-  assert.match(RAIL, /if \(mode === 'mobile'\)[\s\S]*<nav className="vl-command-rail-mobile"/);
-  assert.match(CSS, /@media \(max-width: 768px\)[\s\S]*\.vl-command-rail \{[\s\S]*display: none/);
-  assert.match(CSS, /@media \(max-width: 768px\)[\s\S]*\.vl-command-rail-mobile \{[\s\S]*display: block/);
-});
-
-test('the chassis is sourced only from the approved master artwork slices', () => {
-  assert.match(CONSOLE_CSS, /spade-console-v1\/top\.png/);
-  assert.match(CONSOLE_CSS, /spade-console-v1\/mid\.png/);
-  assert.match(CONSOLE_CSS, /spade-console-v1\/bottom-foot\.png/);
-  assert.match(CONSOLE_CSS, /spade-console-v1\/bottom-plates\.png/);
-  assert.match(CONSOLE, /useFitText/);
-  assert.match(CONSOLE, /ConsolePlateButton/);
-  assert.match(CONSOLE, /ConsoleDataRow/);
-});
-
-test('reachable Video Library UI contains no generic constructed visual language', () => {
-  assert.doesNotMatch(VISUAL_SOURCE, /linear-gradient|radial-gradient/i);
-  assert.doesNotMatch(VISUAL_SOURCE, /border-radius|borderRadius/);
-  assert.doesNotMatch(VISUAL_SOURCE, /box-shadow|boxShadow/);
-  assert.doesNotMatch(VISUAL_SOURCE, /:hover/);
-  assert.doesNotMatch(VISUAL_SOURCE, /<svg\b/i);
-  assert.doesNotMatch(VISUAL_SOURCE, /[▶★☆◆◇●○◀▲▼☰✕×🔊🎤⏸⏯]/u);
+test('no decorative console frame wraps the page, the rail or any dialog', () => {
+  assert.doesNotMatch(PAGE, /VideoLibraryConsole|ConsoleCopy|ConsolePlateButton/);
+  assert.doesNotMatch(RAIL, /VideoLibraryConsole|ConsoleDataRow/);
+  assert.doesNotMatch(CSS, /spade-console|vl-command-console|vl-library-console/);
   assert.doesNotMatch(PAGE, /metal-frame|video-card-metal|sp-icon-btn|YouTubeErrorOverlay/);
-  assert.doesNotMatch(PAGE, /style=\{\{(?!\s*'--vl-progress')/);
 });
 
-test('real media remains primary while cards render as engraved scan rows', () => {
+test('the browse page is search, one chip row, round channels, then the feed', () => {
+  assert.match(PAGE, /aria-label="Search the poker video library"/);
+  assert.match(PAGE, /<VideoLibraryCommandRail[\s\S]*className={`vl-source-pills/);
+  assert.match(RAIL, /<nav className="vl-chip-rail"/);
+  assert.match(RAIL, /data-filter-group="type"[\s\S]*data-filter-group="sort"[\s\S]*data-filter-group="library"/);
+  // The chip row is the one sideways scroller and keeps its scrollbar visible.
+  assert.match(CSS, /\.vl-type-toggle-row \{[\s\S]*flex-wrap: nowrap[\s\S]*overflow-x: auto[\s\S]*scrollbar-width: thin/);
+  assert.match(CSS, /\.vl-filter-button \{[\s\S]*min-height: 44px/);
+  assert.match(CSS, /\.vl-source-logo-media \{[\s\S]*border-radius: 50%/);
+});
+
+test('feed cards are YouTube cards: full-width 16:9 media, avatar, title, one meta line, menu', () => {
   assert.match(PAGE, /src=\{getThumbnail\(video\.videoId\)\}/);
-  assert.match(PAGE, /src=\{source\.logo\}/);
   assert.match(PAGE, /className={`vl-video-card/);
-  assert.match(CSS, /\.vl-video-grid \{[\s\S]*flex-direction: column/);
-  assert.match(CSS, /\.vl-video-card \{[\s\S]*grid-template-columns:[\s\S]*border-block-end: 1px solid var\(--vl-rule\)/);
+  assert.match(PAGE, /<ChannelAvatar video=\{video\} channel=\{channel\} \/>/);
+  assert.match(PAGE, /className="vl-card-meta">\{getVideoMetaLine\(video\)\}/);
+  assert.match(PAGE, /className="vl-card-menu-button"[\s\S]{0,300}setCardMenuVideo\(video\)/);
+  assert.match(CSS, /\.vl-video-grid \{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(CSS, /\.vl-video-thumb[\s\S]*aspect-ratio: 16 \/ 9/);
+  assert.match(CSS, /\.vl-card-info \{[\s\S]*grid-template-columns: 36px minmax\(0, 1fr\) 40px/);
   assert.match(CSS, /\.vl-card-info \{[\s\S]*pointer-events: none/);
-  assert.match(CSS, /\.vl-card-meta button \{[\s\S]*pointer-events: auto/);
+  assert.match(CSS, /\.vl-card-menu-button \{[\s\S]*pointer-events: auto/);
   assert.match(CSS, /\.vl-media-failed::after \{[\s\S]*Preview unavailable/);
+  // Columns grow with the screen, phone first.
+  assert.match(CSS, /@media \(min-width: 600px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(CSS, /@media \(min-width: 1000px\)[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(CSS, /@media \(min-width: 1400px\)[\s\S]*repeat\(4, minmax\(0, 1fr\)\)/);
 });
 
-test('375 and 393 layouts expose a swipeable command rail without hiding its scroll affordance', () => {
-  assert.match(CSS, /@media \(max-width: 393px\)/);
-  assert.match(CSS, /@media \(max-width: 375px\)/);
-  assert.match(CSS, /\.vl-type-toggle-row--mobile \{[\s\S]*overflow-x: auto[\s\S]*flex-wrap: nowrap/);
-  assert.match(CSS, /\.vl-type-toggle-row--mobile \{[\s\S]*scrollbar-width: thin/);
-  assert.match(CSS, /\.vl-type-toggle-row--mobile \.vl-filter-button \{[\s\S]*flex: 0 0 auto[\s\S]*min-width: max-content[\s\S]*white-space: nowrap/);
-  assert.doesNotMatch(CSS, /\.vl-type-toggle-row--mobile\s*\{[^}]*grid-template-columns/);
-  assert.doesNotMatch(CSS, /scroll-snap-type: x mandatory/);
-  assert.doesNotMatch(CSS, /\.vl-type-toggle-row--mobile::\-webkit-scrollbar\s*\{\s*display:\s*none/);
-  assert.match(CSS, /grid-template-columns: minmax\(108px, 41%\) minmax\(0, 1fr\)/);
-  assert.match(CSS, /grid-template-columns: minmax\(102px, 40%\) minmax\(0, 1fr\)/);
+test('a creator line never shows a raw database id', () => {
+  assert.match(PAGE, /const UUID_LIKE = /);
+  assert.match(PAGE, /function getVideoChannel\(video\)/);
+  assert.match(PAGE, /find\(value => value && !UUID_LIKE\.test\(value\)\)/);
+  assert.doesNotMatch(PAGE, /\{video\.source\.replace\('_', ' '\)\}/);
+  assert.doesNotMatch(PAGE, /\{selectedVideo\.source\.replace\('_', ' '\)\}/);
 });
 
-test('late desktop shell rules cannot override the 375 and 393 edge treatment', () => {
-  assert.match(CSS, /@media \(min-width: 769px\) \{[\s\S]*\.video-library-page \{[^}]*padding: 20px/);
-  assert.match(CSS, /@media \(max-width: 393px\) \{[\s\S]*\.video-library-page \{[^}]*padding-inline: 3px/);
-  assert.match(CSS, /@media \(max-width: 393px\) \{[\s\S]*\.vl-header-area \{[^}]*margin-inline: -3px/);
+test('the watch page pins the player above the details, Up Next beside it on desktop', () => {
+  assert.match(PAGE, /className="vl-watch-player"/);
+  assert.match(CSS, /\.vl-watch-player \{[\s\S]*position: sticky/);
+  assert.match(CSS, /\.vl-player-stage \{[\s\S]*aspect-ratio: 16 \/ 9/);
+  assert.match(CSS, /\.vl-watch \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) 400px/);
+  // Actions wrap to a second line instead of sliding sideways.
+  assert.match(CSS, /\.vl-hud \{[\s\S]*flex-wrap: wrap/);
 });
 
 test('loading, empty, sync-error, playback-error, playlist, and training states remain wired', () => {
@@ -80,8 +80,8 @@ test('loading, empty, sync-error, playback-error, playlist, and training states 
   assert.match(PAGE, /className="vl-youtube-error" role="alert"/);
   assert.match(PAGE, /aria-labelledby="vl-playlist-title"/);
   assert.match(PAGE, /aria-labelledby="vl-tts-title"/);
-  assert.match(PAGE, /secondary: \{ label: 'Close Viewer', onClick: handleCloseVideo \}/);
-  assert.match(PAGE, /primary: \{[\s\S]*label: 'Open On YouTube'[\s\S]*onClick:/);
+  assert.match(PAGE, /onClick=\{handleCloseVideo\}>Close Viewer<\/button>/);
+  assert.match(PAGE, /Open On YouTube/);
 });
 
 test('account-scoped mutations invalidate stale completions and stale local filters', () => {
@@ -106,13 +106,7 @@ test('account-scoped mutations invalidate stale completions and stale local filt
   assert.doesNotMatch(PAGE, /catch\s*\([^)]*\)\s*=>\s*\{\s*\}/);
 });
 
-
-test('painted console eyebrow and subtitle retain a readable phone floor', () => {
-  assert.match(CONSOLE_CSS, /\.eyebrow\s*\{[^}]*font-size:\s*max\(12px, 2\.6cqw\)/);
-  assert.match(CONSOLE_CSS, /\.subtitle\s*\{[^}]*font-size:\s*max\(12px, 3\.2cqw\)/);
-  for (const label of ['eyebrow', 'subtitle']) {
-    assert.match(CONSOLE_CSS, new RegExp(`\\.${label}\\s*\\{[^}]*line-height:\\s*1;`));
-  }
-  assert.ok(CONSOLE_ZONES.eyebrow.x + CONSOLE_ZONES.eyebrow.width < CONSOLE_ZONES.pill.x);
-  assert.ok(CONSOLE_ZONES.eyebrow.y + CONSOLE_ZONES.eyebrow.height <= CONSOLE_ZONES.title.y);
+test('no emoji or decorative glyphs ship in the page source', () => {
+  assert.doesNotMatch(`${PAGE}\n${RAIL}`, /[▶★☆◆◇●○◀▲▼☰✕×🔊🎤⏸⏯]/u);
+  assert.doesNotMatch(PAGE, /<svg\b/i);
 });

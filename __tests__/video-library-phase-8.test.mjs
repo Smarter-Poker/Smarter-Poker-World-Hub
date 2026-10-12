@@ -60,13 +60,12 @@ test('loading, broken-media, featured, and mobile rail treatments are explicit',
   assert.match(CSS, /\.vl-video-card\.is-featured/);
   assert.match(CSS, /\.vl-video-skeleton/);
   assert.match(CSS, /Preview unavailable/);
-  // OWNER UPDATE (Command Rail, 2026-09-27): mobile converts the desktop
-  // sidebar into swipeable tabs. Keep the scroller's thin affordance visible
-  // instead of using a fade mask or a hidden scrollbar.
+  // OWNER UPDATE (Command Rail, 2026-09-27): the rail scrolls sideways with a
+  // visible thin scrollbar, never a fade mask or hidden bar. OWNER UPDATE
+  // (YouTube layout, 2026-10-11): it is one chip row at every width.
   assert.doesNotMatch(CSS, /mask-image: linear-gradient/);
-  assert.match(CSS, /\.vl-type-toggle-row--desktop \{\s*display: grid !important;/);
-  assert.match(CSS, /\.vl-type-toggle-row--mobile \{[\s\S]*overflow-x: auto[\s\S]*scrollbar-width: thin/);
-  assert.match(CSS, /\.vl-empty-state button,[\s\S]*min-height: 44px/);
+  assert.match(CSS, /\.vl-type-toggle-row \{[\s\S]*overflow-x: auto[\s\S]*scrollbar-width: thin/);
+  assert.match(CSS, /\.vl-empty-state button \{[\s\S]*min-height: 44px/);
 });
 
 test('command rail is modular and client failures are allowlisted for telemetry', () => {
