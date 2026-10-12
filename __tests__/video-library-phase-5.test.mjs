@@ -60,7 +60,10 @@ test('legacy aliases are compatibility-only and the page has no playable fallbac
   assert.doesNotMatch(PAGE, /STATIC_CATALOG|FULL_VIDEOS/);
   assert.match(PAGE, /const \[videos, setVideos\] = useState\(\[\]\)/);
   assert.match(PAGE, /setCatalogRefreshFailed\(true\)[\s\S]*setAllVideos\(\[\]\)[\s\S]*setVideos\(\[\]\)/);
-  assert.match(CATALOG_API, /id: row\.youtube_video_id/);
+  // Phase 2 (2026-10-12): the catalog API, watch pages and video sitemap share
+  // one row normaliser.
+  assert.match(CATALOG_API, /const normaliseVideo = normaliseVideoRow;/);
+  assert.match(readFileSync(new URL('../src/lib/videoLibraryWatch.mjs', import.meta.url), 'utf8'), /id: row\.youtube_video_id/);
   assert.match(PAGE, /legacyId: STATIC_VIDEO_CANONICAL_ALIASES\.get\(video\.videoId\)/);
   assert.ok(
     Object.values(compatibilityModule.LEGACY_VIDEO_ID_ALIASES).some(videoId => videoId.startsWith('FAKE')),

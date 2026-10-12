@@ -8,16 +8,16 @@ import {
 } from '../../../src/lib/videoLibraryAvailability';
 import {
     VIDEO_LIBRARY_POKER_TYPES,
-    cleanVideoTitle,
     dedupeVideos,
     isDisplayableVideoTitle,
     mixedContentFilter,
 } from '../../../src/lib/videoLibraryCuration.mjs';
+import { VIDEO_ROW_FIELDS, normaliseVideoRow } from '../../../src/lib/videoLibraryWatch.mjs';
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
 const MAX_PERSONAL_IDS = 500;
-const VIDEO_FIELDS = 'youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags, availability_status, embeddable, availability_checked_at, attribution_name, attribution_url, disclosure_kind, sponsor_name, made_for_kids';
+const VIDEO_FIELDS = VIDEO_ROW_FIELDS;
 
 let supabaseClient = null;
 
@@ -57,33 +57,7 @@ function parseIds(value) {
         .slice(0, MAX_PERSONAL_IDS);
 }
 
-function normaliseVideo(row) {
-    return {
-        id: row.youtube_video_id,
-        videoId: row.youtube_video_id,
-        source: row.source_id,
-        sourceName: row.attribution_name || row.source_name || row.source_id,
-        attributionName: row.attribution_name || row.source_name || row.source_id,
-        attributionUrl: row.attribution_url || null,
-        disclosureKind: row.disclosure_kind || 'organic',
-        sponsorName: row.sponsor_name || null,
-        madeForKids: row.made_for_kids ?? null,
-        type: row.type || 'cash',
-        title: cleanVideoTitle(row.title),
-        rawTitle: row.title,
-        views: row.views_text && row.views_text !== '0' ? row.views_text : String(row.views_count || ''),
-        viewsCount: Number(row.views_count || 0),
-        duration: row.duration || '',
-        thumbnail: row.thumbnail_url || `https://img.youtube.com/vi/${row.youtube_video_id}/maxresdefault.jpg`,
-        publishedAt: row.published_at,
-        scrapedAt: row.scraped_at,
-        tags: Array.isArray(row.tags) ? row.tags : [],
-        availabilityStatus: row.availability_status,
-        embeddable: row.embeddable === true,
-        availabilityCheckedAt: row.availability_checked_at,
-        _sortKey: row.published_at,
-    };
-}
+const normaliseVideo = normaliseVideoRow;
 
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');

@@ -105,10 +105,13 @@ test('the public product surfaces are crawlable', () => {
   }
 });
 
-test('both sitemaps and the Content-Signal line are declared once each', () => {
+test('every sitemap and the Content-Signal line are declared once each', () => {
   const sitemaps = topLevel.filter((l) => l.key === 'sitemap').map((l) => l.value);
+  // Video Library Phase 2 (owner plan 2026-10-12): the video sitemap lists
+  // every poker video watch page with Google's video fields.
   assert.deepEqual(sitemaps, [
     'https://smarter.poker/sitemap.xml',
+    'https://smarter.poker/sitemap-videos.xml',
     'https://smarter.poker/hub/club-arena/sitemap.xml',
   ]);
   const signals = topLevel.filter((l) => l.key === 'content-signal');

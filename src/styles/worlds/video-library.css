@@ -1713,3 +1713,245 @@
         padding-inline: 0;
     }
 }
+
+/* ── Video watch pages (Phase 2, 2026-10-12) ────────────────────────────
+   /hub/video-library/watch/<id>/<slug>: a normal page, not the full-screen
+   viewer. Same parts as the viewer, laid out in the page flow. */
+
+.vl-watch-page {
+    width: 100%;
+    max-width: 1760px;
+    margin: 0 auto;
+    padding-bottom: 16px;
+}
+
+.vl-breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 8px;
+    padding: 4px 12px;
+    color: var(--vl-muted);
+    font-size: 13px;
+}
+
+.vl-breadcrumbs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--vl-muted);
+    text-decoration: none;
+}
+
+.vl-breadcrumbs [aria-current='page'] {
+    color: var(--vl-ink);
+}
+
+.vl-watch-page-player {
+    max-height: none;
+}
+
+.vl-play-facade {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: #000;
+    cursor: pointer;
+}
+
+.vl-play-facade img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vl-play-facade.vl-media-failed img {
+    display: none;
+}
+
+/* The play button already sits in the middle; no "Preview unavailable" under it. */
+.vl-play-facade.vl-media-failed::after {
+    content: none;
+}
+
+.vl-play-facade-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 68px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgb(15 15 15 / 82%);
+    transform: translate(-50%, -50%);
+}
+
+.vl-play-facade-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-top: 11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-left: 18px solid #fff;
+    transform: translate(-35%, -50%);
+}
+
+.vl-play-facade:hover .vl-play-facade-button,
+.vl-play-facade:focus-visible .vl-play-facade-button {
+    background: var(--vl-blue);
+}
+
+.vl-watch-page .vl-info-copy h1 {
+    margin: 0;
+    color: var(--vl-ink);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.vl-hud-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 22px;
+    background: var(--vl-chip);
+    color: var(--vl-ink);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.vl-hud-link.is-primary {
+    background: var(--vl-ink);
+    color: var(--vl-bg);
+}
+
+.vl-watch-about {
+    margin: 4px 12px 16px;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--vl-surface);
+}
+
+.vl-watch-about h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.vl-watch-about p {
+    margin: 0 0 12px;
+    color: var(--vl-silver);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.vl-watch-about dl {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.vl-watch-about dl > div {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: 12px;
+    font-size: 14px;
+}
+
+.vl-watch-about dt {
+    color: var(--vl-muted);
+}
+
+.vl-watch-about dd {
+    margin: 0;
+    color: var(--vl-ink);
+}
+
+.vl-watch-about a {
+    color: var(--vl-blue);
+}
+
+.vl-watch-list ul {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0 12px 16px;
+    list-style: none;
+}
+
+.vl-watch-list .vl-up-next-card {
+    color: inherit;
+    text-decoration: none;
+}
+
+.vl-watch-page-side > .vl-show-more {
+    text-decoration: none;
+}
+
+.vl-empty-state h1 {
+    margin: 0;
+    color: var(--vl-ink);
+    font-size: 20px;
+}
+
+@media (min-width: 600px) {
+    .vl-watch-page-player {
+        border-radius: 12px;
+    }
+
+    .vl-watch-page-main {
+        padding: 0 16px;
+    }
+
+    .vl-watch-page .vl-info-copy,
+    .vl-watch-page .vl-info-channel,
+    .vl-watch-page .vl-hud {
+        padding-inline: 0;
+    }
+
+    .vl-watch-about {
+        margin-inline: 0;
+    }
+
+    .vl-watch-page-side {
+        padding: 0 4px;
+    }
+}
+
+@media (min-width: 1000px) {
+    .vl-breadcrumbs {
+        padding-inline: 24px;
+    }
+
+    .vl-watch-page-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 400px;
+        gap: 24px;
+        align-items: start;
+        padding: 0 24px;
+    }
+
+    .vl-watch-page-main {
+        padding: 0;
+    }
+
+    .vl-watch-page .vl-info-copy h1 {
+        font-size: 20px;
+    }
+
+    .vl-watch-list ul {
+        padding-inline: 0;
+    }
+
+    .vl-watch-page-side .vl-up-next-label {
+        padding-inline: 0;
+    }
+}

@@ -177,7 +177,11 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     const crashes = watchForCrashes(page);
     await page.route('https://www.youtube-nocookie.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<html></html>' }));
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
-    await page.getByRole('button', { name: `Play ${VIDEO_A.title}` }).click({ timeout: 20_000 });
+    // Phase 2: a card is a real link to the video's own page; a plain click
+    // still opens the in-page viewer.
+    const cardLink = page.getByRole('link', { name: `Play ${VIDEO_A.title}` });
+    await expect(cardLink).toHaveAttribute('href', `/hub/video-library/watch/${VIDEO_A.videoId}/river-decision-command-test`, { timeout: 20_000 });
+    await cardLink.click();
 
     const viewer = page.getByRole('dialog', { name: VIDEO_A.title });
     await expect(viewer).toBeVisible();
