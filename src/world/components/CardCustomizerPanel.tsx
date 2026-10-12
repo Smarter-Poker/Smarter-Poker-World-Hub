@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { POKER_IQ_ORBS, COMMANDER_ORB, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../../orbs/manifest/registry';
+import { pinPokerArenaFirst } from '../../orbs/manifest/hubCardOrder';
 import { getHiddenCardIds, setHiddenCardIds } from '../../state/userPreferences';
 import { getAuthUser } from '../../lib/authUtils';
 import { getOwnerOnlyHiddenCardIds } from '../../config/ownerOnlyHubCards';
@@ -30,13 +31,14 @@ const CARD_EMOJI: Record<string, string> = {
     'poker-tools': '🧮',
 };
 
-// All cards that can appear in the hub (for the customizer list)
-// Toke Tracker and Commander/Employee Portal are listed first as special cards
-const ALL_CUSTOMIZABLE = [
+// All cards that can appear in the hub (for the customizer list).
+// Poker Arena is listed first, as it is everywhere in the hub (Dan,
+// 2026-10-11), then the special cards, then the rest of the registry.
+const ALL_CUSTOMIZABLE = pinPokerArenaFirst([
     TOKE_TRACKER_ORB,
     COMMANDER_ORB,
     ...POKER_IQ_ORBS,
-];
+]);
 
 interface CardCustomizerPanelProps {
     isOpen: boolean;

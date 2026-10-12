@@ -12,12 +12,13 @@ import { Canvas } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { CarouselEngine } from './carousel/CarouselEngine';
-import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex, getHiddenCardIds, hydrateHiddenCardIds } from '../state/userPreferences';
+import { getFooterCards, recordCardVisit, triggerHaptic, setLastCarouselIndex, getHiddenCardIds, hydrateHiddenCardIds } from '../state/userPreferences';
 import { getAuthUser } from '../lib/authUtils';
 import { getOwnerOnlyHiddenCardIds } from '../config/ownerOnlyHubCards';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
-import { COMMANDER_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../orbs/manifest/registry';
+import { COMMANDER_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS, POKER_ARENA_ORB } from '../orbs/manifest/registry';
+import { pinPokerArenaFirst } from '../orbs/manifest/hubCardOrder';
 import { NeuronLights } from './components/NeuronLights';
 import { useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
@@ -365,9 +366,13 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         const hasInList = cards.some(c => c.id === 'toke-tracker');
         const base = hasInList ? cards : [TOKE_TRACKER_ORB, ...cards.slice(0, 5)];
         // Filter any cards the user has hidden — PINNED cards can never be filtered out
-        return effectiveHiddenIds.length > 0
+        const visible = effectiveHiddenIds.length > 0
             ? base.filter(c => !effectiveHiddenIds.includes(c.id) || PINNED_ORB_IDS.includes(c.id))
             : base;
+        // FINAL ORDER (Dan, 2026-10-11): Poker Arena is ALWAYS the first card,
+        // whatever the visit history or saved preferences put first. Applied
+        // last so nothing above can re-sort it; still six cards, Toke Tracker kept.
+        return pinPokerArenaFirst(visible, { arena: POKER_ARENA_ORB, limit: 6, keepIds: ['toke-tracker'] });
     }, [effectiveHiddenIds]);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -453,9 +458,11 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         }
         if (hasCommanderAccount) orbs.splice(1, 0, COMMANDER_ORB);
         // Filter out user-hidden and owner-only cards — PINNED cards are immune to filtering
-        return effectiveHiddenIds.length > 0
+        const visible = effectiveHiddenIds.length > 0
             ? orbs.filter(o => !effectiveHiddenIds.includes(o.id) || PINNED_ORB_IDS.includes(o.id))
             : orbs;
+        // FINAL ORDER (Dan, 2026-10-11): Poker Arena is ALWAYS card zero.
+        return pinPokerArenaFirst(visible, { arena: POKER_ARENA_ORB });
     }, [hasCommanderAccount, effectiveHiddenIds]);
 
     // Fetch user profile data including avatar + Commander account detection via Supabase
@@ -851,7 +858,11 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                             {/* Card Carousel with Snap */}
                             <CarouselEngine
                                 onOrbSelect={handleOrbSelect}
-                                initialIndex={getLastCarouselIndex()}
+                                // Every hub visit opens centred on card zero,
+                                // which is Poker Arena (Dan, 2026-10-11). The
+                                // remembered position no longer decides which
+                                // card is displayed first.
+                                initialIndex={0}
                                 onIndexChange={setLastCarouselIndex}
                                 isIntroComplete={isIntroComplete}
                                 orbs={carouselOrbs}

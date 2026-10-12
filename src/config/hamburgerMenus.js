@@ -283,6 +283,19 @@ export const MENU_CONFIGS = {
                 : []),
             createMenuItem.section('Quick Navigation'),
             createMenuItem.grid([
+                // Poker Arena is ALWAYS the first tile in the World Hub (Dan, 2026-10-11).
+                {
+                    label: 'Poker Arena',
+                    href: '/hub/club-arena',
+                    hardNav: true,
+                    icon: (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <rect x="2" y="6" width="6" height="14" rx="1" fill="#8b5cf6" />
+                            <rect x="9" y="3" width="6" height="17" rx="1" fill="#a78bfa" />
+                            <rect x="16" y="6" width="6" height="14" rx="1" fill="#A78BFA" />
+                        </svg>
+                    )
+                },
                 {
                     label: 'Personal Assistant',
                     href: '/hub/personal-assistant',
@@ -302,18 +315,6 @@ export const MENU_CONFIGS = {
                     label: 'Training',
                     href: '/hub/training',
                     icon: MenuIcons.training
-                },
-                {
-                    label: 'Poker Arena',
-                    href: '/hub/club-arena',
-                    hardNav: true,
-                    icon: (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <rect x="2" y="6" width="6" height="14" rx="1" fill="#8b5cf6" />
-                            <rect x="9" y="3" width="6" height="17" rx="1" fill="#a78bfa" />
-                            <rect x="16" y="6" width="6" height="14" rx="1" fill="#A78BFA" />
-                        </svg>
-                    )
                 },
                 {
                     label: 'Diamond Store',
