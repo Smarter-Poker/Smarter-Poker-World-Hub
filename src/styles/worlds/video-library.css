@@ -1,1459 +1,92 @@
+/*
+ * Video Library — YouTube-style layout (owner update, 2026-10-11).
+ *
+ * Dan: "THIS NEEDS TO LOOK MORE LIKE YOUTUBE ... REMOVE THE UNNECESSARY FRAMES
+ * AND OPTIMIZE THIS WHOLE PAGE FOR MOBILE." The painted spade console that
+ * wrapped the library, the command rail and every dialog is gone. The page is
+ * now a plain dark feed: search, one row of chips, round channel avatars,
+ * full-width 16:9 cards with an avatar + title + one meta line, a Shorts
+ * shelf, and a YouTube watch page. Mobile first at 375px, then 600 / 1000 /
+ * 1400 columns. Brand colours only: black, blue, teal, silver, white.
+ *
+ * Standing rules kept: nothing is hidden behind a sideways "slide to see"
+ * rail (the chip row is the one scroller and keeps its scrollbar visible),
+ * every control is a 44px tap target, and full-screen layers clear the
+ * status bar (the inset is declared in pages/hub/video-library.js).
+ */
+
 :root {
-    --vl-ink: #e7edf4;
-    --vl-muted: #8f9aa8;
+    --vl-bg: #0f0f0f;
+    --vl-surface: #212121;
+    --vl-chip: #272727;
+    --vl-chip-hover: #3f3f3f;
+    --vl-line: #303030;
+    --vl-ink: #f1f1f1;
+    --vl-muted: #aaaaaa;
+    --vl-silver: #c7ccd3;
     --vl-blue: #45adff;
-    --vl-blue-soft: rgb(69 173 255 / 42%);
-    --vl-green: #bfffc9;
-    --vl-red: #ff6676;
-    --vl-gold: #ffd56a;
-    --vl-rule: rgb(205 222 238 / 18%);
-    --vl-rule-bright: rgb(205 230 249 / 38%);
-    --vl-black: #020304;
+    --vl-teal: #2dd4bf;
+    --vl-error: #ff8a95;
+    --vl-font: var(--font-inter, Inter), Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
+
+/* ── Page shell ─────────────────────────────────────────────────────────── */
 
 .video-library-page,
 .video-library-page *,
 .video-library-page *::before,
-.video-library-page *::after {
+.video-library-page *::after,
+.vl-viewer *,
+.vl-card-menu-overlay *,
+.vl-playlist-overlay *,
+.vl-tts-sheet * {
     box-sizing: border-box;
 }
 
 .video-library-page {
     min-height: 100dvh;
-    padding: 0 18px;
+    padding: 0;
     overflow-x: clip;
-    background: #000;
+    background: var(--vl-bg);
     color: var(--vl-ink);
-    font-family: 'Roboto Condensed', var(--font-rajdhani, 'Arial Narrow'), var(--font-inter, Inter), sans-serif;
+    font-family: var(--vl-font);
 }
 
 .video-library-page button,
-.video-library-page input {
+.video-library-page input,
+.vl-viewer button,
+.vl-card-menu-overlay button,
+.vl-playlist-overlay button,
+.vl-playlist-overlay input,
+.vl-tts-sheet button {
     font: inherit;
+    color: inherit;
 }
 
-.video-library-page button {
-    color: inherit;
+.video-library-page button,
+.vl-viewer button,
+.vl-card-menu-overlay button,
+.vl-playlist-overlay button,
+.vl-tts-sheet button {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .vl-header-area {
     position: relative;
     z-index: 40;
-    width: calc(100% + 36px);
-    margin-inline: -18px;
+    width: 100%;
 }
 
 .vl-global-header {
     width: 100%;
 }
 
-.vl-command-layout {
-    display: grid;
-    grid-template-columns: minmax(248px, 292px) minmax(0, 1000px);
-    align-items: start;
-    justify-content: center;
-    gap: 24px;
+.vl-yt {
     width: 100%;
-    max-width: 1340px;
-    margin: 28px auto 0;
-}
-
-.vl-command-main {
-    min-width: 0;
-}
-
-.vl-command-rail {
-    position: sticky;
-    top: 18px;
-    min-width: 0;
-}
-
-.vl-command-console,
-.vl-library-console {
-    margin: 0;
-}
-
-.vl-command-rail-mobile {
-    display: none;
-}
-
-.vl-console-content {
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-    min-width: 0;
-}
-
-.vl-command-bar {
-    display: flex;
-    align-items: end;
-    justify-content: flex-end;
-    min-width: 0;
-    padding-block: 2px 12px;
-    border-block-end: 1px solid var(--vl-rule);
-}
-
-.vl-command-heading {
-    display: none;
-}
-
-.vl-type-toggle-row {
-    min-width: 0;
-}
-
-.vl-type-toggle-row--desktop {
-    display: flex;
-    flex-direction: column;
-}
-
-.vl-filter-group-label {
-    display: block;
-    margin: 16px 0 5px;
-    color: var(--vl-muted);
-    font-size: clamp(9px, 2.8cqw, 12px);
-    font-weight: 800;
-    letter-spacing: 0.17em;
-    line-height: 1;
-    text-transform: uppercase;
-    text-shadow: 0 1px 0 #000;
-}
-
-.vl-filter-button {
-    appearance: none;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 2px;
-    border: 0;
-    border-block-end: 1px solid var(--vl-rule);
-    background: transparent;
-    color: #aeb8c4;
-    font-size: clamp(12px, 4.2cqw, 16px);
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    line-height: 1;
-    text-align: left;
-    text-transform: uppercase;
-    text-shadow: 0 2px 2px #000;
-    cursor: pointer;
-    touch-action: manipulation;
-}
-
-.vl-filter-button::after {
-    content: '';
-    position: absolute;
-    inset: auto 0 -1px;
-    height: 1px;
-    background: transparent;
-}
-
-.vl-filter-button.is-active {
-    color: #d8efff;
-    text-shadow: 0 0 11px rgb(69 173 255 / 72%), 0 2px 2px #000;
-}
-
-.vl-filter-button.is-active::after {
-    background: var(--vl-blue);
-}
-
-.vl-filter-count {
-    min-width: 2ch;
-    color: var(--vl-blue);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-}
-
-.vl-filter-button:active,
-.vl-glass-action:active,
-.vl-source-button:active,
-.vl-card-meta button:active,
-.vl-player-nav:active,
-.vl-modal-close:active,
-.vl-hud button:active,
-.vl-tts-dialog button:active,
-.vl-playlist-dialog button:active {
-    filter: brightness(1.3);
-}
-
-.vl-filter-button:focus-visible,
-.vl-glass-action:focus-visible,
-.vl-source-button:focus-visible,
-.vl-card-open-button:focus-visible,
-.vl-card-meta button:focus-visible,
-.vl-new-week-card:focus-visible,
-.vl-continuity-card:focus-visible,
-.vl-up-next-card:focus-visible,
-.vl-player-nav:focus-visible,
-.vl-modal-close:focus-visible,
-.vl-hud button:focus-visible,
-.vl-tts-dialog button:focus-visible,
-.vl-playlist-dialog button:focus-visible,
-.vl-search-wrap input:focus-visible {
-    outline: 2px solid #9bd8ff;
-    outline-offset: 3px;
-}
-
-.vl-search-wrap {
-    position: relative;
-    width: min(100%, 350px);
-    flex: 0 1 350px;
-}
-
-.vl-search-wrap input {
-    appearance: none;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 72px 10px 4px;
-    border: 0;
-    border-block: 1px solid var(--vl-rule-bright);
-    background: transparent;
-    color: var(--vl-ink);
-    font-size: 15px;
-    font-weight: 650;
-    letter-spacing: 0.035em;
-    outline: 0;
-}
-
-.vl-search-wrap input::placeholder {
-    color: #74808d;
-    opacity: 1;
-}
-
-.vl-search-clear,
-.vl-search-shortcut {
-    position: absolute;
-    inset: 50% 4px auto auto;
-    transform: translateY(-50%);
-    border: 0;
-    background: transparent;
-    color: var(--vl-blue);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.vl-search-clear {
-    cursor: pointer;
-}
-
-.vl-search-shortcut {
-    color: var(--vl-muted);
-}
-
-.vl-search-results {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: -16px;
-    color: var(--vl-muted);
-    font-size: 13px;
-    letter-spacing: 0.025em;
-}
-
-.vl-search-results strong {
-    color: var(--vl-ink);
-}
-
-.vl-glass-action,
-.vl-search-results .vl-glass-action,
-.vl-sync-panel button,
-.vl-active-view > button,
-.vl-catalog-notice button,
-.vl-empty-state button,
-.vl-continuity-actions button,
-.vl-new-week-header button,
-.vl-share-button,
-.vl-watched-badge,
-.vl-train-spot-button,
-.vl-playlist-row button,
-.vl-playlist-create button,
-.vl-tts-actions button {
-    appearance: none;
-    min-height: 44px;
-    padding: 8px 2px;
-    border: 0;
-    border-block: 1px solid var(--vl-rule-bright);
-    background: transparent;
-    color: #d8e7f5;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.075em;
-    line-height: 1.1;
-    text-transform: uppercase;
-    text-shadow: 0 1px 2px #000;
-    cursor: pointer;
-    touch-action: manipulation;
-}
-
-.vl-source-pills {
-    display: flex;
-    gap: 18px;
-    min-width: 0;
-    padding: 0 0 14px;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scrollbar-width: thin;
-    border-block-end: 1px solid var(--vl-rule);
-}
-
-.vl-source-button {
-    appearance: none;
-    position: relative;
-    display: grid;
-    grid-template-columns: 48px minmax(74px, auto);
-    align-items: center;
-    gap: 9px;
-    min-width: max-content;
-    min-height: 58px;
-    padding: 4px 1px 7px;
-    border: 0;
-    background: transparent;
-    color: #9eaab7;
-    scroll-snap-align: start;
-    cursor: pointer;
-}
-
-.vl-source-logo-media {
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    overflow: hidden;
-    color: #bbc6d1;
-    font-size: 15px;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.vl-source-logo-media img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.vl-source-name {
-    max-width: 128px;
-    overflow: hidden;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.035em;
-    line-height: 1.2;
-    text-align: left;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.vl-source-button.is-active {
-    color: #e2f3ff;
-    text-shadow: 0 0 9px rgb(69 173 255 / 66%);
-}
-
-.vl-source-button.is-active .vl-source-logo-media {
-    filter: brightness(1.18) saturate(1.05) drop-shadow(0 0 8px rgb(69 173 255 / 46%));
-}
-
-.vl-source-active-dot {
-    position: absolute;
-    inset: auto 0 0;
-    height: 1px;
-    background: var(--vl-blue);
-}
-
-.vl-subview-banner,
-.vl-sync-panel,
-.vl-active-view,
-.vl-catalog-notice,
-.vl-empty-state {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding-block: 15px;
-    border-block: 1px solid var(--vl-rule);
-    background: transparent;
-}
-
-.vl-subview-copy,
-.vl-sync-panel > div,
-.vl-active-view-copy {
-    min-width: 0;
-}
-
-.vl-subview-copy > span,
-.vl-active-view-copy > span,
-.vl-empty-kicker,
-.vl-continuity-kicker,
-.vl-up-next-label,
-.vl-tts-label {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--vl-blue);
-    font-size: 12px;
-    font-weight: 850;
-    letter-spacing: 0.17em;
-    line-height: 1;
-    text-transform: uppercase;
-    text-shadow: 0 0 8px rgb(69 173 255 / 48%);
-}
-
-.vl-subview-copy h2,
-.vl-continuity-header h2,
-.vl-new-week-header h2,
-.vl-empty-state h3 {
-    margin: 0;
-    color: var(--vl-ink);
-    font-size: clamp(18px, 2.2vw, 28px);
-    font-weight: 850;
-    letter-spacing: 0.03em;
-    line-height: 1.05;
-    text-transform: uppercase;
-    text-shadow: 0 2px 2px #000;
-}
-
-.vl-subview-copy p,
-.vl-empty-state p {
-    max-width: 650px;
-    margin: 7px 0 0;
-    color: var(--vl-muted);
-    font-family: var(--font-inter, Inter), system-ui, sans-serif;
-    font-size: 13px;
-    line-height: 1.45;
-}
-
-.vl-subview-status {
-    display: grid;
-    justify-items: end;
-    flex: 0 0 auto;
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.vl-subview-status strong {
-    color: var(--vl-blue);
-    font-size: 26px;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    text-shadow: 0 0 10px rgb(69 173 255 / 55%);
-}
-
-.vl-subview-status span,
-.vl-subview-status em {
-    color: var(--vl-muted);
-    font-style: normal;
-}
-
-.vl-subview-status em {
-    color: var(--vl-gold);
-}
-
-.vl-sync-panel strong,
-.vl-sync-panel span {
-    display: block;
-}
-
-.vl-sync-panel strong {
-    color: var(--vl-ink);
-    font-size: 15px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.vl-sync-panel span {
-    margin-top: 4px;
-    color: var(--vl-muted);
-    font-family: var(--font-inter, Inter), system-ui, sans-serif;
-    font-size: 12px;
-}
-
-.vl-sync-panel.is-error {
-    border-color: rgb(255 102 118 / 44%);
-}
-
-.vl-sync-panel.is-error strong {
-    color: var(--vl-red);
-}
-
-.vl-sync-pulse {
-    width: 26px;
-    height: 2px;
-    flex: 0 0 auto;
-    background: var(--vl-blue);
-    animation: vl-signal 1.25s ease-in-out infinite alternate;
-}
-
-.vl-active-filter-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 16px;
-}
-
-.vl-active-filter-list strong {
-    color: #dce8f4;
-    font-size: 12px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.vl-continue-watching,
-.vl-new-this-week {
-    display: flex;
-    flex-direction: column;
-    gap: 13px;
-    min-width: 0;
-    padding-block: 16px;
-    border-block: 1px solid var(--vl-rule);
-}
-
-.vl-continuity-header,
-.vl-new-week-header {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 20px;
-}
-
-.vl-continuity-actions {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-}
-
-.vl-continuity-actions > span {
-    color: var(--vl-muted);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.vl-cw-scroll,
-.vl-new-week-scroll,
-.vl-up-next-scroll {
-    display: flex;
-    min-width: 0;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scrollbar-width: thin;
-}
-
-.vl-continuity-card,
-.vl-new-week-card,
-.vl-up-next-card {
-    position: relative;
-    display: grid;
-    flex: 0 0 auto;
-    gap: 10px;
-    min-width: 0;
-    padding: 0 14px;
-    border: 0;
-    border-inline-end: 1px solid var(--vl-rule);
-    background: transparent;
-    scroll-snap-align: start;
-    cursor: pointer;
-}
-
-.vl-continuity-card:first-child,
-.vl-new-week-card:first-child,
-.vl-up-next-card:first-child {
-    padding-inline-start: 0;
-}
-
-.vl-continuity-card {
-    grid-template-columns: 148px 150px;
-    align-items: center;
-}
-
-.vl-continuity-media,
-.vl-new-week-media,
-.vl-up-next-media,
-.vl-video-thumb,
-.vl-tts-video-media {
-    position: relative;
-    min-width: 0;
-    overflow: hidden;
-    background: #050607;
-}
-
-.vl-continuity-media,
-.vl-new-week-media,
-.vl-up-next-media,
-.vl-video-thumb {
-    aspect-ratio: 16 / 9;
-}
-
-.vl-continuity-media img,
-.vl-new-week-media img,
-.vl-up-next-media img,
-.vl-video-thumb img,
-.vl-tts-video-media img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.vl-media-failed img {
-    display: none;
-}
-
-.vl-media-failed::after {
-    content: 'Preview unavailable';
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    padding: 10px;
-    color: var(--vl-muted);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-align: center;
-    text-transform: uppercase;
-}
-
-.vl-continuity-play,
-.vl-play-button {
-    position: absolute;
-    inset: auto 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: 28px;
-    padding-inline: 9px;
-    background: rgb(0 0 0 / 82%);
-    color: #d8efff;
-    font-size: 12px;
-    font-weight: 850;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    text-shadow: 0 0 8px rgb(69 173 255 / 70%);
-}
-
-.vl-continuity-progress,
-.vl-progress-track {
-    position: absolute;
-    inset: auto 0 0;
-    height: 3px;
-    overflow: hidden;
-    background: rgb(255 255 255 / 18%);
-}
-
-.vl-continuity-progress > span,
-.vl-progress-fill {
-    display: block;
-    width: var(--vl-progress, 0%);
-    height: 100%;
-    background: var(--vl-blue);
-}
-
-.vl-continuity-copy,
-.vl-new-week-copy,
-.vl-up-next-copy {
-    min-width: 0;
-}
-
-.vl-continuity-copy strong,
-.vl-new-week-copy strong,
-.vl-up-next-copy strong {
-    display: -webkit-box;
-    overflow: hidden;
-    color: var(--vl-ink);
-    font-size: 13px;
-    font-weight: 750;
-    letter-spacing: 0.02em;
-    line-height: 1.3;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-}
-
-.vl-continuity-copy > span,
-.vl-new-week-copy > span,
-.vl-up-next-copy > span {
-    display: block;
-    margin-top: 5px;
-    color: var(--vl-muted);
-    font-size: 12px;
-    letter-spacing: 0.045em;
-    text-transform: uppercase;
-}
-
-.vl-new-week-header h2 {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-}
-
-.vl-new-week-header h2 > span,
-.vl-new-week-stamp {
-    color: var(--vl-blue);
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    text-shadow: 0 0 8px rgb(69 173 255 / 62%);
-}
-
-.vl-new-week-card {
-    grid-template-columns: 132px 138px;
-    align-items: center;
-}
-
-.vl-new-week-stamp,
-.vl-new-week-duration,
-.vl-up-next-duration,
-.vl-duration {
-    position: absolute;
-    z-index: 2;
-    padding: 3px 5px;
-    background: rgb(0 0 0 / 84%);
-}
-
-.vl-new-week-stamp {
-    inset: 4px auto auto 4px;
-}
-
-.vl-new-week-duration,
-.vl-up-next-duration,
-.vl-duration {
-    inset: auto 4px 4px auto;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 750;
-    font-variant-numeric: tabular-nums;
-}
-
-.vl-video-grid {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    border-block-start: 1px solid var(--vl-rule);
-}
-
-.vl-video-card {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(220px, 32%) minmax(0, 1fr);
-    align-items: center;
-    gap: 22px;
-    min-width: 0;
-    padding-block: 14px;
-    border: 0;
-    border-block-end: 1px solid var(--vl-rule);
-    background: transparent;
-}
-
-.vl-video-card.is-featured {
-    border-block-start-color: var(--vl-blue-soft);
-}
-
-.vl-card-open-button {
-    appearance: none;
-    position: absolute;
-    z-index: 1;
-    inset: 0;
-    width: 100%;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-}
-
-.vl-video-thumb {
-    z-index: 0;
-}
-
-.vl-play-button {
-    min-height: 30px;
-}
-
-.vl-watched-badge {
-    position: absolute;
-    z-index: 3;
-    inset: 5px auto auto 5px;
-    min-height: 44px;
-    padding: 3px 6px;
-    border-color: rgb(191 255 201 / 40%);
-    background: rgb(0 0 0 / 86%);
-    color: var(--vl-green);
-    font-size: 12px;
-}
-
-.vl-card-info {
-    min-width: 0;
-    padding: 4px 0;
-    pointer-events: none;
-}
-
-.vl-card-title {
-    display: -webkit-box;
-    margin: 0 0 14px;
-    overflow: hidden;
-    color: var(--vl-ink);
-    font-size: clamp(16px, 2vw, 23px);
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    line-height: 1.18;
-    text-shadow: 0 2px 2px #000;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-}
-
-.vl-watch-signal {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-    padding-block: 5px;
-    border-block: 1px solid var(--vl-rule);
-    color: var(--vl-muted);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.vl-watch-signal strong {
-    color: var(--vl-blue);
-    font-variant-numeric: tabular-nums;
-}
-
-.vl-card-meta {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-    pointer-events: none;
-}
-
-.vl-card-meta button {
-    pointer-events: auto;
-}
-
-.vl-source-chip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    overflow: hidden;
-    color: var(--vl-blue);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.07em;
-    text-overflow: ellipsis;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.vl-source-chip-logo {
-    display: block;
-    width: 24px;
-    height: 24px;
-    flex: 0 0 24px;
-}
-
-.vl-source-chip-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.vl-card-views {
-    margin-left: auto;
-    color: var(--vl-muted);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-.vl-share-button {
-    min-height: 44px;
-    flex: 0 0 auto;
-    padding: 5px 2px;
-    color: #c9d4df;
-    font-size: 12px;
-}
-
-.vl-share-button[data-copied='true'] {
-    color: var(--vl-green);
-    border-color: rgb(191 255 201 / 46%);
-}
-
-.vl-video-skeleton {
-    display: grid;
-    grid-template-columns: minmax(220px, 32%) minmax(0, 1fr);
-    align-items: center;
-    gap: 22px;
-    padding-block: 14px;
-    border-block-end: 1px solid var(--vl-rule);
-}
-
-.vl-skeleton-media,
-.vl-skeleton-line {
-    display: block;
-    background: #111820;
-    animation: vl-skeleton 0.9s ease-in-out infinite alternate;
-}
-
-.vl-skeleton-media {
-    aspect-ratio: 16 / 9;
-}
-
-.vl-skeleton-line {
-    width: 52%;
-    height: 9px;
-}
-
-.vl-skeleton-line.is-wide {
-    width: 82%;
-}
-
-.vl-load-more-sentinel {
-    width: 100%;
-    height: 2px;
-}
-
-.vl-load-more-status,
-.vl-video-count {
-    padding-block: 16px;
-    color: var(--vl-muted);
-    font-size: 12px;
-    font-weight: 750;
-    letter-spacing: 0.1em;
-    text-align: center;
-    text-transform: uppercase;
-}
-
-.vl-catalog-notice {
-    color: var(--vl-red);
-    font-family: var(--font-inter, Inter), system-ui, sans-serif;
-    font-size: 12px;
-    line-height: 1.45;
-}
-
-.vl-catalog-notice button {
-    flex: 0 0 auto;
-}
-
-.vl-empty-state {
-    align-items: flex-start;
-    flex-direction: column;
-    justify-content: flex-start;
-}
-
-.vl-empty-signal {
-    width: 64px;
-    height: 5px;
-    overflow: hidden;
-    background: rgb(255 255 255 / 12%);
-}
-
-.vl-empty-signal span {
-    display: block;
-    width: 45%;
-    height: 100%;
-    background: var(--vl-blue);
-    animation: vl-signal 1.25s ease-in-out infinite alternate;
-}
-
-.vl-viewer,
-.vl-reels-dialog {
-    position: fixed;
-    z-index: 9999;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    background: #000;
-    font-family: 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-}
-
-.vl-viewer {
-    z-index: 9999;
-}
-
-.vl-player-stage {
-    position: relative;
-    flex: 1;
-    width: 100%;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.vl-player-stage iframe {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 0;
-}
-
-.vl-youtube-error {
-    position: absolute;
-    z-index: 60;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    padding: 18px;
-    overflow-y: auto;
-    background: #000;
-}
-
-.vl-youtube-error > img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: brightness(0.15) saturate(0.55);
-}
-
-.vl-youtube-error > section {
-    position: relative;
-    z-index: 1;
-    width: min(100%, 620px);
-}
-
-.vl-modal-close,
-.vl-player-nav {
-    appearance: none;
-    position: absolute;
-    z-index: 1003;
-    min-width: 72px;
-    min-height: 44px;
-    padding: 8px 4px;
-    border: 0;
-    border-block: 1px solid var(--vl-rule-bright);
-    background: rgb(0 0 0 / 86%);
-    color: #e7edf4;
-    font-size: 12px;
-    font-weight: 850;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    text-shadow: 0 1px 2px #000;
-    cursor: pointer;
-}
-
-.vl-modal-close {
-    inset: calc(env(safe-area-inset-top, 0px) + 12px) 14px auto auto;
-}
-
-.vl-player-nav {
-    inset-block-start: 50%;
-    transform: translateY(-50%);
-}
-
-.vl-player-nav[data-side='previous'] {
-    inset-inline-start: 14px;
-}
-
-.vl-player-nav[data-side='next'] {
-    inset-inline-end: 14px;
-}
-
-.vl-swipe-zone {
-    position: absolute;
-    z-index: 5;
-    inset-block: 0 64px;
-    width: 15%;
-    background: transparent;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.vl-swipe-zone--previous {
-    inset-inline-start: 0;
-}
-
-.vl-swipe-zone--next {
-    inset-inline-end: 0;
-}
-
-.vl-hud {
-    position: absolute;
-    z-index: 1002;
-    inset: auto 12px 82px auto;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    opacity: 0;
-    transform: translateX(40px);
-    pointer-events: none;
-    transition: opacity 180ms ease, transform 180ms ease;
-}
-
-.vl-hud--visible,
-.vl-hud[data-always-visible='true'] {
-    opacity: 1;
-    transform: translateX(0);
-    pointer-events: auto;
-}
-
-.vl-hud button {
-    appearance: none;
-    min-width: 82px;
-    min-height: 40px;
-    padding: 8px 4px;
-    border: 0;
-    border-block: 1px solid var(--vl-rule-bright);
-    background: rgb(0 0 0 / 86%);
-    cursor: pointer;
-}
-
-.vl-hud-command {
-    color: #e7edf4;
-    font-size: 12px;
-    font-weight: 850;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    text-shadow: 0 0 7px rgb(69 173 255 / 45%);
-}
-
-.vl-info-bar {
-    flex: 0 0 auto;
-    max-height: 40vh;
-    overflow-x: hidden;
-    overflow-y: auto;
-    border-block-start: 1px solid var(--vl-rule-bright);
-    background: #030405;
-    scrollbar-width: thin;
-}
-
-.vl-info-copy {
-    padding: 12px 20px 9px;
-}
-
-.vl-info-copy h2 {
-    margin: 0 0 8px;
-    overflow: hidden;
-    color: #fff;
-    font-size: 17px;
-    font-weight: 800;
-    letter-spacing: 0.025em;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.vl-info-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 9px 16px;
-    color: var(--vl-muted);
-    font-size: 12px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.vl-info-source {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--vl-blue);
-    font-weight: 800;
-}
-
-.vl-info-source img {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-}
-
-.vl-train-spot-button {
-    min-height: 34px;
-    color: var(--vl-green);
-    border-color: rgb(191 255 201 / 40%);
-}
-
-.vl-up-next-rail {
-    padding: 6px 20px 16px;
-}
-
-.vl-up-next-card {
-    grid-template-columns: 126px 150px;
-    align-items: center;
-}
-
-.vl-up-next-copy strong {
-    font-size: 12px;
-}
-
-.vl-action-notice {
-    position: fixed;
-    z-index: 10001;
-    inset: auto auto 90px 50%;
-    min-width: min(360px, calc(100vw - 32px));
-    padding: 12px 16px;
-    transform: translateX(-50%);
-    border-block: 1px solid var(--vl-rule-bright);
-    background: #050607;
-    color: #e7edf4;
-    font-family: 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-align: center;
-    text-transform: uppercase;
-    text-shadow: 0 1px 2px #000;
-}
-
-.vl-action-notice--error {
-    border-color: rgb(255 102 118 / 50%);
-    color: var(--vl-red);
-}
-
-.vl-action-notice--success {
-    border-color: rgb(191 255 201 / 48%);
-    color: var(--vl-green);
-}
-
-.vl-action-notice--info {
-    border-color: var(--vl-blue-soft);
-    color: #cfeaff;
-}
-
-.vl-playlist-overlay,
-.vl-tts-sheet {
-    position: fixed;
-    z-index: 10004;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    padding: 18px;
-    background: rgb(0 0 0 / 88%);
-    font-family: 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-}
-
-.vl-playlist-dialog,
-.vl-tts-dialog {
-    width: min(100%, 680px);
-    max-height: calc(100vh - 36px);
-    overflow-y: auto;
-    background: transparent;
-}
-
-.vl-tts-sheet {
-    background: transparent;
-    pointer-events: none;
-}
-
-.vl-tts-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgb(0 0 0 / 88%);
-    pointer-events: auto;
-}
-
-.vl-tts-dialog {
-    position: relative;
-    z-index: 1;
-    pointer-events: auto;
-}
-
-.vl-playlist-header,
-.vl-tts-header {
-    display: flex;
-    justify-content: flex-end;
-    border-block-end: 1px solid var(--vl-rule);
-}
-
-.vl-playlist-list {
-    max-height: min(40vh, 420px);
-    overflow-y: auto;
-}
-
-.vl-playlist-empty,
-.vl-playlist-row,
-.vl-playlist-create,
-.vl-playlist-error,
-.vl-tts-video,
-.vl-tts-drills,
-.vl-tts-actions {
-    padding-block: 13px;
-    border-block-end: 1px solid var(--vl-rule);
-}
-
-.vl-playlist-empty strong,
-.vl-playlist-empty span,
-.vl-playlist-copy strong,
-.vl-playlist-copy span {
-    display: block;
-}
-
-.vl-playlist-empty strong,
-.vl-playlist-copy strong {
-    color: var(--vl-ink);
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: 0.035em;
-}
-
-.vl-playlist-empty span,
-.vl-playlist-copy span {
-    margin-top: 3px;
-    color: var(--vl-muted);
-    font-size: 12px;
-    letter-spacing: 0.04em;
-}
-
-.vl-playlist-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-}
-
-.vl-playlist-row button[data-active='true'] {
-    color: var(--vl-red);
-    border-color: rgb(255 102 118 / 42%);
-}
-
-.vl-playlist-error {
-    color: var(--vl-red);
-    font-family: var(--font-inter, Inter), system-ui, sans-serif;
-    font-size: 12px;
-}
-
-.vl-playlist-create {
-    display: flex;
-    gap: 12px;
-}
-
-.vl-playlist-create input {
-    appearance: none;
-    flex: 1;
-    min-width: 0;
-    min-height: 44px;
-    padding: 9px 4px;
-    border: 0;
-    border-block: 1px solid var(--vl-rule-bright);
-    background: transparent;
-    color: #fff;
-    outline: 0;
-}
-
-.vl-playlist-create input:disabled,
-.vl-playlist-create button:disabled {
-    opacity: 0.42;
-    cursor: not-allowed;
-}
-
-.vl-tts-video {
-    display: grid;
-    grid-template-columns: 132px minmax(0, 1fr);
-    align-items: center;
-    gap: 14px;
-}
-
-.vl-tts-video-media {
-    aspect-ratio: 16 / 9;
-}
-
-.vl-tts-video-copy {
-    min-width: 0;
-}
-
-.vl-tts-video-copy > strong {
-    display: -webkit-box;
-    overflow: hidden;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 1.3;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-}
-
-.vl-tts-source span {
-    display: block;
-    margin-top: 6px;
-    color: var(--vl-blue);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.vl-tts-drill-list {
-    display: flex;
-    flex-direction: column;
-}
-
-.vl-tts-drill-list > button {
-    appearance: none;
-    display: flex;
-    width: 100%;
-    padding: 11px 2px;
-    border: 0;
-    border-block-end: 1px solid var(--vl-rule);
-    background: transparent;
-    color: var(--vl-ink);
-    text-align: left;
-    cursor: pointer;
-}
-
-.vl-tts-drill-list > button[data-best-match='true'] {
-    border-color: rgb(191 255 201 / 40%);
-}
-
-.vl-tts-drill-copy {
-    min-width: 0;
-}
-
-.vl-tts-drill-name {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-}
-
-.vl-tts-drill-name span {
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.vl-tts-drill-name em {
-    color: var(--vl-green);
-    font-size: 12px;
-    font-style: normal;
-    font-weight: 850;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.vl-tts-drill-copy small {
-    display: block;
-    margin-top: 4px;
-    color: var(--vl-muted);
-    font-size: 12px;
-    letter-spacing: 0.035em;
-}
-
-.vl-tts-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    border-block-end: 0;
-}
-
-.vl-tts-actions button:first-child {
-    color: var(--vl-blue);
-}
-
-.vl-reels-fallback {
-    display: grid;
-    place-items: center;
-    width: 100%;
-    min-height: 100%;
-    padding: 18px;
-    overflow-y: auto;
-    background: #000;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding-bottom: 16px;
 }
 
 .vl-sr-only {
@@ -1468,388 +101,1615 @@
     border: 0 !important;
 }
 
-@keyframes vl-signal {
-    from { opacity: 0.35; transform: scaleX(0.45); transform-origin: left; }
-    to { opacity: 1; transform: scaleX(1); transform-origin: left; }
+/* Shared buttons */
+.vl-pill-button,
+.vl-show-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 22px;
+    background: var(--vl-chip);
+    color: var(--vl-ink);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-@keyframes vl-skeleton {
-    from { opacity: 0.28; }
-    to { opacity: 0.68; }
+.vl-pill-button.is-primary {
+    background: var(--vl-ink);
+    color: var(--vl-bg);
 }
 
-@media (max-width: 1080px) {
-    .vl-command-layout {
-        grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
-        gap: 16px;
-    }
-
-    .vl-video-card,
-    .vl-video-skeleton {
-        grid-template-columns: minmax(190px, 36%) minmax(0, 1fr);
-        gap: 16px;
-    }
+.vl-text-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    color: var(--vl-blue);
+    font-size: 14px;
+    font-weight: 600;
 }
 
-@media (max-width: 768px) {
-    .video-library-page {
-        padding: 0 5px;
-    }
+.vl-show-more {
+    display: flex;
+    width: calc(100% - 24px);
+    margin: 4px 12px 8px;
+    border: 1px solid var(--vl-line);
+    background: transparent;
+}
 
-    .vl-header-area {
-        width: calc(100% + 10px);
-        margin-inline: -5px;
-    }
+.video-library-page button:focus-visible,
+.video-library-page input:focus-visible,
+.video-library-page [role='button']:focus-visible,
+.vl-viewer button:focus-visible,
+.vl-viewer [role='button']:focus-visible,
+.vl-card-menu-sheet button:focus-visible,
+.vl-playlist-dialog button:focus-visible,
+.vl-playlist-dialog input:focus-visible,
+.vl-tts-dialog button:focus-visible {
+    outline: 2px solid var(--vl-blue);
+    outline-offset: 2px;
+}
 
-    .vl-command-layout {
-        display: block;
-        width: 100%;
-        margin-top: 10px;
-    }
+/* ── Search + chips ─────────────────────────────────────────────────────── */
 
-    .vl-command-rail {
-        display: none;
-    }
+.vl-topbar {
+    padding: 8px 0 0;
+}
 
-    .vl-command-rail-mobile {
-        display: block;
-        min-width: 0;
-        padding-block-end: 9px;
-        border-block-end: 1px solid var(--vl-rule);
-    }
+.vl-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 44px;
+    margin: 0 12px;
+    border: 1px solid var(--vl-line);
+    border-radius: 22px;
+    background: #121212;
+}
 
-    .vl-mobile-rail-label {
-        display: block;
-        margin-bottom: 8px;
-        color: var(--vl-blue);
-        font-size: 12px;
-        font-weight: 850;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        text-shadow: 0 0 8px rgb(69 173 255 / 55%);
-    }
+.vl-search-icon {
+    position: relative;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin-left: 16px;
+    border: 2px solid var(--vl-muted);
+    border-radius: 50%;
+}
 
-    .vl-type-toggle-row--mobile {
-        display: flex;
-        gap: 6px;
-        min-width: 0;
-        max-width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
-        flex-wrap: nowrap;
-        padding-block-end: 8px;
-        overscroll-behavior-inline: contain;
-        scrollbar-color: var(--vl-blue) rgb(205 222 238 / 14%);
-        scrollbar-width: thin;
-        -webkit-overflow-scrolling: touch;
-    }
+.vl-search-icon::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    width: 7px;
+    height: 2px;
+    background: var(--vl-muted);
+    transform: rotate(45deg);
+}
 
-    .vl-type-toggle-row--mobile .vl-filter-group-label {
-        display: none;
-    }
+.vl-search-wrap input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: var(--vl-ink);
+    font-size: 16px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
 
-    .vl-type-toggle-row--mobile .vl-filter-button {
-        flex: 0 0 auto;
-        width: auto;
-        min-width: max-content;
-        min-height: 44px;
-        padding-inline: 12px;
-        border-block-start: 1px solid var(--vl-rule);
-        font-size: 12px;
-        white-space: nowrap;
-    }
+.vl-search-wrap input::-webkit-search-cancel-button {
+    display: none;
+}
 
-    .vl-type-toggle-row--mobile .vl-filter-count {
-        margin-left: 7px;
-    }
+.vl-search-wrap input::placeholder {
+    color: var(--vl-muted);
+}
 
-    .vl-console-content {
-        gap: 20px;
-    }
+.vl-search-wrap:focus-within {
+    border-color: var(--vl-blue);
+}
 
-    .vl-command-bar {
-        justify-content: stretch;
-        padding-block-end: 8px;
-    }
+.vl-search-clear {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    background: none;
+    color: var(--vl-muted);
+    font-size: 14px;
+    font-weight: 600;
+}
 
+.vl-chip-rail {
+    width: 100%;
+}
+
+/* The one sideways scroller on the page. Its scrollbar stays visible (no
+   hiding, no snapping): the 2026-09-27 command-rail rule. */
+.vl-type-toggle-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--vl-chip-hover) transparent;
+    overscroll-behavior-x: contain;
+}
+
+.vl-filter-button {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    min-width: max-content;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    background: none;
+    color: var(--vl-ink);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* The visible chip is 32px; the button around it keeps the 44px target. */
+.vl-filter-button::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 6px 0;
+    border-radius: 8px;
+    background: var(--vl-chip);
+}
+
+.vl-filter-button.is-active {
+    color: var(--vl-bg);
+}
+
+.vl-filter-button.is-active::before {
+    background: var(--vl-ink);
+}
+
+.vl-reels-button {
+    color: var(--vl-teal);
+}
+
+.vl-filter-count {
+    color: var(--vl-muted);
+    font-size: 12px;
+}
+
+.vl-filter-button.is-active .vl-filter-count {
+    color: #4a4a4a;
+}
+
+.vl-chip-divider {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 24px;
+    background: var(--vl-line);
+}
+
+/* ── Channels ───────────────────────────────────────────────────────────── */
+
+.vl-source-pills {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px 4px;
+    padding: 8px 8px 0;
+}
+
+/* Two rows show by default. A deep-linked channel beyond them stays visible
+   so the URL never selects a hidden control. */
+.vl-source-pills:not(.is-expanded) > .vl-source-button:nth-child(n + 11):not(.is-active) {
+    display: none;
+}
+
+.vl-source-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px 2px;
+    border: 0;
+    background: none;
+}
+
+.vl-source-logo-media {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    background: var(--vl-chip);
+    color: var(--vl-silver);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.vl-source-logo-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+}
+
+.vl-source-button.is-active .vl-source-logo-media {
+    border-color: var(--vl-blue);
+}
+
+.vl-source-all-mark {
+    color: var(--vl-ink);
+    font-size: 14px;
+}
+
+.vl-source-name {
+    width: 100%;
+    overflow: hidden;
+    color: var(--vl-muted);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vl-source-button.is-active .vl-source-name {
+    color: var(--vl-ink);
+    font-weight: 700;
+}
+
+.vl-show-all-sources {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+/* ── Status rows ────────────────────────────────────────────────────────── */
+
+.vl-search-results,
+.vl-active-view,
+.vl-subview-banner,
+.vl-sync-panel,
+.vl-catalog-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+    margin: 4px 12px 8px;
+    color: var(--vl-muted);
+    font-size: 14px;
+}
+
+.vl-search-results strong {
+    color: var(--vl-ink);
+}
+
+.vl-active-filter-list {
+    min-width: 0;
+    color: var(--vl-silver);
+}
+
+.vl-subview-banner {
+    padding: 8px 0;
+}
+
+.vl-subview-copy h2 {
+    margin: 0 0 2px;
+    color: var(--vl-ink);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.vl-subview-copy span {
+    font-size: 13px;
+}
+
+.vl-sync-panel,
+.vl-catalog-notice {
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--vl-surface);
+}
+
+.vl-sync-panel > div {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.vl-sync-panel strong {
+    color: var(--vl-ink);
+}
+
+.vl-sync-panel.is-error strong {
+    color: var(--vl-error);
+}
+
+.vl-sync-pulse {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--vl-blue);
+    animation: vl-pulse 1s ease-in-out infinite alternate;
+}
+
+/* ── Shelves (Continue Watching, Shorts) ────────────────────────────────── */
+
+.vl-shelf {
+    padding: 12px 0 8px;
+}
+
+.vl-shelf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 12px 4px;
+}
+
+.vl-shelf-header h2 {
+    margin: 0;
+    color: var(--vl-ink);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.vl-shelf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 8px;
+    padding: 0 12px;
+}
+
+.vl-shelf-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.vl-shelf-media,
+.vl-video-thumb,
+.vl-up-next-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #1a1a1a;
+}
+
+.vl-shelf-media,
+.vl-up-next-media {
+    border-radius: 8px;
+}
+
+.vl-shelf-media img,
+.vl-video-thumb img,
+.vl-up-next-media img,
+.vl-short-card img,
+.vl-tts-video-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vl-shelf-title {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--vl-ink);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.vl-shelf-meta {
+    color: var(--vl-muted);
+    font-size: 12px;
+}
+
+.vl-shorts-shelf {
+    grid-column: 1 / -1;
+    margin: 4px 0 12px;
+    border-block: 4px solid #000;
+}
+
+.vl-shorts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 12px;
+}
+
+.vl-short-card {
+    position: relative;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+    border-radius: 10px;
+    background: #1a1a1a;
+    cursor: pointer;
+}
+
+.vl-short-copy {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 32px 10px 10px;
+    background: linear-gradient(to top, rgb(0 0 0 / 85%), rgb(0 0 0 / 0%));
+}
+
+.vl-short-copy strong {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.vl-short-copy span {
+    color: #e0e0e0;
+    font-size: 12px;
+}
+
+/* ── Feed ───────────────────────────────────────────────────────────────── */
+
+.vl-video-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-top: 8px;
+}
+
+.vl-video-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.vl-video-card.is-featured {
+    padding-top: 0;
+}
+
+/* One invisible button opens the video from anywhere on the card; only the
+   three-dot menu sits above it. */
+.vl-card-open-button {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.vl-duration {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgb(0 0 0 / 80%);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.vl-watched-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgb(0 0 0 / 80%);
+    color: var(--vl-silver);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.vl-progress-track {
+    position: absolute;
+    inset: auto 0 0;
+    height: 3px;
+    background: rgb(255 255 255 / 30%);
+}
+
+.vl-progress-fill {
+    display: block;
+    width: var(--vl-progress, 0%);
+    height: 100%;
+    background: var(--vl-blue);
+}
+
+.vl-media-failed img {
+    display: none;
+}
+
+.vl-media-failed::after {
+    content: 'Preview unavailable';
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--vl-muted);
+    font-size: 12px;
+}
+
+.vl-card-info {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) 40px;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 0 20px 12px;
+    pointer-events: none;
+}
+
+.vl-avatar {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: var(--vl-chip);
+    color: var(--vl-silver);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.vl-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #fff;
+}
+
+.vl-card-text {
+    min-width: 0;
+}
+
+.vl-card-title {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--vl-ink);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.vl-card-meta {
+    margin: 4px 0 0;
+    overflow: hidden;
+    color: var(--vl-muted);
+    font-size: 13px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vl-card-menu-button {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 44px;
+    margin-top: -10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    pointer-events: auto;
+}
+
+/* Three vertical dots drawn in CSS (no glyphs in source). */
+.vl-card-menu-button span,
+.vl-card-menu-button span::before,
+.vl-card-menu-button span::after {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--vl-ink);
+}
+
+.vl-card-menu-button span {
+    position: relative;
+}
+
+.vl-card-menu-button span::before,
+.vl-card-menu-button span::after {
+    content: '';
+    position: absolute;
+    left: 0;
+}
+
+.vl-card-menu-button span::before { top: -7px; }
+.vl-card-menu-button span::after { top: 7px; }
+
+/* Skeleton */
+.vl-video-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 20px;
+}
+
+.vl-skeleton-media,
+.vl-skeleton-avatar,
+.vl-skeleton-line {
+    display: block;
+    background: var(--vl-chip);
+    animation: vl-pulse 0.9s ease-in-out infinite alternate;
+}
+
+.vl-skeleton-media {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+}
+
+.vl-skeleton-row {
+    display: flex;
+    gap: 12px;
+    padding: 0 12px;
+}
+
+.vl-skeleton-avatar {
+    flex: 0 0 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.vl-skeleton-lines {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vl-skeleton-line {
+    width: 55%;
+    height: 12px;
+    border-radius: 6px;
+}
+
+.vl-skeleton-line.is-wide {
+    width: 90%;
+}
+
+.vl-load-more-sentinel {
+    height: 1px;
+}
+
+.vl-load-more-status,
+.vl-video-count {
+    padding: 12px;
+    color: var(--vl-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.vl-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.vl-empty-kicker {
+    color: var(--vl-blue);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.vl-empty-state h3 {
+    margin: 0;
+    color: var(--vl-ink);
+    font-size: 20px;
+}
+
+.vl-empty-state p {
+    max-width: 420px;
+    margin: 0 0 8px;
+    color: var(--vl-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.vl-empty-state button {
+    min-height: 44px;
+}
+
+/* ── Card "more actions" sheet ──────────────────────────────────────────── */
+
+.vl-card-menu-overlay {
+    position: fixed;
+    z-index: 10003;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgb(0 0 0 / 60%);
+    font-family: var(--vl-font);
+}
+
+.vl-card-menu-sheet {
+    width: 100%;
+    max-height: 80dvh;
+    overflow-y: auto;
+    padding-top: 8px;
+    border-radius: 12px 12px 0 0;
+    background: var(--vl-surface);
+    color: var(--vl-ink);
+}
+
+.vl-card-menu-title {
+    margin: 0;
+    padding: 8px 16px 12px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--vl-line);
+    color: var(--vl-muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vl-card-menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 0;
+    background: none;
+    font-size: 15px;
+    text-align: left;
+}
+
+.vl-card-menu-item.is-cancel {
+    justify-content: center;
+    border-top: 1px solid var(--vl-line);
+    color: var(--vl-muted);
+}
+
+/* ── Watch page (viewer) ────────────────────────────────────────────────── */
+
+.vl-viewer,
+.vl-reels-dialog {
+    position: fixed;
+    z-index: 9999;
+    inset: 0;
+    background: var(--vl-bg);
+    color: var(--vl-ink);
+    font-family: var(--vl-font);
+}
+
+.vl-viewer {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.vl-watch {
+    width: 100%;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+/* The player stays pinned at the top while the details scroll under it. */
+.vl-watch-player {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    background: #000;
+}
+
+.vl-watch-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    padding-inline: 4px;
+    background: #000;
+}
+
+.vl-modal-close {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 12px 0 10px;
+    border: 0;
+    background: none;
+    color: var(--vl-ink);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.vl-back-chevron {
+    width: 10px;
+    height: 10px;
+    border-bottom: 2px solid currentColor;
+    border-left: 2px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.vl-player-nav-group {
+    display: inline-flex;
+    gap: 8px;
+}
+
+.vl-player-nav {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 22px;
+    background: var(--vl-chip);
+    color: var(--vl-ink);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.vl-player-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 62dvh;
+    overflow: hidden;
+    background: #000;
+}
+
+.vl-player-stage iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.vl-swipe-zone {
+    position: absolute;
+    z-index: 2;
+    top: 15%;
+    bottom: 25%;
+    width: 12%;
+}
+
+.vl-swipe-zone--previous { left: 0; }
+.vl-swipe-zone--next { right: 0; }
+
+.vl-youtube-error {
+    position: absolute;
+    z-index: 60;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 12px;
+    overflow-y: auto;
+    background: rgb(0 0 0 / 82%);
+}
+
+.vl-youtube-error > img {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.25;
+}
+
+.vl-info-bar {
+    min-width: 0;
+}
+
+.vl-info-copy {
+    padding: 12px 12px 4px;
+}
+
+.vl-info-copy h2 {
+    margin: 0;
+    color: var(--vl-ink);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.vl-info-meta {
+    margin: 6px 0 0;
+    color: var(--vl-muted);
+    font-size: 13px;
+}
+
+.vl-info-channel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+}
+
+.vl-info-source {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The action row wraps onto a second line instead of sliding sideways. */
+.vl-hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 12px 12px;
+}
+
+.vl-hud button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 22px;
+    background: var(--vl-chip);
+    color: var(--vl-ink);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.vl-hud button[aria-pressed='true'] {
+    background: var(--vl-ink);
+    color: var(--vl-bg);
+}
+
+.vl-hud .vl-train-spot-button {
+    background: rgb(45 212 191 / 14%);
+    color: var(--vl-teal);
+}
+
+.vl-up-next-rail {
+    padding: 8px 0 0;
+}
+
+.vl-up-next-label {
+    margin: 0;
+    padding: 4px 12px 8px;
+    color: var(--vl-ink);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.vl-up-next-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 12px;
+}
+
+.vl-up-next-card {
+    display: grid;
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+.vl-up-next-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.vl-up-next-copy strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.vl-up-next-copy span {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--vl-muted);
+    font-size: 12px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+/* ── Notices, sheets and dialogs ────────────────────────────────────────── */
+
+.vl-action-notice {
+    position: fixed;
+    z-index: 10005;
+    inset: auto auto calc(env(safe-area-inset-bottom, 0px) + 90px) 50%;
+    max-width: calc(100vw - 32px);
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--vl-ink);
+    color: var(--vl-bg);
+    font-family: var(--vl-font);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    transform: translateX(-50%);
+}
+
+.vl-action-notice--error {
+    background: #2a1416;
+    color: var(--vl-error);
+}
+
+.vl-action-notice--success {
+    background: var(--vl-ink);
+    color: var(--vl-bg);
+}
+
+.vl-action-notice--info {
+    background: #10283b;
+    color: #cfeaff;
+}
+
+.vl-sheet-card {
+    width: min(100%, 420px);
+    padding: 20px;
+    border-radius: 12px;
+    background: var(--vl-surface);
+    color: var(--vl-ink);
+    text-align: center;
+}
+
+.vl-sheet-card h2 {
+    margin: 4px 0 8px;
+    font-size: 18px;
+}
+
+.vl-sheet-card p {
+    margin: 0 0 16px;
+    color: var(--vl-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.vl-sheet-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.vl-reels-fallback {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: 100%;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 16px;
+    background: #000;
+}
+
+.vl-playlist-overlay,
+.vl-tts-sheet {
+    position: fixed;
+    z-index: 10004;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgb(0 0 0 / 60%);
+    font-family: var(--vl-font);
+}
+
+.vl-tts-sheet {
+    background: transparent;
+    pointer-events: none;
+}
+
+.vl-tts-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 60%);
+    pointer-events: auto;
+}
+
+.vl-playlist-dialog,
+.vl-tts-dialog {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 24px);
+    overflow-y: auto;
+    padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    border-radius: 16px 16px 0 0;
+    background: var(--vl-surface);
+    color: var(--vl-ink);
+    pointer-events: auto;
+}
+
+.vl-playlist-header,
+.vl-tts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0 8px;
+}
+
+.vl-playlist-header h2,
+.vl-tts-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.vl-tts-header span {
+    color: var(--vl-muted);
+    font-size: 13px;
+}
+
+.vl-playlist-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.vl-playlist-empty,
+.vl-playlist-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    border-bottom: 1px solid var(--vl-line);
+}
+
+.vl-playlist-empty {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12px 0;
+}
+
+.vl-playlist-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.vl-playlist-empty strong,
+.vl-playlist-copy strong {
+    font-size: 15px;
+}
+
+.vl-playlist-empty span,
+.vl-playlist-copy span {
+    color: var(--vl-muted);
+    font-size: 13px;
+}
+
+.vl-playlist-row button,
+.vl-playlist-create button,
+.vl-tts-actions button {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 22px;
+    background: var(--vl-chip);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.vl-playlist-row button[data-active='true'] {
+    background: var(--vl-ink);
+    color: var(--vl-bg);
+}
+
+.vl-playlist-error {
+    padding: 8px 0;
+    color: var(--vl-error);
+    font-size: 13px;
+}
+
+.vl-playlist-create {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+}
+
+.vl-playlist-create input {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--vl-line);
+    border-radius: 22px;
+    background: #121212;
+    font-size: 16px;
+}
+
+.vl-playlist-create button {
+    background: var(--vl-ink);
+    color: var(--vl-bg);
+}
+
+.vl-playlist-create input:disabled,
+.vl-playlist-create button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.vl-tts-video {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 8px 0 12px;
+}
+
+.vl-tts-video-media {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #1a1a1a;
+}
+
+.vl-tts-video-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.vl-tts-video-copy > strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.vl-tts-source span {
+    color: var(--vl-muted);
+    font-size: 12px;
+}
+
+.vl-tts-label {
+    padding: 4px 0 8px;
+    color: var(--vl-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.vl-tts-drill-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vl-tts-drill-list > button {
+    display: block;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 14px;
+    border: 1px solid var(--vl-line);
+    border-radius: 12px;
+    background: transparent;
+    text-align: left;
+}
+
+.vl-tts-drill-list > button[data-best-match='true'] {
+    border-color: var(--vl-teal);
+}
+
+.vl-tts-drill-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vl-tts-drill-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.vl-tts-drill-name em {
+    color: var(--vl-teal);
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.vl-tts-drill-copy small {
+    color: var(--vl-muted);
+    font-size: 12px;
+}
+
+.vl-tts-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 16px;
+}
+
+.vl-tts-actions button:first-child {
+    background: var(--vl-ink);
+    color: var(--vl-bg);
+}
+
+/* ── Wider screens ──────────────────────────────────────────────────────── */
+
+@media (min-width: 600px) {
     .vl-search-wrap {
-        width: 100%;
-        flex-basis: auto;
+        max-width: 640px;
+        margin-inline: auto;
     }
 
-    .vl-search-results {
-        align-items: flex-start;
-        flex-wrap: wrap;
-        margin-top: -9px;
+    .vl-type-toggle-row {
+        padding-inline: 16px;
     }
 
     .vl-source-pills {
-        gap: 13px;
-        padding-bottom: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+        padding-inline: 16px;
     }
 
-    .vl-source-button {
-        grid-template-columns: 40px minmax(64px, auto);
-        min-height: 48px;
+    .vl-video-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 16px;
+        padding: 12px 16px 0;
     }
 
-    .vl-source-logo-media {
-        width: 40px;
-        height: 40px;
+    .vl-video-thumb,
+    .vl-skeleton-media {
+        border-radius: 12px;
     }
 
-    .vl-source-name {
-        max-width: 96px;
-        font-size: 12px;
+    .vl-card-info {
+        padding-left: 0;
     }
 
-    .vl-subview-banner,
-    .vl-sync-panel,
-    .vl-active-view,
-    .vl-catalog-notice {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .vl-subview-status {
-        grid-auto-flow: column;
-        align-items: baseline;
-        justify-items: start;
-        gap: 8px;
-    }
-
-    .vl-subview-status strong {
-        font-size: 20px;
-    }
-
-    .vl-continuity-header,
-    .vl-new-week-header {
-        align-items: flex-start;
-    }
-
-    .vl-continuity-actions {
-        align-items: flex-end;
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .vl-continuity-actions > span {
-        display: none;
-    }
-
-    .vl-continuity-card {
-        grid-template-columns: 122px 132px;
-    }
-
-    .vl-new-week-card {
-        grid-template-columns: 116px 120px;
-    }
-
-    .vl-video-card,
-    .vl-video-skeleton {
-        grid-template-columns: minmax(118px, 42%) minmax(0, 1fr);
-        gap: 12px;
-        padding-block: 11px;
-    }
-
-    .vl-card-title {
-        margin-bottom: 8px;
-        font-size: clamp(13px, 3.7vw, 16px);
-        line-height: 1.2;
-    }
-
-    .vl-watch-signal {
-        margin-bottom: 6px;
-        padding-block: 3px;
-        font-size: 12px;
-    }
-
-    .vl-card-meta {
-        align-items: flex-end;
-        flex-wrap: wrap;
-        gap: 5px 10px;
-    }
-
-    .vl-source-chip {
-        width: 100%;
-        font-size: 12px;
-    }
-
-    .vl-source-chip-logo {
-        width: 18px;
-        height: 18px;
-        flex-basis: 18px;
-    }
-
-    .vl-card-views {
-        margin-left: 0;
-        font-size: 12px;
-    }
-
-    .vl-share-button {
-        min-height: 44px;
-        margin-left: auto;
-        font-size: 12px;
-    }
-
-    .vl-duration {
-        font-size: 12px;
-    }
-
-    .vl-play-button {
-        min-height: 24px;
-        font-size: 12px;
-    }
-
-    .vl-video-skeleton {
-        min-height: 92px;
-    }
-
-    .vl-viewer {
+    .vl-skeleton-row {
         padding: 0;
     }
 
-    .vl-player-nav {
-        display: none;
+    .vl-shelf-grid,
+    .vl-shorts-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .vl-modal-close {
-        inset-inline-end: 8px;
-        min-width: 66px;
-        background: rgb(0 0 0 / 92%);
+    .vl-shorts-shelf {
+        border: 0;
     }
 
-    .vl-hud {
-        inset-inline-end: 8px;
-        bottom: 70px;
-        gap: 6px;
+    .vl-continue-watching {
+        padding-inline: 16px;
     }
 
-    .vl-hud button {
-        min-width: 72px;
-        min-height: 36px;
-        background: rgb(0 0 0 / 92%);
+    .vl-shelf-header,
+    .vl-shelf-grid,
+    .vl-shorts-grid {
+        padding-inline: 0;
     }
 
-    .vl-info-bar {
-        max-height: 44vh;
+    .vl-shelf .vl-show-more {
+        width: 100%;
+        margin-inline: 0;
     }
 
-    .vl-info-copy,
-    .vl-up-next-rail {
-        padding-inline: 12px;
+    .vl-card-menu-overlay,
+    .vl-playlist-overlay,
+    .vl-tts-sheet {
+        align-items: center;
+        padding: 24px;
     }
 
-    .vl-info-copy h2 {
-        padding-right: 68px;
-        font-size: 14px;
+    .vl-card-menu-sheet,
+    .vl-playlist-dialog,
+    .vl-tts-dialog {
+        width: min(100%, 480px);
+        border-radius: 16px;
+    }
+
+    .vl-card-menu-sheet {
+        width: min(100%, 360px);
+        padding-bottom: 8px;
     }
 
     .vl-up-next-card {
-        grid-template-columns: 112px 128px;
-    }
-
-    .vl-action-notice {
-        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-    }
-
-    .vl-playlist-overlay,
-    .vl-tts-sheet {
-        align-items: end;
-        padding: 5px;
-    }
-
-    .vl-playlist-dialog,
-    .vl-tts-dialog {
-        width: 100%;
-        max-height: calc(100dvh - 10px);
-    }
-
-    .vl-playlist-create {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .vl-tts-video {
-        grid-template-columns: 112px minmax(0, 1fr);
+        grid-template-columns: 168px minmax(0, 1fr);
     }
 }
 
-@media (max-width: 393px) {
-    .video-library-page {
-        padding-inline: 3px;
+@media (min-width: 1000px) {
+    .vl-video-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        padding-inline: 24px;
     }
 
-    .vl-header-area {
-        width: calc(100% + 6px);
-        margin-inline: -3px;
+    .vl-source-pills,
+    .vl-type-toggle-row {
+        padding-inline: 24px;
     }
 
-    .vl-type-toggle-row--mobile .vl-filter-button {
-        padding-inline: 10px;
+    .vl-continue-watching {
+        padding-inline: 24px;
     }
 
-    .vl-video-card,
-    .vl-video-skeleton {
-        grid-template-columns: minmax(108px, 41%) minmax(0, 1fr);
-        gap: 10px;
+    .vl-shelf-grid,
+    .vl-shorts-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+
+    /* Desktop watch page: player and details on the left, Up Next on the right. */
+    .vl-watch {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 400px;
+        grid-template-rows: auto 1fr;
+        column-gap: 24px;
+        align-items: start;
+        max-width: 1760px;
+        margin: 0 auto;
+        padding: 0 24px 24px;
+    }
+
+    .vl-watch-player {
+        position: static;
+        grid-column: 1;
+        grid-row: 1;
+        background: transparent;
+    }
+
+    .vl-watch-topbar {
+        background: transparent;
+    }
+
+    .vl-player-stage {
+        max-height: calc(100dvh - 180px);
+        border-radius: 12px;
+    }
+
+    .vl-info-bar {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .vl-info-copy,
+    .vl-info-channel,
+    .vl-hud {
+        padding-inline: 0;
+    }
+
+    .vl-info-copy h2 {
+        font-size: 20px;
+    }
+
+    .vl-up-next-rail {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        padding-top: 44px;
+    }
+
+    .vl-up-next-label,
+    .vl-up-next-grid {
+        padding-inline: 0;
     }
 }
 
-@media (max-width: 375px) {
-    .vl-type-toggle-row--mobile .vl-filter-button {
-        min-height: 44px;
-        padding-inline: 9px;
-        font-size: 12px;
+@media (min-width: 1400px) {
+    .vl-video-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (hover: hover) {
+    .vl-filter-button:not(.is-active):hover::before,
+    .vl-hud button:not([aria-pressed='true']):hover,
+    .vl-pill-button:not(.is-primary):hover,
+    .vl-player-nav:hover,
+    .vl-card-menu-item:hover {
+        background-color: var(--vl-chip-hover);
     }
 
-    .vl-video-card,
-    .vl-video-skeleton {
-        grid-template-columns: minmax(102px, 40%) minmax(0, 1fr);
+    .vl-video-card:hover .vl-card-title,
+    .vl-up-next-card:hover strong {
+        color: #fff;
     }
+}
 
-    .vl-source-chip-logo,
-    .vl-card-views {
-        display: none;
-    }
+@keyframes vl-pulse {
+    from { opacity: 0.45; }
+    to { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .vl-hud,
     .vl-sync-pulse,
-    .vl-empty-signal span,
     .vl-skeleton-media,
+    .vl-skeleton-avatar,
     .vl-skeleton-line {
         animation: none;
-        transition: none;
     }
 }
 
-/* Preserve current mobile-standard behavior inside the recovered painted console.
-   BottomNavSpacer owns page clearance; only an overlay pads its own safe area. */
-.vl-source-pills { display: flex; flex-wrap: wrap; overflow-x: visible; gap: 12px; padding: 8px 4px 12px; }
-.vl-cw-grid, .vl-new-week-grid, .vl-up-next-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    overflow-x: visible; min-width: 0;
-}
-.vl-type-toggle-row--desktop { display: grid !important; }
-@media (max-width: 768px) {
-    /* A deep-linked source can sit beyond the collapsed ten-item preview.
-       Keep that active command visible so the URL never selects a hidden control. */
-    .vl-source-pills:not(.is-expanded) > .vl-source-button:nth-child(n + 11):not(.is-active) { display: none !important; }
-    .vl-cw-grid, .vl-new-week-grid, .vl-up-next-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .vl-continuity-card, .vl-new-week-card, .vl-up-next-card { min-width: 0; width: 100%; }
-    .vl-up-next-card { grid-template-columns: minmax(0, 1fr); }
-    .vl-subview-banner { min-width: 0; }
-    .vl-hud button, .vl-up-next-card { min-height: 44px; }
-    .vl-playlist-dialog { padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* Explore shelf: the discovery views as wrapping tabs (no sideways rail). */
+.vl-explore-shelf {
+    grid-column: 1 / -1;
+    margin: 4px 0 12px;
 }
 
-/* Former desktop shell geometry stays authoritative after responsive artwork rules.
-   Mobile retains the 375/393 edge treatment declared above. */
-@media (min-width: 769px) {
-    .video-library-page { width: 100%; max-width: 100vw; padding: 20px; background: #0a0a0a; }
-    .vl-header-area { max-width: 1400px; margin: 0 auto 24px; }
-    .vl-global-header { margin-bottom: 20px; }
+.vl-explore-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    padding: 0 12px 4px;
+}
+
+.vl-empty-copy {
+    margin: 0;
+    padding: 8px 12px;
+    color: var(--vl-muted);
+    font-size: 14px;
+}
+
+@media (min-width: 600px) {
+    .vl-explore-tabs,
+    .vl-explore-shelf .vl-empty-copy {
+        padding-inline: 0;
+    }
 }
