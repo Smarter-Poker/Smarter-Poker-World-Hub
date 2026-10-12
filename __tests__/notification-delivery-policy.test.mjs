@@ -1,3 +1,5 @@
+import { parse } from '@babel/parser';
+import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,4 +39,21 @@ test('database and JavaScript policy share the same alert vocabulary and owner a
  for(const value of [...PLATFORM_ALERT_RECIPIENTS,...PLATFORM_ALERT_TITLES])assert.ok(sql.includes("'"+value+"'"),value);
  assert.equal(mayDeliverNotification(player,{type:'system',title:'New Diagnostic',data:{audience:'platform_admin'}}),false);
  assert.equal(mayDeliverNotification(player,{event:'platform_admin_alert'}),false);
+});
+
+test('push-only seat alerts keep a real table destination through the legacy URL redirect',async()=>{
+ const source=readFileSync(new URL('../next.config.js',import.meta.url),'utf8');
+ const ast=parse(source,{sourceType:'unambiguous'});
+ const methods=[];
+ const visit=node=>{
+  if(!node || typeof node!=='object')return;
+  if(node.type==='ObjectMethod' && node.key?.name==='redirects')methods.push(node);
+  for(const value of Object.values(node))if(Array.isArray(value))value.forEach(visit);else if(value && typeof value==='object')visit(value);
+ };
+ visit(ast);assert.equal(methods.length,1,'one authoritative redirect method');
+ // Execute the actual method without loading unrelated webpack/PWA plugins.
+ const config=vm.runInNewContext('({' + source.slice(methods[0].start,methods[0].end) + '})');
+ const redirects=await config.redirects();
+ const table=redirects.find(row=>row.source==='/table/:id');
+ assert.deepEqual(JSON.parse(JSON.stringify(table)),{source:'/table/:id',destination:'/hub/club-arena/table/:id',permanent:true});
 });
