@@ -338,42 +338,25 @@ test('an unavailable Reel cannot be shared into the social feed', async () => {
   assert.equal(harness.calls.inserts.length, 0);
 });
 
-test('every Reel surface keeps one active player and preserves YouTube controls', () => {
-  for (const [name, source] of [
-    ['standalone', REELS_PAGE],
-    ['library viewer', REELS_COMPONENT],
-    ['social carousel', REELS_CAROUSEL],
-  ]) {
-    assert.equal((source.match(/<iframe\b/g) || []).length, 1,
-      `${name} must own exactly one iframe implementation`);
-    assert.match(source, /controls=1/);
-    assert.match(source, /widget_referrer=/);
-    assert.match(source, /referrerPolicy="strict-origin-when-cross-origin"/);
-    assert.doesNotMatch(source, /controls=0|modestbranding=1|disablekb=1|showinfo=0|fs=0/);
+test('every Reel surface delegates YouTube lifecycle to one official player owner', () => {
+  for (const [name, source] of [['standalone', REELS_PAGE], ['library viewer', REELS_COMPONENT], ['social carousel', REELS_CAROUSEL]]) {
+    assert.equal((source.match(/<ReelYouTubePlayer\b/g) || []).length, 1, `${name} has one API player implementation`);
+    assert.equal((source.match(/<iframe\b/g) || []).length, 0, `${name} cannot create competing iframes`);
+    assert.match(source, /commandRef=\{youtubeCommandRef\}/);
+    assert.match(source, /eventRef=\{youtubeEventRef\}/);
+    assert.doesNotMatch(source, /setTimeout\(\(\) => setYtReady\(true\)/);
   }
-
+  const player = readFileSync(new URL('../src/components/reels/ReelYouTubePlayer.jsx', import.meta.url), 'utf8');
+  assert.match(player, /new YT.Player\(frame/);
+  assert.match(player, /controls: '0'/);
+  assert.match(player, /widget_referrer: window.location.origin/);
+  assert.match(player, /frame.referrerPolicy = 'strict-origin-when-cross-origin'/);
+  assert.match(player, /!desired.active[\s\S]*player.pauseVideo/);
+  assert.match(player, /player\?\.destroy\(\)/);
   assert.match(REELS_COMPONENT, /\{isActive && videoId \? \(/);
-  assert.match(REELS_COMPONENT, /\) : isActive && reel\.video_url \? \(/);
-  assert.doesNotMatch(REELS_PAGE, /<iframe[^>]+preload/i,
-    'the standalone reader may prefetch posters but cannot mount a second player');
-  assert.match(REELS_CAROUSEL, /Array\.from\(\{ length: 1 \}/,
-    'the social viewer may warm only the immediately next Reel');
-  assert.doesNotMatch(REELS_CAROUSEL, /Array\.from\(\{ length: (?:[2-9]|\d{2,}) \}/,
-    'the social viewer cannot fan out native media preloads');
-  assert.match(REELS_PAGE, /const nextReel = reels\[currentIndex \+ 1\]/,
-    'the full-page viewer may warm only the immediately next Reel');
-  assert.doesNotMatch(REELS_PAGE, /reels\.slice\(currentIndex \+ 1, currentIndex \+ (?:[3-9]|\d{2,})\)/,
-    'the full-page viewer cannot fan out a mobile media-resource window');
-  assert.match(
-    REELS_CAROUSEL,
-    /const loadedReel = reelsRef\.current\[currentIndexRef\.current\][\s\S]*!isYouTubeUrl\(loadedReel\?\.video_url\)[\s\S]*sendYTCmd\('pauseVideo'\)[\s\S]*return;/,
-    'an iframe that finishes loading behind a native Reel must pause after its API bridge is ready',
-  );
-  assert.match(
-    REELS_CAROUSEL,
-    /const latestReel = reelsRef\.current\[currentIndexRef\.current\][\s\S]*!isYouTubeUrl\(latestReel\?\.video_url\)[\s\S]*sendYTCmd\('pauseVideo'\)[\s\S]*return;/,
-    'delayed autoplay retries must re-check the active Reel before they can play or unmute',
-  );
+  assert.match(REELS_CAROUSEL, /Array.from\(\{ length: 1 \}/);
+  assert.doesNotMatch(REELS_CAROUSEL, /Array.from\(\{ length: (?:[2-9]|\d{2,}) \}/);
+  assert.match(REELS_PAGE, /const nextReel = reels\[currentIndex \+ 1\]/);
 });
 
 test('third-party Reels expose accurate source attribution with a neutral fallback', () => {
@@ -431,7 +414,7 @@ test('following deep links authenticate and mixed collections avoid poker-only c
     3,
     'loading, error, and empty states retain the canonical Reel category navigation',
   );
-  assert.match(REELS_PAGE, /\{showOverlay && reelsNavigationHeader\}/);
+  assert.match(REELS_PAGE, /\{menuOpen && reelsNavigationHeader\}/);
 });
 
 test('poker uploads leave every origin category through one canonical published-Reel path', () => {
@@ -797,12 +780,8 @@ test('a failed foreground channel switch retains the mounted Reel and exposes a 
     /<div key="reels-navigation-header"[\s\S]*?<main key="reels-viewer"/,
     'opening the conditional command header must preserve the keyed viewer sibling and mounted player',
   );
-  assert.match(REELS_PAGE, /const youtubeEmbedSrc = videoId[\s\S]*?youtube-nocookie\.com\/embed\/\$\{videoId\}/);
-  assert.match(
-    REELS_PAGE,
-    /getAttribute\('src'\) === 'about:blank'[\s\S]*?e\.currentTarget\.src = youtubeEmbedSrc;/,
-    'a retained iframe that self-navigates blank must restore the same verified embed',
-  );
+  assert.match(REELS_PAGE, /<ReelYouTubePlayer videoId=\{videoId\}/);
+  assert.doesNotMatch(REELS_PAGE, /<ReelYouTubePlayer[^>]*key=/, 'channel refresh must retain the API player owner');
 });
 
 test('the cold-start loading decision preserves player identity during a rejected channel transition', async () => {

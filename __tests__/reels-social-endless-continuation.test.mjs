@@ -362,7 +362,9 @@ test('the category rail is keyboard complete, mobile-safe, and labels one active
   );
   assert.doesNotMatch(carousel, /router\.push\('\/hub\/reels'\)/);
   assert.match(styles, /\.vlc-reel-category-command \{[\s\S]*min-width: 44px;[\s\S]*min-height: 44px;/);
-  assert.doesNotMatch(styles, /(?:linear|radial|conic)-gradient|:hover\b/);
+  const categoryRule = styles.slice(styles.indexOf('.vlc-reel-category-command {'), styles.indexOf('.vlc-reel-category-command[', styles.indexOf('.vlc-reel-category-command {')));
+  assert.doesNotMatch(categoryRule, /(?:linear|radial|conic)-gradient|:hover\b/);
+  assert.match(styles, /\.vlc-reel-card::after.*linear-gradient\(transparent, #0009\)/, 'caption contrast shade is scoped to media');
 });
 
 test('Following authentication failures offer a real sign-in recovery instead of a retry loop', () => {

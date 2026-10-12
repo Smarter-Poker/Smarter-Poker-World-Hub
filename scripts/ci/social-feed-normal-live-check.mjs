@@ -40,8 +40,8 @@ export function validateReceipt(receipt, expectedSha) {
   assert.match(receipt.sourceSha, SHA);
   assert.ok(String(receipt.deploymentId || '').startsWith('dpl_'));
   for (const key of [
-    'authenticated', 'articleImages', 'textBeforeMedia', 'plainReels',
-    'viewerTextBeforeMedia', 'noAutomaticFeedReset', 'manualRefresh',
+    'authenticated', 'articleImages', 'textBeforeMedia', 'reelPreviews',
+    'immersiveViewer', 'noAutomaticFeedReset', 'manualRefresh',
     'reactionsPresent', 'noForbiddenMutation', 'stableDeployment',
   ]) assert.equal(receipt.checks?.[key], true, `Incomplete ${key}`);
   assert.ok(receipt.viewports?.includes('390x844'));
@@ -252,7 +252,7 @@ async function run(env) {
     await page.screenshot({ path: 'test-results/social-feed-normal/mobile.png', fullPage: true });
     receipt.viewports.push('390x844');
 
-    receipt.stage = 'plain-reels';
+    receipt.stage = 'immersive-reels';
     await page.goto('/hub/social-media', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     const shell = page.locator('.vlc-feed-console-shell').first();
     await shell.waitFor({ state: 'visible', timeout: 45_000 });
@@ -266,20 +266,25 @@ async function run(env) {
     const reel = shell.locator('.vlc-reel-card').first();
     await reel.waitFor({ state: 'visible', timeout: 45_000 });
     assert.equal(await reel.evaluate((node) => {
-      const words = node.querySelector('.vlc-reel-card__author');
       const media = node.querySelector('.vlc-reel-card__media');
-      return Boolean(words && media && (words.compareDocumentPosition(media) & Node.DOCUMENT_POSITION_FOLLOWING));
-    }), true, 'Social Reel words did not precede media');
-    receipt.checks.plainReels = true;
+      const image = media?.querySelector('img');
+      const creator = node.querySelector('.vlc-reel-card__author');
+      const r = node.getBoundingClientRect(), m = media?.getBoundingClientRect(), c = creator?.getBoundingClientRect();
+      return Boolean(m && c && image?.complete && image.naturalWidth > 0 && Math.abs(m.height-r.height) < 3 && c.top > r.top && c.bottom <= r.bottom);
+    }), true, 'Reel preview media and creator overlay did not fill the rounded card');
+    receipt.checks.reelPreviews = true;
     await reel.click();
     const viewer = page.locator('.vlc-carousel-viewer-shell');
     await viewer.waitFor({ state: 'visible', timeout: 20_000 });
     assert.equal(await viewer.evaluate((node) => {
-      const copy = node.querySelector('.vlc-carousel-viewer-copy');
-      const media = node.querySelector('.vlc-carousel-viewer-stage');
-      return Boolean(copy && media && (copy.compareDocumentPosition(media) & Node.DOCUMENT_POSITION_FOLLOWING));
-    }), true);
-    receipt.checks.viewerTextBeforeMedia = true;
+      const media = node.querySelector('[data-reels-stage]');
+      const copy = node.querySelector('[data-reels-copy]');
+      const actions = node.querySelector('[data-reels-actions]');
+      const r = media?.getBoundingClientRect(), c = copy?.getBoundingClientRect(), a = actions?.getBoundingClientRect();
+      return Boolean(r && c && a && r.height >= innerHeight - 2 && r.width >= innerWidth - 2 && c.top > r.top && c.bottom <= r.bottom && a.right <= innerWidth);
+    }), true, 'Mobile Reel video must fill the viewport with caption and action overlays');
+    await page.screenshot({ path: 'test-results/social-feed-normal/mobile-reel-viewer.png' });
+    receipt.checks.immersiveViewer = true;
     await page.keyboard.press('Escape');
 
     receipt.stage = 'desktop-stability';

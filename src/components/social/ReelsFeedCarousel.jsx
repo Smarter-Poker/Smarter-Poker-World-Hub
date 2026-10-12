@@ -52,6 +52,10 @@ import {
 import { createReelAccountScope } from '../../lib/reelAccountScope.mjs';
 import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
 import ReelCard from '../reels/ReelCard';
+import ReelActionVisual, { ReelIcon } from '../reels/ReelActionVisual';
+import ReelYouTubePlayer from '../reels/ReelYouTubePlayer';
+import immersiveStyles from '../reels/ImmersiveReels.module.css';
+import { createReelWheelGesture, verticalReelSwipe } from '../../lib/reelGestureNavigation.mjs';
 import ReelPlayerFrame from '../reels/ReelPlayerFrame';
 import ReelFeedbackActions from '../reels/ReelFeedbackActions';
 import ReelTrustStrip from '../reels/ReelTrustStrip';
@@ -466,7 +470,8 @@ function ReelViewer({
   const likeDebounceRef = useRef(false);
   const lastTapRef = useRef(0);
   const progressRAF = useRef(null);
-  const ytIframeRef = useRef(null); // Persistent YouTube iframe ref — never remounted
+  const ytIframeRef = useRef(null);
+  const youtubeEventRef = useRef(null); // Persistent YouTube iframe ref — never remounted
   const ytIframeReadyRef = useRef(false); // True after first onLoad of persistent iframe
   const handleLikeRef = useRef(null);
   const handleSaveRef = useRef(null);
@@ -727,13 +732,12 @@ function ReelViewer({
   }, [reels]);
 
   // Helper: send YouTube postMessage command to persistent iframe
-  const sendYTCmd = useCallback((cmd, args = []) => {
-    const iframe = ytIframeRef.current;
-    if (iframe?.contentWindow) {
-      iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-      iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args }), '*');
-    }
-  }, []);
+  const youtubeCommandRef = useRef(null);
+  const sendYTCmd = (command, args = []) => youtubeCommandRef.current?.(command, args);
+
+  const wheelGestureRef = useRef(null);
+  if (!wheelGestureRef.current) wheelGestureRef.current = createReelWheelGesture();
+  const swipeConsumedRef = useRef(false);
 
   const goNext = useCallback(() => {
     setCurrentIndex((prev) => {
@@ -772,54 +776,14 @@ function ReelViewer({
     setShowShareModal(false);
     setCaptionExpanded(false);
 
-    if (isYT && ytIframeReadyRef.current) {
-      const videoId = getYouTubeVideoId(reel.video_url);
-      if (videoId) {
-        // MUTE-PIVOT (2026-05-11 — parity with PR #380 on /hub/reels): mute
-        // the player BEFORE loadVideoById so the new video boots muted, which
-        // Chrome unconditionally allows to autoplay. Without this, the new
-        // video tried to autoplay UNMUTED (because the player was unmuted
-        // from the previous reel), Chrome blocked it, and YT paused → user
-        // saw the play button on every swipe. The existing 100ms-deferred
-        // unMute below already handles re-enabling sound after playback
-        // starts. Trade-off: ~100ms of silence at start of each new reel.
-        const wantsSoundAtSwipe = userInteractedRef.current && userWantsSoundRef.current;
-        if (wantsSoundAtSwipe) sendYTCmd('mute');
-        // Use loadVideoById — switches video without reloading the player
-        sendYTCmd('loadVideoById', [videoId]);
-        // Unmute if user has interacted
-        // BUG FIX (RFC-2): track unmute timer so it can be cancelled on unmount
-        // (and when currentIndex changes again before 100ms elapses).
-        if (userInteractedRef.current && userWantsSoundRef.current) {
-          if (unmuteTimerRef.current) clearTimeout(unmuteTimerRef.current);
-          unmuteTimerRef.current = setTimeout(() => {
-            unmuteTimerRef.current = null;
-            sendYTCmd('unMute');
-            sendYTCmd('setVolume', [100]);
-            // Only flip React state if a gesture happened on THIS load.
-            // Otherwise YT silently rejects unMute and React would lie.
-            if (userGesturedThisLoadRef.current) setMuted(false);
-          }, 100);
-        }
-      }
-      // Pause native video if it was playing (switching FROM native TO YouTube)
-      if (videoRef.current && !videoRef.current.paused) {
-        videoRef.current.pause();
-      }
-    } else if (!isYT) {
-      // Switching to native video — pause YouTube iframe to stop audio bleed
-      sendYTCmd('pauseVideo');
-    }
-
-    // 5s fallback: if YouTube never fires onStateChange, show play button
-    const ytFallback = setTimeout(() => setYtReady(true), 5000);
+    if (isYT) {
+      if (videoRef.current && !videoRef.current.paused) videoRef.current.pause();
+    } else sendYTCmd('pauseVideo');
     return () => {
-      clearTimeout(ytFallback);
-      autoUnmuteRetryTimersRef.current.forEach((t) => clearTimeout(t));
+      autoUnmuteRetryTimersRef.current.forEach((timer) => clearTimeout(timer));
       autoUnmuteRetryTimersRef.current = [];
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex]);
+  }, [currentIndex, reels[currentIndex]?.id]);
 
   // Auto-hide overlay after 2.5 seconds — but NOT when video is paused
   // BUG FIX: Previously this useEffect unconditionally restarted the auto-hide timer
@@ -872,14 +836,11 @@ function ReelViewer({
   useEffect(() => {
     const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com'];
     const handleYTMessage = (e) => {
-      if (!YOUTUBE_ORIGINS.some((o) => e.origin === o)) return;
+      if (!YOUTUBE_ORIGINS.some((o) => e.origin === o) || e.source !== ytIframeRef.current?.contentWindow) return;
       try {
         const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
         if (data?.event === 'onStateChange') {
-          if (data.info === 0) {
-            // Video ended — advance via stable ref
-            goNextRef.current?.();
-          }
+
           if (data.info === 1) {
             // Playing
             setYtReady(true);
@@ -906,9 +867,7 @@ function ReelViewer({
                 if (userGesturedThisLoadRef.current) setMuted(false);
               };
               doUnmute();
-              autoUnmuteRetryTimersRef.current = [100, 300, 600].map((d) =>
-                setTimeout(doUnmute, d)
-              );
+              autoUnmuteRetryTimersRef.current = [];
             } else {
               autoUnmuteRetryTimersRef.current = [];
             }
@@ -921,11 +880,13 @@ function ReelViewer({
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
           }
         }
+        if (data?.event === 'onReady') setYtReady(true);
+        if (data?.event === 'onAutoplayBlocked') { setYtReady(true); setPaused(true); }
         if (data?.event === 'onError') {
           setYtError({ code: data.info });
           // Report to server (best-effort) — read index via stable ref
           try {
-            const vid = getYouTubeVideoId(reelsRef.current[currentIndexRef.current]?.video_url);
+            const vid = data.videoId;
             if (vid) {
               reportFailureToServer(vid, data.info, 'ReelsFeedCarousel');
             }
@@ -935,8 +896,8 @@ function ReelViewer({
         }
       } catch (_) {}
     };
-    window.addEventListener('message', handleYTMessage);
-    return () => window.removeEventListener('message', handleYTMessage);
+    youtubeEventRef.current = handleYTMessage;
+    return () => { youtubeEventRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // MUST stay [] — listener registered once; reads fresh data via refs
 
@@ -2161,84 +2122,24 @@ function ReelViewer({
   // Double-tap to like + single-tap overlay
   // sendYTCommand is now sendYTCmd (defined above, uses persistent iframe ref)
 
-  const handleTap = (e) => {
+  const handleTap = () => {
+    if (swipeConsumedRef.current) { swipeConsumedRef.current = false; return; }
     const now = Date.now();
-    const DOUBLE_TAP_WINDOW = 300;
-    const isYT = isYouTubeUrl(currentReel?.video_url);
-    userInteractedRef.current = true; // Mark user as having interacted
-
-    // First tap EVER: force play + unmute (iOS requires user gesture)
-    if ((paused || muted) && isYT) {
-      sendYTCmd('playVideo');
-      sendYTCmd('unMute');
-      sendYTCmd('setVolume', [100]);
-      setPaused(false);
-      setMuted(false);
-      setYtReady(true);
-      userWantsSoundRef.current = true;
-      lastTapRef.current = now;
-      setShowOverlay(true);
-      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-      overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-      return;
-    }
-
-    // LEFT 30% = previous
-    if (e?.clientX && e.clientX < window.innerWidth * 0.3) {
-      if (userWantsSoundRef.current) {
-        sendYTCmd('unMute');
-        sendYTCmd('setVolume', [100]);
-        setMuted(false);
-        userWantsSoundRef.current = true;
-      }
-      goPrev();
-      return;
-    }
-    // RIGHT 30% = next
-    if (e?.clientX && e.clientX > window.innerWidth * 0.7) {
-      if (userWantsSoundRef.current) {
-        sendYTCmd('unMute');
-        sendYTCmd('setVolume', [100]);
-        setMuted(false);
-        userWantsSoundRef.current = true;
-      }
-      goNext();
-      return;
-    }
-
-    if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
-      // Double-tap = toggle play/pause
-      haptic(15);
-      if (!isYT && videoRef.current) {
-        if (videoRef.current.paused) {
-          const playPromise = videoRef.current.play();
-          if (playPromise !== undefined)
-            playPromise.catch((e) => console.warn('Play intercepted:', e));
-          setPaused(false);
-        } else {
-          videoRef.current.pause();
-          setPaused(true);
-          if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-        }
-      } else if (isYT) {
-        if (paused) {
-          sendYTCmd('playVideo');
-          setPaused(false);
-        } else {
-          sendYTCmd('pauseVideo');
-          setPaused(true);
-          if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-        }
-      }
+    userInteractedRef.current = true;
+    if (now - lastTapRef.current < 300) {
       lastTapRef.current = 0;
+      if (!liked[currentReel.id]) handleLike();
+      if (authUser?.id) {
+        setShowHeart(true);
+        clearTimeout(showHeartTimerRef.current);
+        showHeartTimerRef.current = setTimeout(() => setShowHeart(false), 800);
+      }
+      if (isYouTubeUrl(currentReel.video_url)) sendYTCmd('playVideo');
+      else videoRef.current?.play().catch(() => showErrorToast('Tap Play To Resume'));
       return;
     }
     lastTapRef.current = now;
-
-    // Single tap = show overlay ONLY (no play/pause)
-    setShowOverlay(true);
-    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-    overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+    togglePlayback();
   };
 
   // Progress bar update loop for native videos
@@ -2308,45 +2209,32 @@ function ReelViewer({
 
   return (
     <div
-      className="vlc-carousel-viewer-shell"
+      className={`vlc-carousel-viewer-shell ${immersiveStyles.root}`}
+      data-reels-experience="immersive"
+      onWheel={(event) => {
+        if (panelTitle || event.target.closest('button, input, textarea, [data-reels-copy]')) return;
+        const direction = wheelGestureRef.current(event.deltaY, Date.now());
+        if (direction > 0) goNext();
+        if (direction < 0) goPrev();
+      }}
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="carousel-viewer-title"
       tabIndex={-1}
     >
-      <section className="vlc-carousel-viewer-console">
-        <header className="vlc-carousel-viewer-header">
-          <h1 id="carousel-viewer-title">{panelTitle || 'Reel Viewer'}</h1>
-          <span>{currentIndex + 1} Of {reels.length}{hasMore ? '+' : ''}</span>
+      <section className="vlc-carousel-viewer-console" data-reels-console>
+        <header className="vlc-carousel-viewer-header" data-reels-topbar>
+          <button type="button" onClick={onClose} aria-label="Close"><ReelIcon name="back" /></button>
+          <h1 id="carousel-viewer-title" className="sp-reels-top-title">Reels</h1>
+          <button type="button" onClick={toggleSound} aria-label={muted ? 'Unmute' : 'Mute'}><ReelIcon name={muted ? 'muted' : 'sound'} /></button>
         </header>
-        <div className="vlc-carousel-viewer-toolbar">
-          <button type="button" onClick={onClose} aria-label="Close">
-            Close Viewer
-          </button>
-          {panelTitle ? (
-            <button type="button" onClick={closePanel}>
-              Back To Reel
-            </button>
-          ) : (
-            <>
-              <button type="button" onClick={goPrev} disabled={currentIndex === 0}>
-                Previous Reel
-              </button>
-              <button
-                type="button"
-                onClick={goNext}
-                disabled={currentIndex >= reels.length - 1}
-              >
-                {loadingMore && currentIndex >= reels.length - 1
-                  ? 'Loading More Reels'
-                  : 'Next Reel'}
-              </button>
-            </>
-          )}
+        <div data-reels-navigation>
+          <button type="button" onClick={goPrev} disabled={currentIndex === 0} aria-label="Previous Reel"><ReelIcon name="up" /></button>
+          <button type="button" onClick={goNext} disabled={currentIndex >= reels.length - 1} aria-label="Next Reel"><ReelIcon name="down" /></button>
         </div>
-        <div className="vlc-carousel-viewer-layout" hidden={Boolean(panelTitle)}>
-          <div className="vlc-carousel-viewer-copy">
+        <div className="vlc-carousel-viewer-layout" data-reels-layout>
+          <div className="vlc-carousel-viewer-copy" data-reels-copy>
             <div className="vlc-carousel-author">
               {currentReel.profiles?.avatar_url && (
                 <img src={currentReel.profiles.avatar_url} alt="" />
@@ -2382,14 +2270,28 @@ function ReelViewer({
                 )}
               </PlainCopy>
             )}
+            {currentReel.author_id && authUser?.id && currentReel.author_id !== authUser.id && (
+              <button
+                type="button"
+                onClick={handleFollow}
+                aria-pressed={Boolean(following[currentReel.author_id])}
+              >
+                {following[currentReel.author_id] ? 'Following' : 'Follow Creator'}
+              </button>
+            )}
+            <ReelResponsibleGamingNotice topic={currentReel.topic} />
+            <ReelTrustStrip reel={currentReel} compact immersive />
           </div>
           <div
             ref={containerRef}
             className="vlc-carousel-viewer-stage"
             data-overlay-visible={showOverlay}
+            data-reels-stage
           >
+            <span className="sp-reels-bottom-shade" />
             {/* FULL-SCREEN TOUCH OVERLAY — handles taps + swipes ABOVE the iframe */}
             <div
+              data-reels-tap
               onTouchStart={(e) => {
                 swipeStartRef.current = {
                   y: e.touches[0].clientY,
@@ -2397,6 +2299,7 @@ function ReelViewer({
                   t: Date.now(),
                 };
                 swipeDeltaRef.current = 0;
+                swipeConsumedRef.current = false;
                 userInteractedRef.current = true; // Mark user as having interacted
                 handleLongPressTouchStart();
               }}
@@ -2404,13 +2307,22 @@ function ReelViewer({
                 if (!swipeStartRef.current) return;
                 swipeDeltaRef.current = e.touches[0].clientY - swipeStartRef.current.y;
                 cancelLongPress();
-                e.preventDefault();
+                const dx = e.touches[0].clientX - swipeStartRef.current.x;
+                if (Math.abs(swipeDeltaRef.current) > Math.abs(dx) && e.cancelable) {
+                  e.preventDefault();
+                  containerRef.current?.style.setProperty('--reel-drag-y', `${swipeDeltaRef.current * 0.45}px`);
+                }
               }}
+              onTouchCancel={() => { swipeStartRef.current = null; cancelLongPress(); containerRef.current?.style.removeProperty('--reel-drag-y'); }}
               onTouchEnd={(e) => {
                 cancelLongPress();
-                const delta = swipeDeltaRef.current;
+                const start = swipeStartRef.current;
+                const touch = e.changedTouches[0];
+                const direction = start ? verticalReelSwipe({ startX: start.x, startY: start.y, endX: touch.clientX, endY: touch.clientY, elapsedMs: Date.now() - start.t }) : 0;
                 swipeStartRef.current = null;
-                if (Math.abs(delta) > 50) {
+                containerRef.current?.style.removeProperty('--reel-drag-y');
+                if (direction) {
+                  swipeConsumedRef.current = true;
                   if (e.cancelable) e.preventDefault();
                   try {
                     navigator?.vibrate?.(10);
@@ -2421,7 +2333,7 @@ function ReelViewer({
                     setMuted(false);
                     userWantsSoundRef.current = true;
                   }
-                  if (delta < 0) goNext();
+                  if (direction > 0) goNext();
                   else goPrev();
                   return;
                 }
@@ -2471,7 +2383,7 @@ function ReelViewer({
               {(() => {
                 // Find the first YouTube video in the reel list for the initial iframe src.
                 // startIndex may point to a direct upload, so we need a valid YT ID.
-                const firstYTReel = reels.find((r) => isYouTubeUrl(r.video_url));
+                const firstYTReel = isYouTubeUrl(reels[startIndex]?.video_url) ? reels[startIndex] : reels.find((r) => isYouTubeUrl(r.video_url));
                 const initialVideoId = firstYTReel
                   ? getYouTubeVideoId(firstYTReel.video_url)
                   : null;
@@ -2487,63 +2399,15 @@ function ReelViewer({
                       display: isCurrentYT ? 'block' : 'none', // Hide but keep alive
                     }}
                   >
-                    <iframe
-                      ref={ytIframeRef}
-                      src={`https://www.youtube-nocookie.com/embed/${initialVideoId}?autoplay=1&mute=1&rel=0&playsinline=1&controls=1&iv_load_policy=3&fs=1&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        border: 'none',
-                        pointerEvents: isCurrentYT ? 'auto' : 'none',
-                        position: 'relative',
-                        zIndex: 1,
-                      }}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      referrerPolicy="strict-origin-when-cross-origin"
+                    <ReelYouTubePlayer
+                      videoId={isCurrentYT ? getYouTubeVideoId(currentReel.video_url) : initialVideoId}
+                      active={isCurrentYT}
+                      iframeRef={ytIframeRef}
+                      eventRef={youtubeEventRef}
+                      commandRef={youtubeCommandRef}
+                      muted={!(userGesturedThisLoadRef.current && userWantsSoundRef.current)}
+                      onMutedChange={setMuted}
                       title={`${reelTopicLabel(currentReel)} Reel From ${currentSourceName}`}
-                      onLoad={() => {
-                        ytIframeReadyRef.current = true;
-                        const loadedReel = reelsRef.current[currentIndexRef.current];
-                        if (!isYouTubeUrl(loadedReel?.video_url)) {
-                          // The persistent iframe may finish loading while a
-                          // native Reel is already active. Pause only after the
-                          // API bridge exists so an early index-effect command
-                          // cannot lose the race and start hidden audio.
-                          ytAutoplayTimersRef.current.forEach((timer) => clearTimeout(timer));
-                          ytAutoplayTimersRef.current = [];
-                          sendYTCmd('pauseVideo');
-                          return;
-                        }
-                        const loadedVideoId = getYouTubeVideoId(loadedReel.video_url);
-                        if (loadedVideoId) sendYTCmd('loadVideoById', [loadedVideoId]);
-                        sendYTCmd('playVideo');
-                        if (userInteractedRef.current && userWantsSoundRef.current) {
-                          sendYTCmd('unMute');
-                          sendYTCmd('setVolume', [100]);
-                          // Only flip React state if a gesture happened on THIS load.
-                          // YT iframe is cross-origin so we cannot verify unMute.
-                          if (userGesturedThisLoadRef.current) setMuted(false);
-                        }
-                        // BUG FIX (RFC-8): cancel any previous retry batch before
-                        // scheduling new ones — prevents stale postMessage to old iframe
-                        // when user swipes while the timers are pending.
-                        ytAutoplayTimersRef.current.forEach((t) => clearTimeout(t));
-                        ytAutoplayTimersRef.current = [300, 800, 1500].map((delay) =>
-                          setTimeout(() => {
-                            const latestReel = reelsRef.current[currentIndexRef.current];
-                            if (!isYouTubeUrl(latestReel?.video_url)) {
-                              sendYTCmd('pauseVideo');
-                              return;
-                            }
-                            sendYTCmd('playVideo');
-                            if (userInteractedRef.current && userWantsSoundRef.current) {
-                              sendYTCmd('unMute');
-                              sendYTCmd('setVolume', [100]);
-                            }
-                          }, delay)
-                        );
-                      }}
                     />
                   </div>
                 );
@@ -2555,6 +2419,7 @@ function ReelViewer({
                 key={currentReel.id}
                 src={!isYouTubeUrl(currentReel.video_url) ? currentReel.video_url : undefined}
                 autoPlay={!isYouTubeUrl(currentReel.video_url)}
+                loop
                 // Always render muted=true so the browser permits autoplay
                 // unconditionally. The new onPlaying handler flips muted=false
                 // synchronously inside the playing event IF the user has
@@ -2635,7 +2500,6 @@ function ReelViewer({
                 onEnded={() => {
                   if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
                   setProgress(0);
-                  goNext();
                 }}
               />
 
@@ -2670,14 +2534,14 @@ function ReelViewer({
                 }
               })}
             </ReelPlayerFrame>
-            {paused && ytReady && !ytError && (
+            {paused && (!isYouTubeUrl(currentReel.video_url) || ytReady) && !ytError && (
               <span className="vlc-carousel-play-state" aria-live="polite">
-                Paused
+                <ReelIcon name="play" filled />
               </span>
             )}
             {showHeart && (
               <span className="vlc-carousel-like-confirmation" role="status">
-                Liked
+                <ReelIcon name="heart" filled />
               </span>
             )}
             {ytError && (
@@ -2690,19 +2554,13 @@ function ReelViewer({
               />
             )}
           </div>
-          <div className="vlc-carousel-viewer-details">
-            <div className="vlc-carousel-command-grid">
-              <button type="button" onClick={togglePlayback}>
-                {paused ? 'Play' : 'Pause'}
-              </button>
-              <button type="button" onClick={toggleSound}>
-                {muted ? 'Unmute' : 'Mute'}
-              </button>
+          <div className="vlc-carousel-viewer-details" data-reels-details>
+            <div className="vlc-carousel-command-grid" data-reels-actions>
               <button
                 type="button"
                 onClick={() => {
                   handleLike();
-                  if (!liked[currentReel.id]) {
+                  if (!liked[currentReel.id] && authUser?.id) {
                     setShowHeart(true);
                     clearTimeout(showHeartTimerRef.current);
                     showHeartTimerRef.current = setTimeout(() => setShowHeart(false), 800);
@@ -2721,11 +2579,10 @@ function ReelViewer({
                 aria-label={liked[currentReel.id] ? 'Unlike' : 'Like'}
                 aria-pressed={Boolean(liked[currentReel.id])}
               >
-                {liked[currentReel.id] ? 'Liked' : 'Like'}{' '}
-                {formatViews(likeCounts[currentReel.id] || 0)}
+                <ReelActionVisual icon="heart" filled={Boolean(liked[currentReel.id])} count={formatViews(likeCounts[currentReel.id] || 0)} />
               </button>
               <button type="button" onClick={handleToggleComments} aria-label="Comments">
-                Comments {formatViews(commentCounts[currentReel.id] || 0)}
+                <ReelActionVisual icon="comment" count={formatViews(commentCounts[currentReel.id] || 0)} />
               </button>
               <button
                 type="button"
@@ -2735,21 +2592,19 @@ function ReelViewer({
                 }}
                 aria-label="Share"
               >
-                Share
+                <ReelActionVisual icon="share" count={formatViews(currentReel.share_count || 0)} />
               </button>
               <button
                 type="button"
+                data-reel-action="save"
                 onClick={handleSave}
                 aria-label={saved[currentReel.id] ? 'Unsave' : 'Save'}
                 aria-pressed={Boolean(saved[currentReel.id])}
               >
-                {saved[currentReel.id] ? 'Saved' : 'Save'}
-              </button>
-              <button type="button" onClick={() => setShowReactionPicker(true)}>
-                Reactions
+                <ReelActionVisual icon="bookmark" filled={Boolean(saved[currentReel.id])} />
               </button>
               <button type="button" onClick={() => setShowMoreMenu(true)} aria-label="More Options">
-                More Options
+                <ReelActionVisual icon="more" />
               </button>
             </div>
             <PlainDataRow label="Published" value={timeAgo(currentReel.created_at)} />
@@ -2776,22 +2631,13 @@ function ReelViewer({
                 </button>
               </div>
             )}
-            {currentReel.author_id && authUser?.id && currentReel.author_id !== authUser.id && (
-              <button
-                type="button"
-                onClick={handleFollow}
-                aria-pressed={Boolean(following[currentReel.author_id])}
-              >
-                {following[currentReel.author_id] ? 'Following' : 'Follow Creator'}
-              </button>
-            )}
-            <ReelResponsibleGamingNotice topic={currentReel.topic} />
-            <ReelTrustStrip reel={currentReel} compact />
           </div>
         </div>
 
+        {!panelTitle && errorToast ? <div data-reels-status role="alert">{errorToast}</div> : null}
         {panelTitle && (
-          <div className="vlc-carousel-panel">
+          <div className="vlc-carousel-panel" data-reels-panel>
+            <div className="sp-reels-sheet-heading"><h2>{panelTitle}</h2><button type="button" onClick={closePanel} aria-label="Back To Reel"><ReelIcon name="close" /></button></div>
             {showReportModal ? (
               reportSubmitted ? (
                 <PlainCopy role="status">
@@ -3910,7 +3756,6 @@ export function ReelsFeedCarousel() {
                 key={reel.id}
                 reel={reel}
                 onOpen={() => openViewer(index)}
-                textFirst
               />
             ))}
           </div>
@@ -3957,7 +3802,7 @@ function ReelsFeedConsoleStyles() {
         max-width: 760px;
         margin: 0 auto 16px;
         padding: 12px 16px 16px;
-        border: 1px solid #dadde1;
+        border: 0;
         background: #fff;
         color: #050505;
         container-type: inline-size;
@@ -4069,11 +3914,15 @@ function ReelsFeedConsoleStyles() {
         overscroll-behavior-inline: contain;
       }
       .vlc-reel-card {
+        position: relative;
+        height: 292px;
+        border-radius: 12px !important;
+        overflow: hidden;
         appearance: none;
         display: flex;
         flex-direction: column;
         position: relative;
-        flex: 0 0 min(220px, 58vw);
+        flex: 0 0 164px;
         min-width: 0;
         padding: 0;
         border: 0;
@@ -4085,15 +3934,20 @@ function ReelsFeedConsoleStyles() {
         font-family: Arial, Helvetica, sans-serif;
         text-align: left;
       }
+      .vlc-reel-card::after { content: ''; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, #0009); pointer-events: none; }
+      .vlc-reel-card .vlc-reel-card__author { position: absolute; z-index: 2; inset: auto 12px 14px; color: #fff; font: 700 14px/1.3 Arial, sans-serif; text-shadow: 0 1px 2px #000; }
+      .vlc-reel-card .vlc-reel-card__caption { display: none; }
+      .vlc-reel-card .sp-reel-card__trust { position: absolute; z-index: 2; top: 10px; left: 10px; color: #fff; font: 11px/1.3 Arial, sans-serif; }
       .vlc-reel-card:focus-visible {
         outline: 2px solid #1877f2;
         outline-offset: -2px;
       }
       .vlc-reel-card__media {
-        position: relative;
+        position: absolute;
+        inset: 0;
         display: grid;
         width: 100%;
-        aspect-ratio: 9 / 16;
+        height: 100%;
         overflow: hidden;
       }
       .vlc-reel-card__media .sp-reel-card__play {

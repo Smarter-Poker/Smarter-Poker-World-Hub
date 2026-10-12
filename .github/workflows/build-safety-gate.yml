@@ -414,8 +414,8 @@ jobs:
       - name: Engine Alert Receipt PostgreSQL Contracts
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
 
-      - name: Social Article And Reel Preview Recovery
-        run: node --test __tests__/social-feed-normal-ui.test.mjs __tests__/social-feed-normal-live-safety.test.mjs __tests__/reels-carousel-console.test.mjs __tests__/reels-embedded-console-visual.test.mjs
+      - name: Social Articles And Immersive Reel Playback
+        run: node --test __tests__/social-feed-normal-ui.test.mjs __tests__/social-feed-normal-live-safety.test.mjs __tests__/reels-carousel-console.test.mjs __tests__/reels-embedded-console-visual.test.mjs __tests__/reels-immersive-playback.test.mjs
 
       - name: Historical User Reels Rights PostgreSQL Contracts
         run: npm run audit:video-reels:post-rights-db
