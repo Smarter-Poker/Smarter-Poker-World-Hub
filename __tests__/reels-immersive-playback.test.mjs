@@ -101,6 +101,11 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   assert.deepEqual(observedSound,[false], 'hidden iframe cannot overwrite visible native audio state');
   player.events.onStateChange({data:0});
   assert.deepEqual(calls.slice(before),[['pauseVideo']],'late inactive event cannot play hidden audio');
+  commandRef.current('pauseVideo');
+  const beforeReactivate = calls.filter(c=>c[0]==='playVideo').length;
+  await act(async()=>tree.update(React.createElement(Component,{...props,videoId:'BBBBBBBBBBB',active:true})));
+  assert.equal(calls.filter(c=>c[0]==='playVideo').length,beforeReactivate+1, 'returning from native media must not inherit a hidden-player pause command');
+  assert.equal(instances.length,1);
   await act(async()=>tree.unmount());
   assert.equal(iframeRef.current,null);assert.equal(commandRef.current,null);assert.equal(messages.size,0);assert.equal(frames.size,0);
   const after=calls.length; player.events.onStateChange({data:1});player.events.onReady();

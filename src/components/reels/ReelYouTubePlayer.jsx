@@ -20,8 +20,10 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
   const applyDesired = () => {
     const player = playerRef.current;
     const desired = desiredRef.current;
-    if (!readyRef.current || !player || !desired) return;
-    if (!desired.active || !desired.videoId) { stopProgressRef.current(); player.pauseVideo(); return; }
+    if (!desired) return;
+    if (!desired.active) { playbackIntentRef.current = null; stopProgressRef.current(); if (readyRef.current) player?.pauseVideo(); return; }
+    if (!readyRef.current || !player) return;
+    if (!desired.videoId) { stopProgressRef.current(); player.pauseVideo(); return; }
     if (loadedIdRef.current !== desired.videoId) {
       stopProgressRef.current();
       playbackIntentRef.current = null;
@@ -110,6 +112,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
   useEffect(() => {
     if (!commandRef) return;
     const command = (name, args = []) => {
+      if (!desiredRef.current.active) return;
       if (name === 'playVideo' || name === 'pauseVideo') playbackIntentRef.current = name;
       const player = playerRef.current;
       if (!readyRef.current || !player || !desiredRef.current.active) return;
