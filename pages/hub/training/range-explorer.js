@@ -4,7 +4,7 @@ export default function RangeExplorerRedirect() {
   return (
     <CanonicalTrainingRedirect
       title="Range Explorer"
-      description="Open the verified preflop chart browser, where every displayed range is loaded from the authenticated range service instead of estimated from hand strength."
+      description="Open the verified preflop chart browser, where every displayed range is loaded from the reference range service instead of estimated from hand strength."
       href="/hub/training/preflop-charts"
       eyebrow="Verified Range Data"
       action="Open Preflop Charts"

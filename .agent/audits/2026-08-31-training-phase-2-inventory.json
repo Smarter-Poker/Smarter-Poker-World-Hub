@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 79,
     "realtimeFiles": 6,
-    "tests": 153,
+    "tests": 154,
     "markerCandidates": 338,
     "possibleUnwiredFunctions": 380,
     "routeStateCells": 752,
@@ -8293,7 +8293,9 @@
             "src/hooks/useCurrentUser.js",
             "src/lib/authUtils.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         },
         "empty": {
           "status": "implemented-or-detected",
@@ -8313,7 +8315,9 @@
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         },
         "error": {
           "status": "implemented-or-detected",
@@ -8340,7 +8344,9 @@
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         },
         "retry": {
           "status": "implemented-or-detected",
@@ -8356,7 +8362,9 @@
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         },
         "success": {
           "status": "implemented-or-detected",
@@ -8377,7 +8385,9 @@
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         },
         "stale": {
           "status": "implemented-or-detected",
@@ -8402,7 +8412,9 @@
             "src/tutorials/index.js",
             "src/tutorials/personal-assistant.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -8411,7 +8423,9 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/contexts/AvatarContext.jsx"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -8423,10 +8437,14 @@
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         }
       },
-      "existingTests": [],
+      "existingTests": [
+        "__tests__/training-reference-is-public-a.test.mjs"
+      ],
       "uncoveredStates": []
     },
     {
@@ -12587,6 +12605,7 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
+            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12602,6 +12621,7 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
+            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12620,6 +12640,7 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
+            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12633,6 +12654,7 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
+            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12648,6 +12670,7 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
+            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12664,6 +12687,7 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
+            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12676,6 +12700,7 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
+            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -12689,6 +12714,7 @@
           "tests": [
             "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
+            "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         }
@@ -12696,6 +12722,7 @@
       "existingTests": [
         "__tests__/page-tutorials.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs",
+        "__tests__/training-reference-is-public-a.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ],
       "uncoveredStates": []
@@ -14194,25 +14221,33 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [],
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ],
           "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [],
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ],
           "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [],
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ],
           "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [],
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ],
           "followUpPhase": 15
         },
         "success": {
@@ -14220,28 +14255,38 @@
           "evidence": [
             "pages/hub/training/range-explorer.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ]
         },
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [],
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ],
           "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [],
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ],
           "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": [],
+          "tests": [
+            "__tests__/training-reference-is-public-a.test.mjs"
+          ],
           "followUpPhase": 8
         }
       },
-      "existingTests": [],
+      "existingTests": [
+        "__tests__/training-reference-is-public-a.test.mjs"
+      ],
       "uncoveredStates": [
         "loading",
         "empty",
@@ -20697,8 +20742,6 @@
       "imports": [
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/serverAuth.js",
-        "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -20718,7 +20761,7 @@
         "offline": false,
         "stale": false,
         "success": true,
-        "authExpiry": true
+        "authExpiry": false
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -20736,16 +20779,8 @@
       },
       "functions": [
         {
-          "name": "getSupabase",
-          "line": 24,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "computeICM",
-          "line": 44,
+          "line": 35,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20753,7 +20788,7 @@
         },
         {
           "name": "recurse",
-          "line": 56,
+          "line": 47,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20761,7 +20796,7 @@
         },
         {
           "name": "computeBubbleFactor",
-          "line": 95,
+          "line": 86,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20769,7 +20804,7 @@
         },
         {
           "name": "handler",
-          "line": 122,
+          "line": 113,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -21005,8 +21040,6 @@
         "src/config/solverRanges.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/serverAuth.js",
-        "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -21024,9 +21057,9 @@
         "error": true,
         "retry": false,
         "offline": false,
-        "stale": false,
+        "stale": true,
         "success": true,
-        "authExpiry": true
+        "authExpiry": false
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -21044,16 +21077,8 @@
       },
       "functions": [
         {
-          "name": "getSupabase",
-          "line": 36,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "singleQueryValue",
-          "line": 46,
+          "line": 38,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -21061,7 +21086,7 @@
         },
         {
           "name": "computeRangeStats",
-          "line": 51,
+          "line": 43,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21069,7 +21094,7 @@
         },
         {
           "name": "resolveExactSpot",
-          "line": 88,
+          "line": 80,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21077,7 +21102,7 @@
         },
         {
           "name": "buildGrid",
-          "line": 126,
+          "line": 118,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21085,7 +21110,7 @@
         },
         {
           "name": "handler",
-          "line": 151,
+          "line": 143,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -21098,7 +21123,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 46,
+          "line": 38,
           "excerpt": "function singleQueryValue(value, fallback = '') {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -21106,7 +21131,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 48,
+          "line": 40,
           "excerpt": "return value == null || value === '' ? fallback : String(value);",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -59225,14 +59250,6 @@
     },
     {
       "from": "pages/api/training/icm-calc.js",
-      "to": "src/lib/serverAuth.js"
-    },
-    {
-      "from": "pages/api/training/icm-calc.js",
-      "to": "src/lib/supabaseServerClient.js"
-    },
-    {
-      "from": "pages/api/training/icm-calc.js",
       "to": "src/utils/trainingApiUtils.js"
     },
     {
@@ -59334,14 +59351,6 @@
     {
       "from": "pages/api/training/preflop-ranges.js",
       "to": "src/lib/apiRateLimit.js"
-    },
-    {
-      "from": "pages/api/training/preflop-ranges.js",
-      "to": "src/lib/serverAuth.js"
-    },
-    {
-      "from": "pages/api/training/preflop-ranges.js",
-      "to": "src/lib/supabaseServerClient.js"
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
@@ -62739,6 +62748,7 @@
     "__tests__/training-question-order-contract.test.mjs",
     "__tests__/training-question-selection-contract.test.mjs",
     "__tests__/training-range-builder-authored-reference.test.mjs",
+    "__tests__/training-reference-is-public-a.test.mjs",
     "__tests__/training-reissue-authority.test.mjs",
     "__tests__/training-request-deadline.test.mjs",
     "__tests__/training-retired-achievement-challenge-authority.test.mjs",
@@ -69645,9 +69655,6 @@
         "pages/api/training/icm-calc.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/horses/playerSessionAccess.mjs",
-        "src/lib/serverAuth.js",
-        "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -69662,21 +69669,12 @@
             "deletes": 1,
             "rpc": 1
           }
-        },
-        {
-          "file": "src/lib/horses/playerSessionAccess.mjs",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 1
-          }
         }
       ],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-reference-is-public-a.test.mjs"
+      ]
     },
     {
       "file": "pages/api/training/leaderboard.js",
@@ -69954,9 +69952,6 @@
         "src/config/solverRanges.js",
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/horses/playerSessionAccess.mjs",
-        "src/lib/serverAuth.js",
-        "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -69971,23 +69966,13 @@
             "deletes": 1,
             "rpc": 1
           }
-        },
-        {
-          "file": "src/lib/horses/playerSessionAccess.mjs",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 1
-          }
         }
       ],
       "realtime": [],
       "tests": [
         "__tests__/training-final-honesty-surfaces.test.mjs",
-        "__tests__/training-preflop-chart-authority.test.mjs"
+        "__tests__/training-preflop-chart-authority.test.mjs",
+        "__tests__/training-reference-is-public-a.test.mjs"
       ]
     },
     {
@@ -86471,7 +86456,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "kind": "FALLBACK",
-        "line": 46,
+        "line": 38,
         "excerpt": "function singleQueryValue(value, fallback = '') {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -86480,7 +86465,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "kind": "FALLBACK",
-        "line": 48,
+        "line": 40,
         "excerpt": "return value == null || value === '' ? fallback : String(value);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -89749,7 +89734,7 @@
       {
         "file": "pages/api/training/icm-calc.js",
         "name": "handler",
-        "line": 122,
+        "line": 113,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89801,7 +89786,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "name": "handler",
-        "line": 151,
+        "line": 143,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -95574,7 +95559,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "kind": "FALLBACK",
-        "line": 46,
+        "line": 38,
         "excerpt": "function singleQueryValue(value, fallback = '') {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -95583,7 +95568,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "kind": "FALLBACK",
-        "line": 48,
+        "line": 40,
         "excerpt": "return value == null || value === '' ? fallback : String(value);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -98852,7 +98837,7 @@
       {
         "file": "pages/api/training/icm-calc.js",
         "name": "handler",
-        "line": 122,
+        "line": 113,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98904,7 +98889,7 @@
       {
         "file": "pages/api/training/preflop-ranges.js",
         "name": "handler",
-        "line": 151,
+        "line": 143,
         "references": 1,
         "exported": true,
         "defaultExport": true,

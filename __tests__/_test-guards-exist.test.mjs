@@ -289,6 +289,7 @@ import './training-production-smoke-auth.test.mjs';
 import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
 import './training-request-deadline.test.mjs';
+import './training-reference-is-public-a.test.mjs';
 import './training-surface-inventory.test.mjs';
 // The Trivia console redesign, 2026-09-21: every Trivia surface stays on the
 // painted Club Arena chassis with the master inks, the footer law, thirteen

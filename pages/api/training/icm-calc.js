@@ -1,4 +1,3 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * API: ICM Calculator — Tournament Chip-to-Dollar Equity
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -11,25 +10,17 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * }
  *
  * Returns ICM equity for each player using Malmuth-Harville model.
+ *
+ * Public calculator (Dan, 2026-10-12: "THEY SHOULD OPEN TO EVERYONE."). The
+ * computation is pure: it reads and writes nothing in the database and nothing
+ * per-user, so no token is required. The rate limit and validation remain.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
-// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        _supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-    }
-    return _supabase;
-}
 // ●●● Malmuth-Harville ICM Model ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
@@ -135,15 +126,7 @@ export default async function handler(req, res) {
       }
 
       try {
-          // Auth check
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          const user = authData?.user;
-          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-          const { stacks = [], prizes = [], prizePool } = req.body;
+          const { stacks = [], prizes = [], prizePool } = req.body || {};
 
           // Validation
           if (!Array.isArray(stacks) || stacks.length < 2) {

@@ -35,11 +35,8 @@ function compile(relativePath, dependencies = {}) {
 }
 
 function loadRoute() {
+  // Dan, 2026-10-12: the charts open to everyone, so the route takes no auth or Supabase dependency.
   return compile('pages/api/training/preflop-ranges.js', {
-    '../../../src/lib/serverAuth': {
-      getServerUserWithFallback: async () => ({ user: { id: 'user-1' }, error: null }),
-    },
-    '../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {} } },
     '../../../src/utils/trainingApiUtils': {
       getAllHands: () => ['AA', 'AKs', '72o'],
@@ -63,9 +60,9 @@ function response() {
   };
 }
 
-async function get(handler, query) {
+async function get(handler, query, headers = {}) {
   const res = response();
-  await handler({ method: 'GET', headers: { authorization: 'Bearer test-token' }, query }, res);
+  await handler({ method: 'GET', headers, query }, res);
   return res;
 }
 
@@ -124,6 +121,47 @@ test('the API returns exact identities and rejects every unsupported dimension a
     assert.equal(result.statusCode, 422, JSON.stringify(query));
     assert.equal(result.body.success, false, JSON.stringify(query));
   }
+});
+
+test('a signed-out visitor receives the reference chart with a public cache header', async () => {
+  // Dan, 2026-10-12: "THEY SHOULD OPEN TO EVERYONE." Anonymous GETs succeed; a token changes nothing.
+  const route = loadRoute();
+  const query = { gameType: 'cash_6max', stackDepth: '100', scenario: 'rfi', position: 'BTN' };
+  const anonymous = await get(route.default, query);
+  assert.equal(anonymous.statusCode, 200);
+  assert.equal(anonymous.body.success, true);
+  assert.equal(anonymous.body.range.spotLabel, 'BTN First-In RFI');
+  assert.equal(
+    anonymous.headers['Cache-Control'],
+    'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
+  );
+  assert.equal(anonymous.headers.Vary, undefined);
+
+  const signedIn = await get(route.default, query, { authorization: 'Bearer test-token' });
+  assert.equal(signedIn.statusCode, 200);
+  assert.deepEqual(signedIn.body, anonymous.body);
+
+  const res = response();
+  await route.default({ method: 'POST', headers: {}, query }, res);
+  assert.equal(res.statusCode, 405);
+});
+
+test('the chart route keeps its read rate limit ahead of any work', async () => {
+  assert.match(API, /if \(!applyRateLimit\(req, res, LIMITS\.read\)\) return;/);
+  let limited = false;
+  const route = compile('pages/api/training/preflop-ranges.js', {
+    '../../../src/lib/apiRateLimit': {
+      applyRateLimit: (_req, res) => { limited = true; res.status(429).json({ success: false }); return false; },
+      LIMITS: { read: {} },
+    },
+    '../../../src/utils/trainingApiUtils': { getAllHands: () => [], getCombos: () => 0, withTiming() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
+    '../../../src/config/solverRanges': { RFI, BB_DEFENSE, FOUR_BET, getHandFrequencies },
+  });
+  const res = response();
+  await route.default({ method: 'GET', headers: {}, query: {} }, res);
+  assert.equal(limited, true);
+  assert.equal(res.statusCode, 429);
 });
 
 test('the chart UI offers only supported nodes and visibly discloses authored-reference authority', () => {
