@@ -767,7 +767,7 @@ export default function DiamondStorePage({
   // ═══ Club Shop State ═══
   const [clubShopItems, setClubShopItems] = useState([]);
   const [clubShopPurchases, setClubShopPurchases] = useState([]);
-  const [clubDiamondBalance, setClubDiamondBalance] = useState(0);
+  const [clubDiamondBalance, setClubDiamondBalance] = useState(null);
   const [clubShopLoading, setClubShopLoading] = useState(false);
   const [clubShopLoaded, setClubShopLoaded] = useState(false);
   const [clubShopLoadedAccountId, setClubShopLoadedAccountId] = useState(null);
@@ -778,6 +778,7 @@ export default function DiamondStorePage({
   const [clubShopProcessing, setClubShopProcessing] = useState(false);
   const [clubShopCardProcessingId, setClubShopCardProcessingId] = useState(null);
   const [clubShopError, setClubShopError] = useState(null);
+  const [clubShopAccessRefused, setClubShopAccessRefused] = useState(false);
   const [clubShopCategory, setClubShopCategory] = useState('All');
   const [clubShopSearch, setClubShopSearch] = useState('');
   const [clubShopSubTab, setClubShopSubTab] = useState('store');
@@ -927,9 +928,10 @@ export default function DiamondStorePage({
     setClubShopLoaded(false);
     setClubShopLoading(false);
     setClubShopError(null);
+    setClubShopAccessRefused(false);
     setClubShopItems([]);
     setClubShopPurchases([]);
-    setClubDiamondBalance(0);
+    setClubDiamondBalance(null);
     setClubShopRole('player');
     setClubShopBuyTarget(null);
     setClubDiamondRecoveryByItem({});
@@ -993,9 +995,10 @@ export default function DiamondStorePage({
     setClubShopLoaded(false);
     setClubShopLoading(false);
     setClubShopError(null);
+    setClubShopAccessRefused(false);
     setClubShopItems([]);
     setClubShopPurchases([]);
-    setClubDiamondBalance(0);
+    setClubDiamondBalance(null);
     setClubShopRole('player');
     setClubShopBuyTarget(null);
     setClubDiamondRecoveryByItem({});
@@ -2177,7 +2180,8 @@ export default function DiamondStorePage({
       clubShopLoadingRef.current = true;
       setClubShopLoadedAccountId(null);
       if (!silent) setClubShopLoading(true);
-      if (!silent) setClubShopError(null);
+      setClubShopError(null);
+      setClubShopAccessRefused(false);
       const loadController = new AbortController();
       const loadTimer = setTimeout(() => {
         if (requestId !== clubShopLoadRequestRef.current) return;
@@ -2185,11 +2189,9 @@ export default function DiamondStorePage({
         clubShopLoadingRef.current = false;
         loadController.abort();
         setClubShopLoadedAccountId(null);
-        if (!silent) {
-          setClubShopLoading(false);
-          setClubShopLoaded(true);
-          setClubShopError('The Club Shop Timed Out. Please Try Again.');
-        }
+        setClubShopLoading(false);
+        setClubShopLoaded(true);
+        setClubShopError('The Club Shop Timed Out. Please Try Again.');
       }, CLUB_SHOP_LOAD_TIMEOUT_MS);
       clubShopLoadTimerRef.current = loadTimer;
       try {
@@ -2215,6 +2217,14 @@ export default function DiamondStorePage({
           signal: loadController.signal,
         });
         if (requestId !== clubShopLoadRequestRef.current) return;
+        if (response.status === 403) {
+          setClubShopAccessRefused(true);
+          setClubShopError(
+            'Club Membership Required. Your Signed-In Account Is Not A Member Of This Club.'
+          );
+          setClubShopLoaded(true);
+          return;
+        }
         if (!response.ok) throw new Error(`Failed to load club shop (${response.status})`);
         const data = await response.json();
         if (requestId !== clubShopLoadRequestRef.current) return;
@@ -2283,11 +2293,8 @@ export default function DiamondStorePage({
         if (requestId !== clubShopLoadRequestRef.current) return;
         setClubShopLoadedAccountId(null);
         console.warn('[Club Shop]', err);
-        if (!silent) {
-          setClubShopError('The Club Shop Could Not Be Loaded. Please Try Again.');
-          setClubShopLoaded(true);
-          showStoreToast('error', 'Failed to load the club shop. Please try again.');
-        }
+        setClubShopError('The Club Shop Could Not Be Loaded. Please Try Again.');
+        setClubShopLoaded(true);
       } finally {
         clearTimeout(loadTimer);
         if (clubShopLoadTimerRef.current === loadTimer) clubShopLoadTimerRef.current = null;
@@ -2310,7 +2317,8 @@ export default function DiamondStorePage({
   const visibleClubShopPurchases = clubShopSnapshotOwned
     ? clubShopPurchases
     : EMPTY_CLUB_SHOP_COLLECTION;
-  const visibleClubDiamondBalance = clubShopSnapshotOwned ? clubDiamondBalance : 0;
+  const visibleClubDiamondBalance =
+    clubShopSnapshotOwned && clubShopClubId ? clubDiamondBalance : null;
   const visibleClubShopRole = clubShopSnapshotOwned ? clubShopRole : 'player';
 
   const openClubPurchaseReview = (item) => {
@@ -3157,6 +3165,7 @@ export default function DiamondStorePage({
     if (
       activeTab === 'club-shop' &&
       committedStoreAccountId &&
+      !clubShopError &&
       (!routeClubId || clubShopClubId === routeClubId) &&
       (!clubShopLoaded || clubShopLoadedAccountId !== committedStoreAccountId) &&
       !clubShopLoadingRef.current
@@ -3168,6 +3177,7 @@ export default function DiamondStorePage({
     clubShopClubId,
     clubShopLoaded,
     clubShopLoadedAccountId,
+    clubShopError,
     committedStoreAccountId,
     loadClubShop,
     routeClubId,
@@ -4822,7 +4832,9 @@ export default function DiamondStorePage({
                                 marginTop: 4,
                               }}
                             >
-                              {visibleClubDiamondBalance.toLocaleString()}
+                              {visibleClubDiamondBalance === null
+                                ? 'Unavailable'
+                                : visibleClubDiamondBalance.toLocaleString()}
                             </div>
                           </div>
                         </div>
@@ -4916,7 +4928,13 @@ export default function DiamondStorePage({
                     >
                       Club Shop
                       <span style={styles.clubBalanceStatus}>
-                        {visibleClubDiamondBalance.toLocaleString()} Diamonds
+                        {visibleClubDiamondBalance !== null
+                          ? `${visibleClubDiamondBalance.toLocaleString()} Diamonds`
+                          : clubShopAuthPending || clubShopLoading
+                            ? 'Loading Balance...'
+                            : committedStoreAccountId
+                              ? 'Balance Unavailable'
+                              : 'Sign In To View Balance'}
                       </span>
                     </h2>
                     <p style={styles.introText}>
@@ -4948,20 +4966,26 @@ export default function DiamondStorePage({
                       }}
                     >
                       <div>{marketplaceCopy(clubShopError)}</div>
-                      <button
-                        type="button"
-                        onClick={() => loadClubShop(false)}
-                        disabled={clubShopLoading}
-                        style={{
-                          ...styles.paintedSecondaryAction,
-                          minHeight: 44,
-                          padding: '10px 22px',
-                          fontWeight: 700,
-                          cursor: clubShopLoading ? 'wait' : 'pointer',
-                        }}
-                      >
-                        {clubShopLoading ? 'Retrying...' : 'Retry Club Shop'}
-                      </button>
+                      {clubShopAccessRefused ? (
+                        <Link href="/hub/club-shop" style={styles.paintedSecondaryAction}>
+                          Open My Club Shop
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => loadClubShop(false)}
+                          disabled={clubShopLoading}
+                          style={{
+                            ...styles.paintedSecondaryAction,
+                            minHeight: 44,
+                            padding: '10px 22px',
+                            fontWeight: 700,
+                            cursor: clubShopLoading ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {clubShopLoading ? 'Retrying...' : 'Retry Club Shop'}
+                        </button>
+                      )}
                     </div>
                   ) : clubShopLoading && !clubShopSnapshotOwned ? (
                     <div
