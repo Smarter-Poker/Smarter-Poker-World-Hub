@@ -645,18 +645,52 @@ const activeDestination = (items, currentLocation) => {
   return winner?.href || items[0]?.href;
 };
 
+/**
+ * --sp-footer-height lives on <html>, so EVERY write re-styles the whole page
+ * (2026-10-12). Measured on /hub/training (5,600 elements) in WebKit: ~470ms
+ * per write, and the footer wrote the same 48.0625px four times while the
+ * page started, plus a remove/re-add when the client footer replaced the
+ * server one. That startup work kept the page unresponsive for ~9s in Safari's
+ * engine (and is why the WebKit footer contract timed out waiting for the
+ * scroll listener to arm). Write only a value that differs from what is
+ * already there, measure from the ResizeObserver entry instead of forcing a
+ * layout, and defer the unmount removal one frame so a footer that is
+ * immediately replaced by its successor costs nothing.
+ */
+let pendingFooterHeightRemoval = 0;
+const publishFooterHeight = (height) => {
+  if (typeof document === 'undefined' || !(height > 0)) return;
+  if (pendingFooterHeightRemoval) {
+    window.cancelAnimationFrame(pendingFooterHeightRemoval);
+    pendingFooterHeightRemoval = 0;
+  }
+  const style = document.documentElement.style;
+  const value = `${height}px`;
+  if (style.getPropertyValue('--sp-footer-height') !== value) style.setProperty('--sp-footer-height', value);
+};
+const scheduleFooterHeightRemoval = () => {
+  if (typeof window === 'undefined' || pendingFooterHeightRemoval) return;
+  pendingFooterHeightRemoval = window.requestAnimationFrame(() => {
+    pendingFooterHeightRemoval = 0;
+    document.documentElement.style.removeProperty('--sp-footer-height');
+  });
+};
+
 function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = false, reveal }) {
   const navRef = useRef(null);
   useEffect(() => {
     const nav = navRef.current;
     if (!nav) return;
-    const publish = () => document.documentElement.style.setProperty('--sp-footer-height', `${nav.getBoundingClientRect().height}px`);
-    publish();
-    const observer = new ResizeObserver(publish);
+    publishFooterHeight(nav.getBoundingClientRect().height);
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[entries.length - 1];
+      const box = entry?.borderBoxSize?.[0] || entry?.borderBoxSize;
+      publishFooterHeight(box?.blockSize ?? nav.getBoundingClientRect().height);
+    });
     observer.observe(nav);
     return () => {
       observer.disconnect();
-      document.documentElement.style.removeProperty('--sp-footer-height');
+      scheduleFooterHeightRemoval();
     };
   }, [footer.id]);
   const artwork = footer.artwork;
