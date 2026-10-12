@@ -852,13 +852,24 @@ export default function UniversalHeader({
     }
     if (!el) return;
     const root = document.documentElement;
-    const write = () => {
-      const h = Math.round(el.getBoundingClientRect().height);
-      if (h > 0) root.style.setProperty('--sp-header-height', `${h}px`);
+    // Writing a custom property on <html> re-styles the whole page (~470ms per
+    // write on /hub/training in WebKit), and this used to write the same 40px
+    // four times during startup. Only a changed value is written, and the
+    // ResizeObserver's own measurement is used instead of forcing a layout
+    // (2026-10-12, same fix as --sp-footer-height in BottomNavBar).
+    const write = (measured) => {
+      const h = Math.round(measured ?? el.getBoundingClientRect().height);
+      if (!(h > 0)) return;
+      const value = `${h}px`;
+      if (root.style.getPropertyValue('--sp-header-height') !== value) root.style.setProperty('--sp-header-height', value);
     };
     write();
     if (typeof ResizeObserver === 'function') {
-      const ro = new ResizeObserver(write);
+      const ro = new ResizeObserver((entries) => {
+        const entry = entries[entries.length - 1];
+        const box = entry?.borderBoxSize?.[0] || entry?.borderBoxSize;
+        write(box?.blockSize);
+      });
       ro.observe(el);
       headerObserverRef.current = ro;
     }
