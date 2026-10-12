@@ -90,7 +90,11 @@ export function normalizeClubCardQuote(value) {
   };
 }
 
-const CLUB_ITEM_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Match the UUID syntax accepted by PostgreSQL and the marketplace API's
+// owning validate.js. Seeded clubs use version-zero UUIDs; version/variant
+// bits do not authorize an account, club, item, or purchase. Exact binding
+// and membership/fulfillment/quote guards below remain authoritative.
+const CLUB_ITEM_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CLUB_PURCHASE_REQUEST_ID = /^[A-Za-z0-9._:-]{8,180}$/;
 const VERIFIED_CLUB_ROLES = new Set([
   'owner',
