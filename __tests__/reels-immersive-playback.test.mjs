@@ -202,12 +202,13 @@ test('persistent Reel sheets stay open through playback and the canonical menu o
   }
   const changed = run('/hub/reels?category=sports', {shallow:true});
   assert.deepEqual(changed.calls,[]);
+  assert.deepEqual(run('/hub/reels?category=sports',{shallow:false}).calls,[], 'canonical menu query navigation retains the current media');
   assert.equal(changed.video.src,'native.mp4');
   assert.equal(changed.video.currentTime,7);
   assert.match(changed.frame.src,/youtube-nocookie/);
   for (const [target, options, current] of [
     ['/hub/social-media', {shallow:true}],
-    ['/hub/reels?category=sports', {shallow:false}],
+    ['/hub/video-library', {shallow:false}],
     ['https://example.com/hub/reels', {shallow:true}],
     ['/hub/news?q=poker', {shallow:true}, 'https://smarter.poker/hub/news'],
   ]) {
@@ -226,6 +227,7 @@ test('completion and error events preserve the active Reels viewport ownership',
   const window = {location:new URL('https://smarter.poker/hub/reels?category=poker'),scrollTo(){calls.push('scroll');}};
   const handlers = new Function('window','document','setIsNavigating','advanceScrollLockGeneration','sweepStaleScrollLocks','clearBodyScrollLockIfUnheld','setTimeout','releaseMediaStreamOnLeave','router', source.slice(start,end) + '\nreturn {handleComplete,handleError};')(window,document,()=>calls.push('navigating'),()=>{},()=>calls.push('sweep'),()=>calls.push('clear'),()=>{},()=>{},{pathname:'/hub/reels'});
   handlers.handleComplete('/hub/reels?category=sports',{shallow:true});
+  handlers.handleComplete('/hub/reels?category=sports',{shallow:false});
   handlers.handleError(new Error('cancelled'),'/hub/reels?category=sports',{shallow:true});
   assert.deepEqual(calls,[]);
   handlers.handleComplete('/hub/social-media',{shallow:false});

@@ -675,7 +675,7 @@ function NavigationGuard({ children }) {
     }
 
     const preservesReelsMedia = (nextUrl, routeOptions) => {
-      if (!routeOptions?.shallow || window.location.pathname !== '/hub/reels') return false;
+      if (window.location.pathname !== '/hub/reels') return false;
       try {
         const target = new URL(nextUrl, window.location.href);
         return target.origin === window.location.origin && target.pathname === '/hub/reels';
@@ -684,6 +684,7 @@ function NavigationGuard({ children }) {
       }
     };
     const handleStart = (nextUrl, routeOptions) => {
+      // Both the canonical menu and shallow feed tabs change this same page.
       // Reels commits channel media only after its feed response succeeds.
       if (preservesReelsMedia(nextUrl, routeOptions)) return;
       // SYNCHRONOUS: Add class immediately (no React state delay)
