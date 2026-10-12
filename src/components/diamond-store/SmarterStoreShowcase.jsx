@@ -82,7 +82,6 @@ export default function SmarterStoreShowcase({
 }) {
   const copy = SECTION_COPY[activeTab] || SECTION_COPY.diamonds;
   const isDiamonds = activeTab === 'diamonds';
-  const activeTabRef = useRef(null);
   const diamondImpressionRef = useRef(false);
   const starterPackages = packages.slice(0, Math.min(2, packages.length));
   const primaryPackages = packages.slice(starterPackages.length);
@@ -101,16 +100,6 @@ export default function SmarterStoreShowcase({
   };
 
   useEffect(() => {
-    if (!activeTabRef.current || !window.matchMedia('(max-width: 640px)').matches) return;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    activeTabRef.current.scrollIntoView({
-      behavior: reduceMotion ? 'auto' : 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    });
-  }, [activeTab]);
-
-  useEffect(() => {
     if (!isDiamonds || diamondImpressionRef.current || packages.length === 0) return;
     diamondImpressionRef.current = true;
     captureStoreEvent('catalog_viewed', { route: 'diamonds', items: packages.length });
@@ -122,7 +111,6 @@ export default function SmarterStoreShowcase({
         {TAB_LABELS.map(([id, label]) => (
           <Link
             key={id}
-            ref={id === activeTab ? activeTabRef : null}
             href={storeTabHref(id, clubId)}
             className={`${styles.tab} ${id === activeTab ? styles.activeTab : ''}`}
             aria-current={id === activeTab ? 'page' : undefined}
