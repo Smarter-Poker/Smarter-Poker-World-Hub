@@ -3199,6 +3199,7 @@ export function ReelsViewer({ onClose }) {
           <div
             ref={dialogRef}
             className={immersiveStyles.sheet}
+            data-reels-sheet={activeDialogKey === 'comments' ? 'comments' : undefined}
             role="dialog"
             aria-modal="true"
             aria-labelledby="embedded-reel-dialog-title"

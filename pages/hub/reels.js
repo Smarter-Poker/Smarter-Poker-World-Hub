@@ -185,7 +185,7 @@ function ReelsConsoleDialog({ title, children, onClose, primary, ...rest }) {
   return createPortal(
     <div data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" className={`${styles.dialogBackdrop} ${immersiveStyles.sheetBackdrop}`} onClick={() => closeRef.current?.()}>
       <div ref={dialogRef} className={`${styles.dialog} ${immersiveStyles.sheet}`} role="dialog" aria-modal="true"
-        aria-labelledby={titleId} tabIndex={-1} data-sp-skip-a11y="propagation guard, not a control" onClick={(event) => event.stopPropagation()} {...rest}>
+        aria-labelledby={titleId} data-reels-sheet={title === 'Comments' ? 'comments' : undefined} tabIndex={-1} data-sp-skip-a11y="propagation guard, not a control" onClick={(event) => event.stopPropagation()} {...rest}>
         <header className="sp-reels-sheet-heading"><h2 id={titleId}>{title}</h2><button type="button" onClick={onClose} aria-label="Close"><ReelIcon name="close" /></button></header>
         {children}
         {primary ? <ReelAction onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</ReelAction> : null}

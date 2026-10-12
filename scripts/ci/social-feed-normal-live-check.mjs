@@ -41,7 +41,7 @@ export function validateReceipt(receipt, expectedSha) {
   assert.ok(String(receipt.deploymentId || '').startsWith('dpl_'));
   for (const key of [
     'authenticated', 'articleImages', 'textBeforeMedia', 'reelPreviews',
-    'immersiveViewer', 'noAutomaticFeedReset', 'manualRefresh',
+    'immersiveViewer', 'desktopReelControls', 'noAutomaticFeedReset', 'manualRefresh',
     'reactionsPresent', 'noForbiddenMutation', 'stableDeployment',
   ]) assert.equal(receipt.checks?.[key], true, `Incomplete ${key}`);
   assert.ok(receipt.viewports?.includes('390x844'));
@@ -289,6 +289,26 @@ async function run(env) {
 
     receipt.stage = 'desktop-stability';
     await page.setViewportSize({ width: 1440, height: 1000 });
+    await reel.click();
+    await viewer.waitFor({ state: 'visible', timeout: 20_000 });
+    assert.equal(await viewer.evaluate((node) => {
+      const media = node.querySelector('[data-reels-stage]')?.getBoundingClientRect();
+      const actions = node.querySelector('[data-reels-actions]')?.getBoundingClientRect();
+      const next = node.querySelector('[data-reels-navigation] button:last-child');
+      return Boolean(media && actions && media.height >= innerHeight - 40 && Math.abs(media.width / media.height - 9 / 16) < .01 && actions.left >= media.right - 2 && actions.right <= innerWidth && next && getComputedStyle(next).visibility === 'visible' && next.getBoundingClientRect().right <= innerWidth);
+    }), true, 'Desktop Reels must retain portrait video and an external action/navigation rail');
+    await page.screenshot({ path: 'test-results/social-feed-normal/desktop-reel-viewer.png' });
+    await viewer.getByRole('button', { name: 'Comments', exact: true }).click();
+    const commentPanel = viewer.locator('[data-reels-panel]');
+    await commentPanel.waitFor({ state: 'visible' });
+    assert.equal(await commentPanel.evaluate((node) => {
+      const r = node.getBoundingClientRect(), heading = node.querySelector('h2'), label = node.querySelector('label');
+      return r.width <= 480 && r.right <= innerWidth && r.height <= innerHeight && getComputedStyle(heading).fontSize === '16px' && getComputedStyle(label).color === 'rgb(22, 24, 35)';
+    }), true, 'Desktop Reel comments must be a readable side panel');
+    await page.screenshot({ path: 'test-results/social-feed-normal/desktop-reel-comments.png' });
+    await viewer.getByRole('button', { name: /Close panel/i }).click();
+    await page.keyboard.press('Escape');
+    receipt.checks.desktopReelControls = true;
     await waitForRequestSettle(feedRequests);
     await page.evaluate(() => window.scrollTo(0, Math.min(600, Math.max(0, document.documentElement.scrollHeight - innerHeight))));
     const automaticBaseline = rootFeedRequestCount(feedRequests);

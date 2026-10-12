@@ -138,3 +138,10 @@
 .root.root.root :global([data-reels-panel]) :global(.sp-reels-sheet-heading) h2, .sheet.sheet :global(.sp-reels-sheet-heading) h2 { font: 700 16px/1.3 Arial, sans-serif !important; flex: 1; min-width: 0; margin: 0; }
 .root.root.root :global([data-reels-panel]) :global(.sp-reels-sheet-heading) button { flex: 0 0 44px; }
 .root.root.root :global([data-reels-panel]) label, .root.root.root :global([data-reels-panel]) textarea { color: #161823 !important; text-shadow: none !important; }
+
+.root.root.root :global([data-reels-panel]) :global(button):focus-visible, .sheet.sheet :global(button):focus-visible, .sheet.sheet :global(input):focus-visible { outline: 2px solid #161823 !important; outline-offset: 2px; }
+@media (min-width: 760px) {
+  .root.root.root :global([data-reels-panel]) { position: fixed; inset: 0 0 0 auto; width: min(420px, 40vw); max-height: 100dvh; border-radius: 0; }
+  .sheetBackdrop:has(:global([data-reels-sheet='comments'])) { justify-content: flex-end !important; align-items: stretch !important; }
+  .sheet.sheet:global([data-reels-sheet='comments']) { width: min(420px, 40vw); height: 100dvh; max-height: 100dvh; border-radius: 0 !important; }
+}
