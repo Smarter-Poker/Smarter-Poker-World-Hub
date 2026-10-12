@@ -35,6 +35,12 @@ import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus'
 import { useModalHistory } from '../../src/hooks/useModalHistory';
 import { isVideoLibraryVideoAllowed } from '../../src/lib/videoLibraryAvailability';
 import { createVideoLibraryOwnerScope } from '../../src/lib/videoLibraryOwnerScope.mjs';
+import {
+    THUMBNAIL_SIZES,
+    dedupeVideos,
+    nextThumbnailFallback,
+    youtubeThumbnail,
+} from '../../src/lib/videoLibraryCuration.mjs';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
@@ -202,17 +208,41 @@ function containDialogFocus(event, container) {
     }
 }
 
-function recoverYouTubeThumbnail(event, videoId) {
+function recoverYouTubeThumbnail(event, videoId, catalogThumbnail) {
     const image = event.currentTarget;
+    // YouTube answers a missing size with a 120px grey placeholder (or a 404),
+    // so a tiny image counts as missing too.
     if (event.type !== 'error' && image.naturalWidth > 120) return;
-    if (image.src.includes('maxresdefault')) {
-        image.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-    } else if (image.src.includes('hqdefault')) {
-        image.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-    } else if (event.type === 'error') {
-        image.hidden = true;
-        image.parentElement?.classList.add('vl-media-failed');
+    const next = nextThumbnailFallback(image.src, videoId, catalogThumbnail);
+    if (next && next !== image.src) {
+        image.src = next;
+        return;
     }
+    image.hidden = true;
+    image.parentElement?.classList.add('vl-media-failed');
+}
+
+/**
+ * One thumbnail element for every card (Phase 1, 2026-10-12): 640px images on
+ * cards, 320px on shelves, the catalog's own vertical image for Shorts, and a
+ * fallback ladder so no card is left blank.
+ */
+function VideoThumbnail({ video, size = THUMBNAIL_SIZES.card, priority = false, vertical = false }) {
+    const catalogThumbnail = video?.thumbnail || null;
+    const src = vertical && /\/(oar\d*|oardefault)\./.test(String(catalogThumbnail || ''))
+        ? catalogThumbnail
+        : youtubeThumbnail(video.videoId, size);
+    return (
+        <img
+            src={src}
+            alt=""
+            loading={priority ? 'eager' : 'lazy'}
+            fetchpriority={priority ? 'high' : 'auto'}
+            decoding="async"
+            onLoad={event => recoverYouTubeThumbnail(event, video.videoId, catalogThumbnail)}
+            onError={event => recoverYouTubeThumbnail(event, video.videoId, catalogThumbnail)}
+        />
+    );
 }
 
 // YouTube-style card copy (owner update 2026-10-11). Creator uploads carry a
@@ -1398,11 +1428,14 @@ export default function VideoLibraryPage() {
             const mergePage = previous => {
                 const combined = append ? [...previous, ...pageVideos] : pageVideos;
                 const seen = new Set();
-                return combined.filter(video => {
+                const unique = combined.filter(video => {
                     if (!video?.videoId || seen.has(video.videoId)) return false;
                     seen.add(video.videoId);
                     return true;
                 });
+                // A reposted clip can sit on two different catalog pages; the
+                // personal views keep every row the player saved.
+                return libraryFilter === 'ALL' ? dedupeVideos(unique) : unique;
             };
             setAllVideos(mergePage);
             setVideos(previous => {
@@ -1697,8 +1730,6 @@ export default function VideoLibraryPage() {
         };
     }, [showReelsModal]);
 
-    // Get YouTube thumbnail
-    const getThumbnail = (videoId) => `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
     // parseViews / parseDuration are now module-scope functions (defined above the component)
     // to prevent a TDZ crash during SSR prerendering. See the comment above for details.
@@ -2223,14 +2254,7 @@ export default function VideoLibraryPage() {
                                         className="vl-shelf-card"
                                     >
                                         <div className="vl-shelf-media">
-                                            <img
-                                                src={getThumbnail(video.videoId)}
-                                                alt=""
-                                                loading="lazy"
-                                                decoding="async"
-                                                onLoad={event => recoverYouTubeThumbnail(event, video.videoId)}
-                                                onError={event => recoverYouTubeThumbnail(event, video.videoId)}
-                                            />
+                                            <VideoThumbnail video={video} size={THUMBNAIL_SIZES.small} />
                                             {video.duration && <span className="vl-duration">{video.duration}</span>}
                                             <div
                                                 className="vl-progress-track"
@@ -2333,15 +2357,7 @@ export default function VideoLibraryPage() {
                             />
                             {/* Thumbnail */}
                             <div className="vl-video-thumb">
-                                <img
-                                    src={getThumbnail(video.videoId)}
-                                    alt=""
-                                    loading={index === 0 ? 'eager' : 'lazy'}
-                                    fetchpriority={index === 0 ? 'high' : 'auto'}
-                                    decoding="async"
-                                    onLoad={(event) => recoverYouTubeThumbnail(event, video.videoId)}
-                                    onError={(event) => recoverYouTubeThumbnail(event, video.videoId)}
-                                />
+                                <VideoThumbnail video={video} priority={index === 0} />
                                 {video.duration && <span className="vl-duration">{video.duration}</span>}
                                 {watchedVideos.has(video.id) && progress <= 0 && (
                                     <span className="vl-watched-badge">Watched</span>
@@ -2398,7 +2414,7 @@ export default function VideoLibraryPage() {
                                             tabIndex={0}
                                             aria-label={`Play ${short.title}`}
                                         >
-                                            <img src={getThumbnail(short.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, short.videoId)} onError={event => recoverYouTubeThumbnail(event, short.videoId)} />
+                                            <VideoThumbnail video={short} size={THUMBNAIL_SIZES.card} vertical />
                                             <div className="vl-short-copy">
                                                 <strong>{short.title}</strong>
                                                 <span>{formatViewCount(short.views) || short.duration}</span>
@@ -2445,7 +2461,7 @@ export default function VideoLibraryPage() {
                                                 aria-label={`Play ${item.title}`}
                                             >
                                                 <div className="vl-shelf-media">
-                                                    <img src={getThumbnail(item.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, item.videoId)} onError={event => recoverYouTubeThumbnail(event, item.videoId)} />
+                                                    <VideoThumbnail video={item} size={THUMBNAIL_SIZES.small} />
                                                     {item.duration ? <span className="vl-duration">{item.duration}</span> : null}
                                                 </div>
                                                 <strong className="vl-shelf-title">{item.title}</strong>
@@ -2805,14 +2821,7 @@ export default function VideoLibraryPage() {
                                         className="vl-up-next-card"
                                     >
                                         <div className="vl-up-next-media">
-                                            <img
-                                                src={getThumbnail(v.videoId)}
-                                                alt=""
-                                                loading="lazy"
-                                                decoding="async"
-                                                onLoad={event => recoverYouTubeThumbnail(event, v.videoId)}
-                                                onError={event => recoverYouTubeThumbnail(event, v.videoId)}
-                                            />
+                                            <VideoThumbnail video={v} size={THUMBNAIL_SIZES.small} />
                                             {v.duration && (
                                                 <span className="vl-duration">{v.duration}</span>
                                             )}

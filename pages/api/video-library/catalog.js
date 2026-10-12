@@ -6,6 +6,13 @@ import {
     VIDEO_LIBRARY_ALLOWED_TYPES,
     isVideoLibraryVideoAllowed,
 } from '../../../src/lib/videoLibraryAvailability';
+import {
+    VIDEO_LIBRARY_POKER_TYPES,
+    cleanVideoTitle,
+    dedupeVideos,
+    isDisplayableVideoTitle,
+    mixedContentFilter,
+} from '../../../src/lib/videoLibraryCuration.mjs';
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
@@ -62,7 +69,8 @@ function normaliseVideo(row) {
         sponsorName: row.sponsor_name || null,
         madeForKids: row.made_for_kids ?? null,
         type: row.type || 'cash',
-        title: row.title,
+        title: cleanVideoTitle(row.title),
+        rawTitle: row.title,
         views: row.views_text && row.views_text !== '0' ? row.views_text : String(row.views_count || ''),
         viewsCount: Number(row.views_count || 0),
         duration: row.duration || '',
@@ -108,8 +116,13 @@ export default async function handler(req, res) {
         query = query.in('type', VIDEO_LIBRARY_ALLOWED_TYPES);
 
         if (source && source !== 'ALL') query = query.eq('source_id', source);
+        // Poker first (owner update 2026-10-12): with no type chosen, the feed
+        // is cash games and tournaments. Sports and slots show on their own
+        // chips. Saved-library lookups (ids) keep every type the player saved.
         if (VIDEO_LIBRARY_ALLOWED_TYPES.includes(type)) query = query.eq('type', type);
+        else if (!idsRequested) query = query.in('type', VIDEO_LIBRARY_POKER_TYPES);
         if (idsRequested) query = query.in('youtube_video_id', ids);
+        else query = query.or(mixedContentFilter());
         if (search) {
             const pattern = `%${search.replace(/[%_]/g, '')}%`;
             query = query.or(`title.ilike.${pattern},source_name.ilike.${pattern},source_id.ilike.${pattern}`);
@@ -132,7 +145,12 @@ export default async function handler(req, res) {
         if (error) throw error;
 
         const rawRowCount = Array.isArray(data) ? data.length : 0;
-        const videos = (data || []).map(normaliseVideo).filter(isVideoLibraryVideoAllowed);
+        const normalised = (data || []).map(normaliseVideo).filter(isVideoLibraryVideoAllowed);
+        // Saved-library lookups return exactly what the player saved; the
+        // feed hides unreadable titles and reposted duplicates.
+        const videos = idsRequested
+            ? normalised
+            : dedupeVideos(normalised.filter(video => isDisplayableVideoTitle(video.rawTitle)));
         const total = Number.isFinite(count) ? count : offset + videos.length;
         const nextOffset = offset + rawRowCount;
         return res.status(200).json({

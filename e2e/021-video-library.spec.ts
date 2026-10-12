@@ -1,16 +1,31 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
 
+/*
+ * Video Library browser contract — YouTube-style layout (owner update
+ * 2026-10-11) and poker-first curation (Phase 1, 2026-10-12).
+ *
+ * The page renders only rows that carry a fresh persisted YouTube
+ * verification, so every mock row below is verified, embeddable and checked
+ * now. (The previous version of this file mocked rows without those fields,
+ * which the page correctly refused, so its assertions could never pass.)
+ */
+
+const CHECKED_AT = new Date().toISOString();
+const VERIFIED = { availabilityStatus: 'verified', embeddable: true, availabilityCheckedAt: CHECKED_AT };
+
 const VIDEO_A = {
+  ...VERIFIED,
   id: 'dQw4w9WgXcQ',
   videoId: 'dQw4w9WgXcQ',
   source: 'HCL',
   sourceName: 'Hustler Casino Live',
+  attributionName: 'Hustler Casino Live',
   type: 'cash',
   title: 'River Decision Command Test',
   views: '120K',
   duration: '18:42',
-  thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
+  thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
   publishedAt: '2026-08-26T12:00:00.000Z',
   scrapedAt: '2026-08-26T12:00:00.000Z',
   tags: ['river'],
@@ -22,9 +37,31 @@ const VIDEO_B = {
   videoId: 'M7lc1UVf-VE',
   source: 'TRITON',
   sourceName: 'Triton Poker',
+  attributionName: 'Triton Poker',
   type: 'tournament',
   title: 'Final Table Pressure Test',
   tags: ['tournament'],
+};
+
+const SPORTS_VIDEO = {
+  ...VIDEO_A,
+  id: 'aqz-KE-bpKQ',
+  videoId: 'aqz-KE-bpKQ',
+  source: 'SPORTSCLIPS',
+  sourceName: 'Sports Clips',
+  attributionName: 'Sports Clips',
+  type: 'sports',
+  title: 'Buzzer Beater Highlights',
+};
+
+const CREATOR_VIDEO = {
+  ...VIDEO_A,
+  id: 'jNQXAC9IVRw',
+  videoId: 'jNQXAC9IVRw',
+  source: '3f8136ba-51e4-4093-9866-d0a1b2c3d4e5',
+  sourceName: '3f8136ba-51e4-4093-9866-d0a1b2c3d4e5',
+  attributionName: '3f8136ba-51e4-4093-9866-d0a1b2c3d4e5',
+  title: 'Creator Upload Without A Name',
 };
 
 const BLOCKED_VIDEO = {
@@ -34,14 +71,12 @@ const BLOCKED_VIDEO = {
   title: 'Legacy Non-Embeddable Video',
 };
 
-const NON_POKER_VIDEO = {
+const UNSUPPORTED_VIDEO = {
   ...VIDEO_A,
-  id: 'slot-video-01',
-  videoId: 'slot-video-01',
-  source: 'SLOTQUEEN',
-  sourceName: 'Slot Queen',
-  type: 'slots',
-  title: 'Stale Casino Catalog Record',
+  id: 'ScMzIvxBSi4',
+  videoId: 'ScMzIvxBSi4',
+  type: 'chess',
+  title: 'Stale Unsupported Catalog Record',
 };
 
 function watchForCrashes(page: Page): string[] {
@@ -50,15 +85,18 @@ function watchForCrashes(page: Page): string[] {
   return crashes;
 }
 
+/** Mirrors the catalog API: no type chosen means poker only (cash + tournament). */
 async function mockCatalog(route: Route): Promise<void> {
   const url = new URL(route.request().url());
   const source = url.searchParams.get('source');
   const type = url.searchParams.get('type');
   const query = (url.searchParams.get('q') || '').toLowerCase();
   const offset = Number(url.searchParams.get('offset') || 0);
-  let videos = [VIDEO_A, VIDEO_B];
+  let videos = [VIDEO_A, VIDEO_B, CREATOR_VIDEO, SPORTS_VIDEO];
+  videos = type
+    ? videos.filter(video => video.type === type)
+    : videos.filter(video => video.type === 'cash' || video.type === 'tournament');
   if (source) videos = videos.filter(video => video.source === source);
-  if (type) videos = videos.filter(video => video.type === type);
   if (query) videos = videos.filter(video => `${video.title} ${video.tags.join(' ')}`.toLowerCase().includes(query));
   await route.fulfill({
     status: 200,
@@ -66,12 +104,12 @@ async function mockCatalog(route: Route): Promise<void> {
     body: JSON.stringify({
       success: true,
       data: offset === 0 ? videos : [],
-      pagination: { limit: 30, offset, total: videos.length, hasMore: false },
+      pagination: { limit: 30, offset, total: videos.length, nextOffset: videos.length, hasMore: false },
     }),
   });
 }
 
-test.describe('21. Video Library command system', () => {
+test.describe('21. Video Library — YouTube layout, poker first', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       try { window.localStorage.removeItem('sp-filters-video-library'); } catch { /* storage unavailable */ }
@@ -79,27 +117,76 @@ test.describe('21. Video Library command system', () => {
     await page.route('**/api/video-library/catalog**', mockCatalog);
   });
 
-  test('loads the server catalog and keeps filter, search, and sort in the URL', async ({ page }) => {
+  test('All Videos is poker only; Sports shows on its own chip; filters, search and sort stay in the URL', async ({ page }) => {
     const crashes = watchForCrashes(page);
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
 
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_B.title })).toBeVisible();
+    await expect(page.locator('.vl-card-title', { hasText: SPORTS_VIDEO.title })).toHaveCount(0);
     await expect(page.locator('.vl-video-card.is-featured')).toHaveCount(1);
+
+    await page.getByRole('button', { name: 'Sports', exact: true }).click();
+    await expect(page).toHaveURL(/type=sports/);
+    await expect(page.locator('.vl-card-title', { hasText: SPORTS_VIDEO.title })).toBeVisible();
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Cash Games' }).click();
     await expect(page).toHaveURL(/type=cash/);
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_B.title })).toHaveCount(0);
-    await expect(page.locator('.vl-video-card.is-featured')).toHaveCount(0);
 
-    const search = page.getByRole('textbox', { name: 'Search the poker video library' });
+    const search = page.getByRole('searchbox', { name: 'Search the poker video library' });
     await search.fill('river');
     await expect(page).toHaveURL(/q=river/, { timeout: 5_000 });
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
 
     await page.getByRole('button', { name: 'Sort videos by Top Rated' }).click();
     await expect(page).toHaveURL(/sort=top_rated/);
+    expect(crashes).toEqual([]);
+  });
+
+  test('a card shows channel, views and age, never a raw database id', async ({ page }) => {
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    const card = page.locator('.vl-video-card', { has: page.locator('.vl-card-title', { hasText: VIDEO_A.title }) });
+    await expect(card.locator('.vl-card-meta')).toContainText('Hustler Casino Live', { timeout: 20_000 });
+    await expect(card.locator('.vl-card-meta')).toContainText('120K Views');
+    await expect(card.locator('.vl-card-meta')).toContainText(/Ago$/);
+
+    const creator = page.locator('.vl-video-card', { has: page.locator('.vl-card-title', { hasText: CREATOR_VIDEO.title }) });
+    await expect(creator.locator('.vl-card-meta')).toContainText('Independent Creator');
+    await expect(creator.locator('.vl-card-meta')).not.toContainText('3f8136ba');
+  });
+
+  test('the three-dot menu offers library actions and closes cleanly', async ({ page }) => {
+    const crashes = watchForCrashes(page);
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    await page.getByRole('button', { name: `More Actions For ${VIDEO_A.title}` }).click({ timeout: 20_000 });
+
+    const sheet = page.getByRole('dialog', { name: VIDEO_A.title });
+    await expect(sheet).toBeVisible();
+    for (const action of ['Play', 'Save To Watch Later', 'Add To Favorites', 'Save To Playlist', 'Share']) {
+      await expect(sheet.getByRole('button', { name: action, exact: true })).toBeVisible();
+    }
+    await sheet.getByRole('button', { name: 'Cancel' }).click();
+    await expect(sheet).toHaveCount(0);
+    expect(crashes).toEqual([]);
+  });
+
+  test('opening a card shows the watch page with the player on top, and Close returns', async ({ page }) => {
+    const crashes = watchForCrashes(page);
+    await page.route('https://www.youtube-nocookie.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<html></html>' }));
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    await page.getByRole('button', { name: `Play ${VIDEO_A.title}` }).click({ timeout: 20_000 });
+
+    const viewer = page.getByRole('dialog', { name: VIDEO_A.title });
+    await expect(viewer).toBeVisible();
+    await expect(page.locator('#youtube-player')).toHaveAttribute('src', new RegExp(`/embed/${VIDEO_A.videoId}\\?`));
+    for (const action of ['Like', 'Share', 'Save', 'Playlist', 'Train This Spot']) {
+      await expect(viewer.locator('.vl-hud').getByText(action, { exact: true })).toBeVisible();
+    }
+    await viewer.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page.locator('#youtube-player')).toHaveCount(0);
     expect(crashes).toEqual([]);
   });
 
@@ -113,12 +200,12 @@ test.describe('21. Video Library command system', () => {
     const crashes = watchForCrashes(page);
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
 
-    await expect(page.getByRole('button', { name: 'Retry Catalog' })).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('.vl-video-card').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Retry Catalog' }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.vl-video-card')).toHaveCount(0);
     expect(crashes).toEqual([]);
   });
 
-  test('rejects a blocked video from a stale API response and old bookmark', async ({ page }) => {
+  test('rejects a blocked video from a stale API response and an old bookmark', async ({ page }) => {
     await page.unroute('**/api/video-library/catalog**');
     await page.route('**/api/video-library/catalog**', route => route.fulfill({
       status: 200,
@@ -138,14 +225,14 @@ test.describe('21. Video Library command system', () => {
     expect(crashes).toEqual([]);
   });
 
-  test('rejects non-poker rows from a stale catalog response', async ({ page }) => {
+  test('rejects unsupported rows from a stale catalog response', async ({ page }) => {
     await page.unroute('**/api/video-library/catalog**');
     await page.route('**/api/video-library/catalog**', route => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
-        data: [NON_POKER_VIDEO, VIDEO_A],
+        data: [UNSUPPORTED_VIDEO, VIDEO_A],
         pagination: { limit: 30, offset: 0, total: 2, hasMore: false },
       }),
     }));
@@ -153,31 +240,24 @@ test.describe('21. Video Library command system', () => {
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
 
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('.vl-card-title', { hasText: NON_POKER_VIDEO.title })).toHaveCount(0);
-    expect(await page.locator('body').innerHTML()).not.toContain(NON_POKER_VIDEO.videoId);
+    await expect(page.locator('.vl-card-title', { hasText: UNSUPPORTED_VIDEO.title })).toHaveCount(0);
+    expect(await page.locator('body').innerHTML()).not.toContain(UNSUPPORTED_VIDEO.videoId);
     expect(crashes).toEqual([]);
   });
 
-  test('stale filters and a dropped catalog use only the audited fallback', async ({ page }) => {
-    await page.addInitScript(() => {
-      window.localStorage.setItem('sp-filters-video-library', JSON.stringify({
-        __v: { selectedSource: 'TRITON', selectedType: 'ALL' },
-        __exp: Date.now() + 86_400_000,
-      }));
-    });
+  test('a dropped catalog fails closed: retry offered, nothing playable', async ({ page }) => {
     await page.unroute('**/api/video-library/catalog**');
     await page.route('**/api/video-library/catalog**', route => route.abort('connectionfailed'));
     const crashes = watchForCrashes(page);
     await page.goto(`/hub/video-library?v=${BLOCKED_VIDEO.videoId}`, { waitUntil: 'commit' });
 
-    await expect(page.getByRole('button', { name: 'Retry Catalog' })).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('.vl-card-title', { hasText: '10 Years of Triton Poker' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Retry Catalog' }).first()).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('#youtube-player')).toHaveCount(0);
     expect(await page.locator('body').innerHTML()).not.toContain(BLOCKED_VIDEO.videoId);
     expect(crashes).toEqual([]);
   });
 
-  test('mobile command tabs are swipeable and controls meet the touch target', async ({ page }, testInfo) => {
+  test('phone layout: one chip row scrolls sideways, no page overflow, 44px targets', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-chrome', 'mobile geometry contract');
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
@@ -191,18 +271,24 @@ test.describe('21. Video Library command system', () => {
     expect(railMetrics.overflowX).toBe('auto');
     expect(railMetrics.scrollWidth).toBeGreaterThan(railMetrics.clientWidth);
 
-    const cashBox = await page.getByRole('button', { name: 'Cash Games' }).boundingBox();
-    expect(cashBox?.height || 0).toBeGreaterThanOrEqual(44);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+
+    for (const name of ['Cash Games', `More Actions For ${VIDEO_A.title}`]) {
+      const box = await page.getByRole('button', { name }).boundingBox();
+      expect(box?.height || 0).toBeGreaterThanOrEqual(44);
+      expect(box?.width || 0).toBeGreaterThanOrEqual(44);
+    }
   });
 
-  test('command layout has no serious automated accessibility violations', async ({ page }) => {
+  test('the library has no serious automated accessibility violations', async ({ page }) => {
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
     await expect(page.locator('.vl-card-title').first()).toBeVisible({ timeout: 20_000 });
     await page.addScriptTag({ path: AXE_PATH });
     const violations = await page.evaluate(async () => {
       const axe = (window as typeof window & { axe?: { run: (...args: unknown[]) => Promise<{ violations: Array<{ id: string; impact: string | null; nodes: Array<{ target?: string[] }> }> }> } }).axe;
       if (!axe) throw new Error('axe-core did not load');
-      const result = await axe.run('.vl-command-layout', {
+      const result = await axe.run('.vl-yt', {
         runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] },
       });
       return result.violations
@@ -218,9 +304,10 @@ test.describe('21. Video Library command system', () => {
     });
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
     await expect(page.locator('.vl-card-title').first()).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('button', { name: 'Playlists, 0 Playlists' }).click();
-    await expect(page.getByRole('button', { name: /Sign In To Sync/ })).toBeVisible();
-    await page.getByRole('button', { name: /Sign In To Sync/ }).click();
+    await page.getByRole('button', { name: 'Playlists, 0 playlists' }).click();
+    // The view banner and the empty state both offer sign-in.
+    await expect(page.getByRole('button', { name: 'Sign In To Sync' }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Sign In To Sync' }).first().click();
     await expect(page).toHaveURL(/\/auth\/login\?redirect=%2Fhub%2Fvideo-library/);
   });
 });
