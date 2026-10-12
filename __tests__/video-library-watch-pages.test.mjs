@@ -119,3 +119,12 @@ test('the About section channel link is a 44px phone tap target', () => {
     assert.ok(rule, 'About link rule exists');
     assert.match(rule[1], /min-height: 44px/);
 });
+
+test('the watch page thumbnail fills the player with no black band', () => {
+    const css = readFileSync(new URL('../src/styles/worlds/video-library.css', import.meta.url), 'utf8');
+    const rule = css.match(/\.vl-watch-page \.vl-player-stage > \.vl-play-facade > img:not\(\[hidden\]\) \{([^}]*)\}/);
+    assert.ok(rule, 'facade image rule outranks the site-wide img height reset');
+    assert.match(rule[1], /position: absolute;/);
+    assert.match(rule[1], /inset: 0;/);
+    assert.match(rule[1], /object-fit: cover;/);
+});

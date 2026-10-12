@@ -1762,10 +1762,21 @@
     cursor: pointer;
 }
 
-.vl-play-facade img {
+/*
+ * The site-wide reset `img:not(.sp-avatar):not(...) { height: auto }`
+ * (src/index.css, specificity 0,3,1) beat `.vl-play-facade img`, so the 4:3
+ * thumbnail drew at its own height and the 16:9 stage clipped its bottom,
+ * leaving the thumbnail's built-in black bar as a band above the picture
+ * (measured live 2026-10-12: a 281px image in a 210px stage). This selector
+ * outranks the reset and pins the image to the stage's edges.
+ */
+.vl-watch-page .vl-player-stage > .vl-play-facade > img:not([hidden]) {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
+    max-width: none;
     object-fit: cover;
 }
 
