@@ -4103,8 +4103,8 @@ function ReelsFeedConsoleStyles() {
         place-items: center;
         pointer-events: none;
       }
-      .vlc-reel-card__media img,
-      .vlc-reel-card__media video {
+      .vlc-feed-console-shell .vlc-reel-card .vlc-reel-card__media img,
+      .vlc-feed-console-shell .vlc-reel-card .vlc-reel-card__media video {
         position: absolute;
         inset: 0;
         width: 100%;

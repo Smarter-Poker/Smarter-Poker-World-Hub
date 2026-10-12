@@ -404,5 +404,6 @@ test('preview images accept local and protocol-relative artwork without acceptin
 
 test('Reel artwork fills the aspect-ratio frame without intrinsic grid sizing', () => {
   assert.match(reels, /\.vlc-reel-card__media \{\s*position: relative;/);
-  assert.match(reels, /\.vlc-reel-card__media video \{\s*position: absolute;\s*inset: 0;/);
+  assert.match(reels, /\.vlc-feed-console-shell \.vlc-reel-card \.vlc-reel-card__media video \{\s*position: absolute;\s*inset: 0;/);
+  assert.match(reels, /\.vlc-feed-console-shell \.vlc-reel-card \.vlc-reel-card__media img,/);
 });
