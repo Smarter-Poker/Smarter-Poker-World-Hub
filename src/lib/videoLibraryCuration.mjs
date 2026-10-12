@@ -148,25 +148,36 @@ export function dedupeVideos(list, seenKeys = new Set()) {
 /**
  * Thumbnail ladder. Cards use YouTube's 640px image (about a third of the
  * 1280px "maxres" file, and "maxres" is often missing or a black frame on
- * live streams); shelves and Up Next use 320px. A missing size falls down the
- * ladder, then to the catalog's own image, then to "Preview unavailable".
+ * live streams); shelves and Up Next use 320px. Shorts use "oar2", YouTube's
+ * original-aspect frame (1080x1920 for a Short, 16:9 for anything else), so a
+ * vertical card is filled instead of showing a letterboxed 4:3 image.
+ * Measured 2026-10-12: "oardefault" is 404 for these Shorts, "oar2" is 200.
+ * A missing size falls down the ladder, then to the catalog's own image, then
+ * to "Preview unavailable".
  */
-export const THUMBNAIL_SIZES = Object.freeze({ card: 'sddefault', small: 'mqdefault' });
+export const THUMBNAIL_SIZES = Object.freeze({ card: 'sddefault', small: 'mqdefault', vertical: 'oar2' });
 const THUMBNAIL_LADDER = ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault'];
+const YOUTUBE_IMAGE_RE = /^https:\/\/(i\.ytimg\.com|img\.youtube\.com)\//;
 
 export function youtubeThumbnail(videoId, size = THUMBNAIL_SIZES.card) {
     return `https://i.ytimg.com/vi/${videoId}/${size}.jpg`;
 }
 
-export function nextThumbnailFallback(currentSrc, videoId, catalogThumbnail) {
-    const src = String(currentSrc || '');
-    const index = THUMBNAIL_LADDER.findIndex(size => src.includes(`/${size}.`));
-    if (index >= 0 && index < THUMBNAIL_LADDER.length - 1) {
-        return youtubeThumbnail(videoId, THUMBNAIL_LADDER[index + 1]);
-    }
-    const catalog = String(catalogThumbnail || '');
-    if (/^https:\/\/(i\.ytimg\.com|img\.youtube\.com)\//.test(catalog) && !src.startsWith(catalog)) return catalog;
-    return null;
+/** Every image to try for one video, best first, no repeats. */
+export function thumbnailCandidates(videoId, { size = THUMBNAIL_SIZES.card, vertical = false, catalogThumbnail = null } = {}) {
+    const list = [];
+    if (vertical) list.push(youtubeThumbnail(videoId, THUMBNAIL_SIZES.vertical));
+    const start = THUMBNAIL_LADDER.indexOf(vertical ? 'hqdefault' : size);
+    THUMBNAIL_LADDER.slice(Math.max(0, start)).forEach(step => list.push(youtubeThumbnail(videoId, step)));
+    if (YOUTUBE_IMAGE_RE.test(String(catalogThumbnail || ''))) list.push(String(catalogThumbnail));
+    return [...new Set(list)];
+}
+
+/** The next image after `currentSrc`, or null when every option failed. */
+export function nextThumbnailFallback(currentSrc, candidates) {
+    const list = Array.isArray(candidates) ? candidates : [];
+    const index = list.indexOf(String(currentSrc || ''));
+    return index >= 0 && index < list.length - 1 ? list[index + 1] : null;
 }
 
 /**

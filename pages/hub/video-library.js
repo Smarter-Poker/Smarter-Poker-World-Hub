@@ -39,7 +39,7 @@ import {
     THUMBNAIL_SIZES,
     dedupeVideos,
     nextThumbnailFallback,
-    youtubeThumbnail,
+    thumbnailCandidates,
 } from '../../src/lib/videoLibraryCuration.mjs';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
@@ -208,13 +208,13 @@ function containDialogFocus(event, container) {
     }
 }
 
-function recoverYouTubeThumbnail(event, videoId, catalogThumbnail) {
+function recoverYouTubeThumbnail(event, candidates) {
     const image = event.currentTarget;
     // YouTube answers a missing size with a 120px grey placeholder (or a 404),
     // so a tiny image counts as missing too.
     if (event.type !== 'error' && image.naturalWidth > 120) return;
-    const next = nextThumbnailFallback(image.src, videoId, catalogThumbnail);
-    if (next && next !== image.src) {
+    const next = nextThumbnailFallback(image.getAttribute('src'), candidates);
+    if (next) {
         image.src = next;
         return;
     }
@@ -224,23 +224,20 @@ function recoverYouTubeThumbnail(event, videoId, catalogThumbnail) {
 
 /**
  * One thumbnail element for every card (Phase 1, 2026-10-12): 640px images on
- * cards, 320px on shelves, the catalog's own vertical image for Shorts, and a
+ * cards, 320px on shelves, YouTube's original-aspect frame for Shorts, and a
  * fallback ladder so no card is left blank.
  */
 function VideoThumbnail({ video, size = THUMBNAIL_SIZES.card, priority = false, vertical = false }) {
-    const catalogThumbnail = video?.thumbnail || null;
-    const src = vertical && /\/(oar\d*|oardefault)\./.test(String(catalogThumbnail || ''))
-        ? catalogThumbnail
-        : youtubeThumbnail(video.videoId, size);
+    const candidates = thumbnailCandidates(video.videoId, { size, vertical, catalogThumbnail: video?.thumbnail });
     return (
         <img
-            src={src}
+            src={candidates[0]}
             alt=""
             loading={priority ? 'eager' : 'lazy'}
             fetchpriority={priority ? 'high' : 'auto'}
             decoding="async"
-            onLoad={event => recoverYouTubeThumbnail(event, video.videoId, catalogThumbnail)}
-            onError={event => recoverYouTubeThumbnail(event, video.videoId, catalogThumbnail)}
+            onLoad={event => recoverYouTubeThumbnail(event, candidates)}
+            onError={event => recoverYouTubeThumbnail(event, candidates)}
         />
     );
 }
@@ -2414,7 +2411,7 @@ export default function VideoLibraryPage() {
                                             tabIndex={0}
                                             aria-label={`Play ${short.title}`}
                                         >
-                                            <VideoThumbnail video={short} size={THUMBNAIL_SIZES.card} vertical />
+                                            <VideoThumbnail video={short} vertical />
                                             <div className="vl-short-copy">
                                                 <strong>{short.title}</strong>
                                                 <span>{formatViewCount(short.views) || short.duration}</span>
