@@ -256,7 +256,7 @@ test('marketplace account actions use restrained readable controls without chang
   assert.match(RECEIPT, /Track Package On Carrier Site/);
 });
 
-test('account records and informational details use restrained readable frames', () => {
+test('account cards remain readable while informational detail frames are removed', () => {
   for (const source of [ORDERS, WISHLIST, RECEIPT]) {
     assert.doesNotMatch(source, /src\/components\/marketplace-console/);
     assert.doesNotMatch(source, /MarketplaceConsole(?:Panel|StatusRow|PageConsole)/);
@@ -301,10 +301,10 @@ test('account records and informational details use restrained readable frames',
     DETAIL_CSS.indexOf('.mediaFrame')
   );
   assert.match(detailHeroStyles, /width:\s*min\(100%, 1000px\)/);
-  assert.match(detailHeroStyles, /border:\s*1px solid #365468/);
-  assert.match(detailHeroStyles, /background:\s*#07131b;/);
-  assert.match(detailHeroStyles, /box-shadow:/);
-  assert.match(detailHeroStyles, /\.heroReward::before,[\s\S]*?background:\s*#58d9ff/);
+  assert.match(detailHeroStyles, /border:\s*0;/);
+  assert.match(detailHeroStyles, /background:\s*transparent;/);
+  assert.match(detailHeroStyles, /box-shadow:\s*none;/);
+  assert.match(detailHeroStyles, /\.heroReward::before,[\s\S]*?background:\s*transparent/);
   assert.doesNotMatch(
     detailHeroStyles,
     /(?:linear|radial|repeating-linear)-gradient|spade-console|shark-panel|repeat-y|container-type|url\(/
