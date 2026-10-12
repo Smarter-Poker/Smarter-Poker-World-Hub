@@ -187,7 +187,7 @@ test('persistent Reel sheets stay open through playback and the canonical menu o
 
  test('the actual navigation handler preserves Reel query updates and stops media on real exits', () => {
   const source = readFileSync(new URL('../pages/_app.js', import.meta.url), 'utf8');
-  const start = source.indexOf('    const handleStart = (nextUrl');
+  const start = source.indexOf('    const preservesReelsMedia =');
   const end = source.indexOf('    const handleComplete =', start);
   const body = source.slice(start, end) + '\nreturn handleStart;';
   function run(nextUrl, options, current = 'https://smarter.poker/hub/reels?category=poker') {
@@ -216,3 +216,18 @@ test('persistent Reel sheets stay open through playback and the canonical menu o
     assert.equal(exited.frame.src,'about:blank');
   }
  });
+
+test('completion and error events preserve the active Reels viewport ownership', () => {
+  const source = readFileSync(new URL('../pages/_app.js', import.meta.url), 'utf8');
+  const start = source.indexOf('    const preservesReelsMedia =');
+  const end = source.indexOf("    router.events.on('routeChangeStart', handleStart);", start);
+  const calls = [];
+  const document = {body:{classList:{remove(){calls.push('remove');}},style:{}},documentElement:{classList:{remove(){calls.push('root-remove');}}}};
+  const window = {location:new URL('https://smarter.poker/hub/reels?category=poker'),scrollTo(){calls.push('scroll');}};
+  const handlers = new Function('window','document','setIsNavigating','advanceScrollLockGeneration','sweepStaleScrollLocks','clearBodyScrollLockIfUnheld','setTimeout','releaseMediaStreamOnLeave','router', source.slice(start,end) + '\nreturn {handleComplete,handleError};')(window,document,()=>calls.push('navigating'),()=>{},()=>calls.push('sweep'),()=>calls.push('clear'),()=>{},()=>{},{pathname:'/hub/reels'});
+  handlers.handleComplete('/hub/reels?category=sports',{shallow:true});
+  handlers.handleError(new Error('cancelled'),'/hub/reels?category=sports',{shallow:true});
+  assert.deepEqual(calls,[]);
+  handlers.handleComplete('/hub/social-media',{shallow:false});
+  assert.ok(calls.includes('sweep')); assert.ok(calls.includes('root-remove'));
+});
