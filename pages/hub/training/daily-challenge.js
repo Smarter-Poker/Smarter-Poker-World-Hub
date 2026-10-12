@@ -177,7 +177,8 @@ export default function DailyChallengePage() {
       if (res.status === 401) {
         // A stored session that could not be refreshed is a signed-out visit:
         // read the shared hand without the stale credential.
-        res = await fetch('/api/training/hand-of-the-day', {
+        res = await authedFetch('/api/training/hand-of-the-day', {
+          anonymous: true,
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });

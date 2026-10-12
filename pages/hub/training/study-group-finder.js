@@ -95,7 +95,8 @@ export default function StudyGroupFinderPage() {
         // A stored session that could not be refreshed reads the directory
         // signed out instead of failing.
         anonymous = true;
-        response = await fetch('/api/training/study-groups', {
+        response = await authedFetch('/api/training/study-groups', {
+          anonymous: true,
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });

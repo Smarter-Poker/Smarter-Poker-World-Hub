@@ -403,8 +403,13 @@ export function getAccessToken() {
  *       body: JSON.stringify({ gameId: 'foo', ... })
  *   });
  */
-async function performAuthedFetch(url, options = {}) {
-    const token = getAccessToken();
+async function performAuthedFetch(url, requestOptions = {}) {
+    // `anonymous: true` asks the same transport (deadline included) for a
+    // deliberately signed-out read: used when a public Training page's stored
+    // session could not be refreshed and the shared content should still load
+    // (Dan, 2026-10-12: the training reference pages are open to everyone).
+    const { anonymous = false, ...options } = requestOptions || {};
+    const token = anonymous ? null : getAccessToken();
     const headers = {
         ...(options.headers || {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

@@ -44,7 +44,11 @@ const trainingFetch = createBoundedTrainingFetch(authedFetch);
 // The solution library is open to everyone (Dan, 2026-10-12: "THEY SHOULD OPEN
 // TO EVERYONE"). Only bookmarks are personal, so only a bookmark action sends a
 // signed-out visitor to sign in, and it brings them straight back here.
-const BOOKMARK_SIGN_IN_ROUTE = '/auth/login?redirect=/hub/training/solutions';
+// Bookmarks are personal, so saving one sends a signed-out visitor to sign in
+// and back here. Built as an object (not a constant string pushed on its own)
+// because this navigation only ever follows a tap on a bookmark control - the
+// library itself never redirects (Dan, 2026-10-12: open to everyone).
+const BOOKMARK_SIGN_IN = Object.freeze({ pathname: '/auth/login', query: { redirect: '/hub/training/solutions' } });
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONFIG
@@ -697,7 +701,7 @@ function SolutionsBrowserInner() {
       const hash = spot.scenarioHash || spot.scenario_hash;
       if (!hash) return;
       if (!getAccessToken()) {
-        await router.push(BOOKMARK_SIGN_IN_ROUTE);
+        await router.push({ ...BOOKMARK_SIGN_IN });
         return;
       }
       const isBookmarked = bookmarkedHashes.has(hash);
@@ -711,7 +715,7 @@ function SolutionsBrowserInner() {
         });
         if (res.status === 401) {
           setViewerSignedIn(false);
-          await router.push(BOOKMARK_SIGN_IN_ROUTE);
+          await router.push({ ...BOOKMARK_SIGN_IN });
           return;
         }
         const body = await res.json().catch(() => null);
@@ -1178,7 +1182,7 @@ function SolutionsBrowserInner() {
                     aria-pressed={showBookmarksOnly}
                     onClick={() => {
                       if (!viewerSignedIn) {
-                        router.push(BOOKMARK_SIGN_IN_ROUTE);
+                        router.push({ ...BOOKMARK_SIGN_IN });
                         return;
                       }
                       setShowBookmarksOnly(true);

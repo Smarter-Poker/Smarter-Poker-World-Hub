@@ -111,8 +111,8 @@ test('the Solutions page has no sign-in gate and only bookmarks prompt sign-in',
   // The personal bookmark API is not called without a session token.
   assert.match(solutionsPage, /const signedIn = Boolean\(getAccessToken\(\)\);[\s\S]*?if \(!signedIn\) \{[\s\S]*?return;[\s\S]*?trainingFetch\('\/api\/training\/bookmark-solution'\)/);
   // Bookmark controls send a signed-out visitor to the existing sign-in route and back.
-  assert.match(solutionsPage, /const BOOKMARK_SIGN_IN_ROUTE = '\/auth\/login\?redirect=\/hub\/training\/solutions';/);
-  assert.match(solutionsPage, /if \(!getAccessToken\(\)\) \{\s*await router\.push\(BOOKMARK_SIGN_IN_ROUTE\);/);
+  assert.match(solutionsPage, /const BOOKMARK_SIGN_IN = Object\.freeze\(\{ pathname: '\/auth\/login', query: \{ redirect: '\/hub\/training\/solutions' \} \}\);/);
+  assert.match(solutionsPage, /if \(!getAccessToken\(\)\) \{\s*await router\.push\(\{ \.\.\.BOOKMARK_SIGN_IN \}\);/);
   assert.match(solutionsPage, /Sign in to bookmark this spot/);
 });
 
