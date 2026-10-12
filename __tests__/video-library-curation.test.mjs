@@ -10,6 +10,7 @@ import {
     isDisplayableVideoTitle,
     mixedContentFilter,
     nextThumbnailFallback,
+    thumbnailCandidates,
     youtubeThumbnail,
 } from '../src/lib/videoLibraryCuration.mjs';
 
@@ -77,13 +78,20 @@ test('reposted short clips collapse, separate long sessions never do', () => {
     assert.match(PAGE, /libraryFilter === 'ALL' \? dedupeVideos\(unique\) : unique/);
 });
 
-test('thumbnails start phone-sized and fall back instead of going blank', () => {
+test('thumbnails start phone-sized, Shorts use the vertical frame, and nothing goes blank', () => {
     assert.equal(youtubeThumbnail('abcdefghijk'), 'https://i.ytimg.com/vi/abcdefghijk/sddefault.jpg');
-    assert.equal(nextThumbnailFallback('https://i.ytimg.com/vi/x/sddefault.jpg', 'x', null), 'https://i.ytimg.com/vi/x/hqdefault.jpg');
-    assert.equal(nextThumbnailFallback('https://i.ytimg.com/vi/x/mqdefault.jpg', 'x', 'https://i.ytimg.com/vi/x/oar2.jpg'), 'https://i.ytimg.com/vi/x/oar2.jpg');
-    assert.equal(nextThumbnailFallback('https://i.ytimg.com/vi/x/oar2.jpg', 'x', 'https://i.ytimg.com/vi/x/oar2.jpg'), null);
+    assert.deepEqual(thumbnailCandidates('x', { catalogThumbnail: 'https://i.ytimg.com/vi/x/maxresdefault.jpg' }), [
+        'https://i.ytimg.com/vi/x/sddefault.jpg',
+        'https://i.ytimg.com/vi/x/hqdefault.jpg',
+        'https://i.ytimg.com/vi/x/mqdefault.jpg',
+        'https://i.ytimg.com/vi/x/maxresdefault.jpg',
+    ]);
+    const shorts = thumbnailCandidates('x', { vertical: true });
+    assert.equal(shorts[0], 'https://i.ytimg.com/vi/x/oar2.jpg');
+    assert.equal(nextThumbnailFallback(shorts[0], shorts), 'https://i.ytimg.com/vi/x/hqdefault.jpg');
+    assert.equal(nextThumbnailFallback(shorts[shorts.length - 1], shorts), null);
+    assert.equal(thumbnailCandidates('x', { catalogThumbnail: 'https://evil.example/x.jpg' }).length, 3);
     assert.doesNotMatch(PAGE, /getThumbnail/);
-    assert.doesNotMatch(PAGE, /<img\s+src=\{`https:\/\/img\.youtube\.com\/vi\/\$\{[^}]+\}\/maxresdefault/);
     assert.match(PAGE, /function VideoThumbnail\(/);
-    assert.match(PAGE, /<VideoThumbnail video=\{short\} size=\{THUMBNAIL_SIZES\.card\} vertical \/>/);
+    assert.match(PAGE, /<VideoThumbnail video=\{short\} vertical \/>/);
 });
