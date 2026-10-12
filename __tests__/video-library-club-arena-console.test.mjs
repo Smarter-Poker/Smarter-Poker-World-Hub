@@ -19,6 +19,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const PAGE = read('../pages/hub/video-library.js');
 const RAIL = read('../src/components/video-library/VideoLibraryCommandRail.jsx');
 const CSS = read('../src/styles/worlds/video-library.css');
+const CARDS = read('../src/lib/videoLibraryCards.js');
 
 test('no decorative console frame wraps the page, the rail or any dialog', () => {
   assert.doesNotMatch(PAGE, /VideoLibraryConsole|ConsoleCopy|ConsolePlateButton/);
@@ -57,9 +58,11 @@ test('feed cards are YouTube cards: full-width 16:9 media, avatar, title, one me
 });
 
 test('a creator line never shows a raw database id', () => {
-  assert.match(PAGE, /const UUID_LIKE = /);
-  assert.match(PAGE, /function getVideoChannel\(video\)/);
-  assert.match(PAGE, /find\(value => value && !UUID_LIKE\.test\(value\)\)/);
+  // Phase 2 (2026-10-12): the card copy moved to a module the watch pages share.
+  assert.match(CARDS, /const UUID_LIKE = /);
+  assert.match(CARDS, /export function getVideoChannel\(video\)/);
+  assert.match(CARDS, /find\(value => value && !UUID_LIKE\.test\(value\)\)/);
+  assert.match(PAGE, /from '\.\.\/\.\.\/src\/lib\/videoLibraryCards'/);
   assert.doesNotMatch(PAGE, /\{video\.source\.replace\('_', ' '\)\}/);
   assert.doesNotMatch(PAGE, /\{selectedVideo\.source\.replace\('_', ' '\)\}/);
 });

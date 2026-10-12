@@ -113,7 +113,7 @@ export function cleanVideoTitle(raw) {
     return text.split(' ').map(word => capitalizeWord(word, shouting)).join(' ');
 }
 
-function durationSeconds(duration) {
+export function durationSeconds(duration) {
     const parts = String(duration || '').split(':').map(Number);
     if (!parts.length || parts.some(part => !Number.isFinite(part))) return 0;
     return parts.reduce((total, part) => total * 60 + part, 0);

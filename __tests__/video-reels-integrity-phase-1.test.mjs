@@ -28,6 +28,9 @@ const REELS_FEED_API = read('../pages/api/reels/feed.js');
 const REELS_FEED_SERVER = read('../src/lib/server/reelsFeed.js');
 const REELS_CLIENT = read('../src/lib/reelsFeedClient.js');
 const VIDEO_CATALOG_API = read('../pages/api/video-library/catalog.js');
+// Video Library Phase 2 (2026-10-12): the catalog API reads its column list
+// and row normaliser from the module the watch pages and video sitemap share.
+const VIDEO_CATALOG_FIELDS = `${VIDEO_CATALOG_API}\n${read('../src/lib/videoLibraryWatch.mjs')}`;
 const VIDEO_AVAILABILITY = read('../src/lib/videoLibraryAvailability.js');
 const FEED_CACHE = read('../src/lib/feedCache.js');
 const YOUTUBE_FAILURE_API = read('../pages/api/youtube/report-embed-failure.js');
@@ -784,12 +787,12 @@ test('migration preserves legacy links while backfilling the new contract', () =
 });
 
 test('the Video Library itself fails closed on stale or ineligible availability', () => {
-  assert.match(VIDEO_CATALOG_API, /availability_status/);
+  assert.match(VIDEO_CATALOG_FIELDS, /availability_status/);
   assert.match(VIDEO_CATALOG_API, /video_library_public_catalog/);
   assert.match(MIGRATION, /CREATE OR REPLACE VIEW public\.video_library_public_catalog[\s\S]*fn_is_video_library_asset_eligible/i);
   assert.doesNotMatch(VIDEO_CATALOG_API, /from\(['"]youtube_embed_failures['"]\)/);
   assert.match(VIDEO_CATALOG_API, /nextOffset\s*=\s*offset\s*\+\s*rawRowCount/);
-  assert.match(VIDEO_CATALOG_API, /availability_checked_at/);
+  assert.match(VIDEO_CATALOG_FIELDS, /availability_checked_at/);
   assert.match(MIGRATION, /youtube_embed_failures[\s\S]*verification_status\s*=\s*'confirmed'/);
   assert.doesNotMatch(VIDEO_CATALOG_API, /SUPABASE_SERVICE_ROLE_KEY\s*\|\|/);
   assert.match(VIDEO_AVAILABILITY, /availabilityStatus/);

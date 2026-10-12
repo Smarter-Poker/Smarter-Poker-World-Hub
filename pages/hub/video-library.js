@@ -36,6 +36,13 @@ import { useModalHistory } from '../../src/hooks/useModalHistory';
 import { isVideoLibraryVideoAllowed } from '../../src/lib/videoLibraryAvailability';
 import { createVideoLibraryOwnerScope } from '../../src/lib/videoLibraryOwnerScope.mjs';
 import {
+    formatVideoAge,
+    formatViewCount,
+    getVideoChannel,
+    getVideoMetaLine,
+} from '../../src/lib/videoLibraryCards';
+import { watchPath } from '../../src/lib/videoLibraryWatch.mjs';
+import {
     THUMBNAIL_SIZES,
     dedupeVideos,
     nextThumbnailFallback,
@@ -240,51 +247,6 @@ function VideoThumbnail({ video, size = THUMBNAIL_SIZES.card, priority = false, 
             onError={event => recoverYouTubeThumbnail(event, candidates)}
         />
     );
-}
-
-// YouTube-style card copy (owner update 2026-10-11). Creator uploads carry a
-// UUID as their source id and the catalog falls back to that id when the row
-// has no attribution name, which put raw database ids under every creator
-// video. A channel line shows a real name or a plain fallback, never an id.
-const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function getVideoChannel(video) {
-    const sourceId = String(video?.source || '');
-    const known = SOURCES.find(source => source?.id && source.id !== 'ALL'
-        && source.id.toUpperCase() === sourceId.toUpperCase());
-    const name = [known?.name, video?.attributionName, video?.sourceName, sourceId.replace(/_/g, ' ')]
-        .map(value => String(value || '').trim())
-        .find(value => value && !UUID_LIKE.test(value)) || 'Independent Creator';
-    const initials = name.split(/\s+/).map(word => word[0] || '').join('').slice(0, 2).toUpperCase();
-    return { name, logo: known?.logo || null, initials };
-}
-
-function formatViewCount(views) {
-    const raw = String(views ?? '').trim();
-    if (!raw || raw === '0') return '';
-    if (/^\d+$/.test(raw)) {
-        const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(raw));
-        return `${compact} Views`;
-    }
-    return /views?$/i.test(raw) ? raw.replace(/views?$/i, match => match[0].toUpperCase() + match.slice(1)) : `${raw} Views`;
-}
-
-function formatVideoAge(value) {
-    const time = new Date(value || 0).getTime();
-    if (!Number.isFinite(time) || time <= 0) return '';
-    const seconds = Math.max(0, (Date.now() - time) / 1000);
-    const units = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
-    for (const [unit, size] of units) {
-        const count = Math.floor(seconds / size);
-        if (count >= 1) return `${count} ${unit[0].toUpperCase()}${unit.slice(1)}${count === 1 ? '' : 's'} Ago`;
-    }
-    return 'Just Now';
-}
-
-function getVideoMetaLine(video) {
-    return [getVideoChannel(video).name, formatViewCount(video?.views), formatVideoAge(video?.publishedAt || video?.scrapedAt)]
-        .filter(Boolean)
-        .join(' \u00b7 ');
 }
 
 function ChannelAvatar({ video, channel = getVideoChannel(video) }) {
@@ -1283,7 +1245,8 @@ export default function VideoLibraryPage() {
 
     // Share a video — copy deep-link to clipboard and show toast
     const handleShareVideo = useCallback(async (video) => {
-        const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/video-library?v=${video.videoId}`;
+        // Phase 2: share the video's own page, which previews as that video.
+        const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}${watchPath(video)}`;
         try {
             const copied = await copyTextToClipboard(url);
             if (!copied) throw new Error('Copy command was rejected');
@@ -2346,11 +2309,18 @@ export default function VideoLibraryPage() {
                         <div
                             className={`vl-video-card${isFeatured ? ' is-featured' : ''}`}
                         >
-                            <button
-                                type="button"
+                            {/* A real link to the video's own page (Phase 2): crawlers and
+                                "open in new tab" follow it; a plain tap or click opens the
+                                in-page viewer instead, exactly as before. */}
+                            <a
+                                href={watchPath(video)}
                                 className="vl-card-open-button"
                                 aria-label={`${openLabel} ${video.title}${progress > 0 ? `, ${roundedProgress}% complete` : ''}`}
-                                onClick={() => handleOpenVideo(video)}
+                                onClick={(event) => {
+                                    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                                    event.preventDefault();
+                                    handleOpenVideo(video);
+                                }}
                             />
                             {/* Thumbnail */}
                             <div className="vl-video-thumb">

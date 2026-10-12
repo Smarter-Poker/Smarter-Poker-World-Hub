@@ -24,6 +24,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const CATALOG = read('../pages/api/video-library/catalog.js');
 const DISCOVERY = read('../pages/api/video-library/discovery.js');
 const PAGE = read('../pages/hub/video-library.js');
+const WATCH = read('../src/lib/videoLibraryWatch.mjs');
 
 test('All Videos is poker only in both the catalog and search APIs', () => {
     assert.deepEqual([...VIDEO_LIBRARY_POKER_TYPES], ['cash', 'tournament']);
@@ -63,7 +64,8 @@ test('titles lose emoji, hashtags and shouting, and follow Title Case', () => {
         ['2nd place AA vs KK', '2nd Place AA vs KK'],
     ];
     for (const [raw, expected] of cases) assert.equal(cleanVideoTitle(raw), expected, raw);
-    assert.match(CATALOG, /title: cleanVideoTitle\(row\.title\),\s*rawTitle: row\.title/);
+    assert.match(WATCH, /title: cleanVideoTitle\(row\.title\),\s*rawTitle: row\.title/);
+    assert.match(CATALOG, /const normaliseVideo = normaliseVideoRow;/);
     assert.match(DISCOVERY, /title: cleanVideoTitle\(row\.title\), rawTitle: row\.title/);
 });
 
