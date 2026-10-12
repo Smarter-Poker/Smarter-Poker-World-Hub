@@ -1861,6 +1861,7 @@
 .vl-watch-about dl > div {
     display: grid;
     grid-template-columns: 140px minmax(0, 1fr);
+    align-items: center;
     gap: 12px;
     font-size: 14px;
 }
@@ -1875,6 +1876,10 @@
 }
 
 .vl-watch-about a {
+    display: inline-flex;
+    align-items: center;
+    /* The channel link is a tap target on a phone: 44px, not one text line. */
+    min-height: 44px;
     color: var(--vl-blue);
 }
 
