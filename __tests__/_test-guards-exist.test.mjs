@@ -292,6 +292,7 @@ import './training-reference-is-public-b.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
 import './training-request-deadline.test.mjs';
 import './training-reference-is-public-a.test.mjs';
+import './training-hub-progressive-grid.test.mjs';
 import './training-surface-inventory.test.mjs';
 // Training reference pages open to everyone (Dan, 2026-10-12: "THEY SHOULD
 // OPEN TO EVERYONE"): anonymous reads, signed-in writes, no anonymous writes.
