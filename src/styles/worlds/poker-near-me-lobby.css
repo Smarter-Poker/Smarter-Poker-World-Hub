@@ -165,16 +165,21 @@ body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-search-form {
 }
 
 body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-search-wrap {
-  gap: 1.6cqw;
-  min-height: 0 !important;
-  padding: 2.41cqw 6.73cqw 4.98cqw 6.78cqw !important;
-  overflow: visible;
+  gap: 8px;
+  min-height: 54px !important;
+  aspect-ratio: auto;
+  padding: 4px 8px !important;
+  overflow: hidden;
+  border: 1px solid #53606a !important;
+  border-radius: 3px !important;
+  background: #05080b !important;
+  box-shadow: inset 0 1px 0 #252d35 !important;
 }
 
 body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-search-icon {
   position: static !important;
-  width: 9cqw;
-  height: 9cqw;
+  width: 36px;
+  height: 36px;
   flex: none;
   transform: none;
 }
@@ -188,11 +193,12 @@ body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-search-input:
   outline: none !important;
 }
 
-/* A visible focus ring on the painted face, not on the box around it. */
+/* One uninterrupted frame. Focus follows the same clean aperture. */
 body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-search-wrap::after {
   content: '' !important;
   position: absolute;
-  inset: 2.41cqw 6.73cqw 4.98cqw 6.78cqw;
+  inset: 2px;
+  border-radius: 2px;
   pointer-events: none;
   outline: 2px solid transparent;
 }
@@ -201,34 +207,10 @@ body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-search-wrap:h
   outline-color: #8fd4ff;
 }
 
-/* Voice: the painted steel action plate (348 x 114) at its own ratio, sized
-   inside the well's face. The button stays a 44px target around it. */
-.pnm-lobby-page :is(.lobby-voice-btn, .lobby-gps-btn) {
+/* GPS retains a comfortable touch target without a second enclosing plate. */
+.pnm-lobby-page .lobby-gps-btn {
   min-width: 44px !important;
   min-height: 44px !important;
-}
-
-body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-voice-btn {
-  display: grid;
-  width: 22cqw !important;
-  height: 44px !important;
-  flex: none;
-  padding: 0 !important;
-  place-items: center;
-  color: #e4e7ec !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
-  box-shadow: none !important;
-  font: 800 12px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-voice-btn:active .lobby-voice-btn__label {
-  filter: brightness(1.35);
 }
 
 /* GPS: the painted location holder alone. No box behind it. */
@@ -257,6 +239,13 @@ body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-gps-btn:disab
   cursor: progress;
 }
 
+body.world-poker-near-me .pnm-lobby-page .lobby-command-row .lobby-location-status {
+  min-height: 44px;
+  aspect-ratio: auto;
+  padding: 4px 8px;
+  background: none !important;
+}
+
 /* Location prompts: printed on the same well, centred on its face. The
    pictogram holders are sized to the face so they never sit on the chrome,
    and nothing prints below 12px. */
@@ -265,15 +254,17 @@ body.world-poker-near-me .pnm-lobby-page .lobby-topbar .lobby-location-prompts {
 }
 
 body.world-poker-near-me .pnm-lobby-page .lobby-location-prompts .lobby-location-prompt {
-  min-height: 0;
-  gap: 2cqw;
-  padding: 2.41cqw 6.73cqw 4.98cqw 6.78cqw;
-  overflow: visible;
+  min-height: 44px;
+  aspect-ratio: auto;
+  gap: 8px;
+  padding: 4px 8px;
+  overflow: hidden;
+  background: none !important;
 }
 
 body.world-poker-near-me .pnm-lobby-page .lobby-location-prompts .lobby-location-prompt > .pnc-icon {
-  width: 9cqw;
-  height: 9cqw;
+  width: 36px;
+  height: 36px;
   flex: none;
 }
 
@@ -349,47 +340,6 @@ body.world-poker-near-me .pnm-lobby-page .lobby-location-prompts .lobby-location
 /* ─── STATUS PANEL ─── (painted three-slice panel; values carry console ink) */
 body.world-poker-near-me .pnm-lobby-page .lobby-stats-panel .lobby-stat__label {
   font-size: 12px;
-}
-
-/* ─── VOICE SEARCH SHEET ───
-   The sheet is one painted console (title in its head, VoiceSearch printed on
-   its glass). The shared sheet's rounded card, border, handle pill and shadow
-   are switched off for this sheet only, so no frame sits on the frame. */
-body.world-poker-near-me .pnm-sheet.pnm-voice-sheet {
-  width: min(520px, 100%);
-  padding: 0 8px 8px;
-  border: 0 !important;
-  border-radius: 0 !important;
-  /* Solid black, not a card: the console's transparent crest margins must
-     show black, never the page behind the scrim. */
-  background: #010306 !important;
-  box-shadow: none !important;
-}
-
-body.world-poker-near-me .pnm-voice-sheet .pnm-sheet__handle {
-  display: none;
-}
-
-body.world-poker-near-me .pnm-voice-sheet .pnm-sheet__head {
-  justify-content: flex-end;
-  padding: 0;
-  border: 0;
-}
-
-body.world-poker-near-me .pnm-voice-sheet .pnm-sheet__close .pnc-icon {
-  width: 44px;
-  height: 44px;
-  flex: none;
-}
-
-body.world-poker-near-me .pnm-voice-sheet .pnm-sheet__close:focus-visible {
-  outline: 2px solid #8fd4ff;
-  outline-offset: 0;
-  box-shadow: none;
-}
-
-body.world-poker-near-me .pnm-voice-sheet .pnm-voice-console .pnc__body {
-  background-color: #010306;
 }
 
 /* ─── STATUS TOASTS (location found, geofence notice) ───
@@ -511,14 +461,6 @@ body.world-poker-near-me .pnm-lobby-toast .pnm-lobby-toast__close:focus-visible 
      min-height: 420px + object-fit: cover cropped both side columns at 375px
      ("Trip Planner" and "Tournament Alerts" were cut off) and shifted the
      percentage-positioned hotspots off their icons. */
-}
-
-/* The voice sheet is a bottom sheet under the fixed app footer on phones:
-   its last example row and the console's closing foot scroll clear of it. */
-@media (max-width: 600px) {
-  body.world-poker-near-me .pnm-sheet.pnm-voice-sheet {
-    padding-bottom: calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 8px);
-  }
 }
 
 /* ─── REDUCED MOTION ─── */

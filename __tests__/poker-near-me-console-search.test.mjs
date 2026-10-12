@@ -43,7 +43,6 @@ const SEARCH_CSS = 'src/styles/worlds/poker-near-me-console-search.css';
 const OVERLAY = 'src/components/poker-near-me/lobby/LobbyOverlay.jsx';
 const LOBBY = 'pages/hub/poker-near-me/lobby.js';
 const LOBBY_CSS = 'src/styles/worlds/poker-near-me-lobby.css';
-const VOICE = 'src/components/poker-near-me/VoiceSearch.jsx';
 
 test('actual lobby hydration effects never replace the saved query with initial empty state', async () => {
   const require = createRequire(import.meta.url);
@@ -427,7 +426,7 @@ test('search stylesheet is scoped, painted, hover-free and beats the legacy comm
   assert.match(css, /\.gso-detail-console \{[^}]*background: #010306 !important;/);
 });
 
-test('lobby: painted Voice plate, no duplicate eyebrow, no delayed fade, honest counts', () => {
+test('lobby: no voice option, no duplicate eyebrow, no delayed fade, honest counts', () => {
   const css = read(LOBBY_CSS);
   const overlay = read(OVERLAY);
   const lobby = read(LOBBY);
@@ -436,7 +435,6 @@ test('lobby: painted Voice plate, no duplicate eyebrow, no delayed fade, honest 
   assert.doesNotMatch(css, /\.lobby-topbar::before/);
   assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(|:hover/);
   assert.doesNotMatch(css, /\.lobby-search-form \{[^}]*opacity: 0/);
-  assert.match(css, /body\.world-poker-near-me \.pnm-lobby-page \.lobby-command-row \.lobby-voice-btn \{[^}]*button-secondary\.png[^}]*\}/);
   assert.match(css, /\.lobby-command-row \.lobby-gps-btn \{[^}]*background: none !important;/);
   assert.match(css, /\.lobby-card-scroll picture img \{[^}]*filter: none;/);
   assert.match(css, /\.pnm-lobby-page \.lobby-hotspot:focus-visible \{[^}]*outline: 2px solid #8fd4ff;/);
@@ -445,8 +443,7 @@ test('lobby: painted Voice plate, no duplicate eyebrow, no delayed fade, honest 
   assert.match(css, /min-height: 44px !important/);
   assert.match(css, /\.pnm-lobby-page \{[^}]*touch-action: pan-y;/s);
 
-  assert.match(overlay, /<span className="lobby-voice-btn__label">Voice<\/span>/);
-  assert.match(overlay, /aria-label="Voice search"/);
+  assert.doesNotMatch(overlay, /onVoiceClick|lobby-voice-btn|aria-label="Voice search"/);
   // CLS reservation and the eager, high-priority grid stay; the attribute is the DOM spelling.
   assert.match(overlay, /src="\/images\/lobby-pods\/poker-near-me-grid\.webp"[\s\S]*?loading="eager"[\s\S]*?fetchpriority="high"[\s\S]*?width=\{1024\}[\s\S]*?height=\{1024\}/);
   assert.doesNotMatch(overlay, /fetchPriority=/);
@@ -475,16 +472,13 @@ test('lobby keeps its route, SEO, sounds, telemetry and sheets', () => {
     /<section id="pnm-lobby-main"/,
     /Skip To Poker Near Me Choices/,
     /import \{ playClickSound, playPanelOpenSound, playPanelCloseSound \}/,
-    /useModalHistory\(showVoiceSearch, closeVoiceSearch\)/,
-    /useScrimDismiss\(closeVoiceSearch\)/,
-    /className="pnm-sheet-scrim"/,
-    /className="sp-icon-btn pnm-sheet__close"/,
-    /<VoiceSearch variant="embedded" onResult=\{handleVoiceResult\} \/>/,
+    /useModalHistory\(showPanel && !!panelContent, closePanel\)/,
+    /useModalHistory\(showLoginPrompt, closeLoginPrompt\)/,
+    /useModalHistory\(showEnablePopup, closeEnablePopup\)/,
+    /useModalHistory\(showManualLocation, closeManualLocation\)/,
     /onSearchBarClick=\{\(\) => setShowGlobalSearch\(true\)\}/,
-    /onVoiceClick=\{\(\) => setShowVoiceSearch\(true\)\}/,
   ]) assert.match(lobby, pin, String(pin));
-  // The voice sheet is one painted console with the painted close holder.
-  assert.match(lobby, /className="pnm-sheet pnm-voice-sheet"[\s\S]*?<PokerNearMeConsole[\s\S]*?titleId="pnm-voice-title"[\s\S]*?pill="English"[\s\S]*?<PokerNearMeConsoleIcon name="close" \/>/);
+  assert.doesNotMatch(lobby, /VoiceSearch|showVoiceSearch|handleVoiceResult|voiceDialogRef|voiceScrim/);
   assert.doesNotMatch(lobby, /&times;/);
   // Lobby status toasts are printed on the painted panel, in Title Case.
   assert.match(lobby, /className="pnm-lobby-toast pnm-lobby-toast--location"/);
@@ -493,18 +487,60 @@ test('lobby keeps its route, SEO, sounds, telemetry and sheets', () => {
   assert.match(lobby, /aria-label="Dismiss geofence notice"/);
 });
 
-test('VoiceSearch prints on painted plates and keeps speech behaviour', () => {
-  const src = stripComments(read(VOICE));
-  assert.doesNotMatch(src, /<svg\b|(?:linear|radial|conic)-gradient\(|:hover|border-radius:\s*[1-9]|hsl\(/);
-  assert.match(src, /button-primary\.png/);
-  assert.match(src, /search-well\.webp/);
-  assert.match(src, /<PokerNearMePanelShell as="div" className="voice-popover"/);
-  assert.match(src, /aria-label=\{listening \? 'Stop Listening' : \(embedded \? 'Start Listening' : 'Voice Search'\)\}/);
-  for (const pin of [
-    /window\.SpeechRecognition \|\| window\.webkitSpeechRecognition/,
-    /recognition\.interimResults = true;/,
-    /recognitionRef\.current\.abort\(\)/,
-    /onResult\(result\);/,
-    /setError\('Microphone Permission Denied'\)/,
-  ]) assert.match(src, pin, String(pin));
+test('all Poker Near Me page owners remove the recognizer import, floating option and voice dialog hooks', () => {
+  for (const file of [LOBBY, 'pages/hub/poker-near-me/[pnmTab].js', OVERLAY,
+    'src/components/poker-near-me/lobby/useLobbyInteractionController.js']) {
+    assert.doesNotMatch(stripComments(read(file)), /VoiceSearch|showVoiceSearch|onVoiceClick|voiceDialogRef|voiceCloseBtnRef|voiceScrim|normalizeVoiceFilters|SpeechRecognition/,
+      `${file} must not load or wire a removed voice option`);
+  }
+});
+
+test('actual lobby overlay has no voice option while pointer, keyboard search, GPS and all destinations stay wired', async () => {
+  const require = createRequire(import.meta.url);
+  const React = require('react');
+  const renderer = require('react-test-renderer');
+  const ts = require('typescript');
+  const compiled = ts.transpileModule(read(OVERLAY), {
+    fileName: 'LobbyOverlay.jsx', compilerOptions: {
+      jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, esModuleInterop: true,
+    },
+  }).outputText;
+  const module = { exports: {} };
+  const primitives = {
+    PokerNearMeConsoleIcon: ({ name }) => React.createElement('span', { 'data-icon': name }),
+    PokerNearMePanelShell: ({ children, as = 'section', ...props }) => React.createElement(as, props, children),
+  };
+  const componentRequire = (name) => name === 'react' ? React : name === '../PokerNearMeConsole' ? primitives : require(name);
+  new Function('require', 'module', 'exports', compiled)(componentRequire, module, module.exports);
+  let search = 0; let gps = 0; let prevented = 0; let tree;
+  const destinations = [];
+  try {
+    await renderer.act(async () => {
+      tree = renderer.create(React.createElement(module.exports.default, {
+        searchQuery: 'Las Vegas NLH', gpsActive: false, gpsLoading: false,
+        onSearchBarClick: () => { search++; }, onGpsClick: () => { gps++; },
+        onPodSelect: (id) => destinations.push(id),
+        // A stale caller cannot bring the removed option back.
+        onVoiceClick: () => { throw new Error('Removed voice callback invoked'); },
+      }));
+    });
+    assert.doesNotMatch(JSON.stringify(tree.toJSON()), /Voice|SpeechRecognition|lobby-voice/);
+    const searchControl = tree.root.findByProps({ className: 'lobby-search-input' });
+    await renderer.act(async () => {
+      searchControl.props.onClick();
+      for (const key of ['Enter', ' ']) searchControl.props.onKeyDown({ key, preventDefault() { prevented++; } });
+      searchControl.props.onKeyDown({ key: 'ArrowDown', preventDefault() { throw new Error('Navigation key intercepted'); } });
+      tree.root.findByProps({ 'aria-label': 'Use GPS location' }).props.onClick();
+    });
+    assert.equal(search, 3); assert.equal(prevented, 2); assert.equal(gps, 1);
+    const links = tree.root.findAll((node) => node.type === 'a' && node.props.className?.includes('lobby-hotspot'));
+    assert.equal(links.length, 12);
+    for (const link of links) {
+      assert.match(link.props.href, /^\/hub\//);
+      await renderer.act(async () => link.props.onClick({ button: 0, preventDefault() {} }));
+    }
+    assert.deepEqual(destinations, ['nearme', 'homegames', 'livegames', 'tours', 'mapview', 'calendar', 'series', 'roadtrip', 'daily', 'favorites', 'social', 'alerts']);
+  } finally {
+    if (tree) await renderer.act(async () => tree.unmount());
+  }
 });

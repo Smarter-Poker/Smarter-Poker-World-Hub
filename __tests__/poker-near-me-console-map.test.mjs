@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import { haversineMiles } from '../src/components/poker-near-me/pnm-utils.js';
 import {
   attachPokerPopupViewportGuard,
@@ -20,6 +24,105 @@ import {
 
 const root = new URL('../', import.meta.url);
 const source = (path) => readFile(new URL(path, root), 'utf8');
+
+test('the real map frame opens map-first without a modal or redundant frame and retains one map', async () => {
+  const require = createRequire(import.meta.url);
+  const React = require('react');
+  const ts = require('typescript');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const readCandidate = (filename) => process.env.PNM_MAP_LAYOUT_REV
+    ? execFileSync('git', ['show', `${process.env.PNM_MAP_LAYOUT_REV}:${filename}`], { encoding: 'utf8' })
+    : readFileSync(new URL(filename, root), 'utf8');
+  const modules = new Map();
+  function load(filename) {
+    if (modules.has(filename)) return modules.get(filename).exports;
+    const module = { exports: {} };
+    modules.set(filename, module);
+    const code = ts.transpileModule(readCandidate(filename), { compilerOptions: {
+      esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX,
+      module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022,
+    } }).outputText;
+    new Function('require', 'module', 'exports', code)((name) => {
+      if (!name.startsWith('.')) return require(name);
+      const base = path.posix.normalize(path.posix.join(path.posix.dirname(filename), name));
+      const found = [base, base + '.js', base + '.jsx'].find((candidate) => existsSync(new URL(candidate, root)));
+      assert.ok(found, `actual dependency ${name} exists`);
+      return load(found);
+    }, module, module.exports);
+    return module.exports;
+  }
+  const Frame = load('src/components/poker-near-me/MapSurfaceFrame.jsx').default;
+  const html = renderToStaticMarkup(React.createElement(Frame, { title: 'National Poker Map' },
+    React.createElement('div', { 'data-real-map-subtree': 'one' }, 'Mapped venue data')));
+  assert.match(html, /data-pnm-map-layout="viewport"/);
+  assert.match(html, /role="region"/);
+  assert.match(html, /data-map-fullscreen="false"/);
+  assert.match(html, /Expand National Poker Map to fullscreen/);
+  assert.doesNotMatch(html, /aria-modal="true"|role="dialog"|pnm-map-surface__foot/);
+  assert.equal((html.match(/data-real-map-subtree="one"/g) || []).length, 1);
+
+  const css = require('postcss').parse(readCandidate('src/styles/worlds/poker-near-me-console-map.css'));
+  const declarations = (selector) => {
+    const found = css.nodes.find((node) => node.type === 'rule' && node.selector === selector);
+    assert.ok(found, `${selector} has an authoritative rule`);
+    return Object.fromEntries(found.nodes.filter((node) => node.type === 'decl').map((node) => [node.prop, node.value]));
+  };
+  const surface = declarations('body.world-poker-near-me .pnm-map-surface');
+  assert.equal(surface.width, '100%');
+  assert.equal(surface['max-width'], 'none');
+  assert.equal(surface.height, 'calc(100dvh - var(--pnm-map-page-chrome, 112px))');
+  assert.equal(surface.transition, 'none');
+  assert.equal(surface.animation, 'none');
+  const header = declarations('body.world-poker-near-me .pnm-map-surface__header');
+  assert.equal(header.display, 'flex');
+  assert.equal(header['min-height'], '56px');
+  assert.equal(header.background, '#020406');
+  assert.equal(header['flex-wrap'], 'nowrap');
+  const controls = declarations("body.world-poker-near-me .pnm-map-surface[data-pnm-map-layout='viewport'] .pnm-map-surface__controls");
+  assert.equal(controls.width, 'max-content', 'legacy mobile 100% grid cannot consume the title');
+  assert.equal(controls['flex-wrap'], 'nowrap');
+  const children = declarations('body.world-poker-near-me .pnm-map-surface__controls > *');
+  assert.equal(children.width, 'auto', 'legacy 100% children cannot overlap siblings');
+  assert.equal(children['min-width'], '44px');
+  const fullscreen = declarations('body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__header');
+  assert.equal(fullscreen['min-height'], '56px', 'legacy 112px fullscreen head is retired');
+  const mobile = css.nodes.find((node) => node.type === 'atrule' && node.name === 'media' && node.params === '(max-width: 600px)');
+  const mobileButton = mobile.nodes.find((node) => node.type === 'rule' && node.selector === "body.world-poker-near-me .pnm-map-surface[data-pnm-map-layout='viewport'] .pnm-map-surface__fullscreen-control");
+  assert.ok(mobileButton);
+  assert.ok(mobileButton.nodes.some((node) => node.prop === 'width' && node.value === '44px' && node.important), 'fullscreen cannot inherit a 100% mobile hitbox');
+  const viewport = declarations('body.world-poker-near-me .pnm-map-surface__viewport');
+  assert.equal(viewport.flex, '1 1 0');
+  assert.equal(viewport.padding, '0');
+  assert.equal(viewport['min-height'], '0');
+  const picker = declarations('body.world-poker-near-me .pnm-map-surface .pnm-location-picker.pnm-map-stage');
+  assert.equal(picker.display, 'flex', 'auto-height Leaflet pane has a definite flex parent');
+  assert.equal(picker['flex-direction'], 'column');
+  const pickerMap = declarations('body.world-poker-near-me .pnm-map-surface .pnm-location-picker__map');
+  assert.equal(pickerMap.flex, '1 1 0');
+  assert.equal(pickerMap.height, 'auto');
+  assert.equal(pickerMap['min-height'], '0');
+});
+
+test('map-bearing results keep discovery before subordinate content without losing alternatives', async () => {
+  const venue = await source('pages/hub/venues/[id].js');
+  const planner = await source('src/components/poker-near-me/RoadTripPlanner.jsx');
+  const calendar = await source('pages/hub/events-calendar.js');
+  const search = await source('src/components/poker-near-me/GlobalSearchOverlay.jsx');
+  for (const file of ['home-games', 'poker-series', 'poker-tours']) {
+    const page = await source(`pages/hub/${file}.js`);
+    assert.match(page, /pnm-map-directory/);
+    assert.match(page, /<details className="pnm-map-directory-filters">/);
+    assert.ok(page.indexOf('<details className="pnm-map-directory-filters">') < page.indexOf('<VenueMap'));
+  }
+  assert.ok(venue.indexOf('<MapSurfaceFrame') < venue.indexOf('<DeepRouteSignalDeck'));
+  assert.ok(planner.indexOf('<MapSurfaceFrame') < planner.indexOf('className="rtp-stats-bar"'));
+  assert.ok(search.indexOf('className="pnm-global-search-map gso-map"') < search.indexOf('className="gso-summary"'));
+  assert.match(search, /mapTitle=\{nameMatchFallback \? 'Closest Published Name Matches' : missingFilterCoverage > 0 \? 'Published Matches, Coverage Incomplete'/);
+  assert.match(calendar, /\[viewMode, setViewMode\] = useState\('map'\)/);
+  assert.match(calendar, /<details className="ec-map-filter-disclosure">/);
+  assert.match(calendar, /\['map', 'list', 'calendar'\]\.map/);
+  for (const mode of ['map', 'list', 'calendar']) assert.ok(calendar.includes(`viewMode === '${mode}'`));
+});
 
 test('an obsolete viewport response cannot replace current filters or Show All', async () => {
   const panel = await source('src/components/poker-near-me/VenueMapPanel.jsx');
@@ -107,13 +210,14 @@ function fakeLeaflet() {
   return { divIcon: (options) => ({ options }) };
 }
 
-test('shared map frame uses the painted console while preserving its one-map fullscreen lifecycle', async () => {
+test('shared map frame removes ornamental rails while preserving its one-map fullscreen lifecycle', async () => {
   const frame = await source('src/components/poker-near-me/MapSurfaceFrame.jsx');
 
   assert.match(frame, /PokerNearMeConsoleIcon/);
   assert.match(frame, /name=\{expanded \? 'close' : 'fullscreen'\}/);
-  assert.match(frame, /data-pnm-map-console="painted-chassis-v1"/);
-  assert.match(frame, /pnm-map-surface__foot/);
+  assert.match(frame, /data-pnm-map-console="map-first-v2"/);
+  assert.match(frame, /data-pnm-map-layout="viewport"/);
+  assert.doesNotMatch(frame, /pnm-map-surface__foot/);
   assert.doesNotMatch(frame, /function ExpandIcon|<svg/);
 
   assert.match(frame, /useAccessibleDialog/);
@@ -236,20 +340,18 @@ test('painted map stylesheet is globally wired, native-ratio, responsive and fre
   ]);
 
   assert.match(app, /poker-near-me-console-map\.css/);
-  assert.match(styles, /painted-chassis-v1\/top-flat\.webp/);
-  assert.match(styles, /painted-chassis-v1\/mid\.png/);
-  assert.match(styles, /painted-chassis-v1\/bottom-foot\.png/);
+  assert.doesNotMatch(styles, /painted-chassis-v1\/(?:top-flat\.webp|mid\.png|bottom-foot\.png)/);
   assert.match(styles, /painted-controls-v1\/utility-well\.webp/);
   assert.match(styles, /painted-controls-v1\/search-well\.webp/);
   assert.match(styles, /painted-panels-v1\/panel-head\.png/);
-  assert.match(styles, /aspect-ratio:\s*1000\s*\/\s*348/);
+  assert.match(styles, /height:\s*calc\(100dvh - var\(--pnm-map-page-chrome, 112px\)\)/);
   assert.match(styles, /aspect-ratio:\s*1829\s*\/\s*313/);
   assert.match(styles, /\.pnm-map-surface--fullscreen\s*\{[^}]*position:\s*fixed\s*!important;[^}]*width:\s*100vw\s*!important;[^}]*height:\s*100dvh\s*!important/s);
   assert.match(styles, /@media \(max-width: 600px\)/);
   assert.match(styles, /@media \(max-height: 500px\) and \(orientation: landscape\)/);
   assert.match(
     styles,
-    /@media \(max-width: 768px\), \(max-height: 500px\)[\s\S]*?\.pnm-map-overlay-stack\[data-legend-expanded='true'\] \.pnm-map-coverage\.pnc-panel\s*\{[^}]*display:\s*none\s*!important;/,
+    /@media \(max-width: 768px\), \(max-height: 500px\)[\s\S]*?\.pnm-map-overlay-stack\[data-legend-expanded='true'\] \.pnm-map-coverage\s*\{[^}]*display:\s*none\s*!important;/,
   );
   assert.match(styles, /min-height:\s*44px/g);
 
@@ -461,7 +563,8 @@ test('every map consumer drops generic vector, glass and card chrome', async () 
   assert.match(sources.panel, /buildPokerUserLocationPopupHtml\(/);
   assert.match(sources.venueMap, /POKER_MAP_LEGEND_ITEMS\.map/);
   assert.match(sources.venueMap, /createPokerVenueIcon\(L, venue, \{ overrideColor: normalizedUniformColor, saved: true \}\)/);
-  assert.match(sources.coverage, /<PokerNearMePanelShell[\s\S]*as="aside"/);
+  assert.match(sources.coverage, /<aside[\s\S]*aria-label="Map coverage status"/);
+  assert.doesNotMatch(sources.coverage, /PokerNearMePanelShell/);
   assert.match(sources.coverage, /'Map Coverage'/);
   assert.doesNotMatch(sources.coverage, /Live coverage/);
   assert.match(sources.tab, /<PokerNearMeConsoleIcon name="location" \/>/);
@@ -519,57 +622,44 @@ test('popup viewport guard keeps dossiers clear of the zoom rail and lets the HU
   }
 });
 
-test('map headers keep every control on a painted face at every width', async () => {
+test('compact map command lines retain touch, popup and fullscreen stacking safeguards', async () => {
   const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
-  // Desktop/tablet: the fullscreen control is centred in the painted pill slot.
-  assert.match(styles, /@media \(min-width: 601px\) and \(min-height: 501px\) \{[\s\S]*?\.pnm-map-surface__controls \{[^}]*top:\s*62\.36%;[^}]*right:\s*13\.6%;/);
-  assert.match(styles, /\.pnm-map-surface__fullscreen-control \{[^}]*width:\s*19\.7cqw;[^}]*min-width:\s*44px;/);
-  // Phones: capped panel head with the rail layer clipped below the cap.
-  assert.match(styles, /@media \(max-width: 600px\) and \(min-height: 501px\) \{[\s\S]*?panel-head\.png'\),\s*url\('\/images\/pnm-console\/painted-chassis-v1\/mid\.png'\) !important;[\s\S]*?background-clip:\s*border-box, content-box !important;/);
-  // Short landscape: the HUD stack clears the 44px zoom rail.
+  assert.match(styles, /\.pnm-map-surface__header \{[^}]*display:\s*flex;[^}]*min-height:\s*56px;/);
+  assert.match(styles, /\.pnm-map-surface__fullscreen-control \{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/);
+  assert.doesNotMatch(styles, /top-flat\.webp|bottom-foot\.png|19\.7cqw|62\.36%/);
   assert.match(styles, /@media \(max-height: 500px\) and \(orientation: landscape\) \{[\s\S]*?\.pnm-map-overlay-stack \{[^}]*left:\s*64px !important;/);
-  // Percentage insets on plates never resolve against the row.
   assert.match(styles, /padding: 0 calc\(var\(--rtp-plate-w\) \* 0\.11\) !important;/);
   assert.match(styles, /padding: 0 calc\(var\(--pnm-marker-label-width, 140px\) \* 0\.08\) !important;/);
-  // An open dossier is never hidden under the HUD, and fullscreen escapes panel stacking.
   assert.match(styles, /\[data-pnm-popup-covering='true'\] :is\([\s\S]*?\) \{\s*visibility: hidden;/);
   assert.match(styles, /:is\(\.pnc-panel__body, \.pnc__body\):has\(\.pnm-map-surface--fullscreen\) \{\s*z-index: auto !important;/);
 });
-
-test('a page control never prints across the painted fullscreen plate', async () => {
+test('map controls use layout flow instead of overlapping plate coordinates', async () => {
   const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
-  // top-flat.png paints the plate at x 642-890 of its 1000-wide canvas (inner
-  // face 651-881). Controls box right edge 13.6% -> 864; the fullscreen control
-  // is 19.7cqw wide, so it opens at 667 and centres on that face. Its 3.7cqw
-  // left margin plus the 1cqw gap stop the run before it at 620, which is 22
-  // canvas px clear of the plate's left rail: no pill on a plate.
-  assert.match(styles, /\.pnm-map-surface__fullscreen-control \{[^}]*flex:\s*0 0 19\.7cqw;[^}]*margin-left:\s*3\.7cqw;/);
-  assert.match(styles, /\.pnm-map-surface__controls \.pnm-map-radius-control \{[^}]*width:\s*clamp\(92px, 12\.2cqw, 122px\);/);
-  // Each page control takes its room from the title band, never from the plate.
-  assert.match(styles, /:has\(\.pnm-map-surface__controls > \* \+ \*\) \.pnm-map-surface__identity \{\s*width:\s*33%;/);
-  assert.match(styles, /:has\(\.pnm-map-surface__controls > \* \+ \* \+ \*\) \.pnm-map-surface__identity \{\s*width:\s*26%;/);
+  const header = styles.match(/\.pnm-map-surface__header \{([^}]*)\}/)[1];
+  const identity = styles.match(/\.pnm-map-surface__identity \{([^}]*)\}/)[1];
+  const controls = styles.match(/\.pnm-map-surface__controls \{([^}]*)\}/)[1];
+  assert.match(header, /display:\s*flex/);
+  assert.match(identity, /min-width:\s*0;/);
+  assert.match(identity, /width:\s*auto !important;/);
+  assert.match(identity, /flex:\s*1 1 0;/);
+  assert.match(controls, /flex:\s*0 0 auto/);
+  assert.doesNotMatch(identity + controls, /position:\s*absolute|top:|right:|left:|transform:/);
+  assert.match(styles, /@media \(max-width: 600px\)[\s\S]*?\.pnm-map-radius-control \{ width: 54px !important;/);
 });
-
-test('the fullscreen head keeps its lines and its control inside the painted well face', async () => {
+test('fullscreen retains the compact command line and real viewport rather than a second map', async () => {
   const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
   const frame = await source('src/components/poker-near-me/MapSurfaceFrame.jsx');
-  // search-well.png is 1829 x 313 and its glass face runs y 43-237 (13.7% to
-  // 75.7%) and x 105-1723 (57 to 942 of 1000). The identity band ends at 75%
-  // and the control run at 910, so no line is cut by the rail and the label
-  // never lands on the chrome.
-  assert.match(styles, /--fullscreen \.pnm-map-surface__identity \{\s*top:\s*15%;[^}]*height:\s*60%;/);
-  assert.match(styles, /--fullscreen \.pnm-map-surface__controls \{\s*top:\s*44\.7%;\s*right:\s*9%;\s*width:\s*38%;/);
-  // Every word a player reads starts with a capital.
+  assert.match(styles, /--fullscreen \{[^}]*height:\s*100dvh !important;[^}]*min-height:\s*0 !important;/);
+  assert.match(styles, /--fullscreen \.pnm-map-surface__header \{\s*min-height: 56px !important;\s*padding-top: max\(6px, env\(safe-area-inset-top, 0px\)\);/);
   assert.match(frame, /\{expanded \? 'Exit Full Screen' : 'Full Screen'\}/);
+  assert.equal((frame.match(/\{children\}/g) || []).length, 1);
 });
-
-test('short landscape prints its head on the same painted well face as fullscreen', async () => {
+test('short landscape keeps a usable map without oversized decorative rails', async () => {
   const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
   const block = styles.slice(styles.indexOf('@media (max-height: 500px) and (orientation: landscape) {'));
-  assert.match(block, /\.pnm-map-surface__identity \{\s*top:\s*15%;[^}]*height:\s*60%;/);
-  assert.match(block, /\.pnm-map-surface__controls \{\s*top:\s*44\.7%;\s*right:\s*9%;\s*width:\s*40%;/);
+  assert.match(block, /\.pnm-map-surface \{ min-height: 240px;/);
+  assert.doesNotMatch(styles, /painted-chassis-v1\/(?:top-flat|mid|bottom-foot)/);
 });
-
 test('trip result plates declare a painted width the longest label fits inside', async () => {
   const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
   const planner = await source('src/components/poker-near-me/RoadTripPlanner.jsx');

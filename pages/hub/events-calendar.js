@@ -533,7 +533,7 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
   const menuConfig = useMemo(() => getMenuConfig('events'), []);
   
   // View states: 'list' | 'calendar' | 'map'
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('map');
   const [calYear, setCalYear] = useState(initialDate.year);
   const [calMonth, setCalMonth] = useState(initialDate.month);
   const [todayKey, setTodayKey] = useState(initialDate.key);
@@ -857,39 +857,9 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
         <div className="ec-space-bg" />
         <div className="ec-space-overlay" />
 
-        {/* ── Location Active Strip — always at top, just below Global Header ── */}
-        <PokerNearMePanelShell as="section" className="ec-location-strip" bodyClassName="ec-location-strip__body" aria-label="Location Filter">
-          {userLocation ? (
-            <div className="pnm-location-pill">
-              <PokerNearMeConsoleIcon name="location" className="ec-control-icon" />
-              <span className="pnm-location-label">Location Active</span>
-              {userLocation.label && userLocation.label !== 'My Location' && (
-                <span className="pnm-location-city">{userLocation.label}</span>
-              )}
-              <button
-                type="button"
-                className="pnm-location-clear"
-                onClick={() => { handleLocationChange(null); }}
-                aria-label="Clear Location"
-              ><PokerNearMeConsoleIcon name="close" className="ec-control-icon" /></button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="ec-gps-btn"
-              onClick={() => setShowLocationModal(true)}
-              id="ec-location-btn"
-            >
-              <PokerNearMeConsoleIcon name="location" className="ec-control-icon" />
-              Set Location
-            </button>
-          )}
-        </PokerNearMePanelShell>
-
         {/* ── Page Header ── */}
-        <PokerNearMePanelShell as="section" className="ec-hero" bodyClassName="ec-hero__body">
+        <header className="ec-map-page-header"><div className="ec-map-page-header__body">
           <div className="ec-hero-copy">
-          <p className="ec-eyebrow">Live Poker Discovery Network</p>
           <h1 className="ec-title"><span className="ec-white">Events</span> <span className="ec-cyan">Calendar</span></h1>
           <p className="ec-subtitle">
             {loading ? 'Loading...' : `${totalCount.toLocaleString()} Tournaments Found`}
@@ -927,8 +897,44 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
               )}
             </form>
           </div>
-        </PokerNearMePanelShell>
+        </div></header>
         
+        <div className="ec-map-view-controls" aria-label="Events Display">
+          {['map', 'list', 'calendar'].map((mode) => (
+            <button key={mode} type="button" aria-pressed={viewMode === mode} onClick={() => setViewMode(mode)}>{mode === 'map' ? 'Map' : mode === 'list' ? 'List' : 'Calendar'}</button>
+          ))}
+        </div>
+        <details className="ec-map-filter-disclosure">
+          <summary>Filters And Location{activeFilterCount > 0 ? ' (' + activeFilterCount + ')' : ''}</summary>
+        {/* ── Location Active Strip — always at top, just below Global Header ── */}
+        <PokerNearMePanelShell as="section" className="ec-location-strip" bodyClassName="ec-location-strip__body" aria-label="Location Filter">
+          {userLocation ? (
+            <div className="pnm-location-pill">
+              <PokerNearMeConsoleIcon name="location" className="ec-control-icon" />
+              <span className="pnm-location-label">Location Active</span>
+              {userLocation.label && userLocation.label !== 'My Location' && (
+                <span className="pnm-location-city">{userLocation.label}</span>
+              )}
+              <button
+                type="button"
+                className="pnm-location-clear"
+                onClick={() => { handleLocationChange(null); }}
+                aria-label="Clear Location"
+              ><PokerNearMeConsoleIcon name="close" className="ec-control-icon" /></button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="ec-gps-btn"
+              onClick={() => setShowLocationModal(true)}
+              id="ec-location-btn"
+            >
+              <PokerNearMeConsoleIcon name="location" className="ec-control-icon" />
+              Set Location
+            </button>
+          )}
+        </PokerNearMePanelShell>
+
         {/* Day of Week Tabs — centered */}
         <PokerNearMePanelShell as="section" className="ec-day-selector" bodyClassName="ec-day-selector__body" aria-label="Day Of Week">
           <div className="ec-day-tabs-row">
@@ -1071,6 +1077,8 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
             </div>
           )}
         </PokerNearMePanelShell>
+
+        </details>
 
         {/* ── Content ── */}
         <div className="ec-content">

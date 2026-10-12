@@ -785,7 +785,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                 })}} />
 </Head>
 
-            <div className="pnm-page">
+            <div className="pnm-page pnm-map-directory">
                 {/* Space Background */}
                 <div className="space-bg" />
                 <div className="space-overlay" />
@@ -840,6 +840,14 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                                     <PokerNearMeConsoleIcon name="close" className="tours-glyph" />
                                 </button>
                             )}
+
+                        </div>
+                    </form>
+                </div>
+
+                <details className="pnm-map-directory-filters">
+                    <summary>Dates And Distance</summary>
+                    <div className="pnm-map-directory-filter-row">
                             {/* Date Range Dropdown — integrated into search bar */}
                             <div className="tours-date-divider" />
                             <select
@@ -871,10 +879,8 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                                 <option value="250">Within 250 Miles</option>
                                 <option value="500">Within 500 Miles</option>
                                 <option value="1000">Within 1,000 Miles</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
+                            </select>                    </div>
+                </details>
 
                 {geoNotice && (
                     <div className="tours-geo-notice" role="alert">

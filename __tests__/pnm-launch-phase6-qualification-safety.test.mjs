@@ -113,9 +113,9 @@ test('public read bounds both headers and a stalled response body without accept
   assert.deepEqual(await readPublic('/api/health', true, { fetchImpl: async () => ({ status: 200, text: async () => '{"status":"ok"}' }) }), { status: 'ok' });
 });
 test('missing semantics, overflow, broken media, short controls and errors fail instead of becoming a receipt pass', () => {
-  const row = { family: 'map', mainCount: 1, headingCount: 1, clientWidth: 390, scrollWidth: 390, brokenImages: 0, smallControls: [], pageErrors: [] };
+  const row = { family: 'map', mainCount: 1, headingCount: 1, clientWidth: 390, scrollWidth: 390, brokenImages: 0, smallControls: [], pageErrors: [], voiceControls: [], familyNavHeight: 52 };
   assertGeometry(row);
-  for (const changed of [{ mainCount: 0 }, { headingCount: 0 }, { scrollWidth: 391 }, { brokenImages: 1 }, { smallControls: ['Search'] }, { pageErrors: ['Crash'] }]) assert.throws(() => assertGeometry({ ...row, ...changed }));
+  for (const changed of [{ mainCount: 0 }, { headingCount: 0 }, { scrollWidth: 391 }, { brokenImages: 1 }, { smallControls: ['Search'] }, { pageErrors: ['Crash'] }, { voiceControls: ['Voice Search'] }, { familyNavHeight: 200 }]) assert.throws(() => assertGeometry({ ...row, ...changed }));
   const scrubbed = safeError({ message: 'x@example.invalid https://smarter.poker/hub/poker-near-me/map?token=private eyJabc.def.ghi' });
   assert.doesNotMatch(scrubbed, /x@example|token=private|eyJabc/);
 });

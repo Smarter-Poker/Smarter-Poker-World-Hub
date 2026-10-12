@@ -35,6 +35,73 @@ body.world-poker-near-me .pnc-panel::after {
   content: none !important;
 }
 
+/* Map-first discovery: one identity line and one optional control drawer.
+   Decorative nested chassis are removed; the rendered venue imagery and
+   functional action plates remain. No disconnected corner slices are drawn. */
+body.world-poker-near-me .pnm-page .pnm-title-bar {
+  min-height: 0 !important;
+  padding: 12px 12px 8px !important;
+  border: 0 !important;
+  background: #020407 !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-page .pnm-title {
+  margin: 0 !important;
+  font-size: clamp(26px, 3vw, 42px) !important;
+  line-height: 1.08 !important;
+}
+
+body.world-poker-near-me .pnm-page .pnm-subtitle {
+  margin-top: 6px !important;
+  font-size: 12px !important;
+  letter-spacing: .025em !important;
+}
+
+body.world-poker-near-me .pnm-page .pnm-status-rail {
+  margin-top: 8px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+body.world-poker-near-me .pnm-discovery-controls {
+  width: 100%;
+  min-width: 0;
+  padding: 0 12px 8px;
+  color: #e4e7ec;
+}
+
+body.world-poker-near-me .pnm-discovery-controls > summary {
+  display: list-item;
+  min-height: 48px;
+  padding: 12px 8px;
+  border-bottom: 1px solid #34424e;
+  font: 650 15px/24px var(--font-premium-body, Inter, sans-serif);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .pnm-discovery-controls > summary:focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: -2px;
+}
+
+body.world-poker-near-me :is(.pnm-section__frame, .lobby-stats-panel) > :is(.pnc-panel__head, .pnc-panel__foot) {
+  display: none;
+}
+
+body.world-poker-near-me :is(.pnm-section__frame, .lobby-stats-panel) > .pnc-panel__body {
+  padding-inline: 12px;
+  background: none;
+}
+
+body.world-poker-near-me .pnm-section__head {
+  min-height: 0;
+  gap: 4px;
+  padding-block: 8px;
+}
+
 /* Lobby command well. */
 body.world-poker-near-me .lobby-overlay {
   position: relative;
@@ -131,24 +198,6 @@ body.world-poker-near-me .lobby-search-copy.has-query {
   color: #eef5fb;
 }
 
-body.world-poker-near-me .lobby-voice-btn {
-  display: grid;
-  width: 82px;
-  min-width: 68px;
-  min-height: 44px;
-  flex: 0 0 82px;
-  padding: 0;
-  place-items: center;
-  color: #d8e4ec;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
-  box-shadow: none !important;
-  font: 700 12px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
 body.world-poker-near-me .lobby-gps-btn {
   display: grid;
   width: 44px;
@@ -172,7 +221,7 @@ body.world-poker-near-me .lobby-gps-btn.active .pnc-icon {
   filter: brightness(1.22);
 }
 
-body.world-poker-near-me :is(.lobby-voice-btn, .lobby-gps-btn, .lobby-search-input, .lobby-location-prompt, .lobby-location-status):focus-visible {
+body.world-poker-near-me :is(.lobby-gps-btn, .lobby-search-input, .lobby-location-prompt, .lobby-location-status):focus-visible {
   outline: 3px solid #8fd4ff !important;
   outline-offset: -5px !important;
 }
@@ -592,12 +641,6 @@ body.world-poker-near-me :is(.load-more-btn, .pnm-empty-state button, .empty-sta
     min-height: 58px;
   }
 
-  body.world-poker-near-me .lobby-voice-btn {
-    width: 70px;
-    min-width: 60px;
-    flex-basis: 70px;
-  }
-
   body.world-poker-near-me .lobby-location-prompt > .pnc-icon {
     width: 38px;
     height: 38px;
@@ -931,12 +974,8 @@ body.world-poker-near-me .ec-search-clear.ec-search-clear {
   box-shadow: none !important;
 }
 
-/* --- Discovery Deck: the tenth plate keeps the last row balanced ---------- */
-@media (max-width: 480px) {
-  .pnm-console-family-nav__rail > :last-child:nth-child(3n + 1) {
-    grid-column: 2;
-  }
-}
+/* Discovery navigation is one scrollable control row at every phone width.
+   Do not reinstate a multi-row deck that pushes the map below the fold. */
 
 /* --- Short landscape: nothing sticky may mask the discovery canvas -------- */
 @media (orientation: landscape) and (max-height: 520px) {

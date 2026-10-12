@@ -4,7 +4,7 @@
  * Mobile phase 3 (2026-09-04): the lobby sits on HubPageShell (the standard
  * shell, no fixed-viewport stage, no absolute header), the hotspot grid and the stats
  * bar flow in the document and the page scrolls normally, PullToRefresh owns
- * the refresh gesture, every overlay (pod panel, voice search, login prompt,
+ * the refresh gesture, every overlay (pod panel, login prompt,
  * location sheets, reviews) is a back-gesture sheet, and the page tutorial is
  * the shared one in src/tutorials/poker-near-me.js (never launched here).
  *
@@ -31,7 +31,6 @@ import { useLoadFailsafe, useInitialLoadRef } from '../../../src/hooks/useLoadFa
 import { useOnlineStatus, OFFLINE_TOAST } from '../../../src/hooks/useOnlineStatus';
 import { useHaptics } from '../../../src/hooks/useHaptics';
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
-import { useScrimDismiss } from '../../../src/hooks/useScrimDismiss';
 import toast from '../../../src/stores/toastStore';
 import { TUTORIAL_WILL_OPEN_EVENT } from '../../../src/tutorials';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
@@ -46,7 +45,7 @@ import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { PodErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
-import PokerNearMeConsole, { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
 
 // ─── Extracted Utilities (Bundle Splitting) ───
@@ -62,7 +61,6 @@ import {
   WIDE_VENUE_LIMIT,
   clearSharedGpsLocation,
   createLobbyJsonLd,
-  normalizeVoiceFilters,
   persistSharedGpsLocation,
 } from '../../../src/components/poker-near-me/lobby/lobbyController';
 import {
@@ -113,7 +111,6 @@ const SocialLayer = dynamic(() => import('../../../src/components/poker-near-me/
 const TournamentAlerts = dynamic(() => import('../../../src/components/poker-near-me/TournamentAlerts'), { ssr: false });
 const SeasonalCalendar = dynamic(() => import('../../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
 const TripCostCalculator = dynamic(() => import('../../../src/components/poker-near-me/TripCostCalculator'), { ssr: false });
-const VoiceSearch = dynamic(() => import('../../../src/components/poker-near-me/VoiceSearch'), { ssr: false });
 const VenueReviews = dynamic(() => import('../../../src/components/poker-near-me/VenueReviews'), { ssr: false });
 const VenueMapPanel = dynamic(() => import('../../../src/components/poker-near-me/VenueMapPanel'), { ssr: false });
 const ScraperHealthDashboard = dynamic(() => import('../../../src/components/poker-near-me/ScraperHealthDashboard'), { ssr: false });
@@ -290,7 +287,6 @@ export default function PokerNearMeLobby() {
   const [sortBy, setSortBy] = useState('distance');
   const [filters, setFilters] = useState({});
 
-  const [showVoiceSearch, setShowVoiceSearch] = useState(false);
   const [selectedVenueForReview, setSelectedVenueForReview] = useState(null);
   const [gpsError, setGpsError] = useState(null);
   const [fetchError, setFetchError] = useState(null);
@@ -394,7 +390,6 @@ export default function PokerNearMeLobby() {
       setShowPanel(false);
       setActivePod(null);
       setShowGlobalSearch(false);
-      setShowVoiceSearch(false);
       setMenuOpen(false);
       try {
         window.scrollTo({ top: 0, behavior: 'auto' });
@@ -997,46 +992,6 @@ export default function PokerNearMeLobby() {
   // never assigned by anything — the search debounce it belonged to is gone.
 
 
-
-  // ─── Voice search result handler ───
-  // [BUG FIX] Two problems, both fixed here:
-  //   1. Ordering — fetchVenues reads `filtersRef.current`, which React only
-  //      reassigns on the NEXT render, so the fetch used to go out with the
-  //      PREVIOUS filter state and the parsed gameType/venueType never reached
-  //      the results the user was shown. The normalised filters are now written
-  //      into the ref before the fetch as well as into state.
-  //   2. Domain — VoiceSearch's raw keys were spread in verbatim. Its
-  //      'NLH'/'PLO'/'Mixed' never matched GAME_TYPE_API_PARAM (lowercase), its
-  //      'poker_tour' venue type matches no row, and its bare
-  //      stakes/minBuyin/maxBuyin keys are read by nothing (the pods read the
-  //      prefixed `sv*` / `nm*` keys), so "tournaments under $200" silently
-  //      dropped the buy-in constraint.
-  const handleVoiceResult = useCallback((result) => {
-    setShowVoiceSearch(false);
-    const voiceFilters = normalizeVoiceFilters(result?.filters);
-    const hasVoiceFilters = Object.keys(voiceFilters).length > 0;
-
-    if (result?.searchQuery || hasVoiceFilters) {
-      // Keep `searchQuery` in step with the request we are about to make: a
-      // filters-only result fetches with no search term, and `loadMore` pages
-      // with `searchQuery`, so leaving a stale term behind would append
-      // name-filtered rows to an unfiltered list.
-      setSearchQuery(result?.searchQuery || '');
-      // Auto-open the Search panel to show voice search results.
-      // svSearched must be flipped too — the pod only renders results when
-      // its `${prefix}Searched` gate is true. Clear any stale pod-search
-      // results so the pod falls back to the freshly fetched `venues`.
-      setPodSearchVenues(null);
-      const applied = { ...voiceFilters, svSearched: true };
-      // Make the new filters visible to fetchVenues on THIS tick, not the next
-      // render — fetchVenues reads the ref, not the state.
-      filtersRef.current = { ...filtersRef.current, ...applied };
-      setFilters(prev => ({ ...prev, ...applied }));
-      setActivePod('search');
-      setShowPanel(true);
-      fetchVenues(result?.searchQuery || '');
-    }
-  }, [fetchVenues]);
 
   // ─── Re-fetch when sort or filters change ───
   const sortFilterMountRef = useRef(true);
@@ -1779,13 +1734,9 @@ export default function PokerNearMeLobby() {
   const {
     panelRef,
     panelBackBtnRef,
-    voiceDialogRef,
-    voiceCloseBtnRef,
   } = useLobbyDialogController({
     showPanel,
     onPanelClose: handlePanelClose,
-    showVoiceSearch,
-    setShowVoiceSearch,
   });
   const { shareCopied, handleShareClick } = useLobbyShareController(panelTitleRef);
 
@@ -2514,9 +2465,6 @@ export default function PokerNearMeLobby() {
   // (useScrimDismiss), and pull-to-refresh stands down while any is open.
   const closePanel = useCallback(() => handlePanelClose(), [handlePanelClose]);
   useModalHistory(showPanel && !!panelContent, closePanel);
-  const closeVoiceSearch = useCallback(() => setShowVoiceSearch(false), []);
-  useModalHistory(showVoiceSearch, closeVoiceSearch);
-  const voiceScrim = useScrimDismiss(closeVoiceSearch);
   const closeLoginPrompt = useCallback(() => setShowLoginPrompt(false), []);
   useModalHistory(showLoginPrompt, closeLoginPrompt);
   const closeEnablePopup = useCallback(() => setShowEnablePopup(false), []);
@@ -2524,7 +2472,7 @@ export default function PokerNearMeLobby() {
   const closeManualLocation = useCallback(() => setShowManualLocation(false), []);
   useModalHistory(showManualLocation, closeManualLocation);
   const anySheetOpen =
-    (showPanel && !!panelContent) || showVoiceSearch || showLoginPrompt || showEnablePopup ||
+    (showPanel && !!panelContent) || showLoginPrompt || showEnablePopup ||
     showManualLocation || showGlobalSearch || !!selectedVenueForReview || menuOpen;
 
   return (
@@ -2614,7 +2562,6 @@ export default function PokerNearMeLobby() {
             gpsActive={gpsActive}
             gpsLoading={gpsLoading}
             onGpsClick={handleGpsClick}
-            onVoiceClick={() => setShowVoiceSearch(true)}
             gpsError={gpsError}
             locationCity={locationCity}
             locationState={locationState}
@@ -2857,53 +2804,6 @@ export default function PokerNearMeLobby() {
           </>
         )}
 
-        {/* Voice Search Modal — [AUDIT] had no role, no Escape handler and no
-            backdrop click-to-close: the only exit was the close glyph. */}
-        {showVoiceSearch && (
-          <div
-            className="pnm-sheet-scrim"
-            role="presentation"
-            {...voiceScrim}
-          >
-            <div
-              ref={voiceDialogRef}
-              className="pnm-sheet pnm-voice-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="pnm-voice-title"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="pnm-sheet__handle" aria-hidden="true" />
-              {/* The sheet is one painted console: its head carries the title and
-                  the recogniser's language in the painted pill slot, and the
-                  close holder and VoiceSearch's live states print on its glass. */}
-              <PokerNearMeConsole
-                as="div"
-                className="pnm-voice-console"
-                title="Voice Search"
-                titleId="pnm-voice-title"
-                pill="English"
-                crest="locator"
-                foot="foot"
-              >
-                <div className="pnm-sheet__head">
-                  <button
-                    ref={voiceCloseBtnRef}
-                    type="button"
-                    className="sp-icon-btn pnm-sheet__close"
-                    onClick={() => setShowVoiceSearch(false)}
-                    aria-label="Close voice search"
-                  ><PokerNearMeConsoleIcon name="close" /></button>
-                </div>
-                {/* [WIRING FIX] variant="embedded" is mandatory here: the default
-                    'floating' variant renders a position:fixed FAB + panel that
-                    escaped this modal to the viewport corner and started
-                    collapsed, so the card body was empty. */}
-                <VoiceSearch variant="embedded" onResult={handleVoiceResult} />
-              </PokerNearMeConsole>
-            </div>
-          </div>
-        )}
         {/* Login Prompt Modal — auth gate for Check In / Review */}
                     {showLoginPrompt && (
                 <LoginPromptModal

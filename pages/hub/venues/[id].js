@@ -1950,6 +1950,86 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               />
             )}
 
+            {/* ============================================ */}
+            {/* MAP & DIRECTIONS SECTION                     */}
+            {/* ============================================ */}
+            {venue.latitude && venue.longitude && !locationConflict && (
+              <section className="map-section">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  Location
+                </h2>
+                <MapSurfaceFrame
+                  eyebrow="Venue coordinates"
+                  title={venue.name + ' location'}
+                  detail={buildVenueAddress(venue) || 'Select full screen for detailed map navigation'}
+                  onLayoutChange={handleVenueMapLayoutChange}
+                >
+                  <div className="venue-map-wrapper pnm-map-stage">
+                    {(tileStatus === 'degraded' || tileStatus === 'unavailable') && (
+                      <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
+                        <p>Map Background Unavailable Or Incomplete. Venue Marker And Directions Remain Available.</p>
+                        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
+                        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
+                      </PokerNearMePanelShell>
+                    )}
+                    <div
+                      ref={mapContainerRef}
+                      className="venue-map-container pnm-leaflet-map"
+                      role="region"
+                      aria-label={venue.name + ' interactive location map'}
+                      aria-busy={!mapReady && !mapError}
+                      tabIndex={0}
+                      data-map-foundation="shared-v3"
+                      data-map-ready={mapReady ? 'true' : 'false'}
+                    />
+                    {mapError && (
+                      <div className="pnm-map-error-state" role="alert">
+                        <p>{mapError}</p>
+                        <button
+                          type="button"
+                          onClick={function () {
+                            resetPokerMapRuntime();
+                            setMapLoadAttempt(function (value) { return value + 1; });
+                          }}
+                        >Retry Map</button>
+                      </div>
+                    )}
+                  </div>
+                </MapSurfaceFrame>
+                <div className="map-actions">
+                  <button
+                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('directions'); }}
+                    className="directions-btn"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                    </svg>
+                    Get Directions
+                  </button>
+                  <button
+                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }}
+                    className="viewmap-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                      <line x1="8" y1="2" x2="8" y2="18" />
+                      <line x1="16" y1="6" x2="16" y2="22" />
+                    </svg>
+                    View On Map
+                  </button>
+                  {venue.address && (
+                    <span className="map-address-text">
+                      {venue.address}{venue.city ? ', ' + venue.city : ''}{venue.state ? ', ' + venue.state : ''}
+                    </span>
+                  )}
+                </div>
+              </section>
+            )}
+
             <DeepRouteSignalDeck
               eyebrow="Venue intelligence"
               title={venue.name}
@@ -2010,6 +2090,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 </>
               )}
             />
+
 
             <PokerNearMeRecentRail currentHref={'/hub/venues/' + encodeURIComponent(String(id))} />
 
@@ -2571,85 +2652,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               </section>
             )}
 
-            {/* ============================================ */}
-            {/* MAP & DIRECTIONS SECTION                     */}
-            {/* ============================================ */}
-            {venue.latitude && venue.longitude && !locationConflict && (
-              <section className="map-section">
-                <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  Location
-                </h2>
-                <MapSurfaceFrame
-                  eyebrow="Venue coordinates"
-                  title={venue.name + ' location'}
-                  detail={buildVenueAddress(venue) || 'Select full screen for detailed map navigation'}
-                  onLayoutChange={handleVenueMapLayoutChange}
-                >
-                  <div className="venue-map-wrapper pnm-map-stage">
-                    {(tileStatus === 'degraded' || tileStatus === 'unavailable') && (
-                      <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
-                        <p>Map Background Unavailable Or Incomplete. Venue Marker And Directions Remain Available.</p>
-                        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
-                        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
-                      </PokerNearMePanelShell>
-                    )}
-                    <div
-                      ref={mapContainerRef}
-                      className="venue-map-container pnm-leaflet-map"
-                      role="region"
-                      aria-label={venue.name + ' interactive location map'}
-                      aria-busy={!mapReady && !mapError}
-                      tabIndex={0}
-                      data-map-foundation="shared-v3"
-                      data-map-ready={mapReady ? 'true' : 'false'}
-                    />
-                    {mapError && (
-                      <div className="pnm-map-error-state" role="alert">
-                        <p>{mapError}</p>
-                        <button
-                          type="button"
-                          onClick={function () {
-                            resetPokerMapRuntime();
-                            setMapLoadAttempt(function (value) { return value + 1; });
-                          }}
-                        >Retry Map</button>
-                      </div>
-                    )}
-                  </div>
-                </MapSurfaceFrame>
-                <div className="map-actions">
-                  <button
-                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('directions'); }}
-                    className="directions-btn"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                    </svg>
-                    Get Directions
-                  </button>
-                  <button
-                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }}
-                    className="viewmap-btn"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
-                      <line x1="8" y1="2" x2="8" y2="18" />
-                      <line x1="16" y1="6" x2="16" y2="22" />
-                    </svg>
-                    View On Map
-                  </button>
-                  {venue.address && (
-                    <span className="map-address-text">
-                      {venue.address}{venue.city ? ', ' + venue.city : ''}{venue.state ? ', ' + venue.state : ''}
-                    </span>
-                  )}
-                </div>
-              </section>
-            )}
 
             {/* ============================================ */}
             {/* BEST TIME TO GO WIDGET                      */}

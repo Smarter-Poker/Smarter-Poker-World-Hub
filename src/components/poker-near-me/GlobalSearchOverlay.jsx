@@ -1376,6 +1376,42 @@ export default function GlobalSearchOverlay({
           {phase === 'results' && (
             <div className="gso-console-list">
 
+              {/* Matching locations are the primary result canvas; lists follow. */}
+              {phase === 'results' && !isLoading && venueResults.length > 0 && (
+                <div className="pnm-global-search-map gso-map">
+                  <VenueMap
+                    // WIRING FIX: `disableClustering` is only read inside VenueMap's
+                    // initialise-map effect (deps: [mapReady]), so the value in force on the
+                    // FIRST search governed every later one — a 200-result search kept the
+                    // unclustered layer. Keying on the mode remounts the map when it flips.
+                    key={venueResults.length < 20 ? 'gso-map-nocluster' : 'gso-map-cluster'}
+                    venues={venueResults}
+                    // GAP FIX: the overlay reads GPS from localStorage and already sends it to
+                    // the venue API — passing null here suppressed the "you are here" pin AND
+                    // VenueMap's distance map, so no result popup could show its distance.
+                    userLocation={userLocation}
+                    mapEyebrow="Search Result Map"
+                    mapTitle={nameMatchFallback ? 'Closest Published Name Matches' : missingFilterCoverage > 0 ? 'Published Matches, Coverage Incomplete' : 'Matching Poker Rooms'}
+                    mapDetail={`${venueResults.length} ${venueResults.length === 1 ? 'Location' : 'Locations'} From This Search`}
+                    onVenueClick={v => openDetail(v, 'venue')}
+                    onOpenIframeModal={(url, title) => {
+                      const match = url.match(/\/hub\/venues\/([^?#]+)/);
+                      if (match) {
+                        const found = venueResults.find(v => String(v.id) === match[1]);
+                        if (found) { openDetail(found, 'venue'); return; }
+                      }
+                      const found = venueResults.find(v => v.name === title);
+                      if (found) openDetail(found, 'venue');
+                    }}
+                    fullHeight={false}
+                    hideLegend={true}
+                    disableClustering={venueResults.length < 20}
+                  />
+                  <p className="gso-map__hint">{venueResults.length} {venueWord}. Tap A Pin For Details.</p>
+                </div>
+              )}
+
+
               {!isLoading && !searchError && nameMatchFallback && (
                 <p className="gso-empty__copy" role="status">Closest Published Venue And City Name Matches. Confirm The Venue Before Planning Your Visit.</p>
               )}
@@ -1441,44 +1477,6 @@ export default function GlobalSearchOverlay({
               {phase === 'results' && !isLoading && !searchError && savedSearchRef.current?.query === localQuery.trim() && <p className="gso-summary__scope" data-player-planning="search-scope">
                 Saved Search Filters: {Object.values(savedSearchRef.current.filters).filter(Boolean).join(' / ')}. Location: {[savedSearchRef.current.location?.city, savedSearchRef.current.location?.state].filter(Boolean).join(', ') || 'Not Saved'}.
               </p>}
-
-              {/* ───── MAP — under the summary, inside the one scroller. Pinned
-                   above the list it took 360-520px with its own inner scroll, so its
-                   frame was cut off and, on a 390px-tall landscape phone, the header and
-                   map left the results no height at all. Result cards still render below it. ───── */}
-              {phase === 'results' && !isLoading && venueResults.length > 0 && (
-                <div className="pnm-global-search-map gso-map">
-                  <VenueMap
-                    // WIRING FIX: `disableClustering` is only read inside VenueMap's
-                    // initialise-map effect (deps: [mapReady]), so the value in force on the
-                    // FIRST search governed every later one — a 200-result search kept the
-                    // unclustered layer. Keying on the mode remounts the map when it flips.
-                    key={venueResults.length < 20 ? 'gso-map-nocluster' : 'gso-map-cluster'}
-                    venues={venueResults}
-                    // GAP FIX: the overlay reads GPS from localStorage and already sends it to
-                    // the venue API — passing null here suppressed the "you are here" pin AND
-                    // VenueMap's distance map, so no result popup could show its distance.
-                    userLocation={userLocation}
-                    mapEyebrow="Search Result Map"
-                    mapTitle="Matching Poker Rooms"
-                    mapDetail={`${venueResults.length} ${venueResults.length === 1 ? 'Location' : 'Locations'} From This Search`}
-                    onVenueClick={v => openDetail(v, 'venue')}
-                    onOpenIframeModal={(url, title) => {
-                      const match = url.match(/\/hub\/venues\/([^?#]+)/);
-                      if (match) {
-                        const found = venueResults.find(v => String(v.id) === match[1]);
-                        if (found) { openDetail(found, 'venue'); return; }
-                      }
-                      const found = venueResults.find(v => v.name === title);
-                      if (found) openDetail(found, 'venue');
-                    }}
-                    fullHeight={false}
-                    hideLegend={true}
-                    disableClustering={venueResults.length < 20}
-                  />
-                  <p className="gso-map__hint">{venueResults.length} {venueWord}. Tap A Pin For Details.</p>
-                </div>
-              )}
 
               {/* Venues */}
               {!isLoading && venueResults.length > 0 && (

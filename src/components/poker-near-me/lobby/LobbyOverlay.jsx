@@ -3,7 +3,7 @@
  *
  * Renders:
  *   - "POKER NEAR ME" title
- *   - Search bar with autocomplete + voice + GPS
+ *   - Search bar with autocomplete + GPS
  *   - Unified playing-card grid (12 cards: 8 pods + 4 dock, all same size)
  *
  * Mobile phase 3: the grid and the stats bar flow in the document (no inner
@@ -68,7 +68,6 @@ export default function LobbyOverlay({
   gpsActive,
   gpsLoading,
   onGpsClick,
-  onVoiceClick,
   gpsError,
   locationCity,
   locationState,
@@ -131,19 +130,6 @@ export default function LobbyOverlay({
                   {searchQuery || 'Search City, Venue, Tour, Series...'}
                 </span>
               </div>
-
-              {/* Voice Search Button */}
-              {onVoiceClick && (
-                <button
-                  type="button"
-                  className="lobby-voice-btn"
-                  onClick={onVoiceClick}
-                  aria-label="Voice search"
-                >
-                  {/* Printed on the painted steel plate inside the well's glass. */}
-                  <span className="lobby-voice-btn__label">Voice</span>
-                </button>
-              )}
 
               {/* GPS Button */}
               {gpsActive !== undefined && (
