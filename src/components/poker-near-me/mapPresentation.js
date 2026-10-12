@@ -171,11 +171,11 @@ export function createPokerTourIcon(L, venue, options = {}) {
 export function createPokerClusterIcon(L, cluster, options = {}) {
   const compact = options.variant === 'compact';
   const count = cluster.getChildCount();
-  // Cluster digits never drop below 12px, and every clickable density tier
-  // preserves the shared 44px touch floor on both map variants.
+  // A 48px target keeps the physical 44px floor even when Leaflet placement
+  // produces fractional DOM bounds. Paint and pointer geometry stay identical.
   const tiers = compact
-    ? [[100, 54, 14], [50, 46, 13], [20, 44, 12], [10, 44, 12], [0, 44, 12]]
-    : [[100, 58, 15], [50, 48, 14], [20, 44, 13], [10, 44, 12], [0, 44, 12]];
+    ? [[100, 54, 14], [50, 48, 13], [20, 48, 12], [10, 48, 12], [0, 48, 12]]
+    : [[100, 58, 15], [50, 48, 14], [20, 48, 13], [10, 48, 12], [0, 48, 12]];
   const [, size, fontSize] = tiers.find(([minimum]) => count >= minimum);
   return L.divIcon({
     html: `<div data-pnm-cluster-count="${count}" aria-hidden="true" class="pnm-painted-cluster${count >= 50 ? ' pnm-painted-cluster--dense' : ''}" style="--pnm-cluster-size:${size}px;--pnm-cluster-font:${fontSize}px;"><span>${count}</span></div>`,

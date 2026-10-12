@@ -171,6 +171,22 @@ test('venue, tour, cluster and location markers use complete painted assets with
   assert.match(primaryTour.options.html, /data-pnm-tour-live="true"/);
 });
 
+test('every actual cluster density tier keeps a physical 44px target under fractional Leaflet placement', () => {
+  const L = fakeLeaflet();
+  // Published Chromium readback: nominal 44px became 43.99993896484375px
+  // after translated area-search placement. Keep the real gate, not a tolerance.
+  const placementLoss = 1 / 16384;
+  for (const variant of ['compact', 'standard']) {
+    for (const count of [1, 6, 9, 10, 13, 19, 20, 28, 49, 50, 99, 100, 125]) {
+      const icon = createPokerClusterIcon(L, { getChildCount: () => count }, { variant });
+      for (const dimension of icon.options.iconSize) {
+        assert.ok(dimension - placementLoss >= 44, `${variant} cluster ${count} stays usable after actual fractional placement`);
+      }
+      assert.match(icon.options.html, new RegExp(`--pnm-cluster-size:${icon.options.iconSize[0]}px`), 'painted artwork and pointer target share their geometry');
+    }
+  }
+});
+
 test('painted map dossiers keep truth labels and delegated actions as live HTML', () => {
   const venue = {
     id: 'venue-1',
