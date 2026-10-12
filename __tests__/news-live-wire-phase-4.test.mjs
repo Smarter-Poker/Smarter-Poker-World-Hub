@@ -179,7 +179,7 @@ test('reels pagination and route modes do not skip or ignore requested feeds', (
   assert.match(REELS_PAGE, /autoPlay=\{preferencesLoaded && preferences\.autoplay\}/);
   assert.match(REELS_PAGE, /autoplay=\{preferencesLoaded && preferences.autoplay\}/);
   const player = readFileSync(new URL('../src/components/reels/ReelYouTubePlayer.jsx', import.meta.url), 'utf8');
-  assert.match(player, /desired.autoplay \? 'loadVideoById' : 'cueVideoById'/);
+  assert.match(player, /desired.autoplay && visible\(\) && !visibilityHoldRef.current \? 'loadVideoById' : 'cueVideoById'/);
   assert.match(REELS_PAGE, /if \(!userGesturedThisLoadRef\.current\) return/);
   assert.match(REELS_PAGE, /router\.query\.upload !== '1'/);
   assert.match(REELS_PAGE, /reelsPreferences\.update\(ownerRequest\.ownerId, newPrefs\)/);

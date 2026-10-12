@@ -1,3 +1,5 @@
+import { prefetchVideoStart } from '../../src/lib/reelsPrefetcher';
+import { useNativeReelVisibility } from '../../src/hooks/useNativeReelVisibility';
 /**
  * REELS PAGE - TikTok-style Full-Screen Vertical Video Experience
  * Swipe up/down to navigate, tap to mute/unmute
@@ -1239,6 +1241,13 @@ export default function ReelsPage({ reelsListing = null }) {
   }, [reels.length, router.query.id]);
 
   const currentReel = reels[currentIndex];
+  useNativeReelVisibility(videoRef, `${user?.id || 'public'}:${currentReel?.id || ''}`);
+  const adjacentNativeUrl = reels[currentIndex + 1]?.video_url || null;
+  useEffect(() => {
+    if (preferences.dataSaver || !adjacentNativeUrl) return;
+    return prefetchVideoStart(adjacentNativeUrl);
+  }, [adjacentNativeUrl, preferences.dataSaver]);
+
   const currentSourceName = reelSourceName(currentReel);
   const currentSourceUrl = reelSourceUrl(currentReel);
   const currentTopicLabel = reelTopicLabel(currentReel);
@@ -3036,7 +3045,7 @@ export default function ReelsPage({ reelsListing = null }) {
           {/* Auto-play immediately - muted for browser compliance */}
           {videoId ? (
             <ReelYouTubePlayer videoId={videoId} iframeRef={iframeRef} eventRef={youtubeEventRef}
-                      commandRef={youtubeCommandRef}
+                      commandRef={youtubeCommandRef} playbackScopeKey={user?.id || 'public'}
               autoplay={preferencesLoaded && preferences.autoplay}
               muted={!(userGesturedThisLoadRef.current && userWantsSoundRef.current)} onMutedChange={setMuted}
               title={`${currentTopicLabel} Reel From ${currentSourceName}`} />
@@ -3284,12 +3293,7 @@ export default function ReelsPage({ reelsListing = null }) {
                   }}
                 />
               ) : (
-                <link
-                  key={`spw-prefetch-${nextReel.id}`}
-                  rel="preload"
-                  href={nextUrl}
-                  as="video"
-                />
+null
               )}
             </>
           );

@@ -1,3 +1,5 @@
+import { prefetchVideoStart } from '../../lib/reelsPrefetcher';
+import { useNativeReelVisibility } from '../../hooks/useNativeReelVisibility';
 /**
  * REELS FEED CAROUSEL - SmarterPoker-style inline Reels in the feed
  * Horizontal scrollable carousel that appears between posts
@@ -483,6 +485,13 @@ function ReelViewer({
   const goNextRef = useRef(null);
 
   const currentReel = reels[currentIndex];
+  useNativeReelVisibility(videoRef, `${authUser?.id || 'public'}:${currentReel?.id || ''}`);
+  const adjacentNativeUrl = reels[currentIndex + 1]?.video_url || null;
+  useEffect(() => {
+    if (prefersDataSaver || !adjacentNativeUrl) return;
+    return prefetchVideoStart(adjacentNativeUrl);
+  }, [adjacentNativeUrl, prefersDataSaver]);
+
   const currentSourceName = reelSourceName(currentReel);
   const currentSourceUrl = reelSourceUrl(currentReel);
   activeCommentReelIdRef.current = currentReel?.id || null;
@@ -2406,7 +2415,7 @@ function ReelViewer({
                       active={isCurrentYT}
                       iframeRef={ytIframeRef}
                       eventRef={youtubeEventRef}
-                      commandRef={youtubeCommandRef}
+                      commandRef={youtubeCommandRef} playbackScopeKey={authUser?.id || 'public'}
                       muted={!(userGesturedThisLoadRef.current && userWantsSoundRef.current)}
                       onMutedChange={setMuted}
                       title={`${reelTopicLabel(currentReel)} Reel From ${currentSourceName}`}
@@ -2533,7 +2542,7 @@ function ReelViewer({
                   );
                 } else {
                   return (
-                    <link key={`preload-${nextReel.id}`} rel="preload" href={nextUrl} as="video" />
+                    null
                   );
                 }
               })}

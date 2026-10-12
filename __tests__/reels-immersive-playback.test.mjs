@@ -113,6 +113,90 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   assert.equal(calls.filter(c=>c[0]==='destroy').length,1);
 });
 
+test('the mounted provider suspends background playback and resumes only the same previously playing owner', async () => {
+  const React = require('react'), {create, act} = require('react-test-renderer'), ts = require('typescript');
+  const calls = [], listeners = new Map(), documentListeners = new Map();
+  let player, state = 2;
+  const register = (map, name, fn) => { if (!map.has(name)) map.set(name, new Set()); map.get(name).add(fn); };
+  const remove = (map, name, fn) => map.get(name)?.delete(fn);
+  const frame = () => ({src:'',style:{},contentWindow:{}});
+  const doc = {visibilityState:'visible',hidden:false,createElement:frame,addEventListener:(name,fn)=>register(documentListeners,name,fn),removeEventListener:(name,fn)=>remove(documentListeners,name,fn)};
+  const win = {location:{origin:'https://smarter.poker'},requestAnimationFrame:()=>1,cancelAnimationFrame(){},addEventListener:(name,fn)=>register(listeners,name,fn),removeEventListener:(name,fn)=>remove(listeners,name,fn),YT:{Player:class {
+    constructor(iframe, options){this.frame=iframe;this.events=options.events;player=this;}
+    getIframe(){return this.frame;} getPlayerState(){return state;}
+    playVideo(){calls.push('play');state=1;} pauseVideo(){calls.push('pause');state=2;}
+    mute(){calls.push('mute');} unMute(){calls.push('unmute');} setVolume(){}
+    loadVideoById(){calls.push('load');state=1;} cueVideoById(){calls.push('cue');state=5;}
+    destroy(){calls.push('destroy');}
+  }}};
+  const compile = path => ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{fileName:path.replace('.mjs','.js'),compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
+  const api={exports:{}},mod={exports:{}};
+  new Function('module','exports','window','document',compile('../src/lib/loadReelYouTubeAPI.mjs'))(api,api.exports,win,doc);
+  new Function('require','module','exports','window','document',compile('../src/components/reels/ReelYouTubePlayer.jsx'))(name=>name.endsWith('loadReelYouTubeAPI.mjs')?api.exports:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:require(name),mod,mod.exports,win,doc);
+  const commandRef={current:null}, host={appendChild(){}};
+  let props={videoId:'AAAAAAAAAAA',playbackScopeKey:'owner-a',commandRef,muted:false},tree;
+  const update=async values=>{props={...props,...values};await act(async()=>tree.update(React.createElement(mod.exports.default,props)));};
+  const visibility=async hidden=>{doc.hidden=hidden;doc.visibilityState=hidden?'hidden':'visible';await act(async()=>{for(const fn of documentListeners.get('visibilitychange')||[])fn();});};
+  await act(async()=>{tree=create(React.createElement(mod.exports.default,props),{createNodeMock:()=>host});});
+  await act(async()=>player.events.onReady());
+  assert.equal(state,1);
+  await visibility(true);
+  assert.equal(state,2,'hiding the page must pause actual provider playback');
+  const hiddenAt=calls.length;
+  await act(async()=>{player.events.onStateChange({data:1});player.events.onReady();});
+  commandRef.current('unMute'); commandRef.current('playVideo');
+  assert.equal(calls.slice(hiddenAt).filter(value=>value==='play'||value==='unmute').length,0,'late readiness, playing events and hidden commands cannot start audio');
+  await visibility(false);
+  assert.equal(state,1,'the same formerly playing clip resumes once');
+  commandRef.current('pauseVideo');
+  const pausedAt=calls.filter(value=>value==='play').length;
+  await visibility(true); await visibility(false);
+  assert.equal(calls.filter(value=>value==='play').length,pausedAt,'manual pause before hide survives return');
+  commandRef.current('playVideo'); await visibility(true); commandRef.current('pauseVideo'); await visibility(false);
+  assert.equal(state,2,'manual pause while hidden cancels lifecycle resume');
+  commandRef.current('playVideo'); await visibility(true);
+  await update({videoId:'BBBBBBBBBBB'});
+  const changedAt=calls.filter(value=>value==='play').length;
+  await visibility(false);
+  assert.equal(calls.filter(value=>value==='play').length,changedAt,'a clip selected while hidden is not auto-started');
+  assert.equal(state,2);
+  commandRef.current('playVideo'); await visibility(true);
+  await update({playbackScopeKey:'owner-b'}); await visibility(false);
+  assert.equal(state,2,'changing account while hidden cannot resume prior media');
+  commandRef.current('playVideo');
+  await act(async()=>{for(const fn of listeners.get('pagehide')||[])fn();});
+  assert.equal(state,2,'pagehide suspends even before document visibility updates');
+  assert.equal(doc.hidden,false);
+  const pageHideAt=calls.length;
+  commandRef.current('playVideo'); commandRef.current('unMute');
+  await act(async()=>{player.events.onReady();player.events.onStateChange({data:1});});
+  assert.equal(calls.slice(pageHideAt).filter(value=>value==='play'||value==='unmute').length,0,'pagehide holds late commands and SDK events even while document remains visible');
+  await act(async()=>{for(const fn of listeners.get('pageshow')||[])fn();});
+  assert.equal(state,1);
+  await act(async()=>tree.unmount());
+  assert.equal([...documentListeners.values()].reduce((n,set)=>n+set.size,0),0);
+  assert.equal([...listeners.values()].reduce((n,set)=>n+set.size,0),0);
+  doc.hidden=true; doc.visibilityState='hidden'; state=2;
+  await act(async()=>{tree=create(React.createElement(mod.exports.default,props),{createNodeMock:()=>host});});
+  const startupAt=calls.length;
+  await act(async()=>player.events.onReady());
+  assert.equal(calls.slice(startupAt).filter(value=>value==='play'||value==='unmute').length,0,'SDK arriving after a hidden mount cannot autoplay or unmute');
+  await visibility(false);
+  assert.equal(state,2,'a clip that never played before hide remains paused on return');
+  commandRef.current('playVideo');
+  assert.equal(state,1,'explicit visible play releases the background hold');
+  await act(async()=>tree.unmount());
+});
+
+test('the actual provider renders on the server without document or window globals', () => {
+  const React=require('react'),ts=require('typescript'),{renderToString}=require('react-dom/server');
+  const path='../src/components/reels/ReelYouTubePlayer.jsx';
+  const code=ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{fileName:path,compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
+  const mod={exports:{}};
+  new Function('require','module','exports','window','document',code)(name=>name.endsWith('loadReelYouTubeAPI.mjs')?{loadReelYouTubeAPI(){throw new Error('Server rendering must never load the SDK');}}:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:require(name),mod,mod.exports,undefined,undefined);
+  assert.match(renderToString(React.createElement(mod.exports.default,{videoId:'AAAAAAAAAAA'})),/data-reel-youtube-api="loading"/);
+});
+
 test('shared geometry gives mobile a full screen and desktop a portrait with accessible overlay actions', () => {
   const css=readFileSync(new URL('../src/components/reels/ImmersiveReels.module.css',import.meta.url),'utf8');
   assert.match(css,/height: 100dvh !important/);

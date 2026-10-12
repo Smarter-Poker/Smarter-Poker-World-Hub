@@ -1,3 +1,4 @@
+import { useNativeReelVisibility } from '../../hooks/useNativeReelVisibility';
 /**
  * REELS COMPONENT - SmarterPoker-style permanent video archive
  * Videos from Stories are saved here permanently
@@ -1085,6 +1086,13 @@ export function ReelsViewer({ onClose }) {
   }, [scheduleBackgroundReelsRefresh]);
 
   const currentReel = reels[currentIndex];
+  useNativeReelVisibility(videoRef, `${activeUserIdRef.current || 'public'}:${currentReel?.id || ''}`);
+  const adjacentNativeUrl = reels[currentIndex + 1]?.video_url || null;
+  useEffect(() => {
+    if (prefersDataSaver || !adjacentNativeUrl) return;
+    return prefetchVideoStart(adjacentNativeUrl);
+  }, [adjacentNativeUrl, prefersDataSaver]);
+
   activeCommentReelIdRef.current = currentReel?.id || null;
 
   const handleRecommendationFeedback = (action) => {
@@ -2127,9 +2135,6 @@ export function ReelsViewer({ onClose }) {
                 '*'
               );
           });
-          const nextReel = reels[newIdx + 1];
-          if (nextReel?.video_url && !isYouTubeUrl(nextReel.video_url))
-            prefetchVideoStart(nextReel.video_url);
           // 2026-08-15 audit: the old eviction set evictEl.src = '' - React
           // never re-commits an unchanged src prop, so scrolling back up two
           // slots showed a permanently blank video. Release decoder memory
@@ -2968,7 +2973,7 @@ export function ReelsViewer({ onClose }) {
 
                     {isActive && videoId ? (
                       <ReelYouTubePlayer videoId={videoId} iframeRef={ytIframeRef} eventRef={youtubeEventRef}
-                      commandRef={youtubeCommandRef}
+                      commandRef={youtubeCommandRef} playbackScopeKey={activeUserIdRef.current || 'public'}
                         muted={!(userGesturedThisLoadRef.current && userWantsSoundRef.current)} onMutedChange={setMuted}
                         title={reel.caption || `${reelTopicLabel(reel)} Reel`} />
                     ) : isActive && reel.video_url ? (
