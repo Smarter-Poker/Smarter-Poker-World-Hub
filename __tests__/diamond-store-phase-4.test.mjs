@@ -85,3 +85,18 @@ test('the rewards boost banner can shrink without clipping narrow mobile viewpor
   assert.match(STORE, /className=\{shellStyles\.rewardRow\}/);
   assert.match(SHELL_CSS, /\.rewardRow > :last-child\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
 });
+
+test('storefront introductions retain their artwork without stacked decorative frames', () => {
+  const blocks = [...SHOWCASE_CSS.matchAll(/(?:^|\n)\s*((?:\.diamonds\s+)?\.hero(?:::?after)?)\s*\{([^{}]*)\}/g)];
+  assert.ok(blocks.length >= 8, 'Cover base, Diamond, and phone hero declarations');
+  for (const [, selector, body] of blocks) {
+    for (const [, property, raw] of body.matchAll(/(border(?:-width|-color)?|box-shadow)\s*:\s*([^;]+);/g)) {
+      const value = raw.trim();
+      if (property.startsWith('border')) assert.equal(value, '0', selector);
+      else assert.ok(value === 'none' || value === 'inset 560px 0 180px -130px rgb(0 0 0 / 90%)', 'Only the existing text-legibility mask may remain');
+    }
+  }
+  for (const asset of ['diamond-vault-hero', 'vip-hero', 'merch-hero', 'rewards-hero', 'club-shop-hero']) assert.match(SHOWCASE_CSS, new RegExp(asset + '\\.webp'));
+  assert.match(SHOWCASE_CSS, /\.diamonds \.tabs\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;[^}]*box-shadow:\s*none;/);
+  assert.match(SHOWCASE_CSS, /\.tab\s*\{[^}]*button-secondary\.png/);
+});
