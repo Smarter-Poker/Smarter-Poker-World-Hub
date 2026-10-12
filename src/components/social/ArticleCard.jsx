@@ -42,6 +42,9 @@ const C = {
 
 // Module-level cache for link-preview metadata (avoids N+1 API calls)
 // Capped at 200 entries to prevent unbounded memory growth on long-lived pages.
+// Publisher recovery can use three bounded six-second requests on the API.
+// Leave room for that maintained fallback chain and transport overhead.
+const PREVIEW_REQUEST_TIMEOUT_MS = 25000;
 const CACHE_MAX = 200;
 const _metadataCache = new Map();
 const _inflightRequests = new Map();
@@ -99,7 +102,7 @@ async function fetchLinkPreview(url, { requireImage = false, refresh = false } =
     const promise = (async () => {
         try {
             const version = requireImage ? '&preview=story-image-v3' : '';
-            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}${version}`, { signal: AbortSignal.timeout(12000) });
+            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}${version}`, { signal: AbortSignal.timeout(PREVIEW_REQUEST_TIMEOUT_MS) });
             if (response.ok) {
                 const data = await response.json();
                 // Only cache if we got useful data (image or title) to allow retry on bare fallback
