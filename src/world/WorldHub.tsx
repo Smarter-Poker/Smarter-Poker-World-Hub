@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { CarouselEngine } from './carousel/CarouselEngine';
 import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex, getHiddenCardIds, hydrateHiddenCardIds } from '../state/userPreferences';
 import { getAuthUser } from '../lib/authUtils';
+import { getOwnerOnlyHiddenCardIds } from '../config/ownerOnlyHubCards';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
 import { COMMANDER_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../orbs/manifest/registry';
@@ -344,18 +345,30 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         () => getHiddenCardIds()
     );
 
+    // OWNER-ONLY CARDS (Dan, 2026-10-11): Club Commander, Personal Assistant,
+    // Training and Trivia are hidden from every account except Dan's. See
+    // src/config/ownerOnlyHubCards.js. Re-checked once the profile effect
+    // confirms who is signed in.
+    const [ownerOnlyHiddenIds, setOwnerOnlyHiddenIds] = useState<string[]>(
+        () => getOwnerOnlyHiddenCardIds(getAuthUser()?.id)
+    );
+    const effectiveHiddenIds = useMemo(
+        () => [...hiddenCardIds, ...ownerOnlyHiddenIds],
+        [hiddenCardIds, ownerOnlyHiddenIds]
+    );
+
     // Get the 6 footer cards (most visited or defaults) — reactive to hiddenCardIds
     // Also ensures TOKE_TRACKER_ORB is always available for quick-launch
     const footerCards = useMemo(() => {
-        const cards = getFooterCards(hiddenCardIds);
+        const cards = getFooterCards(effectiveHiddenIds);
         // Inject TOKE_TRACKER_ORB at front if not already in the personalized list
         const hasInList = cards.some(c => c.id === 'toke-tracker');
         const base = hasInList ? cards : [TOKE_TRACKER_ORB, ...cards.slice(0, 5)];
         // Filter any cards the user has hidden — PINNED cards can never be filtered out
-        return hiddenCardIds.length > 0
-            ? base.filter(c => !hiddenCardIds.includes(c.id) || PINNED_ORB_IDS.includes(c.id))
+        return effectiveHiddenIds.length > 0
+            ? base.filter(c => !effectiveHiddenIds.includes(c.id) || PINNED_ORB_IDS.includes(c.id))
             : base;
-    }, [hiddenCardIds]);
+    }, [effectiveHiddenIds]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // UI STATE
@@ -439,11 +452,11 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             orbs.splice(2, 0, TOKE_TRACKER_ORB);
         }
         if (hasCommanderAccount) orbs.splice(1, 0, COMMANDER_ORB);
-        // Filter out user-hidden cards — PINNED cards are immune to filtering
-        return hiddenCardIds.length > 0
-            ? orbs.filter(o => !hiddenCardIds.includes(o.id) || PINNED_ORB_IDS.includes(o.id))
+        // Filter out user-hidden and owner-only cards — PINNED cards are immune to filtering
+        return effectiveHiddenIds.length > 0
+            ? orbs.filter(o => !effectiveHiddenIds.includes(o.id) || PINNED_ORB_IDS.includes(o.id))
             : orbs;
-    }, [hasCommanderAccount, hiddenCardIds]);
+    }, [hasCommanderAccount, effectiveHiddenIds]);
 
     // Fetch user profile data including avatar + Commander account detection via Supabase
     useEffect(() => {
@@ -459,6 +472,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                     // gated on a profile query plus an API round-trip that it
                     // does not depend on.
                     setIsAuthenticated(true);
+                    setOwnerOnlyHiddenIds(getOwnerOnlyHiddenCardIds(user?.id));
 
                     // PERF (2026-08-24): the profiles.avatar_url query that used
                     // to live here has been removed. AvatarContext already holds
