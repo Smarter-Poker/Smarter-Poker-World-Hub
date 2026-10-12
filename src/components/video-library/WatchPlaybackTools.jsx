@@ -23,6 +23,7 @@ export function WatchDescription({ text }) {
 export default function WatchPlaybackTools({ iframeRef, active = true, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange }) {
     const [position, setPosition] = useState(0);
     const [duration, setDuration] = useState(catalogDuration);
+    const knownDurationRef = useRef(catalogDuration);
     const [ready, setReady] = useState(false);
     const [markers, setMarkers] = useState([]);
     const [countdown, setCountdown] = useState(null);
@@ -41,7 +42,8 @@ export default function WatchPlaybackTools({ iframeRef, active = true, duration:
             if (!data) return;
             if (data.event === 'infoDelivery') {
                 const length = Number(data.info?.duration);
-                const effectiveDuration = Number.isFinite(length) && length > 0 ? length : catalogDuration;
+                if (Number.isFinite(length) && length > 0) knownDurationRef.current = length;
+                const effectiveDuration = knownDurationRef.current;
                 const current = boundedPosition(data.info?.currentTime, effectiveDuration);
                 if (current !== null && effectiveDuration > 0) {
                     setDuration(effectiveDuration);

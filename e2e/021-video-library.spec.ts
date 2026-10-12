@@ -323,16 +323,19 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     const player = page.locator('#youtube-player');
     await expect(player).toBeVisible();
     const frame = await (await player.elementHandle())!.contentFrame();
-    await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'infoDelivery', info: { currentTime: 72, duration: 1122 } }), '*'));
+    await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'infoDelivery', info: { currentTime: 72, duration: 1200 } }), '*'));
+    await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'infoDelivery', info: { currentTime: 73 } }), '*'));
+    await expect(page.getByRole('slider', { name: 'Seek Video' })).toHaveValue('73');
+    await expect(page.getByRole('slider', { name: 'Seek Video' })).toHaveAttribute('max', '1200');
     await page.getByRole('button', { name: 'Mark This Hand', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Hand 1 · 1:12', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Hand 1 · 1:13', exact: true })).toBeVisible();
     await frame!.evaluate(() => {
       (window as any).seekCommands = [];
       addEventListener('message', event => { try { const value = JSON.parse(event.data); if (value.func === 'seekTo') (window as any).seekCommands.push(value.args); } catch {} });
     });
-    await page.getByRole('button', { name: 'Hand 1 · 1:12', exact: true }).click();
+    await page.getByRole('button', { name: 'Hand 1 · 1:13', exact: true }).click();
     await expect.poll(() => frame!.evaluate(() => (window as any).seekCommands.length)).toBe(1);
-    expect(await frame!.evaluate(() => (window as any).seekCommands[0])).toEqual([72, true]);
+    expect(await frame!.evaluate(() => (window as any).seekCommands[0])).toEqual([73, true]);
     await page.getByRole('button', { name: 'Show More', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Show Less', exact: true })).toHaveAttribute('aria-expanded', 'true');
     await player.evaluate(element => element.setAttribute('data-retained-player', 'yes'));
@@ -343,7 +346,7 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     await page.getByRole('button', { name: 'Expand Player', exact: true }).click();
     await expect(player).toHaveAttribute('data-retained-player', 'yes');
     expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
-    await page.getByRole('button', { name: 'Remove Hand Marker At 1:12' }).click();
+    await page.getByRole('button', { name: 'Remove Hand Marker At 1:13' }).click();
     await expect(page.getByRole('list', { name: 'Hand Markers' })).toHaveCount(0);
   });
 
