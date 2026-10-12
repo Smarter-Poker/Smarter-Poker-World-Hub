@@ -50,7 +50,7 @@ export default async function handler(req, res) {
         const category = String(firstQueryValue(req.query.category) || '').trim().toLowerCase();
         if (category === 'following') scope = 'following';
         let viewerId = null;
-        if (scope === 'following') {
+        if (scope === 'following' || (id && req.headers.authorization)) {
             const { user, error: authError } = await getServerUserWithFallback(req, getAuthClient());
             if (authError || !user?.id) {
                 return res.status(401).json({ success: false, error: 'Authentication required' });

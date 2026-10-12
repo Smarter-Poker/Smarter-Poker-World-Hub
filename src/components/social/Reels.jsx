@@ -1,3 +1,9 @@
+import { createReelHydrationRevision } from '../../lib/reelHydrationRevision.mjs';
+import { mutateReelReaction } from '../../lib/reelReactionMutation.mjs';
+import useReelsEnhancements from '../../hooks/useReelsEnhancements';
+import ReelCaptionControl from '../reels/ReelCaptionControl';
+import { getOrCreateReelCommentAttempt, forgetReelCommentAttempt, shouldRestoreReelCommentDraft } from '../../lib/reelCommentAttempts.mjs';
+import { createReelMutationGuard, postReelComment, removeReelComment, editReelComment } from '../../lib/reelMutationGuard.mjs';
 import { useNativeReelVisibility } from '../../hooks/useNativeReelVisibility';
 /**
  * REELS COMPONENT - SmarterPoker-style permanent video archive
@@ -31,8 +37,7 @@ import {
 } from '../../lib/reelInteractionHydration';
 import { createLatestRequestGuard } from '../../lib/latestRequestGuard.mjs';
 import { loadCanonicalReelsWindow } from '../../lib/reelsFeedController.mjs';
-import { recordReelsDeliveryMetric } from '../../lib/reelsDeliveryMetrics';
-import { capReelsInMemory, dataSaverEnabled } from '../../lib/reelsDeliveryContract.mjs';
+import { capReelsInMemory, dataSaverEnabled, nativeDeliveryPolicy } from '../../lib/reelsDeliveryContract.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
   REELS_BACKGROUND_REFRESH_DELAY_MS,
@@ -135,8 +140,6 @@ export function ReelsViewer({ onClose }) {
   const prefersDataSaver = useMemo(() => dataSaverEnabled({
     connection: typeof navigator !== 'undefined' ? navigator.connection : null,
   }), []);
-  const deliveryStartRef = useRef(Date.now());
-  const deliveryMeasuredRef = useRef(false);
   const recordShareMetric = async (reel, destination = 'external') => {
     const token = getAccessToken();
     if (!reel?.id || !token) return;
@@ -178,6 +181,8 @@ export function ReelsViewer({ onClose }) {
   const [currentUserId, setCurrentUserId] = useState(null);
   const activeUserIdRef = useRef(null);
   const accountScopeRef = useRef(null);
+  const interactionRevisionRef = useRef(null);
+  if (!interactionRevisionRef.current) interactionRevisionRef.current = createReelHydrationRevision();
   if (!accountScopeRef.current) accountScopeRef.current = createReelAccountScope();
   const interactionReelIds = useMemo(() => normaliseReelIds(reels), [reels]);
   const interactionAuthorIds = useMemo(() => normaliseReelAuthorIds(reels), [reels]);
@@ -407,6 +412,22 @@ export function ReelsViewer({ onClose }) {
   const copyToastTimerRef = useRef(null);
 
   const clearAccountOwnedState = useCallback(() => {
+    reelsRequestGuardRef.current?.abort();
+    const mountedRows = reelsRef.current || [];
+    const activeRow = mountedRows[currentIndexRef.current];
+    const publicRows = mountedRows.filter(row => row?.is_public === true);
+    if (publicRows.length !== mountedRows.length) {
+      if (activeRow?.is_public !== true) {
+        videoRef.current?.pause();
+        youtubeCommandRef.current?.('pauseVideo', []);
+      }
+      const retainedIndex = publicRows.findIndex(row => row.id === activeRow?.id);
+      const nextIndex = retainedIndex >= 0 ? retainedIndex : Math.max(0, Math.min(currentIndexRef.current, publicRows.length - 1));
+      reelsRef.current = publicRows;
+      currentIndexRef.current = nextIndex;
+      setReels(publicRows);
+      setCurrentIndex(nextIndex);
+    }
     commentRequestGuardRef.current?.abort();
     setLiked({});
     setDisliked({});
@@ -477,6 +498,7 @@ export function ReelsViewer({ onClose }) {
     }
 
     const ownerRequest = accountScopeRef.current.capture(currentUserId);
+    const hydration = interactionRevisionRef.current.capture(ownerRequest);
     let cancelled = false;
     const controller = new AbortController();
     loadReelInteractionState(supabase, currentUserId, reels, {
@@ -485,10 +507,10 @@ export function ReelsViewer({ onClose }) {
     })
       .then((state) => {
         if (cancelled || !ownerRequest.isCurrent()) return;
-        setLiked(state.liked);
-        setDisliked(state.disliked);
-        setSaved(state.saved);
-        savedTargetsByReelRef.current = new Map(Object.entries(state.savedTargets));
+        setLiked(previous => hydration.merge('reaction', state.liked, previous));
+        setDisliked(previous => hydration.merge('reaction', state.disliked, previous));
+        setSaved(previous => hydration.merge('save', state.saved, previous));
+        savedTargetsByReelRef.current = new Map(Object.entries(hydration.merge('save', state.savedTargets, Object.fromEntries(savedTargetsByReelRef.current))));
       })
       .catch((error) => {
         if (!cancelled && ownerRequest.isCurrent()) console.warn('[ReelsViewer] Interaction hydration failed:', error?.message || error);
@@ -505,10 +527,11 @@ export function ReelsViewer({ onClose }) {
       return undefined;
     }
     const ownerRequest = accountScopeRef.current.capture(currentUserId);
+    const hydration = interactionRevisionRef.current.capture(ownerRequest);
     let cancelled = false;
     loadReelFollowState(supabase, currentUserId, interactionAuthorIds)
       .then((state) => {
-        if (!cancelled && ownerRequest.isCurrent()) setFollowing(state);
+        if (!cancelled && ownerRequest.isCurrent()) setFollowing(previous => hydration.merge('follow', state, previous));
       })
       .catch((error) => {
         if (!cancelled && ownerRequest.isCurrent()) console.warn('[ReelsViewer] Follow hydration failed:', error?.message || error);
@@ -540,10 +563,10 @@ export function ReelsViewer({ onClose }) {
     };
     const handleCommentBus = (event) => {
       const d = event?.payload;
-      if (d?.postId) {
+      if (d?.postId && d.authorId !== activeUserIdRef.current) {
         setCommentCounts((prev) => ({
           ...prev,
-          [d.postId]: Math.max(0, (prev[d.postId] || 0) + (d.removed ? -1 : 1)),
+          [d.postId]: Number.isInteger(d.commentCount) && d.commentCount >= 0 ? d.commentCount : Math.max(0, (prev[d.postId] || 0) + (d.removed ? -1 : 1)),
         }));
       }
     };
@@ -794,7 +817,23 @@ export function ReelsViewer({ onClose }) {
   };
 
   // Save/Bookmark handler
-  const handleSave = async () => {
+
+  const commentEditEpochRef = useRef(0);
+  const mutationGuardRef = useRef(null);
+  if (!mutationGuardRef.current) mutationGuardRef.current = createReelMutationGuard();
+  const withReelMutation = (kind, target, task) => async (...args) => {
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!ownerRequest.ownerId) return task(...args);
+    let operation;
+    const targetId = target();
+    try { operation = mutationGuardRef.current.begin({ ownerRequest, kind, target: targetId }); }
+    catch (error) { showErrorToast(error.message); return false; }
+    if (!operation) return false;
+    const finishRevision = interactionRevisionRef.current.begin(ownerRequest, kind, targetId);
+    try { return await task(...args); }
+    finally { finishRevision(); operation.finish(); }
+  };
+  const handleSave = withReelMutation('save', () => reels[currentIndex]?.id, async () => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     const reel = currentReel;
     if (!reel?.id || !ownerRequest.ownerId || !ownerRequest.isCurrent()) return;
@@ -827,7 +866,7 @@ export function ReelsViewer({ onClose }) {
       setSaved((prev) => ({ ...prev, [reel.id]: wasSaved }));
       showErrorToast('Save failed - try again');
     }
-  };
+  });
 
   const handleReport = async () => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
@@ -848,7 +887,7 @@ export function ReelsViewer({ onClose }) {
     }
   };
 
-  const handleFollow = async () => {
+  const handleFollow = withReelMutation('follow', () => reels[currentIndex]?.author_id || reels[currentIndex]?.profiles?.id, async () => {
     const authorId = currentReel?.author_id || currentReel?.profiles?.id;
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     if (!authorId || !ownerRequest.ownerId || !ownerRequest.isCurrent() || authorId === ownerRequest.ownerId) return;
@@ -877,7 +916,7 @@ export function ReelsViewer({ onClose }) {
       setFollowing((prev) => ({ ...prev, [authorId]: wasFollowing }));
       showErrorToast('Follow failed - try again');
     }
-  };
+  });
 
   // Auto-hide overlay after 2.5 seconds - but NOT when video is paused
   // BUG FIX: Previously this useEffect unconditionally restarted the auto-hide timer
@@ -1043,15 +1082,6 @@ export function ReelsViewer({ onClose }) {
       // DB is source of truth on a full reload - DB values win over stale optimistic counts
       setLikeCounts((prev) => ({ ...prev, ...lc }));
       setCommentCounts((prev) => ({ ...prev, ...cc }));
-      if (filteredMerged.length && !deliveryMeasuredRef.current) {
-        deliveryMeasuredRef.current = true;
-        void recordReelsDeliveryMetric({
-          surface: 'library',
-          feedMode: 'latest',
-          startupMs: Date.now() - deliveryStartRef.current,
-          playbackType: filteredMerged[0]?.playback_type || 'unknown',
-        });
-      }
     } catch (e) {
       if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
       if (background) {
@@ -1086,16 +1116,32 @@ export function ReelsViewer({ onClose }) {
   }, [scheduleBackgroundReelsRefresh]);
 
   const currentReel = reels[currentIndex];
+  const captionUploadRef = useRef(null);
+  const enhancements = useReelsEnhancements({
+    reels, currentIndex, setReels: setReels, ownerId: activeUserIdRef.current || null,
+    mode: 'latest', surface: 'library', videoRef, dataSaver: prefersDataSaver,
+    onCompleted: (id) => setWatchedReelIds((previous) => persistWatchedReelIds([...new Set([...previous, id])], activeUserIdRef.current || null)),
+  });
+  const enhancedYouTubeEventRef = useRef(null);
+  enhancedYouTubeEventRef.current = (event) => {
+    const frame = ytIframeRef.current;
+    if (frame && event?.source === frame.contentWindow && ['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(event.origin)) enhancements.youtubeEvent(event);
+    youtubeEventRef.current?.(event);
+  };
+
+
+
   useNativeReelVisibility(videoRef, `${activeUserIdRef.current || 'public'}:${currentReel?.id || ''}`);
   const adjacentNativeUrl = reels[currentIndex + 1]?.video_url || null;
   useEffect(() => {
     if (prefersDataSaver || !adjacentNativeUrl) return;
-    return prefetchVideoStart(adjacentNativeUrl);
+    return prefetchVideoStart(adjacentNativeUrl, { dataSaver: prefersDataSaver, connection: typeof navigator !== 'undefined' ? navigator.connection : null });
   }, [adjacentNativeUrl, prefersDataSaver]);
 
   activeCommentReelIdRef.current = currentReel?.id || null;
 
   const handleRecommendationFeedback = (action) => {
+    enhancements.feedback(action);
     if (!currentReel?.id) return;
     const ownerId = currentUserId || null;
     if (action === 'not-interested') {
@@ -1116,19 +1162,7 @@ export function ReelsViewer({ onClose }) {
     setShowContextMenu(false);
   };
 
-  // Phase 9: Watched Indicator Timer
-  useEffect(() => {
-    if (!currentReel?.id) return;
-    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
-    const watchTimer = setTimeout(() => {
-      if (!ownerRequest.isCurrent()) return;
-      setWatchedReelIds((prev) => {
-        if (prev.includes(currentReel.id)) return prev;
-        return persistWatchedReelIds([...prev, currentReel.id], ownerRequest.ownerId);
-      });
-    }, 3000); // Flag watched after 3s
-    return () => clearTimeout(watchTimer);
-  }, [currentReel?.id, currentUserId]);
+
 
   // Explicit user commands go through the ready official API owner.
   const youtubeCommandRef = useRef(null);
@@ -1228,183 +1262,74 @@ export function ReelsViewer({ onClose }) {
     }
   };
 
-  const handleLike = async () => {
-    if (!currentReel) return;
-    const reelId = currentReel.id;
+  const handleLike = withReelMutation('reaction', () => reels[currentIndex]?.id, async () => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
-    const userId = ownerRequest.ownerId;
-    if (!userId || !ownerRequest.isCurrent()) {
-      showErrorToast('Sign in to like Reels');
-      return;
-    }
-    if (likeDebounceRef.current) return;
-    likeDebounceRef.current = true;
-    setTimeout(() => {
-      likeDebounceRef.current = false;
-    }, 300);
-
-    // Optimistic UI update - always fire so heart turns red immediately
-    const wasLiked = liked[reelId];
-    const wasDisliked = disliked[reelId];
-    setLiked((prev) => ({ ...prev, [reelId]: !prev[reelId] }));
-    setLikeCounts((prev) => ({
-      ...prev,
-      [reelId]: Math.max(0, (prev[reelId] || 0) + (wasLiked ? -1 : 1)),
-    }));
-    // #7 Animated Like Counter - trigger bounce
-    // BUG FIX (RLXS-1): cancel previous bounce timer before starting a new one.
+    if (!currentReel?.id) return;
+    if (!ownerRequest.ownerId) return showErrorToast('Sign in to like Reels');
+    if (!ownerRequest.isCurrent()) return;
+    const reelId = currentReel.id;
+    const wasLiked = Boolean(liked[reelId]);
+    const wasDisliked = Boolean(disliked[reelId]);
+    const previousCount = likeCounts[reelId] ?? currentReel.like_count ?? 0;
+    setLiked(prev => ({ ...prev, [reelId]: !wasLiked }));
+    if (!wasLiked) setDisliked(prev => ({ ...prev, [reelId]: false }));
+    setLikeCounts(prev => ({ ...prev, [reelId]: Math.max(0, previousCount + (wasLiked ? -1 : 1)) }));
     setLikeBounceId(reelId);
     if (likeBounceTimerRef.current) clearTimeout(likeBounceTimerRef.current);
     likeBounceTimerRef.current = setTimeout(() => {
       likeBounceTimerRef.current = null;
       setLikeBounceId(null);
     }, 400);
-
-    // Mutual exclusion: remove dislike when liking
-    if (!wasLiked && wasDisliked) {
-      setDisliked((prev) => ({ ...prev, [reelId]: false }));
-      try {
-        const { error } = await supabase
-          .from('social_likes')
-          .delete()
-          .eq('post_id', reelId)
-          .eq('user_id', userId)
-          .eq('reaction_type', 'dislike');
-        if (error) throw error;
-        if (!ownerRequest.isCurrent()) return;
-      } catch (e) {
-        if (!ownerRequest.isCurrent()) return;
-        setDisliked((prev) => ({ ...prev, [reelId]: true }));
-        setLiked((prev) => ({ ...prev, [reelId]: wasLiked }));
-        setLikeCounts((prev) => ({
-          ...prev,
-          [reelId]: Math.max(0, (prev[reelId] || 0) + (wasLiked ? 1 : -1)),
-        }));
-        showErrorToast('Like failed - try again');
-        return;
-      }
-    }
-
     try {
-      if (wasLiked) {
-        // DB trigger (trig_sync_like_count) handles like_count decrement atomically - no RPC needed
-        const { error } = await supabase
-          .from('social_likes')
-          .delete()
-          .eq('post_id', reelId)
-          .eq('user_id', userId)
-          .eq('reaction_type', 'like');
-        if (error) throw error;
-        if (!ownerRequest.isCurrent()) return;
-        busEmit.socialPostLiked(reelId, userId, { added: false, reactionType: 'like' });
-      } else {
-        // DB trigger (trig_sync_like_count) handles like_count increment atomically - no RPC needed
-        const { error } = await supabase
-          .from('social_likes')
-          .insert({ post_id: reelId, user_id: userId, reaction_type: 'like' });
-        if (error) throw error;
-        if (!ownerRequest.isCurrent()) return;
-        busEmit.socialPostLiked(reelId, userId, { added: true, reactionType: 'like' });
-      }
-    } catch (err) {
+      const result = await mutateReelReaction(supabase, { reelId, reaction: 'like', active: !wasLiked });
       if (!ownerRequest.isCurrent()) return;
-      console.warn('Reel like persistence failed:', err.message);
-      // Roll back optimistic update on failure
-      setLiked((prev) => ({ ...prev, [reelId]: wasLiked }));
-      setLikeCounts((prev) => ({
-        ...prev,
-        [reelId]: Math.max(0, (prev[reelId] || 0) + (wasLiked ? 1 : -1)),
-      }));
-      showErrorToast('Like failed - try again');
+      setLiked(prev => ({ ...prev, [reelId]: result.liked }));
+      setDisliked(prev => ({ ...prev, [reelId]: result.disliked }));
+      setLikeCounts(prev => ({ ...prev, [reelId]: result.likeCount }));
+      if (result.liked !== wasLiked) busEmit.socialPostLiked(reelId, ownerRequest.ownerId, { added: result.liked, reactionType: 'like' });
+    } catch (error) {
+      if (!ownerRequest.isCurrent()) return;
+      setLiked(prev => ({ ...prev, [reelId]: wasLiked }));
+      setDisliked(prev => ({ ...prev, [reelId]: wasDisliked }));
+      setLikeCounts(prev => ({ ...prev, [reelId]: previousCount }));
+      showErrorToast(error.code === '55P03' ? 'Reaction is busy. Try again.' : 'Like could not be confirmed. Refresh before trying again.');
     }
-  };
+  });
 
-  const handleDislike = async () => {
-    if (!currentReel) return;
-    const reelId = currentReel.id;
+  const handleDislike = withReelMutation('reaction', () => reels[currentIndex]?.id, async () => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
-    const userId = ownerRequest.ownerId;
-    if (!userId || !ownerRequest.isCurrent()) {
-      showErrorToast('Sign in to manage Reel recommendations');
-      return;
-    }
-    if (likeDebounceRef.current) return;
-    likeDebounceRef.current = true;
-    setTimeout(() => {
-      likeDebounceRef.current = false;
-    }, 300);
-
-    const wasDisliked = disliked[reelId];
-    const wasLiked = liked[reelId];
-    setDisliked((prev) => ({ ...prev, [reelId]: !prev[reelId] }));
-    // Mutual exclusion: remove like when disliking
+    if (!currentReel?.id) return;
+    if (!ownerRequest.ownerId) return showErrorToast('Sign in to manage Reel recommendations');
+    if (!ownerRequest.isCurrent()) return;
+    const reelId = currentReel.id;
+    const wasLiked = Boolean(liked[reelId]);
+    const wasDisliked = Boolean(disliked[reelId]);
+    const previousCount = likeCounts[reelId] ?? currentReel.like_count ?? 0;
+    setDisliked(prev => ({ ...prev, [reelId]: !wasDisliked }));
     if (!wasDisliked && wasLiked) {
-      setLiked((prev) => ({ ...prev, [reelId]: false }));
-      setLikeCounts((prev) => ({
-        ...prev,
-        [reelId]: Math.max(0, (prev[reelId] || 0) - 1),
-      }));
+      setLiked(prev => ({ ...prev, [reelId]: false }));
+      setLikeCounts(prev => ({ ...prev, [reelId]: Math.max(0, previousCount - 1) }));
     }
-
-    // Clean up like from DB if needed
-    if (!wasDisliked && wasLiked) {
-      try {
-        const { error } = await supabase
-          .from('social_likes')
-          .delete()
-          .eq('post_id', reelId)
-          .eq('user_id', userId)
-          .eq('reaction_type', 'like');
-        if (error) throw error;
-        if (!ownerRequest.isCurrent()) return;
-        // trig_sync_like_count already decrements like_count on this DELETE
-        // (verified in the live DB) - the extra RPC here double-decremented.
-      } catch (e) {
-        if (!ownerRequest.isCurrent()) return;
-        setLiked((prev) => ({ ...prev, [reelId]: true }));
-        setLikeCounts((prev) => ({ ...prev, [reelId]: (prev[reelId] || 0) + 1 }));
-        setDisliked((prev) => ({ ...prev, [reelId]: wasDisliked }));
-        showErrorToast('Dislike failed - try again');
-        return;
-      }
-    }
-
     try {
-      if (wasDisliked) {
-        const { error } = await supabase
-          .from('social_likes')
-          .delete()
-          .eq('post_id', reelId)
-          .eq('user_id', userId)
-          .eq('reaction_type', 'dislike');
-        if (error) throw error;
-        if (!ownerRequest.isCurrent()) return;
-        // #4 Not Interested - remove from filter
-        setNotInterestedIds((prev) => {
-          const n = new Set(prev);
-          n.delete(reelId);
-          return persistNotInterestedReelIds(n, userId);
-        });
-      } else {
-        const { error } = await supabase
-          .from('social_likes')
-          .insert({ post_id: reelId, user_id: userId, reaction_type: 'dislike' });
-        if (error) throw error;
-        if (!ownerRequest.isCurrent()) return;
-        // #4 Not Interested - add to filter
-        setNotInterestedIds((prev) => {
-          const n = new Set(prev);
-          n.add(reelId);
-          return persistNotInterestedReelIds(n, userId);
-        });
-      }
-    } catch {
+      const result = await mutateReelReaction(supabase, { reelId, reaction: 'dislike', active: !wasDisliked });
       if (!ownerRequest.isCurrent()) return;
-      // BUG FIX: show error toast on dislike failure (was silently rolling back with no user feedback)
-      setDisliked((prev) => ({ ...prev, [reelId]: wasDisliked }));
-      showErrorToast('Dislike failed - try again');
+      setLiked(prev => ({ ...prev, [reelId]: result.liked }));
+      setDisliked(prev => ({ ...prev, [reelId]: result.disliked }));
+      setLikeCounts(prev => ({ ...prev, [reelId]: result.likeCount }));
+      setNotInterestedIds(prev => {
+        const next = new Set(prev);
+        if (result.disliked) next.add(reelId); else next.delete(reelId);
+        return persistNotInterestedReelIds(next, ownerRequest.ownerId);
+      });
+      if (result.liked !== wasLiked) busEmit.socialPostLiked(reelId, ownerRequest.ownerId, { added: result.liked, reactionType: 'like' });
+    } catch (error) {
+      if (!ownerRequest.isCurrent()) return;
+      setLiked(prev => ({ ...prev, [reelId]: wasLiked }));
+      setDisliked(prev => ({ ...prev, [reelId]: wasDisliked }));
+      setLikeCounts(prev => ({ ...prev, [reelId]: previousCount }));
+      showErrorToast(error.code === '55P03' ? 'Reaction is busy. Try again.' : 'Reaction could not be confirmed. Refresh before trying again.');
     }
-  };
+  });
 
   // Comment handler
   const handleOpenComments = async () => {
@@ -1529,7 +1454,9 @@ export function ReelsViewer({ onClose }) {
     }
   };
 
-  const handleSubmitComment = async (e) => {
+  const commentAttemptDraftRef = useRef(null);
+  commentAttemptDraftRef.current = { text: commentText, mediaUrl: reelCommentMediaUrl, mediaType: reelCommentMediaType, reply: replyTo };
+  const handleSubmitComment = withReelMutation('comment', () => reels[currentIndex]?.id, async (e) => {
     if (e && e.key !== 'Enter') return;
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     if ((!commentText.trim() && !reelCommentMediaUrl) || !ownerRequest.ownerId || !ownerRequest.isCurrent() || !currentReel?.id) return;
@@ -1537,14 +1464,22 @@ export function ReelsViewer({ onClose }) {
     const text = commentText.trim();
     const mediaUrl = reelCommentMediaUrl;
     const mediaType = reelCommentMediaType;
-    const tempId = Date.now();
     const parentId = replyTo?.id || null;
+    const capturedReply = replyTo;
+    const payload = { post_id: reelId, author_id: ownerRequest.ownerId, content: text, parent_id: parentId, media_url: mediaUrl || null, media_type: mediaType || null };
+    const attempt = await getOrCreateReelCommentAttempt(payload);
+    if (!ownerRequest.isCurrent() || activeCommentReelIdRef.current !== reelId) { if (!attempt.reused) forgetReelCommentAttempt(attempt); return; }
+    const latestDraft = commentAttemptDraftRef.current;
+    if (latestDraft.text.trim() !== text || latestDraft.mediaUrl !== mediaUrl || latestDraft.reply?.id !== capturedReply?.id) { if (!attempt.reused) forgetReelCommentAttempt(attempt); return; }
+    const tempId = attempt.id;
+    const alreadyVisible = reelComments.some((comment) => comment.id === tempId);
+    commentAttemptDraftRef.current = { text: '', mediaUrl: null, mediaType: null, reply: null };
     setCommentText('');
     setReelCommentMediaUrl(null);
     setReelCommentMediaType(null);
     setShowReelGifPicker(false);
     setReplyTo(null);
-    setReelComments((prev) => [
+    setReelComments((prev) => prev.some((comment) => comment.id === tempId) ? prev : [
       ...prev,
       {
         id: tempId,
@@ -1556,29 +1491,35 @@ export function ReelsViewer({ onClose }) {
         parent_id: parentId,
       },
     ]);
+    let persistedComment = false;
     try {
-      const payload = { post_id: reelId, author_id: ownerRequest.ownerId, content: text || '' };
-      if (mediaUrl) {
-        payload.media_url = mediaUrl;
-        payload.media_type = mediaType;
-      }
-      if (parentId) {
-        payload.parent_id = parentId;
-      }
-      const { error } = await supabase.from('social_comments').insert(payload);
-      if (error) throw error;
+      const { comment: confirmedComment } = await postReelComment(supabase, { ...payload, id: tempId });
+      persistedComment = true;
+      try { forgetReelCommentAttempt(attempt); } catch (storageError) { console.warn('[Reels] Confirmed comment retry identity retained:', storageError?.message); }
       if (!ownerRequest.isCurrent()) return;
+      if (activeCommentReelIdRef.current === reelId) setReelComments((previous) => previous.map((comment) => comment.id === tempId ? { ...comment, ...confirmedComment } : comment));
       // BUG FIX: guard busEmit call (socialCommentAdded may be undefined in some build configs)
       busEmit.socialCommentAdded && busEmit.socialCommentAdded(reelId, ownerRequest.ownerId);
       // DB trigger (trig_update_reel_comment_count / trig_update_post_comment_count)
       // handles comment_count increment atomically - no RPC needed here
-      setCommentCounts((prev) => ({ ...prev, [reelId]: (prev[reelId] || 0) + 1 }));
-    } catch {
-      if (!ownerRequest.isCurrent()) return;
-      setReelComments((prev) => prev.filter((c) => c.id !== tempId));
+      const persistedCount = await Promise.resolve(supabase.from('social_reels').select('comment_count').eq('id', reelId).maybeSingle()).catch((error) => ({ error }));
+      if (ownerRequest.isCurrent() && !persistedCount.error && Number.isFinite(persistedCount.data?.comment_count)) {
+        setCommentCounts((prev) => ({ ...prev, [reelId]: persistedCount.data.comment_count }));
+      }
+    } catch (error) {
+      if (!ownerRequest.isCurrent() || persistedComment) return;
+      if (activeCommentReelIdRef.current === reelId) {
+        if (!alreadyVisible) setReelComments((prev) => prev.filter((c) => c.id !== tempId));
+        if (shouldRestoreReelCommentDraft(commentAttemptDraftRef.current)) {
+          setCommentText((current) => current.trim() ? current : text);
+          setReelCommentMediaUrl((current) => current || mediaUrl);
+          setReelCommentMediaType((current) => current || mediaType);
+          setReplyTo((current) => current || capturedReply);
+        }
+      }
       showErrorToast('Comment failed - please try again');
     }
-  };
+  });
 
   // Phase 6 - Comment like toggle
   const handleCommentLike = async (commentId) => {
@@ -1624,7 +1565,7 @@ export function ReelsViewer({ onClose }) {
   };
 
   // Phase 6 - Delete own comment
-  const handleDeleteComment = async (commentId) => {
+  const handleDeleteComment = withReelMutation('comment-delete', () => reels[currentIndex]?.id, async (commentId) => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     if (!ownerRequest.ownerId || !ownerRequest.isCurrent() || !currentReel?.id) return;
     const reelId = currentReel.id;
@@ -1632,21 +1573,14 @@ export function ReelsViewer({ onClose }) {
     const deletedComment = deletedIndex >= 0 ? reelComments[deletedIndex] : null;
     setReelComments((c) => c.filter((x) => x.id !== commentId));
     try {
-      const { error } = await supabase
-        .from('social_comments')
-        .delete()
-        .eq('id', commentId)
-        .eq('author_id', ownerRequest.ownerId);
-      if (error) throw error;
+      const deletion = await removeReelComment(supabase, { id: commentId, postId: reelId, ownerId: ownerRequest.ownerId });
       if (!ownerRequest.isCurrent()) return;
       // DB trigger handles comment_count decrement atomically
-      setCommentCounts((p) => ({
-        ...p,
-        [reelId]: Math.max(0, (p[reelId] || 1) - 1),
-      }));
+      if (deletion.commentCount !== null) setCommentCounts(prev => ({ ...prev, [reelId]: deletion.commentCount }));
       busEmit.socialCommentAdded &&
-        busEmit.socialCommentAdded(reelId, ownerRequest.ownerId, { removed: true });
+        busEmit.socialCommentAdded(reelId, ownerRequest.ownerId, { removed: true, commentCount: deletion.commentCount });
     } catch (error) {
+      if (error.code === 'REEL_COMMENT_DELETE_UNKNOWN') { if (ownerRequest.isCurrent()) showErrorToast(error.message); return; }
       console.warn('[ReelsViewer] Comment delete failed:', error?.message || error);
       if (!ownerRequest.isCurrent() || activeCommentReelIdRef.current !== reelId || !deletedComment) return;
       setReelComments((current) => {
@@ -1657,37 +1591,38 @@ export function ReelsViewer({ onClose }) {
       });
       showErrorToast('Delete failed - please try again');
     }
-  };
+  });
 
   // Phase 7 - Edit own comment
   const handleEditComment = (comment) => {
+    commentEditEpochRef.current += 1;
     setEditingComment(comment.id);
     setEditCommentText(comment.content || '');
   };
-  const handleSaveEdit = async (commentId) => {
+  const handleSaveEdit = withReelMutation('comment-edit', () => reels[currentIndex]?.id, async (commentId) => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     if (!editCommentText.trim() || !ownerRequest.ownerId || !ownerRequest.isCurrent() || !currentReel?.id) return;
     const reelId = currentReel.id;
+    const editEpoch = commentEditEpochRef.current;
+    const content = editCommentText.trim();
     const orig = reelComments.find((c) => c.id === commentId);
     setReelComments((prev) =>
-      prev.map((c) => (c.id === commentId ? { ...c, content: editCommentText.trim() } : c))
+      prev.map((c) => (c.id === commentId ? { ...c, content } : c))
     );
     setEditingComment(null);
     try {
-      const { error } = await supabase
-        .from('social_comments')
-        .update({ content: editCommentText.trim() })
-        .eq('id', commentId)
-        .eq('author_id', ownerRequest.ownerId);
-      if (error) throw error;
+      await editReelComment(supabase, { id: commentId, postId: reelId, ownerId: ownerRequest.ownerId, content });
+      if (!ownerRequest.isCurrent()) return;
     } catch (error) {
+      if (error.code === 'REEL_COMMENT_EDIT_UNKNOWN') { if (ownerRequest.isCurrent()) showErrorToast(error.message); return; }
+      if (ownerRequest.isCurrent()) showErrorToast('Edit could not be confirmed. Refresh before trying again.');
       console.warn('[ReelsViewer] Comment edit failed:', error?.message || error);
       if (ownerRequest.isCurrent() && activeCommentReelIdRef.current === reelId && orig) {
         setReelComments((prev) => prev.map((c) => (c.id === commentId ? orig : c)));
       }
     }
-    if (ownerRequest.isCurrent()) setEditCommentText('');
-  };
+    if (ownerRequest.isCurrent() && commentEditEpochRef.current === editEpoch) setEditCommentText('');
+  });
 
   // Phase 7 - Playback speed toggle (native video)
   const handleSpeedToggle = () => {
@@ -2686,6 +2621,7 @@ export function ReelsViewer({ onClose }) {
   } else if (activeDialogKey === 'options') {
     dialogContent = (
       <div className={styles.choiceList}>
+        {currentReel?.playback_type === 'native' && activeUserIdRef.current && currentReel.author_id === activeUserIdRef.current ? <button type="button" className={styles.wordAction} onClick={() => { setShowMoreMenu(false); captionUploadRef.current?.(); }}>Add Or Replace Spoken Captions</button> : null}
         <button type="button" className={styles.wordAction} onClick={toggleSound}>
           {muted ? 'Unmute Reel' : 'Mute Reel'}
         </button>
@@ -2918,6 +2854,7 @@ export function ReelsViewer({ onClose }) {
       <section className={styles.console} data-reels-console aria-label={`Embedded ${topicLabel} Reels Viewer`}>
         <header data-reels-topbar>
           <button type="button" onClick={onClose} aria-label="Close"><ReelIcon name="back" /></button>
+          <ReelCaptionControl native={currentReel?.playback_type === 'native'} reel={currentReel} ownerId={activeUserIdRef.current || null} getAccessToken={getAccessToken} uploadCommandRef={captionUploadRef} videoRef={videoRef} requested={enhancements.captionRequested} onToggle={enhancements.toggleCaptions} state={{...enhancements.captionState, videoId: currentReel?.id}} />
           <h1 className="sp-reels-top-title">Reels</h1>
           <button type="button" onClick={toggleSound} aria-label={muted ? 'Unmute' : 'Mute'}><ReelIcon name={muted ? 'muted' : 'sound'} /></button>
         </header>
@@ -2972,18 +2909,19 @@ export function ReelsViewer({ onClose }) {
                     ) : null}
 
                     {isActive && videoId ? (
-                      <ReelYouTubePlayer videoId={videoId} iframeRef={ytIframeRef} eventRef={youtubeEventRef}
+                      <ReelYouTubePlayer videoId={videoId} iframeRef={ytIframeRef} eventRef={enhancedYouTubeEventRef} captionsRequested={enhancements.captionRequested} onCaptionsStateChange={enhancements.onCaptionsStateChange}
                       commandRef={youtubeCommandRef} playbackScopeKey={activeUserIdRef.current || 'public'}
                         muted={!(userGesturedThisLoadRef.current && userWantsSoundRef.current)} onMutedChange={setMuted}
                         title={reel.caption || `${reelTopicLabel(reel)} Reel`} />
                     ) : isActive && reel.video_url ? (
                       <video
+                        crossOrigin="anonymous"
                         ref={videoRef}
                         className={styles.media}
                         key={reel.id}
                         src={reel.video_url}
                         poster={reel.thumbnail_url || undefined}
-                        preload={prefersDataSaver ? 'metadata' : 'auto'}
+                        preload={nativeDeliveryPolicy({ dataSaver: prefersDataSaver, connection: typeof navigator !== 'undefined' ? navigator.connection : null }).preload}
                         playsInline
                         loop
                         muted={muted}

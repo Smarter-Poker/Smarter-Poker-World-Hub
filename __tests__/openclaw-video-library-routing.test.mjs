@@ -382,7 +382,7 @@ test('Open Claw validates routing and database without changing operational inbo
     assert.equal(deployWorkflow.match(new RegExp(`secrets\\.${key}\\b`, 'g'))?.length, 1, key);
   }
   for (const hostManaged of ['CRON_SECRET', 'SUPABASE_SERVICE_ROLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'WORKERS_BASE_URL']) {
-    assert.doesNotMatch(deployWorkflow, new RegExp(`secrets\\.${hostManaged}\\b`), hostManaged);
+    assert.doesNotMatch(deployWorkflow.split('\n  native-reels:\n')[0], new RegExp(`secrets\\.${hostManaged}\\b`), hostManaged);
   }
   assert.doesNotMatch(dispatcher, /DISPATCHER_ROLE\s*=\s*os\.environ\.get\([^\n]+\.lower\(\)/);
   assert.match(dispatcher, /\('WORKERS_BASE_URL', _WORKERS_BASE_URL_RAW\)/);

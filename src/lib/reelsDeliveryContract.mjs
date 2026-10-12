@@ -58,7 +58,6 @@ export function restoreReelsPosition(raw, rows) {
 
 export function dataSaverEnabled({ connection, persisted } = {}) {
   if (persisted === true || persisted === '1') return true;
-  if (persisted === false || persisted === '0') return false;
   return Boolean(connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType));
 }
 
@@ -70,4 +69,18 @@ export function capReelsInMemory(rows, activeId, cap = REELS_MOBILE_BUDGETS.maxF
   const before = Math.floor((boundedCap - 1) / 2);
   const start = Math.max(0, Math.min(list.length - boundedCap, activeIndex - before));
   return list.slice(start, start + boundedCap);
+}
+
+/** Adapt only delivery effort; this never invents a rendition or widens rights. */
+export function nativeDeliveryPolicy({ connection, dataSaver, observedBytes = 0 } = {}) {
+  const saver = dataSaverEnabled({ connection, persisted: dataSaver });
+  const downlink = Number(connection?.downlink);
+  const constrained = connection?.effectiveType === '3g' || (Number.isFinite(downlink) && downlink > 0 && downlink < 2);
+  const exhausted = Number.isFinite(observedBytes) && observedBytes >= 6_000_000;
+  return Object.freeze({
+    prefetchBytes: saver || exhausted ? 0 : constrained ? 300_000 : 1_500_000,
+    preload: saver || constrained || exhausted ? 'metadata' : 'auto',
+    dataBudgetBytes: 6_000_000,
+    quality: saver || constrained ? 'constrained' : 'standard',
+  });
 }

@@ -1,31 +1,29 @@
 /**
- * 🎬 SERVER-SIDE VIDEO TRANSCODING TRIGGER
- * pages/api/video/transcode.js
- *
- * After a raw video is uploaded to Supabase Storage, this endpoint
- * queues a server-side transcoding job. The job:
- *   1. Re-encodes the video to H.264/AAC at 720p/2.5Mbps
- *   2. Generates a proper server-side thumbnail
- *   3. Updates the post's media_urls with the optimized URL
- *
- * This eliminates the need for client-side compression (which was
- * disabled due to real-time processing freezing mobile UIs).
- *
- * POST /api/video/transcode
- * Body: { videoUrl, postId, userId }
- *
- * Returns: { success: true, jobId }
- *
- * NOTE: This is the trigger endpoint. The actual transcoding runs
- * asynchronously via a background worker (Supabase Edge Function
- * or external service). The worker updates the DB when complete.
+ * Queue an authenticated owned upload at the authoritative social post.
+ * Qualified native Reels use the existing sp-transcode service; the maintained
+ * generic upload consumer retains its other business work. Queue acknowledgment
+ * is not completed encoding. The worker publishes H.264/AAC and a real preview;
+ * existing H.264 media may use fast remux without a promised resolution change.
+ * POST { videoUrl, postId }; identity comes from verified authentication.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { requireAuth } from '../../../src/lib/auth-middleware';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
-const TRANSCODE_TABLE = 'video_transcode_jobs';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isOwnedNativeUploadUrl(value, ownerId, configuredOrigin) {
+    try {
+        const url = new URL(value);
+        const origin = new URL(configuredOrigin);
+        if (!UUID.test(ownerId) || url.protocol !== 'https:' || origin.protocol !== 'https:'
+            || url.origin !== origin.origin || origin.pathname !== '/' || origin.username || origin.password
+            || origin.port || origin.search || origin.hash || url.username || url.password || url.port
+            || url.search || url.hash || /[%\\]/.test(url.pathname)) return false;
+        return new RegExp(`^/storage/v1/object/public/social-media/(?:videos|reels)/${ownerId}/[^/]+$`, 'i').test(url.pathname);
+    } catch { return false; }
+}
 
 export default async function handler(req, res) {
     try {
@@ -38,7 +36,7 @@ export default async function handler(req, res) {
 
         const { videoUrl, postId } = req.body || {};
 
-        if (!videoUrl || !postId) {
+        if (typeof videoUrl !== 'string' || !UUID.test(String(postId || ''))) {
             return res.status(400).json({
                 success: false,
                 error: 'Missing required fields: videoUrl, postId',
@@ -54,48 +52,22 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, serviceKey);
 
-        // Verify post ownership
-        const { data: post } = await supabase
-            .from('social_posts')
-            .select('id, author_id')
-            .eq('id', postId)
-            .maybeSingle();
-
-        if (!post || post.author_id !== user.id) {
-            return res.status(403).json({ success: false, error: 'Not authorized' });
+        if (!isOwnedNativeUploadUrl(videoUrl, user.id, supabaseUrl)) {
+            return res.status(400).json({ success: false, error: 'Invalid owned upload URL' });
         }
-
-        // Queue the transcode job
-        const jobId = `txc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-        const { error: insertError } = await supabase
-            .from(TRANSCODE_TABLE)
-            .insert({
-                id: jobId,
-                post_id: postId,
-                user_id: user.id,
-                source_url: videoUrl,
-                status: 'queued',
-                target_format: 'h264_720p',
-                target_bitrate: 2_500_000,
-                created_at: new Date().toISOString(),
-            });
-
-        if (insertError) {
-            // Table might not exist yet — log and return gracefully
-            console.warn('[Transcode API] Insert error (table may not exist):', insertError.message);
-            return res.status(200).json({
-                success: true,
-                jobId: null,
-                message: 'Transcode queuing skipped - table not configured yet',
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            jobId,
-            message: 'Transcode job queued successfully',
+        // The service-only RPC locks the owned post, proves primary-media
+        // membership and queues the field consumed by the existing native worker.
+        const { data, error } = await supabase.rpc('queue_owned_native_upload', {
+            p_actor: user.id, p_post_id: postId, p_video_url: videoUrl,
         });
+        if (error) {
+            const status = error.code === '42501' ? 403 : error.code === '22023' ? 400 : error.code === '55000' ? 409 : 503;
+            return res.status(status).json({ success: false, error: 'Native upload could not be queued' });
+        }
+        if (!data?.jobId || !['queued', 'running', 'done'].includes(data.status)) {
+            return res.status(503).json({ success: false, error: 'Native queue acknowledgment unavailable' });
+        }
+        return res.status(200).json({ success: true, jobId: data.jobId, status: data.status, reused: data.reused === true });
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_) {}

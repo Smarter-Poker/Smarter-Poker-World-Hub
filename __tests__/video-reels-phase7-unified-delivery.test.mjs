@@ -81,9 +81,16 @@ test('the mobile category rail and media-first Reel preview remain wired into pu
   assert.match(SOCIAL, /\.vlc-reel-card \.vlc-reel-card__author \{[^}]*position: absolute/);
   assert.match(SOCIAL, /height: 292px/);
   assert.match(SOCIAL, /flex: 0 0 164px/);
-  assert.match(PAGE, /recordReelsDeliveryMetric/);
-  assert.match(LIBRARY, /recordReelsDeliveryMetric/);
-  assert.match(SOCIAL, /recordReelsDeliveryMetric/);
+  for (const source of [PAGE, LIBRARY, SOCIAL]) {
+    assert.match(source, /useReelsEnhancements\(\{/);
+    assert.match(source, /videoRef, dataSaver:/);
+    assert.match(source, /enhancements\.youtubeEvent\(event\)/);
+    assert.doesNotMatch(source, /startupMs: Date\.now\(\) - deliveryStartRef/);
+  }
+  const measurementOwner = readFileSync(new URL('../src/hooks/useReelsEnhancements.js', import.meta.url), 'utf8');
+  assert.match(measurementOwner, /createReelsPlaybackMeasurement/);
+  assert.match(measurementOwner, /recordReelsDeliveryMetric/);
+  assert.match(measurementOwner, /measurement\.playing\(row\.id\)/);
 });
 
 test('one player lifecycle shell and the complete feedback contract are shared', () => {

@@ -36,7 +36,7 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
     mute(){calls.push(['mute']);} unMute(){calls.push(['unMute']);} setVolume(n){calls.push(['setVolume',n]);}
     playVideo(){calls.push(['playVideo']);} pauseVideo(){calls.push(['pauseVideo']);}
     loadVideoById(value){calls.push(['load',value.videoId]);} cueVideoById(value){calls.push(['cue',value.videoId]);}
-    getCurrentTime(){return 23;} getDuration(){return 92;} seekTo(n){calls.push(['seekTo',n]);} destroy(){calls.push(['destroy']);}
+    getCurrentTime(){return 23;} getDuration(){return 92;} getPlaybackRate(){return 2;} seekTo(n){calls.push(['seekTo',n]);} destroy(){calls.push(['destroy']);}
   }}};
   const doc = {createElement:frame};
   const compile = path => ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'), {fileName:path.replace('.mjs','.js'),compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
@@ -75,6 +75,9 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   player.events.onStateChange({data:1});
   const [id, draw] = frames.entries().next().value; frames.delete(id); draw(100);
   assert.ok(delivered.some(e=>e.data.event==='infoDelivery' && e.data.info.currentTime===23 && e.data.info.duration===92), 'progress is observed through official getters');
+  assert.equal(delivered.at(-1).data.info.playbackRate,2,'played time observes the actual provider playback rate');
+  player.getPlaybackRate=()=>NaN;const [invalidId,invalidDraw]=frames.entries().next().value;frames.delete(invalidId);invalidDraw(200);
+  assert.equal(Object.hasOwn(delivered.at(-1).data.info,'playbackRate'),false,'unknown provider playback rate is not fabricated');
   player.events.onStateChange({data:2});
   assert.equal(frames.size,0, 'paused playback stops the presentation clock');
   player.events.onError({data:100});
