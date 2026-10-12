@@ -24,6 +24,7 @@ import UploadReelModal from '../../src/components/reels/UploadReelModal';
 import ReelPublicationRecoveryBanner from '../../src/components/reels/ReelPublicationRecoveryBanner';
 import ReelsModeRail from '../../src/components/reels/ReelsModeRail';
 import ReelActionVisual, { ReelIcon } from '../../src/components/reels/ReelActionVisual';
+import ReelProgress from '../../src/components/reels/ReelProgress';
 import ReelYouTubePlayer from '../../src/components/reels/ReelYouTubePlayer';
 import ReelsStatusScreen from '../../src/components/reels/ReelsStatusScreen';
 import immersiveStyles from '../../src/components/reels/ImmersiveReels.module.css';
@@ -3142,7 +3143,7 @@ export default function ReelsPage({ reelsListing = null }) {
           ) : null}
         </ReelPlayerFrame>
 
-        <progress className={styles.progress} value={Math.round(videoProgress)} max={100} aria-label="Video Progress" />
+        <ReelProgress value={videoProgress} isYouTube={Boolean(videoId)} videoRef={videoRef} commandRef={youtubeCommandRef} />
 
         {/* FULL-SCREEN TOUCH OVERLAY — captures ALL touch events over the iframe */}
         {/* This is the ONLY reliable way to handle touches on iOS Safari over YouTube embeds */}

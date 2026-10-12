@@ -25,3 +25,8 @@ export function createReelWheelGesture() {
     return accumulated > 0 ? 1 : -1;
   };
 }
+
+export function reelSeekSeconds(percent, duration) {
+  if (!Number.isFinite(percent) || !Number.isFinite(duration) || duration <= 0) return null;
+  return duration * Math.max(0, Math.min(100, percent)) / 100;
+}

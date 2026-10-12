@@ -61,6 +61,7 @@ import { reelSourceKey } from '../../lib/reelsFeedback.mjs';
 import styles from './ReelsConsole.module.css';
 import immersiveStyles from '../reels/ImmersiveReels.module.css';
 import ReelActionVisual, { ReelIcon } from '../reels/ReelActionVisual';
+import ReelProgress from '../reels/ReelProgress';
 import ReelYouTubePlayer from '../reels/ReelYouTubePlayer';
 import ReelsStatusScreen from '../reels/ReelsStatusScreen';
 
@@ -638,6 +639,7 @@ export function ReelsViewer({ onClose }) {
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
           }
         }
+        if (data?.event === 'infoDelivery' && Number.isFinite(data.info?.currentTime) && data.info?.duration > 0) setProgress(Math.max(0, Math.min(100, data.info.currentTime / data.info.duration * 100)));
         if (data?.event === 'onReady') setYtReady(true);
         if (data?.event === 'onAutoplayBlocked') { setYtReady(true); setPaused(true); }
         if (data?.event === 'onError' && data?.info) {
@@ -3059,14 +3061,7 @@ export function ReelsViewer({ onClose }) {
                     {isActive && paused && ytReady && !ytError ? (
                       <div className={styles.stageSignal}><ReelIcon name="play" filled /></div>
                     ) : null}
-                    {isActive && progress > 0 ? (
-                      <div className={styles.progressTrack} aria-hidden="true">
-                        <div
-                          className={styles.progressValue}
-                          style={{ '--reel-progress': Math.max(0, Math.min(1, progress / 100)) }}
-                        />
-                      </div>
-                    ) : null}
+                    {isActive ? <ReelProgress value={progress} isYouTube={Boolean(videoId)} videoRef={videoRef} commandRef={youtubeCommandRef} /> : null}
                   </ReelPlayerFrame>
                 );
               })}

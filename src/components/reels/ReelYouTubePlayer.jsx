@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { reelSeekSeconds } from '../../lib/reelGestureNavigation.mjs';
 import { loadReelYouTubeAPI } from '../../lib/loadReelYouTubeAPI.mjs';
 
 // React owns the host, the official API owns its iframe. Swiping changes the
@@ -91,6 +92,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
       if (name === 'playVideo' || name === 'pauseVideo') playbackIntentRef.current = name;
       const player = playerRef.current;
       if (!readyRef.current || !player || !desiredRef.current.active) return;
+      if (name === 'seekToPercent') { const seconds = reelSeekSeconds(args[0], player.getDuration()); if (seconds !== null) player.seekTo(seconds, true); return; }
       if (['playVideo', 'pauseVideo', 'mute', 'unMute', 'setVolume', 'setPlaybackRate', 'seekTo'].includes(name)) player[name](...args);
     };
     commandRef.current = command;

@@ -53,6 +53,7 @@ import { createReelAccountScope } from '../../lib/reelAccountScope.mjs';
 import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
 import ReelCard from '../reels/ReelCard';
 import ReelActionVisual, { ReelIcon } from '../reels/ReelActionVisual';
+import ReelProgress from '../reels/ReelProgress';
 import ReelYouTubePlayer from '../reels/ReelYouTubePlayer';
 import immersiveStyles from '../reels/ImmersiveReels.module.css';
 import { createReelWheelGesture, verticalReelSwipe } from '../../lib/reelGestureNavigation.mjs';
@@ -880,6 +881,7 @@ function ReelViewer({
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
           }
         }
+        if (data?.event === 'infoDelivery' && Number.isFinite(data.info?.currentTime) && data.info?.duration > 0) setProgress(Math.max(0, Math.min(100, data.info.currentTime / data.info.duration * 100)));
         if (data?.event === 'onReady') setYtReady(true);
         if (data?.event === 'onAutoplayBlocked') { setYtReady(true); setPaused(true); }
         if (data?.event === 'onError') {
@@ -2502,6 +2504,8 @@ function ReelViewer({
                   setProgress(0);
                 }}
               />
+
+              <ReelProgress value={progress} isYouTube={isYouTubeUrl(currentReel.video_url)} videoRef={videoRef} commandRef={youtubeCommandRef} />
 
               {/* Keep the media window bounded to current + next. Mounting one
                   native preload beyond that can consume an entire mobile data

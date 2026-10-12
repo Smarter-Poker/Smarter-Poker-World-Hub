@@ -910,6 +910,7 @@ jobs:
             src/components/reels/ReelCard.jsx \
             src/components/reels/ReelThumbnail.jsx \
             src/components/reels/ReelYouTubePlayer.jsx \
+            src/components/reels/ReelProgress.jsx \
             src/components/reels/ImmersiveReels.module.css \
             src/components/reels/ReelActionVisual.jsx \
             src/components/reels/ReelsStatusScreen.jsx \

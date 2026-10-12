@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { verticalReelSwipe, createReelWheelGesture } from '../src/lib/reelGestureNavigation.mjs';
+import { verticalReelSwipe, createReelWheelGesture, reelSeekSeconds } from '../src/lib/reelGestureNavigation.mjs';
 const require = createRequire(import.meta.url);
 
 test('deliberate vertical swipes distinguish quick flicks, diagonals and taps', () => {
@@ -36,14 +36,14 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
     mute(){calls.push(['mute']);} unMute(){calls.push(['unMute']);} setVolume(n){calls.push(['setVolume',n]);}
     playVideo(){calls.push(['playVideo']);} pauseVideo(){calls.push(['pauseVideo']);}
     loadVideoById(value){calls.push(['load',value.videoId]);} cueVideoById(value){calls.push(['cue',value.videoId]);}
-    seekTo(n){calls.push(['seekTo',n]);} destroy(){calls.push(['destroy']);}
+    getDuration(){return 92;} seekTo(n){calls.push(['seekTo',n]);} destroy(){calls.push(['destroy']);}
   }}};
   const doc = {createElement:frame};
   const compile = path => ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'), {fileName:path.replace('.mjs','.js'),compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   const api = {exports:{}};
   new Function('module','exports','window','document',compile('../src/lib/loadReelYouTubeAPI.mjs'))(api,api.exports,win,doc);
   const mod = {exports:{}};
-  new Function('require','module','exports','window','document',compile('../src/components/reels/ReelYouTubePlayer.jsx'))(name=>name.endsWith('loadReelYouTubeAPI.mjs')?api.exports:require(name),mod,mod.exports,win,doc);
+  new Function('require','module','exports','window','document',compile('../src/components/reels/ReelYouTubePlayer.jsx'))(name=>name.endsWith('loadReelYouTubeAPI.mjs')?api.exports:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:require(name),mod,mod.exports,win,doc);
   const Component = mod.exports.default;
   const iframeRef={current:null},eventRef={current:event=>delivered.push(event)}, commandRef={current:null};
   const props={videoId:'AAAAAAAAAAA',iframeRef,eventRef,commandRef,onMutedChange:value=>observedSound.push(value),title:'Original Clip'};
@@ -66,6 +66,8 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   assert.equal(calls.filter(c=>c[0]==='playVideo').length,0,'metadata/sound updates cannot undo pause');
   await act(async()=>tree.update(React.createElement(Component,{...props,videoId:'BBBBBBBBBBB'})));
   assert.deepEqual(calls.filter(c=>c[0]==='load'),[['load','BBBBBBBBBBB']]);
+  commandRef.current('seekToPercent',[50]);
+  assert.deepEqual(calls.at(-1),['seekTo',46]);
   commandRef.current('playVideo');
   player.events.onStateChange({data:0});
   assert.ok(calls.some(c=>c[0]==='seekTo'&&c[1]===0),'ended loops current clip');
@@ -124,4 +126,38 @@ test('SDK loading is single-flight, bounded, preserves prior callback and allows
   win.YT={Player:class{}};win.onYouTubeIframeAPIReady();
   assert.equal(await retry,win.YT);assert.equal(priorCalls,1);assert.equal(win.onYouTubeIframeAPIReady,previous);
   deadlines[1].fn();assert.equal(scripts[1].removed,undefined,'late deadline cannot undo successful API readiness');
+});
+
+ test('scrubbing uses actual clip duration and clamps hostile or unknown positions', () => {
+  assert.equal(reelSeekSeconds(25, 80), 20);
+  assert.equal(reelSeekSeconds(150, 80), 80);
+  assert.equal(reelSeekSeconds(-10, 80), 0);
+  for (const duration of [undefined,0,-1,Infinity,NaN]) assert.equal(reelSeekSeconds(50,duration),null);
+  assert.equal(reelSeekSeconds(NaN,80),null);
+  for (const path of ['pages/hub/reels.js','src/components/social/Reels.jsx','src/components/social/ReelsFeedCarousel.jsx']) assert.match(readFileSync(new URL('../'+path,import.meta.url),'utf8'), /<ReelProgress/);
+ });
+
+test('mounted scrubber commits one drag seek, supports keyboard seeks and ignores unknown duration', async () => {
+  const React=require('react'), {create,act}=require('react-test-renderer'), ts=require('typescript');
+  const mod={exports:{}};
+  const code=ts.transpileModule(readFileSync(new URL('../src/components/reels/ReelProgress.jsx',import.meta.url),'utf8'),{fileName:'ReelProgress.jsx',compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
+  new Function('require','module','exports',code)(name=>name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:require(name),mod,mod.exports);
+  const videoRef={current:{duration:80,currentTime:7}},calls=[],commandRef={current:(...args)=>calls.push(args)};
+  let tree;
+  await act(async()=>{tree=create(React.createElement(mod.exports.default,{value:10,videoRef,commandRef}));});
+  let input=tree.root.findByType('input');
+  await act(async()=>input.props.onChange({target:{value:'25'}}));
+  assert.equal(videoRef.current.currentTime,20);
+  await act(async()=>input.props.onPointerDown({stopPropagation(){},currentTarget:{},pointerId:1}));
+  await act(async()=>{tree.root.findByType('input').props.onChange({target:{value:'50'}});tree.root.findByType('input').props.onChange({target:{value:'75'}});});
+  assert.equal(videoRef.current.currentTime,20,'drag movement cannot flood seek commands');
+  await act(async()=>tree.root.findByType('input').props.onPointerUp({stopPropagation(){}}));
+  assert.equal(videoRef.current.currentTime,60);
+  videoRef.current.duration=NaN;
+  await act(async()=>tree.root.findByType('input').props.onChange({target:{value:'10'}}));
+  assert.equal(videoRef.current.currentTime,60,'unknown media duration does not fabricate a seek');
+  await act(async()=>tree.update(React.createElement(mod.exports.default,{value:10,isYouTube:true,videoRef,commandRef})));
+  await act(async()=>tree.root.findByType('input').props.onChange({target:{value:'25'}}));
+  assert.deepEqual(calls,[['seekToPercent',[25]]]);
+  await act(async()=>tree.unmount());
 });
