@@ -1,9 +1,24 @@
 /**
  * Poker Odds Calculator — /hub/poker-tools
  * ══════════════════════════════════════════
- * Golden Smarter Table with Hero + up to 6 Villains
- * Card picker BELOW table, large custom deck card images
- * Board cards on the felt, SMARTER.POKER branding
+ * Hero + up to 6 Villains (3 in PLO5/PLO6), board, dead cards, presets and a
+ * full 52-card picker. Equity comes from src/lib/poker/pokerOddsEngine (Monte
+ * Carlo, 10,000 runs); this page only collects cards and shows the answer.
+ *
+ * 2026-10-11 (Dan): "Odds calculator needs to be optimized for mobile and
+ * updated UI." Rebuilt as one stacked, always-displayed console:
+ *   - 393px / 360px first: 16px side gutters (wider when a notch needs it),
+ *     no sideways scroll, every control 44px or larger, the full deck shown
+ *     at once in a 7-column grid on a phone and 13 columns from 769px up.
+ *   - Each seat is a panel with its equity, a bar and its win / tie split on
+ *     the panel itself, so the answer is beside the cards that produced it.
+ *   - Smarter.Poker palette only: black, blue, teal, silver and white from
+ *     the Odds Calculator world tokens (src/config/worldMenuNavigation.js),
+ *     one hairline frame per surface. The four suit colours are the deck's
+ *     own four-colour art. No gold rails, no orange/purple/pink seat badges.
+ *   - No page bottom padding: pages/_app.js owns the footer spacer, and the
+ *     approved global header comes from the app root for this route.
+ * The state, slot advance and calculation code are unchanged.
  */
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
@@ -11,9 +26,11 @@ import Link from 'next/link';
 import {
     calculateEquity, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
+import { getWorldMenuById, getWorldMenuStyleVariables } from '../../src/config/worldMenuNavigation';
+import useModalHistory from '../../src/hooks/useModalHistory';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
 import {
-    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2,
+    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2, Layers,
 } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════
@@ -22,21 +39,13 @@ import {
 const RANKS = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = ['spades', 'hearts', 'diamonds', 'clubs'];
 const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
+/* The four-colour deck the card art uses (public/cards/*.png). */
 const SUIT_COLORS = { spades: '#E4E6EB', hearts: '#EF4444', diamonds: '#3B82F6', clubs: '#31A24C' };
+const SUIT_NAMES = { spades: 'Spades', hearts: 'Hearts', diamonds: 'Diamonds', clubs: 'Clubs' };
 
-
-const PLAYER_COLORS = ['#F59E0B', '#EF4444', '#31A24C', '#A855F7', '#3B82F6', '#EC4899', '#14B8A6'];
-
-/* 7 seat positions around the table (Hero + 6 Villains) — inset for multi-card games */
-const SEAT_POSITIONS = [
-    { x: 50, y: 88, label: 'Hero', isHero: true },
-    { x: 20, y: 70, label: 'Villain 1' },
-    { x: 14, y: 38, label: 'Villain 2' },
-    { x: 30, y: 8, label: 'Villain 3' },
-    { x: 70, y: 8, label: 'Villain 4' },
-    { x: 86, y: 38, label: 'Villain 5' },
-    { x: 80, y: 70, label: 'Villain 6' },
-];
+/* The Odds Calculator world's own palette (blue / teal on black, silver and
+   white text), exposed as --world-* custom properties on the page root. */
+const THEME_VARS = getWorldMenuStyleVariables(getWorldMenuById('odds-calculator'));
 
 /* Custom deck face images: /cards/{suit}_{rank}.png */
 function getCardImage(rank, suit) {
@@ -44,9 +53,30 @@ function getCardImage(rank, suit) {
     return `/cards/${suit}_${r}.png`;
 }
 
-/* ═══════════════════════════════════════════════
-   COMPONENT
-═══════════════════════════════════════════════ */
+const cardName = (card) => `${card.rank} Of ${SUIT_NAMES[card.suit] || card.suit}`;
+const seatName = (pi) => (pi === 0 ? 'Hero' : `Villain ${pi}`);
+const pct = (n) => `${(Number.isFinite(n) ? n : 0).toFixed(1)}%`;
+
+/* One card position: a face to tap off, or an empty slot to tap into. */
+function CardSlot({ card, active, onPick, onRemove, label }) {
+    if (card) {
+        return (
+            <button type="button" className="odds-slot" onClick={e => { e.stopPropagation(); onRemove(); }}
+                aria-label={`Remove ${cardName(card)} From ${label}`}>
+                <span className="odds-slot__face">
+                    <img src={getCardImage(card.rank, card.suit)} alt="" loading="lazy" />
+                </span>
+            </button>
+        );
+    }
+    return (
+        <button type="button" className={`odds-slot${active ? ' is-active' : ''}`} onClick={e => { e.stopPropagation(); onPick(); }}
+            aria-label={`Pick A Card For ${label}`}>
+            <span className="odds-slot__face odds-slot__face--empty" aria-hidden />
+        </button>
+    );
+}
+
 export default function PokerToolsPage() {
     const [game, setGame] = useState('nlhe');
     const [hands, setHands] = useState([[], []]);
@@ -200,6 +230,18 @@ export default function PokerToolsPage() {
 
     const validCount = hands.filter(h => h.length === config.holeCards).length;
 
+    /* Settings sheet: the phone back gesture closes it instead of leaving. */
+    useModalHistory(showMenu, () => setShowMenu(false));
+
+    const leaderEquity = results ? Math.max(...results.map(r => r.equity)) : null;
+    const pickerTarget = !selectedSlot ? null
+        : selectedSlot.type === 'hand' ? seatName(selectedSlot.playerIdx)
+            : selectedSlot.type === 'board' ? 'The Board' : 'Dead Cards';
+    const statusText = calculating ? 'Calculating Equity'
+        : results ? `${(results[0]?.total || 0).toLocaleString('en-US')} Simulated Runouts`
+            : validCount >= 2 ? 'Ready To Calculate'
+                : `Fill At Least Two Hands (${config.holeCards} Cards Each) To See Equity`;
+
     /* ═══════════════════════════════════════
        RENDER
     ═══════════════════════════════════════ */
@@ -208,524 +250,463 @@ export default function PokerToolsPage() {
             <Head>
                 <title>Poker Odds Calculator | Smarter.Poker</title>
                 <meta name="description" content="Free poker odds calculator for Hold'em, Omaha, PLO5, PLO6, Stud, and Razz." />
-                
             </Head>
 
-            <div style={{
-                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#080810', color: '#E4E6EB',
-                fontFamily: "var(--font-inter), -apple-system, sans-serif",
-                /* 2026-05-07 — removed textTransform: 'capitalize' that was Title-Casing every word */
-                display: 'flex', flexDirection: 'column',
-            }}>
-                {/* ─── HEADER ─── */}
-                <div style={{
-                    background: '#0f0f18', borderBottom: '1px solid #222',
-                    padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Link href="/hub" aria-label="Back to hub" style={{ color: '#888', textDecoration: 'none', fontSize: 13, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <ArrowLeft size={14} aria-hidden /> Hub
+            <div className="odds-page" style={THEME_VARS}>
+                <main className="odds-main">
+                    {/* ─── TITLE ROW ─── */}
+                    <div className="odds-titlebar">
+                        <Link href="/hub" aria-label="Back To World Hub" className="odds-back">
+                            <ArrowLeft size={18} aria-hidden />
+                            <span>Hub</span>
                         </Link>
-                        <span style={{ color: '#333' }}>|</span>
-                        <h1 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Poker Odds Calculator</h1>
-                    </div>
-                    <button onClick={() => setShowMenu(!showMenu)}
-                        aria-label="Open settings menu"
-                        aria-expanded={showMenu}
-                        style={{
-                            background: 'none', border: 'none', color: '#888', cursor: 'pointer',
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8,
-                        }}>
-                        <SlidersHorizontal size={20} aria-hidden />
-                    </button>
-                </div>
-
-                {/* ─── CALCULATOR SETTINGS PANEL ─── */}
-                {showMenu && (
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={() => setShowMenu(false)}>
-                        <div style={{
-                            position: 'absolute', top: 0, right: 0, width: 280, height: '100%',
-                            background: '#111118', borderLeft: '1px solid #333',
-                            padding: '24px 20px', overflowY: 'auto', boxSizing: 'border-box',
-                            // Below the status bar so the X is reachable (mobile phase 0b).
-                            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-                            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
-                        }} onClick={e => e.stopPropagation()}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                                <span style={{ fontSize: 16, fontWeight: 800 }}>Settings</span>
-                                <button onClick={() => setShowMenu(false)}
-                                    aria-label="Close"
-                                    className="sp-icon-btn"
-                                    style={{
-                                        background: 'none', border: 'none', color: '#888', cursor: 'pointer',
-                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                        minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8,
-                                        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                                    }}>
-                                    <X size={18} aria-hidden />
-                                </button>
-                            </div>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1, marginBottom: 10 }}>LINKS</p>
-                            <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none', borderBottom: '1px solid #222' }}><ArrowLeft size={14} aria-hidden /> Back To World Hub</Link>
-                            <Link href="/hub/profile-edit" style={{ display: 'block', color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none' }}>Edit Profile</Link>
+                        <div className="odds-titlebar__text">
+                            <h1 className="odds-title">Poker Odds Calculator</h1>
+                            <p className="odds-subtitle">Instant Equity For Six Poker Games</p>
                         </div>
+                        <button type="button" onClick={() => setShowMenu(!showMenu)}
+                            aria-label="Open Settings Menu" aria-expanded={showMenu}
+                            className="odds-icon-btn">
+                            <SlidersHorizontal size={20} aria-hidden />
+                        </button>
                     </div>
-                )}
 
-                {/* ─── GAME TABS — LARGE, NO EMOJIS ─── */}
-                <div style={{ padding: '8px 10px' }}>
-                    <div style={{
-                        display: 'flex', gap: 3, flexWrap: 'wrap',
-                        background: '#111', borderRadius: 10, padding: 4, border: '1px solid #222',
-                    }}>
+                    {/* ─── GAME SELECTOR ─── */}
+                    <div className="odds-games" role="group" aria-label="Game">
                         {Object.entries(GAME_CONFIGS || {}).map(([key, cfg]) => (
-                            <button key={key} onClick={() => changeGame(key)}
-                                style={{
-                                    flex: 1, minWidth: 70, padding: '10px 6px', borderRadius: 8, border: 'none',
-                                    background: game === key ? '#1877F2' : 'transparent',
-                                    color: game === key ? '#fff' : '#888',
-                                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                                    transition: 'all 0.2s', whiteSpace: 'nowrap',
-                                }}>
+                            <button key={key} type="button" onClick={() => changeGame(key)}
+                                className={`odds-game${game === key ? ' is-on' : ''}`}
+                                aria-pressed={game === key}>
                                 {cfg.name}
                             </button>
                         ))}
                     </div>
-                </div>
 
-                {/* ═══════════════════════════════════════════════════════
-                   GOLDEN TEMPLATE TABLE — EXACT MATCH (GoldenTemplateTable.jsx)
-                ═══════════════════════════════════════════════════════ */}
-                <div style={{ position: 'relative', width: '100%', paddingBottom: '55%', margin: '0 auto' }}>
+                    {/* ─── BOARD ─── */}
+                    {config.hasBoard && (
+                        <section className={`odds-panel odds-board${selectedSlot?.type === 'board' ? ' is-selected' : ''}`}
+                            onClick={() => setSelectedSlot({ type: 'board' })} aria-label="Board">
+                            <div className="odds-panel__head">
+                                <button type="button" className="odds-seat-name" onClick={e => { e.stopPropagation(); setSelectedSlot({ type: 'board' }); }}>
+                                    <Layers size={15} aria-hidden /> Board
+                                </button>
+                                <span className="odds-panel__meta">{board.length} Of 5</span>
+                            </div>
+                            <div className="odds-slots odds-slots--board">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <CardSlot key={i} card={board[i]} label="The Board"
+                                        active={selectedSlot?.type === 'board' && i === board.length}
+                                        onPick={() => setSelectedSlot({ type: 'board' })}
+                                        onRemove={() => removeCard('board', 0, i)} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
-                    {/* Table Container — matching GoldenTemplateTable positioning */}
-                    <div style={{ position: 'absolute', top: '2%', left: '3%', right: '3%', bottom: '2%' }}>
-
-                        {/* OUTER DARK FRAME — 3D raised effect */}
-                        <div style={{
-                            position: 'absolute', inset: 0,
-                            borderRadius: '50% / 38%',
-                            background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
-                            boxShadow: '0 25px 80px rgba(0,0,0,0.95), 0 8px 30px rgba(0,0,0,0.8), inset 0 -8px 20px rgba(0,0,0,0.6), inset 0 8px 20px rgba(50,50,50,0.2)',
-                        }}>
-                            {/* OUTER GOLD RAIL — gradient for 3D */}
-                            <div style={{
-                                position: 'absolute', inset: 12,
-                                borderRadius: '50% / 37%',
-                                background: 'linear-gradient(180deg, #f0d050 0%, #d4a000 25%, #a07800 60%, #705000 100%)',
-                                boxShadow: 'inset 0 3px 6px rgba(255,255,180,0.5), inset 0 -3px 6px rgba(0,0,0,0.5)',
-                            }}>
-                                {/* BLACK GAP */}
-                                <div style={{
-                                    position: 'absolute', inset: 10,
-                                    borderRadius: '50% / 36%',
-                                    background: 'linear-gradient(180deg, #151515 0%, #0a0a0a 100%)',
-                                }}>
-                                    {/* INNER GOLD RAIL */}
-                                    <div style={{
-                                        position: 'absolute', inset: 8,
-                                        borderRadius: '50% / 35%',
-                                        background: 'linear-gradient(180deg, #ffe070 0%, #e8b810 25%, #b08000 60%, #785500 100%)',
-                                        boxShadow: 'inset 0 3px 6px rgba(255,255,180,0.6), inset 0 -3px 6px rgba(0,0,0,0.5)',
-                                    }}>
-                                        {/* THIN DARK EDGE */}
-                                        <div style={{
-                                            position: 'absolute', inset: 6,
-                                            borderRadius: '50% / 34%',
-                                            background: 'linear-gradient(180deg, #101010 0%, #080808 100%)',
-                                        }}>
-                                            {/* INNER GLOW LINE */}
-                                            <div style={{
-                                                position: 'absolute', inset: 4,
-                                                borderRadius: '50% / 33%',
-                                                border: '3px solid rgba(180,140,50,0.35)',
-                                                background: 'transparent',
-                                            }}>
-                                                {/* FELT with radial gradient depth */}
-                                                <div style={{
-                                                    position: 'absolute', inset: 0,
-                                                    borderRadius: '50% / 33%',
-                                                    background: 'radial-gradient(ellipse at 50% 35%, #181818 0%, #121212 25%, #0d0d0d 50%, #080808 75%, #050505 100%)',
-                                                    boxShadow: 'inset 0 0 120px rgba(0,0,0,0.9), inset 0 0 60px rgba(0,0,0,0.7), inset 0 -20px 40px rgba(0,0,0,0.5)',
-                                                }}>
-
-                                                    {/* COMMUNITY BOARD — Large, centered on felt */}
-                                                    {config.hasBoard && (
-                                                        <div style={{
-                                                            position: 'absolute', top: '32%', left: '50%', transform: 'translate(-50%, -50%)',
-                                                            display: 'flex', gap: 6, cursor: 'pointer', zIndex: 10,
-                                                        }}
-                                                            onClick={() => setSelectedSlot({ type: 'board' })}>
-                                                            {Array.from({ length: 5 }).map((_, i) => {
-                                                                const card = board[i];
-                                                                const isActive = selectedSlot?.type === 'board';
-                                                                return card ? (
-                                                                    <div key={i} onClick={e => { e.stopPropagation(); removeCard('board', 0, i); }}
-                                                                        style={{ cursor: 'pointer' }}>
-                                                                        <img src={getCardImage(card.rank, card.suit)} alt=""
-                                                                            style={{
-                                                                                width: 65, height: 91, borderRadius: 5,
-                                                                                border: '2px solid #1877F2',
-                                                                                boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
-                                                                                background: '#fff',
-                                                                            }}  loading="lazy" />
-                                                                    </div>
-                                                                ) : (
-                                                                    <div key={i} style={{
-                                                                        width: 65, height: 91, borderRadius: 5,
-                                                                        border: `2px dashed ${isActive ? '#1877F2' : 'rgba(255,255,255,0.12)'}`,
-                                                                        background: 'rgba(255,255,255,0.03)',
-                                                                    }} />
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-
-                                                    {/* SMARTER.POKER — LARGE and BRIGHT branding UNDER the board */}
-                                                    <div style={{
-                                                        position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)',
-                                                        textAlign: 'center', pointerEvents: 'none', zIndex: 5,
-                                                    }}>
-                                                        <div style={{
-                                                            fontSize: 28, fontWeight: 900, color: 'rgba(255,215,0,0.4)',
-                                                            letterSpacing: 8, textTransform: 'uppercase',
-                                                        }}>
-                                                            Smarter.Poker
-                                                        </div>
-                                                        <div style={{
-                                                            fontSize: 14, fontWeight: 700, color: 'rgba(255,215,0,0.25)',
-                                                            letterSpacing: 5, marginTop: 4,
-                                                        }}>
-                                                            Odds Calculator
-                                                        </div>
-                                                    </div>
-
-                                                </div>
-                                            </div>
-                                        </div>
+                    {/* ─── SEATS + EQUITY ─── */}
+                    <section id="results" className="odds-seats" aria-label="Hands And Equity"
+                        style={{ '--odds-seat-min': config.holeCards <= 2 ? '160px' : config.holeCards <= 4 ? '240px' : '100%' }}>
+                        {hands.map((hand, pi) => {
+                            const isHero = pi === 0;
+                            const isSelected = selectedSlot?.type === 'hand' && selectedSlot.playerIdx === pi;
+                            const equity = results?.[pi];
+                            const isLeader = equity && leaderEquity !== null && equity.equity === leaderEquity;
+                            const total = equity?.total || 0;
+                            return (
+                                <div key={pi}
+                                    className={`odds-panel odds-seat${isSelected ? ' is-selected' : ''}${isHero ? ' is-hero' : ''}`}
+                                    onClick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}>
+                                    <div className="odds-panel__head">
+                                        <button type="button" className="odds-seat-name"
+                                            onClick={e => { e.stopPropagation(); setSelectedSlot({ type: 'hand', playerIdx: pi }); }}
+                                            aria-label={`Pick Cards For ${seatName(pi)}`}>
+                                            {isHero && <Crown size={14} aria-hidden />}
+                                            {seatName(pi)}
+                                        </button>
+                                        {!isHero && hands.length > 2 && (
+                                            <button type="button" onClick={e => { e.stopPropagation(); removePlayer(pi); }}
+                                                aria-label={`Remove Villain ${pi}`} className="odds-icon-btn odds-icon-btn--quiet">
+                                                <X size={16} aria-hidden />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="odds-equity-row">
+                                        <span className={`odds-equity${isLeader ? ' is-leader' : ''}`}>
+                                            {equity ? pct(equity.equity) : '--'}
+                                        </span>
+                                        <span className="odds-split">
+                                            {equity && total > 0
+                                                ? `Win ${pct((equity.wins / total) * 100)} · Tie ${pct((equity.ties / total) * 100)}`
+                                                : `${hand.length} Of ${config.holeCards} Cards`}
+                                        </span>
+                                    </div>
+                                    <div className="odds-bar" aria-hidden>
+                                        <span style={{ width: equity ? `${Math.max(0, Math.min(100, equity.equity))}%` : '0%' }} />
+                                    </div>
+                                    <div className="odds-slots" style={{ '--odds-slot-count': config.holeCards }}>
+                                        {Array.from({ length: config.holeCards }).map((_, ci) => (
+                                            <CardSlot key={ci} card={hand[ci]} label={seatName(pi)}
+                                                active={isSelected && ci === hand.length}
+                                                onPick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}
+                                                onRemove={() => removeCard('hand', pi, ci)} />
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
+                            );
+                        })}
+                        {hands.length < maxPlayers && (
+                            <button type="button" className="odds-add" onClick={addVillain} aria-label="Add Villain">
+                                <UserPlus size={18} aria-hidden /> Add Villain
+                            </button>
+                        )}
+                    </section>
 
-                    {/* PLAYER SEATS — ON the felt, not on rail */}
-                    {hands.map((hand, pi) => {
-                        const pos = SEAT_POSITIONS[pi];
-                        if (!pos) return null;
-                        const isHero = pi === 0;
-                        const isSelected = selectedSlot?.type === 'hand' && selectedSlot.playerIdx === pi;
-                        const equity = results?.[pi];
-                        const color = PLAYER_COLORS[pi];
-
-
-                        return (
-                            <div key={pi} style={{
-                                position: 'absolute',
-                                left: `${pos.x}%`, top: `${pos.y}%`,
-                                transform: 'translate(-50%, -50%)',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                cursor: 'pointer', zIndex: isHero ? 100 : 50,
-                            }}
-                                onClick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}>
-
-                                {/* Cards — blue frames, sized to fit on table */}
-                                {(() => {
-                                    /* Size cards to fit on table: 2-card=65, 4-card=55, 5-card=48, 6-card=42, 7-card=38 */
-                                    const cw = config.holeCards <= 2 ? 65 : config.holeCards <= 4 ? 55 : config.holeCards <= 5 ? 48 : config.holeCards <= 6 ? 42 : 38;
-                                    const ch = Math.round(cw * 1.4);
-                                    const gap = config.holeCards >= 5 ? 1 : 2;
-                                    return (
-                                        <div style={{ display: 'flex', gap, marginBottom: 4 }}>
-                                            {Array.from({ length: config.holeCards }).map((_, ci) => {
-                                                const card = hand[ci];
-                                                return card ? (
-                                                    <div key={ci} onClick={e => { e.stopPropagation(); removeCard('hand', pi, ci); }}
-                                                        style={{ cursor: 'pointer' }}>
-                                                        <img src={getCardImage(card.rank, card.suit)} alt=""
-                                                            style={{
-                                                                width: cw, height: ch, borderRadius: 4,
-                                                                border: '2px solid #1877F2',
-                                                                boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
-                                                                background: '#fff',
-                                                            }}  loading="lazy" />
-                                                    </div>
-                                                ) : (
-                                                    <div key={ci} style={{
-                                                        width: cw, height: ch, borderRadius: 4,
-                                                        border: `2px solid ${isSelected ? '#1877F2' : 'rgba(255,255,255,0.15)'}`,
-                                                        boxShadow: isSelected ? '0 0 12px rgba(24,119,242,0.3)' : 'none',
-                                                        background: 'linear-gradient(135deg, #1a1a3e 0%, #0a0a20 100%)',
-                                                        position: 'relative', overflow: 'hidden',
-                                                    }}>
-                                                        {/* Card back decorative design */}
-                                                        <div style={{
-                                                            position: 'absolute', inset: 3, borderRadius: 2,
-                                                            border: '1px solid rgba(255,215,0,0.25)',
-                                                        }}>
-                                                            <div style={{
-                                                                position: 'absolute', top: '50%', left: '50%',
-                                                                transform: 'translate(-50%, -50%) rotate(45deg)',
-                                                                width: Math.round(cw * 0.35), height: Math.round(cw * 0.35),
-                                                                border: '1px solid rgba(255,215,0,0.2)',
-                                                                background: 'rgba(255,215,0,0.05)',
-                                                            }} />
-                                                            <div style={{
-                                                                position: 'absolute', top: '50%', left: '50%',
-                                                                transform: 'translate(-50%, -50%)',
-                                                                fontSize: Math.max(8, Math.round(cw * 0.18)),
-                                                                fontWeight: 900, color: 'rgba(255,215,0,0.2)',
-                                                                letterSpacing: 1,
-                                                            }}>S</div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* Gold Badge */}
-                                <div style={{
-                                    background: isSelected
-                                        ? `linear-gradient(180deg, ${color} 0%, ${color}cc 100%)`
-                                        : 'linear-gradient(180deg, #FFD700 0%, #FFA500 50%, #CC8800 100%)',
-                                    border: isSelected ? `2px solid ${color}` : '2px solid #996600',
-                                    borderRadius: 5,
-                                    padding: '2px 12px 4px',
-                                    textAlign: 'center',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                                    minWidth: 55,
-                                }}>
-                                    <span style={{
-                                        display: 'block', fontSize: 10, fontWeight: 'bold',
-                                        color: isSelected ? '#fff' : '#000', lineHeight: 1.3,
-                                    }}>
-                                        {isHero ? (
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
-                                                <Crown size={9} aria-hidden style={{ flexShrink: 0 }} />
-                                                Hero
-                                            </span>
-                                        ) : `Villain ${pi}`}
-                                    </span>
-                                    {equity && (
-                                        <span style={{
-                                            display: 'block', fontSize: 14, fontWeight: 900,
-                                            color: isSelected ? '#fff' : '#000', lineHeight: 1.1,
-                                        }}>
-                                            {equity.equity.toFixed(1)}%
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Remove X */}
-                                {!isHero && hands.length > 2 && (
-                                    <button onClick={e => { e.stopPropagation(); removePlayer(pi); }}
-                                        aria-label={`Remove villain ${pi}`}
-                                        style={{
-                                            position: 'absolute', top: -22, right: -22,
-                                            /* 2026-05-07 — expanded from 20px to 44pt min-touch with transparent padding ring */
-                                            width: 44, height: 44, borderRadius: '50%',
-                                            background: 'transparent', border: 'none', color: '#fff',
-                                            cursor: 'pointer', display: 'flex',
-                                            alignItems: 'center', justifyContent: 'center', zIndex: 200,
-                                            padding: 0,
-                                        }}>
-                                        <span style={{
-                                            /* visible 20px chip inside the 44pt hit area */
-                                            width: 20, height: 20, borderRadius: '50%',
-                                            background: '#EF4444', border: '2px solid #080810',
-                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                        }}>
-                                            <X size={10} aria-hidden />
-                                        </span>
-                                    </button>
+                    {/* ─── STATUS + ACTIONS ─── */}
+                    <p className="odds-status" role="status" aria-live="polite">{statusText}</p>
+                    <div className="odds-actions">
+                        <button type="button" onClick={resetAll} aria-label="Reset To New Hand" className="odds-btn">
+                            <RotateCcw size={15} aria-hidden /> New Hand
+                        </button>
+                        <button type="button" onClick={() => setSelectedSlot({ type: 'dead' })}
+                            className={`odds-btn${selectedSlot?.type === 'dead' ? ' is-on' : ''}`} aria-pressed={selectedSlot?.type === 'dead'}>
+                            Dead Cards{deadCards.length > 0 ? ` (${deadCards.length})` : ''}
+                        </button>
+                        {PRESETS[game] && (
+                            <button type="button" onClick={() => setShowPresets(!showPresets)}
+                                className={`odds-btn${showPresets ? ' is-on' : ''}`} aria-expanded={showPresets}>
+                                Presets
+                            </button>
+                        )}
+                        {validCount >= 2 && !results && (
+                            <button type="button" onClick={runCalculation} disabled={calculating}
+                                aria-label={calculating ? 'Calculating Equity' : 'Run Equity Calculation'}
+                                aria-busy={calculating}
+                                className="odds-btn odds-btn--primary">
+                                {calculating ? (
+                                    <>
+                                        <Loader2 size={15} aria-hidden style={{ animation: 'spcalc-spin 0.9s linear infinite' }} />
+                                        Calculating
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play size={15} aria-hidden />
+                                        Calculate
+                                    </>
                                 )}
-                            </div>
-                        );
-                    })}
-
-                    {/* + ADD BUTTONS — Show at ALL empty seat positions */}
-                    {SEAT_POSITIONS.slice(hands.length, maxPlayers).map((pos, idx) => (
-                        <div key={`add-${idx}`} style={{
-                            position: 'absolute',
-                            left: `${pos.x}%`, top: `${pos.y}%`,
-                            transform: 'translate(-50%, -50%)',
-                            cursor: 'pointer', zIndex: 30,
-                        }}
-                            onClick={addVillain}>
-                            <button
-                                aria-label="Add villain"
-                                style={{
-                                    width: 48, height: 48, borderRadius: '50%',
-                                    border: '2px dashed rgba(255,215,0,0.25)',
-                                    background: 'rgba(0,0,0,0.4)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: 'rgba(255,215,0,0.5)', cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    padding: 0,
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#FFD700'; e.currentTarget.style.color = '#FFD700'; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,215,0,0.25)'; e.currentTarget.style.color = 'rgba(255,215,0,0.5)'; }}>
-                                <UserPlus size={18} aria-hidden />
                             </button>
+                        )}
+                    </div>
+
+                    {/* Presets */}
+                    {showPresets && PRESETS[game] && (
+                        <div className="odds-presets">
+                            {PRESETS[game].map((p, i) => (
+                                <button key={i} type="button" onClick={() => loadPreset(p)} className="odds-btn odds-btn--chip">
+                                    {p.name}
+                                </button>
+                            ))}
                         </div>
-                    ))}
-                </div>
-
-                {/* ─── ACTION BAR ─── */}
-                <div style={{ padding: '6px 12px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <button onClick={resetAll}
-                        aria-label="Reset to new hand"
-                        style={{
-                            padding: '8px 14px', borderRadius: 8, background: '#1a1a1a', border: '1px solid #333',
-                            color: '#aaa', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                            display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36,
-                        }}>
-                        <RotateCcw size={12} aria-hidden /> New Hand
-                    </button>
-                    <button onClick={() => setSelectedSlot({ type: 'board' })}
-                        style={{
-                            padding: '8px 14px', borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                            background: selectedSlot?.type === 'board' ? '#1877F2' : '#1a1a1a',
-                            color: selectedSlot?.type === 'board' ? '#fff' : '#aaa',
-                        }}>
-                        Board
-                    </button>
-                    <button onClick={() => setSelectedSlot({ type: 'dead' })}
-                        style={{
-                            padding: '8px 14px', borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                            background: selectedSlot?.type === 'dead' ? '#EF4444' : '#1a1a1a',
-                            color: selectedSlot?.type === 'dead' ? '#fff' : '#aaa',
-                        }}>
-                        Dead{deadCards.length > 0 ? ` (${deadCards.length})` : ''}
-                    </button>
-                    {PRESETS[game] && (
-                        <button onClick={() => setShowPresets(!showPresets)}
-                            style={{
-                                padding: '8px 14px', borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                                background: showPresets ? '#1877F2' : '#1a1a1a',
-                                color: showPresets ? '#fff' : '#aaa',
-                            }}>
-                            Presets
-                        </button>
                     )}
-                    <div style={{ flex: 1 }} />
-                    {validCount >= 2 && !results && (
-                        <button onClick={runCalculation} disabled={calculating}
-                            aria-label={calculating ? 'Calculating equity' : 'Run equity calculation'}
-                            aria-busy={calculating}
-                            style={{
-                                padding: '8px 18px', borderRadius: 8, background: '#1877F2', border: 'none',
-                                color: '#fff', fontSize: 13, fontWeight: 600, cursor: calculating ? 'wait' : 'pointer',
-                                opacity: calculating ? 0.6 : 1,
-                                display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36,
-                            }}>
-                            {calculating ? (
-                                <>
-                                    <Loader2 size={14} aria-hidden style={{ animation: 'spcalc-spin 0.9s linear infinite' }} />
-                                    Calculating
-                                </>
-                            ) : (
-                                <>
-                                    <Play size={14} aria-hidden />
-                                    Calculate
-                                </>
-                            )}
-                        </button>
-                    )}
-                </div>
 
-                {/* Dead Cards */}
-                {deadCards.length > 0 && (
-                    <div style={{ padding: '2px 12px 6px', display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ fontSize: 10, color: '#555' }}>Dead:</span>
-                        {deadCards.map((c, i) => (
-                            <div key={i} onClick={() => removeCard('dead', 0, i)} style={{ cursor: 'pointer' }}>
-                                <img src={getCardImage(c.rank, c.suit)} alt=""
-                                    style={{ width: 30, height: 42, borderRadius: 3, border: '1px solid #EF4444', opacity: 0.5 }}  loading="lazy" />
+                    {/* Dead Cards */}
+                    {deadCards.length > 0 && (
+                        <section className={`odds-panel odds-dead${selectedSlot?.type === 'dead' ? ' is-selected' : ''}`} aria-label="Dead Cards">
+                            <div className="odds-panel__head">
+                                <span className="odds-seat-name odds-seat-name--static">Dead Cards</span>
+                                <span className="odds-panel__meta">Tap A Card To Return It</span>
                             </div>
-                        ))}
-                    </div>
-                )}
+                            <div className="odds-slots odds-slots--dead">
+                                {deadCards.map((c, i) => (
+                                    <CardSlot key={c.id || i} card={c} label="Dead Cards"
+                                        onPick={() => setSelectedSlot({ type: 'dead' })}
+                                        onRemove={() => removeCard('dead', 0, i)} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
-                {/* Presets */}
-                {showPresets && PRESETS[game] && (
-                    <div style={{
-                        margin: '0 12px 6px', display: 'flex', gap: 5, flexWrap: 'wrap',
-                        background: '#111', borderRadius: 8, padding: 10, border: '1px solid #222',
-                    }}>
-                        {PRESETS[game].map((p, i) => (
-                            <button key={i} onClick={() => loadPreset(p)}
-                                style={{
-                                    padding: '6px 12px', borderRadius: 6, background: '#0a0a0a', border: '1px solid #333',
-                                    color: '#aaa', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                                }}>
-                                {p.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                {/* ═══════════════════════════════════════════
-                    CARD PICKER — BELOW TABLE, LARGE
-                ═══════════════════════════════════════════ */}
-                <div style={{ padding: '0 10px 8px' }}>
-                    <div style={{
-                        background: '#0f0f18', borderRadius: 12, padding: '10px',
-                        border: `2px solid ${selectedSlot ? '#1877F2' : '#222'}`,
-                        transition: 'border-color 0.2s',
-                    }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#ccc', margin: '0 0 8px 4px', textTransform: 'none' }}>
-                            {selectedSlot ? (
-                                selectedSlot.type === 'hand'
-                                    ? `Select card for ${selectedSlot.playerIdx === 0 ? 'Hero' : 'Villain ' + selectedSlot.playerIdx}`
-                                    : selectedSlot.type === 'board' ? 'Select board card'
-                                        : 'Select dead card'
-                            ) : 'Tap a seat above, then pick cards'}
-                        </p>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 4 }}>
-                            {SUITS.map(suit =>
-                                RANKS.map(rank => {
+                    {/* ═══════════════════════════════════════════
+                        CARD PICKER — the whole deck, always displayed
+                    ═══════════════════════════════════════════ */}
+                    <section className={`odds-panel odds-picker${selectedSlot ? ' is-selected' : ''}`} aria-label="Card Picker">
+                        <div className="odds-panel__head">
+                            <span className="odds-seat-name odds-seat-name--static">
+                                {pickerTarget ? `Pick For ${pickerTarget}` : 'Tap A Hand Above, Then Pick Cards'}
+                            </span>
+                        </div>
+                        {/* The answer stays beside the deck: a compact copy of
+                            every seat's equity, so picking cards never means
+                            scrolling back up to read the result. */}
+                        {results && (
+                            <div className="odds-mini" aria-hidden>
+                                {results.map((r, pi) => (
+                                    <span key={pi} className={`odds-mini__item${r.equity === leaderEquity ? ' is-leader' : ''}`}>
+                                        {seatName(pi)} <strong>{pct(r.equity)}</strong>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                        {SUITS.map(suit => (
+                            <div key={suit} className="odds-deck" role="group" aria-label={SUIT_NAMES[suit]}>
+                                {RANKS.map(rank => {
                                     const card = makeCard(rank, suit);
                                     const isUsed = card && usedCardIds.has(card.id);
                                     const isDisabled = !selectedSlot || isUsed;
-                                    const imgSrc = getCardImage(rank, suit);
                                     return (
-                                        <button key={`${rank}-${suit}`}
+                                        <button key={`${rank}-${suit}`} type="button"
                                             onClick={() => !isDisabled && selectCard(rank, suit)}
                                             disabled={isDisabled}
-                                            style={{
-                                                width: '100%', aspectRatio: '0.7', borderRadius: 5,
-                                                border: 'none', padding: 0, overflow: 'hidden',
-                                                cursor: isDisabled ? 'default' : 'pointer',
-                                                opacity: isUsed ? 0.15 : 1,
-                                                transition: 'all 0.12s',
-                                                boxShadow: isUsed ? 'none' : '0 2px 6px rgba(0,0,0,0.3)',
-                                                background: '#fff',
-                                            }}
-                                            onMouseEnter={e => { if (!isDisabled) { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.5)'; } }}
-                                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = isUsed ? 'none' : '0 2px 6px rgba(0,0,0,0.3)'; }}>
-                                            <img src={imgSrc} alt={`${rank} of ${suit}`}
-                                                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}  loading="lazy" />
+                                            className={`odds-pick${isUsed ? ' is-used' : ''}`}
+                                            style={{ '--odds-suit': SUIT_COLORS[suit] }}
+                                            aria-label={`${rank} Of ${SUIT_NAMES[suit]}${isUsed ? ', In Use' : ''}`}>
+                                            <span className="odds-pick__rank">{rank}</span>
+                                            <span className="odds-pick__suit" aria-hidden>{SUIT_SYMBOLS[suit]}</span>
                                         </button>
                                     );
-                                })
-                            )}
+                                })}
+                            </div>
+                        ))}
+                    </section>
+                </main>
+
+                {/* ─── CALCULATOR SETTINGS SHEET ─── */}
+                {showMenu && (
+                    <div className="odds-sheet" onClick={() => setShowMenu(false)}>
+                        <div className="odds-sheet__panel" role="dialog" aria-modal="true" aria-label="Settings"
+                            style={{
+                                // Below the status bar so the X is reachable (mobile phase 0b).
+                                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+                                paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
+                            }}
+                            onClick={e => e.stopPropagation()}>
+                            <div className="odds-sheet__head">
+                                <span className="odds-sheet__title">Settings</span>
+                                <button type="button" onClick={() => setShowMenu(false)} aria-label="Close"
+                                    className="odds-icon-btn"
+                                    style={{ minWidth: 44, minHeight: 44 }}>
+                                    <X size={18} aria-hidden />
+                                </button>
+                            </div>
+                            <p className="odds-sheet__label">Links</p>
+                            <Link href="/hub" className="odds-sheet__link"><ArrowLeft size={14} aria-hidden /> Back To World Hub</Link>
+                            <Link href="/hub/profile-edit" className="odds-sheet__link">Edit Profile</Link>
                         </div>
                     </div>
-                </div>
+                )}
 
-
+                {/* Plain <style>, outside any conditional, so the layout is
+                    present on the server render and never depends on JS. */}
+                <style dangerouslySetInnerHTML={{ __html: ODDS_CSS }} />
             </div>
-            {/* 2026-05-07 — UI-UX-Pro-Max: spin keyframes + reduced-motion guard */}
-            <style jsx global>{`
-                @keyframes spcalc-spin { to { transform: rotate(360deg); } }
-                @media (prefers-reduced-motion: reduce) {
-                    [aria-busy="true"] svg { animation: none !important; }
-                }
-            `}</style>
         </>
     );
 }
+
+/* ═══════════════════════════════════════════════
+   STYLES — Smarter.Poker Odds Calculator console
+   Colours are the world's --world-* tokens (set on .odds-page from
+   src/config/worldMenuNavigation.js). One 1px frame per surface; a selected
+   surface changes that frame's colour, it never adds a second one.
+   Three breakpoints only (docs/mobile-standard): 768 / 600 and their
+   complements. Selectors carry two classes so the global phone rules in
+   src/index.css (button font-size 16px, h1 1.75rem) do not override them.
+═══════════════════════════════════════════════ */
+const ODDS_CSS = `
+.odds-page {
+    min-height: 100dvh; width: 100%; max-width: 100vw; box-sizing: border-box;
+    overflow-x: clip; overflow-y: visible;
+    background:
+        radial-gradient(120% 60% at 50% 0%, rgba(78, 156, 255, 0.10), transparent 60%),
+        var(--world-canvas, #020812);
+    color: var(--world-text, #F0F7FF);
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.odds-page *, .odds-page *::before, .odds-page *::after { box-sizing: border-box; }
+.odds-page .odds-main {
+    width: 100%; max-width: 960px; margin: 0 auto;
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px));
+    display: flex; flex-direction: column; gap: 12px;
+}
+
+/* Title row */
+.odds-page .odds-titlebar { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.odds-page .odds-titlebar__text { flex: 1; min-width: 0; text-align: center; }
+.odds-page h1.odds-title {
+    margin: 0; font-size: 20px !important; line-height: 1.2; font-weight: 800;
+    letter-spacing: 0.01em; color: var(--world-text, #F0F7FF);
+}
+.odds-page .odds-subtitle { margin: 2px 0 0; font-size: 12px; color: var(--world-muted, #94AFCC); }
+.odds-page .odds-back {
+    display: inline-flex; align-items: center; gap: 4px; min-height: 44px; min-width: 44px;
+    padding: 0 6px; color: var(--world-muted, #94AFCC); text-decoration: none;
+    font-size: 14px; font-weight: 600; border-radius: 6px;
+}
+.odds-page .odds-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0;
+    border-radius: 6px; border: 1px solid var(--world-border, #3D679A);
+    background: var(--world-tile, #071A31); color: var(--world-text, #F0F7FF); cursor: pointer;
+}
+.odds-page .odds-icon-btn--quiet { border-color: transparent; background: transparent; color: var(--world-muted, #94AFCC); }
+
+/* Game selector: every game always on screen, no sideways rail */
+.odds-page .odds-games {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
+    padding: 4px; border: 1px solid var(--world-border, #3D679A); border-radius: 8px;
+    background: var(--world-rail, #061326);
+}
+.odds-page .odds-games .odds-game {
+    min-height: 44px; padding: 6px 4px; border: 1px solid transparent; border-radius: 6px;
+    background: transparent; color: var(--world-muted, #94AFCC);
+    font-size: 13px; font-weight: 700; line-height: 1.15; cursor: pointer; white-space: normal;
+}
+.odds-page .odds-games .odds-game.is-on {
+    background: var(--world-tile-active, #10325D); border-color: var(--world-accent, #4E9CFF);
+    color: var(--world-text, #F0F7FF);
+}
+
+/* Panels: board, seats, dead cards */
+.odds-page .odds-panel {
+    border: 1px solid var(--world-border, #3D679A); border-radius: 8px;
+    background: linear-gradient(180deg, var(--world-panel, #0B2340) 0%, var(--world-tile, #071A31) 100%);
+    padding: 6px; min-width: 0;
+}
+.odds-page .odds-panel.is-selected { border-color: var(--world-accent, #4E9CFF); }
+.odds-page .odds-panel__head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.odds-page .odds-panel__meta { margin-left: auto; padding-right: 6px; font-size: 12px; color: var(--world-muted, #94AFCC); white-space: nowrap; }
+.odds-page .odds-panel .odds-seat-name {
+    display: inline-flex; align-items: center; gap: 6px; flex: 1; min-width: 0; min-height: 44px;
+    padding: 0 6px; border: 0; background: transparent; color: var(--world-text, #F0F7FF);
+    font-size: 15px; font-weight: 700; text-align: left; cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.odds-page .odds-panel .odds-seat-name--static { cursor: default; white-space: normal; font-size: 14px; }
+
+/* Seats: equity sits on the hand that earned it */
+.odds-page .odds-seats {
+    display: grid; gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--odds-seat-min, 150px)), 1fr));
+}
+.odds-page .odds-equity-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; padding: 0 6px; }
+.odds-page .odds-seat .odds-equity {
+    font-size: 26px; line-height: 1.1; font-weight: 800;
+    font-variant-numeric: tabular-nums; color: var(--world-text, #F0F7FF);
+}
+.odds-page .odds-seat .odds-equity.is-leader { color: var(--world-secondary, #22D3EE); }
+.odds-page .odds-bar { height: 4px; margin: 6px 6px 8px; border-radius: 2px; background: rgba(148, 175, 204, 0.18); overflow: hidden; }
+.odds-page .odds-bar span {
+    display: block; height: 100%; border-radius: 2px; transition: width 0.3s ease;
+    background: linear-gradient(90deg, var(--world-accent, #4E9CFF), var(--world-secondary, #22D3EE));
+}
+.odds-page .odds-split { font-size: 12px; line-height: 1.3; color: var(--world-muted, #94AFCC); font-variant-numeric: tabular-nums; }
+.odds-page .odds-seats .odds-add {
+    display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px;
+    border: 1px dashed var(--world-border, #3D679A); border-radius: 8px; background: transparent;
+    color: var(--world-muted, #94AFCC); font-size: 14px; font-weight: 700; cursor: pointer;
+}
+
+/* Card slots: 44px wide minimum, 64px maximum, card proportions */
+.odds-page .odds-slots {
+    --odds-slot-gap: 4px;
+    display: flex; flex-wrap: wrap; gap: var(--odds-slot-gap); padding: 0 6px 6px;
+}
+.odds-page .odds-slots--board { --odds-slot-count: 5; justify-content: center; padding-top: 4px; }
+.odds-page .odds-slots--dead { --odds-slot-count: 8; }
+.odds-page .odds-slots .odds-slot {
+    flex: 0 0 auto; padding: 0; border: 0; background: transparent; cursor: pointer; min-height: 0;
+    width: clamp(44px, calc((100% - (var(--odds-slot-count, 2) - 1) * var(--odds-slot-gap)) / var(--odds-slot-count, 2)), 64px);
+}
+.odds-page .odds-slot__face {
+    position: relative; display: block; width: 100%; aspect-ratio: 5 / 7; overflow: hidden;
+    border-radius: 5px; border: 1px solid rgba(228, 230, 235, 0.55); background: #fff;
+}
+.odds-page .odds-slot__face img {
+    position: absolute; inset: 0; width: 100% !important; height: 100% !important; max-width: none;
+    object-fit: contain; display: block;
+}
+.odds-page .odds-slot__face--empty {
+    border-color: rgba(148, 175, 204, 0.32);
+    background: linear-gradient(160deg, var(--world-tile-active, #10325D) 0%, var(--world-canvas, #020812) 100%);
+}
+.odds-page .odds-slot.is-active .odds-slot__face--empty { border-color: var(--world-accent, #4E9CFF); }
+
+/* Status and actions */
+.odds-page .odds-status { margin: 0; text-align: center; font-size: 13px; color: var(--world-muted, #94AFCC); }
+.odds-page .odds-actions, .odds-page .odds-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.odds-page .odds-actions .odds-btn, .odds-page .odds-presets .odds-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 44px; padding: 0 14px; flex: 1 1 auto;
+    border: 1px solid var(--world-border, #3D679A); border-radius: 6px;
+    background: var(--world-tile, #071A31); color: var(--world-text, #F0F7FF);
+    font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.odds-page .odds-actions .odds-btn.is-on { border-color: var(--world-accent, #4E9CFF); background: var(--world-tile-active, #10325D); }
+.odds-page .odds-actions .odds-btn--primary { background: var(--world-accent, #4E9CFF); border-color: var(--world-accent, #4E9CFF); color: #fff; }
+.odds-page .odds-actions .odds-btn:disabled { opacity: 0.6; cursor: wait; }
+.odds-page .odds-presets { padding: 6px; border: 1px solid var(--world-border, #3D679A); border-radius: 8px; background: var(--world-rail, #061326); }
+.odds-page .odds-presets .odds-btn--chip { flex: 1 1 140px; font-size: 13px; }
+
+/* Card picker: all 52 cards always displayed; 44px-minimum columns (7 per
+   row at 360 to 393px), one suit per row of 13 from 769px up */
+.odds-page .odds-picker { padding: 6px 0 2px; border-width: 1px 0 0; border-radius: 0; background: transparent; }
+.odds-page .odds-picker.is-selected { border-color: var(--world-border, #3D679A); }
+.odds-page .odds-picker .odds-panel__head { margin-bottom: 4px; }
+.odds-page .odds-picker .odds-seat-name { padding: 0; }
+.odds-page .odds-mini { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.odds-page .odds-mini__item {
+    display: inline-flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid rgba(148, 175, 204, 0.28); font-size: 12px; color: var(--world-muted, #94AFCC);
+}
+.odds-page .odds-mini__item strong { font-size: 14px; color: var(--world-text, #F0F7FF); font-variant-numeric: tabular-nums; }
+.odds-page .odds-mini__item.is-leader { border-color: var(--world-secondary, #22D3EE); }
+.odds-page .odds-mini__item.is-leader strong { color: var(--world-secondary, #22D3EE); }
+.odds-page .odds-deck { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 3px; margin-bottom: 8px; }
+.odds-page .odds-deck .odds-pick {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+    min-height: 48px; padding: 2px 0; border-radius: 6px;
+    border: 1px solid rgba(148, 175, 204, 0.28); background: var(--world-tile, #071A31);
+    color: var(--world-text, #F0F7FF); cursor: pointer; font-size: 16px; line-height: 1;
+}
+.odds-page .odds-deck .odds-pick__rank { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+.odds-page .odds-deck .odds-pick__suit { font-size: 16px; color: var(--odds-suit); margin-top: 2px; }
+.odds-page .odds-deck .odds-pick:active:not(:disabled) { border-color: var(--world-accent, #4E9CFF); background: var(--world-tile-active, #10325D); }
+.odds-page .odds-deck .odds-pick:focus-visible, .odds-page .odds-panel button:focus-visible,
+.odds-page .odds-actions .odds-btn:focus-visible, .odds-page .odds-games .odds-game:focus-visible {
+    outline: 2px solid var(--world-focus, #A4D0FF); outline-offset: 1px;
+}
+.odds-page .odds-deck .odds-pick.is-used { opacity: 0.2; cursor: default; }
+.odds-page .odds-deck .odds-pick:disabled:not(.is-used) { cursor: default; }
+
+/* Settings sheet */
+.odds-page .odds-sheet { position: fixed; inset: 0; z-index: 1000; background: rgba(2, 8, 18, 0.6); }
+.odds-page .odds-sheet__panel {
+    position: absolute; top: 0; right: 0; width: min(300px, 86vw); height: 100%; overflow-y: auto;
+    padding-left: 20px; background: var(--world-rail, #061326); border-left: 1px solid var(--world-border, #3D679A);
+}
+.odds-page .odds-sheet__head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 16px; }
+.odds-page .odds-sheet__title { font-size: 16px; font-weight: 800; }
+.odds-page .odds-sheet__label { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--world-muted, #94AFCC); }
+.odds-page .odds-sheet__link {
+    display: flex; align-items: center; gap: 6px; min-height: 44px; color: var(--world-text, #F0F7FF);
+    font-size: 14px; text-decoration: none; border-bottom: 1px solid rgba(61, 103, 154, 0.5);
+}
+
+@media (min-width: 769px) {
+    .odds-page .odds-main { gap: 14px; padding-top: 16px; }
+    .odds-page h1.odds-title { font-size: 24px !important; }
+    .odds-page .odds-games { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .odds-page .odds-deck { grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 4px; }
+    .odds-page .odds-deck .odds-pick { min-height: 56px; }
+    .odds-page .odds-actions .odds-btn { flex: 0 0 auto; }
+    .odds-page .odds-slots .odds-slot { width: clamp(44px, calc((100% - (var(--odds-slot-count, 2) - 1) * var(--odds-slot-gap)) / var(--odds-slot-count, 2)), 72px); }
+}
+@media (hover: hover) and (min-width: 769px) {
+    .odds-page .odds-deck .odds-pick:hover:not(:disabled) { border-color: var(--world-accent, #4E9CFF); }
+}
+@keyframes spcalc-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .odds-page [aria-busy="true"] svg { animation: none !important; }
+    .odds-page .odds-bar span { transition: none; }
+}
+`;

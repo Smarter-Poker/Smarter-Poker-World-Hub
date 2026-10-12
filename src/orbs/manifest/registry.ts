@@ -153,8 +153,16 @@ export const TOKE_TRACKER_ORB: OrbConfig = {
   description: 'DEALER INCOME ENGINE - TRACK TOKES, DOWNS, EXPENSES & CAREER STATS',
 };
 
-// Cards that can never be hidden by the user (core identity cards)
-export const PINNED_ORB_IDS: string[] = ['toke-tracker'];
+// Cards that can never be hidden by the user (core identity cards).
+// Poker Arena is pinned as well as first (Dan, 2026-10-11: "Poker Arena needs
+// to ALWAYS be first card DISPLAYED INSIDE THE WORLD HUB"), so an old saved
+// "hidden" preference can never take it off the hub. The ordering itself is
+// enforced by pinPokerArenaFirst (./hubCardOrder) at every render point.
+export const PINNED_ORB_IDS: string[] = ['club-arena', 'toke-tracker'];
+
+// The Poker Arena card, exported so the hub can re-insert it at index 0 of any
+// list that arrives without it.
+export const POKER_ARENA_ORB: OrbConfig = POKER_IQ_ORBS.find((orb) => orb.id === 'club-arena') as OrbConfig;
 
 // Utility exports
 export const ORB_COUNT = POKER_IQ_ORBS.length;
