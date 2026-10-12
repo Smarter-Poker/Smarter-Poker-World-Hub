@@ -60,6 +60,10 @@ const MAX_CANDIDATE_PAGES = 32;
 const LOOKUP_DEADLINE_MS = 2500;
 const PREAUTH_RATE_LIMIT = Object.freeze({ max: 24, windowSeconds: 60 });
 const USER_RATE_LIMIT = Object.freeze({ max: 12, windowSeconds: 60 });
+// Anonymous study is open to everyone (Dan, 2026-10-12). A signed-out visitor
+// is held to the same per-minute allowance a signed-in viewer gets, keyed by
+// the same request fingerprint as the pre-auth bucket.
+const ANONYMOUS_RATE_LIMIT = Object.freeze({ max: 12, windowSeconds: 60 });
 const REFERENCE_STUDY_CONTRACT_VERSION = 'smarter-poker.answer-revealed-solver-study.v1';
 const SOLVER_CANDIDATE_RPC = 'training_solver_spot_candidates_v1';
 const RANKS = '23456789TJQKA';
@@ -809,25 +813,37 @@ export default async function handler(req, res) {
         const token = typeof authorization === 'string' && authorization.startsWith('Bearer ')
             ? authorization.slice(7).trim()
             : '';
-        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
 
-        // The process-local limiter is only a burst shield. A forged Bearer
-        // token must not buy an unbounded auth + solver lookup on each Vercel
-        // instance, so consult the shared database bucket before authentication
-        // and fail closed if that authority is unavailable.
+        // The process-local limiter is only a burst shield. Neither a forged
+        // Bearer token nor an anonymous visitor may buy an unbounded auth +
+        // solver lookup on each Vercel instance, so every request consults the
+        // shared database bucket first and fails closed if that authority is
+        // unavailable.
+        const fingerprint = durableRequestFingerprint(req);
         const supabase = getSupabase();
         if (!await applyDurableRateLimit(supabase, res, {
-            key: `training:spot-study:preauth:${durableRequestFingerprint(req)}`,
+            key: `training:spot-study:preauth:${fingerprint}`,
             ...PREAUTH_RATE_LIMIT,
         })) return;
 
-        const { user, error: authError } = await getServerUserWithFallback(req, supabase);
-        if (authError || !user) {
-            return res.status(401).json({ success: false, error: 'Authentication required' });
+        // Spot Study is answer-revealed reference material and is open to
+        // everyone (Dan, 2026-10-12: "THEY SHOULD OPEN TO EVERYONE"). A
+        // signing-in viewer keeps the per-user bucket. A visitor without a
+        // verifiable session reads the same study content as an anonymous
+        // viewer: no per-user bucket, no user id on any write.
+        let user = null;
+        if (token) {
+            const { user: verifiedUser, error: authError } = await getServerUserWithFallback(req, supabase);
+            if (!authError && verifiedUser?.id) user = verifiedUser;
         }
-        if (!await applyDurableRateLimit(supabase, res, {
-            key: `training:spot-study:user:${user.id}`,
-            ...USER_RATE_LIMIT,
+        if (user) {
+            if (!await applyDurableRateLimit(supabase, res, {
+                key: `training:spot-study:user:${user.id}`,
+                ...USER_RATE_LIMIT,
+            })) return;
+        } else if (!await applyDurableRateLimit(supabase, res, {
+            key: `training:spot-study:anon:${fingerprint}`,
+            ...ANONYMOUS_RATE_LIMIT,
         })) return;
 
         const format = sanitizeParam(req.query.format || '', 10).toLowerCase();
@@ -897,7 +913,8 @@ export default async function handler(req, res) {
                 questionKind: 'PIO',
                 gameType: studyGameType(selected.spot.gameType),
                 level: 1,
-                userId: user.id,
+                // Anonymous study records a served receipt with no user id.
+                userId: user ? user.id : null,
                 requestId: randomUUID(),
                 label: 'SpotDrill:canonicalize',
             });

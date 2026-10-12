@@ -189,6 +189,12 @@ export default function PersonalAssistantPage() {
         const timeout = window.setTimeout(() => controller.abort(), DAILY_HAND_TIMEOUT_MS);
 
         try {
+          // Deliberately anonymous. This card only displays today's shared
+          // hand, which is open to everyone (Dan, 2026-10-12: "THEY SHOULD
+          // OPEN TO EVERYONE"). Sending a session token would make the route
+          // open the viewer's graded Daily Challenge attempt as a side effect
+          // of viewing this dashboard; answering happens on the Daily
+          // Challenge page, which signs its own request.
           const response = await fetch('/api/training/hand-of-the-day', {
             cache: 'no-store',
             headers: { Accept: 'application/json' },

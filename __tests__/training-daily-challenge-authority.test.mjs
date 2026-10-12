@@ -965,11 +965,46 @@ test('Daily Challenge removes every browser-authored grading and completion path
   assert.ok(answerFlow.indexOf('setShowResult(true)') < answerFlow.indexOf('completeDailyAttempt(recorded.attemptId'));
 });
 
-test('Daily Challenge rejects anonymous access and exposes GET only', async () => {
+test('Daily Challenge serves the blind question anonymously, writes nothing, and exposes GET only', async () => {
+  // Contract changed by Dan's 2026-10-12 decision ("THEY SHOULD OPEN TO EVERYONE"):
+  // a signed-out GET reads the question, never the answer key, and never writes.
   const anonymous = await loadHandler({ authenticated: false });
   const noTokenResponse = createResponse();
   await anonymous.handler({ method: 'GET', headers: {} }, noTokenResponse);
-  assert.equal(noTokenResponse.statusCode, 401);
+  assert.equal(noTokenResponse.statusCode, 200);
+  assert.equal(noTokenResponse.body.viewer, 'anonymous');
+  assert.equal(noTokenResponse.body.signInRequired, true);
+  assert.equal(noTokenResponse.body.dailyId, 'daily-2026-09-06');
+  assert.equal(noTokenResponse.body.question.id, canonicalQuestion.id);
+  assert.equal(noTokenResponse.body.question.correctAnswer, undefined);
+  assert.equal(noTokenResponse.body.question.explanation, undefined);
+  assert.equal(noTokenResponse.body.question.gtoFrequencies, undefined);
+  assert.equal(noTokenResponse.body.question._gradingContext, undefined);
+  assert.equal(noTokenResponse.body.feedback, null);
+  assert.equal(noTokenResponse.body.completion, null);
+  assert.equal(Object.hasOwn(noTokenResponse.body, 'completedDays'), false);
+  assert.equal(Object.hasOwn(noTokenResponse.body, 'persistedAnswer'), false);
+  assert.equal(anonymous.deliveries.length, 0, 'an anonymous read must not open an attempt');
+  assert.equal(anonymous.servedAttempts.length, 0, 'an anonymous read must not record a served question');
+  assert.equal(
+    anonymous.database.calls.some((call) => call.operation === 'upsert'),
+    false,
+    'an anonymous read must not seal the day or write a snapshot',
+  );
+  assert.equal(
+    anonymous.database.calls.some((call) => [
+      'training_daily_challenge',
+      'training_attempts',
+      'training_answers',
+      'training_attempt_hands',
+    ].includes(call.table)),
+    false,
+    'an anonymous read must not touch per-user tables',
+  );
+
+  const presentedBadToken = createResponse();
+  await anonymous.handler({ method: 'GET', headers: { authorization: 'Bearer revoked-token' } }, presentedBadToken);
+  assert.equal(presentedBadToken.statusCode, 401, 'a presented credential is still verified');
 
   const authenticated = await loadHandler();
   const postResponse = createResponse();

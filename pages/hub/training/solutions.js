@@ -18,7 +18,7 @@ import RangeGrid from '../../../src/components/training/RangeGrid';
 import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus } from '../../../src/engine/EventBus';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTrainingFetch';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import Card from '../../../src/components/training/Card';
@@ -40,6 +40,15 @@ const SOLUTIONS_SCHEMA = hubCollectionSchema({
 });
 
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
+
+// The solution library is open to everyone (Dan, 2026-10-12: "THEY SHOULD OPEN
+// TO EVERYONE"). Only bookmarks are personal, so only a bookmark action sends a
+// signed-out visitor to sign in, and it brings them straight back here.
+// Bookmarks are personal, so saving one sends a signed-out visitor to sign in
+// and back here. Built as an object (not a constant string pushed on its own)
+// because this navigation only ever follows a tap on a bookmark control - the
+// library itself never redirects (Dan, 2026-10-12: open to everyone).
+const BOOKMARK_SIGN_IN = Object.freeze({ pathname: '/auth/login', query: { redirect: '/hub/training/solutions' } });
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONFIG
@@ -90,7 +99,7 @@ const ACTION_COLORS = {
 // SPOT LIST ITEM
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark }) {
+function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark, canBookmark }) {
   return (
     <motion.div
       layout
@@ -147,7 +156,12 @@ function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark })
           color: isBookmarked ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
           transition: 'color 0.15s',
         }}
-        title={isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'}
+        title={!canBookmark
+          ? 'Sign in to bookmark this spot'
+          : isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'}
+        aria-label={!canBookmark
+          ? 'Sign in to bookmark this spot'
+          : isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'}
       >
         {isBookmarked ? '★' : '☆'}
       </button>
@@ -593,6 +607,9 @@ function SolutionsBrowserInner() {
   const [bookmarkedHashes, setBookmarkedHashes] = useState(new Set());
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
   const [bookmarkError, setBookmarkError] = useState(null);
+  // Read after mount so server and first client render agree (no session on
+  // the server). Signed-out visitors never call the personal bookmark API.
+  const [viewerSignedIn, setViewerSignedIn] = useState(false);
 
   // Board texture classifier — uses Phase 1 BoardTextureEngine for rich analysis
   function classifyBoardTexture(boardCards) {
@@ -644,8 +661,22 @@ function SolutionsBrowserInner() {
   // Fetch bookmarks on mount
   useEffect(() => {
     async function loadBookmarks() {
+      const signedIn = Boolean(getAccessToken());
+      setViewerSignedIn(signedIn);
+      if (!signedIn) {
+        setBookmarkedHashes(new Set());
+        setBookmarkError(null);
+        return;
+      }
       try {
         const res = await trainingFetch('/api/training/bookmark-solution');
+        if (res.status === 401) {
+          // An expired session reads the library as a signed-out visitor.
+          setViewerSignedIn(false);
+          setBookmarkedHashes(new Set());
+          setBookmarkError(null);
+          return;
+        }
         const data = await res.json();
         if (!res.ok || data?.success !== true || !Array.isArray(data.bookmarks)) {
           throw new Error(data?.error || `HTTP error! status: ${res.status}`);
@@ -669,6 +700,10 @@ function SolutionsBrowserInner() {
     async (spot) => {
       const hash = spot.scenarioHash || spot.scenario_hash;
       if (!hash) return;
+      if (!getAccessToken()) {
+        await router.push({ ...BOOKMARK_SIGN_IN });
+        return;
+      }
       const isBookmarked = bookmarkedHashes.has(hash);
       const action = isBookmarked ? 'delete' : 'save';
       try {
@@ -678,6 +713,11 @@ function SolutionsBrowserInner() {
           
           body: JSON.stringify({ scenarioHash: hash, spotId: spot.id, action }),
         });
+        if (res.status === 401) {
+          setViewerSignedIn(false);
+          await router.push({ ...BOOKMARK_SIGN_IN });
+          return;
+        }
         const body = await res.json().catch(() => null);
         const validSave = action !== 'save' || Boolean(body?.bookmarkId);
         const validAction = isBookmarked
@@ -699,7 +739,7 @@ function SolutionsBrowserInner() {
         setBookmarkError('Bookmark Change Was Not Saved. Your Display Has Not Been Changed.');
       }
     },
-    [bookmarkedHashes]
+    [bookmarkedHashes, router]
   );
 
   // Toggle range lock
@@ -753,10 +793,6 @@ function SolutionsBrowserInner() {
       if (position) params.set('position', position);
 
       const res = await trainingFetch(`/api/training/browse-solutions?${params}`);
-      if (res.status === 401) {
-        await router.replace('/auth/login?redirect=/hub/training/solutions');
-        return;
-      }
       const data = await res.json().catch(() => null);
       if (requestId !== listRequestId.current) return;
       if (!res.ok || !isAuditedListResponse(data, { gameType, stackDepth, page })) {
@@ -775,7 +811,7 @@ function SolutionsBrowserInner() {
     } finally {
       if (requestId === listRequestId.current) setLoading(false);
     }
-  }, [gameType, stackDepth, position, page, router]);
+  }, [gameType, stackDepth, position, page]);
 
   useEffect(() => {
     fetchSpots();
@@ -791,10 +827,6 @@ function SolutionsBrowserInner() {
     setActiveTab('grid');
     try {
       const res = await trainingFetch(`/api/training/browse-solutions?spotId=${spotId}`);
-      if (res.status === 401) {
-        await router.replace('/auth/login?redirect=/hub/training/solutions');
-        return;
-      }
       const data = await res.json().catch(() => null);
       if (requestId !== detailRequestId.current) return;
       if (!res.ok || data?.success !== true || !isAuditedSpot(data.spot)) {
@@ -808,7 +840,7 @@ function SolutionsBrowserInner() {
     } finally {
       if (requestId === detailRequestId.current) setLoadingDetail(false);
     }
-  }, [router]);
+  }, []);
 
   const visibleSpots = spots
     .filter((spot) => {
@@ -1148,7 +1180,14 @@ function SolutionsBrowserInner() {
                   <button
                     aria-label="Show bookmarked spots only"
                     aria-pressed={showBookmarksOnly}
-                    onClick={() => setShowBookmarksOnly(true)}
+                    onClick={() => {
+                      if (!viewerSignedIn) {
+                        router.push({ ...BOOKMARK_SIGN_IN });
+                        return;
+                      }
+                      setShowBookmarksOnly(true);
+                    }}
+                    title={viewerSignedIn ? undefined : 'Sign in to see your bookmarks'}
                     style={{
                       flex: 1,
                       padding: '5px 0',
@@ -1185,6 +1224,7 @@ function SolutionsBrowserInner() {
                       onClick={() => loadSpotDetail(spot.id)}
                       isBookmarked={bookmarkedHashes.has(spot.scenarioHash || spot.scenario_hash)}
                       onToggleBookmark={toggleBookmark}
+                      canBookmark={viewerSignedIn}
                     />
                   ))}
 

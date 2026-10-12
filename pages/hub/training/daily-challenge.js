@@ -20,6 +20,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import Card, { parseCards } from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
@@ -148,6 +149,10 @@ export default function DailyChallengePage() {
   const [completionPending, setCompletionPending] = useState(false);
   const [completedDays, setCompletedDays] = useState([]);
   const [currentStreak, setCurrentStreak] = useState(0);
+  // Signed-out visitors read today's hand (Dan, 2026-10-12: "THEY SHOULD OPEN
+  // TO EVERYONE"). The server sends no grading receipt and no answer key to
+  // them, so answering is a signed-in action and the page says so.
+  const [signedOut, setSignedOut] = useState(false);
   const completionResponseTimeRef = useRef(0);
   const answered = useRef(false);
 
@@ -164,15 +169,27 @@ export default function DailyChallengePage() {
     setAlreadyCompleted(false);
     setCompleting(false);
     setCompletionPending(false);
+    setSignedOut(false);
     answered.current = false;
     try {
-      const res = await authedFetch('/api/training/hand-of-the-day');
+      // authedFetch attaches Authorization only when a session token exists.
+      let res = await authedFetch('/api/training/hand-of-the-day');
+      if (res.status === 401) {
+        // A stored session that could not be refreshed is a signed-out visit:
+        // read the shared hand without the stale credential.
+        res = await authedFetch('/api/training/hand-of-the-day', {
+          anonymous: true,
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+      }
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
       if (data.success) {
         setChallenge(data.question);
         setDailyId(data.dailyId);
         setExpiresAt(data.expiresAt);
+        setSignedOut(data.viewer === 'anonymous');
         answerStartRef.current = Date.now(); // Reset timer when challenge loads
 
         // Completion truth comes exclusively from the sealed attempt returned
@@ -317,7 +334,7 @@ export default function DailyChallengePage() {
   // temporary failure can be retried without asking the player to answer again.
   const handleAnswer = useCallback(
     async (actionId) => {
-      if (answered.current || submitting || !challenge) return;
+      if (answered.current || submitting || !challenge || signedOut) return;
       const context = challenge._gradingContext;
       if (
         !context?.receipt
@@ -387,7 +404,7 @@ export default function DailyChallengePage() {
         setError('Your answer was not recorded and no result was revealed. Please try again.');
       }
     },
-    [challenge, completeDailyAttempt, fb, submitting]
+    [challenge, completeDailyAttempt, fb, signedOut, submitting]
   );
 
   // Derive question data
@@ -409,17 +426,19 @@ export default function DailyChallengePage() {
   const resultIsCorrect = persistedCorrect === true;
   const awardedDiamonds = Number(completion?.diamondsEarned ?? completion?.diamondsAwarded);
   const hasAwardedDiamonds = Number.isFinite(awardedDiamonds) && awardedDiamonds > 0;
-  const recordStatus = completing
-    ? 'Saving'
-    : completion
-      ? 'Saved'
-      : completionPending
-        ? 'Retry'
-        : showResult
-          ? 'Recorded'
-          : challenge?._gradingContext?.receipt
-            ? 'Sealed'
-            : 'Waiting';
+  const recordStatus = signedOut
+    ? 'Sign In'
+    : completing
+      ? 'Saving'
+      : completion
+        ? 'Saved'
+        : completionPending
+          ? 'Retry'
+          : showResult
+            ? 'Recorded'
+            : challenge?._gradingContext?.receipt
+              ? 'Sealed'
+              : 'Waiting';
   const sourceBadge = trainingSourcePresentation(challenge?.sourceClassification);
 
   return (
@@ -530,6 +549,13 @@ export default function DailyChallengePage() {
                     <h2 id="daily-spot-question">{scenario}</h2>
                   </div>
 
+                  {signedOut && (
+                    <TrainingSignInPrompt
+                      returnPath="/hub/training/daily-challenge"
+                      message="Sign In To Lock Your Decision, See The Verified Answer, And Build Your Streak."
+                    />
+                  )}
+
                   <div className={styles.actionKeys} aria-label="Challenge Actions">
                     {options.map((action, idx) => (
                       <QuizAnswer
@@ -539,7 +565,7 @@ export default function DailyChallengePage() {
                         selected={selected === action.id}
                         correct={showResult && action.id === correctAnswer}
                         show={showResult}
-                        disabled={answered.current || submitting}
+                        disabled={answered.current || submitting || signedOut}
                         onClick={() => handleAnswer(action.id)}
                         ariaLabel={`Choose ${action.text}`}
                         size="md"

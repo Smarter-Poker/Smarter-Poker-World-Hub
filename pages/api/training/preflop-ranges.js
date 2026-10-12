@@ -6,9 +6,12 @@
  * authored teaching reference, not a provenance-sealed solver export.
  * Unsupported formats, depths, positions, and nodes fail closed rather than
  * being substituted with a nearby chart.
+ *
+ * Public reference (Dan, 2026-10-12: "THEY SHOULD OPEN TO EVERYONE."). The
+ * response is the same fixed authored corpus for every caller and reads or
+ * writes nothing per-user, so no token is required and the response is cached
+ * publicly. The read rate limit, the GET-only check and all validation remain.
  */
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, getCombos, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
@@ -31,17 +34,6 @@ const REFERENCE_PROVENANCE = Object.freeze({
   disclosure:
     'Authored 6-max cash 100BB teaching reference. No checksummed solver artifact or solve-tree provenance is attached.',
 });
-
-let _supabase = null;
-function getSupabase() {
-  if (!_supabase) {
-    _supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-    );
-  }
-  return _supabase;
-}
 
 function singleQueryValue(value, fallback = '') {
   if (Array.isArray(value)) return null;
@@ -157,14 +149,6 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'GET only' });
     }
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-
-    const { user, error: authError } = await getServerUserWithFallback(req, getSupabase());
-    if (authError || !user) {
-      return res.status(401).json({ success: false, error: 'Invalid token' });
-    }
-
     const gameType = singleQueryValue(req.query.gameType, PREFLOP_REFERENCE_CONTRACT.gameType);
     const rawStackDepth = singleQueryValue(
       req.query.stackDepth,
@@ -225,8 +209,8 @@ export default async function handler(req, res) {
       exactSpot.actionLabels,
     );
 
-    res.setHeader('Cache-Control', 'private, max-age=300');
-    res.setHeader('Vary', 'Authorization');
+    // Identical for every caller, so shared caches may hold it.
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
     return res.status(200).json({
       success: true,
       range: {

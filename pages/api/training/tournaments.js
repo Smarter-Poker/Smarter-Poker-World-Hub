@@ -9,6 +9,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -19,6 +20,15 @@ function getSupabase() {
         );
     }
     return _supabase;
+}
+
+// A signed-out viewer gets the shared listing without account identifiers:
+// entry rows keep their public profile (username, avatar) and results but not
+// the raw auth user id, and a tournament row does not name its creator.
+function withoutUserIds(row) {
+    if (!row || typeof row !== 'object') return row;
+    const { user_id: _userId, created_by: _createdBy, ...rest } = row;
+    return rest;
 }
 
 function failTournamentRead(res, operation, error) {
@@ -47,15 +57,24 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       const supabase = getSupabase();
 
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await supabase.auth.getUser(token);
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-      const userId = user.id;
+      // Tournament listings and standings are shared reference content and
+      // open to everyone (Dan, 2026-10-12: "THEY SHOULD OPEN TO EVERYONE").
+      // Only the viewer's own entry needs an identity: a request without a
+      // credential gets the shared data with every per-user field absent, and
+      // a request that presents a credential is still verified, so an invalid
+      // token keeps its 401. This route has no write path for anyone.
+      const token = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim() || null;
+      let userId = null;
+      if (token) {
+          const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+          const user = authData?.user;
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+          userId = user.id;
+      }
 
       const safeQ = (value) => value
           ? (Array.isArray(value) ? String(value[0]) : typeof value === 'object' ? null : String(value))
@@ -104,6 +123,16 @@ export default async function handler(req, res) {
                   return res.status(404).json({ success: false, error: 'Tournament not found' });
               }
 
+              if (!userId) {
+                  const publicEntries = (entries || []).map(withoutUserIds);
+                  return res.status(200).json({
+                      success: true,
+                      tournament: withoutUserIds(tournament),
+                      entries: publicEntries,
+                      leaderboard: publicEntries.slice(0, 10)
+                  });
+              }
+
               return res.status(200).json({
                   success: true,
                   tournament,
@@ -132,6 +161,14 @@ export default async function handler(req, res) {
               return failTournamentRead(res, 'tournament-list', tournamentsResult.error);
           }
 
+          const tournaments = tournamentsResult.data;
+          if (!userId) {
+              return res.status(200).json({
+                  success: true,
+                  tournaments: (tournaments || []).map(withoutUserIds),
+              });
+          }
+
           const entriesResult = await supabase
               .from('training_tournament_entries')
               .select('tournament_id, status, score, final_rank')
@@ -140,7 +177,6 @@ export default async function handler(req, res) {
               return failTournamentRead(res, 'user-entries', entriesResult.error);
           }
 
-          const tournaments = tournamentsResult.data;
           const entries = entriesResult.data;
 
           return res.status(200).json({

@@ -18,7 +18,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
+import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
 // TRAIN-WIRE-EMPTY-9b — adoption: shared empty-state primitive
 
 const FORMATS = ['All', 'Cash', 'Tournament', 'Live Cash', 'PLO', 'Spins'];
@@ -75,6 +76,11 @@ export default function StudyGroupFinderPage() {
   const [busy, setBusy] = useState(null);
   const [notice, setNotice] = useState(null);
   const [inviteHandled, setInviteHandled] = useState(false);
+  // The directory is open to everyone (Dan, 2026-10-12: "THEY SHOULD OPEN TO
+  // EVERYONE"). Creating and joining belong to an account, so a signed-out
+  // visitor gets a sign-in prompt that returns them to the same action.
+  const [signedOut, setSignedOut] = useState(false);
+  const [signInPrompt, setSignInPrompt] = useState(null);
   const [form, setForm] = useState({
     name: '', format: 'Cash', stakes: '', timezone: '', focus: '', schedule: '', level: 'Any', maxMembers: 8,
   });
@@ -82,9 +88,23 @@ export default function StudyGroupFinderPage() {
   const loadGroups = useCallback(async () => {
     setError(null);
     try {
-      const response = await authedFetch('/api/training/study-groups');
+      // authedFetch attaches Authorization only when a session token exists.
+      let anonymous = !getAccessToken();
+      let response = await authedFetch('/api/training/study-groups');
+      if (response.status === 401) {
+        // A stored session that could not be refreshed reads the directory
+        // signed out instead of failing.
+        anonymous = true;
+        response = await authedFetch('/api/training/study-groups', {
+          anonymous: true,
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+      }
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Study groups could not be loaded');
+      setSignedOut(anonymous);
+      if (!anonymous) setSignInPrompt(null);
       setGroups(payload.groups || []);
     } catch (loadError) {
       setError(loadError?.message || 'Study groups could not be loaded');
@@ -97,6 +117,13 @@ export default function StudyGroupFinderPage() {
 
   const createGroup = async () => {
     if (busy) return;
+    if (signedOut) {
+      setSignInPrompt({
+        message: 'Sign In To Create A Study Group.',
+        returnPath: '/hub/training/study-group-finder',
+      });
+      return;
+    }
     setBusy('create');
     setNotice(null);
     try {
@@ -120,6 +147,13 @@ export default function StudyGroupFinderPage() {
 
   const joinGroup = useCallback(async (group) => {
     if (busy) return;
+    if (signedOut) {
+      setSignInPrompt({
+        message: `Sign In To Join ${group.name}.`,
+        returnPath: `/hub/training/study-group-finder?join=${encodeURIComponent(group.id)}`,
+      });
+      return;
+    }
     if (group.joined) {
       router.push(`/hub/training/study-group?roomId=${group.id}`);
       return;
@@ -136,7 +170,7 @@ export default function StudyGroupFinderPage() {
     } finally {
       setBusy(null);
     }
-  }, [busy, router]);
+  }, [busy, router, signedOut]);
 
   useEffect(() => {
     if (!router.isReady || inviteHandled || groups.length === 0 || !router.query.join) return;
@@ -225,7 +259,14 @@ export default function StudyGroupFinderPage() {
           </div>
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowCreate(!showCreate)}
+            onClick={() => {
+              if (signedOut) {
+                setShowCreate(false);
+                createGroup();
+                return;
+              }
+              setShowCreate(!showCreate);
+            }}
             style={{
               background: 'var(--sp-accent-blue)',
               color: '#fff',
@@ -244,6 +285,12 @@ export default function StudyGroupFinderPage() {
 
         <div className="sp-command-main" style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
           <ErrorBanner message={error} onRetry={() => { setLoading(true); loadGroups(); }} />
+          {signedOut && (
+            <TrainingSignInPrompt
+              returnPath={signInPrompt?.returnPath || '/hub/training/study-group-finder'}
+              message={signInPrompt?.message || 'Browse Every Group Freely. Sign In To Create Or Join One.'}
+            />
+          )}
           {notice && (
             <div role="status" style={{ marginBottom: 12, color: notice.type === 'error' ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)', fontSize: 12 }}>
               {notice.text}
@@ -575,7 +622,7 @@ export default function StudyGroupFinderPage() {
                           minWidth: 120,
                         }}
                       >
-                        {busy === g.id ? 'Joining...' : g.joined ? 'Open Room' : isFull ? 'Group Full' : 'Join Group'}
+                        {busy === g.id ? 'Joining...' : g.joined ? 'Open Room' : isFull ? 'Group Full' : signedOut ? 'Sign In To Join' : 'Join Group'}
                       </motion.button>
                     </div>
                   </div>

@@ -11,7 +11,11 @@ test('Solutions board texture controls persist through the wired filter setter',
 
   assert.match(source, /setFilter\('rxTexture', tex\)/);
   assert.doesNotMatch(source, /saveFilter\('rxTexture'/);
-  assert.match(source, /res\.status === 401[\s\S]*?router\.replace\('\/auth\/login\?redirect=\/hub\/training\/solutions'\)/);
+  // Dan, 2026-10-12: "THEY SHOULD OPEN TO EVERYONE" - the library read never bounces to sign-in;
+  // only a personal bookmark action sends a signed-out visitor to sign in and back.
+  assert.doesNotMatch(source, /router\.replace\('\/auth\/login/);
+  assert.match(source, /const BOOKMARK_SIGN_IN = Object\.freeze\(\{ pathname: '\/auth\/login', query: \{ redirect: '\/hub\/training\/solutions' \} \}\)/);
+  assert.match(source, /res\.status === 401[\s\S]*?router\.push\(\{ \.\.\.BOOKMARK_SIGN_IN \}\)/);
 });
 
 test('Table Dynamics pop-out is wired and authored data is labeled honestly', () => {

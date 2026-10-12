@@ -16,7 +16,6 @@ const accountScopedCacheRoutes = [
   'pages/api/training/achievements.js',
   'pages/api/training/bookmark-solution.js',
   'pages/api/training/get-progress.js',
-  'pages/api/training/preflop-ranges.js',
   'pages/api/training/recommendations.js',
   'pages/api/training/streak.js',
   'pages/api/training/weekly-stats.js',
@@ -191,4 +190,12 @@ test('authenticated Training GET caches vary by the verified identity', () => {
     const source = read(route);
     assert.match(source, /setHeader\('Vary', 'Authorization'\)/, route);
   }
+});
+
+test('the public preflop reference is cached publicly and never varies by identity', () => {
+  // Dan, 2026-10-12: training charts "SHOULD OPEN TO EVERYONE" - preflop-ranges is no longer account-scoped.
+  const source = read('pages/api/training/preflop-ranges.js');
+  assert.match(source, /setHeader\('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600'\)/);
+  assert.doesNotMatch(source, /setHeader\('Vary', 'Authorization'\)/);
+  assert.doesNotMatch(source, /'Cache-Control', 'private/);
 });

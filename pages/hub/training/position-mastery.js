@@ -16,7 +16,8 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
+import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
 
 // TRAIN-CSS-MOTION-ADOPT-17 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -191,12 +192,31 @@ export default function PositionMasteryPage() {
   const [progress, setProgress] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // The page is open to everyone (Dan, 2026-10-12: "THEY SHOULD OPEN TO
+  // EVERYONE"), but get-progress is personal and stays signed-in only. A
+  // signed-out visitor sees the position guide with an empty progress map and
+  // a sign-in prompt; the personal endpoint is never called without a token.
+  const [signedOut, setSignedOut] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    if (!getAccessToken()) {
+      setSignedOut(true);
+      setProgress([]);
+      setLoading(false);
+      return;
+    }
+    setSignedOut(false);
     try {
       const res = await authedFetch('/api/training/get-progress');
+      if (res.status === 401) {
+        // A stored session that could not be refreshed is a signed-out visit,
+        // not an error: show the empty map and the sign-in prompt.
+        setSignedOut(true);
+        setProgress([]);
+        return;
+      }
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -393,7 +413,13 @@ export default function PositionMasteryPage() {
 
           {!loading && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {!hasPositionData && (
+              {signedOut && (
+                <TrainingSignInPrompt
+                  returnPath="/hub/training/position-mastery"
+                  message="Sign In To See Your Accuracy By Seat. Your Progress Map Fills In As You Train."
+                />
+              )}
+              {!signedOut && !hasPositionData && (
                 <div
                   role="status"
                   style={{

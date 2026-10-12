@@ -647,6 +647,70 @@ test('spot study uses cross-instance IP and authenticated-user limits before hea
   assert.equal(route.observations.events[2], 'durable:training:spot-study:user:user-1');
 });
 
+// Dan, 2026-10-12: "THEY SHOULD OPEN TO EVERYONE" - anonymous study is served, still behind the
+// durable fingerprint bucket, with an anonymous bucket in place of the per-user one and no user id.
+test('anonymous spot study is served behind the durable fingerprint limits without per-user writes', async () => {
+  const route = await loadSpotRoute({ rows: [realSolverRow()], realAdapter: true });
+  const res = response();
+  await route.handler({
+    method: 'GET',
+    headers: { 'x-real-ip': '203.0.113.8' },
+    socket: { remoteAddress: '127.0.0.1' },
+    query: {},
+  }, res);
+
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(res.body.success, true);
+  assert.equal(res.body.authoritativeTrainingProgress, false);
+  assert.ok(!route.observations.events.includes('auth'), 'no token means no auth lookup');
+  assert.equal(route.observations.durableRateLimits.length, 2);
+  const preauth = route.observations.durableRateLimits[0].key;
+  assert.match(preauth, /^training:spot-study:preauth:[0-9a-f]{64}$/);
+  assert.equal(
+    route.observations.durableRateLimits[1].key,
+    preauth.replace(':preauth:', ':anon:'),
+  );
+  assert.equal(route.observations.durableRateLimits[1].max, 12);
+  assert.ok(route.observations.durableRateLimits.every(({ key }) => !key.includes(':user:')));
+  assert.equal(route.observations.persisted.length, 1);
+  assert.equal(route.observations.persisted[0].userId, null);
+  assert.equal(res.headers['Cache-Control'], 'private, no-store, max-age=0');
+});
+
+test('an unverifiable token reads as an anonymous visitor, not a 401 or a user write', async () => {
+  const route = await loadSpotRoute({
+    rows: [realSolverRow()],
+    realAdapter: true,
+    authResult: { user: null, error: 'Invalid token' },
+  });
+
+  const res = await requestSpot(route);
+
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(route.observations.events[1], 'auth');
+  assert.match(route.observations.durableRateLimits[1].key, /^training:spot-study:anon:[0-9a-f]{64}$/);
+  assert.equal(route.observations.persisted[0].userId, null);
+});
+
+test('anonymous spot study fails closed at the anonymous bucket before catalog work', async () => {
+  const route = await loadSpotRoute({
+    rows: [realSolverRow()],
+    realAdapter: true,
+    durableRateLimitResults: [true, false],
+  });
+  const res = response();
+  await route.handler({
+    method: 'GET',
+    headers: { 'x-real-ip': '203.0.113.8' },
+    socket: { remoteAddress: '127.0.0.1' },
+    query: {},
+  }, res);
+
+  assert.equal(res.statusCode, 429);
+  assert.equal(route.database.calls.length, 0);
+  assert.equal(route.observations.persisted.length, 0);
+});
+
 test('solver catalog admission requires complete payloads and centrally approved provenance', () => {
   assert.match(
     SPOT_SECURITY_HARDENING_SOURCE,

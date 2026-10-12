@@ -23,8 +23,16 @@ export default async function handler(req, res) {
   res.setHeader('Vary', 'Authorization');
 
   if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
-  const user = await authenticate(req);
-  if (!user) return res.status(401).json({ success: false, error: 'Authentication required' });
+
+  // The group directory is open to everyone (Dan, 2026-10-12: "THEY SHOULD
+  // OPEN TO EVERYONE"). A request without a credential reads the listing
+  // anonymously; a request that presents one is still verified, so a bad or
+  // revoked token keeps its 401. Creating and joining stay signed-in only.
+  const hasCredential = typeof req.headers?.authorization === 'string'
+    && /^Bearer\s+\S/i.test(req.headers.authorization);
+  const anonymousRead = req.method === 'GET' && !hasCredential;
+  const user = anonymousRead ? null : await authenticate(req);
+  if (!anonymousRead && !user) return res.status(401).json({ success: false, error: 'Authentication required' });
 
   if (req.method === 'GET') {
     const { data: groups, error } = await db()
@@ -42,19 +50,31 @@ export default async function handler(req, res) {
     const joined = new Set();
     (members || []).forEach((member) => {
       counts[member.group_id] = (counts[member.group_id] || 0) + 1;
-      if (member.user_id === user.id) joined.add(member.group_id);
+      if (user && member.user_id === user.id) joined.add(member.group_id);
     });
     return res.status(200).json({
       success: true,
-      groups: (groups || []).map((group) => ({
-        ...group,
-        members: counts[group.id] || 0,
-        max: group.max_members,
-        tz: group.timezone,
-        tool: 'Smarter.Poker',
-        joined: joined.has(group.id),
-        owned: group.owner_id === user.id,
-      })),
+      groups: (groups || []).map((group) => {
+        const listed = {
+          ...group,
+          members: counts[group.id] || 0,
+          max: group.max_members,
+          tz: group.timezone,
+          tool: 'Smarter.Poker',
+        };
+        // A signed-out viewer sees the directory, never an account id: the
+        // owner's raw user id is dropped and the viewer-specific membership
+        // flags (joined, owned) are absent rather than false.
+        if (!user) {
+          delete listed.owner_id;
+          return listed;
+        }
+        return {
+          ...listed,
+          joined: joined.has(group.id),
+          owned: group.owner_id === user.id,
+        };
+      }),
     });
   }
 
