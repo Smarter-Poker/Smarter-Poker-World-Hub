@@ -1,3 +1,4 @@
+import { mayDeliverNotification, isPushOnlyNotification, PLATFORM_ALERT_RECIPIENTS } from '../src/lib/notifications/deliveryPolicy.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -21,6 +22,9 @@ const OTHER = '22222222-2222-4222-8222-222222222222';
 // so deleting an import would still pass here and throw in production. Each
 // one is pinned to its module by the import tests below.
 const IMPORTS = {
+  mayDeliverNotification: './notifications/deliveryPolicy.mjs',
+  isPushOnlyNotification: './notifications/deliveryPolicy.mjs',
+  PLATFORM_ALERT_RECIPIENTS: './notifications/deliveryPolicy.mjs',
   randomUUID: 'node:crypto',
   enqueuePush: './push/push-enqueue',
   isOwnerOperationalNotification: './push/operational-push-routing.mjs',
@@ -127,6 +131,7 @@ function gateway(options = {}) {
     randomUUID: () => CHOSEN_ID,
     enqueuePush: async (...args) => { sent.push(args); return { sent: true }; },
     isOwnerOperationalNotification, retryOwnerNotificationDestination, ROUTED_REASON, ALERT_TASK_ID,
+    mayDeliverNotification, isPushOnlyNotification, PLATFORM_ALERT_RECIPIENTS,
   };
   assert.deepEqual(Object.keys(injected).sort(), Object.keys(IMPORTS).sort());
   const dependencies = { ...injected, console: { warn() {} } };
@@ -248,7 +253,7 @@ test('the insert is a plural request: a singular one (.single(), or .maybeSingle
 test('an ordinary notification never gets a gateway-chosen id', async () => {
   const g = gateway();
   await g.notify({ userId: ALERT_OWNER_ID, type: 'accounting_invoice', title: 'Your invoice' });
-  await g.notify({ userId: OTHER, type: 'financial_incident', title: 'Chip drift' });
+  await g.notify({ userId: OTHER, type: 'new_message', title: 'Player Message' });
   assert.equal(g.originals.length, 2);
   assert.equal('id' in g.originals[0], false);
   assert.equal('id' in g.originals[1], false);
@@ -408,7 +413,7 @@ for (const args of [
   { userId: ALERT_OWNER_ID, type: 'system', title: 'Notifications moved to another account' },
   { userId: ALERT_OWNER_ID, type: 'accounting_invoice', title: 'Your invoice' },
   { userId: ALERT_OWNER_ID, type: 'new_message', title: 'Push Health Alert' },
-  { userId: OTHER, type: 'system', title: 'Push Health Alert' },
+  { userId: OTHER, type: 'new_message', title: 'Player Message' },
 ]) {
   test(`ordinary or other-recipient notification keeps its existing gateway behavior: ${args.type}/${args.userId}`, async () => {
     const g = gateway(); const out = await g.notify(args);
@@ -428,7 +433,7 @@ test('versioned cache retains personal and current invoice rows, excludes archiv
     { id: 'current-invoice', type: 'accounting_invoice' }];
   const raw = notificationCache(rows, ALERT_OWNER_ID, 1000);
   assert.deepEqual(JSON.parse(raw), [
-    { ...rows[1], _cache_ts: 1000, _cache_user: ALERT_OWNER_ID, _cache_version: 4 },
+    { ...rows[1], _cache_ts: 1000, _cache_user: ALERT_OWNER_ID, _cache_version: 5 },
     rows[2],
   ]);
   assert.deepEqual(readNotificationCache(raw, ALERT_OWNER_ID, 1001).map(row => row.id),
@@ -444,7 +449,7 @@ test('a retained current-version cache cannot restore archived invoice details o
   // missing read-time filter. Its first, now-hidden row still owns the cache.
   const raw = JSON.stringify([
     { id: 'invoice-detail', type: 'accounting_invoice_detail', _cache_ts: 1000,
-      _cache_user: ALERT_OWNER_ID, _cache_version: 4 },
+      _cache_user: ALERT_OWNER_ID, _cache_version: 5 },
     ...visible,
   ]);
   assert.deepEqual(readNotificationCache(raw, ALERT_OWNER_ID, 1001), visible);
@@ -459,4 +464,16 @@ test('versioned cache refuses unversioned, malformed, expired and future-dated i
   assert.equal(readNotificationCache(raw, ALERT_OWNER_ID, 999), null);
   assert.equal(readNotificationCache(raw, ALERT_OWNER_ID, 301000), null);
   assert.equal(readNotificationCache(raw, ALERT_OWNER_ID, 300999)[0].id, 'personal');
+});
+
+test('actual gateway sends blinding-off only through push and never inserts a saved notification',async()=>{
+ const g=gateway();const out=await g.notify({userId:OTHER,type:'tournament_blinding_off',title:'You Are Being Blinded Off',body:'Take Your Seat',url:'/table/fixture'});
+ assert.equal(out.ok,true);assert.equal(out.destination,'push_only');assert.equal(out.notificationId,null);
+ assert.equal(g.originals.length,0);assert.equal(g.calls.length,0);assert.equal(g.sent.length,1);
+ assert.equal(g.sent[0][1].event,'tournament_blinding_off');assert.equal(g.sent[0][1].url,'/table/fixture');
+});
+test('actual gateway refuses a non-owner platform alert before any persistence or push',async()=>{
+ const g=gateway();const out=await g.notify({userId:OTHER,type:'system',title:'Push Health Alert'});
+ assert.equal(out.ok,false);assert.equal(out.refused,'platform_alert_recipient_not_allowed');
+ assert.equal(g.calls.length,0);assert.equal(g.originals.length,0);assert.equal(g.sent.length,0);
 });

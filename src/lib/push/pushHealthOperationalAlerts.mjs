@@ -1,3 +1,4 @@
+import { isPlatformAlertRecipient } from '../notifications/deliveryPolicy.mjs';
 /**
  * push-health's operational alerts for the owner account: Production Alerts
  * store episodes, never a personal notice (2026-09-28).
@@ -217,6 +218,7 @@ export function pushHealthNotices({ notify, notifyAdmins }) {
           + 'its condition is recorded for the Production Alerts task instead');
         return { ok: false, notificationId: null, push: null, refused: OWNER_NOTICE_REFUSED };
       }
+      if (!isPlatformAlertRecipient(args?.userId)) return { ok: false, refused: 'platform_alert_recipient_not_allowed' };
       return notify(supabase, args);
     },
     async toAdmins(supabase, args = {}) {

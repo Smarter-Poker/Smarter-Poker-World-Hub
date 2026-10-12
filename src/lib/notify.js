@@ -22,6 +22,7 @@
  *     insert or the header badge serves stale data for up to its TTL.
  */
 
+import { mayDeliverNotification, isPushOnlyNotification, PLATFORM_ALERT_RECIPIENTS } from './notifications/deliveryPolicy.mjs';
 import { randomUUID } from 'node:crypto';
 import { enqueuePush } from './push/push-enqueue';
 import { isOwnerOperationalNotification, retryOwnerNotificationDestination, ROUTED_REASON } from './push/operational-push-routing.mjs';
@@ -76,6 +77,20 @@ export async function notify(supabase, args = {}) {
             type: args.type || null,
             title: args.title || null,
         });
+        return out;
+    }
+
+    if (!mayDeliverNotification(args.userId, args)) {
+        return { ...out, refused: 'platform_alert_recipient_not_allowed' };
+    }
+    if (isPushOnlyNotification(args)) {
+        try {
+            out.push = await enqueuePush(supabase, { ...args, event: args.type });
+            out.ok = Boolean(out.push?.outboxId || out.push?.sent);
+            out.destination = 'push_only';
+        } catch (error) {
+            console.warn('[notify] push-only delivery failed:', error?.message || error);
+        }
         return out;
     }
 
@@ -211,7 +226,8 @@ export async function notify(supabase, args = {}) {
                 title,
                 body: body || '',
                 url: url || '/hub',
-                event: args.event || args.type,
+                event: args.data?.audience === 'platform_admin' ? 'platform_admin_alert' : args.event || args.type,
+                data: args.data,
                 tag: args.tag,
                 // Identity beats decoration: an avatar as the icon makes a push
                 // recognisable on a lock screen in a way the app name never is.
@@ -431,7 +447,7 @@ export function notifySystem(supabase, userId, title, body, url) {
 }
 
 /**
- * Fan out to every admin ('admin' or 'god' role). Used by push-health and
+ * Fan out only to the owner's two verified accounts. Used by push-health and
  * platform alerts. skipUserIds avoids self-notifying the triggering admin.
  */
 export async function notifyAdmins(supabase, { type = 'system', title, body, url, skipUserIds = [] } = {}) {
@@ -439,7 +455,7 @@ export async function notifyAdmins(supabase, { type = 'system', title, body, url
         const { data: admins, error } = await supabase
             .from('profiles')
             .select('id')
-            .in('role', ['admin', 'god'])
+            .in('id', PLATFORM_ALERT_RECIPIENTS)
             .limit(50);
         if (error || !admins) return { ok: false, sent: 0 };
         const skip = new Set(skipUserIds);
@@ -449,8 +465,8 @@ export async function notifyAdmins(supabase, { type = 'system', title, body, url
             // Sequential on purpose: 50 admins max, and parallel fan-out here can
             // exhaust the Supabase connection pool inside a hot API route.
             // eslint-disable-next-line no-await-in-loop
-            await notify(supabase, { userId: a.id, type, title, body, url });
-            sent += 1;
+            const delivered = await notify(supabase, { userId: a.id, type, title, body, url, data: { audience: 'platform_admin' } });
+            if (delivered.ok) sent += 1;
         }
         return { ok: true, sent };
     } catch (e) {

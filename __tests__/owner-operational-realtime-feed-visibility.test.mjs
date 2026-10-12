@@ -22,9 +22,9 @@ for (const type of OWNER_OPERATIONAL_TYPES) {
     assert.equal(isVisibleNotification(row, ALERT_OWNER_ID), false);
   });
 
-  test(`${type} stays visible for a non-owner recipient (no unintended customer suppression)`, () => {
+  test(`${type} is hidden for a recipient outside the owner allowlist`, () => {
     const row = { id: 'x', user_id: ordinary, type, title: 'Same shape, different recipient' };
-    assert.equal(isVisibleNotification(row, ordinary), true);
+    assert.equal(isVisibleNotification(row, ordinary), false);
   });
 }
 

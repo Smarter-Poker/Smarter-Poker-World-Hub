@@ -18,6 +18,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
+import { promptPanel, promptPrimary, promptSecondary, promptInteractionCss } from '../pwa/promptMaterials';
 import { TUTORIAL_PROMPT_MS } from '../../tutorials';
 
 function SparkIcon() {
@@ -69,16 +70,18 @@ export default function TutorialPrompt({ tutorial, onStart, onDismiss, durationM
 
   return (
     <div
+      data-startup-prompt="tutorial"
       className={`sp-tutorial-prompt${leaving ? ' leaving' : ''}`}
       role="dialog"
       aria-live="polite"
       aria-label={`Tutorial Offer For ${tutorial.title}`}
-      style={{ '--sp-tutorial-prompt-ms': `${durationMs}ms` }}
+      style={{ ...promptPanel, '--sp-tutorial-prompt-ms': `${durationMs}ms` }}
       onPointerDown={() => setPaused(true)}
       onPointerUp={() => setPaused(false)}
       onPointerCancel={() => setPaused(false)}
       onPointerLeave={() => setPaused(false)}
     >
+      <style>{promptInteractionCss}</style>
       <div className="sp-tutorial-prompt-row">
         <div className="sp-tutorial-prompt-icon"><SparkIcon /></div>
         <div className="sp-tutorial-prompt-text">
@@ -88,6 +91,7 @@ export default function TutorialPrompt({ tutorial, onStart, onDismiss, durationM
         <button
           type="button"
           className="sp-tutorial-prompt-start"
+          style={promptPrimary}
           onClick={() => { haptic('light'); finish('start'); }}
         >
           Start
@@ -95,6 +99,7 @@ export default function TutorialPrompt({ tutorial, onStart, onDismiss, durationM
         <button
           type="button"
           className="sp-tutorial-prompt-close"
+          style={promptSecondary}
           aria-label="Close"
           onClick={() => { haptic('light'); finish('dismiss'); }}
         >

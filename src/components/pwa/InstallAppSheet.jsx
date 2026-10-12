@@ -28,7 +28,9 @@ import {
     isIos, isIosSafari, isIosNonSafari, subscribeInstallState,
 } from '../../lib/pwaInstall';
 
-const TEAL = '#14B8A6';
+import { promptInteractionCss, promptPanel, promptPrimary, promptSecondary } from './promptMaterials';
+
+const TEAL = '#79cfff';
 
 function ShareIcon() {
     return (
@@ -192,6 +194,7 @@ export default function InstallAppSheet({ onClose, reason }) {
     return (
         <div
             ref={overlayRef}
+            data-startup-prompt="install-sheet"
             role="dialog"
             aria-modal="true"
             aria-label="Install Smarter Poker"
@@ -199,6 +202,7 @@ export default function InstallAppSheet({ onClose, reason }) {
             style={S.overlay}
         >
             <div style={S.sheet}>
+                <style>{promptInteractionCss}</style>
                 <div style={S.header}>
                     <div style={{ minWidth: 0 }}>
                         <div style={S.title}>Install Smarter Poker</div>
@@ -232,9 +236,7 @@ const S = {
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     },
     sheet: {
-        width: '100%', maxWidth: 460,
-        background: '#111827', color: '#fff',
-        border: '1px solid rgba(255,255,255,0.1)',
+        ...promptPanel, width: '100%', maxWidth: 460, boxSizing: 'border-box',
         borderRadius: '18px 18px 0 0',
         padding: '20px 18px calc(20px + env(safe-area-inset-bottom, 0px))',
         boxShadow: '0 -16px 60px rgba(0,0,0,0.6)',
@@ -247,16 +249,16 @@ const S = {
     title: { fontSize: 18, fontWeight: 700 },
     reason: { fontSize: 12.5, color: TEAL, fontWeight: 600, marginTop: 3 },
     close: {
-        flexShrink: 0, width: 30, height: 30, borderRadius: '50%',
-        background: 'rgba(255,255,255,0.08)', border: 'none', color: '#9CA3AF',
+        flexShrink: 0, width: 44, height: 44, borderRadius: '50%',
+        background: 'rgba(255,255,255,0.08)', border: 'none', color: '#b3c2d1',
         display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
     },
-    lead: { fontSize: 14, color: '#9CA3AF', lineHeight: 1.5, margin: '4px 0 0' },
+    lead: { fontSize: 14, color: '#b3c2d1', lineHeight: 1.5, margin: '4px 0 0' },
     list: { listStyle: 'none', margin: '16px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 8 },
     step: {
         display: 'flex', gap: 10, alignItems: 'flex-start',
         padding: '11px 12px', borderRadius: 12,
-        background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.14)',
+        background: 'linear-gradient(145deg, #1b2935, #101923)', border: '1px solid #364b5c',
     },
     num: {
         flexShrink: 0, width: 24, height: 24, borderRadius: '50%',
@@ -267,13 +269,13 @@ const S = {
     stepTitle: { display: 'block', fontSize: 14, fontWeight: 700, marginBottom: 2 },
     stepDetail: { display: 'block', fontSize: 12.5, color: '#8B9DAD', lineHeight: 1.45 },
     primary: {
-        width: '100%', marginTop: 16, padding: '13px 16px', borderRadius: 12, border: 'none',
-        background: TEAL, color: '#04211E', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+        ...promptPrimary,
+        width: '100%', marginTop: 16,
+        fontSize: 15, fontWeight: 700, cursor: 'pointer',
     },
     ghost: {
-        width: '100%', marginTop: 10, padding: '12px 16px', borderRadius: 12,
-        border: '1px solid rgba(255,255,255,0.15)', background: 'transparent',
-        color: '#D1D5DB', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+        ...promptSecondary,
+        width: '100%', marginTop: 10,
     },
     note: { marginTop: 12, fontSize: 13, color: '#FCD34D', lineHeight: 1.45 },
 };

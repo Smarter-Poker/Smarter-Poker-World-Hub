@@ -1,3 +1,4 @@
+import { mayDeliverNotification } from '../../../src/lib/notifications/deliveryPolicy.mjs';
 /**
  * ===========================================================================
  *  CRON: /api/cron/push-dispatch
@@ -287,6 +288,10 @@ async function handler(req, res) {
             if (isAccountingPush(row)) { deliverable.push(row); continue; }
             if (!row.recipient_user_id) { suppress(row, 'no_recipient'); continue; }
 
+            if (!mayDeliverNotification(row.recipient_user_id, row)) {
+                suppress(row, 'platform_alert_recipient_not_allowed');
+                continue;
+            }
             const ageMs = Date.now() - Date.parse(row.created_at || 0);
             if (Number.isFinite(ageMs) && ageMs > MAX_DELIVERY_AGE_MS) {
                 suppress(row, 'too_stale_to_deliver');

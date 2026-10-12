@@ -58,7 +58,7 @@ test('push-health imports exactly these bindings, and names only conditions and 
 });
 
 for (const storeOnly of [false, true]) {
-  test(`the owner account is never addressed and every other recipient keeps today's notices (${storeOnly ? 'after' : 'before'} store-only delivery is installed)`, async () => {
+  test(`the owner account is never addressed and only the verified second owner account receives personal operational notices (${storeOnly ? 'after' : 'before'} store-only delivery is installed)`, async () => {
     const s = scenario({ storeOnly });
     const res = await s.run();
     assert.equal(res.statusCode, 200);
@@ -66,13 +66,13 @@ for (const storeOnly of [false, true]) {
     assert.deepEqual(titles(s, OWNER), [], 'push-health addressed the owner account personally');
     assert.deepEqual(s.phone.filter((p) => p.userId === OWNER), [], 'push-health reached the owner account phone');
     assert.deepEqual(titles(s, ADMIN_A), ['Push Health Alert']);
-    assert.deepEqual(titles(s, ADMIN_B), ['Push Health Alert', 'Push Notifications Are Off']);
-    assert.deepEqual(titles(s, PLAYER), ['Notifications May Not Be Reaching This Device']);
+    assert.deepEqual(titles(s, ADMIN_B), []);
+    assert.deepEqual(titles(s, PLAYER), []);
     const summary = addressed(s, ADMIN_A)[0].row;
     assert.equal(summary.message, TODAY.join(' | '));
     assert.equal(summary.type, 'system');
     assert.equal(summary.action_url, '/admin/push-health');
-    assert.deepEqual(s.phone.map((p) => p.userId).sort(), [ADMIN_A, ADMIN_B].sort(), 'the summary still pushes to other admins');
+    assert.deepEqual(s.phone.map((p) => p.userId).sort(), [ADMIN_A].sort(), 'the summary still pushes to other admins');
     // Recorded once, directly: nothing went through the classifier capture.
     assert.deepEqual(s.db.tables.operational_notification_destinations, []);
     assert.deepEqual(s.db.tables.operational_alert_events.filter((r) => r.source !== SOURCE), []);
@@ -150,7 +150,7 @@ test('"Push Notifications Are Off" for the owner account is an episode, never hi
   const res = await s.run();
   assert.deepEqual(titles(s, OWNER), [], 'the unclassified staff notice reached the owner account inbox');
   assert.equal(res.body.problems[1], '2 staff account(s) cannot receive push', 'the admins still count him');
-  assert.deepEqual(titles(s, ADMIN_B), ['Push Health Alert', 'Push Notifications Are Off']);
+  assert.deepEqual(titles(s, ADMIN_B), []);
   const [off] = named(s, 'OwnerAccountPushNotificationsOff');
   assert.equal(off?.status, 'firing');
   assert.equal(off.payload.replaces_personal_notice, 'Push Notifications Are Off');
@@ -171,7 +171,7 @@ test('the owner account\'s silent device is an episode, not the device notice, a
   const res = await s.run();
   assert.equal(res.body.problems[0], '2 zombie subscription(s) across 2 user(s)');
   assert.deepEqual(titles(s, OWNER), []);
-  assert.deepEqual(titles(s, PLAYER), ['Notifications May Not Be Reaching This Device']);
+  assert.deepEqual(titles(s, PLAYER), []);
   const [silent] = named(s, 'OwnerAccountDeviceNotConfirmingPush');
   assert.equal(silent?.status, 'firing');
   assert.deepEqual(silent.payload.evidence, { ownerZombieSubscriptions: 1 });
@@ -316,20 +316,20 @@ test('invariant: a push-health notice to the owner account is refused in any spe
   const args = { userId: ADMIN_B, type: 'system', withPush: false, title: 'Push Notifications Are Off', url: '/x' };
   await notices.toRecipient({}, args);
   await notices.toAdmins({}, { type: 'system', title: 'Push Health Alert', body: 'b', url: '/u', skipUserIds: [ADMIN_A] });
-  assert.deepEqual(calls, [['notify', args], ['admins', { type: 'system', title: 'Push Health Alert', body: 'b', url: '/u',
+  assert.deepEqual(calls, [['admins', { type: 'system', title: 'Push Health Alert', body: 'b', url: '/u',
     skipUserIds: [ADMIN_A, OWNER] }]]);
   assert.deepEqual(alerts.personalRecipients([PLAYER, OWNER.toUpperCase(), ADMIN_B]), [PLAYER, ADMIN_B]);
   assert.throws(() => alerts.pushHealthNotices({}), TypeError);
 });
 
-test('invariant: through the real notifyAdmins fan-out the summary reaches every admin except the owner account', async () => {
+test('invariant: through the real notifyAdmins fan-out the summary reaches only the verified second owner account', async () => {
   needHelper();
   const phone = [];
   const db = database(world());
   const notices = alerts.pushHealthNotices(gateway(phone));
   await notices.toAdmins(db, { type: 'system', title: 'Push Health Alert', body: 'x', url: '/admin/push-health' });
-  assert.deepEqual(db.attempts.map((a) => a.row.user_id).sort(), [ADMIN_A, ADMIN_B].sort());
-  assert.deepEqual(phone.map((p) => p.userId).sort(), [ADMIN_A, ADMIN_B].sort());
+  assert.deepEqual(db.attempts.map((a) => a.row.user_id).sort(), [ADMIN_A].sort());
+  assert.deepEqual(phone.map((p) => p.userId).sort(), [ADMIN_A].sort());
 });
 
 test('episode decision: coalesce an open episode, chain a new one after anything else; resolve only a directly observed condition, on an observation after its own opening', () => {
