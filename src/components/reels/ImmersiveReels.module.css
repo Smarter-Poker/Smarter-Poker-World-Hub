@@ -91,7 +91,7 @@
 .root :global([data-reels-copy]) > :global(.vlc-carousel-author) { gap: 10px; }
 .root :global([data-reels-copy]) > button { align-self: flex-start; }
 .root :global([data-reels-stage][data-reels-scroll-stage]) { overflow-y: auto; touch-action: pan-y; }
-.root :global([data-reels-stage]:has([data-reel-youtube-api='error'])) :global([data-reels-tap]) { pointer-events: none; }
+.root :global([data-reels-stage]:has([data-reel-youtube-api='error'][data-reel-youtube-active='true'])) :global([data-reels-tap]) { pointer-events: none; }
 .root :global(.sp-reels-feed-tabs) { display: flex; align-items: center; gap: 16px; }
 .root :global([data-reels-topbar]) :global(.sp-reels-feed-tabs) button { width: auto; min-height: 44px; padding: 0; border-radius: 0 !important; background: transparent !important; font: 700 16px/1.2 Arial, sans-serif; opacity: .65; }
 .root :global([data-reels-topbar]) :global(.sp-reels-feed-tabs) button[aria-current='page'] { opacity: 1; box-shadow: inset 0 -3px #fff; }

@@ -42,7 +42,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
     setFailure(null);
     setReady(false);
     const forward = (event, info) => {
-      if (disposed || !player) return;
+      if (disposed || !player || !desiredRef.current.active) return;
       const frame = player.getIframe();
       eventRef?.current?.({ origin: new URL(frame.src).origin, source: frame?.contentWindow, data: { event, info, videoId: desiredRef.current.videoId } });
     };
@@ -103,7 +103,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
   useEffect(() => {
     const observeSound = (event) => {
       const frame = iframeRef?.current;
-      if (!frame || event.source !== frame.contentWindow || !['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(event.origin)) return;
+      if (!desiredRef.current.active || !frame || event.source !== frame.contentWindow || !['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(event.origin)) return;
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data?.event === 'infoDelivery') {
@@ -115,7 +115,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
     window.addEventListener('message', observeSound);
     return () => window.removeEventListener('message', observeSound);
   }, [iframeRef, onMutedChange, eventRef]);
-  return <div ref={hostRef} data-reel-youtube-api={failure ? 'error' : ready ? 'ready' : 'loading'} style={{ position: 'absolute', inset: 0 }}>
+  return <div ref={hostRef} data-reel-youtube-api={failure ? 'error' : ready ? 'ready' : 'loading'} data-reel-youtube-active={active ? 'true' : 'false'} style={{ position: 'absolute', inset: 0 }}>
     {failure ? <div role="alert" style={{ position: 'absolute', inset: 0, zIndex: 90, display: 'grid', placeContent: 'center', gap: 12, textAlign: 'center', color: '#fff', background: '#000c', padding: 24 }}><p>Video Player Could Not Load</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry Player</button></div> : null}
   </div>;
 }

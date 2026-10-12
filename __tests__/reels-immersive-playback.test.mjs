@@ -88,7 +88,12 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   assert.deepEqual(observedSound,[false]);
   assert.ok(delivered.some(e=>e.data.info?.currentTime===3));
   await act(async()=>tree.update(React.createElement(Component,{...props,active:false})));
-  const before=calls.length;
+  const before=calls.length, beforeEvents=delivered.length;
+  player.events.onError({data:100});
+  player.events.onAutoplayBlocked();
+  assert.equal(delivered.length,beforeEvents,'hidden provider events cannot change the visible native clip');
+  for(const fn of messages) fn({source:frameIdentity.contentWindow,origin:'https://www.youtube-nocookie.com',data:{event:'infoDelivery',info:{muted:true}}});
+  assert.deepEqual(observedSound,[false], 'hidden iframe cannot overwrite visible native audio state');
   player.events.onStateChange({data:0});
   assert.deepEqual(calls.slice(before),[['pauseVideo']],'late inactive event cannot play hidden audio');
   await act(async()=>tree.unmount());
