@@ -6,6 +6,8 @@
 import { Component, Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager } from '../../src/hooks/useYouTubeErrorManager';
+import WatchPlaybackTools, { WatchDescription } from '../../src/components/video-library/WatchPlaybackTools';
+import { buildWatchDescription } from '../../src/lib/videoLibraryWatch.mjs';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
@@ -640,6 +642,9 @@ export default function VideoLibraryPage() {
     const [discoveryView, setDiscoveryView] = useState('new-today');
     // YouTube-style "more actions" sheet for a feed card (owner update 2026-10-11).
     const [cardMenuVideo, setCardMenuVideo] = useState(null);
+    const playerAutoplayRef = useRef(true);
+    const [miniPlayer, setMiniPlayer] = useState(false);
+    const [nextAutoplay, setNextAutoplay] = useState(true);
     const [shortsVisible, setShortsVisible] = useState(INITIAL_RAIL_CARDS);
 
     const isPlayerPlayingRef = useRef(false);
@@ -1111,6 +1116,8 @@ export default function VideoLibraryPage() {
     // Navigate to a specific video in the current filtered list
     const handleOpenVideo = useCallback(async (video) => {
         if (!isVideoLibraryVideoAllowed(video)) return;
+        setMiniPlayer(false);
+        playerAutoplayRef.current = preferences.autoplay !== false;
         const hadActiveSession = Boolean(currentWatchingVideoRef.current);
         if (currentWatchingVideoRef.current?.id === video.id) return;
         if (hadActiveSession && watchStartTimeRef.current) {
@@ -1133,7 +1140,7 @@ export default function VideoLibraryPage() {
         isPlayerPlayingRef.current = false;
         setSelectedVideo(video);
         setIframeKey(k => k + 1); // force iframe remount → guaranteed autoplay
-    }, [saveWatchSession]);
+    }, [saveWatchSession, preferences.autoplay]);
     useEffect(() => { saveWatchSessionRef.current = saveWatchSession; }, [saveWatchSession]);
     useEffect(() => () => {
         const startTime = watchStartTimeRef.current;
@@ -1573,7 +1580,7 @@ export default function VideoLibraryPage() {
                 }
                 return;
             }
-            if (!selectedVideo) return;
+            if (!selectedVideo || miniPlayer) return;
             const target = e.target;
             if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return;
             if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1584,7 +1591,7 @@ export default function VideoLibraryPage() {
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [selectedVideo, showPlaylistModal, ttsOverlay, handleCloseVideo, handleNextVideo, handlePrevVideo, handleFullscreen]);
+    }, [selectedVideo, miniPlayer, showPlaylistModal, ttsOverlay, handleCloseVideo, handleNextVideo, handlePrevVideo, handleFullscreen]);
 
     // Slash is the command shortcut for search when no overlay is active.
     useEffect(() => {
@@ -1610,7 +1617,7 @@ export default function VideoLibraryPage() {
     // Treat the full-screen viewer as a true modal: lock background scrolling,
     // place focus on Close, and keep keyboard focus inside until it is dismissed.
     useEffect(() => {
-        if (!selectedVideo) {
+        if (!selectedVideo || miniPlayer) {
             viewerFocusInitializedRef.current = false;
             return undefined;
         }
@@ -1635,7 +1642,7 @@ export default function VideoLibraryPage() {
             document.removeEventListener('keydown', containFocus);
             document.body.style.overflow = previousOverflow;
         };
-    }, [selectedVideo, showPlaylistModal, ttsOverlay]);
+    }, [selectedVideo, miniPlayer, showPlaylistModal, ttsOverlay]);
 
     useEffect(() => {
         if (!showPlaylistModal) return undefined;
@@ -2489,11 +2496,12 @@ export default function VideoLibraryPage() {
                 return (
                 <div
                     ref={modalOverlayRef}
-                    className="vl-viewer"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="vl-viewer-title"
-                    aria-describedby="vl-viewer-help"
+                    className={`vl-viewer${miniPlayer ? ' is-mini-player' : ''}`}
+                    role={miniPlayer ? 'region' : 'dialog'}
+                    aria-modal={miniPlayer ? undefined : true}
+                    aria-label={miniPlayer ? selectedVideo.title : undefined}
+                    aria-labelledby={miniPlayer ? undefined : 'vl-viewer-title'}
+                    aria-describedby={miniPlayer ? undefined : 'vl-viewer-help'}
                 >
                     <p id="vl-viewer-help" className="vl-sr-only">
                         Use The Arrow Keys For The Previous Or Next Video, F For Fullscreen, And Escape To Close.
@@ -2533,7 +2541,7 @@ export default function VideoLibraryPage() {
                         </div>
 
                     <div
-                        className="vl-player-stage"
+                        className={`vl-player-stage${parseDuration(selectedVideo.duration) > 0 && parseDuration(selectedVideo.duration) <= 180 ? ' is-vertical-player' : ''}`}
                         onMouseMove={!isTouchDevice ? vlRevealHud : undefined}
                         onFocusCapture={!isTouchDevice ? vlRevealHud : undefined}
                     >
@@ -2578,7 +2586,7 @@ export default function VideoLibraryPage() {
                             ref={playerIframeRef}
                             key={iframeKey}
                             id="youtube-player"
-                            src={`https://www.youtube-nocookie.com/embed/${selectedVideo.videoId}?autoplay=${preferences.autoplay === false ? 0 : 1}&start=${selectedVideoResumeSeconds}&mute=${isTouchDevice ? 0 : 1}&rel=0&controls=1&fs=1&iv_load_policy=3&enablejsapi=1&playsinline=1&cc_load_policy=${preferences.captions ? 1 : 0}&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
+                            src={`https://www.youtube-nocookie.com/embed/${selectedVideo.videoId}?autoplay=${playerAutoplayRef.current ? 1 : 0}&start=${selectedVideoResumeSeconds}&mute=${isTouchDevice ? 0 : 1}&rel=0&controls=1&fs=1&iv_load_policy=3&enablejsapi=1&playsinline=1&cc_load_policy=${preferences.captions ? 1 : 0}&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
                             title={selectedVideo.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                             referrerPolicy="strict-origin-when-cross-origin"
@@ -2632,6 +2640,13 @@ export default function VideoLibraryPage() {
                     </div>
                     </div>
 
+                    <div className="vl-watch-tools">
+                        <WatchPlaybackTools key={selectedVideo.videoId} iframeRef={playerIframeRef}
+                            duration={parseDuration(selectedVideo.duration)}
+                            autoplay={nextAutoplay && preferences.autoplay !== false} onAutoplayChange={value => { setNextAutoplay(value); void updatePreference('autoplay', value); }}
+                            nextTitle={videos.length > 1 ? videos[(videos.findIndex(item => item.videoId === selectedVideo.videoId) + 1) % videos.length]?.title : null}
+                            onNext={handleNextVideo} mini={miniPlayer} onMiniChange={setMiniPlayer} />
+                    </div>
                     {/* Title, channel, actions and study tools */}
                     <div className="vl-info-bar">
                         <div className="vl-info-copy">
@@ -2648,6 +2663,7 @@ export default function VideoLibraryPage() {
                             <span className="vl-info-source">{selectedChannel.name}</span>
                         </div>
 
+                        <WatchDescription key={selectedVideo.videoId} text={buildWatchDescription(selectedVideo, selectedChannel.name)} />
                         {/* Action row — Like / Share / Save / Playlist / Train This Spot */}
                         <div
                             className="vl-hud"

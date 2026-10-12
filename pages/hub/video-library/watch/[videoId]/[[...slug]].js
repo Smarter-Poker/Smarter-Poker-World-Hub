@@ -20,8 +20,11 @@
  * The slug is cosmetic. Any slug renders the same page, and the canonical tag
  * names the one true address, so no redirect is ever needed.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import WatchPlaybackTools, { WatchDescription, subscribeWatchPlayer } from '../../../../../src/components/video-library/WatchPlaybackTools';
+import { useYouTubeErrorManager } from '../../../../../src/hooks/useYouTubeErrorManager';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
@@ -219,9 +222,16 @@ function VideoList({ title, videos }) {
 }
 
 export default function VideoWatchPage({ unavailable, video, channel, description, canonical, indexable, jsonLd, channelVideos, relatedVideos }) {
+    const router = useRouter();
+    const iframeRef = useRef(null);
+    const [miniPlayer, setMiniPlayer] = useState(false);
+    const [autoplayNext, setAutoplayNext] = useState(true);
+    const [navigationError, setNavigationError] = useState(false);
+    useEffect(() => { setPlaying(router.query.play === '1'); setMiniPlayer(false); }, [video?.videoId, router.query.play]);
     const [menuOpen, setMenuOpen] = useState(false);
     const [playing, setPlaying] = useState(false);
     const [shareState, setShareState] = useState('idle');
+    const { ytError, errorInfo } = useYouTubeErrorManager({ active: playing, videoId: video?.videoId, iframeRef, surface: 'VideoWatchPage', autoActionDelay: 0 });
     // The library menu, minus its player settings (autoplay and captions
     // belong to the library's own player, not this page).
     const libraryMenu = getMenuConfig('video-library', null, {}, {});
@@ -312,10 +322,12 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
 
                         <div className="vl-watch-page-grid">
                             <div className="vl-watch-page-main">
-                                <div className="vl-player-stage vl-watch-page-player">
+                                <div className={`vl-player-stage vl-watch-page-player${miniPlayer ? ' is-mini-player' : ''}${seconds > 0 && seconds <= 180 ? ' is-vertical-player' : ''}`}>
                                     {playing ? (
                                         <iframe
-                                            src={`https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=1&rel=0&playsinline=1&iv_load_policy=3`}
+                                            ref={iframeRef}
+                                            onLoad={event => subscribeWatchPlayer(event.currentTarget)}
+                                            src={`https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=1&rel=0&playsinline=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
                                             title={video.title}
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                                             referrerPolicy="strict-origin-when-cross-origin"
@@ -333,8 +345,16 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                             {video.duration && <span className="vl-duration">{video.duration}</span>}
                                         </button>
                                     )}
+                                    {ytError && <div className="vl-playback-error" role="alert"><p>{errorInfo?.description}</p><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
+                                    {miniPlayer && <div className="vl-mini-controls"><button type="button" onClick={() => setMiniPlayer(false)}>Expand Player</button><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
                                 </div>
+                                {playing && <WatchPlaybackTools key={video.videoId} iframeRef={iframeRef} active={!ytError}
+                                    duration={seconds} nextTitle={(relatedVideos[0] || channelVideos[0])?.title}
+                                    onNext={() => { setNavigationError(false); void router.push(`${(relatedVideos[0] || channelVideos[0]).href}?play=1`).then(success => { if (!success) setNavigationError(true); }).catch(() => setNavigationError(true)); }}
+                                    autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
+                                    mini={miniPlayer} onMiniChange={setMiniPlayer} />}
 
+                                {navigationError && <p role="alert">The Next Video Could Not Open. Choose A Video Below To Try Again.</p>}
                                 <div className="vl-info-copy">
                                     <h1 id="vl-watch-title">{video.title}</h1>
                                     <p className="vl-info-meta">{[views, published, readableDuration(seconds)].filter(Boolean).join(' · ')}</p>
@@ -364,7 +384,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
 
                                 <section className="vl-watch-about" aria-labelledby="vl-watch-about-title">
                                     <h2 id="vl-watch-about-title">About This Video</h2>
-                                    <p>{description}</p>
+                                    <WatchDescription key={video.videoId} text={description} />
                                     <dl>
                                         <div><dt>Channel</dt><dd>{video.attributionUrl ? <a href={video.attributionUrl} target="_blank" rel="noopener noreferrer">{channel.name}</a> : channel.name}</dd></div>
                                         <div><dt>Type</dt><dd><Link href={`/hub/video-library?type=${encodeURIComponent(video.type)}`}>{typeLabel}</Link></dd></div>

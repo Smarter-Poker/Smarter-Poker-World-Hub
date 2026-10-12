@@ -269,7 +269,8 @@ test('a delayed bookmark response cannot open or report after the route changes'
 });
 
 test('supported player settings are wired and the false HD control is retired', () => {
-  assert.match(PAGE, /autoplay=\$\{preferences\.autoplay === false \? 0 : 1\}/);
+  assert.match(PAGE, /playerAutoplayRef\.current = preferences\.autoplay !== false/);
+  assert.match(PAGE, /autoplay=\$\{playerAutoplayRef\.current \? 1 : 0\}/);
   assert.match(PAGE, /cc_load_policy=\$\{preferences\.captions \? 1 : 0\}/);
   assert.doesNotMatch(MENU, /createMenuItem\.toggle\('HD Quality'/);
   assert.match(PREFS, /patch_video_library_preferences/);

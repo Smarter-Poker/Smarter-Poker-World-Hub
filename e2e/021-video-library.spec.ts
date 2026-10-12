@@ -115,6 +115,7 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
       try { window.localStorage.removeItem('sp-filters-video-library'); } catch { /* storage unavailable */ }
     });
     await page.route('**/api/video-library/catalog**', mockCatalog);
+    await page.route('**/api/video-library/discovery**', mockCatalog);
   });
 
   test('All Videos is poker only; Sports shows on its own chip; filters, search and sort stay in the URL', async ({ page }) => {
@@ -314,4 +315,64 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     await page.getByRole('button', { name: 'Sign In To Sync' }).first().click();
     await expect(page).toHaveURL(/\/auth\/login\?redirect=%2Fhub%2Fvideo-library/);
   });
+
+  test('Phase 3 timeline markers, description and mini-player use one retained iframe', async ({ page }) => {
+    await page.route('https://www.youtube-nocookie.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>Player Fixture</body></html>' }));
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    await page.getByRole('link', { name: `Play ${VIDEO_A.title}` }).click();
+    const player = page.locator('#youtube-player');
+    await expect(player).toBeVisible();
+    const frame = await (await player.elementHandle())!.contentFrame();
+    await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'infoDelivery', info: { currentTime: 72, duration: 1122 } }), '*'));
+    await page.getByRole('button', { name: 'Mark This Hand', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Hand 1 · 1:12', exact: true })).toBeVisible();
+    await frame!.evaluate(() => {
+      (window as any).seekCommands = [];
+      addEventListener('message', event => { try { const value = JSON.parse(event.data); if (value.func === 'seekTo') (window as any).seekCommands.push(value.args); } catch {} });
+    });
+    await page.getByRole('button', { name: 'Hand 1 · 1:12', exact: true }).click();
+    await expect.poll(() => frame!.evaluate(() => (window as any).seekCommands.length)).toBe(1);
+    expect(await frame!.evaluate(() => (window as any).seekCommands[0])).toEqual([72, true]);
+    await page.getByRole('button', { name: 'Show More', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Show Less', exact: true })).toHaveAttribute('aria-expanded', 'true');
+    await player.evaluate(element => element.setAttribute('data-retained-player', 'yes'));
+    await page.getByRole('button', { name: 'Mini-Player', exact: true }).click();
+    await expect(page.locator('.vl-viewer')).toHaveClass(/is-mini-player/);
+    expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
+    await expect(player).toHaveAttribute('data-retained-player', 'yes');
+    await page.getByRole('button', { name: 'Expand Player', exact: true }).click();
+    await expect(player).toHaveAttribute('data-retained-player', 'yes');
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+    await page.getByRole('button', { name: 'Remove Hand Marker At 1:12' }).click();
+    await expect(page.getByRole('list', { name: 'Hand Markers' })).toHaveCount(0);
+  });
+
+  test('Phase 3 autoplay cancels, rejects forged messages and advances once on real end', async ({ page }) => {
+    await page.route('https://www.youtube-nocookie.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>Player Fixture</body></html>' }));
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    await page.getByRole('link', { name: `Play ${VIDEO_A.title}` }).click();
+    const player = page.locator('#youtube-player');
+    const frame = await (await player.elementHandle())!.contentFrame();
+    await page.evaluate(() => window.postMessage(JSON.stringify({ event: 'onStateChange', info: 0 }), '*'));
+    await expect(page.locator('.vl-autoplay-countdown')).toHaveCount(0);
+    await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 0 }), '*'));
+    await expect(page.locator('.vl-autoplay-countdown')).toContainText('Up Next In 5');
+    await page.locator('.vl-autoplay-countdown').getByRole('button', { name: 'Cancel', exact: true }).click();
+    await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 0 }), '*'));
+    await expect(page.locator('.vl-autoplay-countdown')).toHaveCount(0);
+    await frame!.evaluate(() => { parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 1 }), '*'); parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 0 }), '*'); });
+    await expect(page.locator('.vl-autoplay-countdown')).toBeVisible();
+    await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 2 }), '*'));
+    await expect(page.locator('.vl-autoplay-countdown')).toHaveCount(0);
+    await page.getByRole('checkbox', { name: 'Autoplay Next' }).uncheck();
+    await frame!.evaluate(() => parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 0 }), '*'));
+    await expect(page.locator('.vl-autoplay-countdown')).toHaveCount(0);
+    await page.getByRole('checkbox', { name: 'Autoplay Next' }).check();
+    await frame!.evaluate(() => { parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 1 }), '*'); parent.postMessage(JSON.stringify({ event: 'onStateChange', info: 0 }), '*'); });
+    await expect(page.locator('.vl-autoplay-countdown')).toBeVisible();
+    await expect(player).not.toHaveAttribute('src', new RegExp(`/embed/${VIDEO_A.videoId}\\?`), { timeout: 8000 });
+    await expect(page.locator('.vl-autoplay-countdown')).toHaveCount(0);
+    await expect(page.locator('iframe#youtube-player')).toHaveCount(1);
+  });
+
 });
