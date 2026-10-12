@@ -142,17 +142,25 @@ function haversine(lat1, lng1, lat2, lng2) {
 export default function DailyTournaments() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [selectedDay, setSelectedDay] = useState(DAYS[new Date().getDay()]);
+    // Cached HTML and the browser's first render cannot share a wall clock.
+    // Resolve the viewer's local day only after hydration, before reading schedules.
+    const [viewerNow, setViewerNow] = useState(null);
+    const [selectedDay, setSelectedDay] = useState('');
     const [selectedState, setSelectedState] = useState(null);
     const [selectedType, setSelectedType] = useState('');
     const [selectedBuyin, setSelectedBuyin] = useState(BUYIN_RANGES[0]);
     const [searchQuery, setSearchQuery] = useState('');
     // Calendar state
     const [calendarOpen, setCalendarOpen] = useState(false);
-    const [calendarMonth, setCalendarMonth] = useState(() => {
-        const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() };
-    });
+    const [calendarMonth, setCalendarMonth] = useState(null);
     const [selectedDate, setSelectedDate] = useState(null); // null = use day-of-week mode
+
+    useEffect(() => {
+        const now = new Date();
+        setViewerNow(now);
+        setSelectedDay(day => day || DAYS[now.getDay()]);
+        setCalendarMonth({ year: now.getFullYear(), month: now.getMonth() });
+    }, []);
 
     const menuConfig = getMenuConfig('tournaments', null, {}, {});
 
@@ -182,8 +190,8 @@ export default function DailyTournaments() {
         return p;
     }, [selectedDay, selectedState, selectedType, selectedBuyin, debouncedSearch, selectedDate]);
 
-    const { data: swrData, error, isLoading: loading, isValidating, mutate: refreshTournaments } = useSWR(
-        `/api/poker/daily-tournaments?${swrParams}`,
+    const { data: swrData, error, isLoading: scheduleLoading, isValidating, mutate: refreshTournaments } = useSWR(
+        selectedDay ? `/api/poker/daily-tournaments?${swrParams}` : null,
         (url) => fetch(url).then(async r => {
             const d = await r.json().catch(() => null);
             if (!r.ok) throw new Error(d?.error || `Schedule returned ${r.status}`);
@@ -198,6 +206,7 @@ export default function DailyTournaments() {
             revalidateOnFocus: false,
         }
     );
+    const loading = !selectedDay || scheduleLoading;
 
     // [HARDENING] Periodic synchronization for global table/venue changes.
     // Served through the Edge cache (see the DB-load note below) and the
@@ -205,6 +214,7 @@ export default function DailyTournaments() {
     // [DT4 FIX] Added retry fallback — if the RT fetch fails, fall back to SWR mutate() to at
     // least invalidate the cache so the next navigation gets fresh data.
     useVenueRealtime(() => {
+        if (!selectedDay) return;
         // [2026-08-30 DB-load pass] This fired with `_rt=Date.now()`, punching
         // through the Edge cache on every mount and every 5-minute poll tick
         // from every open tab - the venue_daily_tournaments ILIKE query behind
@@ -321,7 +331,10 @@ export default function DailyTournaments() {
     );
 
     // [DT3 FIX] today memoized — was computed + mutated on every render
-    const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+    const today = useMemo(() => {
+        if (!viewerNow) return null;
+        const d = new Date(viewerNow); d.setHours(0,0,0,0); return d;
+    }, [viewerNow]);
     const calDays = useCallback(() => {
         const { year, month } = calendarMonth;
         const firstDay = new Date(year, month, 1).getDay();
@@ -334,6 +347,7 @@ export default function DailyTournaments() {
     }
 
     function handleCalendarDateClick(dateStr) {
+        setViewerNow(new Date());
         const d = new Date(dateStr + 'T12:00:00');
         const dayName = DAYS[d.getDay()];
         setSelectedDate(dateStr);
@@ -448,22 +462,23 @@ export default function DailyTournaments() {
                         <div className="day-tabs">
                             {DAYS.map(day => {
                                 // Find the upcoming date for this day-of-week
-                                const todayIdx = new Date().getDay();
+                                const todayIdx = viewerNow?.getDay();
                                 const dayIdx = DAYS.indexOf(day);
                                 let daysAhead = dayIdx - todayIdx;
                                 if (daysAhead < 0) daysAhead += 7;
-                                const tabDate = new Date();
-                                tabDate.setDate(tabDate.getDate() + daysAhead);
-                                const tabDateStr = toDateStr(tabDate.getFullYear(), tabDate.getMonth(), tabDate.getDate());
+                                const tabDate = viewerNow ? new Date(viewerNow) : null;
+                                if (tabDate) tabDate.setDate(tabDate.getDate() + daysAhead);
+                                const tabDateStr = tabDate ? toDateStr(tabDate.getFullYear(), tabDate.getMonth(), tabDate.getDate()) : null;
                                 const isActive = selectedDate
                                     ? selectedDate === tabDateStr
                                     : selectedDay === day;
-                                const isToday = daysAhead === 0;
+                                const isToday = !!viewerNow && daysAhead === 0;
                                 return (
                                     <button
                                         key={day}
                                         className={`day-tab ${isActive ? 'active' : ''}`}
                                         onClick={() => {
+                                            setViewerNow(new Date());
                                             setSelectedDay(day);
                                             setSelectedDate(null);
                                         }}
@@ -478,7 +493,8 @@ export default function DailyTournaments() {
                         </div>
                         <button
                             className="calendar-btn"
-                            onClick={() => setCalendarOpen(true)}
+                            disabled={!calendarMonth}
+                            onClick={() => { setViewerNow(new Date()); setCalendarOpen(true); }}
                             aria-label="Browse by calendar date"
                             aria-haspopup="dialog"
                             title="Browse by calendar date"

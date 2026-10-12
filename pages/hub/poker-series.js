@@ -195,9 +195,8 @@ function deriveSeriesCategory(seriesName, city) {
     return { label: 'Casino', color: '#f59e0b' };
 }
 
-function isSeriesLive(start, end) {
-    if (!start) return false;
-    const now = new Date();
+function isSeriesLive(start, end, now) {
+    if (!start || !now) return false;
     const startMs = Date.parse(start + 'T00:00:00');
     if (isNaN(startMs)) return false;
     const s = new Date(startMs);
@@ -206,11 +205,11 @@ function isSeriesLive(start, end) {
     return now >= s && now <= e;
 }
 
-function isSeriesUpcoming(start, daysAhead = 60) {
-    if (!start) return false;
+function isSeriesUpcoming(start, daysAhead = 60, browserNow) {
+    if (!start || !browserNow) return false;
     const startMs = Date.parse(start + 'T00:00:00');
     if (isNaN(startMs)) return false;
-    const now = new Date();
+    const now = new Date(browserNow);
     now.setHours(0, 0, 0, 0);
     const s = new Date(startMs);
     const cutoff = new Date(now);
@@ -261,20 +260,16 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
     const searchInputRef = useRef(null);
     const [searchFocused, setSearchFocused] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
-    const [favorites, setFavorites] = useState(() => {
-        if (typeof window === 'undefined') return {};
-        try {
-            // Bug #7 Fix: guard against SecurityError in restricted contexts (private browsing, iframe)
-            const stored = localStorage.getItem('pnm_series_favorites');
-            return stored ? JSON.parse(stored) : {};
-        } catch {
-            return {}; // graceful degradation — favorites just won't persist
-        }
-    });
+    // SSG and the first browser render must not differ on device-only state.
+    const [favorites, setFavorites] = useState({});
 
     // ─── Cross-Tab Favorites Sync ───
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        try {
+            const stored = localStorage.getItem('pnm_series_favorites');
+            setFavorites(stored ? JSON.parse(stored) : {});
+        } catch { setFavorites({}); }
         const handleStorage = (e) => {
             if (e.key === 'pnm_series_favorites') {
                 try { setFavorites(JSON.parse(e.newValue || '{}')); }
@@ -478,8 +473,11 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
     // ─── Date range cutoff computation ───
     // BUG FIX: Recalculate at midnight so users who leave the page open overnight see
     // correct date boundaries without needing to reload/change filter
-    const [nowTick, setNowTick] = useState(0);
+    // Cached SSG HTML has no current browser clock. Establish one only after
+    // hydration, then share it across counts, cards, events, filters and pins.
+    const [browserNow, setBrowserNow] = useState(null);
     useEffect(() => {
+        setBrowserNow(new Date());
         const msUntilMidnight = () => {
             const n = new Date();
             const midnight = new Date(n); midnight.setHours(24, 0, 0, 0);
@@ -488,7 +486,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
         let timer;
         const scheduleMidnightRefresh = () => {
             timer = setTimeout(() => {
-                setNowTick(t => t + 1); // force recalc
+                setBrowserNow(new Date());
                 scheduleMidnightRefresh(); // set tomorrow's timer
             }, msUntilMidnight());
         };
@@ -496,9 +494,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
         return () => clearTimeout(timer);
     }, []);
     const dateRangeCutoff = useMemo(() => {
-        void nowTick; // dependency: recompute when midnight tick fires
-        if (dateRange === 'all') return null;
-        const now = new Date();
+        if (dateRange === 'all' || !browserNow) return null;
+        const now = new Date(browserNow);
         now.setHours(0, 0, 0, 0);
         const daysMap = {
             '7d': 7, '14d': 14, '30d': 30, '60d': 60, '90d': 90,
@@ -509,8 +506,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
         const cutoff = new Date(now);
         cutoff.setDate(cutoff.getDate() + days);
         return { start: now, end: cutoff };
-    // BUG FIX: nowTick was missing here — midnight refresh never fired
-    }, [dateRange, nowTick]);
+    }, [dateRange, browserNow]);
 
     // ─── Deferred Filter States for 120hz Unblocked Input ───
     const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -518,8 +514,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
     // ─── Filtered & sorted series ───
     const filteredSeries = useMemo(() => {
         let result = [...allSeries];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = browserNow ? new Date(browserNow) : null;
+        today?.setHours(0, 0, 0, 0);
 
         // Date range filter — show currently running + upcoming within window
         if (dateRangeCutoff) {
@@ -540,8 +536,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
         // Status filter
         if (selectedStatus !== 'all') {
             result = result.filter(s => {
-                const live = isSeriesLive(s.start_date, s.end_date);
-                const upcoming = !live && isSeriesUpcoming(s.start_date, 60);
+                const live = isSeriesLive(s.start_date, s.end_date, browserNow);
+                const upcoming = !live && isSeriesUpcoming(s.start_date, 60, browserNow);
                 if (selectedStatus === 'live') return live;
                 if (selectedStatus === 'upcoming') return upcoming;
                 return true;
@@ -622,10 +618,10 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
         }
 
         return result;
-    }, [allSeries, selectedTour, selectedStatus, selectedState, deferredSearchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords]);
+    }, [allSeries, selectedTour, selectedStatus, selectedState, deferredSearchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, browserNow]);
 
     // ─── Stats ───
-    const liveCount = useMemo(() => filteredSeries.filter(s => isSeriesLive(s.start_date, s.end_date)).length, [filteredSeries]);
+    const liveCount = useMemo(() => browserNow ? filteredSeries.filter(s => isSeriesLive(s.start_date, s.end_date, browserNow)).length : null, [filteredSeries, browserNow]);
     const totalEvents = useMemo(() => filteredSeries.reduce((acc, s) => acc + (s.events_count || s.total_events || 0), 0), [filteredSeries]);
 
     // ─── Build map markers ───
@@ -649,7 +645,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
             renderLng += (shiftPattern[shiftIndex % shiftPattern.length] || 0);
             coordsOffsetMap[offsetKey]++;
 
-            const live = isSeriesLive(series.start_date, series.end_date);
+            const live = isSeriesLive(series.start_date, series.end_date, browserNow);
             const seriesName = cleanHtml(series.name || series.series_name || 'Poker Series');
             const rawTourString = String(series.tour || series.tour_code || series.short_name || series.series_name || series.name || '').toUpperCase();
             
@@ -697,7 +693,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
         });
 
         return markers;
-    }, [filteredSeries, findVenueCoords]);
+    }, [filteredSeries, findVenueCoords, browserNow]);
 
     // ─── Active filter count ───
     // Bug #10 Fix: baseline is 'all' (matching initial state), not '60d'.
@@ -793,7 +789,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER SERIES</h1>
                     <p className="pnm-subtitle">
-                        {filteredSeries.length} Series &bull; {liveCount} Live Now &bull; {totalEvents} Events
+                        {filteredSeries.length} Series &bull; {liveCount == null ? 'Status Updating' : `${liveCount} Live Now`} &bull; {totalEvents} Events
                     </p>
 
                     {/* ═══ MAIN SEARCH BAR ═══ */}
@@ -966,8 +962,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                     const colors = TOUR_COLORS[rawTourCode] || TOUR_COLORS.default;
                                     const seriesName = cleanHtml(series.name || series.series_name || 'Poker Series');
                                     const venueName = cleanHtml(series.venue || series.venue_name || '');
-                                    const live = isSeriesLive(series.start_date, series.end_date);
-                                    const upcoming = !live && isSeriesUpcoming(series.start_date, 60);
+                                    const live = isSeriesLive(series.start_date, series.end_date, browserNow);
+                                    const upcoming = !live && isSeriesUpcoming(series.start_date, 60, browserNow);
                                     const seriesType = series.series_type || 'regional';
                                     // Only use SERIES_TYPE_INFO for non-regional known types
                                     const typeInfo = (seriesType !== 'regional' && SERIES_TYPE_INFO[seriesType])
@@ -988,9 +984,10 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                     // Build event preview (up to 5)
                                     const events = series.events || [];
                                     const upcomingEvents = events.filter(e => {
-                                        if (!e.start_date) return true;
+                                        if (!e.start_date || !browserNow) return true;
                                         const d = new Date(e.start_date + 'T00:00:00');
-                                        return d >= new Date(new Date().toDateString());
+                                        const today = new Date(browserNow); today.setHours(0, 0, 0, 0);
+                                        return d >= today;
                                     }).slice(0, 5);
 
                                     return (

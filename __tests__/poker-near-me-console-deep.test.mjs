@@ -9,10 +9,113 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const exists = (file) => fs.existsSync(path.join(root, file));
+
+function seriesHydrationFixture() {
+  const require = createRequire(import.meta.url);
+  const React = require('react');
+  const ts = require('typescript');
+  const source = process.env.PNM_SERIES_SOURCE_REV ? execFileSync('git', ['show', `${process.env.PNM_SERIES_SOURCE_REV}:pages/hub/poker-series.js`], { encoding: 'utf8' }) : read('pages/hub/poker-series.js');
+  // Render the actual page with supplied SSG props; do not load its server-only
+  // database imports or execute getStaticProps in this hydration regression.
+  const componentSource = source.slice(0, source.indexOf("import { supabaseAdmin }"));
+  const code = ts.transpileModule(componentSource, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText;
+  const empty = () => null;
+  const frame = ({ children }) => React.createElement(React.Fragment, null, children);
+  const modules = {
+    'next/head': frame, 'next/link': ({ href, children, ...props }) => React.createElement('a', { ...props, href }, children),
+    'next/router': { useRouter: () => ({ isReady: false, query: {}, push() {}, replace() {} }) }, 'next/dynamic': () => empty,
+    '../../src/components/ui/FullScreenPageOverlay': frame, '../../src/components/ui/UniversalHeader': empty,
+    '../../src/components/poker-near-me/PokerNearMeFamilyNav': empty, '../../src/components/seo/HubPageSummary': empty,
+    '../../src/components/ui/HamburgerMenu': empty, '../../src/config/hamburgerMenus': { getMenuConfig: () => ({}) },
+    '../../src/hooks/useVenueRealtime': empty, '../../src/lib/geoUtils': { resolveEntityCoordinates: () => null, haversineDistance: () => 0 },
+    'swr': () => ({ data: null, error: null, isValidating: false, mutate() {} }),
+    '../../src/components/poker-near-me/PokerIdentityMark': empty,
+    '../../src/components/poker-near-me/PokerNearMeConsole': { PokerNearMeConsoleIcon: empty, PokerNearMePanelShell: ({ children, className }) => React.createElement('section', { className }, children) },
+    '../../src/lib/poker-near-me/structuredData': { buildSeriesDirectorySchema: () => ({}), serializePokerJsonLd: JSON.stringify },
+  };
+  const mod = { exports: {} };
+  new Function('require', 'module', 'exports', code)(name => {
+    if (name === 'react' || name === 'react/jsx-runtime') return require(name);
+    assert.ok(Object.hasOwn(modules, name), `Unexpected actual series import ${name}`); return modules[name];
+  }, mod, mod.exports);
+  const props = { initialSeries: [{ id: 42, series_uid: 'series-42', name: 'Clock Boundary Series', start_date: '2026-10-11', end_date: '2026-10-11', events: [{ name: 'Boundary Event', start_date: '2026-10-11', buy_in: 100 }] }], initialSeriesMeta: { generatedAt: '2026-10-11T12:00:00Z', totalCount: 1 } };
+  return { React, Page: mod.exports.default, props, require };
+}
+
+async function withSeriesBrowser(run) {
+  const previous = { Date: globalThis.Date, window: globalThis.window, localStorage: globalThis.localStorage, fetch: globalThis.fetch, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, tz: process.env.TZ };
+  let instant = '2026-10-11T23:59:00Z'; let nextId = 0; const timers = new Map(); const listeners = new Map();
+  const clock = value => { instant = value; };
+  globalThis.Date = class extends previous.Date { constructor(...args) { super(...(args.length ? args : [instant])); } static now() { return new previous.Date(instant).getTime(); } };
+  process.env.TZ = 'UTC';
+  const browser = () => {
+    globalThis.localStorage = { getItem: () => '{"series-42":123}', setItem() {} };
+    globalThis.window = { addEventListener: (name, handler) => listeners.set(name, handler), removeEventListener: name => listeners.delete(name), scrollY: 0 };
+    globalThis.fetch = async () => ({ json: async () => ({ venues: [] }) });
+  };
+  try { await run({ clock, browser, timers, listeners, fakeTimers: () => {
+    globalThis.setTimeout = (fn, ms) => { const id = ++nextId; timers.set(id, { fn, ms }); return id; };
+    globalThis.clearTimeout = id => timers.delete(id);
+  } }); } finally {
+    Object.assign(globalThis, { Date: previous.Date, window: previous.window, localStorage: previous.localStorage, fetch: previous.fetch, setTimeout: previous.setTimeout, clearTimeout: previous.clearTimeout });
+    if (previous.tz === undefined) delete process.env.TZ; else process.env.TZ = previous.tz;
+  }
+}
+
+test('actual Series first paint matches cached SSR across midnight without claiming fresh status', async () => {
+  const { React, Page, props, require } = seriesHydrationFixture();
+  await withSeriesBrowser(async ({ clock, browser }) => {
+    delete globalThis.window;
+    const render = () => require('react-dom/server').renderToString(React.createElement(Page, props));
+    const server = render(); browser(); globalThis.localStorage.getItem = () => '{}'; clock('2026-10-12T00:01:00Z');
+    const client = render();
+    const digest = html => createHash('sha256').update(html).digest('hex');
+    assert.equal(digest(client), digest(server), 'actual cached SSR and first browser render must agree after the date changes');
+    clock('2026-10-11T23:59:00Z'); process.env.TZ = 'America/Los_Angeles';
+    assert.equal(digest(render()), digest(server), 'the same instant in another browser timezone also matches the cached first paint');
+  });
+});
+
+test('actual Series saved favorites do not diverge from SSR before mount', async () => {
+  const { React, Page, props, require } = seriesHydrationFixture();
+  await withSeriesBrowser(async ({ browser }) => {
+    delete globalThis.window;
+    const render = () => require('react-dom/server').renderToString(React.createElement(Page, props));
+    const server = render(); browser(); const client = render();
+    const digest = html => createHash('sha256').update(html).digest('hex');
+    assert.equal(digest(client), digest(server), 'browser-only stored favorites hydrate after the matching first paint');
+  });
+});
+
+test('actual Series restores favorites after mount and refreshes every status at midnight with timer cleanup', async () => {
+  const { React, Page, props, require } = seriesHydrationFixture(); const renderer = require('react-test-renderer');
+  await withSeriesBrowser(async ({ clock, browser, fakeTimers, timers, listeners }) => {
+    browser(); fakeTimers(); let tree;
+    try {
+      await renderer.act(async () => { tree = renderer.create(React.createElement(Page, props)); });
+      assert.equal(tree.root.findByProps({ 'aria-label': 'Favorite series' }).props['aria-pressed'], 'true');
+      assert.match(JSON.stringify(tree.toJSON()), /LIVE NOW/);
+      assert.match(JSON.stringify(tree.toJSON()), /Boundary Event/);
+      const midnight = [...timers].find(([, timer]) => timer.ms === 60000); assert.ok(midnight, 'existing local-midnight refresh remains scheduled');
+      clock('2026-10-12T00:00:01Z'); timers.delete(midnight[0]);
+      await renderer.act(async () => midnight[1].fn());
+      assert.doesNotMatch(JSON.stringify(tree.toJSON()), /LIVE NOW/);
+      assert.doesNotMatch(JSON.stringify(tree.toJSON()), /Boundary Event/, 'expired event preview advances with the same clock');
+      const subtitle = tree.root.findByProps({ className: 'pnm-subtitle' });
+      assert.match(subtitle.children.join(''), /0 Live Now/, 'memoized count changes with the same midnight clock');
+      await renderer.act(async () => listeners.get('storage')({ key: 'pnm_series_favorites', newValue: '{}' }));
+      assert.equal(tree.root.findByProps({ 'aria-label': 'Favorite series' }).props['aria-pressed'], 'false');
+    } finally { await renderer.act(async () => tree?.unmount()); }
+    assert.equal(timers.size, 0, 'unmount removes the midnight timer');
+  });
+});
 
 test('venue map and premium actions retain full painted touch targets', () => {
   const css = read('src/styles/worlds/poker-near-me-console-deep.css');

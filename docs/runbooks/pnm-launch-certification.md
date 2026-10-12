@@ -65,6 +65,9 @@ keyboard list navigation. Fault scenarios refuse external tiles, delay and hang
 actual bounded area requests, go offline/reconnect, and refuse an actual local
 Leaflet runtime chunk. Markers survive transient read failures; deadlines release
 controls. Runtime failure exposes “Browse Venue List,” not a frozen spinner.
+An explicitly injected 200/degraded area fallback must keep the established
+markers, report the unavailable read, and release retry without certifying a
+completed area scan. The fixture is a response fault, not saved production data.
 Runtime injection matches the actual canonical Next script pathname, including
 production URLs carrying deployment query parameters. Only the response containing
 both Leaflet's initialization error and `_leaflet_id` is refused; the receipt

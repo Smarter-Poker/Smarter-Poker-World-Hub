@@ -304,6 +304,24 @@ async function qualifyFaults(browser, viewport) {
     // Viewport bounds are independently identified from the maintained API parameter.
     const isArea = url => /[?&](?:bounds|north|south|bbox)=/.test(url);
     const areaPattern = url => url.pathname === '/api/poker/venues' && isArea(url.href);
+    let degradedReads = 0;
+    // Explicit response-fault fixture, never a production write or real source
+    // claim. The API's last-resort 200 response may be an empty degraded fallback.
+    await context.route(areaPattern, route => {
+      degradedReads += 1;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        success: true, degraded: true, data: [], home_groups: [], total: 0,
+        total_home_groups: 0, hasGpsData: false, viewport: null, data_integrity: null,
+      }) });
+    });
+    await search.click();
+    await shell.getByText(/Area search unavailable/i).waitFor();
+    assert.ok(degradedReads > 0, 'Actual degraded area response consumed');
+    assert.equal(await map.getAttribute('data-map-marker-count'), areaOriginalMarkers, 'Degraded fallback keeps established markers');
+    assert.equal(await shell.locator('[data-map-area-scoped]').getAttribute('data-map-area-scoped'), 'false', 'Degraded read is not a completed scan');
+    assert.equal(await search.isEnabled(), true, 'Degraded read releases retry control');
+    row.scenarios.degradedAreaReadPreservesResultsAndRecovers = true;
+    await context.unroute(areaPattern);
     let hungReads = 0;
     const pending = [];
     await context.route(areaPattern, async route => {

@@ -116,3 +116,35 @@ test('actual failed area response preserves markers and removes its timer withou
     assert.deepEqual(env.state.venues, [room]); assert.equal(env.events.length, 0); assert.equal(env.time.timers.size, 0);
   } finally { await env.close(); }
 });
+
+test('actual degraded area fallback keeps established markers and offers retry rather than claiming a fresh scan', async () => {
+  let attempt = 0;
+  const env = await mount(async () => ({ ok: true, status: 200, json: async () => ++attempt === 1
+    ? { success: true, degraded: true, data: [{ ...room, id: 99 }], home_groups: [], total: 1, total_home_groups: 0, hasGpsData: false, viewport: { north: 40, south: 38, east: -118, west: -120 }, data_integrity: {} }
+    : { success: true, data: [{ ...room, id: 2 }] } }));
+  try {
+    await renderer.act(async () => env.search());
+    assert.deepEqual(env.state.venues, [room], 'Degraded fallback cannot replace the established map');
+    assert.match(env.state.error, /unavailable/i);
+    assert.equal(env.state.busy, false);
+    assert.equal(env.events.length, 0, 'Do not certify fallback data as viewport_api success');
+    assert.equal(env.time.timers.size, 0);
+    await renderer.act(async () => env.search());
+    assert.equal(env.state.venues[0].id, 2);
+    assert.equal(env.state.error, '');
+    assert.equal(env.events.length, 1);
+  } finally { await env.close(); }
+});
+
+test('actual healthy empty area remains an honest successful scan, not a degraded read', async () => {
+  const env = await mount(async () => ({ ok: true, status: 200, json: async () => ({ success: true, degraded: false, data: [] }) }));
+  try {
+    await renderer.act(async () => env.search());
+    assert.deepEqual(env.updates.at(-1), []);
+    assert.equal(env.state.error, '');
+    assert.equal(env.state.busy, false);
+    assert.equal(env.events.length, 1);
+    assert.equal(env.events[0][1].result_count, 0);
+    assert.equal(env.time.timers.size, 0);
+  } finally { await env.close(); }
+});
