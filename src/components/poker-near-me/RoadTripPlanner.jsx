@@ -742,6 +742,41 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             {/* Results */}
             {routeResult && (
                 <div className="rtp-results">
+                    {/* Map is the primary route result; list alternatives remain below */}
+                    <div className="rtp-map-wrapper">
+                        <button type="button" className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)} aria-expanded={mapExpanded} aria-controls={mapPanelId}>
+                            {mapExpanded ? 'Hide Map' : 'Show Map'}
+                        </button>
+                        <div className="rtp-map-shell" id={mapPanelId} hidden={!mapExpanded}>
+                            <MapSurfaceFrame
+                                className="pnm-map-surface--road-trip"
+                                eyebrow="Route intelligence"
+                                title="Poker road trip map"
+                                detail={`${routeResult?.stops?.length || 0} stops · ${routeResult?.venues?.length || 0} rooms along this route`}
+                                onLayoutChange={handleMapLayoutChange}
+                            >
+                                <div className="pnm-map-stage">
+                                    {['degraded', 'unavailable'].includes(tileStatus) && <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
+                                        <p>Map Background Unavailable Or Incomplete. Route Stops And Directions Remain Available.</p>
+                                        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
+                                        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
+                                    </PokerNearMePanelShell>}
+                                    <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" data-map-foundation="shared-v3" data-map-ready={mapStatus === 'ready' ? 'true' : 'false'} />
+                                    {mapStatus !== 'ready' && (
+                                        <div className={'rtp-map-overlay pnm-map-status' + (mapStatus === 'error' ? ' error pnm-map-status--error' : ' pnm-map-status--loading')} role={mapStatus === 'error' ? 'alert' : 'status'}>
+                                            {mapStatus === 'error' ? (
+                                                <div className="pnm-map-status__copy">
+                                                    <p>Route Map Could Not Be Loaded. The Stop And Venue Lists Below Are Unaffected.</p>
+                                                    <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
+                                                </div>
+                                            ) : 'Loading Route Map...'}
+                                        </div>
+                                    )}
+                                </div>
+                            </MapSurfaceFrame>
+                        </div>
+                    </div>
+
                     {/* Stats bar */}
                     <div className="rtp-stats-bar">
                         <div className="rtp-stat">
@@ -828,41 +863,6 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             {shareStatus.msg}
                         </div>
                     )}
-
-                    {/* Map — collapsible on mobile */}
-                    <div className="rtp-map-wrapper">
-                        <button type="button" className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)} aria-expanded={mapExpanded} aria-controls={mapPanelId}>
-                            {mapExpanded ? 'Hide Map' : 'Show Map'}
-                        </button>
-                        <div className="rtp-map-shell" id={mapPanelId} hidden={!mapExpanded}>
-                            <MapSurfaceFrame
-                                className="pnm-map-surface--road-trip"
-                                eyebrow="Route intelligence"
-                                title="Poker road trip map"
-                                detail={`${routeResult?.stops?.length || 0} stops · ${routeResult?.venues?.length || 0} rooms along this route`}
-                                onLayoutChange={handleMapLayoutChange}
-                            >
-                                <div className="pnm-map-stage">
-                                    {['degraded', 'unavailable'].includes(tileStatus) && <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
-                                        <p>Map Background Unavailable Or Incomplete. Route Stops And Directions Remain Available.</p>
-                                        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
-                                        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
-                                    </PokerNearMePanelShell>}
-                                    <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" data-map-foundation="shared-v3" data-map-ready={mapStatus === 'ready' ? 'true' : 'false'} />
-                                    {mapStatus !== 'ready' && (
-                                        <div className={'rtp-map-overlay pnm-map-status' + (mapStatus === 'error' ? ' error pnm-map-status--error' : ' pnm-map-status--loading')} role={mapStatus === 'error' ? 'alert' : 'status'}>
-                                            {mapStatus === 'error' ? (
-                                                <div className="pnm-map-status__copy">
-                                                    <p>Route Map Could Not Be Loaded. The Stop And Venue Lists Below Are Unaffected.</p>
-                                                    <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
-                                                </div>
-                                            ) : 'Loading Route Map...'}
-                                        </div>
-                                    )}
-                                </div>
-                            </MapSurfaceFrame>
-                        </div>
-                    </div>
 
                     {/* Venues along route */}
                     <div className="rtp-venues-section">

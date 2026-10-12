@@ -32,9 +32,9 @@ test('Poker Near Me shared navigation uses complete painted plates without CSS-d
   assert.match(css, /button-primary\.png/);
   assert.match(css, /background-size:\s*contain/);
   assert.match(css, /min-height:\s*44px/);
-  assert.match(css, /grid-template-columns:\s*repeat\(10, minmax\(0, 1fr\)\)/);
-  assert.match(css, /@media \(max-width: 900px\)[\s\S]*?repeat\(5, minmax\(0, 1fr\)\)/);
-  assert.match(css, /@media \(max-width: 480px\)[\s\S]*?repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.pnm-console-family-nav__rail \{[^}]*display: flex;[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;/);
+  assert.match(css, /flex: 1 0 96px;/);
+  assert.doesNotMatch(css, /grid-template-columns:/);
   assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient|border(?:-radius)?\s*:|box-shadow\s*:|backdrop-filter\s*:|:hover/i);
   assert.doesNotMatch(css, /text-transform:\s*uppercase/i);
   assert.ok(app.indexOf(navImport) > app.indexOf("import '../src/styles/worlds/poker-near-me-console.css';"));
@@ -56,7 +56,7 @@ test('Poker Near Me shared navigation stays one compact row in short landscape',
   );
   assert.match(
     css,
-    /@media \(orientation: landscape\) and \(min-width: 700px\) and \(max-height: 520px\)[\s\S]*?\.pnm-console-family-nav__label\s*\{[\s\S]*?display:\s*none;[\s\S]*?\.pnm-console-family-nav__rail\s*\{[\s\S]*?repeat\(10, minmax\(0, 1fr\)\)/
+    /@media \(orientation: landscape\) and \(min-width: 700px\) and \(max-height: 520px\)[\s\S]*?\.pnm-console-family-nav__label\s*\{[\s\S]*?display:\s*none;[\s\S]*?\.pnm-console-family-nav__rail\s*\{[\s\S]*?gap:\s*2px;/
   );
 });
 

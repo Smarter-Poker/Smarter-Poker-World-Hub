@@ -870,10 +870,8 @@ export default function VenueMap({
           // A11Y: the legend is the collapse/expand control, so it needs a role, a tab
           // stop and keyboard activation. Kept as a div (not a button) so the existing
           // .venue-map-legend layout and its block-level children stay valid.
-          <PokerNearMePanelShell
-            as="div"
+          <div
             className="venue-map-legend venue-map-legend--coverage"
-            bodyClassName="venue-map-legend__body"
             data-legend-collapsed={legendCollapsed ? 'true' : 'false'}
             role="button"
             tabIndex={0}
@@ -887,13 +885,15 @@ export default function VenueMap({
               }
             }}
             onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
+            <div className="venue-map-legend__body">
             <div className="venue-map-legend-title">{legendCollapsed ? 'Legend' : 'Venue Types'}</div>
             {!legendCollapsed && legendItems.map(item => (
               <div key={item.type} className="venue-map-legend-item">
                 <span className="venue-map-legend-label" style={{ color: item.color }}>{item.label}</span>
               </div>
             ))}
-          </PokerNearMePanelShell>
+            </div>
+          </div>
         )}
 
         <MapCoverageReadout

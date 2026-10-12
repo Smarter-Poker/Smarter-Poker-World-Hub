@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useAccessibleDialog from '../../../hooks/useAccessibleDialog';
 
-export function useLobbyDialogController({ showPanel, onPanelClose, showVoiceSearch, setShowVoiceSearch }) {
+export function useLobbyDialogController({ showPanel, onPanelClose }) {
   const { dialogRef: panelRef, initialFocusRef: panelBackBtnRef } = useAccessibleDialog({
     open: showPanel,
     onClose: onPanelClose,
   });
-  const { dialogRef: voiceDialogRef, initialFocusRef: voiceCloseBtnRef } = useAccessibleDialog({
-    open: showVoiceSearch,
-    onClose: () => setShowVoiceSearch(false),
-  });
-
-  return { panelRef, panelBackBtnRef, voiceDialogRef, voiceCloseBtnRef };
+  return { panelRef, panelBackBtnRef };
 }
 
 export function useLobbyShareController(panelTitleRef) {

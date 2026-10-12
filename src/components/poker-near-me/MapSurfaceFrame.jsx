@@ -18,7 +18,7 @@ function findScrollParent(node) {
 }
 
 /**
- * Shared physical frame for every Poker Near Me map.
+ * Shared map-first viewport for every Poker Near Me map.
  *
  * The Leaflet node remains mounted while the frame changes geometry. That
  * preserves the current viewport, markers and open popup instead of replacing
@@ -229,7 +229,8 @@ export default function MapSurfaceFrame({
       aria-label={expanded ? `${title} fullscreen map` : title}
       tabIndex={expanded ? -1 : undefined}
       data-pnm-map-surface="true"
-      data-pnm-map-console="painted-chassis-v1"
+      data-pnm-map-console="map-first-v2"
+      data-pnm-map-layout="viewport"
       data-map-fullscreen={expanded ? 'true' : 'false'}
     >
       <header className="pnm-map-surface__header">
@@ -259,7 +260,6 @@ export default function MapSurfaceFrame({
       <div className="pnm-map-surface__viewport">
         {children}
       </div>
-      <span className="pnm-map-surface__foot" aria-hidden="true" />
       {expanded && (
         <p className="pnm-map-surface__escape-hint" aria-hidden="true">
           Esc To Close

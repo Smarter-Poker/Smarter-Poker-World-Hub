@@ -759,7 +759,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(directorySchema) }} />
             </Head>
 
-            <div className="pnm-page">
+            <div className="pnm-page pnm-map-directory">
                 {/* Space Background */}
                 <div className="space-bg" />
                 <div className="space-overlay" />
@@ -823,6 +823,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                     </form>
                 </div>
 
+                <details className="pnm-map-directory-filters">
+                    <summary>Filters And Sorting{activeFilterCount > 0 ? ' (' + activeFilterCount + ')' : ''}</summary>
                 {/* ═══ TOP FILTERS BAR — outside title bar, full-width row ═══ */}
                 <div className="pnm-top-filters">
                     <div className="pnm-top-filters-inner">
@@ -881,6 +883,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         )}
                     </div>
                 </div>
+
+                </details>
 
                 {/* ═══ MAP ═══ */}
                 <div className="tours-map-container" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>

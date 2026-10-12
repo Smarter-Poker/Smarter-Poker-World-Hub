@@ -1,5 +1,5 @@
 import React from 'react';
-import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import { PokerNearMeConsoleIcon } from './PokerNearMeConsole';
 
 export default function MapCoverageReadout({
   total = 0,
@@ -26,14 +26,12 @@ export default function MapCoverageReadout({
   const safeApproximate = Math.max(0, Number(approximate) || 0);
   const safeHeld = Math.max(0, Number(held) || 0);
 
-  // The HUD is a painted three-slice panel (head, repeating body rail, foot)
-  // so it never needs a CSS-built card. Counts stay live DOM text: "In Frame"
+  // One compact readout, without a second ornamental frame over the map.
+  // Counts stay live DOM text: "In Frame"
   // and "Mapped" describe map geometry, never observed live play.
   return (
-    <PokerNearMePanelShell
-      as="aside"
+    <aside
       className={`pnm-map-coverage${overlay ? ' pnm-map-coverage--overlay' : ''}`}
-      bodyClassName="pnm-map-coverage__body"
       aria-label="Map coverage status"
       data-map-coverage="true"
       data-map-visible-count={safeVisible}
@@ -44,6 +42,7 @@ export default function MapCoverageReadout({
       data-map-approximate-count={safeApproximate}
       data-map-integrity-held={safeHeld}
     >
+      <div className="pnm-map-coverage__body">
       <PokerNearMeConsoleIcon name="globe" className="pnm-map-coverage__emblem" />
       <div className="pnm-map-coverage__copy">
         <span>{ready ? (areaScoped ? 'Area Coverage' : 'Map Coverage') : 'Calibrating Map'}</span>
@@ -69,6 +68,7 @@ export default function MapCoverageReadout({
           {areaScoped && <button type="button" onClick={onReset} disabled={busy}>Show All</button>}
         </div>
       )}
-    </PokerNearMePanelShell>
+      </div>
+    </aside>
   );
 }

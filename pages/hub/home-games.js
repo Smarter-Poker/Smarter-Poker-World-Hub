@@ -32,7 +32,7 @@ import LocationEnableModal from '../../src/components/ui/LocationEnableModal';
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap'), { ssr: false });
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 import HostHomeGameButton from '../../src/components/poker-near-me/HostHomeGameButton';
-import PokerNearMeConsole, {
+import {
     PokerNearMeConsoleIcon,
     PokerNearMePanelShell,
 } from '../../src/components/poker-near-me/PokerNearMeConsole';
@@ -652,26 +652,27 @@ export default function HomeGamesPage() {
                     user={user}
                 />
 
-                <main className="hgd-directory" data-pnm-secondary-foundation="interaction-v1">
-                    <section className="hgd-hero-stage" aria-labelledby="home-games-directory-title">
-                        <PokerNearMeConsole
-                            className="hgd-hero"
-                            eyebrow="Private Poker Discovery"
-                            title="Home Games"
-                            titleId="home-games-directory-title"
-                            titleAs="h1"
-                            subtitle="Find Local Games, Follow Trusted Hosts, Or Open Your Own Table"
-                            pill={loading ? 'Searching' : `${sortedVenues.length} Found`}
-                            crest="club"
-                            foot="foot"
-                        />
-                    </section>
+                <main className="hgd-directory pnm-map-directory" data-pnm-secondary-foundation="interaction-v1">
+                    <header className="pnm-map-directory-header">
+                        <div><h1 id="home-games-directory-title">Home Games</h1>
+                        <p>{loading ? 'Searching' : sortedVenues.length + ' Published Games'} · Exact Addresses Stay Private</p></div>
+                            <form className="hgd-search-well" role="search" onSubmit={handleSearch}>
+                                <PokerNearMeConsoleIcon name="search" />
+                                <input
+                                    type="search"
+                                    placeholder="Search Home Games..."
+                                    value={searchQuery}
+                                    onChange={handleSearchChange}
+                                    autoComplete="off"
+                                    aria-label="Search Home Games"
+                                />
+                            </form>                    </header>
 
                     <div className="hgd-layout">
-                        <PokerNearMePanelShell
-                            as="aside"
+                        <details className="pnm-map-directory-filters">
+                            <summary>Filters, Location And Hosting</summary>
+                        <aside
                             className="hgd-filter-console"
-                            bodyClassName="hgd-filter-console__body"
                             aria-label="Home Game Discovery Controls"
                         >
                             <header className="hgd-panel-heading">
@@ -716,17 +717,7 @@ export default function HomeGamesPage() {
                                 </div>
                             ) : null}
 
-                            <form className="hgd-search-well" role="search" onSubmit={handleSearch}>
-                                <PokerNearMeConsoleIcon name="search" />
-                                <input
-                                    type="search"
-                                    placeholder="Search Home Games..."
-                                    value={searchQuery}
-                                    onChange={handleSearchChange}
-                                    autoComplete="off"
-                                    aria-label="Search Home Games"
-                                />
-                            </form>
+
 
                             <div className="hgd-filter-console__section">
                                 <span>Filters</span>
@@ -771,7 +762,7 @@ export default function HomeGamesPage() {
                             </div>
 
                             <HostHomeGameButton className="hgd-host-action" />
-                        </PokerNearMePanelShell>
+                        </aside>                        </details>
 
                         <section className="hgd-results" aria-label="Home Game Search Results">
                             {loading ? (

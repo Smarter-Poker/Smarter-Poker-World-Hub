@@ -72,6 +72,8 @@ export function assertGeometry(row) {
   assert.equal(row.brokenImages, 0, `${row.family}: no broken loaded images`);
   assert.equal(row.smallControls.length, 0, `${row.family}: 44px scoped controls (${row.smallControls.join(', ')})`);
   assert.equal(row.pageErrors.length, 0, `${row.family}: no uncaught application errors`);
+  assert.equal(row.voiceControls.length, 0, `${row.family}: voice options removed`);
+  assert.ok(row.familyNavHeight <= 64, `${row.family}: compact single-row discovery navigation`);
 }
 export async function readPublic(path, json = true, { fetchImpl = fetch, timeoutMs = 30000 } = {}) {
   const u = new URL(path, ORIGIN);
@@ -119,7 +121,11 @@ async function geometry(page, row) {
       .map(node => (node.getAttribute('aria-label') || node.textContent || node.tagName).trim().slice(0, 70));
     return { mainCount: document.querySelectorAll('main').length, headingCount: document.querySelectorAll('main h1, main h2').length,
       clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth,
-      brokenImages: [...document.images].filter(image => image.complete && image.currentSrc && !image.naturalWidth).length, smallControls };
+      brokenImages: [...document.images].filter(image => image.complete && image.currentSrc && !image.naturalWidth).length, smallControls,
+      voiceControls: [...document.querySelectorAll('button, [role="button"], a')]
+        .filter(node => visible(node) && /voice search|start listening|stop listening|^voice$/i.test((node.getAttribute('aria-label') || node.textContent || '').trim()))
+        .map(node => (node.getAttribute('aria-label') || node.textContent).trim()),
+      familyNavHeight: document.querySelector('.pnm-console-family-nav')?.getBoundingClientRect().height || 0 };
   }));
   assertGeometry(row);
 }

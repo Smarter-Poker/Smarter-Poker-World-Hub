@@ -104,6 +104,16 @@ const eventsCalendar = read('pages/hub/events-calendar.js');
 const dailyTournamentsPage = read('pages/hub/daily-tournaments.js');
 const tourDetail = read('pages/hub/tours/[code].js');
 const pnmTab = read('pages/hub/poker-near-me/[pnmTab].js');
+
+test('discovery enters the primary map and retains explicit section navigation and filter controls', () => {
+  const page = process.env.PNM_MAP_FIRST_BASE
+    ? execFileSync('git', ['show', `${process.env.PNM_MAP_FIRST_BASE}:pages/hub/poker-near-me/[pnmTab].js`], { encoding: 'utf8' }) : pnmTab;
+  assert.match(page, /const landingSection = 'map';/);
+  assert.match(page, /\{stackedSections\.map\}[\s\S]*?PRIMARY_SECTIONS\.filter\(\(tab\) => tab\.key !== 'map'\)/);
+  assert.match(page, /<details className="pnm-discovery-controls">[\s\S]*?<summary>Search Filters And Sections<\/summary>[\s\S]*?className="pnm-top-tabs"[\s\S]*?className="pnm-filter-bar"[\s\S]*?<\/details>/);
+  assert.match(page, /const navigateActiveTab = \(val\) => \{[\s\S]*?scrollToSurface\(val\)/);
+  assert.ok(page.indexOf('className="pnm-ssr-directory"') > page.indexOf('{stackedSections.map}'), 'the eight crawlable venue cards must follow, not bury, the map');
+});
 const favorites = read('src/components/poker-near-me/FavoritesTabPanel.jsx');
 const liveGames = read('src/components/poker-near-me/LiveGamesFeed.jsx');
 const dailyTab = read('src/components/poker-near-me/DailyTournamentsTabPanel.jsx');
@@ -236,21 +246,21 @@ test('the family nav keeps ten routes, aria-current and a 44px plate', () => {
     'the discovery deck must not compete with the active page by prefetching every inactive route on visibility',
   );
   assert.match(nav, /min-height:\s*44px/);
-  assert.match(nav, /grid-template-columns:\s*repeat\(10, minmax\(0, 1fr\)\)/);
-  assert.match(nav, /@media \(max-width: 480px\)[\s\S]*?grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(nav, /\.pnm-console-family-nav__rail \{[^}]*display: flex;[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;/);
+  assert.match(nav, /flex: 1 0 96px;/, 'all routes keep a legible 44px target instead of shrinking into a clipped phone grid');
+  assert.doesNotMatch(nav, /grid-template-columns:/, 'the map-first deck must not consume four rows on phones');
   assert.match(
     nav,
-    /@media \(orientation: landscape\) and \(min-width: 700px\) and \(max-height: 520px\)[\s\S]*?grid-template-columns:\s*repeat\(10, minmax\(0, 1fr\)\)/,
+    /@media \(orientation: landscape\) and \(min-width: 700px\) and \(max-height: 520px\)[\s\S]*?position: relative;/,
     'a short landscape viewport keeps one physical row',
   );
 });
 
-test('the tenth plate is centred rather than left alone on its own row', () => {
-  assert.match(
-    surfaces,
-    /\.pnm-console-family-nav__rail > :last-child:nth-child\(3n \+ 1\)\s*\{\s*grid-column: 2;/,
-    'a lone last plate sits in the middle column of the three-column phone rail',
-  );
+test('all ten routes share one scrollable phone row without an orphan or off-document overflow', () => {
+  assert.match(nav, /max-width: 100%;/);
+  assert.match(nav, /overflow-x: auto;/);
+  assert.match(nav, /overscroll-behavior-x: contain;/);
+  assert.doesNotMatch(surfaces, /last-child:nth-child\(3n \+ 1\)/);
 });
 
 test('the deck stops covering the results it sits above', () => {

@@ -156,9 +156,6 @@ const GeofenceAlertBanner = dynamic(
 const VenueReviews = dynamic(() => import('../../../src/components/poker-near-me/VenueReviews'), {
   ssr: false,
 });
-const VoiceSearch = dynamic(() => import('../../../src/components/poker-near-me/VoiceSearch'), {
-  ssr: false,
-});
 const SeasonalCalendar = dynamic(
   () => import('../../../src/components/poker-near-me/SeasonalCalendar'),
   { ssr: false, loading: () => <PanelSkeleton /> }
@@ -211,10 +208,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // overlay is open that text is UNCOMMITTED and a background revalidation must
   // ignore it — otherwise a poll tick swaps the underlying list for a partial-text
   // search the user never submitted. Once the overlay closes, `searchQuery` is
-  // either '' (onClose clears it) or a COMMITTED search (VoiceSearch sets it and
-  // immediately fetches with it), and a background refresh must PRESERVE it — a
-  // blanket searchOverride:'' would silently replace the user's voice-search
-  // results with a location browse ~5 minutes later.
+  // either '' (onClose clears it) or a restored committed query. Background
+  // refreshes preserve the committed query rather than silently replacing
+  // its results with a location browse.
   const searchOverlayOpenRef = useRef(false);
   const backgroundFetchArgs = () =>
     searchOverlayOpenRef.current ? { silent: true, searchOverride: '' } : { silent: true };
@@ -246,7 +242,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       // BUG FIX: background refreshes must NOT inherit UNCOMMITTED overlay
       // keystrokes — that turned the 5-minute poll into a silent re-run of the
       // half-typed search and replaced the location-browse list. See
-      // backgroundFetchArgs: a committed (voice) search is still preserved.
+      // backgroundFetchArgs: a committed query is still preserved.
       if (fetchVenuesRef.current) fetchVenuesRef.current(backgroundFetchArgs());
       if (fetchLiveCountRef.current) fetchLiveCountRef.current();
       return;
@@ -935,9 +931,8 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       const parsed = JSON.parse(saved);
       // ENFORCE venueType=all so tour pins + all venues always show on map
       // Also sanitize stale 'undefined' string values from the ?filter=undefined bug
-      // BUG FIX: 'poker_tour' used to be whitelisted here, so one voice search for
-      // "poker tour" persisted a venue type that no filter path recognises and the
-      // page stayed permanently empty across reloads. normalizeVenueType folds it
+      // Legacy 'poker_tour' values match no current filter domain and left the
+      // page empty across reloads. normalizeVenueType folds them
       // (and legacy 'card_room') onto the real domain instead.
       parsed.venueType =
         parsed.venueType === 'all' ? 'all' : normalizeVenueType(parsed.venueType) || 'all';
@@ -1989,7 +1984,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         mutateDebounce = setTimeout(() => {
           // backgroundFetchArgs() — background revalidation must not silently re-run
           // half-typed overlay text over the location-browse list (but it does keep
-          // a committed voice search).
+          // a committed query).
           if (fetchVenuesRef.current) fetchVenuesRef.current(backgroundFetchArgs());
           if (typeof fetchLiveCount === 'function') fetchLiveCount();
         }, 1000);
@@ -3062,11 +3057,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     // Set unconditionally so the writer effect can activate when router is ready
     paramsAbsorbed.current = true;
 
-    // Arriving on /hub/poker-near-me/<slug> lands on that section after paint.
-    // Every slug names one stacked section; the bare route (no slug) stays at
-    // the top so the reader sees the title, the anchor row and the filters.
-    const landingSlug = window.location.pathname.split('/').filter(Boolean).at(-1);
-    const landingSection = sectionForSlug(landingSlug);
+    // Map-first entry keeps the primary canvas in view. The URL still owns
+    // filters and section state; explicit section controls and history retain
+    // their existing destination scrolling below.
+    const landingSection = 'map';
     if (landingSection) {
       landingSectionRef.current = landingSection;
       scrollToSurface(landingSection, { behavior: 'auto' });
@@ -3386,10 +3380,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       aria-labelledby="pnm-section-map-title"
       data-tutorial="map"
     >
-      <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-section__head">
+      <header className="pnm-section__head">
         <h2 id="pnm-section-map-title" className="pnm-section__title">Poker Room Map</h2>
         <p className="pnm-section__hint">Every Pin Is A Room. Tap One For Details, Or Use My Location To Centre The Map.</p>
-      </PokerNearMePanelShell>
+      </header>
       <LazyPanel minHeight={360}>
         <TabErrorBoundary>
           <MapTabPanel
@@ -3938,48 +3932,41 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                   )}
                 </div>
               )}
-              {initialVenues.length > 0 && (
-                <section className="pnm-ssr-directory" aria-labelledby="pnm-ssr-directory-title">
-                  <div className="pnm-ssr-directory-heading">
-                    <div>
-                      <span>National Room Registry</span>
-                      <h2 id="pnm-ssr-directory-title">Featured Poker Rooms</h2>
-                    </div>
-                    <a href="/hub/poker-near-me/in">Browse By State</a>
-                  </div>
-                  <div className="pnm-ssr-directory-grid">
-                    {initialVenues.slice(0, 8).map((venue) => (
-                      <a className="pnm-ssr-venue" href={`/hub/venues/${encodeURIComponent(String(venue.id))}`} key={venue.id}>
-                        <span
-                          className="pnm-ssr-venue-art"
-                          /* getVenueLogoUrl, not the raw fields. This was the last
-                             reader that skipped logo_url, so it drew the casino's own
-                             server for venues whose art we already mirror, and it is
-                             a CSS background, which img-src governs but next/image
-                             cannot reach. Every img-src violation left on this route
-                             came from this one span. */
-                          style={getVenueLogoUrl(venue)
-                            ? { backgroundImage: `url(${JSON.stringify(getVenueLogoUrl(venue)).slice(1, -1)})` }
-                            : undefined}
-                          aria-hidden="true"
-                        />
-                        <span className="pnm-ssr-venue-copy">
-                          <small>{venue.venue_type?.replace(/_/g, ' ') || 'Poker room'}</small>
-                          <strong>{venue.name}</strong>
-                          <span>{[venue.city, venue.state].filter(Boolean).join(', ') || 'Location pending'}</span>
-                        </span>
-                      </a>
-                    ))}
-                  </div>
-                </section>
-              )}
             </div>
 
+            {/* ═══ FAVORITE VENUE LIVE TOAST (5s delay, 2s visible) ═══ */}
+            {(() => {
+              const favKeys = Object.keys(favorites || {}).filter((k) => k.startsWith('venue-'));
+              if (favKeys.length === 0) return null;
+              const favIds = new Set(favKeys.map((k) => k.replace('venue-', '')));
+              const liveFavs = allVenuesWithTours.filter(
+                (v) => favIds.has(String(v.id)) && v.live_data && v.live_data.tables_running > 0
+              );
+              if (liveFavs.length === 0) return null;
+              const estimatedFavorites = liveFavs.filter((venue) => venue.live_data?.data_mode !== 'live');
+              const toastMsg =
+                liveFavs.length === 1
+                  ? `${liveFavs[0].name}: ${cashGameCountLabel(liveFavs[0].live_data)}`
+                  : estimatedFavorites.length > 0
+                    ? `${liveFavs.length} Favorites Have Cash-Game Activity Estimates`
+                    : `${liveFavs.length} Of Your Favorites Have Live Tables Running!`;
+              return (
+                <FavLiveToast
+                  message={toastMsg}
+                  onClick={() => {
+                    navigateActiveTab('saved');
+                  }}
+                />
+              );
+            })()}
+
+            <details className="pnm-discovery-controls">
+              <summary>Search Filters And Sections</summary>
             {/* ═══ SECTION ANCHOR ROW ═══
                 Mobile phase 3: this is an in-page jump list, not a tab bar. Every
                 section below is always rendered; a tap scrolls its section under
                 the sticky header and the URL names the surface for deep links.
-                All six labels are visible at every width (no display:none). */}
+                The native disclosure keeps every label reachable at every width. */}
             <nav
               className="pnm-top-tabs"
               aria-label="Poker Near Me sections"
@@ -4015,31 +4002,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               })}
             </nav>
 
-            {/* ═══ FAVORITE VENUE LIVE TOAST (5s delay, 2s visible) ═══ */}
-            {(() => {
-              const favKeys = Object.keys(favorites || {}).filter((k) => k.startsWith('venue-'));
-              if (favKeys.length === 0) return null;
-              const favIds = new Set(favKeys.map((k) => k.replace('venue-', '')));
-              const liveFavs = allVenuesWithTours.filter(
-                (v) => favIds.has(String(v.id)) && v.live_data && v.live_data.tables_running > 0
-              );
-              if (liveFavs.length === 0) return null;
-              const estimatedFavorites = liveFavs.filter((venue) => venue.live_data?.data_mode !== 'live');
-              const toastMsg =
-                liveFavs.length === 1
-                  ? `${liveFavs[0].name}: ${cashGameCountLabel(liveFavs[0].live_data)}`
-                  : estimatedFavorites.length > 0
-                    ? `${liveFavs.length} Favorites Have Cash-Game Activity Estimates`
-                    : `${liveFavs.length} Of Your Favorites Have Live Tables Running!`;
-              return (
-                <FavLiveToast
-                  message={toastMsg}
-                  onClick={() => {
-                    navigateActiveTab('saved');
-                  }}
-                />
-              );
-            })()}
 
             {/* ═══ TOP FILTER BAR: Location + Dropdowns + Live Games ═══
                 Always rendered (it drives the venues list, the map and the live
@@ -4196,6 +4158,8 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               </button>
             </div>
 
+            </details>
+
             {/* ═══ MAIN CONTENT — every section, stacked ═══ */}
             <section className="pnm-layout" aria-label="Poker Near Me discovery results">
               <p className="pnm-route-announcer" role="status" aria-live="polite" aria-atomic="true">
@@ -4234,7 +4198,8 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                     </button>
                   )}
 
-                  {PRIMARY_SECTIONS.map((tab) => (
+                  {stackedSections.map}
+                  {PRIMARY_SECTIONS.filter((tab) => tab.key !== 'map').map((tab) => (
                     <React.Fragment key={tab.key}>{stackedSections[tab.key]}</React.Fragment>
                   ))}
                 </div>
@@ -4243,6 +4208,42 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               {/* end pnm-main */}
             </section>
             {/* end pnm-layout */}
+
+              {initialVenues.length > 0 && (
+                <section className="pnm-ssr-directory" aria-labelledby="pnm-ssr-directory-title">
+                  <div className="pnm-ssr-directory-heading">
+                    <div>
+                      <span>National Room Registry</span>
+                      <h2 id="pnm-ssr-directory-title">Featured Poker Rooms</h2>
+                    </div>
+                    <a href="/hub/poker-near-me/in">Browse By State</a>
+                  </div>
+                  <div className="pnm-ssr-directory-grid">
+                    {initialVenues.slice(0, 8).map((venue) => (
+                      <a className="pnm-ssr-venue" href={`/hub/venues/${encodeURIComponent(String(venue.id))}`} key={venue.id}>
+                        <span
+                          className="pnm-ssr-venue-art"
+                          /* getVenueLogoUrl, not the raw fields. This was the last
+                             reader that skipped logo_url, so it drew the casino's own
+                             server for venues whose art we already mirror, and it is
+                             a CSS background, which img-src governs but next/image
+                             cannot reach. Every img-src violation left on this route
+                             came from this one span. */
+                          style={getVenueLogoUrl(venue)
+                            ? { backgroundImage: `url(${JSON.stringify(getVenueLogoUrl(venue)).slice(1, -1)})` }
+                            : undefined}
+                          aria-hidden="true"
+                        />
+                        <span className="pnm-ssr-venue-copy">
+                          <small>{venue.venue_type?.replace(/_/g, ' ') || 'Poker room'}</small>
+                          <strong>{venue.name}</strong>
+                          <span>{[venue.city, venue.state].filter(Boolean).join(', ') || 'Location pending'}</span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              )}
 
             {/* WHAT THIS TAB IS (AEO phase 3, 2026-09-19).
                 Every tab of this route served the same 351 words of venue
@@ -4279,89 +4280,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
           />
         )}
 
-        {/* Voice Search Floating Button (Feature #11) */}
-        <VoiceSearch
-          onResult={(parsed) => {
-            if (parsed.searchQuery) setSearchQuery(parsed.searchQuery);
-            // BUG FIX: normalize VoiceSearch output to the page's filter domains.
-            // VoiceSearch emits 'NLH'/'PLO'/'Mixed'/'Stud' and stakes like '1/2',
-            // but the selects/filters use lowercase 'nlh' etc. and '$1/2'/'$2/5'/'$5/10+'
-            // — unnormalized values silently matched nothing.
-            if (parsed.filters.gameType)
-              setFilters((f) => ({
-                ...f,
-                gameType: String(parsed.filters.gameType).toLowerCase(),
-              }));
-            if (parsed.filters.radius)
-              setFilters((f) => ({ ...f, radius: normalizeRadiusMiles(parsed.filters.radius) }));
-            if (parsed.filters.stakes) {
-              const stakesMatch = String(parsed.filters.stakes).match(/(\d+)\s*\/\s*(\d+)/);
-              if (stakesMatch) {
-                const smallBlind = Number(stakesMatch[1]);
-                const normStakes = smallBlind <= 1 ? '$1/2' : smallBlind < 5 ? '$2/5' : '$5/10+';
-                setFilters((f) => ({ ...f, stakes: normStakes }));
-              }
-            }
-            // BUG FIX: VoiceSearch emits venueType 'poker_tour' for any transcript
-            // containing "tour", and this used to apply it verbatim. Nothing
-            // downstream understands 'poker_tour' — the Venue Type select offers
-            // 'tour_stop', useTourMapStops only special-cases 'tour_stop', and
-            // /api/poker/venues matches no venue_type row — so one voice query left
-            // the user on a permanently blank map AND blank list, persisted to the
-            // URL and to localStorage. Fold it onto the real domain first.
-            if (parsed.filters.venueType) {
-              const normalizedVenueType = normalizeVenueType(parsed.filters.venueType);
-              if (normalizedVenueType) {
-                setFilters((f) => ({ ...f, venueType: normalizedVenueType }));
-              }
-            }
-            // WIRING FIX: VoiceSearch sets useMyLocation for "poker near me" /
-            // "casinos around me" — the single most natural phrase for this product
-            // — and the page ignored it entirely, so the flagship voice query never
-            // triggered GPS. This IS an explicit user request for their location.
-            if (parsed.filters.useMyLocation && !userLocation) {
-              requestGpsLocation();
-            }
-            if (parsed.filters.minBuyin)
-              setFilters((f) => ({ ...f, minBuyin: parsed.filters.minBuyin }));
-            if (parsed.filters.maxBuyin)
-              setFilters((f) => ({ ...f, maxBuyin: parsed.filters.maxBuyin }));
-            // BUG FIX: VoiceSearch emits filters.tab = 'daily' for any
-            // tournament/tourney/mtt transcript, and this used to set activeTab
-            // straight to it. 'daily' is not in TAB_ORDER, so the bad value was
-            // persisted and survived reload. Voice tab hints now go through the
-            // same slug table the router uses, and anything unrecognised is
-            // ignored. Every surface is on the page, so a hint scrolls to it.
-            if (parsed.filters.tab) {
-              const VOICE_TAB_SLUGS = {
-                venues: { tab: 'venues' },
-                map: { tab: 'map' },
-                saved: { tab: 'saved' },
-                favorites: { tab: 'saved' },
-                more: { tab: 'more' },
-                events: { tab: 'events' },
-                tours: { tab: 'events', sub: 'tours' },
-                series: { tab: 'events', sub: 'series' },
-                daily: { tab: 'events', sub: 'daily' },
-                'daily-tournaments': { tab: 'events', sub: 'daily' },
-                calendar: { tab: 'events', sub: 'calendar' },
-                'events-calendar': { tab: 'events', sub: 'calendar' },
-              };
-              const target = VOICE_TAB_SLUGS[String(parsed.filters.tab).toLowerCase()];
-              if (target && TAB_ORDER.includes(target.tab)) {
-                if (target.sub) navigateActiveEventTab(target.sub);
-                else navigateActiveTab(target.tab);
-              } else if (
-                String(parsed.filters.tab).toLowerCase() === 'live' ||
-                String(parsed.filters.tab).toLowerCase() === 'live-games'
-              ) {
-                activateTab('live');
-              }
-            }
-            setHasSearched(true);
-            fetchAllData({ includeVenues: true });
-          }}
-        />
 
         {/* Full Screen Venue Detail overlay */}
         <FullScreenPageOverlay

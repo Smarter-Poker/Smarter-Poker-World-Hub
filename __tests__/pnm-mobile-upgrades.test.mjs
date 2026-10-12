@@ -81,7 +81,9 @@ test('the discovery page has no swipe navigation and no tab that hides content',
   assert.doesNotMatch(src, /useDiscoveryGestureController|handleTouchStart|handlePullStart/, 'the gesture controller is gone');
   assert.doesNotMatch(src, /const renderContent = /, 'no active-tab switch');
   assert.doesNotMatch(src, /role="tabpanel"|role="tablist"/, 'the anchor row is not a tab bar');
-  assert.match(src, /PRIMARY_SECTIONS\.map\(\(tab\) => \(\s*<React\.Fragment key=\{tab\.key\}>\{stackedSections\[tab\.key\]\}/, 'every section renders in document order');
+  assert.match(src, /\{stackedSections\.map\}\s*\{PRIMARY_SECTIONS\.filter\(\(tab\) => tab\.key !== 'map'\)\.map\(\(tab\) => \(\s*<React\.Fragment key=\{tab\.key\}>\{stackedSections\[tab\.key\]\}/, 'the map renders first and every other section remains in document order');
+  assert.match(src, /<details className="pnm-discovery-controls">\s*<summary>Search Filters And Sections<\/summary>/, 'native disclosure keeps navigation and filters reachable without consuming the default map viewport');
+  assert.ok(src.indexOf('className="pnm-ssr-directory"') > src.indexOf('className="pnm-layout"'), 'server-rendered featured venue links follow the primary map');
   for (const key of ['venues', 'events', 'live', 'map', 'saved', 'more']) {
     assert.match(src, new RegExp(`id=\\{sectionId\\('${key}'\\)\\}`), `section ${key} is on the page`);
   }
@@ -90,7 +92,8 @@ test('the discovery page has no swipe navigation and no tab that hides content',
   }
   assert.match(src, /scrollToSurface\(/, 'a tab tap scrolls to its section');
   assert.match(src, /pushDiscoverySurface\(/, 'the URL still names the surface');
-  assert.match(src, /sectionForSlug\(landingSlug\)/, 'a deep link lands on its section after paint');
+  assert.match(src, /const landingSection = 'map';/, 'entry keeps the main map in view while route filters retain their state');
+  assert.match(src, /const routeSection = sectionForSlug\(routeTab\);/, 'explicit subsequent section navigation still resolves its route');
   assert.match(src, /<LazyPanel/, 'heavy panels mount when scrolled near');
   const more = stripComments(read(`${COMPONENT_DIR}/MoreTabPanel.jsx`));
   assert.doesNotMatch(more, /activeMoreTab === '/, 'the More tools are stacked, not switched');
@@ -151,15 +154,12 @@ test('every overlay the pages open is a back-gesture sheet with a 44px close', (
   const lobby = read(LOBBY_PAGE);
   for (const pin of [
     /useModalHistory\(showPanel && !!panelContent, closePanel\)/,
-    /useModalHistory\(showVoiceSearch, closeVoiceSearch\)/,
     /useModalHistory\(showLoginPrompt, closeLoginPrompt\)/,
     /useModalHistory\(showEnablePopup, closeEnablePopup\)/,
     /useModalHistory\(showManualLocation, closeManualLocation\)/,
-    /useScrimDismiss\(closeVoiceSearch\)/,
-    /className="pnm-sheet-scrim"/,
-    /className="sp-icon-btn pnm-sheet__close"/,
     /paddingTop: 'calc\(env\(safe-area-inset-top, 0px\) \+ 12px\)'/,
   ]) assert.match(lobby, pin, `lobby ${pin}`);
+  assert.doesNotMatch(lobby, /showVoiceSearch|voiceScrim|voiceDialogRef/, 'retired voice sheets must not retain history or focus handlers');
   assert.match(read(TAB_PAGE), /useModalHistory\(iframeModal\.isOpen, closeIframeModal\)/);
   const css = read('styles/poker-near-me.css');
   assert.match(css, /\.pnm-sheet__close \{[^}]*min-width: 44px;[^}]*min-height: 44px;/s);
