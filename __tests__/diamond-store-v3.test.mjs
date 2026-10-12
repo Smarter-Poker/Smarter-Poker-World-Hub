@@ -70,7 +70,7 @@ test('keeps every redesign rule outside the locked global header', () => {
 });
 
 test('ships a purpose-built mobile layout instead of a stacked desktop grid', () => {
-  assert.match(component, /scrollIntoView/);
+  assert.doesNotMatch(component, /activeTabRef|scrollIntoView/);
   assert.match(component, /prefers-reduced-motion: reduce/);
   assert.match(component, /Swipe To Compare Packages/);
   assert.match(styles, /@media \(max-width: 640px\)/);
@@ -80,4 +80,25 @@ test('ships a purpose-built mobile layout instead of a stacked desktop grid', ()
   assert.match(styles, /\.packageCard button\s*\{[^}]*min-height:\s*50px/s);
   assert.doesNotMatch(styles, /padding:\s*270px|padding:[^;]*22%/);
   assert.doesNotMatch(styles, /background-position-x:\s*72%/);
+});
+
+test('all five Store Sections remain visible at the reproduced 393px phone width', () => {
+  const mobile = styles.slice(styles.indexOf('@media (max-width: 640px)'));
+  const tabs = /\.tabs \{([^}]+)\}/.exec(mobile)?.[1];
+  assert.ok(tabs);
+  assert.match(tabs, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(tabs, /overflow:\s*visible/);
+  assert.doesNotMatch(tabs, /grid-auto-flow:\s*column|grid-template-columns:\s*none|scroll-snap-type/);
+  assert.match(component, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
+  assert.match(component, /href=\{storeTabHref\(id, clubId\)\}/);
+});
+
+test('the Club Shop headline fits the 1280px desktop glyph measurements without altering other artwork', () => {
+  const headline = /\.club-shop \.heroCopy h1 \{([^}]+)\}/.exec(styles)?.[1];
+  assert.ok(headline);
+  assert.match(headline, /line-height:\s*1\.2/);
+  assert.match(headline, /overflow-wrap:\s*normal/);
+  assert.doesNotMatch(headline, /(?:^|[;\n])\s*height:|overflow:\s*hidden|font-size:|background/);
+  // 64px type on two lines formerly had a 134.4px line box and 138px ink.
+  assert.ok(64 * 1.2 * 2 >= 138);
 });
