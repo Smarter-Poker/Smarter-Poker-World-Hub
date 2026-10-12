@@ -1080,7 +1080,8 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
     await stableResponse;
     report.stage = 'public-mobile-stable-viewer';
     await page.getByLabel(/Reels Viewer$/).waitFor();
-    assert.equal(await players.count(), 1, 'Stable hostile-drop setup mounted more than one media player');
+    await players.first().waitFor({ state: 'attached' });
+    assert.equal(await players.count(), 1, 'Stable hostile-drop setup did not retain exactly one media player');
     assert.equal(await players.first().evaluate((element) => element.tagName), 'IFRAME', 'Hostile-drop setup did not mount the verified embed');
     await players.first().evaluate((element) => { element.dataset.liveProofPlayer = 'mounted'; });
 

@@ -303,10 +303,10 @@ async function run(env) {
     await commentPanel.waitFor({ state: 'visible' });
     assert.equal(await commentPanel.evaluate((node) => {
       const r = node.getBoundingClientRect(), heading = node.querySelector('h2'), label = node.querySelector('label');
-      return r.width <= 480 && r.right <= innerWidth && r.height <= innerHeight && getComputedStyle(heading).fontSize === '16px' && getComputedStyle(label).color === 'rgb(22, 24, 35)';
+      return r.width <= 480 && r.right <= innerWidth && r.height <= innerHeight && getComputedStyle(heading).fontSize === '16px' && getComputedStyle(label).color === 'rgb(22, 24, 35)' && [...node.querySelectorAll('button, input, textarea')].every(control => parseFloat(getComputedStyle(control).fontSize) <= 16);
     }), true, 'Desktop Reel comments must be a readable side panel');
     await page.screenshot({ path: 'test-results/social-feed-normal/desktop-reel-comments.png' });
-    await viewer.getByRole('button', { name: /Close panel/i }).click();
+    await viewer.getByRole('button', { name: 'Back To Reel', exact: true }).click();
     await page.keyboard.press('Escape');
     receipt.checks.desktopReelControls = true;
     await waitForRequestSettle(feedRequests);

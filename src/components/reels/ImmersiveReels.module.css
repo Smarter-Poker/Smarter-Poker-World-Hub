@@ -145,3 +145,18 @@
   .sheetBackdrop:has(:global([data-reels-sheet='comments'])) { justify-content: flex-end !important; align-items: stretch !important; }
   .sheet.sheet:global([data-reels-sheet='comments']) { width: min(420px, 40vw); height: 100dvh; max-height: 100dvh; border-radius: 0 !important; }
 }
+
+/* Panel controls must not inherit the legacy viewport container font units. */
+.root.root.root.root :global([data-reels-panel]) :global(button),
+.root.root.root.root :global([data-reels-panel]) :global(input),
+.root.root.root.root :global([data-reels-panel]) :global(textarea),
+.root.root.root.root :global([data-reels-panel]) :global(label) {
+  font: 400 14px/1.5 Arial, sans-serif !important;
+  letter-spacing: normal !important; text-shadow: none !important;
+}
+.root.root.root.root :global([data-reels-panel]) :global(button) {
+  font-weight: 600 !important; min-height: 44px; padding: 10px !important;
+}
+.root.root.root.root :global([data-reels-panel]) :global(.sp-reels-sheet-heading) button {
+  padding: 0 !important;
+}
