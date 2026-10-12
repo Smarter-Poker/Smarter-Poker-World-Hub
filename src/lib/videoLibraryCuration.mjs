@@ -191,7 +191,24 @@ export function isDisplayableVideoTitle(raw) {
     return !/^(?:test(?:ing)?[\s.!,-]*){1,4}$/i.test(text);
 }
 
-/** Every feed rule in one call: readable title, mixed-content channel rule. */
+/**
+ * A video filed as a cash game or tournament whose title names a casino table
+ * game is not poker. Measured 2026-10-12 on the live video sitemap: four
+ * blackjack videos from one poker channel were filed as cash games and showed
+ * as "A Cash Game Video". "Slots" is deliberately not on this list: it matched
+ * only poker titles ("Top Set vs a Slots Player"). The Slots chip has its own
+ * type and is never filtered by this rule.
+ */
+const CASINO_GAME_TITLE_RE = /black\s?jack|roulette|baccarat|\bcraps\b/i;
+
+export function isCasinoGameFiledAsPoker(video) {
+    if (!VIDEO_LIBRARY_POKER_TYPES.includes(video?.type)) return false;
+    return CASINO_GAME_TITLE_RE.test(String(video?.rawTitle ?? video?.title ?? ''));
+}
+
+/** Every feed rule in one call: readable title, mixed-content channel rule, poker rows that are poker. */
 export function isCuratedFeedVideo(video) {
-    return isDisplayableVideoTitle(video?.rawTitle ?? video?.title) && isMixedContentAllowed(video);
+    return isDisplayableVideoTitle(video?.rawTitle ?? video?.title)
+        && isMixedContentAllowed(video)
+        && !isCasinoGameFiledAsPoker(video);
 }

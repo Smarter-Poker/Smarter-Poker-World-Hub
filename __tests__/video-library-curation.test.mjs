@@ -6,6 +6,7 @@ import {
     VIDEO_LIBRARY_POKER_TYPES,
     cleanVideoTitle,
     dedupeVideos,
+    isCasinoGameFiledAsPoker,
     isCuratedFeedVideo,
     isDisplayableVideoTitle,
     mixedContentFilter,
@@ -96,4 +97,18 @@ test('thumbnails start phone-sized, Shorts use the vertical frame, and nothing g
     assert.doesNotMatch(PAGE, /getThumbnail/);
     assert.match(PAGE, /function VideoThumbnail\(/);
     assert.match(PAGE, /<VideoThumbnail video=\{short\} vertical \/>/);
+});
+
+test('casino table games filed as cash games stay out of the poker feed, sitemap and watch pages', () => {
+    const blackjack = { source: 'GRIPSED', type: 'cash', rawTitle: 'I Won A Blackjack Tournament on ACR!!!' };
+    assert.equal(isCasinoGameFiledAsPoker(blackjack), true);
+    assert.equal(isCuratedFeedVideo(blackjack), false);
+    assert.equal(isCasinoGameFiledAsPoker({ type: 'tournament', rawTitle: 'Black jack Moneymaker' }), true);
+    assert.equal(isCasinoGameFiledAsPoker({ type: 'cash', rawTitle: 'Roulette Night' }), true);
+    // The Slots chip keeps its casino videos; poker titles that mention slots stay.
+    assert.equal(isCasinoGameFiledAsPoker({ type: 'slots', rawTitle: 'Blackjack High Roller' }), false);
+    assert.equal(isCuratedFeedVideo({ type: 'cash', rawTitle: 'TOP SET vs a SLOTS PLAYER?? $18,000 POT!!' }), true);
+    assert.equal(isCuratedFeedVideo({ type: 'cash', rawTitle: 'Crapshoot River Call' }), true);
+    const CATALOG = readFileSync(new URL('../pages/api/video-library/catalog.js', import.meta.url), 'utf8');
+    assert.match(CATALOG, /!isCasinoGameFiledAsPoker\(video\)/);
 });

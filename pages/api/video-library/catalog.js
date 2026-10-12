@@ -9,6 +9,7 @@ import {
 import {
     VIDEO_LIBRARY_POKER_TYPES,
     dedupeVideos,
+    isCasinoGameFiledAsPoker,
     isDisplayableVideoTitle,
     mixedContentFilter,
 } from '../../../src/lib/videoLibraryCuration.mjs';
@@ -121,10 +122,11 @@ export default async function handler(req, res) {
         const rawRowCount = Array.isArray(data) ? data.length : 0;
         const normalised = (data || []).map(normaliseVideo).filter(isVideoLibraryVideoAllowed);
         // Saved-library lookups return exactly what the player saved; the
-        // feed hides unreadable titles and reposted duplicates.
+        // feed hides unreadable titles, casino games filed as poker and
+        // reposted duplicates.
         const videos = idsRequested
             ? normalised
-            : dedupeVideos(normalised.filter(video => isDisplayableVideoTitle(video.rawTitle)));
+            : dedupeVideos(normalised.filter(video => isDisplayableVideoTitle(video.rawTitle) && !isCasinoGameFiledAsPoker(video)));
         const total = Number.isFinite(count) ? count : offset + videos.length;
         const nextOffset = offset + rawRowCount;
         return res.status(200).json({
