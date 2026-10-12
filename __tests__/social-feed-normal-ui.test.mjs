@@ -401,3 +401,8 @@ test('preview images accept local and protocol-relative artwork without acceptin
   for (const value of ['/images/story.webp', '//media.poker.org/story.jpg', 'https://media.poker.org/story.jpg']) assert.equal(isArticlePreviewImage(value), true);
   for (const value of ['javascript:alert(1)', '/\\evil.example/story.jpg', 'https://user:pass@example.com/story.jpg', '/images/default-placeholder.jpg']) assert.equal(isArticlePreviewImage(value), false);
 });
+
+test('Reel artwork fills the aspect-ratio frame without intrinsic grid sizing', () => {
+  assert.match(reels, /\.vlc-reel-card__media \{\s*position: relative;/);
+  assert.match(reels, /\.vlc-reel-card__media video \{\s*position: absolute;\s*inset: 0;/);
+});

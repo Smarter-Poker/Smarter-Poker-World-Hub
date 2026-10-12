@@ -4105,6 +4105,8 @@ function ReelsFeedConsoleStyles() {
       }
       .vlc-reel-card__media img,
       .vlc-reel-card__media video {
+        position: absolute;
+        inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
