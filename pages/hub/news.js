@@ -200,6 +200,9 @@ async function fetchNewsJson(url) {
 // not use is silently ignored, which looks exactly like the fallback not
 // working. NEWS_PAGE_SIZE used to live inside the component.
 const NEWS_PAGE_SIZE = 24;
+// Cards in the top grid while a source chip is on: one hero plus an even
+// number below it, so the two-column rows never end on a lone card.
+const FILTERED_TOP_GRID_SIZE = 7;
 export const FIRST_PAGE_KEY = `/api/news/articles?limit=${NEWS_PAGE_SIZE}&offset=0`;
 
 /**
@@ -1210,16 +1213,6 @@ function NewsHub() {
     // only" chip sits above six articles the user never bookmarked.
     // Do not flash invented cards while the source request is still in flight. A
     // labelled sample set is reserved for an explicit failed/invalid response.
-    const allTopArticles = sourceBoxes.length > 0
-        ? sourceBoxes
-        : (sourceBoxesUnavailable ? getFallbackNews().slice(0, 6) : []);
-    // Muted sources drop out of the top grid too — the API keys boxes on _sourceName.
-    const baseTopArticles = allTopArticles.filter(a => !isMuted(a.source_name || a._sourceName));
-    const topArticles = feedFilter === 'bookmarks'
-        ? baseTopArticles.filter(a => bookmarks.includes(a.id))
-        : baseTopArticles;
-    const topArticleIds = topArticles.map(a => a.id);
-
     // Filter remaining news for "More Stories" section
     const filteredNews = news.filter(article => {
         if (article.source_name === 'Smarter.Poker') return false;
@@ -1237,7 +1230,26 @@ function NewsHub() {
         return true;
     });
 
-    // Remaining stories = articles not in the top 6 boxes, with optional source filtering
+    // SOURCE CHIPS DRIVE THE TOP GRID (2026-10-11). The grid used to be the
+    // one-story-per-source boxes ALWAYS, whatever chips were on, so picking
+    // "WSOP" left the same six cards on screen and the page looked broken -
+    // only the list far below the fold changed. With a source selected, the
+    // grid is now built from that source's own stories (the server already
+    // returned only those), hero first.
+    const sourceFilterActive = activeSourceFilters.length > 0;
+    const allTopArticles = sourceFilterActive
+        ? filteredNews.filter(a => activeSourceFilters.includes(a.source_name)).slice(0, FILTERED_TOP_GRID_SIZE)
+        : (sourceBoxes.length > 0
+            ? sourceBoxes
+            : (sourceBoxesUnavailable ? getFallbackNews().slice(0, 6) : []));
+    // Muted sources drop out of the top grid too — the API keys boxes on _sourceName.
+    const baseTopArticles = allTopArticles.filter(a => !isMuted(a.source_name || a._sourceName));
+    const topArticles = feedFilter === 'bookmarks'
+        ? baseTopArticles.filter(a => bookmarks.includes(a.id))
+        : baseTopArticles;
+    const topArticleIds = topArticles.map(a => a.id);
+
+    // Remaining stories = articles not in the top grid, with optional source filtering
     const unsortedRemainingStories = filteredNews.filter(a => {
         if (topArticleIds.includes(a.id)) return false;
         if (activeSourceFilters.length > 0 && !activeSourceFilters.includes(a.source_name)) return false;
@@ -2503,7 +2515,7 @@ function NewsHub() {
                         .sidebar {
                             display: grid !important;
                             grid-template-columns: minmax(0, 1fr) !important;
-                            order: -1 !important;
+                            order: 2 !important;
                             width: 100% !important;
                             padding: 0 12px 4px !important;
                             gap: 12px !important;
@@ -2941,20 +2953,10 @@ function NewsHub() {
                         box-shadow: 0 0 8px rgba(94, 245, 240, 0.5);
                     }
 
-                    /* ═══════════════════════════════════════════════ */
-                    /* PHASE 2: SOURCE ACCENT LEFT STRIPE */
-                    /* ═══════════════════════════════════════════════ */
-                    .news-box::before {
-                        content: '';
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 4px;
-                        height: 100%;
-                        background: var(--src-accent, #5ef5f0);
-                        z-index: 101;
-                        border-radius: 16px 0 0 16px;
-                    }
+                    /* The per-source coloured stripe down the left edge of every
+                       card (red, blue, green, yellow, purple...) was removed on
+                       2026-10-11 at Dan's request: every card wears the same
+                       frame. Do not bring it back. */
 
                     /* ═══════════════════════════════════════════════ */
                     /* PHASE 2: READING TIME BADGE */
@@ -3261,7 +3263,7 @@ function NewsHub() {
                         .sidebar {
                             display: grid;
                             grid-template-columns: repeat(3, minmax(0, 1fr));
-                            order: -1;
+                            order: 2;
                             align-items: stretch;
                         }
                         .sidebar > .widget:not(.leaderboard):not(.events):not(.newsletter) {
@@ -4269,7 +4271,7 @@ function NewsHub() {
                         .sidebar {
                             display: grid !important;
                             grid-template-columns: minmax(0, 1fr) !important;
-                            order: -1 !important;
+                            order: 2 !important;
                             width: 100% !important;
                             padding: 0 12px 4px !important;
                             gap: 12px !important;

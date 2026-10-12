@@ -566,7 +566,9 @@ export default function LiveWireStyles() {
             }
 
             .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-title {
-                display: block !important;
+                display: -webkit-box !important;
+                -webkit-line-clamp: 5;
+                -webkit-box-orient: vertical;
                 margin: 10px 0 13px !important;
                 color: var(--wire-ice) !important;
                 font-family: "Arial Narrow", "Avenir Next Condensed", Inter, sans-serif !important;
@@ -576,7 +578,7 @@ export default function LiveWireStyles() {
                 letter-spacing: -0.025em;
                 line-height: 0.98 !important;
                 white-space: normal !important;
-                overflow: visible !important;
+                overflow: hidden !important;
                 text-overflow: clip !important;
             }
 
@@ -867,11 +869,18 @@ export default function LiveWireStyles() {
                     grid-template-columns: 1fr;
                 }
 
-                .live-wire .sidebar {
+                /* The stories come first on every width, as on desktop;
+                   the side widgets follow the feed instead of pushing it
+                   below the fold (2026-10-11). */
+                .news-hub.live-wire .layout > .sidebar {
                     display: grid !important;
                     grid-template-columns: repeat(3, minmax(0, 1fr));
-                    order: -1;
+                    order: 2 !important;
                     align-items: stretch;
+                }
+
+                .news-hub.live-wire .layout > .main-content {
+                    order: 1 !important;
                 }
 
                 .live-wire .sidebar > .widget:not(.leaderboard):not(.events):not(.newsletter) {
@@ -896,12 +905,12 @@ export default function LiveWireStyles() {
                     padding: 12px 0 20px !important;
                 }
 
-                .live-wire .sidebar {
+                .news-hub.live-wire .layout > .sidebar {
                     display: grid !important;
                     grid-template-columns: minmax(0, 1fr) !important;
-                    order: -1 !important;
+                    order: 2 !important;
                     width: 100% !important;
-                    padding: 0 0 4px !important;
+                    padding: 16px 0 4px !important;
                     gap: 12px !important;
                 }
 
@@ -924,27 +933,33 @@ export default function LiveWireStyles() {
                     padding: 0 9px;
                 }
 
+                /* Five tabs fit across a phone exactly as on desktop -
+                   no sideways scrolling, nothing cut off. */
                 .live-wire .section-tabs {
-                    display: flex !important;
-                    justify-content: flex-start !important;
+                    display: grid !important;
+                    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
                     width: 100% !important;
                     max-width: 100% !important;
                     min-height: 44px;
                     margin: 0 0 10px !important;
                     padding: 0 !important;
-                    overflow-x: auto;
-                    scrollbar-width: none;
+                    overflow: hidden;
                 }
 
-                .live-wire .section-tabs::-webkit-scrollbar {
-                    display: none;
-                }
-
-                .live-wire .section-tab {
-                    flex: 0 0 108px !important;
+                .live-wire .section-tabs .section-tab {
+                    flex: none !important;
+                    min-width: 0 !important;
                     min-height: 44px;
-                    padding: 0 8px !important;
-                    font-size: 8px;
+                    padding: 0 2px !important;
+                    font-size: 8px !important;
+                    letter-spacing: 0.06em !important;
+                    line-height: 1.15;
+                    white-space: normal;
+                    text-align: center;
+                }
+
+                .live-wire .section-tabs .section-tab svg {
+                    display: none;
                 }
 
                 .live-wire .breaking-ticker {
@@ -971,6 +986,13 @@ export default function LiveWireStyles() {
 
                 .live-wire .source-chip {
                     min-height: 44px;
+                }
+
+                /* Same compact chips as desktop, so several fit on screen. */
+                .live-wire .source-filters .source-chip {
+                    padding: 0 12px !important;
+                    font-size: 10px !important;
+                    letter-spacing: 0.06em !important;
                 }
 
                 .live-wire .search-clear-button {
@@ -1018,110 +1040,196 @@ export default function LiveWireStyles() {
                     padding: 0 !important;
                 }
 
-                .live-wire .news-grid {
-                    display: flex !important;
-                    flex-direction: column !important;
+                /* ── MOBILE CARD GRID (2026-10-11) ─────────────────────────
+                   Dan: the phone layout must follow the desktop one. Desktop
+                   is a hero card across the top and a two-column grid of
+                   framed cards (image on top, headline and source under it)
+                   below. The previous phone rules turned every card into a
+                   96px-wide row and laid the CARD WRAPPER out as a grid too,
+                   which squeezed each card into its first 96px column and
+                   left the headline off-screen. The wrapper is a plain block
+                   again; only the card inside it is laid out. */
+                .live-wire .news-grid:not(.news-grid-list) {
+                    display: grid !important;
+                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                    align-items: stretch !important;
                     width: 100% !important;
                     max-width: 100% !important;
-                    gap: 9px !important;
+                    gap: 8px !important;
                     padding: 7px !important;
                     border-radius: 0 !important;
                 }
 
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child,
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .news-box {
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap {
+                    display: block !important;
+                    position: relative;
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    max-height: none !important;
+                    margin: 0 !important;
+                }
+
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap .news-box {
                     display: flex !important;
                     flex-direction: column !important;
                     width: 100% !important;
-                    height: auto !important;
-                    min-height: 486px !important;
+                    height: 100% !important;
+                    min-height: 0 !important;
                     max-height: none !important;
+                    margin: 0 !important;
                 }
 
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-image {
-                    order: 0;
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap .box-image {
+                    flex: 0 0 auto;
+                    position: relative !important;
                     width: 100% !important;
-                    height: 270px !important;
-                    min-height: 270px !important;
-                    aspect-ratio: auto !important;
+                    min-height: 0 !important;
+                    border-radius: 0 !important;
                 }
 
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-image img {
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap .box-image img {
                     position: absolute !important;
+                    inset: 0 !important;
                     width: 100% !important;
                     height: 100% !important;
                     border-radius: 0 !important;
                     object-fit: cover !important;
                 }
 
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap .box-content {
+                    box-sizing: border-box !important;
+                    flex: 1 1 auto;
+                    justify-content: flex-start !important;
+                    width: 100% !important;
+                    min-width: 0;
+                    height: auto !important;
+                    margin: 0 !important;
+                    border-radius: 0 !important;
+                    background: #03090d !important;
+                }
+
+                /* Hero: full width, picture on top, headline under it. The
+                   :first-child selectors are repeated on purpose - the desktop
+                   hero rules carry them, and anything less specific loses. */
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child {
+                    grid-column: 1 / -1 !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    max-height: none !important;
+                }
+
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .news-box {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    max-height: none !important;
+                }
+
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-image,
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-content {
+                    grid-column: auto !important;
+                    grid-row: auto !important;
+                    align-self: stretch !important;
+                }
+
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-image {
+                    height: auto !important;
+                    aspect-ratio: 16 / 10 !important;
+                }
+
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-image img {
+                    object-position: center top !important;
+                }
+
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-overlay {
                     display: block !important;
-                    background: linear-gradient(0deg, #03090d 0%, transparent 68%) !important;
+                    background: linear-gradient(0deg, #03090d 0%, transparent 45%) !important;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-content {
-                    order: 1;
-                    width: 100% !important;
-                    min-height: 202px !important;
-                    padding: 19px 16px 23px !important;
+                    min-height: 0 !important;
+                    padding: 4px 16px 18px !important;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-title {
-                    font-size: clamp(28px, 8.2vw, 35px) !important;
+                    display: -webkit-box !important;
+                    margin: 0 0 9px !important;
+                    font-size: clamp(25px, 7.4vw, 32px) !important;
                     line-height: 1 !important;
+                    -webkit-line-clamp: 4;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden !important;
                 }
 
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-excerpt {
+                    margin: 0 0 11px !important;
+                    -webkit-line-clamp: 2;
+                }
+
+                /* Grid cards: two across, like desktop. Their desktop heights
+                   are locked with :not(:first-child), so unlock them the same way. */
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child),
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .news-box {
-                    display: grid !important;
-                    grid-template-columns: 96px minmax(0, 1fr) !important;
-                    grid-template-rows: 112px !important;
-                    width: 100% !important;
-                    height: 112px !important;
-                    min-height: 112px !important;
-                    max-height: 112px !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    max-height: none !important;
                 }
 
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-image {
-                    grid-column: 1;
-                    grid-row: 1;
-                    width: 96px !important;
-                    height: 112px !important;
-                    min-height: 112px !important;
-                    aspect-ratio: auto !important;
-                }
-
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-image img {
-                    position: absolute !important;
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .news-box {
+                    display: flex !important;
+                    flex-direction: column !important;
                     height: 100% !important;
-                    border-radius: 0 !important;
+                }
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-image {
+                    height: auto !important;
+                    aspect-ratio: 16 / 10 !important;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-content {
-                    grid-column: 2;
-                    grid-row: 1;
-                    justify-content: center;
-                    min-width: 0;
-                    min-height: 112px !important;
-                    padding: 11px 10px !important;
+                    min-height: 0 !important;
+                    padding: 9px 10px 36px !important;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-title {
-                    display: -webkit-box;
+                    display: -webkit-box !important;
+                    margin: 0 0 7px !important;
                     font-size: 15px !important;
+                    line-height: 1.1 !important;
                     white-space: normal !important;
+                    text-overflow: clip !important;
                     -webkit-line-clamp: 3;
                     -webkit-box-orient: vertical;
+                    overflow: hidden !important;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-meta {
                     max-width: 100%;
-                    font-size: 8px !important;
+                    font-size: 9px !important;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-meta .views,
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-meta .separator:last-of-type {
                     display: none !important;
+                }
+
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .read-time-badge {
+                    right: 9px !important;
+                    bottom: 9px !important;
+                }
+
+                /* Three action buttons covered most of a half-width picture.
+                   They stay on the hero; a grid card is one tap to open. */
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-actions,
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .readlater-overlay-btn {
+                    display: none !important;
+                }
+
+                /* A lone last card spans the row instead of leaving a hole. */
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child):last-child:nth-child(even) {
+                    grid-column: 1 / -1 !important;
                 }
 
                 .live-wire .box-actions,

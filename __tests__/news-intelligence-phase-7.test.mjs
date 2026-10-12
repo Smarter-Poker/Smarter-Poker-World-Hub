@@ -23,12 +23,17 @@ test('sidebar never presents invented ranking or tournament records', () => {
   assert.doesNotMatch(LEADERBOARD, /fallback: true/);
 });
 
-test('mobile keeps the critical intelligence widgets visible and ahead of the feed', () => {
+// Dan, 2026-10-11: the phone layout follows desktop - stories first, the
+// intelligence widgets after the feed (they were above it, pushing every
+// story below the fold). The widgets stay visible; only their order changed.
+test('mobile keeps the critical intelligence widgets visible, after the feed', () => {
   assert.match(PAGE, /aria-label="News intelligence"/);
   assert.match(PAGE, /\.sidebar > \.widget:not\(\.leaderboard\):not\(\.events\):not\(\.newsletter\)/);
-  assert.match(PAGE, /\.sidebar \{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: -1 !important;/);
-  assert.match(LIVE_WIRE_STYLES, /\.live-wire \.sidebar \{[\s\S]{0,180}display: grid !important;/);
-  assert.doesNotMatch(LIVE_WIRE_STYLES, /\.live-wire \.sidebar \{[\s\S]{0,100}display: none !important;/);
+  assert.match(PAGE, /\.sidebar \{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: 2 !important;/);
+  assert.doesNotMatch(PAGE, /order: -1/);
+  assert.match(LIVE_WIRE_STYLES, /\.news-hub\.live-wire \.layout > \.sidebar \{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: 2 !important;/);
+  assert.doesNotMatch(LIVE_WIRE_STYLES, /order: -1/);
+  assert.doesNotMatch(LIVE_WIRE_STYLES, /\.sidebar \{[\s\S]{0,100}display: none !important;/);
 });
 
 test('nearby tournaments use transient coordinates and canonical event data', () => {

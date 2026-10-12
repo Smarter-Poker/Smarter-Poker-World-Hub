@@ -362,6 +362,7 @@ import './video-library-reels-fails-closed.test.mjs';
 import './auxiliary-reels-console.test.mjs';
 import './background-video-upload-recovery.test.mjs';
 import './news-live-wire-phase-4.test.mjs';
+import './news-source-chips-and-mobile-grid.test.mjs';
 import './news-reels-club-arena-console.test.mjs';
 import './profile-reels-console.test.mjs';
 import './reels-phase2-profile-quarantine.test.mjs';
