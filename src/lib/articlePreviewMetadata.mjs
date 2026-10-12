@@ -1,7 +1,21 @@
+const ARTICLE_ORIGIN = 'https://smarter.poker';
+
+export function internalArticlePath(value) {
+  if (typeof value !== 'string' || !value || value.startsWith('//') || value.includes('\\')) return null;
+  try {
+    const url = new URL(value, ARTICLE_ORIGIN);
+    if (url.origin !== ARTICLE_ORIGIN || url.username || url.password) return null;
+    if (!value.startsWith('/') && !/^https:\/\//i.test(value)) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch { return null; }
+}
+
 export function isArticlePreviewImage(value) {
   if (typeof value !== 'string' || !value) return false;
   try {
-    const url = new URL(value);
+    if (value.includes('\\')) return false;
+    const url = new URL(value, ARTICLE_ORIGIN);
+    if (!value.startsWith('/') && !/^https?:\/\//i.test(value)) return false;
     if (!['http:', 'https:'].includes(url.protocol)) return false;
     if (url.username || url.password) return false;
     return !/(?:^|[\/_-])(?:logo|favicon|icon|emoji|smiley|smilies|emoticon|avatar|sprite|placeholder|default)(?:[\/_.-]|$)/i.test(url.pathname);
@@ -20,7 +34,7 @@ export function suppliedArticleMetadata({ title, description, image, siteName } 
 }
 
 export function articlePreviewNeedsHydration(url, metadata) {
-  return Boolean(url && !metadata?.image);
+  return Boolean(url && !internalArticlePath(url) && !metadata?.image);
 }
 
 export function mergeArticleMetadata(supplied, fetched) {

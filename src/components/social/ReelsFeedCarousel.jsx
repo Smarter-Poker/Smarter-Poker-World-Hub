@@ -4090,13 +4090,23 @@ function ReelsFeedConsoleStyles() {
         outline-offset: -2px;
       }
       .vlc-reel-card__media {
+        position: relative;
         display: grid;
         width: 100%;
         aspect-ratio: 9 / 16;
         overflow: hidden;
       }
-      .vlc-reel-card__media img,
-      .vlc-reel-card__media video {
+      .vlc-reel-card__media .sp-reel-card__play {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        pointer-events: none;
+      }
+      .vlc-feed-console-shell .vlc-reel-card .vlc-reel-card__media img,
+      .vlc-feed-console-shell .vlc-reel-card .vlc-reel-card__media video {
+        position: absolute;
+        inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;

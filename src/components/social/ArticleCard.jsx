@@ -19,11 +19,13 @@
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { decodeHtmlEntities } from '../../lib/socialHelpers';
 import { newsImageUrl } from '../../lib/security/imageHosts.js';
 import {
     articlePreviewNeedsHydration,
+    internalArticlePath,
     isArticlePreviewImage,
     mergeArticleMetadata,
     suppliedArticleMetadata,
@@ -40,6 +42,9 @@ const C = {
 
 // Module-level cache for link-preview metadata (avoids N+1 API calls)
 // Capped at 200 entries to prevent unbounded memory growth on long-lived pages.
+// Publisher recovery can use three bounded six-second requests on the API.
+// Leave room for that maintained fallback chain and transport overhead.
+const PREVIEW_REQUEST_TIMEOUT_MS = 25000;
 const CACHE_MAX = 200;
 const _metadataCache = new Map();
 const _inflightRequests = new Map();
@@ -84,10 +89,10 @@ function prewarmProxy(url) {
 }
 
 
-async function fetchLinkPreview(url, { requireImage = false } = {}) {
+async function fetchLinkPreview(url, { requireImage = false, refresh = false } = {}) {
     // Return cached result if available
     const cached = _metadataCache.get(url);
-    if (cached && (!requireImage || isArticlePreviewImage(cached.image))) return cached;
+    if (!refresh && cached && (!requireImage || isArticlePreviewImage(cached.image))) return cached;
 
     const requestKey = requireImage ? `${url}|story-image-v1` : url;
 
@@ -97,7 +102,7 @@ async function fetchLinkPreview(url, { requireImage = false } = {}) {
     const promise = (async () => {
         try {
             const version = requireImage ? '&preview=story-image-v3' : '';
-            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}${version}`);
+            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}${version}`, { signal: AbortSignal.timeout(PREVIEW_REQUEST_TIMEOUT_MS) });
             if (response.ok) {
                 const data = await response.json();
                 // Only cache if we got useful data (image or title) to allow retry on bare fallback
@@ -132,7 +137,7 @@ const _batchInflight = new Set();
 export async function prewarmLinkPreviews(urls) {
     if (!Array.isArray(urls) || urls.length === 0) return;
     const needed = urls.filter(
-        (u) => u && !_metadataCache.has(u) && !_batchInflight.has(u)
+        (u) => u && !internalArticlePath(u) && !_metadataCache.has(u) && !_batchInflight.has(u)
     );
     if (needed.length === 0) return;
 
@@ -235,11 +240,14 @@ export default function ArticleCard({
     fallbackContent,
     onClick
 }) {
+    const router = useRouter();
+    const internalPath = internalArticlePath(url);
     const [metadata, setMetadata] = useState(() => suppliedArticleMetadata({
         title, description, image, siteName,
     }));
-    const [loading, setLoading] = useState(Boolean(url && !isArticlePreviewImage(image)));
-    const [imageError, setImageError] = useState(false);
+    const [loading, setLoading] = useState(articlePreviewNeedsHydration(url, suppliedArticleMetadata({ image })));
+    const [imageError, setImageError] = useState(null);
+    const recoveryAttempted = useRef(false);
 
     // Fetch incomplete metadata (uses shared cache to avoid N+1). Horse news
     // rows can carry a persisted title while link_image is still null, so a
@@ -251,7 +259,8 @@ export default function ArticleCard({
     useEffect(() => {
         const supplied = suppliedArticleMetadata({ title, description, image, siteName });
         setMetadata(supplied);
-        setImageError(false);
+        setImageError(null);
+        recoveryAttempted.current = false;
         if (!articlePreviewNeedsHydration(url, supplied)) {
             setLoading(false);
             return;
@@ -268,6 +277,25 @@ export default function ArticleCard({
         })();
         return () => { cancelled = true; };
     }, [url, title, description, image, siteName]);
+
+    // Recover one failed persisted image from publisher metadata. The error
+    // stays set while fetching, so a second failed image cannot start a loop.
+    useEffect(() => {
+        if (!imageError || imageError.url !== url || imageError.suppliedImage !== image || !url || internalPath || recoveryAttempted.current) return;
+        recoveryAttempted.current = true;
+        let cancelled = false;
+        setLoading(true);
+        (async () => {
+            const data = await fetchLinkPreview(url, { requireImage: true, refresh: true });
+            if (cancelled) return;
+            const recovered = mergeArticleMetadata({ ...metadata, image: null }, data);
+            if (recovered.image && recovered.image !== metadata.image) {
+                setMetadata(recovered);
+            }
+            setLoading(false);
+        })();
+        return () => { cancelled = true; };
+    }, [imageError, url, internalPath]);
 
     // Check if URL is from a social platform that blocks proxying
     const isSocialPlatformUrl = (testUrl) => {
@@ -293,6 +321,11 @@ export default function ArticleCard({
         e.preventDefault();
         e.stopPropagation();
 
+        if (internalPath) {
+            router.push(internalPath).catch((error) => console.warn('[ArticleCard] Navigation failed:', error?.message));
+            return;
+        }
+
         // Social platform links must open directly - proxying doesn't work
         if (isSocialPlatformUrl(url)) {
             window.open(url, '_blank', 'noopener,noreferrer');
@@ -315,7 +348,7 @@ export default function ArticleCard({
         || 'View Article';
 
     // Get site name from URL if not provided
-    const displaySiteName = metadata.siteName || (() => {
+    const displaySiteName = metadata.siteName || (internalPath ? 'Smarter.Poker' : null) || (() => {
         try {
             return new URL(url).hostname.replace(/^www\./, '').toUpperCase();
         } catch {
@@ -325,7 +358,7 @@ export default function ArticleCard({
 
     // Determine what image to show - be more permissive for social platform images
     // If we have an image URL, use it (don't be too strict with validation)
-    const displayImage = !imageError && metadata.image ? newsImageUrl(metadata.image) : null;
+    const displayImage = metadata.image && (!imageError || metadata.image !== imageError.failed) ? newsImageUrl(metadata.image) : null;
 
     return (
         <div
@@ -411,14 +444,16 @@ export default function ArticleCard({
                             objectPosition: 'center center',
                             background: '#f0f2f5'
                         }}
-                        onError={() => setImageError(true)}
+                        loading="lazy"
+                        decoding="async"
+                        onError={() => setImageError({ url, suppliedImage: image, failed: metadata.image })}
                     />
                 ) : null}
             </div>}
 
             <div style={{ padding: '10px 16px 12px', background: C.card }}>
                 <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
-                    Click To Read Full Article →
+                    {internalPath ? 'Open On Smarter.Poker →' : 'Click To Read Full Article →'}
                 </div>
             </div>
         </div>

@@ -908,6 +908,7 @@ jobs:
             'pages/hub/social-pages/[pageId].js' \
             src/components/social/ReelsFeedCarousel.jsx \
             src/components/reels/ReelCard.jsx \
+            src/components/reels/ReelThumbnail.jsx \
             src/lib/articlePreviewMetadata.mjs \
             src/lib/canonicalBrowserPost.mjs \
             src/lib/reelCreatorName.mjs \
