@@ -1971,3 +1971,47 @@
         padding-inline: 0;
     }
 }
+
+/* Phase 3: one retained player, with reachable timeline and session markers. */
+.vl-playback-tools, .vl-description { padding: 12px; color: var(--vl-ink, #f1f1f1); }
+.vl-playback-buttons, .vl-mini-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.vl-playback-tools button, .vl-description button, .vl-mini-controls button, .vl-playback-error button {
+    min-height: 44px; padding: 8px 14px; border: 0; border-radius: 22px; background: #272727; color: #f1f1f1; font-size: 14px; cursor: pointer;
+}
+.vl-playback-tools button:disabled { opacity: .55; cursor: default; }
+.vl-playback-buttons label { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; }
+.vl-playback-buttons input { width: 20px; height: 20px; accent-color: #389aff; }
+.vl-hand-timeline label { display: block; margin-top: 8px; font-size: 14px; }
+.vl-hand-timeline label span { float: right; }
+.vl-hand-timeline input { display: block; width: 100%; height: 44px; accent-color: #389aff; }
+.vl-hand-timeline p { font-size: 12px; color: #aaa; }
+.vl-hand-timeline ul { padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.vl-hand-timeline li { display: flex; gap: 4px; }
+.vl-description p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; }
+.vl-description p.is-collapsed { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vl-autoplay-countdown { padding: 12px; background: #151515; border-radius: 12px; }
+.vl-autoplay-countdown p { font-size: 14px; overflow-wrap: anywhere; }
+.vl-autoplay-countdown button { margin-right: 8px; }
+.vl-watch-tools { grid-column: 1; grid-row: 2; }
+@media (min-width: 1024px) { .vl-watch > .vl-info-bar { grid-row: 3; } .vl-watch > .vl-up-next-rail { grid-row: 1 / span 3; } }
+.vl-player-stage.is-vertical-player { aspect-ratio: 9 / 16; width: min(100%, 360px, calc(65dvh * 9 / 16)); max-height: 65dvh; margin-inline: auto; }
+.vl-viewer.is-mini-player {
+    inset: auto 12px calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px) + 12px) auto;
+    width: min(360px, calc(100vw - 24px)); max-height: 65dvh; border-radius: 12px; box-shadow: 0 8px 30px #0009; overflow-y: auto;
+}
+.vl-viewer.is-mini-player .vl-watch { display: block; padding: 0; }
+.vl-viewer.is-mini-player .vl-watch-player { position: static; }
+.vl-viewer.is-mini-player .vl-player-stage { max-height: 35dvh; border-radius: 0; }
+.vl-viewer.is-mini-player .vl-info-bar, .vl-viewer.is-mini-player .vl-up-next-rail,
+.vl-viewer.is-mini-player .vl-player-nav-group, .vl-viewer.is-mini-player .vl-swipe-zone,
+.vl-viewer.is-mini-player .vl-hand-timeline { display: none; }
+.vl-watch-page-player.is-mini-player {
+    position: fixed; z-index: 9998; inset: auto 12px calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px) + 12px) auto;
+    width: min(360px, calc(100vw - 24px)); max-height: 55dvh; margin: 0; padding-bottom: 44px; box-sizing: content-box; border-radius: 12px; box-shadow: 0 8px 30px #0009;
+}
+.vl-mini-controls { position: absolute; bottom: 0; left: 0; right: 0; background: #000; justify-content: space-between; }
+.vl-playback-error { position: absolute; inset: 0; background: #000e; display: grid; place-content: center; padding: 20px; }
+.vl-timeline-marks { position: relative; height: 8px; margin-bottom: 8px; }
+.vl-timeline-marks span { position: absolute; width: 3px; height: 8px; background: #389aff; transform: translateX(-50%); }
+.vl-viewer.is-mini-player .vl-player-stage, .vl-watch-page-player.is-mini-player { min-height: 200px; }
+.vl-sound-notice { font-size: 12px; color: #aaa; padding-block: 4px; }

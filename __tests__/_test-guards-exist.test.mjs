@@ -1,3 +1,4 @@
+import './video-library-playback.test.mjs';
 import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
 import './union-leave-read-errors.test.mjs';

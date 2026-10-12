@@ -1,0 +1,69 @@
+# Video Library Mobile Redesign, Phase 3 Of 8
+
+Owner: Codex chat 01a13094-e335-71b2-b49e-651bc6ff67dc. Prior Claude mobile task is handed off through the owner's pasted transcript; no matching active writer/open phase PR found. Earlier Video/Reels ten-phase programme is separate and remains untouched.
+
+Recovered baseline: b5645a336cf, including mobile layout #2319, curation #2328, watch pages #2338, casino filter #2340 and thumbnail fill #2341. Previous phases are historical claims until current live checks.
+
+Authorization: continue the owner's mobile redesign at Phase 3. Scope: library viewer and standalone watch page; real playback timeline and session hand markers, cancellable five-second next-video countdown, Show More description, vertical short-video presentation, same-iframe mini-player. Excludes phases 4–8, catalog ingestion/rights changes, account persistence and engine/database changes. Description remains verified catalog facts; marker UI explicitly identifies session-only storage. Short videos follow the existing shelf's up-to-180-second definition.
+
+Checkout: /Volumes/SmarterWork/agent-work/video-library-phase3-20261012
+Branch: agent/codex/video-library-phase3-20261012
+Evidence: /Volumes/SmarterArchives/agent-evidence/video-library-phase3-20261012
+Route: protected World Hub squash merge, Vercel hub-vanguard Git build, READY and health identity plus affected live behavior. No engine dependency or hourly gate.
+
+Policy receipt: canonical reader emitted 2026-10-12T14:47:13.863Z, version 2.9, manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b. Read canonical AGENTS.md, AGENT-OPERATING-LAW.md, AGENT-HARDENING-STANDARD.md, AGENT-REFERENCE-INDEX.md and MAC-STORAGE.md; root AGENTS.md, CLAUDE.md, AGENT-PLAYBOOK.md, PUBLISHING.md and applicable Video Library workflow. Older metal-frame workflow is superseded by owner's explicit frame removal in this mobile redesign. Canonical/portable parity passed. SSD is independently mounted and has space. GitHub configured authenticated access is available. No credentials read from environment files.
+
+Acceptance: same mounted iframe through minimize/expand; modal focus and background scroll restored when minimized; strict player-window/origin message validation; bounded seek positions and duplicate marker protection; countdown stops on cancel, pause, playback error, hidden tab, video change and unmount; next video actually starts; no invented hand data; phone/desktop widths and touch targets; prior watch SEO/curation behavior retained; required checks, merge, publication and live proof.
+
+Initial checks: locked private dependencies installed on SSD; changed JSX parsed; title case and UI text guards pass; watch-page regression 10/10; git diff whitespace passes. Remaining: behavioral tests, full checks/build, responsive browser proof, protected delivery and live verification.
+
+## Local Qualification
+
+- Focused curation/watch/playback and existing reliability tests: 64/64 pass on final source.
+- Full library browser matrix: 25 passed, one intentional desktop skip for a phone-only geometry case. Added Phase 3 matrix: 4/4 pass after the autoplay-toggle reload was reproduced and corrected by freezing the launch preference for the current iframe.
+- Standalone page with an isolated PostgREST fixture: 375/393/768/1440 widths pass hand seeking, same-iframe minimize/expand, Show More and next-video URL/player transition; measured short stage 296.875 x 527.766 (9:16).
+- Search fixture repaired to include the real discovery endpoint used by search. No source behavior changed for that fixture repair.
+- Initial build failed fixture storage assertions: TMPDIR must be outside the checkout so missing-parser and private-credential tests do not inherit checkout modules or mistake fixture credentials for tracked source. Corrected to a separate task-owned SSD temporary folder. Next dev's own next-env.d.ts change was restored; the production build regenerates it.
+- Required repository/build qualification is running; no hosted submission or completion claimed yet.
+- Full required meta-guard on the corrected external temporary path: 2,952/2,952 pass, no skips. Tests now use a temporary folder outside the repository to preserve private-credential fixture boundaries and missing-dependency isolation.
+- The final playback control also cancels a pending next transition when the proposed next title changes and retains at least a 200px mini-player height. No media is downloaded or duplicated.
+- Exact production-source build on committed implementation dfd060dbaa8412fe253f0da20eb81ef76213a4e4: build:vercel passed, 508/508 pages generated. Full npm build also passed. Build runs without production credentials; runtime catalog access is verified separately.
+- Final production-bundle browser matrix: 25/25 executable Chromium desktop/phone checks passed (one explicitly conditional desktop skip for the phone-only geometry case). Safari/WebKit desktop/phone Phase 3 matrix passed 4/4, including seek, markers, countdown cancellation and same-iframe minimize/expand.
+- All local source gates and exact candidate compilation passed. Hosted required checks, protected merge, Vercel READY, live health identity and final affected live proof remain pending.
+
+## Real Provider Playback And Duration Correction
+
+A real YouTube video (6x3K5m28uc4) delivered genuine advancing playback time on the built source; after minimizing, the same player continued from about 10 to 14 seconds. No provider fixture was used for that playback check. Native telemetry showed that later infoDelivery messages omit duration. A new browser regression reproduced the timeline reverting to catalog duration after the provider supplied a different value. The component now retains the latest valid provider duration through partial telemetry messages; final rebuild and fail-after proof are required before submission of this correction.
+
+Current PR #2343, head d65d46dc6ab70c6996ab8fd1970cce682824c968. Pre-push passed all ordinary gates, including TypeScript baseline. Required hosted checks are running; no completion claimed.
+- Duration regression proved with the actual React component from prior head versus corrected source: old max 1,122 after a 1,200-second provider duration and a later duration-less update; corrected max remains 1,200. The retained browser regression waits for the later position before checking duration, eliminating an asynchronous assertion race.
+- Corrected exact source rebuild passed (508 pages). Final corrected Chromium and Safari/WebKit playback matrices passed 4/4 each; focused source tests passed 27/27. Required evidence for unchanged source remains valid. The correction changes only duration retention and its regression, plus this checkpoint.
+
+## Final Validation Receipt And Hosted Operation
+
+Fresh canonical full reader emitted 2026-10-12T15:14:36.817Z: version 2.9, manifest a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b; all four file hashes match the startup receipt. Root AGENTS.md, CLAUDE.md, AGENT-PLAYBOOK.md, PUBLISHING.md and this checkpoint were reread before final validation.
+
+Final pushed correction head: 6ec5c87b83c977a151fbb630f440c651da164788, PR https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/2343. Ordinary pre-push gates passed, including TypeScript baseline. Exact-head hosted Build Safety Gate 38268350449, footer 38268350412, invariants 38268350278. Superseded prior-head Build Safety, footer and invariants attempts reached terminal CANCELLED through provider concurrency; no other task's checks were cancelled. Current checks are pending, not passing or completion evidence. Vercel CLI authenticated reporter admin-74513439 is available for read-only deployment inspection.
+
+Real Chromium YouTube Short HXMGAsXKqtM supplied its actual 43.901-second duration, ended, triggered the five-second countdown, transitioned to the next test-catalog video M7lc1UVf-VE and genuinely played to 3.08 seconds. Catalog selection was isolated locally; YouTube playback was real and unmocked. Final production catalog and live deployment proof remain required.
+
+## Final Media Continuity Hardening
+
+Real WebKit initially held sound-on playback paused (video readyState 4, currentTime 0, paused true). Added the official onAutoplayBlocked event subscription and one bounded muted play attempt in the original player request; no polling or retry loop. Removed delayed automatic-unmute attempts. The sound hint reflects provider muted telemetry, and playback startup is separate from Autoplay Next so toggling it cannot resume a paused video. Actual unmocked WebKit Short playback now reaches ended state 0, triggers the countdown and genuinely plays the next video to 2.55 seconds. Corrected Chromium and WebKit browser matrices each pass 4/4, including duplicate-block prevention and pause preservation.
+
+Inspection of the library's authenticated 15-second watch-history save found a continuity defect: saved progress fed the active iframe start parameter and could reload the player on every save or rewind it at 95% completion. An executable regression using the real page's resume calculations fails before (start changes from 20 to 35) and passes after. The player key now captures the starting position once; displayed/persisted progress still updates, and a new viewing session captures the latest saved position. No persistence, reward or database rules changed.
+
+Standalone iframe identity is keyed to the video, so old-document messages cannot control the next video's viewer. Muted fallback/start requests do not launch a hidden document. A final rebuild/browser pass is required for these source changes before the correction is pushed. This PR's automatic merge request was disabled while repairing known playback defects; normal protected merge remains the final integration route with required current-head checks.
+- Final source build passed with 508 pages; focused source tests pass 65/65; current complete repository guard passes 2,953/2,953.
+- Final compiled browser matrix passes 25 executable Chromium desktop/phone checks with one intentional desktop skip for the phone-only geometry case; WebKit desktop/phone playback checks pass 4/4. The regression now also proves full-screen exit on minimization and clicking the already-playing card after changing autoplay preserves the same iframe URL.
+- The final player start snapshot and iframe video key preserve continuity and old-frame rejection without changing account persistence or rewards. All app/source changes are qualified; the final correction is ready for ordinary submission. Production publication and final live proof remain pending.
+
+## Final Submitted Candidate
+
+Final head 7faf232c678623c4c346a12127e646033c9327e0 is pushed on PR #2343. Ordinary pre-push checks passed, including exact-candidate TypeScript baseline. Required hosted Build Safety Gate 38277753745 (pre-deploy job 114907290781, TypeScript job 114907291198), invariants 38277753781, identifier guard 38277753751, conflict guard 38277753976, and audit marker 38277753748 are pending/queued. Provider job metadata reports no assigned runner for the queued safety jobs. This is a provider-worker wait, not an engine/hourly dependency or a local failure.
+
+Final current-source standalone checks at 375/393/768/1440 widths pass actual next iframe source identity and responsive layout. Real WebKit playback verified again with a condition-based wait for actual playback readiness before seeking; the real next video advanced beyond four seconds. No production claim until protected merge, Vercel READY, serving identity and live affected behavior.
+
+## Footer Verification Repair
+
+Prior-head hosted Global Footer run 38268350412 failed specifically on the new watch-route template. The generic dynamic sampler substituted `sample` for videoId and left the optional catch-all template in the URL, so getServerSideProps correctly returned 404 and the fixture tested the 404 footer. This is in-scope verification repair, not a footer layout change. The footer test now obtains an eligible ID from the public catalog and checks a real watch route, retaining the existing status/artwork assertions and full route coverage. A dedicated two-engine server-rendered watch-footer case plus the maintained footer-law regression protect this sample mapping.
