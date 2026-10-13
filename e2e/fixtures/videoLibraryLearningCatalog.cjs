@@ -6,7 +6,7 @@ const catalogRows = () => [
     ['phase7v0000', 'Daniel Negreanu Poker Decision', ['Daniel Negreanu']],
     ['phase7v0001', 'Daniel Negreanu Tournament Review', ['Daniel Negreanu']],
     ['phase7v0002', 'Unrelated River Decision', []],
-].map(([id, title, tags]) => ({ youtube_video_id: id, source_id: 'HCL', source_name: 'Channel Contract Poker', attribution_name: 'Channel Contract Poker', title, tags, type: 'cash', duration: '18:42', views_count: 120000, thumbnail_url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, published_at: now(), scraped_at: now(), availability_status: 'verified', embeddable: true, availability_checked_at: now() }));
+].map(([id, title, tags]) => ({ youtube_video_id: id, source_id: 'HCL', source_name: 'Channel Contract Poker', attribution_name: 'Channel Contract Poker', title, tags, type: 'cash', duration: id === 'phase7v0000' ? '1:10' : '18:42', views_count: 120000, thumbnail_url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, published_at: now(), scraped_at: now(), availability_status: 'verified', embeddable: true, availability_checked_at: now() }));
 function createLearningCatalogFixture() {
     return http.createServer((req, res) => {
         const url = new URL(req.url, 'http://localhost');

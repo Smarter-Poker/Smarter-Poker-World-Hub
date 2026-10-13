@@ -44,8 +44,14 @@ async function timeline() {
     });
 }
 async function nativeClick(button) {
-    await button.scrollIntoViewIfNeeded();
+    await expect(button).toBeVisible();
     await expect.poll(() => button.evaluate(element => {
+        element.scrollIntoView({ block: 'end', inline: 'nearest' });
+        const footer = document.querySelector('[aria-label="Video Library Footer" i]');
+        const footerHeight = footer?.getBoundingClientRect().height || 0;
+        const before = element.getBoundingClientRect();
+        const lowerEdge = innerHeight - footerHeight - 12;
+        if (before.bottom > lowerEdge) window.scrollBy(0, before.bottom - lowerEdge);
         const bounds = element.getBoundingClientRect();
         const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
         return hit === element || element.contains(hit);
@@ -146,7 +152,7 @@ try {
             });
         });
         await page.goto(`${base}/hub/video-library`, { waitUntil: 'commit' });
-        await page.getByRole('link', { name: 'Poker Players', exact: true }).click();
+        await nativeClick(page.getByRole('link', { name: 'Poker Players', exact: true }));
         await expect(page.getByRole('heading', { name: 'Poker Players', exact: true })).toBeVisible();
         const directoryGeometry = await layout(`${variant.name}-directory`);
         await page.getByRole('link', { name: 'Daniel Negreanu', exact: true }).click();
