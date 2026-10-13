@@ -31,6 +31,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { VIDEO_LIBRARY_PLAYERS } from '../src/lib/videoLibraryPlayers.mjs';
 
 import {
     canonicalPath, exclusions, pageFileFor, readRegistry,
@@ -356,4 +357,27 @@ test('the channel footer samples canonical registry data instead of a nonexisten
     assert.match(spec, /request\.get\('\/api\/video-library\/channels'\)/);
     assert.match(spec, /sourceRoute === VIDEO_CHANNEL_SOURCE_ROUTE \? channelRoute : sampledRoute/);
     assert.match(spec, /channelFooterSample\(request\)/);
+});
+
+test('the player footer executes a catalog-confirmed canonical sampler instead of the generic sample route', async () => {
+    const spec = read(FOOTER_SPEC);
+    assert.match(spec, /VIDEO_PLAYER_SOURCE_ROUTE = '\/hub\/video-library\/players\/\[playerId\]'/);
+    assert.match(spec, /sourceRoute === VIDEO_PLAYER_SOURCE_ROUTE \? playerRoute : channelSampledRoute/);
+    assert.match(spec, /const playerRoute = await playerFooterSample\(request\)/);
+    assert.match(spec, /import \{ VIDEO_LIBRARY_PLAYERS \} from '\.\.\/src\/lib\/videoLibraryPlayers.mjs'/);
+    const start = spec.indexOf('async function playerFooterSample(');
+    const end = spec.indexOf('\n}', start) + 2;
+    assert.ok(start >= 0 && end > start);
+    const executable = spec.slice(start, end).replace('request: APIRequestContext', 'request').replace(': Promise<string>', '');
+    const expect = value => ({ toBe(expected) { assert.equal(value, expected); }, toMatch(pattern) { assert.match(value, pattern); } });
+    const sample = new Function('expect', 'VIDEO_LIBRARY_PLAYERS', `${executable}; return playerFooterSample;`)(expect, VIDEO_LIBRARY_PLAYERS);
+    const calls = [], player = VIDEO_LIBRARY_PLAYERS[0];
+    const request = payload => ({ async get(url) { calls.push(url); return { ok: () => true, json: async () => payload }; } });
+    assert.equal(await sample(request({ success: true, player, data: [] })), player.path);
+    const handler = read('pages/api/video-library/catalog.js');
+    const parameter = /const playerRequested = firstQueryValue\(req\.query\.([A-Za-z]+)\)/.exec(handler)?.[1];
+    assert.ok(parameter, 'The sampler must use the query parameter consumed by the actual catalog owner');
+    assert.deepEqual(calls, [`/api/video-library/catalog?${parameter}=${encodeURIComponent(player.id)}&limit=1`]);
+    await assert.rejects(sample(request({ success: true, player: { ...player, id: 'sample' }, data: [] })), /sample/);
+    await assert.rejects(sample(request({ success: true, player: { ...player, path: '/hub/video-library/players/sample' }, data: [] })), /sample/);
 });

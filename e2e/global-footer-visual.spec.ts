@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext, type Page, type APIRequestContext } 
 import fs from 'node:fs';
 import path from 'node:path';
 import footerRegistry from '../src/config/world-footer-navigation.json';
+import { VIDEO_LIBRARY_PLAYERS } from '../src/lib/videoLibraryPlayers.mjs';
 
 const VIEWPORTS = [
   { width: 320, height: 568 },
@@ -124,6 +125,7 @@ const redirectOwnedRoutes: Record<string, { pathname: string }> = {
 
 const VIDEO_WATCH_SOURCE_ROUTE = '/hub/video-library/watch/[videoId]/[[...slug]]';
 const VIDEO_CHANNEL_SOURCE_ROUTE = '/hub/video-library/channels/[channelId]';
+const VIDEO_PLAYER_SOURCE_ROUTE = '/hub/video-library/players/[playerId]';
 
 async function channelFooterSample(request: APIRequestContext): Promise<string> {
   const response = await request.get('/api/video-library/channels');
@@ -132,6 +134,20 @@ async function channelFooterSample(request: APIRequestContext): Promise<string> 
   const channelId = payload?.channels?.[0]?.id;
   expect(channelId, 'The Footer Channel Sample Needs A Canonical Registry ID').toMatch(/^[0-9a-f-]{36}$/i);
   return `/hub/video-library/channels/${channelId}`;
+}
+
+async function playerFooterSample(request: APIRequestContext): Promise<string> {
+  const player = VIDEO_LIBRARY_PLAYERS[0];
+  expect(player?.id, 'The Footer Player Sample Needs A Canonical Registry ID').toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  const response = await request.get(`/api/video-library/catalog?playerId=${encodeURIComponent(player.id)}&limit=1`);
+  expect(response.ok(), 'The Footer Player Sample Needs A Working Public Catalog').toBe(true);
+  const payload = await response.json();
+  expect(payload?.success).toBe(true);
+  expect(payload?.player?.id).toBe(player.id);
+  expect(payload?.player?.path).toBe(player.path);
+  // An empty eligible catalog is still a real player page with its own footer.
+  expect(Array.isArray(payload?.data)).toBe(true);
+  return payload.player.path;
 }
 
 // The watch page requires a verified catalog ID. A generic "sample" renders
@@ -371,12 +387,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
     const watchRoute = await watchFooterSample(request);
     const channelRoute = await channelFooterSample(request);
+    const playerRoute = await playerFooterSample(request);
     for (let offset = 0; offset < routeMatrix.length; offset += 8) {
       const batch = routeMatrix.slice(offset, offset + 8);
       await Promise.all(
         batch.map(async ({ sourceRoute, reachableRoute, world }) => {
           const sampledRoute = sourceRoute === VIDEO_WATCH_SOURCE_ROUTE ? watchRoute : reachableRoute;
-          const response = await request.get(sourceRoute === VIDEO_CHANNEL_SOURCE_ROUTE ? channelRoute : sampledRoute, {
+          const channelSampledRoute = sourceRoute === VIDEO_CHANNEL_SOURCE_ROUTE ? channelRoute : sampledRoute;
+          const response = await request.get(sourceRoute === VIDEO_PLAYER_SOURCE_ROUTE ? playerRoute : channelSampledRoute, {
             failOnStatusCode: false,
             timeout: 30_000,
           });
