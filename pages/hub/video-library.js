@@ -2341,7 +2341,7 @@ export default function VideoLibraryPage() {
                 <StudyStatus />
                 {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
                 <VideoQueue currentVideoId={selectedVideo?.videoId} ownerId={userId} onPlay={item => void router.push(`${watchPath(item)}?play=1`)} />
-                {libraryFilter === 'playlists' && userId && <section className="vl-playlist-index" aria-label="Your Playlists">{playlists.map(list => <a key={list.id} className="vl-playlist-index-link" href={playlistPath(list.id)}>{list.name}<span>{(list.items || []).length} Saved Videos</span></a>)}</section>}
+                {libraryFilter === 'playlists' && userId && <section className="vl-playlist-index" aria-label="Your Playlists">{playlists.map(list => <a key={list.id} className="vl-playlist-index-link" href={playlistPath(list.id)}><span data-user-content>{list.name}</span><span>{(list.items || []).length} Saved Videos</span></a>)}</section>}
                 {libraryFilter === 'ALL' && <LiveNow channelId={selectedSource === 'ALL' ? undefined : selectedSource} />}
                 <div
                     id="video-library-grid"
@@ -2988,7 +2988,7 @@ export default function VideoLibraryPage() {
                                 return (
                                     <div key={p.id} className="vl-playlist-row">
                                         <div className="vl-playlist-copy">
-                                            <strong>{p.name}</strong>
+                                            <strong data-user-content>{p.name}</strong>
                                             {p.items?.length != null && (
                                                 <span>{p.items.length} video{p.items.length !== 1 ? 's' : ''}</span>
                                             )}
