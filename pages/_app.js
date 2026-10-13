@@ -929,9 +929,9 @@ export default function App({ Component, pageProps }) {
   const resolvedPath =
     (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
   // Query-state changes must not remount the full-screen Reel viewer or the
-  // Stable Admin console while their in-flight work and keyboard state settle.
+  // Stable Admin console or browsing search while their in-flight work and keyboard state settle.
   // Other routes retain the historical full-URL error-boundary reset behavior.
-  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses'
+  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/video-library'
     ? resolvedPath
     : router.asPath;
   // Every Poker Near Me route owns a complete SEOHead. Keeping the generic

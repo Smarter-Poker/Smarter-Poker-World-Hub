@@ -2015,3 +2015,42 @@
 .vl-timeline-marks span { position: absolute; width: 3px; height: 8px; background: #389aff; transform: translateX(-50%); }
 .vl-viewer.is-mini-player .vl-player-stage, .vl-watch-page-player.is-mini-player { min-height: 200px; }
 .vl-sound-notice { font-size: 12px; color: #aaa; padding-block: 4px; }
+
+/* Mobile browsing upgrades share the existing navigation rather than duplicating it. */
+.vl-browse-search { z-index: 30; }
+.vl-search-submit, .vl-search-remove, .vl-search-history-clear { min-height: 44px; border: 0; background: transparent; color: var(--vl-ink); padding: 0 12px; cursor: pointer; }
+.vl-search-submit { border-left: 1px solid var(--vl-line); border-radius: 0 22px 22px 0; }
+.vl-search-shortcut { color: var(--vl-muted); padding: 0 8px; }
+.vl-search-options { position: absolute; top: calc(100% + 6px); left: 0; right: 0; max-height: min(55dvh, 420px); overflow-y: auto; background: #181818; border: 1px solid #444; border-radius: 12px; box-shadow: 0 10px 24px #0008; }
+.vl-search-options ul { list-style: none; margin: 0; padding: 0; }
+.vl-search-option-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; font-size: 13px; }
+.vl-search-option-row { display: flex; align-items: center; border-top: 1px solid #2a2a2a; }
+.vl-search-option { flex: 1; min-width: 0; min-height: 52px; padding: 8px 12px; text-align: left; background: transparent; border: 0; color: var(--vl-ink); cursor: pointer; overflow-wrap: anywhere; }
+.vl-search-option small { display: block; color: var(--vl-muted); font-size: 12px; }
+.vl-search-option[aria-selected="true"], .vl-search-option:hover { background: #303030; }
+.vl-search-storage-note { position: absolute; top: 100%; font-size: 12px; background: #181818; padding: 4px 8px; }
+.vl-browse-filters { margin: 12px; }
+.vl-browse-filter-fields { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.vl-browse-filter-fields label { flex: 1 1 100px; font-size: 13px; color: var(--vl-muted); }
+.vl-browse-filter-fields select { display: block; width: 100%; min-height: 44px; border: 1px solid #444; border-radius: 8px; background: #181818; color: var(--vl-ink); padding: 0 10px; font-size: 14px; }
+.vl-browse-filter-fields button { min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: #292929; color: var(--vl-ink); }
+.vl-browse-filters p { margin: 8px 0; color: var(--vl-muted); font-size: 12px; }
+@media (max-width: 1099px) {
+    .vl-topbar { position: sticky; top: 0; z-index: 30; background: var(--vl-bg, #0f0f0f); }
+    .vl-browse-search { transition: height .18s, opacity .18s, margin .18s, transform .18s; }
+    .vl-browse-search.is-scroll-hidden:not(:focus-within) { height: 0; opacity: 0; margin-block: 0; border-width: 0; overflow: hidden; transform: translateY(-12px); }
+    .vl-browse-search:focus-within { height: 44px; opacity: 1; transform: none; }
+}
+@media (min-width: 1100px) {
+    .vl-yt { display: grid; grid-template-columns: 190px minmax(0, 1fr); column-gap: 24px; align-items: start; }
+    .vl-yt > * { grid-column: 2; min-width: 0; }
+    .vl-yt > .vl-topbar { display: contents; }
+    .vl-topbar > .vl-browse-search { grid-column: 2; grid-row: 1; margin-inline: 0; }
+    .vl-topbar > .vl-chip-rail { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 16px; max-height: calc(100dvh - 96px); overflow-y: auto; background: #111; border-radius: 10px; padding: 8px; }
+    .vl-chip-rail .vl-type-toggle-row { flex-direction: column; align-items: stretch; overflow-x: visible; white-space: normal; padding: 0; gap: 4px; }
+    .vl-chip-rail .vl-filter-button { width: 100%; flex-shrink: 0; justify-content: flex-start; text-align: left; }
+    .vl-chip-rail .vl-chip-divider { width: 100%; height: 1px; min-height: 1px; margin-block: 8px; }
+    .vl-browse-filters { margin-inline: 0; }
+    .vl-yt .vl-video-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .vl-browse-search { transition: none; } }

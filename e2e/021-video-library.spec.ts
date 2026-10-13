@@ -28,7 +28,7 @@ const VIDEO_A = {
   thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
   publishedAt: '2026-08-26T12:00:00.000Z',
   scrapedAt: '2026-08-26T12:00:00.000Z',
-  tags: ['river'],
+  tags: ['river', 'nlh', 'low stakes', 'beginner'],
 };
 
 const VIDEO_B = {
@@ -40,7 +40,7 @@ const VIDEO_B = {
   attributionName: 'Triton Poker',
   type: 'tournament',
   title: 'Final Table Pressure Test',
-  tags: ['tournament'],
+  tags: ['tournament', 'plo', 'high stakes', 'advanced'],
 };
 
 const SPORTS_VIDEO = {
@@ -52,6 +52,7 @@ const SPORTS_VIDEO = {
   attributionName: 'Sports Clips',
   type: 'sports',
   title: 'Buzzer Beater Highlights',
+  tags: ['sports'],
 };
 
 const CREATOR_VIDEO = {
@@ -62,6 +63,7 @@ const CREATOR_VIDEO = {
   sourceName: '3f8136ba-51e4-4093-9866-d0a1b2c3d4e5',
   attributionName: '3f8136ba-51e4-4093-9866-d0a1b2c3d4e5',
   title: 'Creator Upload Without A Name',
+  tags: [],
 };
 
 const BLOCKED_VIDEO = {
@@ -97,6 +99,17 @@ async function mockCatalog(route: Route): Promise<void> {
     ? videos.filter(video => video.type === type)
     : videos.filter(video => video.type === 'cash' || video.type === 'tournament');
   if (source) videos = videos.filter(video => video.source === source);
+  // Independently specified fixture metadata: filtering must reach the API,
+  // including discovery, rather than only changing a selected UI control.
+  const dimensionTags: Record<string, Record<string, string>> = {
+    game: { holdem: 'nlh', omaha: 'plo' },
+    stakes: { low: 'low stakes', mid: 'mid stakes', high: 'high stakes' },
+    skill: { beginner: 'beginner', intermediate: 'intermediate', advanced: 'advanced' },
+  };
+  for (const [dimension, values] of Object.entries(dimensionTags)) {
+    const selected = url.searchParams.get(dimension);
+    if (selected && selected !== 'ALL') videos = videos.filter(video => video.tags.includes(values[selected]));
+  }
   if (query) videos = videos.filter(video => `${video.title} ${video.tags.join(' ')}`.toLowerCase().includes(query));
   await route.fulfill({
     status: 200,
@@ -137,7 +150,7 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_B.title })).toHaveCount(0);
 
-    const search = page.getByRole('searchbox', { name: 'Search the poker video library' });
+    const search = page.getByRole('combobox', { name: 'Search the poker video library' });
     await search.fill('river');
     await expect(page).toHaveURL(/q=river/, { timeout: 5_000 });
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
@@ -401,6 +414,131 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     await expect(player).not.toHaveAttribute('src', new RegExp(`/embed/${VIDEO_A.videoId}\\?`), { timeout: 8000 });
     await expect(page.locator('.vl-autoplay-countdown')).toHaveCount(0);
     await expect(page.locator('iframe#youtube-player')).toHaveCount(1);
+  });
+
+  test('Phase 4 suggestions are keyboard selectable and submitted recent searches persist, remove and clear', async ({ page }) => {
+    const crashes = watchForCrashes(page);
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
+    const catalogResponse = (query: string) => page.waitForResponse(response => { const url = new URL(response.url()); return /\/api\/video-library\/(catalog|discovery)$/.test(url.pathname) && (url.searchParams.get('q') || '') === query; }).then(response => response.finished());
+    const search = page.getByRole('combobox', { name: 'Search the poker video library' });
+    await search.evaluate(element => element.setAttribute('data-retained-search', 'yes'));
+    const typedResponse = catalogResponse('river');
+    await search.fill('river');
+    await typedResponse;
+    await expect(search).toHaveAttribute('data-retained-search', 'yes');
+    await expect(search).toBeFocused();
+    const suggestion = page.getByRole('option', { name: new RegExp(VIDEO_A.title) });
+    await expect(suggestion).toBeVisible();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('video-library-recent-searches-v1'))).toBeNull();
+    await search.press('ArrowDown');
+    await expect(suggestion).toHaveAttribute('aria-selected', 'true');
+    await expect(search).toHaveAttribute('aria-activedescendant', await suggestion.getAttribute('id') as string);
+    const submittedResponse = catalogResponse(VIDEO_A.title);
+    await search.press('Enter');
+    await submittedResponse;
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('video-library-recent-searches-v1') || '[]'))).toEqual([VIDEO_A.title]);
+    await expect(page).toHaveURL(/q=River/);
+    const refreshedResponse = catalogResponse(VIDEO_A.title);
+    await page.reload({ waitUntil: 'commit' });
+    await refreshedResponse;
+    await search.click();
+    await expect(page.getByRole('button', { name: `Remove Recent Search ${VIDEO_A.title}`, exact: true })).toBeVisible();
+    await search.press('Escape');
+    await expect(search).toHaveValue(VIDEO_A.title);
+    await expect(page.getByRole('listbox', { name: 'Video Search Suggestions' })).toHaveCount(0);
+    const clearedResponse = catalogResponse('');
+    await page.getByRole('button', { name: /^Clear Video Search$/i }).click();
+    await clearedResponse;
+    await page.getByRole('button', { name: `Remove Recent Search ${VIDEO_A.title}`, exact: true }).click();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('video-library-recent-searches-v1'))).toBeNull();
+    for (const query of ['river', 'tournament']) {
+      const resultResponse = catalogResponse(query);
+      await search.fill(query);
+      await resultResponse;
+      await page.getByRole('button', { name: 'Submit Video Search', exact: true }).click();
+    }
+    const historyClearResponse = catalogResponse('');
+    await page.getByRole('button', { name: /^Clear Video Search$/i }).click();
+    await historyClearResponse;
+    await expect(page.getByRole('button', { name: 'Clear Recent Searches', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Clear Recent Searches', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('video-library-recent-searches-v1'))).toBeNull();
+    const outsideSearchResponse = catalogResponse('river');
+    await search.fill('river');
+    await outsideSearchResponse;
+    await expect(suggestion).toBeVisible();
+    await page.getByRole('button', { name: /^Show Videos From All Channels$/i }).click();
+    await expect(page.getByRole('listbox', { name: 'Video Search Suggestions' })).toHaveCount(0);
+    expect(crashes).toEqual([]);
+  });
+
+  test('Phase 4 published game, stakes and skill filters compose, survive refresh and reset an empty view', async ({ page }) => {
+    const crashes = watchForCrashes(page);
+    const browseRequests: URL[] = [];
+    page.on('request', request => { if (/\/api\/video-library\/(catalog|discovery)/.test(request.url())) browseRequests.push(new URL(request.url())); });
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('combobox', { name: 'Game', exact: true }).selectOption('holdem');
+    await page.getByRole('combobox', { name: 'Stakes', exact: true }).selectOption('low');
+    await page.getByRole('combobox', { name: 'Skill Level', exact: true }).selectOption('beginner');
+    await expect.poll(() => new URL(page.url()).searchParams.get('skill')).toBe('beginner');
+    expect(new URL(page.url()).searchParams.get('game')).toBe('holdem');
+    expect(new URL(page.url()).searchParams.get('stakes')).toBe('low');
+    await expect.poll(() => browseRequests.some(url => url.searchParams.get('game') === 'holdem' && url.searchParams.get('stakes') === 'low' && url.searchParams.get('skill') === 'beginner')).toBe(true);
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_B.title })).toHaveCount(0);
+    await expect(page.locator('.vl-card-title', { hasText: CREATOR_VIDEO.title })).toHaveCount(0);
+    await page.reload({ waitUntil: 'commit' });
+    await expect(page.getByRole('combobox', { name: 'Game', exact: true })).toHaveValue('holdem');
+    await expect(page.getByRole('combobox', { name: 'Stakes', exact: true })).toHaveValue('low');
+    await expect(page.getByRole('combobox', { name: 'Skill Level', exact: true })).toHaveValue('beginner');
+    // Faceted search uses the catalog endpoint so facets apply before pagination.
+    await page.getByRole('combobox', { name: 'Search the poker video library' }).fill('river');
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
+    await expect.poll(() => browseRequests.some(url => url.pathname.endsWith('/catalog') && url.searchParams.get('q') === 'river' && url.searchParams.get('game') === 'holdem' && url.searchParams.get('stakes') === 'low' && url.searchParams.get('skill') === 'beginner')).toBe(true);
+    await page.getByRole('combobox', { name: 'Game', exact: true }).selectOption('omaha');
+    await expect(page.locator('.vl-card-title')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Clear Filters', exact: true }).first().click();
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_B.title })).toBeVisible();
+    await expect(page.locator('.vl-card-title', { hasText: CREATOR_VIDEO.title })).toBeVisible();
+    for (const name of ['game', 'stakes', 'skill', 'q']) expect(new URL(page.url()).searchParams.has(name)).toBe(false);
+    await page.getByRole('combobox', { name: 'Search the poker video library' }).fill('river');
+    await expect.poll(() => browseRequests.some(url => url.pathname.endsWith('/discovery') && url.searchParams.get('q') === 'river' && !['game', 'stakes', 'skill'].some(key => url.searchParams.has(key)))).toBe(true);
+    expect(crashes).toEqual([]);
+  });
+
+  test('Phase 4 scrolling preserves accessible mobile search and desktop sidebar navigation', async ({ page }) => {
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
+    const search = page.getByRole('combobox', { name: 'Search the poker video library' });
+    const wrap = page.locator('.vl-browse-search');
+    if ((page.viewportSize()?.width || 0) < 1100) {
+      await page.evaluate(() => window.scrollTo(0, 250));
+      await expect(wrap).toHaveClass(/is-scroll-hidden/);
+      await page.evaluate(() => window.scrollTo(0, 150));
+      await expect(wrap).not.toHaveClass(/is-scroll-hidden/);
+      await search.focus();
+      await page.evaluate(() => window.scrollTo(0, 350));
+      await expect(wrap).not.toHaveClass(/is-scroll-hidden/);
+      await expect(search).toBeFocused();
+      await search.press('Escape');
+    } else {
+      const rail = page.getByRole('navigation', { name: 'Video library filters' });
+      const geometry = await rail.boundingBox();
+      const grid = await page.locator('#video-library-grid').boundingBox();
+      expect(geometry).not.toBeNull();
+      expect(grid).not.toBeNull();
+      expect(geometry!.x + geometry!.width).toBeLessThanOrEqual(grid!.x);
+      await rail.getByRole('button', { name: 'Sports', exact: true }).click();
+      await expect(page.locator('.vl-card-title', { hasText: SPORTS_VIDEO.title })).toBeVisible();
+      await rail.getByRole('button', { name: 'Cash Games', exact: true }).click();
+      await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
+      await rail.getByRole('button', { name: /^Watch Later, 0 Videos$/i }).click();
+      await expect(page.getByRole('button', { name: 'Sign In To Sync' }).first()).toBeVisible();
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   });
 
 });
