@@ -25,14 +25,32 @@ test('proof uses real UI writes and exact scoped cleanup without feeding synthet
 });
 
 
-test('startup proof requires the actual successful acknowledgment before any UI reload',async()=>{
+test('startup proof requires the actual successful browser acknowledgment before any UI reload',async()=>{
  const {isStartupMetricAcknowledgment}=await import('../scripts/ci/reels-enhancements-live-check.mjs');
- const response=({status=202,kind='startup',startup=81,success=true,url='https://smarter.poker/api/reels/delivery-metrics',method='POST',reject=false}={})=>({request:()=>({url:()=>url,method:()=>method,postDataJSON:()=>({event_kind:kind,startup_ms:startup})}),status:()=>status,json:async()=>{if(reject)throw new Error('Body unavailable after navigation');return{success};}});
- assert.equal(await isStartupMetricAcknowledgment(response()),true);
- for(const options of[{status:503},{kind:'summary'},{startup:null},{success:false},{url:'https://smarter.poker/api/other'},{url:'https://other.example/api/reels/delivery-metrics'},{method:'GET'},{reject:true}])assert.equal(await isStartupMetricAcknowledgment(response(options)),false);
+ const receipt={origin:'https://smarter.poker',path:'/api/reels/delivery-metrics',method:'POST',status:202,bodyReadable:true,success:true,kind:'startup',surface:'standalone',playbackType:'native',startupMs:81};
+ assert.equal(isStartupMetricAcknowledgment(receipt),true);
+ for(const change of[{status:503},{kind:'summary'},{surface:'library'},{playbackType:'youtube_embed'},{startupMs:null},{startupMs:-1},{startupMs:120001},{success:false},{path:'/api/other'},{origin:'https://other.example'},{method:'GET'},{bodyReadable:false}])assert.equal(isStartupMetricAcknowledgment({...receipt,...change}),false);
  const source=readFileSync(new URL('../scripts/ci/reels-enhancements-live-check.mjs',import.meta.url),'utf8');
- assert.match(source,/const startupAcknowledgment=page\.waitForResponse\(isStartupMetricAcknowledgment/);
- assert.ok(source.indexOf('page.waitForResponse(isStartupMetricAcknowledgment')<source.indexOf('await open();journal.checks.actualPrivateNativeViewer'));
+ assert.match(source,/await observeBrowserMetrics/);assert.match(source,/const startupAcknowledgment=new Promise/);
+ assert.ok(source.indexOf('const startupAcknowledgment=new Promise')<source.indexOf('await open();journal.checks.actualPrivateNativeViewer'));
  assert.ok(source.indexOf('await startupAcknowledgment;')<source.indexOf("await step('like'"));
  assert.match(source,/Actual persisted startup metric acknowledgment required/);assert.match(source,/metricAcknowledgments\.length<20/);
+ assert.match(source,/clearTimeout\(startupTimeout\)/);
+});
+
+test('actual in-browser observer reads a real Response clone and leaves fetch arguments, promise and body intact',{timeout:2000},async()=>{
+ const {observeBrowserMetrics,isStartupMetricAcknowledgment}=await import('../scripts/ci/reels-enhancements-live-check.mjs');
+ const savedFetch=globalThis.fetch,savedLocation=Object.getOwnPropertyDescriptor(globalThis,'location'),bindingName='reelsQAMetric_test',frame={},page={mainFrame:()=>frame};
+ const originalResponse=new Response(JSON.stringify({success:true}),{status:202}),pending=Promise.resolve(originalResponse),calls=[],observations=[];let receive,binding;
+ const received=new Promise(resolve=>{receive=resolve;});
+ globalThis.fetch=function(...args){calls.push(args);return pending;};Object.defineProperty(globalThis,'location',{configurable:true,value:{href:'https://smarter.poker/hub/reels'}});
+ const context={async exposeBinding(name,fn){binding=fn;globalThis[name]=value=>fn({page,frame},value);},async addInitScript(fn,args){fn(args);}};
+ try{
+  await observeBrowserMetrics(context,page,bindingName,value=>{observations.push(value);receive(value);});
+  const options={method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({event_kind:'startup',surface:'standalone',playback_type:'native',startup_ms:395})};
+  const result=globalThis.fetch('/api/reels/delivery-metrics',options);assert.equal(result,pending);assert.equal(calls[0][0],'/api/reels/delivery-metrics');assert.equal(calls[0][1],options);
+  const receipt=await received;assert.equal(isStartupMetricAcknowledgment(receipt),true);assert.equal(receipt.startupMs,395);assert.equal(originalResponse.bodyUsed,false);assert.deepEqual(await originalResponse.json(),{success:true});
+  await binding({page,frame:{}},receipt);assert.equal(observations.length,1,'other frames cannot report this page acknowledgment');
+  assert.equal(globalThis.fetch('/api/unrelated',options),pending);assert.equal(globalThis.fetch('https://other.example/api/reels/delivery-metrics',options),pending);assert.equal(observations.length,1);
+ }finally{globalThis.fetch=savedFetch;delete globalThis[bindingName];if(savedLocation)Object.defineProperty(globalThis,'location',savedLocation);else delete globalThis.location;}
 });

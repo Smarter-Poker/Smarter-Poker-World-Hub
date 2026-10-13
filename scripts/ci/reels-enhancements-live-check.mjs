@@ -38,10 +38,25 @@ export async function qualifyOwnedNativePipeline({request,client,setup,session,j
  journal.nativePipeline.outputUrl=output;journal.nativePipeline.thumbnailUrl=reel.thumbnail_url;journal.nativePipeline.stage='completed-read-back';journal.nativePipeline.completedAt=new Date().toISOString();journal.checks.nativeWorkerOutputAndThumbnailPersisted=true;await persist(journal,false);
  return reel;
 }
-export async function isStartupMetricAcknowledgment(response) {
- const request=response.request(),url=new URL(request.url());
- if(url.origin!==APP||url.pathname!=='/api/reels/delivery-metrics'||request.method()!=='POST'||response.status()!==202)return false;
- try{const body=request.postDataJSON(),acknowledgment=await response.json();return body?.event_kind==='startup'&&Number.isFinite(body.startup_ms)&&acknowledgment.success===true;}catch(_){return false;}
+export function isStartupMetricAcknowledgment(observation) {
+ return observation?.origin===APP&&observation.path==='/api/reels/delivery-metrics'&&observation.method==='POST'&&observation.status===202&&observation.bodyReadable===true&&observation.success===true&&observation.kind==='startup'&&observation.surface==='standalone'&&observation.playbackType==='native'&&Number.isFinite(observation.startupMs)&&observation.startupMs>=0&&observation.startupMs<=120000;
+}
+/** Read real browser fetch receipts without changing requests or responses. */
+export async function observeBrowserMetrics(context,page,bindingName,onObservation) {
+ await context.exposeBinding(bindingName,(source,observation)=>{if(source.page===page&&source.frame===page.mainFrame())onObservation(observation);});
+ await context.addInitScript(({bindingName,appOrigin})=>{
+  const originalFetch=globalThis.fetch;
+  globalThis.fetch=function(input,options){
+   const pending=Reflect.apply(originalFetch,this,[input,options]);
+   let url,body;try{url=new URL(typeof input==='string'?input:input.url,location.href);if(url.origin!==appOrigin||url.pathname!=='/api/reels/delivery-metrics'||options?.method?.toUpperCase()!=='POST'||typeof options.body!=='string')return pending;body=JSON.parse(options.body);}catch(_){return pending;}
+   void pending.then(async response=>{
+    const finalUrl=new URL(response.url||url.href),observation={origin:finalUrl.origin,path:finalUrl.pathname,method:'POST',status:response.status,bodyReadable:false,success:false,kind:['startup','swipe','summary'].includes(body?.event_kind)?body.event_kind:null,surface:['standalone','social','library'].includes(body?.surface)?body.surface:null,playbackType:['native','youtube_embed','unknown'].includes(body?.playback_type)?body.playback_type:null,startupMs:Number.isFinite(body?.startup_ms)?body.startup_ms:null};
+    try{const acknowledgment=await response.clone().json();observation.bodyReadable=true;observation.success=acknowledgment?.success===true;}catch(_){}
+    await globalThis[bindingName](observation);
+   }).catch(()=>{});
+   return pending;
+  };
+ },{bindingName,appOrigin:APP});
 }
 export async function runPublishedEnhancements({page,context,client,setup,env,persist,session}){
  const journal={kind:'reels-enhancements-published-ui',operationId:randomUUID(),expectedSha:env.REELS_EXPECTED_SHA,actorId:setup.actorId,reelId:setup.reelId,followTargetId:setup.followTargetId,status:'prepared',checks:{baselineClean:true},commentIds:[],writes:[],limitations:['Synthetic original private QA video; no public content or personal account writes','Physical device and pixel-identical provider overlays are not certified','Library and social-carousel private fixture writes require their actual authenticated entrypoints; this standalone probe does not fabricate feed data']};
@@ -53,14 +68,16 @@ export async function runPublishedEnhancements({page,context,client,setup,env,pe
  await context.addInitScript(({session})=>{if(!sessionStorage.getItem('reels-qa-auth-initialized')){localStorage.setItem('smarter-poker-auth',JSON.stringify(session));sessionStorage.setItem('reels-qa-auth-initialized','1');}}, {session});
  const notificationsBlocked=[];await context.route('**/api/notifications/follow',async route=>{notificationsBlocked.push('follow');await route.abort('blockedbyclient');});
  journal.commentReadErrors=[];page.on('response',async response=>{const request=response.request();if(request.method()==='GET'&&new URL(request.url()).pathname==='/rest/v1/social_comments'&&!response.ok()){try{const body=await response.json();if(journal.commentReadErrors.length<5)journal.commentReadErrors.push({status:response.status(),code:typeof body.code==='string'?body.code.slice(0,30):null});}catch(_){}}});
- const metrics=[];journal.metricAcknowledgments=[];page.on('response',async response=>{const request=response.request(),url=new URL(request.url());if(url.origin===APP&&url.pathname==='/api/reels/delivery-metrics'&&request.method()==='POST'){const observation={status:response.status(),bodyReadable:false};if(journal.metricAcknowledgments.length<20)journal.metricAcknowledgments.push(observation);try{const body=request.postDataJSON();observation.kind=['startup','swipe','summary'].includes(body?.event_kind)?body.event_kind:null;observation.startupMs=Number.isFinite(body?.startup_ms)?body.startup_ms:null;const acknowledgment=await response.json();observation.bodyReadable=true;observation.success=acknowledgment.success===true;if(response.status()===202&&observation.success)metrics.push(body);}catch(_){}}});
+ const metrics=[];let acknowledgeStartup,startupTimeout;const startupObserved=new Promise(resolve=>{acknowledgeStartup=resolve;});journal.browserMetricAcknowledgments=[];
+ await observeBrowserMetrics(context,page,`reelsQAMetric_${journal.operationId.replaceAll('-','')}`,observation=>{if(journal.browserMetricAcknowledgments.length<20)journal.browserMetricAcknowledgments.push(observation);if(observation?.bodyReadable===true&&observation.status===202&&observation.success===true&&observation.origin===APP&&observation.path==='/api/reels/delivery-metrics'){metrics.push({event_kind:observation.kind,startup_ms:observation.startupMs});if(isStartupMetricAcknowledgment(observation))acknowledgeStartup();}});
+ journal.metricAcknowledgments=[];page.on('response',async response=>{const request=response.request(),url=new URL(request.url());if(url.origin===APP&&url.pathname==='/api/reels/delivery-metrics'&&request.method()==='POST'){const observation={status:response.status(),bodyReadable:false};if(journal.metricAcknowledgments.length<20)journal.metricAcknowledgments.push(observation);try{const body=request.postDataJSON();observation.kind=['startup','swipe','summary'].includes(body?.event_kind)?body.event_kind:null;observation.startupMs=Number.isFinite(body?.startup_ms)?body.startup_ms:null;const acknowledgment=await response.json();observation.bodyReadable=true;observation.success=acknowledgment.success===true;}catch(_){}}});
  const route=`${APP}/hub/reels?id=${setup.reelId}&category=poker`;let expectedNative=null;
  async function open(){await page.goto(route,{waitUntil:'domcontentloaded'});await page.locator('[data-reels-stage] video').waitFor({state:'visible',timeout:30000});const current=await page.locator('[data-reels-stage] video').getAttribute('src');assert.equal(current,expectedNative?.video_url,'UI must show the actual processed private owned fixture');}
  async function uiWrite(table,action){const acknowledged=page.waitForResponse(response=>response.request().method()==='POST'&&response.url().includes(`/rest/v1/${table}`),{timeout:20000});await action();const response=await acknowledged;assert.ok(response.ok(),'UI mutation must receive an authoritative success response');}
  async function step(name,action){journal.writes.push({name,stage:'requested'});await persist(journal,false);await action();journal.writes.at(-1).stage='read-back';journal.checks[name]=true;await persist(journal,false);}
  try{
   expectedNative=await qualifyOwnedNativePipeline({request:context.request,client,setup,session,journal,persist});
-  const startupAcknowledgment=page.waitForResponse(isStartupMetricAcknowledgment,{timeout:60000});startupAcknowledgment.catch(()=>{});
+  const startupAcknowledgment=new Promise((resolve,reject)=>{startupTimeout=setTimeout(()=>reject(new Error('Actual browser startup acknowledgment timed out')),60000);startupObserved.then(()=>{clearTimeout(startupTimeout);resolve();});});startupAcknowledgment.catch(()=>{});
   await open();journal.checks.actualPrivateNativeViewer=true;
   await page.waitForFunction(()=>{const v=document.querySelector('[data-reels-stage] video');return v&&v.readyState>=3&&!v.paused&&v.currentTime>0;},{},{timeout:30000});journal.checks.actualProcessedNativePlaying=true;
   const poster=await page.locator('[data-reels-stage] video').getAttribute('poster');assert.equal(poster,expectedNative.thumbnail_url);await page.evaluate(url=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>image.naturalWidth>0?resolve():reject(new Error('Thumbnail has no pixels'));image.onerror=()=>reject(new Error('Actual native thumbnail failed'));image.src=url;}),poster);journal.checks.actualNativeThumbnailDecoded=true;
@@ -91,6 +108,7 @@ export async function runPublishedEnhancements({page,context,client,setup,env,pe
   journal.status='verified-awaiting-cleanup';
  }catch(error){journal.status='failed';journal.error=error.message;try{journal.failureMedia=await page.evaluate(()=>({path:location.pathname,transitioning:document.body.classList.contains('page-transitioning'),bodyClass:document.body.className.slice(0,200),videos:[...document.querySelectorAll('[data-reels-stage] video')].slice(0,3).map(video=>{const css=getComputedStyle(video),rect=video.getBoundingClientRect();return{display:css.display,visibility:css.visibility,width:rect.width,height:rect.height,readyState:video.readyState,paused:video.paused,currentTime:video.currentTime};})}));await page.screenshot({path:join(dirname(env.REELS_ENHANCEMENTS_JOURNAL),'reels-native-failed.png'),fullPage:false});journal.failureScreenshotCaptured=true;}catch(_){journal.failureScreenshotCaptured=false;}throw error;}
  finally{
+  clearTimeout(startupTimeout);
   const failures=[];
   for(const table of Object.keys(scopes).reverse()){
    try{let q=client.from(table).delete();for(const[k,v]of Object.entries(scopes[table]))q=q.eq(k,v);if(table==='social_comments'){const own=await read(table);for(const row of own)assert.equal(row.content,'Reel QA','Only this operation fixture comment may be cleaned');q=q.in('id',own.map(row=>row.id));journal.commentIds=[...new Set([...journal.commentIds,...own.map(row=>row.id)])];await persist(journal,false);}await checked(q);assert.equal((await read(table)).length,0);}catch(_){failures.push(table);}
