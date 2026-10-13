@@ -102,6 +102,7 @@ import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/l
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
+import { videoLibrarySocialShareHref } from '../../../src/lib/videoLibrarySocialShare.mjs';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
 import PuzzleAnswerCard from '../../../src/components/social/PuzzleAnswerCard';
 import PokerCardText, { PokerCardSnippet } from '../../../src/components/social/PokerCardText';
@@ -3715,9 +3716,13 @@ function SocialMediaPage() {
   useEffect(() => {
     if (router.query.compose !== '1' || !user) return;
     const t = setTimeout(() => window.dispatchEvent(new CustomEvent('sp-focus-composer')), 120);
-    router.replace('/hub/social-media', undefined, { shallow: true });
+    // Keep the share handoff while the composer verifies its catalog row.
+    // Clearing every query here used to abort that request on its first render.
+    router.replace(router.query.shareVideo !== undefined
+      ? { pathname: '/hub/social-media', query: { shareVideo: router.query.shareVideo } }
+      : '/hub/social-media', undefined, { shallow: true });
     return () => clearTimeout(t);
-  }, [router.query.compose, user]);
+  }, [router.query.compose, router.query.shareVideo, user]);
 
   // router.query, not window.location.search with empty deps: the hamburger
   // links to /hub/social-media?view=club-pages, and from the feed itself that is
@@ -7940,6 +7945,7 @@ function SocialMediaPage() {
                   {user && (
                     <SharedPostCreator
                       context="social-media"
+                      shareVideoId={router.query.shareVideo}
                       user={user}
                       onPost={handlePost}
                       isPosting={isPosting}
@@ -7965,7 +7971,9 @@ function SocialMediaPage() {
                         Log In To Post And Interact!
                       </p>
                       <Link prefetch={false}
-                        href="/auth/login"
+                        href={videoLibrarySocialShareHref(router.query.shareVideo)
+                          ? `/auth/login?redirect=${encodeURIComponent(videoLibrarySocialShareHref(router.query.shareVideo))}`
+                          : '/auth/login'}
                         style={{
                           display: 'inline-block',
                           padding: '10px 24px',

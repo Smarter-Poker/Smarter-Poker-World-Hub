@@ -56,11 +56,12 @@ test('session seen state is bounded and learning actions carry timestamped verif
   assert.equal(actions.relatedLessons.excludeVideoId, 'old-math');
 });
 
-test('automated profiles cannot contribute organic analytics or personalization', () => {
+test('organic analytics identification does not deny personalized study to a player', () => {
   assert.equal(organicAnalyticsEligible({ id: 'human', is_horse: false }), true);
   assert.equal(organicAnalyticsEligible({ id: 'horse', is_horse: true }), false);
   assert.match(DISCOVERY, /organicAnalyticsEligible/);
-  assert.match(DISCOVERY, /user\?\.id && organicEligible/);
+  assert.match(DISCOVERY, /user\?\.id && ownerDb/);
+  assert.doesNotMatch(DISCOVERY, /user\?\.id && organicEligible && ownerDb/);
 });
 
 test('API contracts are rate-limited, owner-scoped, no-store, and Phase 8 authoritative', () => {
@@ -71,7 +72,8 @@ test('API contracts are rate-limited, owner-scoped, no-store, and Phase 8 author
     assert.doesNotMatch(source, /@supabase\/supabase-js/);
   }
   assert.match(DISCOVERY, /rpc\('search_video_learning'/);
-  assert.doesNotMatch(DISCOVERY, /video_watch_history|video_watch_later/);
+  assert.match(DISCOVERY, /from\('video_watch_history'\)[\s\S]*?eq\('user_id', user.id\)/);
+  assert.doesNotMatch(DISCOVERY, /video_watch_later/);
   assert.match(STUDY, /video_study_lists/);
   assert.match(STUDY, /video_study_list_items/);
   assert.match(STUDY, /video_learning_progress/);

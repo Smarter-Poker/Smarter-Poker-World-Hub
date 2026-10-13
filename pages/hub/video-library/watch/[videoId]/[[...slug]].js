@@ -21,6 +21,11 @@
  * names the one true address, so no redirect is ever needed.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useAvatar } from '../../../../../src/contexts/AvatarContext';
+import VideoQueue from '../../../../../src/components/video-library/VideoQueue';
+import StudyStatus from '../../../../../src/components/video-library/StudyStatus';
+import useVideoLibraryQueue from '../../../../../src/components/video-library/useVideoLibraryQueue';
+import { videoLibrarySocialShareHref } from '../../../../../src/lib/videoLibrarySocialShare.mjs';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { channelPath, CHANNEL_KEY_RE } from '../../../../../src/lib/videoLibraryChannels.mjs';
@@ -225,6 +230,12 @@ function VideoList({ title, videos }) {
 
 export default function VideoWatchPage({ unavailable, video, channel, description, canonical, indexable, jsonLd, channelVideos, relatedVideos }) {
     const router = useRouter();
+    const { user } = useAvatar();
+    const playbackQueue = useVideoLibraryQueue(user?.id);
+    const queueIndex = playbackQueue.queue.items.findIndex(item => item.videoId === video?.videoId);
+    const nextQueued = queueIndex >= 0 ? playbackQueue.queue.items[queueIndex + 1] : null;
+    const nextVideo = queueIndex >= 0 ? nextQueued : (relatedVideos?.[0] || channelVideos?.[0]);
+    const openQueuedVideo = item => { if (!item) return; setNavigationError(false); void router.push(`${item.href || watchPath(item)}?play=1`).then(success => { if (!success) setNavigationError(true); }).catch(() => setNavigationError(true)); };
     const iframeRef = useRef(null);
     const [miniPlayer, setMiniPlayer] = useState(false);
     const [autoplayNext, setAutoplayNext] = useState(true);
@@ -352,11 +363,12 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     {miniPlayer && <div className="vl-mini-controls"><button type="button" onClick={() => setMiniPlayer(false)}>Expand Player</button><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
                                 </div>
                                 {playing && <WatchPlaybackTools key={video.videoId} iframeRef={iframeRef} active={!ytError}
-                                    duration={seconds} nextTitle={(relatedVideos[0] || channelVideos[0])?.title}
-                                    onNext={() => { setNavigationError(false); void router.push(`${(relatedVideos[0] || channelVideos[0]).href}?play=1`).then(success => { if (!success) setNavigationError(true); }).catch(() => setNavigationError(true)); }}
+                                    duration={seconds} nextTitle={nextVideo?.title}
+                                    onNext={() => openQueuedVideo(queueIndex >= 0 ? playbackQueue.advance(video.videoId) : nextVideo)}
                                     autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
                                     mini={miniPlayer} onMiniChange={setMiniPlayer} />}
 
+                                {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
                                 {navigationError && <p role="alert">The Next Video Could Not Open. Choose A Video Below To Try Again.</p>}
                                 <div className="vl-info-copy">
                                     <h1 id="vl-watch-title">{video.title}</h1>
@@ -371,6 +383,8 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                 </div>
 
                                 <div className="vl-hud" role="group" aria-label="Video actions">
+                                    <Link href={videoLibrarySocialShareHref(video)} className="vl-hud-link">Share To Feed</Link>
+                                    <button type="button" disabled={!(relatedVideos[0] || channelVideos[0])} onClick={() => playbackQueue.enqueueNext(relatedVideos[0] || channelVideos[0], video)}>Queue Next Video</button>
                                     <Link href={libraryHref} className="vl-hud-link is-primary">Save, Playlists And Training</Link>
                                     <button type="button" onClick={share}>
                                         {shareState === 'copied' ? 'Link Copied' : shareState === 'failed' ? 'Copy Failed' : 'Share'}
@@ -399,6 +413,8 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                             </div>
 
                             <aside className="vl-watch-page-side">
+                                <VideoQueue currentVideoId={video.videoId} ownerId={user?.id} onPlay={openQueuedVideo} />
+                                <StudyStatus />
                                 <VideoList title={`More From ${channel.name}`} videos={channelVideos} />
                                 <VideoList title="Related Videos" videos={relatedVideos} />
                                 <Link href="/hub/video-library" className="vl-show-more">Browse The Full Video Library</Link>

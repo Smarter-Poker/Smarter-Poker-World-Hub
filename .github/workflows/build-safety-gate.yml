@@ -329,6 +329,13 @@ jobs:
         run: node scripts/qualification/videoLibraryChannelFollows.mjs
 
 
+      - name: Video Library Playlist Ordering PostgreSQL 17
+        env:
+          PHASE6_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+          VIDEO_PLAYLIST_PG_WORK_PARENT: ${{ runner.temp }}/video-playlist-pg
+          VIDEO_PLAYLIST_PG_EVIDENCE_DIR: ${{ runner.temp }}/video-playlist-evidence
+        run: node scripts/qualification/videoLibraryPlaylistReorder.mjs
+
       - name: Stable Admin Restrictions And Private Exports Native PostgreSQL 17
         env:
           PLAYER_CONTROL_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}

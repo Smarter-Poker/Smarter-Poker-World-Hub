@@ -44,7 +44,7 @@ test('Reels connects saved state, recommendation reason, full lesson, and chrono
 });
 
 test('Video Library semantic queries use the Phase 8 discovery authority', () => {
-  assert.match(LIBRARY, /semanticDiscovery = libraryFilter === 'ALL'/);
+  assert.match(LIBRARY, /semanticDiscovery = libraryFilter === 'recommended' \|\| \(libraryFilter === 'ALL'/);
   assert.match(LIBRARY, /semanticDiscovery \? '\/api\/video-library\/discovery' : '\/api\/video-library\/catalog'/);
   assert.match(LIBRARY, /Authorization: `Bearer \$\{discoveryToken\}`/);
   assert.match(LIBRARY, /router\.query\.rank === 'chronological' \? 'chronological' : 'recommended'/);

@@ -1,3 +1,9 @@
+import './video-library-personal-delivery.test.mjs';
+import './video-library-queue-hook.test.mjs';
+import './video-library-study-component.test.mjs';
+import './video-library-queue.test.mjs';
+import './video-library-study.test.mjs';
+import './video-library-social-share.test.mjs';
 import './video-library-channels.test.mjs';
 import './video-library-channel-follow.test.mjs';
 import './video-library-phase5-delivery.test.mjs';

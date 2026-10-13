@@ -104,15 +104,15 @@ export default async function handler(req, res) {
 
     let progressById = {};
     let savedIds = new Set();
-    if (user?.id && organicEligible && ownerDb) {
+    if (user?.id && ownerDb) {
       const [progress, saved] = await Promise.all([
-        ownerDb.from('video_learning_progress').select('video_id, position_seconds, duration_seconds').limit(500),
+        ownerDb.from('video_watch_history').select('video_id, progress_seconds, duration_seconds').eq('user_id', user.id).order('watched_at', { ascending: false }).limit(500),
         ownerDb.from('video_study_list_items').select('video_id, video_study_lists!inner(user_id)').limit(500),
       ]);
       if (progress.error || saved.error) throw progress.error || saved.error;
       progressById = Object.fromEntries((progress.data || []).map((row) => [row.video_id, {
-        progressSeconds: Number(row.position_seconds || 0),
-        completion: row.duration_seconds ? Number(row.position_seconds || 0) / Number(row.duration_seconds) : 0,
+        progressSeconds: Number(row.progress_seconds || 0),
+        completion: row.duration_seconds ? Number(row.progress_seconds || 0) / Number(row.duration_seconds) : 0,
       }]));
       savedIds = new Set((saved.data || []).map((row) => row.video_id));
     }
@@ -126,8 +126,9 @@ export default async function handler(req, res) {
       && typeFilter.includes(item.type)
       && matchesBrowseFilters(item, browseFilters)
       && isCuratedFeedVideo(item)));
-    const publicProgress = Object.fromEntries(videos.map((item) => [item.id, progressById[item.internalVideoId]]).filter(([, value]) => value));
+    const publicProgress = Object.fromEntries(videos.map((item) => [item.id, progressById[item.id]]).filter(([, value]) => value));
     const publicSaved = new Set(videos.filter((item) => savedIds.has(item.internalVideoId)).map((item) => item.id));
+    const hasPersonalSignals = Object.keys(publicProgress).length > 0 || publicSaved.size > 0;
     const context = { query: queryText, seenIds, savedIds: publicSaved, progressById: publicProgress, learningGoals: searchTerms(one(req.query.goals)) };
     const ordered = mode === 'chronological' ? chronologicalVideos(videos) : rankLearningVideos(videos, context);
     const page = ordered.slice(0, limitOf(req.query.limit)).map((item) => ({
@@ -138,7 +139,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       data: page,
-      ranking: { mode, chronologicalAlternative: true, personalized: Boolean(user?.id && organicEligible) },
+      ranking: { mode, chronologicalAlternative: true, personalized: Boolean(user?.id && ownerDb && hasPersonalSignals), basis: hasPersonalSignals ? 'watch_history_and_saved_lessons' : 'verified_catalog', coldStart: !hasPersonalSignals },
       session: { seenAccepted: seenIds.size, nextSeen: normalizeSeenIds([...seenIds, ...page.map((item) => item.id)]) },
       analytics: { organicEligible },
       ownerId: user?.id || null,
