@@ -244,7 +244,7 @@
   scroll-margin-top: 96px;
   color: #eef6fa;
   border: 1px solid #476273;
-  background: #02070b;
+  background: transparent;
   box-shadow:
     inset 0 1px 0 rgb(232 251 255 / 18%),
     0 16px 34px rgb(0 0 0 / 65%);
@@ -359,7 +359,7 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px 15px 17px;
-  background: rgb(0 4 8 / 90%);
+  background: #02070b;
 }
 
 .productTitle {

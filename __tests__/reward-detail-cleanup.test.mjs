@@ -27,6 +27,69 @@ test('detail pages do not reserve an already in-flow sticky header twice', () =>
   assert.equal(pageRules, 2, 'desktop and phone keep the same header clearance contract');
 });
 
+test('real Merch atlas cards keep image margins unpainted and copy faces readable', async () => {
+  const source = readFileSync('src/components/store/MerchStore.jsx', 'utf8');
+  const merchCss = readFileSync('src/components/store/MerchStore.module.css', 'utf8');
+  const shellCss = readFileSync('src/components/diamond-store/DiamondStoreShell.module.css', 'utf8');
+  const names = [...merchCss.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((match) => match[1]);
+  const helpers = source.slice(source.indexOf('const fmt ='), source.indexOf('function firstString'));
+  const card = source.slice(source.indexOf('function MerchProductCard('), source.indexOf('export default function MerchStore'));
+  const compiled = await build({
+    stdin: {
+      contents: `import React,{useState,useId} from 'react';
+        const merchStyles=${JSON.stringify(Object.fromEntries(names.map((name) => [name, name])))};
+        const Link=({href,children,...props})=><a href={href} {...props}>{children}</a>;
+        ${source.match(/const MAX_QTY = [^;]+;/)[0]} ${helpers} ${card}
+        export default MerchProductCard;`,
+      loader: 'jsx', resolveDir: process.cwd(),
+    },
+    bundle: true, write: false, platform: 'node', format: 'cjs',
+    external: ['react', 'react/jsx-runtime'],
+  });
+  const isolated = { exports: {} };
+  vm.runInNewContext(compiled.outputFiles[0].text, { module: isolated, exports: isolated.exports, require });
+  const product = {
+    key: 'atlas-matte-fixture', name: 'Atlas Matte Fixture', description: 'Isolated Product Copy',
+    atlasPosition: '0 0', variants: [], source: 'catalog', inStock: true,
+    fulfillmentReady: true, mediaApproved: true, priceUsd: 20, priceDiamonds: 2000,
+  };
+  const html = renderToStaticMarkup(React.createElement(isolated.exports.default, {
+    product, balance: 0, hasUser: false, cartReady: false, busyKey: null,
+    wishlistBusyKey: null, isWishlisted: false,
+  }));
+  assert.match(html, /<article[^>]*><div class="mediaBay"><div[^>]*class="productImage atlasProductImage"/);
+  assert.match(html, /<div class="cardBody">/);
+  assert.match(html, /legacy-tabletop-atlas\.webp/);
+  const declaration = (sheet, selector, property) => {
+    let value;
+    postcss.parse(sheet).walkRules(selector, (rule) => rule.walkDecls(property, (node) => { value = node.value; }));
+    return value;
+  };
+  for (const selector of ['.productCard', '.mediaBay']) {
+    assert.equal(declaration(merchCss, selector, 'background'), 'transparent');
+  }
+  for (const selector of [
+    '.merchSurface :global(article)', '.merchSurface :global(article) > div:first-child',
+    ".contentShell[data-store-section='merch']", ".contentShell[data-store-section='merch']::before",
+  ]) assert.equal(declaration(shellCss, selector, 'background'), 'transparent');
+  assert.equal(declaration(merchCss, '.atlasProductImage', 'aspect-ratio'), '1 / 2');
+  const baseFace = declaration(merchCss, '.cardBody', 'background');
+  const shellFace = declaration(shellCss, '.merchSurface :global(article) > div:last-child', 'background');
+  assert.equal(baseFace, '#02070b');
+  assert.equal(shellFace, '#050a0f');
+  const luminance = (hex) => hex.slice(1).match(/../g).map((pair) => parseInt(pair, 16) / 255)
+    .map((n) => n <= 0.04045 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4)
+    .reduce((sum, n, i) => sum + n * [0.2126, 0.7152, 0.0722][i], 0);
+  for (const face of [baseFace, shellFace]) {
+    for (const selector of ['.productTitle', '.productDescription', '.price']) {
+      let ink = declaration(merchCss, selector, 'color');
+      if (ink === '#fff') ink = '#ffffff';
+      assert.ok((luminance(ink) + 0.05) / (luminance(face) + 0.05) >= 4.5,
+        `${selector} remains readable on its preserved copy face`);
+    }
+  }
+});
+
 const result = await build({
   entryPoints: ['pages/hub/smarter-rewards/[rewardId].js'],
   bundle: true,

@@ -12,8 +12,10 @@ test('store image zones have no separate opaque background behind preserved artw
     'src/components/diamond-store/SmarterStoreShowcase.module.css': ['.starterArt', '.packageArt'],
     'src/components/diamond-store/DiamondStoreShell.module.css': [
       '.clubProductMedia', '.dialogProductMedia', '.merchSurface :global(article) > div:first-child',
+      '.merchSurface :global(article)', '.contentShell[data-store-section=\'merch\']',
+      '.contentShell[data-store-section=\'merch\']::before',
     ],
-    'src/components/store/MerchStore.module.css': ['.mediaBay'],
+    'src/components/store/MerchStore.module.css': ['.mediaBay', '.productCard'],
     'src/components/store/MarketplaceDetailExperience.module.css': [
       '.mediaFrame', '.spriteMedia,\n.spriteMediaExpanded', '.mediaRail',
       '.mediaRail button', '.mediaRailCrop',
