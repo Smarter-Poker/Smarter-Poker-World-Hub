@@ -118,8 +118,16 @@ try {
     await page.getByRole('button', { name: 'Move Video 2 Up', exact: true }).click();
     await page.getByText('Playlist Order Saved.', { exact: true }).waitFor();
     assert.deepEqual(await order(), [...ids].reverse());
-    const stale = await client.rpc('fn_reorder_video_playlist', { p_playlist_id: playlistId, p_expected_video_ids: ids, p_video_ids: ids });
-    assert.equal(stale.error?.code, '40001'); assert.deepEqual(await order(), [...ids].reverse());
+    const stale = await client.rpc('fn_reorder_video_playlist', { p_playlist_id: playlistId, p_expected_video_ids: ids, p_video_ids: ids }).abortSignal(AbortSignal.timeout(20000));
+    report.staleWriteResponse = {
+        status: stale.status,
+        statusText: safeText(stale.statusText),
+        error: stale.error ? {
+            code: safeText(stale.error.code), message: safeText(stale.error.message),
+            details: safeText(stale.error.details), hint: safeText(stale.error.hint),
+        } : null,
+    };
+    assert.equal(stale.status, 409); assert.equal(stale.error?.code, 'PT409'); assert.deepEqual(await order(), [...ids].reverse());
     await page.reload({ waitUntil: 'domcontentloaded' }); await page.getByRole('button', { name: 'Play All', exact: true }).waitFor();
     assert((await page.locator('.vl-playlist-video-row').first().innerText()).includes(videos[1].title));
     pass('Native reorder persists after reload and stale compare-and-swap cannot overwrite it');
