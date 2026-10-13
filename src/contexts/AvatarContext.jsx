@@ -13,6 +13,7 @@ import { busEmit } from '../engine/EventBus';
 import { useProfileRealtime } from '../hooks/useProfileRealtime';
 import { writeVipProof, readVipProof, clearVipProof } from '../lib/gates/vipCache';
 import { invalidateHeaderStats } from '../lib/headerStats';
+import { fetchJsonWithDeadline } from '../lib/server/fetchJsonWithDeadline';
 
 const AvatarContext = createContext();
 
@@ -28,6 +29,16 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
     const playerWritesAllowedRef = useRef(automaticPlayerWrites);
     playerWritesAllowedRef.current = automaticPlayerWrites;
     const [user, setUser] = useState(null);
+    const identityRef = useRef({ id: null, generation: 0 });
+    const vipRequestRef = useRef(0);
+    function recordIdentity(id) {
+        if (identityRef.current.id === id) return;
+        identityRef.current = { id, generation: identityRef.current.generation + 1 };
+        vipRequestRef.current++;
+        setIsVip(false);
+        setVipResolved(!id);
+        setShowWelcomeModal(false);
+    }
     // BUGFIX (header-audit, avatar reload): this was `useState(null)`. AvatarProvider is
     // the ONE piece of header state that survives navigation — it sits in _app above the
     // page-remount boundary — but starting at null meant it could not mask the avatar gap
@@ -63,62 +74,41 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
 
     // Fetch VIP status from server-side API bridge (with fallbacks)
     async function fetchVipStatus(userId) {
-        if (!userId) {
-            setIsVip(false);
-            setVipResolved(true);
-            return;
-        }
+        if (!userId || identityRef.current.id !== userId) return;
+        const generation = identityRef.current.generation;
+        const request = ++vipRequestRef.current;
+        const current = () => identityRef.current.id === userId &&
+            identityRef.current.generation === generation && vipRequestRef.current === request;
         try {
-            // Set a 5 second timeout for the API call
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-            // Get session token for authenticated API call
-            const _lsToken = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
-            const headers = {};
-            if (_lsToken) {
-                headers['Authorization'] = `Bearer ${_lsToken}`;
-            }
-
-            const response = await fetch(`/api/vip/check-status?userId=${userId}`, {
-                signal: controller.signal,
-                headers
+            const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+            const data = await fetchJsonWithDeadline(`/api/vip/check-status?userId=${userId}`, {
+                requestOptions: { headers: token ? { Authorization: `Bearer ${token}` } : {} }
             });
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-                const data = await response.json();
+            if (!current()) return;
+            if (data) {
                 const vipStatus = data.isVip === true;
                 setIsVip(vipStatus);
-                // Server-verified in both directions: record it as the offline
-                // fallback on true, and clear the fallback on false so a lapsed
-                // membership cannot keep granting access from cache.
                 writeVipProof(userId, vipStatus);
             } else {
-                // The server answered, but not with a usable body (5xx, HTML
-                // error page, ...). user_metadata is NOT consulted here: it is
-                // writable by the user via supabase.auth.updateUser, so it was
-                // a second free VIP switch. Fall back to the user-bound,
-                // expiring cache written by an earlier verified answer.
+                // Only the user-bound, expiring server proof is an offline fallback.
                 setIsVip(readVipProof(userId));
             }
         } catch (err) {
-            // The five-second guard intentionally aborts a slow request. That is
-            // a normal degraded-mode path, not a console error.
-            if (err?.name !== 'AbortError') console.warn('Error fetching VIP status:', err);
-            // Network failed entirely — degraded fallback only.
+            if (!current()) return;
+            if (err?.name !== 'AbortError' && err?.name !== 'TimeoutError') console.warn('Error fetching VIP status:', err);
             setIsVip(readVipProof(userId));
         } finally {
-            setVipResolved(true);
+            if (current()) setVipResolved(true);
         }
     }
 
     // Refresh user session to get latest metadata
     async function refreshUser() {
+        const generation = identityRef.current.generation;
         try {
             const { data: authData, error } = await supabase.auth.refreshSession();
             const freshUser = authData?.user;
-            if (freshUser && !error) {
+            if (freshUser && !error && identityRef.current.id === freshUser.id && identityRef.current.generation === generation) {
                 setUser(freshUser);
                 await fetchVipStatus(freshUser.id);
             }
@@ -130,6 +120,7 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
         async function ensureUserProfile(user, session) {
             // Staff evidence navigation must not initialize player records or rewards.
             if (!automaticPlayerWrites || !user) return;
+            const generation = identityRef.current.generation;
             try {
                 // Use the session passed in directly (avoids race condition where
                 // getSession() returns null because the new session isn't persisted yet)
@@ -145,16 +136,12 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
                 }
 
                 if (!playerWritesAllowedRef.current) return;
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
-
-                const res = await fetch('/api/auth/ensure-profile', {
-                    method: 'POST',
+                const data = await fetchJsonWithDeadline('/api/auth/ensure-profile', {
+                    requestOptions: { method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
                     },
-                    signal: controller.signal,
                     body: JSON.stringify({
                         user_id: user.id,
                         email: user.email,
@@ -162,10 +149,10 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
                         username: user.user_metadata?.poker_alias,
                         avatar_url: user.user_metadata?.avatar_url,
                         metadata: user.user_metadata
-                    })
+                    }) }
                 });
-                clearTimeout(timeoutId);
-                const data = await res.json();
+                if (!data || identityRef.current.id !== user.id ||
+                    identityRef.current.generation !== generation || !playerWritesAllowedRef.current) return;
                 // THE WELCOME PACKAGE IS EARNED BY PHONE VERIFICATION (2026-10-07).
                 // The "500 Diamonds + 30-Day VIP Card" popup is only true once the
                 // package was actually granted; a brand-new unverified player is
@@ -186,7 +173,7 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
                     }
                 }
             } catch (err) {
-                if (err.name === 'AbortError') {
+                if (err.name === 'AbortError' || err.name === 'TimeoutError') {
                     console.warn('[ANTIGRAVITY] ensure-profile timed out (non-blocking)');
                 } else {
                     console.warn('[ANTIGRAVITY] ensure-profile failed:', err);
@@ -195,7 +182,10 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
         }
 
         // Listen for auth changes - this includes INITIAL_SESSION event
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            // Supabase awaits subscribers under the shared session lock. Never
+            // return a network promise: other tabs need this lock to join Realtime.
+            recordIdentity(session?.user?.id ?? null);
             console.debug('[AvatarContext] Auth event:', event, session?.user?.email || 'no session');
 
             // INITIAL_SESSION fires when Supabase restores session from localStorage
@@ -242,6 +232,7 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
                     const fallbackUser = getAuthUser();
                     if (fallbackUser?.id) {
                         console.debug('[AvatarContext] INITIAL_SESSION empty but found user in localStorage fallback:', fallbackUser.email);
+                        recordIdentity(fallbackUser.id);
                         setUser(fallbackUser);
                         fetchVipStatus(fallbackUser.id);
                     } else {
@@ -272,9 +263,9 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
             setUser(session?.user ?? null);
             if (session?.user) {
                 if (event === 'SIGNED_IN') {
-                    await ensureUserProfile(session.user, session);
+                    void ensureUserProfile(session.user, session);
                 }
-                await fetchVipStatus(session.user.id);
+                void fetchVipStatus(session.user.id);
             }
         });
 
@@ -290,6 +281,8 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
         }, 5000);
 
         return () => {
+            identityRef.current = { ...identityRef.current, generation: identityRef.current.generation + 1 };
+            vipRequestRef.current++;
             subscription.unsubscribe();
             clearTimeout(fallbackTimeout);
         };
@@ -313,6 +306,7 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
             // server; revocation still applies immediately because losing VIP is
             // never the unsafe direction.
             if (e.detail?.vipGranted === false) {
+                vipRequestRef.current++;
                 setIsVip(false);
                 clearVipProof();
             }
@@ -366,11 +360,13 @@ export function AvatarProvider({ children, automaticPlayerWrites = true }) {
     // Also listens for cross-tab VIP sync via BroadcastChannel.
     // ═══════════════════════════════════════════════════════════════════
     useProfileRealtime(user?.id, {
-        onVipUpdate: (vipStatus) => {
+        onVipUpdate: (vipStatus, sourceUserId) => {
             // Sourced from a Postgres realtime row change, not from the client.
+            if (!sourceUserId || identityRef.current.id !== sourceUserId) return;
+            vipRequestRef.current++; // An earlier HTTP answer must not undo this row change.
             setIsVip(vipStatus === true);
             setVipResolved(true);
-            writeVipProof(user?.id, vipStatus === true);
+            writeVipProof(sourceUserId, vipStatus === true);
         },
     });
 
