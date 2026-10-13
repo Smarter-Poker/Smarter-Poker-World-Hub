@@ -155,6 +155,8 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     await expect(page).toHaveURL(/q=river/, { timeout: 5_000 });
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible();
 
+    // Dismiss search suggestions before choosing a chip beneath the popup.
+    await search.press('Escape');
     await page.getByRole('button', { name: 'Sort videos by Top Rated' }).click();
     await expect(page).toHaveURL(/sort=top_rated/);
     expect(crashes).toEqual([]);
