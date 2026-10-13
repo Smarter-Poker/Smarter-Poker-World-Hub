@@ -19,3 +19,12 @@ test('learning behavioral qualification executes in the maintained browser workf
  assert.match(read('.github/workflows/global-footer-e2e.yml'),/run: node scripts\/qualification\/videoLibraryLearningBrowser\.mjs/);
  assert.match(read('scripts/qualification/videoLibraryLearningBrowser.mjs'),/026-video-library-learning/);
 });
+
+test('standalone server rendering uses configured runtime catalog URL before the compiled public fallback', () => {
+ const watch=read('pages/hub/video-library/watch/[videoId]/[[...slug]].js');
+ const expression=watch.match(/const url = ([^;]+);/)[1];
+ const evaluate=env=>new Function('process',`return ${expression};`)({env});
+ assert.equal(evaluate({SUPABASE_URL:'http://127.0.0.1:4567',NEXT_PUBLIC_SUPABASE_URL:'https://compiled-public.invalid'}),'http://127.0.0.1:4567');
+ assert.equal(evaluate({NEXT_PUBLIC_SUPABASE_URL:'https://compiled-public.invalid'}),'https://compiled-public.invalid');
+ assert.equal(evaluate({}),undefined);
+});

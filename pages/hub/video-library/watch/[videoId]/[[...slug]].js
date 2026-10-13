@@ -90,7 +90,7 @@ export async function getServerSideProps({ params, res }) {
         return { notFound: true };
     }
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     // Service role only: the public catalog view is not granted to the anon
     // role (checked 2026-10-12), so a public-key fallback would always fail.
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

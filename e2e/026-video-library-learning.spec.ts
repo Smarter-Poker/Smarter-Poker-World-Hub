@@ -149,6 +149,7 @@ test.describe('Phase 7 Poker Learning', () => {
         expect((await link.boundingBox())?.height).toBeGreaterThanOrEqual(44);
         await geometry(page);
         await link.click();
-        await expect(page.getByRole('heading', { name: TITLE, exact: true })).toBeVisible();
+        await expect(page).toHaveURL(new RegExp(`/watch/${VIDEO_ID}/`));
+        await expect(page.getByRole('heading', { name: TITLE, exact: true, level: 1 })).toBeVisible();
     });
 });
