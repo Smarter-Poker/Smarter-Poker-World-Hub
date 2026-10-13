@@ -2118,3 +2118,33 @@
 .vl-text-button:disabled { opacity: .5; }
 .vl-playlist-unavailable { min-height: 44px; display: flex; align-items: center; }
 @media(min-width: 768px) { .vl-playlist-video-link { flex-direction: row; align-items: center; } .vl-playlist-video-link img { width: 240px; flex-shrink: 0; } }
+.vl-learning-navigation, .vl-player-links, .vl-player-directory-links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vl-learning-navigation { margin: 8px 12px 16px; }
+.vl-learning-navigation a, .vl-player-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; color: #ededed; text-decoration: none; border-radius: 22px; background: #252525; }
+.vl-player-links { position: relative; z-index: 2; pointer-events: auto; margin: 4px 0; font-size: 13px; }
+.vl-player-links > span { color: #aaa; }
+.vl-player-links a { pointer-events: auto; }
+.vl-player-directory, .vl-player-page { padding: 24px 12px; min-width: 0; }
+.vl-player-directory-links { margin: 24px 0; }
+.vl-player-header { display: flex; align-items: center; gap: 16px; margin: 24px 0; }
+.vl-player-logo { display: grid; place-items: center; flex: 0 0 64px; height: 64px; border-radius: 50%; background: #282828; font-size: 24px; }
+.vl-player-meta { min-width: 0; }
+.vl-player-meta h1 { margin: 0 0 8px; }
+.vl-player-meta p { margin: 4px 0; color: #bbb; }
+.vl-pause-quiz { padding: 16px 0; color: #eee; min-width: 0; }
+.vl-pause-quiz h3, .vl-pause-quiz h4 { margin: 0 0 8px; }
+.vl-pause-quiz p { margin: 8px 0; line-height: 1.6; }
+.vl-pause-quiz > label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.vl-pause-quiz input[type="checkbox"] { width: 20px; height: 20px; accent-color: #44aaff; }
+.vl-pause-quiz button { min-width: 44px; min-height: 44px; padding: 10px 16px; margin: 4px 8px 4px 0; border: 0; border-radius: 22px; background: #292929; color: #eee; cursor: pointer; }
+.vl-pause-quiz button:disabled { opacity: .5; cursor: default; }
+.vl-pause-quiz button[aria-pressed="true"] { background: #eee; color: #111; }
+.vl-pause-quiz button:focus-visible, .vl-learning-navigation a:focus-visible, .vl-player-links a:focus-visible { outline: 2px solid #44aaff; outline-offset: 3px; }
+.vl-quiz-prompt { padding: 16px 0; border-top: 1px solid #333; }
+.vl-quiz-actions { display: flex; flex-wrap: wrap; }
+.vl-quiz-prompt > label { display: grid; gap: 8px; }
+.vl-quiz-prompt textarea { display: block; box-sizing: border-box; width: 100%; min-height: 88px; resize: vertical; border: 1px solid #555; border-radius: 8px; padding: 12px; background: #191919; color: #eee; font: inherit; }
+.vl-quiz-feedback { margin: 12px 0; }
+.vl-player-videos .vl-card-info { display: block; pointer-events: auto; }
+.vl-player-videos .vl-card-title a { display: flex; align-items: center; min-height: 44px; width: 100%; }
+.vl-player-videos .vl-video-link { display: block; }

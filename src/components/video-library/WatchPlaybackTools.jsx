@@ -21,12 +21,13 @@ export function WatchDescription({ text }) {
     </section>;
 }
 
-export default function WatchPlaybackTools({ iframeRef, active = true, attemptPlayback = true, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange }) {
+export default function WatchPlaybackTools({ iframeRef, active = true, attemptPlayback = true, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange, onMarkersChange }) {
     const [position, setPosition] = useState(0);
     const [duration, setDuration] = useState(catalogDuration);
     const knownDurationRef = useRef(catalogDuration);
     const [ready, setReady] = useState(false);
     const [markers, setMarkers] = useState([]);
+    useEffect(() => { onMarkersChange?.(markers); }, [markers, onMarkersChange]);
     const [countdown, setCountdown] = useState(null);
     const endedRef = useRef(false);
     const mutedFallbackRef = useRef(false);

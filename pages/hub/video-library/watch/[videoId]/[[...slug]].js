@@ -21,6 +21,8 @@
  * names the one true address, so no redirect is ever needed.
  */
 import { useEffect, useRef, useState } from 'react';
+import PauseQuiz from '../../../../../src/components/video-library/PauseQuiz';
+import PlayerLinks from '../../../../../src/components/video-library/PlayerLinks';
 import { useAvatar } from '../../../../../src/contexts/AvatarContext';
 import VideoQueue from '../../../../../src/components/video-library/VideoQueue';
 import StudyStatus from '../../../../../src/components/video-library/StudyStatus';
@@ -88,7 +90,7 @@ export async function getServerSideProps({ params, res }) {
         return { notFound: true };
     }
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     // Service role only: the public catalog view is not granted to the anon
     // role (checked 2026-10-12), so a public-key fallback would always fail.
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -238,6 +240,8 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
     const openQueuedVideo = item => { if (!item) return; setNavigationError(false); void router.push(`${item.href || watchPath(item)}?play=1`).then(success => { if (!success) setNavigationError(true); }).catch(() => setNavigationError(true)); };
     const iframeRef = useRef(null);
     const [miniPlayer, setMiniPlayer] = useState(false);
+    const [quizMarkers, setQuizMarkers] = useState([]);
+    useEffect(() => { setQuizMarkers([]); }, [video?.videoId, user?.id]);
     const [autoplayNext, setAutoplayNext] = useState(true);
     const [navigationError, setNavigationError] = useState(false);
     useEffect(() => { setPlaying(router.query.play === '1'); setMiniPlayer(false); }, [video?.videoId, router.query.play]);
@@ -362,17 +366,20 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     {ytError && <div className="vl-playback-error" role="alert"><p>{errorInfo?.description}</p><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
                                     {miniPlayer && <div className="vl-mini-controls"><button type="button" onClick={() => setMiniPlayer(false)}>Expand Player</button><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
                                 </div>
-                                {playing && <WatchPlaybackTools key={video.videoId} iframeRef={iframeRef} active={!ytError}
+                                {playing && <WatchPlaybackTools key={`tools:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} active={!ytError}
+                                    onMarkersChange={setQuizMarkers}
                                     duration={seconds} nextTitle={nextVideo?.title}
                                     onNext={() => openQueuedVideo(queueIndex >= 0 ? playbackQueue.advance(video.videoId) : nextVideo)}
                                     autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
                                     mini={miniPlayer} onMiniChange={setMiniPlayer} />}
+                                {playing && VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
 
                                 {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
                                 {navigationError && <p role="alert">The Next Video Could Not Open. Choose A Video Below To Try Again.</p>}
                                 <div className="vl-info-copy">
                                     <h1 id="vl-watch-title">{video.title}</h1>
                                     <p className="vl-info-meta">{[views, published, readableDuration(seconds)].filter(Boolean).join(' · ')}</p>
+                                    <PlayerLinks video={video} />
                                 </div>
 
                                 <div className="vl-info-channel">

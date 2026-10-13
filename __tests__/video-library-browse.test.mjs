@@ -1,3 +1,4 @@
+import { getVideoLibraryPlayer, matchesVideoPlayer, playerCatalogFilter } from '../src/lib/videoLibraryPlayers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -57,7 +58,7 @@ test('every browse tag predicate is a valid JSONB array for the owning catalog s
     }
 });
 
-const common = { VIDEO_LIBRARY_ALLOWED_TYPES, BLOCKED_VIDEO_LIBRARY_IDS, isVideoLibraryVideoAllowed,
+const common = { getVideoLibraryPlayer, matchesVideoPlayer, playerCatalogFilter, VIDEO_LIBRARY_ALLOWED_TYPES, BLOCKED_VIDEO_LIBRARY_IDS, isVideoLibraryVideoAllowed,
     VIDEO_LIBRARY_POKER_TYPES, dedupeVideos, isCasinoGameFiledAsPoker, isDisplayableVideoTitle, mixedContentFilter,
     cleanVideoTitle, isCuratedFeedVideo, normaliseVideoRow, VIDEO_ROW_FIELDS, applyBrowseQueryFilters,
     normalizeBrowseFilters, matchesBrowseFilters, chronologicalVideos, learningActions, normalizeSeenIds,
@@ -101,6 +102,26 @@ test('discovery handler filters candidates before its final result limit', async
     assert.equal(res.code, 200);
     assert.deepEqual(res.payload.data.map(video => video.id), ['b1234567890']);
     assert.equal(res.payload.pagination.total, 1);
+});
+
+test('player catalog rejects unknown identity and filters exact names before returning candidates', async () => {
+    const calls = [];
+    const rows = [row('a1234567890', 'Daniel Negreanu Poker Decision'), row('b1234567890', 'Daniel Negreanus Poker Decision')];
+    const query = new Proxy({}, { get(_target, name) {
+        if (name === 'then') return undefined;
+        return (...args) => { calls.push([name, ...args]); return name === 'range' ? Promise.resolve({ data: rows, count: 2 }) : query; };
+    } });
+    const handler = loadHandler('catalog', () => ({ from: () => query }));
+    const unknown = response();
+    await handler({ method: 'GET', query: { playerId: 'private.eq.injected' } }, unknown);
+    assert.equal(unknown.code, 400);
+    assert.equal(calls.length, 0);
+    const res = response();
+    await handler({ method: 'GET', query: { playerId: 'daniel-negreanu', offset: '30' } }, res);
+    assert.equal(res.code, 200);
+    assert.equal(res.payload.player.id, 'daniel-negreanu');
+    assert.deepEqual(res.payload.data.map(video => video.id), ['a1234567890']);
+    assert.ok(calls.findIndex(call => call[0] === 'or' && call[1] === playerCatalogFilter('daniel-negreanu')) < calls.findIndex(call => call[0] === 'range'));
 });
 
 // Execute the owning shell expression so a q/filter change cannot silently

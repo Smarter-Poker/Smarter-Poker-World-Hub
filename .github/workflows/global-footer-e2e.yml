@@ -107,6 +107,13 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
 
+      - name: Verify Video Library pause quizzes and player pages
+        run: node scripts/qualification/videoLibraryLearningBrowser.mjs
+        env:
+          CI: true
+          VIDEO_LIBRARY_BROWSER_WORK_ROOT: ${{ runner.temp }}
+          VIDEO_LIBRARY_BROWSER_EVIDENCE: ${{ github.workspace }}/test-results/video-library-learning
+
       - name: Verify Video Library channel browsing and following
         run: node scripts/qualification/videoLibraryChannelsBrowser.mjs
         env:
