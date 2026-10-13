@@ -70,3 +70,13 @@ test('fresh-fixture financial exception cannot extend to an unmarked actor or gu
  await assert.rejects(()=>runFixtureProbe({...f,env,safetyReceipt:qualified,execute:true}));assert.equal(f.writes.length,0);
  const marked=fake({freshQA:true,profileCreatedAt:createdAt});await assert.rejects(()=>runFixtureProbe({...marked,env,safetyReceipt:{...qualified,profileCreatedAt:'2000-01-01T00:00:00.000Z'},execute:true}),/Account age/);assert.equal(marked.writes.length,0);
 });
+test('actual private-invisible trigger refusal must retain same-id absence proof',async()=>{
+ const f=fake();f.anonymous.from=()=>({insert:async()=>({error:{code:'P0001',message:`social_comments.post_id ${reel} not found in social_posts or social_reels`}})});const result=await runFixtureProbe({...f,env,safetyReceipt:receipt(),execute:true});assert.equal(result.signedOutRefusal.code,'P0001');assert.equal(result.signedOutRefusal.rowAbsent,true);
+});
+
+test('arbitrary P0001 and mismatched private target are not denial proof',async()=>{
+ for(const message of ['unrelated failure',`social_comments.post_id ${target} not found in social_posts or social_reels`]){const f=fake();f.anonymous.from=()=>({insert:async()=>({error:{code:'P0001',message}})});await assert.rejects(()=>runFixtureProbe({...f,env,safetyReceipt:receipt(),execute:true}),/installed private-target refusal/);}
+});
+test('error acknowledgment cannot hide an inserted anonymous row before cleanup',async()=>{
+ const f=fake();f.anonymous.from=()=>({insert:async payload=>{f.rows.social_comments.push(payload);return {error:{code:'42501'}};}});await assert.rejects(()=>runFixtureProbe({...f,env,safetyReceipt:receipt(),execute:true}),/must be absent before cleanup/);assert.equal(f.journals.some(j=>j.signedOutRefusal?.rowAbsent===false),true);assert.equal(f.rows.social_comments.length,0);
+});
