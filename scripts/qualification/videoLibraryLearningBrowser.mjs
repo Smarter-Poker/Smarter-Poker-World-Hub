@@ -63,7 +63,7 @@ try {
     if (!ready) throw new Error(`Isolated channel server did not become ready.\n${serverLog}`);
     const launch = executablePath => executablePath ? { executablePath } : {};
     const config = join(scratch, 'channels.config.cjs');
-    const settings = { testDir: join(root, 'e2e'), testMatch: ['026-video-library-learning.spec.ts'], fullyParallel: false, workers: 1, retries: 0, timeout: 30000, reporter: [['list'], ['json', { outputFile: join(evidence, 'browser-results.json') }]], outputDir: join(evidence, 'browser-artifacts'), use: { baseURL: url, serviceWorkers: 'block', storageState: { cookies: [], origins: [] } }, projects: [
+    const settings = { testDir: join(root, 'e2e'), testMatch: ['026-video-library-learning.spec.ts'], fullyParallel: false, workers: 1, retries: 0, timeout: 30000, reporter: [['list'], ['json', { outputFile: join(evidence, 'browser-results.json') }]], outputDir: join(evidence, 'browser-artifacts'), use: { baseURL: url, screenshot: 'only-on-failure', serviceWorkers: 'block', storageState: { cookies: [], origins: [] } }, projects: [
         { name: 'chromium', use: { browserName: 'chromium', viewport: { width: 1440, height: 900 }, launchOptions: launch(process.env.VIDEO_LIBRARY_CHROMIUM_EXECUTABLE) } },
         { name: 'mobile-chrome', use: { browserName: 'chromium', viewport: { width: 375, height: 844 }, isMobile: true, hasTouch: true, launchOptions: launch(process.env.VIDEO_LIBRARY_CHROMIUM_EXECUTABLE) } },
         { name: 'mobile-webkit', use: { browserName: 'webkit', viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, launchOptions: launch(process.env.VIDEO_LIBRARY_WEBKIT_EXECUTABLE) } },

@@ -22,6 +22,7 @@ async function provider(page: Page): Promise<Frame> {
     const handle = await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').elementHandle();
     const frame = await handle?.contentFrame();
     if (!frame) throw new Error('Actual Mounted Provider Frame Missing');
+    await frame.waitForLoadState('load');
     await frame.waitForFunction(() => Boolean((window as any).contract));
     return frame;
 }
@@ -35,6 +36,7 @@ async function commands(frame: Frame, func: string) {
 }
 
 async function geometry(page: Page) {
+    await page.evaluate(() => window.scrollTo(0, 0));
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     const footer = page.getByRole('navigation', { name: /Video Library Footer/i });
     await expect.poll(() => footer.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - innerHeight))).toBeLessThanOrEqual(1);
@@ -47,8 +49,12 @@ async function ready(frame: Frame, position = 10) {
 }
 
 async function chooseAndContinue(page: Page, frame: Frame) {
+    await expect(page.getByRole('region', { name: 'Playback Tools', exact: true })).toHaveCount(1);
     const quiz = page.getByRole('region', { name: 'What Would You Do?', exact: true });
+    await expect(quiz).toHaveCount(1);
+    const originalIframe = await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').elementHandle();
     const beforePause = await commands(frame, 'pauseVideo');
+    await expect(quiz.getByRole('button', { name: 'What Would You Do?', exact: true })).toBeEnabled();
     await quiz.getByRole('button', { name: 'What Would You Do?', exact: true }).click();
     await expect.poll(() => commands(frame, 'pauseVideo')).toBe(beforePause + 1);
     await expect(quiz.getByText('Waiting For The Player To Pause.', { exact: true })).toBeVisible();
@@ -68,6 +74,9 @@ async function chooseAndContinue(page: Page, frame: Frame) {
     await quiz.getByRole('button', { name: 'Continue Watching', exact: true }).click();
     await expect.poll(() => commands(frame, 'playVideo')).toBe(beforePlay + 1);
     await expect(quiz.getByRole('button', { name: 'Call', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Playback Tools', exact: true })).toHaveCount(1);
+    await expect(quiz).toHaveCount(1);
+    expect(await originalIframe?.evaluate(element => element.isConnected && element === document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]'))).toBe(true);
 }
 
 test.describe('Phase 7 Poker Learning', () => {
@@ -112,6 +121,8 @@ test.describe('Phase 7 Poker Learning', () => {
         await emit(frame, 'onStateChange', 1);
         await emit(frame, 'infoDelivery', { currentTime: 12 });
         await expect(page.getByRole('slider', { name: 'Seek Video' })).toHaveValue('12');
+        await expect(page.getByRole('region', { name: 'Playback Tools', exact: true })).toHaveCount(1);
+        await expect(quiz).toHaveCount(1);
         expect(await commands(frame, 'pauseVideo')).toBe(beforeMarker + 1);
         await expect(quiz.getByRole('button', { name: 'Call', exact: true })).toHaveCount(0);
         await geometry(page);

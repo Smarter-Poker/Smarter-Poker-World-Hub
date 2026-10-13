@@ -2704,13 +2704,13 @@ export default function VideoLibraryPage() {
 
                     <div className="vl-watch-tools">
                         {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
-                        <WatchPlaybackTools key={`${selectedVideo.videoId}:${userId || 'anonymous'}`} iframeRef={playerIframeRef}
+                        <WatchPlaybackTools key={`tools:${selectedVideo.videoId}:${userId || 'anonymous'}`} iframeRef={playerIframeRef}
                             onMarkersChange={setQuizMarkers}
                             duration={parseDuration(selectedVideo.duration)} attemptPlayback={playerAutoplayRef.current}
                             autoplay={nextAutoplay && preferences.autoplay !== false} onAutoplayChange={value => { setNextAutoplay(value); void updatePreference('autoplay', value); }}
                             nextTitle={playbackQueue.queue.items.some(item => item.videoId === selectedVideo.videoId) ? playbackQueue.queue.items[playbackQueue.queue.items.findIndex(item => item.videoId === selectedVideo.videoId) + 1]?.title : videos.length > 1 ? videos[(videos.findIndex(item => item.videoId === selectedVideo.videoId) + 1) % videos.length]?.title : null}
                             onNext={handleNextVideo} mini={miniPlayer} onMiniChange={handleMiniPlayerChange} />
-                        {['cash', 'tournament'].includes(selectedVideo.type) && <PauseQuiz key={`${selectedVideo.videoId}:${userId || 'anonymous'}`} iframeRef={playerIframeRef} videoId={selectedVideo.videoId} active={!vlYtManaged} markers={quizMarkers} />}
+                        {['cash', 'tournament'].includes(selectedVideo.type) && <PauseQuiz key={`quiz:${selectedVideo.videoId}:${userId || 'anonymous'}`} iframeRef={playerIframeRef} videoId={selectedVideo.videoId} active={!vlYtManaged} markers={quizMarkers} />}
                     </div>
                     {/* Title, channel, actions and study tools */}
                     <div className="vl-info-bar">

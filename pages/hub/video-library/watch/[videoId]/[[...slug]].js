@@ -366,13 +366,13 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     {ytError && <div className="vl-playback-error" role="alert"><p>{errorInfo?.description}</p><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
                                     {miniPlayer && <div className="vl-mini-controls"><button type="button" onClick={() => setMiniPlayer(false)}>Expand Player</button><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
                                 </div>
-                                {playing && <WatchPlaybackTools key={`${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} active={!ytError}
+                                {playing && <WatchPlaybackTools key={`tools:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} active={!ytError}
                                     onMarkersChange={setQuizMarkers}
                                     duration={seconds} nextTitle={nextVideo?.title}
                                     onNext={() => openQueuedVideo(queueIndex >= 0 ? playbackQueue.advance(video.videoId) : nextVideo)}
                                     autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
                                     mini={miniPlayer} onMiniChange={setMiniPlayer} />}
-                                {playing && VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
+                                {playing && VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
 
                                 {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
                                 {navigationError && <p role="alert">The Next Video Could Not Open. Choose A Video Below To Try Again.</p>}

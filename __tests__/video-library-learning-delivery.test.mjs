@@ -8,7 +8,11 @@ test('pause quizzes receive the existing player error state and current hand mar
  assert.match(library,/ytError:\s*vlYtManaged/);
  assert.match(library,/<PauseQuiz[^>]*active=\{!vlYtManaged\}[^>]*markers=\{quizMarkers\}/);
  assert.match(watch,/<PauseQuiz[^>]*active=\{!ytError\}[^>]*markers=\{quizMarkers\}/);
- for(const page of [library,watch]) assert.match(page,/onMarkersChange=\{setQuizMarkers\}/);
+ for(const page of [library,watch]) {
+  assert.match(page,/onMarkersChange=\{setQuizMarkers\}/);
+  assert.match(page,/<WatchPlaybackTools key=\{`tools:/);
+  assert.match(page,/<PauseQuiz key=\{`quiz:/);
+ }
  assert.match(read('src/components/video-library/WatchPlaybackTools.jsx'),/onMarkersChange\?\.\(markers\)/);
 });
 test('learning behavioral qualification executes in the maintained browser workflow',()=>{

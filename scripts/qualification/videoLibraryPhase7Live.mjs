@@ -43,7 +43,10 @@ async function timeline() {
     });
 }
 async function quizFlow(name, surface) {
+    await expect(page.getByRole('region', { name: 'Playback Tools', exact: true })).toHaveCount(1);
     const region = page.getByRole('region', { name: 'What Would You Do?', exact: true });
+    await expect(region).toHaveCount(1);
+    const originalIframe = await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').elementHandle();
     const open = region.getByRole('button', { name: 'What Would You Do?', exact: true });
     await expect(open).toBeEnabled({ timeout: 45000 });
     await expect.poll(async () => (await timeline()).state, { timeout: 15000 }).toBe(1);
@@ -67,6 +70,9 @@ async function quizFlow(name, surface) {
     await expect.poll(async () => (await timeline()).state, { timeout: 15000 }).toBe(1);
     await expect.poll(async () => (await timeline()).position, { timeout: 15000 }).toBeGreaterThan(paused.position + 0.2);
     const resumed = await timeline();
+    await expect(page.getByRole('region', { name: 'Playback Tools', exact: true })).toHaveCount(1);
+    await expect(region).toHaveCount(1);
+    assert(await originalIframe.evaluate(element => element.isConnected && element === document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]')));
     assert(resumed.records.every(record => ['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(record.origin)));
     report.cases.push({ name: `${name}: ${surface} real provider pause and explicit resume`, status: 'passed', before: { position: before.position, state: before.state }, paused: { position: paused.position, state: paused.state }, resumed: { position: resumed.position, state: resumed.state }, providerEvents: resumed.records });
     await save();
