@@ -52,3 +52,21 @@ test('all three viewers keep Back before CC, attach authenticated ownership, cre
  const source=readFileSync(new URL(path,import.meta.url),'utf8');const header=source.slice(source.indexOf('data-reels-topbar'),source.indexOf('</header>',source.indexOf('data-reels-topbar')));assert.ok(header.indexOf('name="back"')>=0||header.indexOf('icon="back"')>=0);assert.ok(Math.max(header.indexOf('name="back"'),header.indexOf('icon="back"'))<header.indexOf('<ReelCaptionControl'));assert.match(source,/<ReelCaptionControl[^>]+reel=\{currentReel\}[^>]+ownerId=[^>]+getAccessToken=\{getAccessToken\}[^>]+uploadCommandRef=\{captionUploadRef\}/);assert.match(source,/<video\s+crossOrigin="anonymous"/);assert.match(source,/author_id ===[^?]+\?[^\n]+Add Or Replace Spoken Captions/);
  }
 });
+
+test('loaded native default cues clear the controls while explicit creator placement and genuine text remain unchanged',async()=>{
+ const f=await fixture();
+ const auto={line:'auto',snapToLines:true,position:'auto',size:100,align:'center',text:'Original Spoken Caption',startTime:0,endTime:1.5};
+ const authored={line:92,snapToLines:false,position:25,size:40,align:'start',text:'Creator Placement',startTime:1.5,endTime:3};
+ const authoredHorizontal={line:'auto',snapToLines:true,position:20,size:45,align:'start',text:'Creator Width',startTime:3,endTime:5};
+ const element=f.video.children[0];element.track.cues=[auto,authored,authoredHorizontal];
+ const before={...authored};
+ assert.equal(auto.line,'auto','placement changes only after actual track load');
+ await f.act(async()=>element.fire('load'));
+ assert.equal(auto.line,70);assert.equal(auto.snapToLines,false);assert.equal(auto.size,70);assert.equal(auto.position,'auto');assert.equal(auto.align,'center');
+ assert.equal(auto.text,'Original Spoken Caption');assert.equal(auto.startTime,0);assert.equal(auto.endTime,1.5);
+ assert.deepEqual(authored,before);
+ assert.equal(authoredHorizontal.line,70);assert.equal(authoredHorizontal.snapToLines,false);assert.equal(authoredHorizontal.position,20);assert.equal(authoredHorizontal.size,45);assert.equal(authoredHorizontal.align,'start');
+ await f.update({requested:false});assert.equal(element.track.mode,'disabled');assert.equal(auto.line,70);
+ await f.close();assert.equal(f.video.children.length,0);assert.equal(f.timers.size,0);
+ element.track.cues.push({line:'auto',snapToLines:true,size:100,position:'auto',align:'center'});element.fire('load');assert.equal(element.track.cues.at(-1).line,'auto','disposed track cannot mutate cues');
+});

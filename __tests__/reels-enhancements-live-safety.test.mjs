@@ -18,6 +18,21 @@ test('proof uses real UI writes and exact scoped cleanup without feeding synthet
  assert.doesNotMatch(source,/route\.fulfill|TEST_USER_PASSWORD|auth\.admin|SUPABASE_SERVICE_ROLE_KEY/);
  assert.match(source,/flag:first\?'wx':'w'/);
  assert.match(source,/\/hub\/reels\/saved/);assert.match(source,/a\.vlc-saved-link/);assert.match(source,/actualPrivateSavedCollection=true/);assert.match(source,/savedLink\.click\(\)/);
+ assert.match(source,/Video Unavailable\|No Reels/);assert.match(source,/video\.currentSrc===outputUrl\|\|video\.getAttribute\('src'\)===outputUrl/);
+ assert.match(source,/actualCaptionSafePosition=true/);assert.match(source,/cue\.line===70&&cue\.snapToLines===false/);
  assert.match(source,/journal\.commentReadErrors=\[\]/);assert.match(source,/commentReadErrors\.length<5/);
  assert.match(source,/failureMedia=await page\.evaluate/);assert.match(source,/transitioning:document\.body\.classList\.contains\('page-transitioning'\)/);assert.match(source,/reels-native-failed\.png/);
+});
+
+
+test('startup proof requires the actual successful acknowledgment before any UI reload',async()=>{
+ const {isStartupMetricAcknowledgment}=await import('../scripts/ci/reels-enhancements-live-check.mjs');
+ const response=({status=202,kind='startup',startup=81,success=true,url='https://smarter.poker/api/reels/delivery-metrics',method='POST',reject=false}={})=>({request:()=>({url:()=>url,method:()=>method,postDataJSON:()=>({event_kind:kind,startup_ms:startup})}),status:()=>status,json:async()=>{if(reject)throw new Error('Body unavailable after navigation');return{success};}});
+ assert.equal(await isStartupMetricAcknowledgment(response()),true);
+ for(const options of[{status:503},{kind:'summary'},{startup:null},{success:false},{url:'https://smarter.poker/api/other'},{url:'https://other.example/api/reels/delivery-metrics'},{method:'GET'},{reject:true}])assert.equal(await isStartupMetricAcknowledgment(response(options)),false);
+ const source=readFileSync(new URL('../scripts/ci/reels-enhancements-live-check.mjs',import.meta.url),'utf8');
+ assert.match(source,/const startupAcknowledgment=page\.waitForResponse\(isStartupMetricAcknowledgment/);
+ assert.ok(source.indexOf('page.waitForResponse(isStartupMetricAcknowledgment')<source.indexOf('await open();journal.checks.actualPrivateNativeViewer'));
+ assert.ok(source.indexOf('await startupAcknowledgment;')<source.indexOf("await step('like'"));
+ assert.match(source,/Actual persisted startup metric acknowledgment required/);assert.match(source,/metricAcknowledgments\.length<20/);
 });
