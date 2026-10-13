@@ -14,6 +14,7 @@ import {
     mixedContentFilter,
 } from '../../../src/lib/videoLibraryCuration.mjs';
 import { VIDEO_ROW_FIELDS, normaliseVideoRow } from '../../../src/lib/videoLibraryWatch.mjs';
+import { applyBrowseQueryFilters, normalizeBrowseFilters, matchesBrowseFilters } from '../../../src/lib/videoLibraryBrowse.mjs';
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
@@ -75,6 +76,7 @@ export default async function handler(req, res) {
     const type = String(firstQueryValue(req.query.type) || '').trim().toLowerCase();
     const sort = String(firstQueryValue(req.query.sort) || 'latest').trim().toLowerCase();
     const search = cleanSearch(req.query.q);
+    const browseFilters = normalizeBrowseFilters(req.query);
     const idsRequested = firstQueryValue(req.query.ids) !== undefined;
     const ids = parseIds(req.query.ids);
     if (idsRequested && ids.length === 0) {
@@ -102,6 +104,7 @@ export default async function handler(req, res) {
             const pattern = `%${search.replace(/[%_]/g, '')}%`;
             query = query.or(`title.ilike.${pattern},source_name.ilike.${pattern},source_id.ilike.${pattern}`);
         }
+        query = applyBrowseQueryFilters(query, browseFilters);
 
         if (sort === 'top_rated') {
             query = query
@@ -120,7 +123,8 @@ export default async function handler(req, res) {
         if (error) throw error;
 
         const rawRowCount = Array.isArray(data) ? data.length : 0;
-        const normalised = (data || []).map(normaliseVideo).filter(isVideoLibraryVideoAllowed);
+        const normalised = (data || []).map(normaliseVideo).filter(isVideoLibraryVideoAllowed)
+            .filter(video => matchesBrowseFilters(video, browseFilters));
         // Saved-library lookups return exactly what the player saved; the
         // feed hides unreadable titles, casino games filed as poker and
         // reposted duplicates.

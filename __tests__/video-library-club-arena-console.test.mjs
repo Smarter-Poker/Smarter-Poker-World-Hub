@@ -19,6 +19,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const PAGE = read('../pages/hub/video-library.js');
 const RAIL = read('../src/components/video-library/VideoLibraryCommandRail.jsx');
 const CSS = read('../src/styles/worlds/video-library.css');
+const SEARCH = read('../src/components/video-library/BrowseSearch.jsx');
 const CARDS = read('../src/lib/videoLibraryCards.js');
 
 test('no decorative console frame wraps the page, the rail or any dialog', () => {
@@ -29,7 +30,9 @@ test('no decorative console frame wraps the page, the rail or any dialog', () =>
 });
 
 test('the browse page is search, one chip row, round channels, then the feed', () => {
-  assert.match(PAGE, /aria-label="Search the poker video library"/);
+  assert.match(PAGE, /<BrowseSearch[\s\S]*inputRef=\{searchInputRef\}/);
+  assert.match(SEARCH, /aria-label="Search The Poker Video Library"/);
+  assert.match(CSS, /@media \(min-width: 1100px\)[\s\S]*\.vl-topbar > \.vl-chip-rail[\s\S]*grid-column: 1/);
   assert.match(PAGE, /<VideoLibraryCommandRail[\s\S]*className={`vl-source-pills/);
   assert.match(RAIL, /<nav className="vl-chip-rail"/);
   assert.match(RAIL, /data-filter-group="type"[\s\S]*data-filter-group="sort"[\s\S]*data-filter-group="library"/);

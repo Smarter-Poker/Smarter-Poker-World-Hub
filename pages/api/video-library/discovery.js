@@ -16,6 +16,7 @@ import {
   rankLearningVideos,
   searchTerms,
 } from '../../../src/lib/videoLearningContract.mjs';
+import { matchesBrowseFilters, normalizeBrowseFilters } from '../../../src/lib/videoLibraryBrowse.mjs';
 
 const VIDEO_FIELDS = 'youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags, availability_status, embeddable, availability_checked_at, attribution_name, attribution_url, disclosure_kind, sponsor_name, made_for_kids';
 const MAX_CANDIDATES = 240;
@@ -71,6 +72,7 @@ export default async function handler(req, res) {
     const organicEligible = organicAnalyticsEligible(profileResult.data);
     const mode = one(req.query.mode) === 'chronological' ? 'chronological' : 'recommended';
     const queryText = String(one(req.query.q) || '').trim().slice(0, 120);
+    const browseFilters = normalizeBrowseFilters(req.query);
     const seenIds = new Set(normalizeSeenIds(one(req.query.seen)));
     const searchQuery = queryText || String(one(req.query.goals) || '').trim().slice(0, 120);
     const searchDb = ownerDb || db;
@@ -122,6 +124,7 @@ export default async function handler(req, res) {
     const typeFilter = VIDEO_LIBRARY_ALLOWED_TYPES.includes(type) ? [type] : VIDEO_LIBRARY_POKER_TYPES;
     videos = dedupeVideos(videos.filter((item) => (source && source !== 'ALL' ? item.source === source : true)
       && typeFilter.includes(item.type)
+      && matchesBrowseFilters(item, browseFilters)
       && isCuratedFeedVideo(item)));
     const publicProgress = Object.fromEntries(videos.map((item) => [item.id, progressById[item.internalVideoId]]).filter(([, value]) => value));
     const publicSaved = new Set(videos.filter((item) => savedIds.has(item.internalVideoId)).map((item) => item.id));

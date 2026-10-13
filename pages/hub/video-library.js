@@ -6,6 +6,8 @@
 import { Component, Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager } from '../../src/hooks/useYouTubeErrorManager';
+import BrowseSearch from '../../src/components/video-library/BrowseSearch';
+import { BROWSE_FILTER_OPTIONS, normalizeBrowseFilters } from '../../src/lib/videoLibraryBrowse.mjs';
 import WatchPlaybackTools, { WatchDescription } from '../../src/components/video-library/WatchPlaybackTools';
 import { buildWatchDescription } from '../../src/lib/videoLibraryWatch.mjs';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -373,11 +375,13 @@ export default function VideoLibraryPage() {
             filter: router.query.filter || '',
             q: router.query.q || '',
             sort: router.query.sort || '',
+            game: router.query.game || '', stakes: router.query.stakes || '', skill: router.query.skill || '',
         });
         const navigationQueryChanged = lastNavigationQueryRef.current !== navigationQueryKey;
         if (navigationQueryChanged) {
+        setBrowseFilters(normalizeBrowseFilters(router.query));
         lastNavigationQueryRef.current = navigationQueryKey;
-        const hasNavigationQuery = Boolean(router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort);
+        const hasNavigationQuery = Boolean(router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort || router.query.game || router.query.stakes || router.query.skill);
         if (!hasNavigationQuery && hadNavigationQueryRef.current) {
             setSelectedType('ALL');
             setSelectedSource('ALL');
@@ -448,6 +452,8 @@ export default function VideoLibraryPage() {
         }
     }, [router.isReady, router.query, allVideos]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [browseFilters, setBrowseFilters] = useState({ game: 'ALL', stakes: 'ALL', skill: 'ALL' });
+    const [browseSuggestions, setBrowseSuggestions] = useState([]);
     const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const searchInputRef = useRef(null);
@@ -511,6 +517,11 @@ export default function VideoLibraryPage() {
     // was already in state (favorites / watchLater / watchedVideos are Sets
     // of video ids) — it just was never wired to a filter.
     const [libraryFilter, setLibraryFilter] = useState('ALL');
+    useEffect(() => {
+        if (libraryFilter !== 'ALL' || !allVideos.length) return;
+        setBrowseSuggestions(previous => [...new Set([...previous, ...allVideos.flatMap(video => [video.title, getVideoChannel(video).name])].filter(value => typeof value === 'string' && value.trim()))].slice(-150));
+    }, [allVideos, libraryFilter]);
+
     const [storedWatchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
     const [storedWatchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
     const [storedRecentlyWatched, setRecentlyWatched] = useState([]); // Recently watched videos
@@ -1379,10 +1390,14 @@ export default function VideoLibraryPage() {
         if (selectedType !== 'ALL') params.set('type', selectedType);
         if (catalogSearchQuery.trim()) params.set('q', catalogSearchQuery.trim());
         if (sortMode !== 'default') params.set('sort', sortMode);
+        for (const [key, value] of Object.entries(browseFilters)) if (value !== 'ALL') params.set(key, value);
         if (libraryFilter !== 'ALL') params.set('ids', personalIdsForFilter.join(','));
 
         try {
-            const semanticDiscovery = libraryFilter === 'ALL' && Boolean(catalogSearchQuery.trim());
+            // Faceted queries must be filtered before pagination. Semantic search
+            // has a bounded candidate pool, so refined searches use the catalog.
+            const semanticDiscovery = libraryFilter === 'ALL' && Boolean(catalogSearchQuery.trim())
+                && Object.values(browseFilters).every(value => value === 'ALL');
             const discoveryToken = semanticDiscovery ? getAccessToken() : null;
             if (semanticDiscovery) {
                 params.delete('offset');
@@ -1453,7 +1468,7 @@ export default function VideoLibraryPage() {
                 setCatalogLoadingMore(false);
             }
         }
-    }, [libraryFilter, userId, visibleLibrarySyncState, personalIdsForFilter, selectedSource, selectedType, catalogSearchQuery, sortMode, router.query.rank]);
+    }, [libraryFilter, userId, visibleLibrarySyncState, personalIdsForFilter, selectedSource, selectedType, catalogSearchQuery, sortMode, router.query.rank, browseFilters]);
 
     useEffect(() => {
         void fetchCatalogPage({ append: false });
@@ -1887,6 +1902,7 @@ export default function VideoLibraryPage() {
         sortMode !== 'default' ? (sortMode === 'trending' ? 'Trending' : 'Top Rated') : null,
         libraryFilter !== 'ALL' ? ({ favorites: 'Favorites', history: 'Watch History', watchlater: 'Watch Later', playlists: 'Playlists' }[libraryFilter] || libraryFilter) : null,
         searchQuery ? `Search: “${searchQuery}”` : null,
+        ...Object.entries(browseFilters).filter(([, value]) => value !== 'ALL').map(([key, value]) => BROWSE_FILTER_OPTIONS[key].find(option => option.id === value)?.label),
     ].filter(Boolean);
     const hasActiveFilters = activeFilterLabels.length > 0;
 
@@ -1948,14 +1964,15 @@ export default function VideoLibraryPage() {
                     };
 
     const clearAllFilters = () => {
+        setBrowseFilters({ game: 'ALL', stakes: 'ALL', skill: 'ALL' });
         setSearchQuery('');
         setCatalogSearchQuery('');
         setSelectedSource('ALL');
         setSelectedType('ALL');
         setSortMode('default');
         setLibraryFilter('ALL');
-        if (router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort || router.query.rank) {
-            const { type: _type, source: _source, filter: _filter, q: _q, sort: _sort, rank: _rank, ...nextQuery } = router.query;
+        if (router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort || router.query.rank || router.query.game || router.query.stakes || router.query.skill) {
+            const { type: _type, source: _source, filter: _filter, q: _q, sort: _sort, rank: _rank, game: _game, stakes: _stakes, skill: _skill, ...nextQuery } = router.query;
             hadNavigationQueryRef.current = false;
             void router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
         }
@@ -2059,38 +2076,14 @@ export default function VideoLibraryPage() {
 
                     {/* Search, then one row of chips: the YouTube phone layout. */}
                     <div className="vl-topbar">
-                        <div className="vl-search-wrap" data-tutorial="search">
-                            <span className="vl-search-icon" aria-hidden="true" />
-                            <input
-                                ref={searchInputRef}
-                                type="search"
-                                enterKeyHint="search"
-                                aria-label="Search the poker video library"
-                                aria-keyshortcuts="/"
-                                aria-controls="video-library-grid"
-                                placeholder={libraryFilter === 'ALL' ? 'Search Poker Videos' : `Search ${currentViewMeta.title}`}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Escape' && searchQuery) {
-                                        event.stopPropagation();
-                                        setSearchQuery('');
-                                    }
-                                }}
-                            />
-                            {searchQuery && (
-                                <button
-                                    type="button"
-                                    className="vl-search-clear"
-                                    aria-label="Clear video search"
-                                    onClick={() => {
-                                        setSearchQuery('');
-                                        searchInputRef.current?.focus();
-                                    }}
-                                >Clear</button>
-                            )}
-                            <span className="vl-sr-only">Search Includes Titles, Creators, Poker Concepts, Chapters, And Approved Transcript Text.</span>
-                        </div>
+                        <BrowseSearch
+                            inputRef={searchInputRef}
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            onSearch={query => { setCatalogSearchQuery(query); replaceNavigationQuery({ q: query || null }); }}
+                            suggestions={browseSuggestions}
+                            placeholder={libraryFilter === 'ALL' ? 'Search Poker Videos' : `Search ${currentViewMeta.title}`}
+                        />
                         <VideoLibraryCommandRail
                             ref={mobileFilterRailRef}
                             selectedType={selectedType}
@@ -2105,6 +2098,26 @@ export default function VideoLibraryPage() {
                             reelsTriggerRef={reelsTriggerRef}
                         />
                     </div>
+
+                    <section className="vl-browse-filters" aria-label="Poker Video Filters">
+                        <div className="vl-browse-filter-fields">
+                            {Object.entries({ game: 'Game', stakes: 'Stakes', skill: 'Skill Level' }).map(([key, label]) => (
+                                <label key={key}>{label}
+                                    <select aria-label={label} value={browseFilters[key]} onChange={event => {
+                                        const value = event.target.value;
+                                        const next = { ...browseFilters, [key]: value };
+                                        setBrowseFilters(next);
+                                        replaceNavigationQuery(next);
+                                    }}>
+                                        {BROWSE_FILTER_OPTIONS[key].map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+                                    </select>
+                                </label>
+                            ))}
+                            {Object.values(browseFilters).some(value => value !== 'ALL') && <button type="button" onClick={clearAllFilters}>Clear Filters</button>}
+                        </div>
+                        <p>Filters Match Published Titles And Tags. Unlabeled Videos Appear In All.
+                            {Object.values(browseFilters).some(value => value !== 'ALL') && ' Filtered Search Matches Published Titles And Channels.'}</p>
+                    </section>
 
                     {/* Channels: round avatars like YouTube subscriptions, laid out
                         in rows (no hidden sideways rail), the rest behind Show All. */}
