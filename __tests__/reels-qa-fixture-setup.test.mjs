@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {QA_ACTOR_EMAIL,QA_TARGET_EMAIL,QA_PURPOSE,assertMarkedUser,fixtureUUID,findQAUser,validateMediaProof,setupQAFixture} from '../scripts/ci/reels-qa-fixture-setup.mjs';
+import {isMissingQAObject,QA_ACTOR_EMAIL,QA_TARGET_EMAIL,QA_PURPOSE,assertMarkedUser,fixtureUUID,findQAUser,validateMediaProof,setupQAFixture} from '../scripts/ci/reels-qa-fixture-setup.mjs';
 const actor='00000000-0000-4000-8000-000000000001',target='00000000-0000-4000-8000-000000000002';
 const marker={reels_qualification_fixture:true,purpose:QA_PURPOSE};const marked=(id,email)=>({id,email,app_metadata:{...marker},created_at:new Date().toISOString()});
 const bytes=Buffer.concat([Buffer.from([0,0,0,24]),Buffer.from('ftyp'),Buffer.alloc(64)]);
@@ -48,4 +48,14 @@ test('marked fixture reuse never creates another Auth account',async()=>{
 });
 test('Storage bytes must be read back exactly before any native ready content is created',async()=>{
  const f=fixture({wrongBytes:true});await assert.rejects(()=>setupQAFixture(f),/overwritten or relabeled/);assert.equal(f.calls.filter(call=>call.actorInsert).length,0);
+});
+
+test('actual Storage HTTP400 NoSuchKey body is absence; other failures remain refused',async()=>{
+ const missing={statusCode:'404',code:'NoSuchKey',error:'not_found'};assert.equal(await isMissingQAObject(new Response(JSON.stringify(missing),{status:400})),true);
+ for(const [status,body] of [[400,{error:'bad_request'}],[403,missing],[400,{...missing,statusCode:'400'}],[400,'x'.repeat(1025)]])assert.equal(await isMissingQAObject(new Response(typeof body==='string'?body:JSON.stringify(body),{status})),false);
+ await assert.rejects(()=>isMissingQAObject({status:400,body:new ReadableStream({start(c){c.error(new Error('timeout'));}})}),/timeout/);
+});
+test('failed signin and profile read retain sanitized exact stage without secrets',async()=>{
+ for(const phase of ['actor-signin','profile-read']){const f=fixture();if(phase==='actor-signin')f.actorClient.auth.signInWithPassword=async()=>({error:{message:f.password},data:{}});else f.actorClient.from=()=>({select(){return this;},eq(){return this;},maybeSingle(){return Promise.resolve({error:{code:'42501',message:f.password}});}});
+ await assert.rejects(()=>setupQAFixture(f));const last=f.receipts.at(-1);assert.equal(last.status,'failed');assert.equal(last.failure.stage,phase);if(phase==='profile-read')assert.equal(last.failure.code,'42501');assert.equal(JSON.stringify(f.receipts).includes(f.password),false);assert.equal(f.calls.filter(x=>x.upload||x.actorInsert).length,0);}
 });
