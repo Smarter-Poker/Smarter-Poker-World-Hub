@@ -1,3 +1,4 @@
+import { readReelComments } from '../../lib/reelCommentsReader.mjs';
 import { createReelHydrationRevision } from '../../lib/reelHydrationRevision.mjs';
 import { mutateReelReaction } from '../../lib/reelReactionMutation.mjs';
 import useReelsEnhancements from '../../hooks/useReelsEnhancements';
@@ -297,6 +298,7 @@ function ReelViewer({
   const [following, setFollowing] = useState({});
   const [showComments, setShowComments] = useState(false);
   const [reelComments, setReelComments] = useState([]);
+  const [commentLoadError, setCommentLoadError] = useState('');
   const [commentText, setCommentText] = useState('');
   const [showOverlay, setShowOverlay] = useState(false);
   const [shareToast, setShareToast] = useState(false);
@@ -581,6 +583,7 @@ function ReelViewer({
     setNotInterestedIds(loadNotInterestedReelIds(activeUserIdRef.current));
     setShowComments(false);
     setReelComments([]);
+    setCommentLoadError('');
     setCommentText('');
     setCommentLikes({});
     setCommentLikeCounts({});
@@ -1037,14 +1040,9 @@ function ReelViewer({
       const ownerRequest = accountScopeRef.current.capture();
       const commentRequest = commentRequestGuardRef.current.begin({ append: false });
       setCommentPage(0);
+      setCommentLoadError('');
       try {
-        const { data, error } = await supabase
-          .from('social_comments')
-          .select('*, profiles:author_id (username, avatar_url)')
-          .eq('post_id', reelId)
-          .order('created_at', { ascending: commentSort === 'oldest' })
-          .limit(50);
-        if (error) throw error;
+        const data = await readReelComments(supabase, reelId, { page: 0, oldest: commentSort === 'oldest', signal: commentRequest.signal });
         if (
           !ownerRequest.isCurrent() ||
           !commentRequest.isCurrent() ||
@@ -1089,6 +1087,7 @@ function ReelViewer({
           activeCommentReelIdRef.current === reelId
         ) {
           console.warn('[ReelsFeedCarousel] Comment load failed:', error?.message || error);
+          setCommentLoadError('Comments Could Not Be Loaded. Close And Reopen To Try Again.');
           setReelComments([]);
         }
       } finally {
@@ -1116,16 +1115,11 @@ function ReelViewer({
     const ownerRequest = accountScopeRef.current.capture();
     const commentRequest = commentRequestGuardRef.current.begin({ append: true });
     if (!commentRequest) return;
+    setCommentLoadError('');
     setLoadingMoreComments(true);
     const nextPage = commentPage + 1;
     try {
-      const { data, error } = await supabase
-        .from('social_comments')
-        .select('*, profiles:author_id (username, avatar_url)')
-        .eq('post_id', reelId)
-        .order('created_at', { ascending: commentSort === 'oldest' })
-        .range(nextPage * 50, (nextPage + 1) * 50 - 1);
-      if (error) throw error;
+      const data = await readReelComments(supabase, reelId, { page: nextPage, oldest: commentSort === 'oldest', signal: commentRequest.signal });
       if (
         !ownerRequest.isCurrent() ||
         !commentRequest.isCurrent() ||
@@ -1146,6 +1140,7 @@ function ReelViewer({
         activeCommentReelIdRef.current === reelId
       ) {
         console.warn('[ReelsFeedCarousel] Comment pagination failed:', error?.message || error);
+        setCommentLoadError('Comments Could Not Be Loaded. Close And Reopen To Try Again.');
         setHasMoreComments(false);
       }
     } finally {
@@ -1601,6 +1596,7 @@ function ReelViewer({
     commentRequestGuardRef.current.abort();
     setLoadingMoreComments(false);
     setReelComments([]);
+    setCommentLoadError('');
     setCommentText('');
     setShowOverlay(false);
     setProgress(0);
@@ -2718,7 +2714,8 @@ function ReelViewer({
                   Sort: {commentSort === 'newest' ? 'Newest' : 'Oldest'}
                 </button>
                 <div className="vlc-carousel-comments">
-                  {reelComments.length === 0 && (
+                  {commentLoadError && <PlainCopy role="alert">{commentLoadError}</PlainCopy>}
+                  {!commentLoadError && reelComments.length === 0 && (
                     <PlainCopy>No Comments Yet. Be The First!</PlainCopy>
                   )}
                   {reelComments.map((comment) => (

@@ -1,3 +1,4 @@
+import { readReelComments } from '../../src/lib/reelCommentsReader.mjs';
 import { createReelHydrationRevision } from '../../src/lib/reelHydrationRevision.mjs';
 import { mutateReelReaction } from '../../src/lib/reelReactionMutation.mjs';
 import useReelsEnhancements from '../../src/hooks/useReelsEnhancements';
@@ -380,6 +381,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const [shareToast, setShareToast] = useState(false);
   const [showCommentPanel, setShowCommentPanel] = useState(false);
   const [comments, setComments] = useState([]);
+  const [commentLoadError, setCommentLoadError] = useState('');
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentCounts, setCommentCounts] = useState({});
@@ -623,6 +625,7 @@ export default function ReelsPage({ reelsListing = null }) {
     setCommentLikeCounts({});
     setCommentText('');
     setComments([]);
+    setCommentLoadError('');
     setReplyTo(null);
     setEditingComment(null);
     setEditCommentText('');
@@ -1723,17 +1726,10 @@ export default function ReelsPage({ reelsListing = null }) {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     const commentRequest = commentRequestGuardRef.current.begin({ append: false });
     setCommentPage(0);
+    setCommentLoadError('');
     setLoadingMoreComments(false);
     try {
-        const { data, error } = await supabase
-          .from('social_comments')
-          .select(
-            'id, content, created_at, media_url, media_type, profiles:author_id(username, avatar_url)'
-          )
-          .eq('post_id', reelId)
-          .order('created_at', { ascending: commentSort === 'oldest' })
-          .limit(50);
-        if (error) throw error;
+        const data = await readReelComments(supabase, reelId, { page: 0, oldest: commentSort === 'oldest', signal: commentRequest.signal });
         if (!commentRequest.isCurrent() || !ownerRequest.isCurrent() || activeCommentReelIdRef.current !== reelId) return;
         setComments(data || []);
         setHasMoreComments((data || []).length >= 50);
@@ -1784,6 +1780,7 @@ export default function ReelsPage({ reelsListing = null }) {
       } catch (e) {
         if (commentRequest.isCurrent() && ownerRequest.isCurrent() && activeCommentReelIdRef.current === reelId) {
           console.warn('Load comments:', e);
+          setCommentLoadError('Comments Could Not Be Loaded. Close And Reopen To Try Again.');
         }
       } finally {
         commentRequest.finish();
@@ -1796,18 +1793,11 @@ export default function ReelsPage({ reelsListing = null }) {
     const commentRequest = commentRequestGuardRef.current.begin({ append: true });
     if (!commentRequest) return;
     const reelId = currentReel.id;
+    setCommentLoadError('');
     setLoadingMoreComments(true);
     const nextPage = commentPage + 1;
     try {
-      const { data, error } = await supabase
-        .from('social_comments')
-        .select(
-          'id, content, created_at, media_url, media_type, profiles:author_id(username, avatar_url)'
-        )
-        .eq('post_id', reelId)
-        .order('created_at', { ascending: commentSort === 'oldest' })
-        .range(nextPage * 50, (nextPage + 1) * 50 - 1);
-      if (error) throw error;
+      const data = await readReelComments(supabase, reelId, { page: nextPage, oldest: commentSort === 'oldest', signal: commentRequest.signal });
       if (!commentRequest.isCurrent() || activeCommentReelIdRef.current !== reelId) return;
       if (data && data.length > 0) {
         setComments((prev) => [...prev, ...data]);
@@ -1819,6 +1809,7 @@ export default function ReelsPage({ reelsListing = null }) {
     } catch (error) {
       if (commentRequest.isCurrent() && activeCommentReelIdRef.current === reelId) {
         console.warn('Load more comments:', error);
+        setCommentLoadError('Comments Could Not Be Loaded. Close And Reopen To Try Again.');
         setHasMoreComments(false);
       }
     } finally {
@@ -2144,6 +2135,7 @@ export default function ReelsPage({ reelsListing = null }) {
     commentRequestGuardRef.current.abort();
     setShowCommentPanel(false);
     setComments([]);
+    setCommentLoadError('');
     setLoadingMoreComments(false);
     setCommentText('');
     setShowGifPicker(false);
@@ -3441,7 +3433,8 @@ null
             setComments((previous) => [...previous].sort((a, b) => next === 'newest' ? new Date(b.created_at) - new Date(a.created_at) : new Date(a.created_at) - new Date(b.created_at)));
           }}>{commentSort === 'newest' ? 'Newest First' : 'Oldest First'}</ReelAction>
           <div className={styles.list}>
-            {comments.length === 0 && <ConsoleCopy align="center">No Comments Yet. Be The First!</ConsoleCopy>}
+            {commentLoadError && <ConsoleCopy align="center" role="alert">{commentLoadError}</ConsoleCopy>}
+            {!commentLoadError && comments.length === 0 && <ConsoleCopy align="center">No Comments Yet. Be The First!</ConsoleCopy>}
             {comments.map((comment, index) => (
               <article key={comment.id || index} className={`${styles.comment} ${comment.parent_id ? styles.reply : ''}`}>
                 <p className={styles.copy}>{comment.profiles?.username || comment.author?.username || 'User'}</p>

@@ -1,3 +1,4 @@
+import { readReelComments } from '../../lib/reelCommentsReader.mjs';
 import { createReelHydrationRevision } from '../../lib/reelHydrationRevision.mjs';
 import { mutateReelReaction } from '../../lib/reelReactionMutation.mjs';
 import useReelsEnhancements from '../../hooks/useReelsEnhancements';
@@ -189,6 +190,7 @@ export function ReelsViewer({ onClose }) {
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [reelComments, setReelComments] = useState([]);
+  const [commentLoadError, setCommentLoadError] = useState('');
   const [shareToast, setShareToast] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
@@ -440,6 +442,7 @@ export function ReelsViewer({ onClose }) {
     setCommentLikeCounts({});
     setCommentText('');
     setReelComments([]);
+    setCommentLoadError('');
     setReplyTo(null);
     setEditingComment(null);
     setEditCommentText('');
@@ -1349,15 +1352,10 @@ export function ReelsViewer({ onClose }) {
       const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
       const commentRequest = commentRequestGuardRef.current.begin({ append: false });
       setCommentPage(0);
+      setCommentLoadError('');
       setLoadingMoreComments(false);
       try {
-        const { data, error } = await supabase
-          .from('social_comments')
-          .select('*, profiles:author_id (username, avatar_url)')
-          .eq('post_id', reelId)
-          .order('created_at', { ascending: commentSort === 'oldest' })
-          .limit(50);
-        if (error) throw error;
+        const data = await readReelComments(supabase, reelId, { page: 0, oldest: commentSort === 'oldest', signal: commentRequest.signal });
         if (!commentRequest.isCurrent() || !ownerRequest.isCurrent() || activeCommentReelIdRef.current !== reelId) return;
         setReelComments(data || []);
         setHasMoreComments((data || []).length >= 50);
@@ -1405,6 +1403,7 @@ export function ReelsViewer({ onClose }) {
       } catch (error) {
         if (commentRequest.isCurrent() && ownerRequest.isCurrent() && activeCommentReelIdRef.current === reelId) {
           console.warn('[ReelsViewer] Comment load failed:', error?.message || error);
+          setCommentLoadError('Comments Could Not Be Loaded. Close And Reopen To Try Again.');
           setReelComments([]);
         }
       } finally {
@@ -1426,16 +1425,11 @@ export function ReelsViewer({ onClose }) {
     const commentRequest = commentRequestGuardRef.current.begin({ append: true });
     if (!commentRequest) return;
     const reelId = currentReel.id;
+    setCommentLoadError('');
     setLoadingMoreComments(true);
     const nextPage = commentPage + 1;
     try {
-      const { data, error } = await supabase
-        .from('social_comments')
-        .select('*, profiles:author_id (username, avatar_url)')
-        .eq('post_id', reelId)
-        .order('created_at', { ascending: commentSort === 'oldest' })
-        .range(nextPage * 50, (nextPage + 1) * 50 - 1);
-      if (error) throw error;
+      const data = await readReelComments(supabase, reelId, { page: nextPage, oldest: commentSort === 'oldest', signal: commentRequest.signal });
       if (!commentRequest.isCurrent() || activeCommentReelIdRef.current !== reelId) return;
       if (data && data.length > 0) {
         setReelComments((prev) => [...prev, ...data]);
@@ -1447,6 +1441,7 @@ export function ReelsViewer({ onClose }) {
     } catch (error) {
       if (commentRequest.isCurrent() && activeCommentReelIdRef.current === reelId) {
         console.warn('[ReelsViewer] More comments failed:', error?.message || error);
+        setCommentLoadError('Comments Could Not Be Loaded. Close And Reopen To Try Again.');
         setHasMoreComments(false);
       }
     } finally {
@@ -1806,6 +1801,7 @@ export function ReelsViewer({ onClose }) {
     setShowCommentInput(false);
     setCommentText('');
     setReelComments([]);
+    setCommentLoadError('');
     setLoadingMoreComments(false);
     setCaptionExpanded(false);
     setShowReelGifPicker(false);
@@ -2382,7 +2378,8 @@ export function ReelsViewer({ onClose }) {
         </div>
 
         <div className={styles.commentList}>
-          {reelComments.length === 0 ? (
+          {commentLoadError && <ConsoleCopy align="center" role="alert">{commentLoadError}</ConsoleCopy>}
+          {!commentLoadError && reelComments.length === 0 ? (
             <ConsoleCopy align="center">No Comments Yet. Be The First.</ConsoleCopy>
           ) : null}
           {reelComments.map((comment) => {
