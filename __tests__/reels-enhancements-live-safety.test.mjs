@@ -24,6 +24,16 @@ test('proof uses real UI writes and exact scoped cleanup without feeding synthet
  assert.match(source,/failureMedia=await page\.evaluate/);assert.match(source,/transitioning:document\.body\.classList\.contains\('page-transitioning'\)/);assert.match(source,/reels-native-failed\.png/);
 });
 
+test('sign-out proves actual mounted removal then independent anonymous denial without touching the redirecting page',()=>{
+ const source=readFileSync(new URL('../scripts/ci/reels-enhancements-live-check.mjs',import.meta.url),'utf8');
+ const signOut=source.slice(source.indexOf("await page.getByRole('button',{name:/^More Options$/i})"),source.indexOf("journal.status='verified-awaiting-cleanup'"));
+ assert.match(signOut,/actualSignOutClearedMountedPrivateMedia=true/);
+ assert.match(signOut,/context\.browser\(\)\.newContext\(\{viewport:\{width:390,height:844\}\}\)/);
+ assert.match(signOut,/anonymousPage\.goto\(route/);assert.match(signOut,/anonymousPage\.locator\('\[data-reels-stage\] video'\)\.count\(\),0/);
+ assert.match(signOut,/finally\{await anonymousContext\.close\(\);\}/);
+ assert.doesNotMatch(signOut,/page\.evaluate|removeItem|clearCookies|storageState|addInitScript/,'A fresh context needs no mutation of the navigating signed-out page or inherited authentication');
+});
+
 
 test('startup proof requires the actual successful browser acknowledgment before any UI reload',async()=>{
  const {isStartupMetricAcknowledgment}=await import('../scripts/ci/reels-enhancements-live-check.mjs');
