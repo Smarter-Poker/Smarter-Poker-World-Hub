@@ -16,6 +16,8 @@ import { videoLibrarySocialShareHref } from '../../src/lib/videoLibrarySocialSha
 import { channelPath, CHANNEL_KEY_RE } from '../../src/lib/videoLibraryChannels.mjs';
 import { BROWSE_FILTER_OPTIONS, normalizeBrowseFilters } from '../../src/lib/videoLibraryBrowse.mjs';
 import WatchPlaybackTools, { WatchDescription } from '../../src/components/video-library/WatchPlaybackTools';
+import PauseQuiz from '../../src/components/video-library/PauseQuiz';
+import PlayerLinks from '../../src/components/video-library/PlayerLinks';
 import { buildWatchDescription } from '../../src/lib/videoLibraryWatch.mjs';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
@@ -326,6 +328,8 @@ export default function VideoLibraryPage() {
 
     // Zustand storebal State (replaces UI-related useState)
     const selectedVideo = useVideoLibraryStore((s) => s.selectedVideo);
+    const [quizMarkers, setQuizMarkers] = useState([]);
+    useEffect(() => { setQuizMarkers([]); }, [selectedVideo?.videoId, userId]);
     const setSelectedVideo = useVideoLibraryStore((s) => s.setSelectedVideo);
 
     // Persisted filters for source and type
@@ -1181,6 +1185,7 @@ export default function VideoLibraryPage() {
     }, [setSelectedVideo]);
 
     const handleVideoCardKeyDown = useCallback((event, video) => {
+        if (event.target !== event.currentTarget) return;
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
         handleOpenVideo(video);
@@ -2140,6 +2145,7 @@ export default function VideoLibraryPage() {
                             {Object.values(browseFilters).some(value => value !== 'ALL') && ' Filtered Search Matches Published Titles And Channels.'}</p>
                     </section>
 
+                    <nav className="vl-learning-navigation" aria-label="Poker Learning"><a href="/hub/video-library/players">Poker Players</a></nav>
                     {/* Channels: round avatars like YouTube subscriptions, laid out
                         in rows (no hidden sideways rail), the rest behind Show All. */}
                     <div className={`vl-source-pills${sourcesExpanded ? ' is-expanded' : ''}`} data-tutorial="sources" role="group" aria-label="Channels">
@@ -2423,6 +2429,7 @@ export default function VideoLibraryPage() {
                                         {video.title}
                                     </h3>
                                     <p className="vl-card-meta">{getVideoMetaLine(video)}</p>
+                                    <PlayerLinks video={video} />
                                 </div>
                                 <button
                                     type="button"
@@ -2697,11 +2704,13 @@ export default function VideoLibraryPage() {
 
                     <div className="vl-watch-tools">
                         {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
-                        <WatchPlaybackTools key={selectedVideo.videoId} iframeRef={playerIframeRef}
+                        <WatchPlaybackTools key={`${selectedVideo.videoId}:${userId || 'anonymous'}`} iframeRef={playerIframeRef}
+                            onMarkersChange={setQuizMarkers}
                             duration={parseDuration(selectedVideo.duration)} attemptPlayback={playerAutoplayRef.current}
                             autoplay={nextAutoplay && preferences.autoplay !== false} onAutoplayChange={value => { setNextAutoplay(value); void updatePreference('autoplay', value); }}
                             nextTitle={playbackQueue.queue.items.some(item => item.videoId === selectedVideo.videoId) ? playbackQueue.queue.items[playbackQueue.queue.items.findIndex(item => item.videoId === selectedVideo.videoId) + 1]?.title : videos.length > 1 ? videos[(videos.findIndex(item => item.videoId === selectedVideo.videoId) + 1) % videos.length]?.title : null}
                             onNext={handleNextVideo} mini={miniPlayer} onMiniChange={handleMiniPlayerChange} />
+                        {['cash', 'tournament'].includes(selectedVideo.type) && <PauseQuiz key={`${selectedVideo.videoId}:${userId || 'anonymous'}`} iframeRef={playerIframeRef} videoId={selectedVideo.videoId} active={!vlYtManaged} markers={quizMarkers} />}
                     </div>
                     {/* Title, channel, actions and study tools */}
                     <div className="vl-info-bar">
@@ -2709,6 +2718,7 @@ export default function VideoLibraryPage() {
                             <h2 id="vl-viewer-title">
                                 {selectedVideo.title}
                             </h2>
+                            <PlayerLinks video={selectedVideo} />
                             <p className="vl-info-meta">
                                 {[formatViewCount(selectedVideo.views), formatVideoAge(selectedVideo.publishedAt || selectedVideo.scrapedAt), selectedVideo.duration].filter(Boolean).join(' · ')}
                             </p>

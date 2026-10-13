@@ -1,3 +1,6 @@
+import './video-library-learning-delivery.test.mjs';
+import './video-library-pause-quiz.test.mjs';
+import './video-library-players.test.mjs';
 import './video-library-playlist-conflict.test.mjs';
 import './video-library-personal-delivery.test.mjs';
 import './video-library-queue-hook.test.mjs';

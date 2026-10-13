@@ -15,6 +15,7 @@ import {
 } from '../../../src/lib/videoLibraryCuration.mjs';
 import { VIDEO_ROW_FIELDS, normaliseVideoRow } from '../../../src/lib/videoLibraryWatch.mjs';
 import { applyBrowseQueryFilters, normalizeBrowseFilters, matchesBrowseFilters } from '../../../src/lib/videoLibraryBrowse.mjs';
+import { getVideoLibraryPlayer, matchesVideoPlayer, playerCatalogFilter } from '../../../src/lib/videoLibraryPlayers.mjs';
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
@@ -77,6 +78,9 @@ export default async function handler(req, res) {
     const sort = String(firstQueryValue(req.query.sort) || 'latest').trim().toLowerCase();
     const search = cleanSearch(req.query.q);
     const browseFilters = normalizeBrowseFilters(req.query);
+    const playerRequested = firstQueryValue(req.query.playerId) !== undefined;
+    const player = getVideoLibraryPlayer(firstQueryValue(req.query.playerId));
+    if (playerRequested && !player) return res.status(400).json({ success: false, error: 'Unknown Poker Player' });
     const idsRequested = firstQueryValue(req.query.ids) !== undefined;
     const ids = parseIds(req.query.ids);
     if (idsRequested && ids.length === 0) {
@@ -91,6 +95,7 @@ export default async function handler(req, res) {
 
         query = query.not('youtube_video_id', 'in', `(${BLOCKED_VIDEO_LIBRARY_IDS.join(',')})`);
         query = query.in('type', VIDEO_LIBRARY_ALLOWED_TYPES);
+        if (player) query = query.in('type', VIDEO_LIBRARY_POKER_TYPES).or(playerCatalogFilter(player));
 
         if (source && source !== 'ALL') query = query.eq('source_id', source);
         // Poker first (owner update 2026-10-12): with no type chosen, the feed
@@ -124,7 +129,8 @@ export default async function handler(req, res) {
 
         const rawRowCount = Array.isArray(data) ? data.length : 0;
         const normalised = (data || []).map(normaliseVideo).filter(isVideoLibraryVideoAllowed)
-            .filter(video => matchesBrowseFilters(video, browseFilters));
+            .filter(video => matchesBrowseFilters(video, browseFilters))
+            .filter(video => !player || matchesVideoPlayer(video, player));
         // Saved-library lookups return exactly what the player saved; the
         // feed hides unreadable titles, casino games filed as poker and
         // reposted duplicates.
@@ -136,6 +142,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             data: videos,
+            ...(player ? { player } : {}),
             pagination: {
                 limit,
                 offset,
