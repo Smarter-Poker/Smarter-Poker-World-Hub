@@ -8,6 +8,14 @@ export const DECISION_FEEDBACK = Object.freeze({
     Raise: 'Consider Your Sizing, Effective Stacks And The Hands That Can Call Or Raise Again.',
 });
 
+// Full provider snapshots can precede subscription to state-change events.
+// Partial time-only deliveries leave the last actual state unchanged.
+export function decisionPlayerState(data) {
+    const value = data?.event === 'onStateChange' ? data.info
+        : data?.event === 'infoDelivery' ? data.info?.playerState : undefined;
+    return [-1, 0, 1, 2, 3, 5].includes(value) ? value : null;
+}
+
 export function crossedDecisionMarker(previous, current, duration, markers, seen) {
     if (![previous, current, duration].every(Number.isFinite) || duration <= 0 ||
         previous < 0 || current <= previous || current > duration || current - previous > 5) return null;

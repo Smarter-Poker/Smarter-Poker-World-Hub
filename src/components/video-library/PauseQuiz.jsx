@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { playbackMessage, PLAYER_ORIGIN, timestamp } from '../../lib/videoLibraryPlayback.mjs';
-import { crossedDecisionMarker, DECISION_ACTIONS, DECISION_FEEDBACK } from '../../lib/videoLibraryQuiz.mjs';
+import { crossedDecisionMarker, decisionPlayerState, DECISION_ACTIONS, DECISION_FEEDBACK } from '../../lib/videoLibraryQuiz.mjs';
 
 export default function PauseQuiz({ iframeRef, videoId, active = true, markers = [] }) {
     const [ready, setReady] = useState(false);
@@ -53,6 +53,7 @@ export default function PauseQuiz({ iframeRef, videoId, active = true, markers =
         const receive = event => {
             const data = playbackMessage(event, iframeRef.current?.contentWindow);
             if (!data) return;
+            const playerState = decisionPlayerState(data);
             if (data.event === 'infoDelivery') {
                 if (state.current.failed) return;
                 if (state.current.frame && state.current.frame !== event.source) { close(); state.current.position = null; state.current.playing = false; state.current.playerState = null; }
@@ -60,20 +61,22 @@ export default function PauseQuiz({ iframeRef, videoId, active = true, markers =
                 if (Number.isFinite(length) && length > 0) state.current.duration = length;
                 const position = data.info?.currentTime;
                 const duration = state.current.duration;
-                if (!Number.isFinite(position) || position < 0 || position > duration || !(duration > 0)) return;
-                const previous = state.current.position;
-                state.current.position = position; state.current.frame = event.source; setReady(true);
-                if (autoPause && state.current.playing && !document.hidden && !state.current.prompt) {
-                    const marker = crossedDecisionMarker(previous, position, duration, markers, state.current.seen);
-                    if (marker !== null) { state.current.seen.add(marker); beginRef.current(marker); }
+                if (playerState !== null) { state.current.playing = playerState === 1; state.current.playerState = playerState; }
+                if (Number.isFinite(position) && position >= 0 && position <= duration && duration > 0) {
+                    const previous = state.current.position;
+                    state.current.position = position; state.current.frame = event.source; setReady(true);
+                    if (autoPause && state.current.playing && !document.hidden && !state.current.prompt) {
+                        const marker = crossedDecisionMarker(previous, position, duration, markers, state.current.seen);
+                        if (marker !== null) { state.current.seen.add(marker); beginRef.current(marker); }
+                    }
                 }
             }
-            if (data.event === 'onStateChange') { state.current.playing = data.info === 1; state.current.playerState = Number.isInteger(data.info) ? data.info : null; }
-            if (data.event === 'onStateChange' && data.info === 2 && state.current.prompt?.phase === 'waiting') {
+            if (playerState !== null) { state.current.playing = playerState === 1; state.current.playerState = playerState; }
+            if (playerState === 2 && state.current.prompt?.phase === 'waiting') {
                 clearDeadline();
                 const next = { ...state.current.prompt, phase: 'answer' };
                 state.current.prompt = next; setPrompt(next);
-            } else if (data.event === 'onStateChange' && [0, 1, 3, 5].includes(data.info) && state.current.prompt?.phase === 'answer') {
+            } else if ([0, 1, 3, 5].includes(playerState) && state.current.prompt?.phase === 'answer') {
                 close();
             }
             if (data.event === 'onError') { close(); state.current.failed = true; state.current.playing = false; state.current.playerState = null; setReady(false); setError('Playback Is Unavailable. The Quiz Was Cancelled.'); }

@@ -108,3 +108,22 @@ test('Cancelling and reopening on the same confirmed paused frame does not await
         assert.match(h.text(), /Waiting For The Player To Pause/);
     } finally { h.close(); }
 });
+test('Actual quiz uses full trusted provider state snapshots when initial state-change events were missed', () => {
+    const h = harness(); try {
+        h.emit({ event: 'infoDelivery', info: { currentTime: 3, duration: 100, playerState: 1 } }, {});
+        assert.equal(h.button('What Would You Do?').props.disabled, true);
+        h.emit({ event: 'infoDelivery', info: { currentTime: 3, duration: 100, playerState: 1 } });
+        act(() => h.root.root.findByType('input').props.onChange({ target: { checked: true } }));
+        h.emit({ event: 'infoDelivery', info: { currentTime: 4, playerState: 99 } });
+        h.emit({ event: 'infoDelivery', info: { currentTime: 5 } });
+        assert.deepEqual(h.commands.map(command => command.func), ['pauseVideo'], 'A full playing snapshot survives partial or unknown subsequent telemetry');
+        assert.match(h.text(), /Waiting For The Player To Pause/);
+        h.emit({ event: 'infoDelivery', info: { currentTime: 5, playerState: 2 } }, undefined, 'https://attacker.example');
+        assert.equal(h.button('Call'), undefined);
+        h.emit({ event: 'infoDelivery', info: { playerState: 2 } });
+        assert.ok(h.button('Call')); assert.equal(h.timers.size, 0);
+        h.click('Call'); h.click('Cancel Quiz');
+        assert.ok(h.commands.every(command => command.func === 'pauseVideo'));
+        h.click('What Would You Do?'); assert.ok(h.button('Call'), 'A snapshot pause is a valid existing acknowledgement');
+    } finally { h.close(); }
+});

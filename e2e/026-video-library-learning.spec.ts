@@ -43,12 +43,12 @@ async function geometry(page: Page) {
     await expect(page.locator('header').first()).toBeVisible();
 }
 
-async function ready(frame: Frame, position = 10) {
-    await emit(frame, 'infoDelivery', { currentTime: position, duration: 1122 });
-    await emit(frame, 'onStateChange', 1);
+async function ready(frame: Frame, position = 10, stateEvent = true) {
+    await emit(frame, 'infoDelivery', { currentTime: position, duration: 1122, playerState: 1 });
+    if (stateEvent) await emit(frame, 'onStateChange', 1);
 }
 
-async function chooseAndContinue(page: Page, frame: Frame) {
+async function chooseAndContinue(page: Page, frame: Frame, stateInfoOnly = false) {
     await expect(page.getByRole('region', { name: 'Playback Tools', exact: true })).toHaveCount(1);
     const quiz = page.getByRole('region', { name: 'What Would You Do?', exact: true });
     await expect(quiz).toHaveCount(1);
@@ -58,7 +58,8 @@ async function chooseAndContinue(page: Page, frame: Frame) {
     await quiz.getByRole('button', { name: 'What Would You Do?', exact: true }).click();
     await expect.poll(() => commands(frame, 'pauseVideo')).toBe(beforePause + 1);
     await expect(quiz.getByText('Waiting For The Player To Pause.', { exact: true })).toBeVisible();
-    await emit(frame, 'onStateChange', 2);
+    if (stateInfoOnly) await emit(frame, 'infoDelivery', { playerState: 2 });
+    else await emit(frame, 'onStateChange', 2);
     await quiz.getByRole('button', { name: 'Call', exact: true }).click();
     const reason = quiz.getByRole('textbox', { name: 'Why This Decision?' });
     await reason.fill('Compare the price with the range.');
@@ -85,8 +86,8 @@ test.describe('Phase 7 Poker Learning', () => {
         await page.goto('/hub/video-library', { waitUntil: 'commit' });
         await page.getByRole('link', { name: `Play ${TITLE}`, exact: true }).first().click();
         const frame = await provider(page);
-        await ready(frame);
-        await chooseAndContinue(page, frame);
+        await ready(frame, 10, false);
+        await chooseAndContinue(page, frame, true);
         await geometry(page);
     });
 

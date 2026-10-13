@@ -38,26 +38,41 @@ async function timeline() {
     return page.evaluate(() => {
         const records = window.__phase7Provider || [];
         const current = [...records].reverse().find(record => record.event === 'infoDelivery' && Number.isFinite(record.info?.currentTime));
-        const state = [...records].reverse().find(record => record.event === 'onStateChange');
-        return { position: current?.info?.currentTime ?? null, state: state?.info ?? null, records };
+        const states = [-1, 0, 1, 2, 3, 5];
+        const state = [...records].reverse().find(record => states.includes(record.event === 'onStateChange' ? record.info : record.info?.playerState));
+        return { position: current?.info?.currentTime ?? null, state: state ? state.event === 'onStateChange' ? state.info : state.info.playerState : null, stateSource: state?.event || null, records };
     });
+}
+async function nativeClick(button) {
+    await button.scrollIntoViewIfNeeded();
+    await expect.poll(() => button.evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        return hit === element || element.contains(hit);
+    })).toBe(true);
+    await button.click();
 }
 async function quizFlow(name, surface) {
     await expect(page.getByRole('region', { name: 'Playback Tools', exact: true })).toHaveCount(1);
     const region = page.getByRole('region', { name: 'What Would You Do?', exact: true });
     await expect(region).toHaveCount(1);
     const originalIframe = await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').elementHandle();
+    const providerFrame = await originalIframe.contentFrame();
+    assert(providerFrame);
+    const receivedCommands = () => providerFrame.evaluate(() => window.__phase7ParentCommands || []);
     const open = region.getByRole('button', { name: 'What Would You Do?', exact: true });
     await expect(open).toBeEnabled({ timeout: 45000 });
     await expect.poll(async () => (await timeline()).state, { timeout: 15000 }).toBe(1);
     await expect.poll(async () => (await timeline()).position, { timeout: 15000 }).toBeGreaterThan(0);
     const before = await timeline();
-    await open.click();
+    const pauseCount = (await receivedCommands()).filter(command => command.func === 'pauseVideo').length;
+    await nativeClick(open);
+    await expect.poll(async () => (await receivedCommands()).filter(command => command.func === 'pauseVideo').length).toBe(pauseCount + 1);
     const call = region.getByRole('button', { name: 'Call', exact: true });
     await expect(call).toBeVisible({ timeout: 6000 });
     const paused = await timeline();
     assert.equal(paused.state, 2, 'The real provider must acknowledge its paused state');
-    await call.click();
+    await nativeClick(call);
     const reason = region.getByRole('textbox', { name: 'Why This Decision?' });
     await reason.fill('Compare the price with the opponent range.');
     await expect(reason).toHaveValue('Compare the price with the opponent range.');
@@ -66,7 +81,9 @@ async function quizFlow(name, surface) {
     const bounds = await call.boundingBox();
     assert(bounds && bounds.height >= 44 && bounds.width >= 44);
     await region.screenshot({ path: path.join(evidence, `${name}-${surface}-quiz.png`) });
-    await region.getByRole('button', { name: 'Continue Watching', exact: true }).click();
+    const playCount = (await receivedCommands()).filter(command => command.func === 'playVideo').length;
+    await nativeClick(region.getByRole('button', { name: 'Continue Watching', exact: true }));
+    await expect.poll(async () => (await receivedCommands()).filter(command => command.func === 'playVideo').length).toBe(playCount + 1);
     await expect.poll(async () => (await timeline()).state, { timeout: 15000 }).toBe(1);
     await expect.poll(async () => (await timeline()).position, { timeout: 15000 }).toBeGreaterThan(paused.position + 0.2);
     const resumed = await timeline();
@@ -74,7 +91,7 @@ async function quizFlow(name, surface) {
     await expect(region).toHaveCount(1);
     assert(await originalIframe.evaluate(element => element.isConnected && element === document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]')));
     assert(resumed.records.every(record => ['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(record.origin)));
-    report.cases.push({ name: `${name}: ${surface} real provider pause and explicit resume`, status: 'passed', before: { position: before.position, state: before.state }, paused: { position: paused.position, state: paused.state }, resumed: { position: resumed.position, state: resumed.state }, providerEvents: resumed.records });
+    report.cases.push({ name: `${name}: ${surface} real provider pause and explicit resume`, status: 'passed', before: { position: before.position, state: before.state, stateSource: before.stateSource }, paused: { position: paused.position, state: paused.state, stateSource: paused.stateSource }, resumed: { position: resumed.position, state: resumed.state, stateSource: resumed.stateSource }, providerEvents: resumed.records, receivedParentCommands: await receivedCommands() });
     await save();
 }
 try {
@@ -108,13 +125,22 @@ try {
         });
         await page.addInitScript(() => {
             window.__phase7Provider = [];
+            window.__phase7ParentCommands = [];
+            // Observe commands received by the provider frame; send nothing.
+            window.addEventListener('message', event => {
+                if (event.source !== parent || event.origin !== 'https://smarter.poker') return;
+                try {
+                    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                    if (data?.event === 'command' && ['pauseVideo', 'playVideo'].includes(data.func)) window.__phase7ParentCommands.push({ at: Date.now(), func: data.func });
+                } catch { /* Ignore unrelated parent messages. */ }
+            });
             window.addEventListener('message', event => {
                 const iframe = document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]');
                 if (!iframe || event.source !== iframe.contentWindow || !['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(event.origin)) return;
                 try {
                     const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                     if (!['infoDelivery', 'onStateChange', 'onError', 'onAutoplayBlocked'].includes(data?.event)) return;
-                    window.__phase7Provider.push({ at: Date.now(), origin: event.origin, event: data.event, info: data.event === 'infoDelivery' ? { currentTime: data.info?.currentTime, duration: data.info?.duration, muted: data.info?.muted } : data.info });
+                    window.__phase7Provider.push({ at: Date.now(), origin: event.origin, event: data.event, info: data.event === 'infoDelivery' ? { currentTime: data.info?.currentTime, duration: data.info?.duration, muted: data.info?.muted, playerState: data.info?.playerState } : data.info });
                     window.__phase7Provider = window.__phase7Provider.slice(-150);
                 } catch { /* Ignore unrelated provider messages. */ }
             });
@@ -156,6 +182,9 @@ try {
     if (page && !page.isClosed()) {
         report.failureUrl = page.url();
         report.providerAtFailure = await timeline().catch(() => null);
+        const handle = await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').elementHandle().catch(() => null);
+        const frame = await handle?.contentFrame();
+        report.receivedParentCommandsAtFailure = await frame?.evaluate(() => window.__phase7ParentCommands || []).catch(() => null);
         report.visibleFailure = (await page.locator('body').innerText().catch(() => '')).slice(-12000);
         await page.screenshot({ path: path.join(evidence, 'failure.png'), fullPage: false }).catch(() => {});
     }
