@@ -7,6 +7,35 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => readFile(path.join(root, relativePath), 'utf8');
 
+test('store image zones have no separate opaque background behind preserved artwork', async () => {
+  const zones = {
+    'src/components/diamond-store/SmarterStoreShowcase.module.css': ['.starterArt', '.packageArt'],
+    'src/components/diamond-store/DiamondStoreShell.module.css': ['.clubProductMedia', '.dialogProductMedia'],
+    'src/components/store/MerchStore.module.css': ['.mediaBay'],
+    'src/components/store/MarketplaceDetailExperience.module.css': [
+      '.mediaFrame', '.spriteMedia,\n.spriteMediaExpanded', '.mediaRail',
+      '.mediaRail button', '.mediaRailCrop',
+    ],
+  };
+  for (const [file, selectors] of Object.entries(zones)) {
+    const css = await read(file);
+    for (const selector of selectors) {
+      const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const body = css.match(new RegExp(`^${escaped}\\s*\\{([^}]+)\\}`, 'm'))?.[1];
+      assert.ok(body, `${file}: ${selector} exists`);
+      assert.match(body, /background(?:-color)?:\s*transparent(?:\s*!important)?\s*;/,
+        `${file}: ${selector} must let the page show around its image`);
+    }
+  }
+  const showcase = await read('src/components/diamond-store/SmarterStoreShowcase.module.css');
+  assert.match(showcase, /diamond-packages-sheet\.webp/);
+  assert.match(showcase, /button-secondary\.png/);
+  const details = await read('src/components/store/MarketplaceDetailExperience.module.css');
+  assert.match(details, /\.mediaDialog\s*\{[^}]*background-color:\s*#000/);
+  const cards = await read('src/components/store/StoreCards.js');
+  assert.match(cards, /src="\/images\/vip-card\.webp"/);
+});
+
 const paths = {
   console: 'src/components/marketplace-console/MarketplaceConsole.jsx',
   consoleCss: 'src/components/marketplace-console/MarketplaceConsole.module.css',

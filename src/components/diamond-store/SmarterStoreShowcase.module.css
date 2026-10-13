@@ -343,7 +343,7 @@
   aspect-ratio: 1;
   width: 76px;
   border: 1px solid #2c4a5f;
-  background-color: #02070b;
+  background-color: transparent;
   background-image: url('/images/store-v3/diamond-vault-hero.png');
   background-image: image-set(
     url('/images/store-v3/diamond-vault-hero.webp') type('image/webp'),
@@ -441,7 +441,7 @@
   aspect-ratio: 577 / 454;
   width: 100%;
   border-bottom: 1px solid #3f5869;
-  background-color: #02070b;
+  background-color: transparent;
   background-image: url('/images/store-v3/diamond-packages-sheet.png');
   background-image: image-set(
     url('/images/store-v3/diamond-packages-sheet.webp') type('image/webp'),

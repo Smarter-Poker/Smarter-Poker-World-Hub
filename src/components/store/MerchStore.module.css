@@ -272,7 +272,7 @@
   justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid #263f4e;
-  background: #02070b;
+  background: transparent;
 }
 
 .productImage {
