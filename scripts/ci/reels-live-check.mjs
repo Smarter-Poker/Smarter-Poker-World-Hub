@@ -1217,6 +1217,15 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
   }
 }
 
+export async function waitForSlotsPlayer(page, report, timeout=40000) {
+ const players=page.locator('main iframe[src*="youtube-nocookie.com/embed/"], main video');
+ report.coverage.slotsDesktop={...report.coverage.slotsDesktop,phase:'waiting-first-player',activePlayers:await players.count()};
+ try {await players.first().waitFor({state:'attached',timeout});}
+ catch(error){report.coverage.slotsDesktop={...report.coverage.slotsDesktop,phase:'player-attachment-timeout',activePlayers:await players.count()};throw error;}
+ const count=await players.count();report.coverage.slotsDesktop={...report.coverage.slotsDesktop,phase:'player-attached',activePlayers:count};
+ assert.equal(count,1,'Slots page must mount exactly one media player');return count;
+}
+
 async function verifySlotsBrowser(browser, report) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block' });
   const state = createReadOnlyBrowserState();
@@ -1229,11 +1238,12 @@ async function verifySlotsBrowser(browser, report) {
     await page.goto(`${APP_ORIGIN}/hub/reels?category=casino-slots`, { waitUntil: 'domcontentloaded' });
     await page.getByLabel('Casino And Slots Reels Viewer').waitFor();
     await page.getByLabel('Responsible Gaming Notice').waitFor();
-    assert.equal(await page.locator('iframe[src*="youtube-nocookie.com/embed/"], video').count(), 1, 'Slots page mounted more than one media player');
+    const activePlayers=await waitForSlotsPlayer(page,report);
     assert.equal(pageErrors.length, 0, 'Slots Reel page raised a browser error');
     report.coverage.slotsDesktop = {
       responsibleGamingNotice: true,
-      activePlayers: 1,
+      phase: 'verified',
+      activePlayers,
       browserErrors: pageErrors.length,
       ...readOnlyGuardReceipt(state),
     };

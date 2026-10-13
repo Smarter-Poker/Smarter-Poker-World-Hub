@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
+  waitForSlotsPlayer,
   APP_ORIGIN,
   REQUIRED_RECEIPT_CHECKS,
   assertHorseReelProfiles,
@@ -784,4 +785,9 @@ test('workflow retains and independently asserts the complete sanitized receipt'
     }),
     /after production revision differs/,
   );
+});
+
+test('Slots proof awaits finite attachment and retains actual count on multiple or timeout',async()=>{
+ for(const scenario of ['late','multiple','timeout']){let count=0,waited=false;const report={coverage:{}};const page={locator(selector){assert.equal(selector,'main iframe[src*="youtube-nocookie.com/embed/"], main video');return {count:async()=>count,first:()=>({waitFor:async options=>{assert.deepEqual(options,{state:'attached',timeout:123});waited=true;if(scenario==='timeout')throw new Error('bounded-timeout');count=scenario==='multiple'?2:1;}})};}};
+ if(scenario==='late'){assert.equal(await waitForSlotsPlayer(page,report,123),1);assert.equal(report.coverage.slotsDesktop.phase,'player-attached');}else{await assert.rejects(()=>waitForSlotsPlayer(page,report,123));assert.equal(report.coverage.slotsDesktop.activePlayers,scenario==='multiple'?2:0);assert.equal(report.coverage.slotsDesktop.phase,scenario==='multiple'?'player-attached':'player-attachment-timeout');}assert.equal(waited,true);}
 });

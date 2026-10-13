@@ -430,9 +430,10 @@ jobs:
           REELS_METRICS_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
           REELS_CAPTIONS_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
           REELS_STORY_ISOLATION_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
+          REELS_REWARD_RETURN_POSTGRES_ROOT: ${{ runner.temp }}/reels-enhancements
         run: |
           mkdir -p "$REELS_METRICS_POSTGRES_ROOT"
-          node --test __tests__/reels-measured-delivery-postgres.test.mjs __tests__/native-upload-queue-authority.test.mjs __tests__/reels-native-captions-postgres.test.mjs __tests__/reel-reaction-intent-postgres.test.mjs __tests__/native-reels-worker-publication-postgres.test.mjs __tests__/private-native-reels-story-isolation-postgres.test.mjs
+          node --test __tests__/reels-measured-delivery-postgres.test.mjs __tests__/native-upload-queue-authority.test.mjs __tests__/reels-native-captions-postgres.test.mjs __tests__/reel-reaction-intent-postgres.test.mjs __tests__/native-reels-worker-publication-postgres.test.mjs __tests__/private-native-reels-story-isolation-postgres.test.mjs __tests__/reels-source-post-reward-return-postgres.test.mjs
 
       - name: Historical User Reels Rights PostgreSQL Contracts
         run: npm run audit:video-reels:post-rights-db
