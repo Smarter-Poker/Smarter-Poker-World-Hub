@@ -201,3 +201,153 @@ test('all six linked detail families retain one content layer with wrapping read
   assert.match(html, /<h1>[^<]+<\/h1>/);
   assert.match(html, /Economy Rules/);
 });
+
+test('every hidden reward detail shows current availability from the maintained verifier coverage', async () => {
+  const { VERIFIED_EGG_KEYS } = await import('../src/lib/rewards/eggCoverage.js');
+  const verified = new Set(VERIFIED_EGG_KEYS);
+  const hidden = getStaticPaths()
+    .paths.map(({ params }) => getStaticProps({ params }).props.reward)
+    .filter((reward) => reward.kind !== 'Standard Reward');
+  assert.equal(new Set(hidden.map((reward) => reward.id)).size, hidden.length);
+  let live = 0;
+  let future = 0;
+  for (const { params } of getStaticPaths().paths) {
+    const { reward } = getStaticProps({ params }).props;
+    const expected = reward.kind === 'Standard Reward' || verified.has(reward.id);
+    assert.equal(reward.available, expected, `${reward.id} retains actual current availability`);
+    const html = renderToStaticMarkup(React.createElement(RewardDetail, { reward }));
+    if (reward.kind === 'Standard Reward') continue;
+    if (expected) {
+      live += 1;
+      assert.match(html, /How This Signal Unlocks/);
+      assert.doesNotMatch(html, /Planned Unlock Signal|Cannot Award Diamonds/);
+    } else {
+      future += 1;
+      assert.match(html, /Coming Soon/);
+      assert.match(html, /Planned Unlock Signal/);
+      assert.match(html, /Cannot Award Diamonds/);
+      assert.doesNotMatch(html, /How This Signal Unlocks|Eligible Actions Are Credited/);
+    }
+  }
+  assert.equal(
+    live,
+    VERIFIED_EGG_KEYS.length,
+    'every live verifier has exactly one catalog detail'
+  );
+  assert.equal(
+    future,
+    hidden.length - VERIFIED_EGG_KEYS.length,
+    'all remaining hidden rewards are future'
+  );
+  for (const id of ['the_optimizer', 'gto_machine', 'speed_demon']) {
+    assert.equal(getStaticProps({ params: { rewardId: id } }).props.reward.available, false);
+  }
+  assert.equal(
+    getStaticProps({ params: { rewardId: 'daily_login' } }).props.reward.available,
+    true
+  );
+  assert.equal(getStaticProps({ params: { rewardId: 'unknown' } }).notFound, true);
+});
+
+test('actual account telemetry distinguishes future rewards from verified global ledger readings', async () => {
+  const compiled = await build({
+    entryPoints: ['src/components/store/RewardTelemetryConsole.jsx'],
+    bundle: true,
+    write: false,
+    platform: 'node',
+    format: 'cjs',
+    jsx: 'automatic',
+    plugins: [
+      {
+        name: 'actual-telemetry-availability',
+        setup(build) {
+          build.onResolve({ filter: /^(react|react\/jsx-runtime)$/ }, (args) => ({
+            path: require.resolve(args.path),
+            external: true,
+          }));
+          build.onResolve({ filter: /\.module\.css$/ }, (args) => ({
+            path: path.resolve(args.resolveDir, args.path),
+            namespace: 'css',
+          }));
+          build.onLoad({ filter: /.*/, namespace: 'css' }, (args) => {
+            const names = [...readFileSync(args.path, 'utf8').matchAll(/\.([a-zA-Z][\w-]*)/g)].map(
+              (m) => m[1]
+            );
+            return {
+              contents: `export default ${JSON.stringify(Object.fromEntries(names.map((name) => [name, name])))}`,
+            };
+          });
+          build.onResolve(
+            { filter: /next\/link$|authUtils$|AvatarContext$|\/lib\/supabase$/ },
+            (args) => ({ path: args.path, namespace: 'availability-fixture' })
+          );
+          build.onLoad({ filter: /.*/, namespace: 'availability-fixture' }, (args) => ({
+            contents: args.path.endsWith('/link')
+              ? 'export default function Link({href,children,...props}){return <a href={href} {...props}>{children}</a>}'
+              : args.path.endsWith('authUtils')
+                ? 'export const getAuthUser=()=>({id:"availability-fixture-player"}); export const ensureAuthReady=async()=>({id:"availability-fixture-player"}); export const authedFetch=async()=>{throw Error("SSR Never Requests A Ledger")};'
+                : args.path.endsWith('AvatarContext')
+                  ? 'export const useAvatar=()=>({user:{id:"availability-fixture-player"},initializing:false});'
+                  : 'export default {};',
+            loader: 'jsx',
+          }));
+        },
+      },
+    ],
+  });
+  const actual = { exports: {} };
+  let fixtureStatus = 'ready';
+  const fixtureRequire = (name) =>
+    name === require.resolve('react')
+      ? {
+          ...React,
+          useState: (initial) =>
+            React.useState(
+              initial?.status === 'loading'
+                ? { ...initial, status: fixtureStatus }
+                : initial === null
+                  ? 'availability-fixture-player'
+                  : initial
+            ),
+        }
+      : require(name);
+  vm.runInNewContext(compiled.outputFiles[0].text, {
+    module: actual,
+    exports: actual.exports,
+    require: fixtureRequire,
+    console,
+    URL,
+    AbortController,
+    setTimeout,
+    clearTimeout,
+  });
+  const reward = getStaticProps({ params: { rewardId: 'gto_machine' } }).props.reward;
+  const future = renderToStaticMarkup(
+    React.createElement(actual.exports.default, {
+      reward,
+      canonical: '/hub/smarter-rewards/gto_machine',
+    })
+  );
+  assert.match(future, /Coming Soon/);
+  assert.match(future, /Cannot Award Diamonds/);
+  assert.match(future, /Verified Account Ledger/);
+  assert.match(future, /These Account Totals Do Not Verify This Future Reward/);
+  assert.match(future, /Selected Future Reward/);
+  assert.match(future, /Daily Earning Circuit/);
+  assert.doesNotMatch(future, /Selected Reward Signal/);
+  assert.doesNotMatch(future, /Live Account Signal|Verified Reward Telemetry/);
+  const live = renderToStaticMarkup(
+    React.createElement(actual.exports.default, {
+      reward: getStaticProps({ params: { rewardId: 'daily_login' } }).props.reward,
+      canonical: '/hub/smarter-rewards/daily_login',
+    })
+  );
+  assert.match(live, /Verified Reward Telemetry/);
+  assert.doesNotMatch(live, /Coming Soon|Cannot Award Diamonds/);
+  fixtureStatus = 'signed-out';
+  const signedOut = renderToStaticMarkup(React.createElement(actual.exports.default, {
+    reward, canonical: '/hub/smarter-rewards/gto_machine',
+  }));
+  assert.match(signedOut, /These Readings Do Not Verify This Future Reward/);
+  assert.match(signedOut, /Sign In To View My Telemetry/);
+});

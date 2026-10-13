@@ -60,6 +60,7 @@ function Circuit({ label, earned, cap, remaining }) {
 }
 
 export default function RewardTelemetryConsole({ reward, canonical }) {
+  const unavailable = reward.available === false;
   const { user: contextUser, initializing: authInitializing } = useAvatar();
   const synchronousAccountId = getAuthUser()?.id || null;
   const committedAccountId =
@@ -213,11 +214,15 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
     >
       <div className={styles.consoleHeader}>
         <div>
-          <span className={styles.kicker}>Live Account Signal</span>
-          <h2 id="reward-telemetry-title">Verified Reward Telemetry</h2>
+          <span className={styles.kicker}>
+            {unavailable ? 'Account Ledger / Future Reward' : 'Live Account Signal'}
+          </span>
+          <h2 id="reward-telemetry-title">
+            {unavailable ? 'Verified Account Ledger' : 'Verified Reward Telemetry'}
+          </h2>
           <p>
             Your Server-Owned Earning Caps, Streak, And Multiplier: Read Directly From The Diamond
-            Ledger.
+            Ledger. {unavailable && 'These Account Totals Do Not Verify This Future Reward.'}
           </p>
         </div>
         {accountState.status === 'ready' && (
@@ -236,8 +241,14 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
           <div>
             <strong>Connect Your Diamond Ledger</strong>
             <p>
-              Sign In To See Your Real Cap Usage, Login Streak, And Multiplier For{' '}
-              {marketplaceCopy(reward.name)}.
+              {unavailable ? (
+                'Sign In To See Your Account Cap Usage, Login Streak, And Multiplier. These Readings Do Not Verify This Future Reward.'
+              ) : (
+                <>
+                  Sign In To See Your Real Cap Usage, Login Streak, And Multiplier For{' '}
+                  {marketplaceCopy(reward.name)}.
+                </>
+              )}
             </p>
             <Link href={loginHref}>Sign In To View My Telemetry</Link>
           </div>
@@ -294,14 +305,16 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
 
           <div className={styles.rewardSignal}>
             <div>
-              <span>Selected Reward Signal</span>
+              <span>{unavailable ? 'Selected Future Reward' : 'Selected Reward Signal'}</span>
               <strong>{marketplaceCopy(reward.name)}</strong>
             </div>
             <p>
               {marketplaceCopy(
-                reward.countsTowardDailyCap
-                  ? 'This reward draws from the daily and monthly circuits shown above.'
-                  : 'This reward is tracked outside the standard daily-cap circuit.'
+                unavailable
+                  ? 'This Reward Is Coming Soon And Cannot Award Diamonds Yet.'
+                  : reward.countsTowardDailyCap
+                    ? 'This reward draws from the daily and monthly circuits shown above.'
+                    : 'This reward is tracked outside the standard daily-cap circuit.'
               )}{' '}
               {marketplaceCopy(
                 data.partial
