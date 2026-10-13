@@ -39,6 +39,24 @@ test('fixed database predicates precede pagination and never include injected in
     assert.deepEqual(calls, []);
 });
 
+test('every browse tag predicate is a valid JSONB array for the owning catalog schema', () => {
+    const schema = readFileSync(new URL('../supabase/migrations/20260425_video_tags.sql', import.meta.url), 'utf8');
+    assert.match(schema, /tags\s+JSONB\s+DEFAULT\s+'\[\]'/i);
+    for (const [key, options] of Object.entries(BROWSE_FILTER_OPTIONS)) {
+        for (const option of options.filter(item => item.id !== 'ALL')) {
+            const calls = [];
+            applyBrowseQueryFilters({ or(value) { calls.push(value); return this; } }, { [key]: option.id });
+            const tags = calls[0].split(',').filter(clause => clause.startsWith('tags.cs.'));
+            assert.ok(tags.length > 0, `${key}=${option.id}: tag clauses exist`);
+            for (const clause of tags) {
+                const values = JSON.parse(clause.slice('tags.cs.'.length));
+                assert.equal(values.length, 1);
+                assert.equal(typeof values[0], 'string');
+            }
+        }
+    }
+});
+
 const common = { VIDEO_LIBRARY_ALLOWED_TYPES, BLOCKED_VIDEO_LIBRARY_IDS, isVideoLibraryVideoAllowed,
     VIDEO_LIBRARY_POKER_TYPES, dedupeVideos, isCasinoGameFiledAsPoker, isDisplayableVideoTitle, mixedContentFilter,
     cleanVideoTitle, isCuratedFeedVideo, normaliseVideoRow, VIDEO_ROW_FIELDS, applyBrowseQueryFilters,

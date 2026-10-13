@@ -52,7 +52,7 @@ export function applyBrowseQueryFilters(query, filters = {}) {
         const item = definitions[key][id];
         const tagVariants = [...new Set(item.tags.flatMap(tag => [tag, tag.toUpperCase(), tag.replace(/\b[a-z]/g, char => char.toUpperCase())]))];
         const clauses = [`title.imatch."${pattern(item, '[:alnum:]')}"`,
-            ...tagVariants.map(tag => `tags.cs.{"${tag}"}`)];
+            ...tagVariants.map(tag => `tags.cs.${JSON.stringify([tag])}`)];
         query = query.or(clauses.join(','));
     }
     return query;
