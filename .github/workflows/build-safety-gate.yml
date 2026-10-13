@@ -321,6 +321,13 @@ jobs:
           PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
         run: node --test __tests__/notification-delivery-policy.test.mjs __tests__/notification-delivery-policy-postgres.test.mjs
 
+      - name: Video Library Channel Follows PostgreSQL 17
+        env:
+          PHASE6_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+          VIDEO_CHANNEL_PG_WORK_PARENT: ${{ runner.temp }}/video-channel-pg
+          VIDEO_CHANNEL_PG_EVIDENCE_DIR: ${{ runner.temp }}/video-channel-evidence
+        run: node scripts/qualification/videoLibraryChannelFollows.mjs
+
 
       - name: Stable Admin Restrictions And Private Exports Native PostgreSQL 17
         env:

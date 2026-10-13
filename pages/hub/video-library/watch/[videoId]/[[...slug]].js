@@ -23,6 +23,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { channelPath, CHANNEL_KEY_RE } from '../../../../../src/lib/videoLibraryChannels.mjs';
 import WatchPlaybackTools, { WatchDescription, subscribeWatchPlayer } from '../../../../../src/components/video-library/WatchPlaybackTools';
 import { useYouTubeErrorManager } from '../../../../../src/hooks/useYouTubeErrorManager';
 import dynamic from 'next/dynamic';
@@ -144,6 +145,7 @@ export async function getServerSideProps({ params, res }) {
             props: {
                 video: {
                     videoId: video.videoId,
+                    source: video.source || null,
                     title: video.title,
                     type: video.type,
                     duration: video.duration || '',
@@ -365,7 +367,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     <span className="vl-avatar" aria-hidden="true">
                                         {channel.logo ? <img src={channel.logo} alt="" loading="lazy" decoding="async" /> : <span>{channel.initials}</span>}
                                     </span>
-                                    <span className="vl-info-source">{channel.name}</span>
+                                    {CHANNEL_KEY_RE.test(String(video.source || '')) ? <Link className="vl-info-source vl-channel-link" href={channelPath(video.source)}>{channel.name}</Link> : <span className="vl-info-source">{channel.name}</span>}
                                 </div>
 
                                 <div className="vl-hud" role="group" aria-label="Video actions">
@@ -387,7 +389,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     <h2 id="vl-watch-about-title">About This Video</h2>
                                     <WatchDescription key={video.videoId} text={description} />
                                     <dl>
-                                        <div><dt>Channel</dt><dd>{video.attributionUrl ? <a href={video.attributionUrl} target="_blank" rel="noopener noreferrer">{channel.name}</a> : channel.name}</dd></div>
+                                        <div><dt>Channel</dt><dd>{CHANNEL_KEY_RE.test(String(video.source || '')) ? <Link href={channelPath(video.source)}>{channel.name}</Link> : channel.name}</dd></div>
                                         <div><dt>Type</dt><dd><Link href={`/hub/video-library?type=${encodeURIComponent(video.type)}`}>{typeLabel}</Link></dd></div>
                                         {published && <div><dt>Published</dt><dd>{published}</dd></div>}
                                         {seconds > 0 && <div><dt>Length</dt><dd>{readableDuration(seconds)}</dd></div>}

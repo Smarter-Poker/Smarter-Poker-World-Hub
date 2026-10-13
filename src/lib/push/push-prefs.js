@@ -47,6 +47,7 @@ export const PUSH_TYPES = [
     { key: 'live', group: 'Live and Streams', label: 'Going Live', desc: 'A player you follow starts streaming' },
     { key: 'live_invite', group: 'Live and Streams', label: 'Stream Invites', desc: 'You are invited to co-host a stream' },
     { key: 'live_gift', group: 'Live and Streams', label: 'Gifts Received', desc: 'Someone sent you a gift on stream' },
+    { key: 'video_library_upload', group: 'Live and Streams', label: 'Channel Videos', desc: 'A followed video channel publishes a verified video' },
 
     // -- Home Games -----------------------------------------------------------
     { key: 'home_game_new', group: 'Home Games', label: 'New Home Games', desc: 'A group you follow schedules a game' },

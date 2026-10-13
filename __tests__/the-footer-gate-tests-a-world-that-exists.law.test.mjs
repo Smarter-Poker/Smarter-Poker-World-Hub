@@ -349,3 +349,11 @@ test('the watch footer uses a verified catalog ID instead of unresolved dynamic 
     assert.match(spec, /sourceRoute === VIDEO_WATCH_SOURCE_ROUTE \? watchRoute : reachableRoute/);
     assert.match(spec, /expect\(response\.status\(\)\)\.toBe\(200\)/);
 });
+
+test('the channel footer samples canonical registry data instead of a nonexistent channel', () => {
+    const spec = read('e2e/global-footer-visual.spec.ts');
+    assert.match(spec, /VIDEO_CHANNEL_SOURCE_ROUTE = '\/hub\/video-library\/channels\/\[channelId\]'/);
+    assert.match(spec, /request\.get\('\/api\/video-library\/channels'\)/);
+    assert.match(spec, /sourceRoute === VIDEO_CHANNEL_SOURCE_ROUTE \? channelRoute : sampledRoute/);
+    assert.match(spec, /channelFooterSample\(request\)/);
+});

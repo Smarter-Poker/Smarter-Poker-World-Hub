@@ -1,0 +1,9 @@
+// Finite synthetic PostgREST fixture for the channel SSR browser contract.
+const http = require('http');
+const id = '11111111-1111-4111-8111-111111111111';
+const sources = [{id,name:'Channel Contract Poker',handle:'channel-contract',provider_source_id:'UC1111111111111111111111',attribution_url:'https://www.youtube.com/channel/UC1111111111111111111111',ingest_topic:'poker',is_active:true,lifecycle_status:'active'}];
+const aliases = [{source_key:'HCL',source_id:id}];
+const rows=Array.from({length:31},(_,i)=>({youtube_video_id:`phase5v${String(i).padStart(4,'0')}`,source_id:i%2?'HCL':id,source_name:sources[0].name,attribution_name:sources[0].name,type:'cash',title:`NLH River Study Session ${i+1}`,duration:'18:42',thumbnail_url:`https://i.ytimg.com/vi/phase5v${String(i).padStart(4,'0')}/hqdefault.jpg`,views_text:'120K',views_count:120000,published_at:'2026-10-13T10:00:00Z',scraped_at:new Date().toISOString(),tags:['nlh'],availability_status:'verified',embeddable:true,availability_checked_at:new Date().toISOString()}));
+function createChannelCatalogFixture() { return http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');const table=url.pathname.split('/').pop();let data=[];if(table==='content_sources')data=sources;if(table==='video_library_channel_aliases')data=aliases;if(table==='video_library_public_catalog'){const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||30);data=rows.slice(offset,offset+limit);res.setHeader('Content-Range',`${offset}-${offset+data.length-1}/31`);}res.setHeader('Access-Control-Allow-Origin','*');res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data));}); }
+module.exports = { createChannelCatalogFixture };
+if (require.main === module) createChannelCatalogFixture().listen(Number(process.env.PORT || 3158), '127.0.0.1');

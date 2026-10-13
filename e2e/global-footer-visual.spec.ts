@@ -123,6 +123,16 @@ const redirectOwnedRoutes: Record<string, { pathname: string }> = {
 };
 
 const VIDEO_WATCH_SOURCE_ROUTE = '/hub/video-library/watch/[videoId]/[[...slug]]';
+const VIDEO_CHANNEL_SOURCE_ROUTE = '/hub/video-library/channels/[channelId]';
+
+async function channelFooterSample(request: APIRequestContext): Promise<string> {
+  const response = await request.get('/api/video-library/channels');
+  expect(response.ok(), 'The Footer Channel Sample Needs The Channel Registry').toBe(true);
+  const payload = await response.json();
+  const channelId = payload?.channels?.[0]?.id;
+  expect(channelId, 'The Footer Channel Sample Needs A Canonical Registry ID').toMatch(/^[0-9a-f-]{36}$/i);
+  return `/hub/video-library/channels/${channelId}`;
+}
 
 // The watch page requires a verified catalog ID. A generic "sample" renders
 // the 404 world, so choose a currently eligible public video rather than a
@@ -360,11 +370,13 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     ).toHaveLength(EXPECTED_ROUTES);
 
     const watchRoute = await watchFooterSample(request);
+    const channelRoute = await channelFooterSample(request);
     for (let offset = 0; offset < routeMatrix.length; offset += 8) {
       const batch = routeMatrix.slice(offset, offset + 8);
       await Promise.all(
         batch.map(async ({ sourceRoute, reachableRoute, world }) => {
-          const response = await request.get(sourceRoute === VIDEO_WATCH_SOURCE_ROUTE ? watchRoute : reachableRoute, {
+          const sampledRoute = sourceRoute === VIDEO_WATCH_SOURCE_ROUTE ? watchRoute : reachableRoute;
+          const response = await request.get(sourceRoute === VIDEO_CHANNEL_SOURCE_ROUTE ? channelRoute : sampledRoute, {
             failOnStatusCode: false,
             timeout: 30_000,
           });
