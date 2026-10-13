@@ -21,7 +21,13 @@ assert(process.env.SUPABASE_SERVICE_ROLE_KEY, 'Configured read-only ledger quali
 const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const ledgerClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const report = { startedAt: new Date().toISOString(), base, expectedRevision: expected, mockedRequests: false, financialWrites: false, cases: [], status: 'running' };
-let session, ownerId, browser, playlistId;
+let session, ownerId, browser, playlistId, page;
+const crashes = [], playlistResponses = [], pendingDiagnostics = new Set();
+const safeText = value => {
+    let text = String(value || '').slice(0, 8000);
+    for (const secret of [process.env.TEST_USER_PASSWORD, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, process.env.SUPABASE_SERVICE_ROLE_KEY, session?.access_token, session?.refresh_token]) if (secret) text = text.split(secret).join('[redacted]');
+    return text.replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[redacted]').slice(0, 4000);
+};
 const playlistName = `Phase 6 Live Qualification ${randomUUID()}`;
 const pass = (name, observations = {}) => report.cases.push({ name, status: 'passed', ...observations });
 async function request(route, authenticated = true) {
@@ -78,7 +84,23 @@ try {
     browser = await chromium.launch();
     const context = await browser.newContext({ viewport: { width: 393, height: 852 }, serviceWorkers: 'block' });
     await context.addInitScript(({ authSession }) => localStorage.setItem('smarter-poker-auth', JSON.stringify(authSession)), { authSession: session });
-    const page = await context.newPage(); const crashes = []; page.on('pageerror', error => crashes.push(error.message));
+    page = await context.newPage(); page.on('pageerror', error => { if (crashes.length < 30) crashes.push(safeText(error.message)); });
+    page.on('response', response => {
+        const pathname = new URL(response.url()).pathname;
+        if (!/^\/rest\/v1\/(?:video_playlists|video_playlist_items|rpc\/fn_(?:append|reorder)_video_playlist)$/.test(pathname) || playlistResponses.length >= 50) return;
+        const observation = { status: response.status(), pathname };
+        playlistResponses.push(observation);
+        if (response.status() < 400) return;
+        const diagnostic = (async () => {
+            try {
+                const body = await response.json();
+                const error = body?.error && typeof body.error === 'object' ? body.error : body;
+                if (typeof error?.message === 'string') observation.errorMessage = safeText(error.message);
+                if (typeof error?.code === 'string') observation.errorCode = safeText(error.code).slice(0, 80);
+            } catch { observation.errorBodyUnreadable = true; }
+        })();
+        pendingDiagnostics.add(diagnostic); diagnostic.finally(() => pendingDiagnostics.delete(diagnostic));
+    });
     await page.goto(`${base}/hub/video-library`, { waitUntil: 'domcontentloaded' });
     const statusPanel = page.getByRole('region', { name: 'Diamond Study Streak', exact: true });
     await statusPanel.getByText(`${study.payload.data.diamondsToday} Diamonds Earned From Videos Today`, { exact: true }).waitFor({ timeout: 30000 });
@@ -118,7 +140,22 @@ try {
     report.social = await runPhase6Social(page, context, videos[0], report, evidence);
     const finalHealth = (await request('/api/health', false)).payload; assert.equal(finalHealth.commitSha, expected); report.finalHealth = finalHealth;
     report.status = 'passed';
-} catch (error) { report.status = 'failed'; report.error = error.message; process.exitCode = 1; }
+} catch (error) {
+    report.status = 'failed'; report.error = safeText(error.message); process.exitCode = 1;
+    report.pageErrors = crashes;
+    if (page && !page.isClosed()) {
+        try {
+            const url = new URL(page.url()); report.failurePageUrl = `${url.origin}${url.pathname}`;
+            report.failureVisibleText = safeText(await page.locator('body').innerText({ timeout: 3000 }));
+        } catch { report.failurePageTextUnavailable = true; }
+        try { await page.screenshot({ path: path.join(evidence, 'phase6-authenticated-failure.png'), fullPage: false, timeout: 5000 }); }
+        catch { report.failureScreenshotUnavailable = true; }
+    }
+    let deadline;
+    await Promise.race([Promise.allSettled([...pendingDiagnostics]), new Promise(resolve => { deadline = setTimeout(resolve, 2000); })]);
+    clearTimeout(deadline);
+    report.playlistNetworkResponses = playlistResponses;
+}
 finally {
     if (browser) { try { await browser.close(); } catch { report.browserCleanupError = 'Browser Close Could Not Be Confirmed'; } }
     if (playlistId && ownerId) {
