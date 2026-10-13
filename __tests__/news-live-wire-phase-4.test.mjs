@@ -204,5 +204,5 @@ test('share dialog traps and restores focus, and expected VIP timeouts stay quie
   assert.match(PAGE, /document\.addEventListener\('keydown', trapFocus\)/);
   assert.match(PAGE, /requestAnimationFrame\(\(\) => returnTarget\.focus\(\)\)/);
   assert.match(PAGE, /ref=\{shareModalRef\}/);
-  assert.match(AVATAR_CONTEXT, /if \(err\?\.name !== 'AbortError'\) console\.warn\('Error fetching VIP status:'/);
+  assert.match(AVATAR_CONTEXT, /if \(err\?\.name !== 'AbortError' && err\?\.name !== 'TimeoutError'\) console\.warn\('Error fetching VIP status:'/);
 });

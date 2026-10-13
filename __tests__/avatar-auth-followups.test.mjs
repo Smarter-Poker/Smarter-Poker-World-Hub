@@ -11,7 +11,7 @@ const source = readFileSync(process.env.AVATAR_SOURCE_FILE || new URL('../src/co
 const deadlineSource = readFileSync(new URL('../src/lib/server/fetchJsonWithDeadline.js', import.meta.url), 'utf8');
 const A = { id: 'user-a', user_metadata: {} }, B = { id: 'user-b', user_metadata: {} };
 function harness(automaticPlayerWrites = true) {
-  const requests = [], proofs = [], timers = new Map(), listeners = new Map();
+  const requests = [], proofs = [], warnings = [], timers = new Map(), listeners = new Map();
   let callback, value, realtime, disposed = false;
   const store = new Map();
   const timer = (fn, delay) => { const id = {}; timers.set(id, { fn, delay }); return id; };
@@ -38,12 +38,12 @@ function harness(automaticPlayerWrites = true) {
   const module = { exports: {} };
   const win = { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name), dispatchEvent() {} };
   const storage = { getItem: key => store.get(key) || null, setItem: (key, v) => store.set(key, v), removeItem: key => store.delete(key) };
-  new Function('require', 'module', 'exports', 'fetch', 'setTimeout', 'clearTimeout', 'window', 'localStorage', 'CustomEvent', compile(source))(imports, module, module.exports, fetcher, timer, clear, win, storage, class { constructor(type, detail) { this.type = type; this.detail = detail; } });
+  new Function('require', 'module', 'exports', 'fetch', 'setTimeout', 'clearTimeout', 'window', 'localStorage', 'CustomEvent', 'console', compile(source))(imports, module, module.exports, fetcher, timer, clear, win, storage, class { constructor(type, detail) { this.type = type; this.detail = detail; } }, { ...console, warn: (...args) => warnings.push(args) });
   function Consumer() { value = module.exports.useAvatar(); return null; }
   let view;
   act(() => { view = create(React.createElement(module.exports.AvatarProvider, { automaticPlayerWrites }, React.createElement(Consumer))); });
   return {
-    requests, proofs, timers, get callback() { return callback; }, get value() { return value; },
+    requests, proofs, warnings, timers, get callback() { return callback; }, get value() { return value; },
     async event(event, user) { let returned; await act(async () => { returned = callback(event, user ? { user, access_token: 'synthetic-local-token' } : null); }); return { returned }; },
     async reply(index, data, ok = true) { await act(async () => requests[index].resolve({ ok, json: async () => data })); },
     async headers(index, json) { await act(async () => requests[index].resolve({ ok: true, json })); },
@@ -73,6 +73,7 @@ test('VIP and profile deadlines remain active after headers and abort stalled bo
     assert.equal(h.value.vipResolved, true);
     assert.equal(h.value.isVip, false);
     assert.equal(h.value.showWelcomeModal, false);
+    assert.equal(h.warnings.filter(args => args[0] === 'Error fetching VIP status:').length, 0);
   } finally { h.close(); }
 });
 test('sign-out rejects late VIP and welcome responses', async () => {
