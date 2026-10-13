@@ -2089,3 +2089,32 @@
 .vl-live-card h3 { font-size: 16px; margin: 8px 0; overflow-wrap: anywhere; }
 .vl-live-note { color: #aaa; font-size: 13px; }
 @media (max-width: 767px) { .vl-live-grid { grid-template-columns: 1fr; } .vl-channel-header { align-items: flex-start; gap: 12px; } .vl-channel-logo { width: 60px; height: 60px; flex-basis: 60px; } }
+
+/* Phase 6 personal library uses the same plain mobile feed. */
+.vl-study-status, .vl-session-queue, .vl-playlist-index { margin: 20px 12px; min-width: 0; }
+.vl-study-status h2, .vl-session-queue h2 { font-size: 20px; margin: 0 0 12px; }
+.vl-study-status p, .vl-session-queue p { overflow-wrap: anywhere; }
+.vl-study-status a, .vl-study-status button, .vl-session-queue button, .vl-playlist-index-link { min-height: 44px; min-width: 44px; }
+.vl-study-status a { display: inline-flex; align-items: center; }
+.vl-study-streak-value { font-size: 24px; font-weight: 700; }
+.vl-queue-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.vl-session-queue ol { list-style: none; padding: 0; margin: 0; }
+.vl-session-queue li { display: flex; gap: 12px; align-items: center; padding: 8px 0; }
+.vl-queue-play { flex: 1; text-align: left; overflow-wrap: anywhere; background: transparent; color: inherit; border: 0; }
+.vl-playlist-index { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.vl-playlist-index-link { display: flex; flex-direction: column; justify-content: center; padding: 12px; color: inherit; text-decoration: none; background: #202020; border-radius: 8px; overflow-wrap: anywhere; }
+.vl-playlist-index-link span { color: #aaa; margin-top: 8px; }
+.vl-hud .vl-hud-link { display: inline-flex; align-items: center; min-height: 44px; color: inherit; text-decoration: none; }
+.vl-playlist-page { padding: 12px; min-width: 0; }
+.vl-playlist-page-header h1 { overflow-wrap: anywhere; }
+.vl-playlist-play-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.vl-playlist-video-list { list-style: none; padding: 0; margin: 20px 0; }
+.vl-playlist-video-row { display: grid; grid-template-columns: 24px minmax(0,1fr); gap: 12px; padding: 16px 0; border-bottom: 1px solid #333; }
+.vl-playlist-video-link { display: flex; flex-direction: column; gap: 12px; color: inherit; text-decoration: none; min-height: 44px; overflow-wrap: anywhere; }
+.vl-playlist-video-link img { width: 100%; height: auto; aspect-ratio: 16/9; object-fit: cover; }
+.vl-playlist-reorder { grid-column: 2; display: flex; flex-wrap: wrap; gap: 12px; }
+.vl-playlist-reorder button { min-width: 44px; min-height: 44px; padding: 8px 12px; }
+.vl-text-button { color: inherit; background: #252525; border: 0; border-radius: 8px; padding: 8px 12px; }
+.vl-text-button:disabled { opacity: .5; }
+.vl-playlist-unavailable { min-height: 44px; display: flex; align-items: center; }
+@media(min-width: 768px) { .vl-playlist-video-link { flex-direction: row; align-items: center; } .vl-playlist-video-link img { width: 240px; flex-shrink: 0; } }

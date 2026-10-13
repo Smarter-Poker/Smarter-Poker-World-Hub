@@ -101,7 +101,7 @@ const VideoLibraryCommandRail = forwardRef(function VideoLibraryCommandRail({
                             key={view.id}
                             className={`vl-filter-button vl-library-filter${isActive ? ' is-active' : ''}`}
                             data-filter-group="library"
-                            aria-label={`${view.label}, ${count} ${view.id === 'playlists' ? (count === 1 ? 'playlist' : 'playlists') : (count === 1 ? 'video' : 'videos')}`}
+                            aria-label={view.id === 'recommended' ? view.label : `${view.label}, ${count} ${view.id === 'playlists' ? (count === 1 ? 'playlist' : 'playlists') : (count === 1 ? 'video' : 'videos')}`}
                             aria-pressed={isActive}
                             aria-controls="video-library-grid"
                             onClick={event => onLibrary(view.id, event.currentTarget)}

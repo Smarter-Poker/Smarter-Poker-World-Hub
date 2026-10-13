@@ -12,6 +12,10 @@ on:
         description: Run Only The Authorized Phase 5 Live Verification
         type: boolean
         default: false
+      video_library_phase6_live:
+        description: Run Only The Authorized Phase 6 Live Verification
+        type: boolean
+        default: false
       expected_revision:
         description: Exact Published Revision For Phase 5 Verification
         type: string
@@ -23,7 +27,7 @@ concurrency:
 
 jobs:
   footer:
-    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.video_library_phase5_live }}
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.video_library_phase5_live && !inputs.video_library_phase6_live }}
     name: Chromium and WebKit footer contract
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # A clean production build currently takes about six minutes. The serialized
@@ -109,6 +113,13 @@ jobs:
           CI: true
           VIDEO_LIBRARY_BROWSER_WORK_ROOT: ${{ runner.temp }}
           VIDEO_LIBRARY_BROWSER_EVIDENCE: ${{ github.workspace }}/test-results/video-library-channels
+
+      - name: Verify Video Library personal playlists, recommendations and social drafts
+        run: node scripts/qualification/videoLibraryPersonalBrowser.mjs
+        env:
+          CI: true
+          VIDEO_LIBRARY_BROWSER_WORK_ROOT: ${{ runner.temp }}
+          VIDEO_LIBRARY_BROWSER_EVIDENCE: ${{ github.workspace }}/test-results/video-library-personal
 
       # PER-RUNNER PORT (2026-09-04). `next start -p 3000` collided the hour the
       # World Hub got six runners per box: two pull requests reaching this step
@@ -272,4 +283,37 @@ jobs:
         with:
           name: video-library-phase5-live-evidence
           path: ${{ runner.temp }}/video-channel-live-evidence
+          retention-days: 7
+
+  video-library-phase6-live:
+    name: Video Library Phase 6 Authenticated Live Verification
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.video_library_phase6_live }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Locked Verification Dependencies
+        run: npm ci
+      - name: Install Chromium For Scoped Live Proof
+        run: npx playwright install --with-deps chromium
+      - name: Verify Published Phase 6 With The Existing CI Test Identity
+        env:
+          VIDEO_PHASE6_EXPECTED_REVISION: ${{ inputs.expected_revision }}
+          VIDEO_PHASE6_LIVE_EVIDENCE_DIR: ${{ runner.temp }}/video-personal-live-evidence
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/qualification/videoLibraryPhase6Live.mjs
+      - name: Retain Scoped Live Verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-library-phase6-live-evidence
+          path: ${{ runner.temp }}/video-personal-live-evidence
           retention-days: 7

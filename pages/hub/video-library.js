@@ -8,6 +8,11 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager } from '../../src/hooks/useYouTubeErrorManager';
 import BrowseSearch from '../../src/components/video-library/BrowseSearch';
 import LiveNow from '../../src/components/video-library/LiveNow';
+import StudyStatus from '../../src/components/video-library/StudyStatus';
+import VideoQueue from '../../src/components/video-library/VideoQueue';
+import useVideoLibraryQueue from '../../src/components/video-library/useVideoLibraryQueue';
+import { playlistPath } from '../../src/lib/videoLibraryQueue.mjs';
+import { videoLibrarySocialShareHref } from '../../src/lib/videoLibrarySocialShare.mjs';
 import { channelPath, CHANNEL_KEY_RE } from '../../src/lib/videoLibraryChannels.mjs';
 import { BROWSE_FILTER_OPTIONS, normalizeBrowseFilters } from '../../src/lib/videoLibraryBrowse.mjs';
 import WatchPlaybackTools, { WatchDescription } from '../../src/components/video-library/WatchPlaybackTools';
@@ -96,6 +101,7 @@ const EMPTY_VIDEO_MAP = new Map();
 const DEFAULT_VIDEO_LIBRARY_PREFERENCES = Object.freeze({ autoplay: true, captions: false });
 
 const LIBRARY_VIEW_OPTIONS = [
+    { id: 'recommended', label: 'Recommended For You', shortLabel: 'For You' },
     { id: 'favorites', label: 'Favorites', shortLabel: 'Favorites' },
     { id: 'watchlater', label: 'Watch Later', shortLabel: 'Watch Later' },
     { id: 'history', label: 'Watch History', shortLabel: 'History' },
@@ -108,6 +114,7 @@ const LIBRARY_VIEW_META = {
         title: 'Poker Video Library',
         description: 'Study Complete Sessions, Tournament Coverage, And Creator Breakdowns From One Command Deck.',
     },
+    recommended: { kicker: 'Personal Library', title: 'Recommended For You', description: 'Verified Poker Videos Ranked Using Available Study History And Saved Lessons.' },
     favorites: {
         kicker: 'Personal Library / Favorites',
         title: 'Favorite Videos',
@@ -286,6 +293,7 @@ export default function VideoLibraryPage() {
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
+    const playbackQueue = useVideoLibraryQueue(userId);
     const ownerScopeRef = useRef(null);
     const pendingVideoActionsRef = useRef(new Set());
     const watchProgressRef = useRef(new Map());
@@ -426,7 +434,7 @@ export default function VideoLibraryPage() {
         if (router.query.filter) {
             const requestedFilter = Array.isArray(router.query.filter) ? router.query.filter[0] : router.query.filter;
             const f = String(requestedFilter).toLowerCase();
-            if (f === 'favorites' || f === 'history' || f === 'watchlater' || f === 'playlists') {
+            if (f === 'recommended' || f === 'favorites' || f === 'history' || f === 'watchlater' || f === 'playlists') {
                 setLibraryFilter(f);
             } else {
                 setSearchQuery(String(requestedFilter));
@@ -1183,7 +1191,14 @@ export default function VideoLibraryPage() {
 
     // Navigate to next video in list (TikTok swipe down / arrow right)
     const handleNextVideo = useCallback(() => {
-        if (!selectedVideo || videos.length === 0) return;
+        if (!selectedVideo) return;
+        const queuedIndex = playbackQueue.queue.items.findIndex(item => item.videoId === selectedVideo.videoId);
+        if (queuedIndex >= 0) {
+            const next = playbackQueue.advance(selectedVideo.videoId);
+            if (next) void router.push(`${watchPath(next)}?play=1`);
+            return;
+        }
+        if (videos.length === 0) return;
         const idx = videos.findIndex(v => v.videoId === selectedVideo.videoId);
         if (idx < 0) {
             handleOpenVideo(videos[0]);
@@ -1191,7 +1206,7 @@ export default function VideoLibraryPage() {
         }
         const next = videos[(idx + 1) % videos.length];
         handleOpenVideo(next);
-    }, [selectedVideo, videos, handleOpenVideo]);
+    }, [selectedVideo, videos, handleOpenVideo, playbackQueue, router]);
 
     // Navigate to previous video (arrow left)
     const handlePrevVideo = useCallback(() => {
@@ -1354,7 +1369,7 @@ export default function VideoLibraryPage() {
 
     const fetchCatalogPage = useCallback(async ({ append = false, offset = 0 } = {}) => {
         if (libraryFilter !== 'ALL') {
-            if (!userId) {
+            if (!userId && libraryFilter !== 'recommended') {
                 catalogAbortRef.current?.abort();
                 setAllVideos([]);
                 setVideos([]);
@@ -1366,7 +1381,7 @@ export default function VideoLibraryPage() {
                 return;
             }
             if (visibleLibrarySyncState === 'loading') return;
-            if (personalIdsForFilter.length === 0) {
+            if (libraryFilter !== 'recommended' && personalIdsForFilter.length === 0) {
                 setAllVideos([]);
                 setVideos([]);
                 setCatalogTotal(0);
@@ -1397,13 +1412,13 @@ export default function VideoLibraryPage() {
         if (catalogSearchQuery.trim()) params.set('q', catalogSearchQuery.trim());
         if (sortMode !== 'default') params.set('sort', sortMode);
         for (const [key, value] of Object.entries(browseFilters)) if (value !== 'ALL') params.set(key, value);
-        if (libraryFilter !== 'ALL') params.set('ids', personalIdsForFilter.join(','));
+        if (libraryFilter !== 'ALL' && libraryFilter !== 'recommended') params.set('ids', personalIdsForFilter.join(','));
 
         try {
             // Faceted queries must be filtered before pagination. Semantic search
             // has a bounded candidate pool, so refined searches use the catalog.
-            const semanticDiscovery = libraryFilter === 'ALL' && Boolean(catalogSearchQuery.trim())
-                && Object.values(browseFilters).every(value => value === 'ALL');
+            const semanticDiscovery = libraryFilter === 'recommended' || (libraryFilter === 'ALL' && Boolean(catalogSearchQuery.trim())
+                && Object.values(browseFilters).every(value => value === 'ALL'));
             const discoveryToken = semanticDiscovery ? getAccessToken() : null;
             if (semanticDiscovery) {
                 params.delete('offset');
@@ -1906,7 +1921,7 @@ export default function VideoLibraryPage() {
         }[selectedType] || selectedType) : null,
         selectedSource !== 'ALL' ? activeSourceName : null,
         sortMode !== 'default' ? (sortMode === 'trending' ? 'Trending' : 'Top Rated') : null,
-        libraryFilter !== 'ALL' ? ({ favorites: 'Favorites', history: 'Watch History', watchlater: 'Watch Later', playlists: 'Playlists' }[libraryFilter] || libraryFilter) : null,
+        libraryFilter !== 'ALL' ? ({ recommended: 'Recommended For You', favorites: 'Favorites', history: 'Watch History', watchlater: 'Watch Later', playlists: 'Playlists' }[libraryFilter] || libraryFilter) : null,
         searchQuery ? `Search: “${searchQuery}”` : null,
         ...Object.entries(browseFilters).filter(([, value]) => value !== 'ALL').map(([key, value]) => BROWSE_FILTER_OPTIONS[key].find(option => option.id === value)?.label),
     ].filter(Boolean);
@@ -2199,7 +2214,7 @@ export default function VideoLibraryPage() {
                                 <h2 id="vl-subview-title">{currentViewMeta.title}</h2>
                                 <span>
                                     {catalogTotal} {catalogTotal === 1 ? 'video' : 'videos'}
-                                    {userId ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
+                                    {userId && libraryFilter !== 'recommended' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                                 </span>
                             </div>
                             {!userId && (
@@ -2323,6 +2338,10 @@ export default function VideoLibraryPage() {
                 <span className="vl-sr-only" role="status" aria-live="polite">
                     {`${videos.length} videos available`}
                 </span>
+                <StudyStatus />
+                {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
+                <VideoQueue currentVideoId={selectedVideo?.videoId} ownerId={userId} onPlay={item => void router.push(`${watchPath(item)}?play=1`)} />
+                {libraryFilter === 'playlists' && userId && <section className="vl-playlist-index" aria-label="Your Playlists">{playlists.map(list => <a key={list.id} className="vl-playlist-index-link" href={playlistPath(list.id)}>{list.name}<span>{(list.items || []).length} Saved Videos</span></a>)}</section>}
                 {libraryFilter === 'ALL' && <LiveNow channelId={selectedSource === 'ALL' ? undefined : selectedSource} />}
                 <div
                     id="video-library-grid"
@@ -2524,7 +2543,7 @@ export default function VideoLibraryPage() {
                 {videos.length > 0 && (
                     <div className="vl-video-count">
                         Showing {videos.length} Of {catalogTotal}
-                        {libraryFilter !== 'ALL' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
+                        {libraryFilter !== 'ALL' && libraryFilter !== 'recommended' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                     </div>
                 )}
                 </div>
@@ -2677,10 +2696,11 @@ export default function VideoLibraryPage() {
                     </div>
 
                     <div className="vl-watch-tools">
+                        {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
                         <WatchPlaybackTools key={selectedVideo.videoId} iframeRef={playerIframeRef}
                             duration={parseDuration(selectedVideo.duration)} attemptPlayback={playerAutoplayRef.current}
                             autoplay={nextAutoplay && preferences.autoplay !== false} onAutoplayChange={value => { setNextAutoplay(value); void updatePreference('autoplay', value); }}
-                            nextTitle={videos.length > 1 ? videos[(videos.findIndex(item => item.videoId === selectedVideo.videoId) + 1) % videos.length]?.title : null}
+                            nextTitle={playbackQueue.queue.items.some(item => item.videoId === selectedVideo.videoId) ? playbackQueue.queue.items[playbackQueue.queue.items.findIndex(item => item.videoId === selectedVideo.videoId) + 1]?.title : videos.length > 1 ? videos[(videos.findIndex(item => item.videoId === selectedVideo.videoId) + 1) % videos.length]?.title : null}
                             onNext={handleNextVideo} mini={miniPlayer} onMiniChange={handleMiniPlayerChange} />
                     </div>
                     {/* Title, channel, actions and study tools */}
@@ -2767,6 +2787,8 @@ export default function VideoLibraryPage() {
                             >
                                 <span className="vl-hud-command">Playlist</span>
                             </button>
+                            <a className="vl-hud-link" href={videoLibrarySocialShareHref(selectedVideo)}>Share To Feed</a>
+                            <button type="button" disabled={!videos.some(item => item.videoId !== selectedVideo.videoId)} onClick={() => playbackQueue.enqueueNext(videos.find(item => item.videoId !== selectedVideo.videoId), selectedVideo)}>Queue Next Video</button>
                             {/* ── Train This Spot — in-place overlay ── */}
                             <button
                                 ref={ttsTriggerRef}
@@ -2876,6 +2898,8 @@ export default function VideoLibraryPage() {
                         <p id="vl-card-menu-title" className="vl-card-menu-title">{cardMenuVideo.title}</p>
                         {[
                             { label: 'Play', run: () => handleOpenVideo(cardMenuVideo) },
+                            { label: 'Play Next', run: () => { try { if (!playbackQueue.enqueueNext(cardMenuVideo, selectedVideo || null)) throw new Error('Queue Storage Unavailable'); showActionNotice('Added To Your Session Queue.', { videoId: cardMenuVideo.videoId }); } catch { showActionNotice('Your Queue Could Not Be Saved.', { videoId: cardMenuVideo.videoId, tone: 'error' }); } } },
+                            { label: 'Share To Feed', run: () => void router.push(videoLibrarySocialShareHref(cardMenuVideo)) },
                             { label: watchLater.has(cardMenuVideo.id) ? 'Remove From Watch Later' : 'Save To Watch Later', run: () => void toggleWatchLater(cardMenuVideo) },
                             { label: favorites.has(cardMenuVideo.id) ? 'Remove From Favorites' : 'Add To Favorites', run: () => void toggleFavorite(cardMenuVideo) },
                             {

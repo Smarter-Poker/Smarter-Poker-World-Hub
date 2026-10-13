@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { videoLibrarySocialShareId, videoLibrarySocialPreview } from '../../lib/videoLibrarySocialShare.mjs';
 // useRouter import removed (PHASE-E 2026-05-03): the only consumer was the
 // killed compose-V2 fork in handleFiles. Removing it eliminates a per-mount
 // hook subscription that's now pure dead weight.
@@ -81,6 +82,7 @@ export function SharedPostCreator({
   onGoLive,
   authorOverride,
   context = 'social-media',
+  shareVideoId,
 }) {
   const { avatar: contextAvatar } = useAvatar();
   const [postVisibility, setPostVisibility] = useState('public');
@@ -148,6 +150,55 @@ export function SharedPostCreator({
   const [cursorPosition, setCursorPosition] = useState(0);
   // 🔗 LINK PREVIEW STATE - SmarterPoker-style auto-detect
   const [linkPreview, setLinkPreview] = useState(null); // { url, title, image, domain }
+  const videoShareHandledRef = useRef(null);
+  const videoShareOwnerRef = useRef(user?.id);
+  const videoShareDraftRef = useRef(null);
+  videoShareDraftRef.current = { linkPreview, media, uploading };
+  useEffect(() => {
+    if (videoShareOwnerRef.current !== user?.id) {
+      videoShareOwnerRef.current = user?.id;
+      videoShareHandledRef.current = null;
+      setLinkPreview(previous => previous?.videoLibraryId ? null : previous);
+    }
+    if (!shareVideoId) videoShareHandledRef.current = null;
+    if (!shareVideoId || !user?.id) { setLinkLoading(false); return; }
+    const id = videoLibrarySocialShareId(shareVideoId);
+    const handoff = `${user.id}:${String(shareVideoId)}`;
+    if (videoShareHandledRef.current === handoff) return;
+    if (!id) {
+      setError('This Video Library share link is invalid.');
+      return;
+    }
+    const controller = new AbortController();
+    let active = true;
+    let timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 8000);
+    setLinkLoading(true);
+    fetch(`/api/video-library/catalog?ids=${encodeURIComponent(id)}&limit=1`, { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error('Video catalog unavailable');
+        return response.json();
+      })
+      .then(payload => {
+        if (!active) return;
+        const preview = videoLibrarySocialPreview(payload, id);
+        if (!preview) throw new Error('Video unavailable');
+        const draft = videoShareDraftRef.current;
+        if ((draft.linkPreview && !draft.linkPreview.videoLibraryId) || draft.media.length || draft.uploading) {
+          setError('Your current post is preserved. Remove its attachment before sharing this video.');
+          return;
+        }
+        setLinkPreview(preview);
+        videoShareHandledRef.current = handoff;
+        setError(null);
+        document.getElementById('shared-post-creator')?.scrollIntoView({ block: 'center' });
+      })
+      .catch(error => {
+        if (active && (timedOut || error.name !== 'AbortError')) setError('This video could not be prepared for sharing. Your post has not been published.');
+      })
+      .finally(() => { clearTimeout(timeout); if (active) setLinkLoading(false); });
+    return () => { active = false; clearTimeout(timeout); controller.abort(); };
+  }, [shareVideoId, user?.id]);
   // 📍 CHECK-IN STATE
   const [checkInVenue, setCheckInVenue] = useState(null);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
@@ -2695,7 +2746,7 @@ export function SharedPostCreator({
         </div>
       )}
       {(linkPreview || linkLoading) && (
-        <div style={{ padding: '0 12px 8px' }}>
+        <div data-video-library-share={linkPreview?.videoLibraryId || undefined} style={{ padding: '0 12px 8px' }}>
           <div
             style={{
               border: `1px solid ${C.border}`,

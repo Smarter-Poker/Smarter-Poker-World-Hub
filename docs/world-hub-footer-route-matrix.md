@@ -3,7 +3,7 @@
 Generated from the physical Pages Router tree and `src/config/world-footer-navigation.json`.
 Dynamic routes are shown using their source parameter names. Runtime verification uses representative reachable parameters where authentication or data is required.
 
-**Total applicable physical routes: 194.**
+**Total applicable physical routes: 195.**
 
 ## Coverage summary
 
@@ -169,6 +169,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/u/[username]` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/my-venues` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
 | `/hub/video-library` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
+| `/hub/video-library/playlists/[playlistId]` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/video-library/channels/[channelId]` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/video-library/watch/[videoId]/[[...slug]]` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/poker-tools` | Odds Calculator | App-shell legacy/generic footer | `footer-odds-calculator-v2.png` | PASS | PASS |

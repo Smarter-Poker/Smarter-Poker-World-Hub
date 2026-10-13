@@ -35,7 +35,7 @@ test('Favorites, Watch Later, History, and Playlists are first-class command-rai
   assert.match(PAGE, /id: 'playlists'/);
   assert.match(COMMAND_RAIL, /data-filter-group="library"/);
   assert.match(COMMAND_RAIL, /onLibrary\(view\.id, event\.currentTarget\)/);
-  assert.match(COMMAND_RAIL, /aria-label={`\$\{view\.label\}, \$\{count\}/);
+  assert.match(COMMAND_RAIL, /aria-label=\{view\.id === 'recommended' \? view\.label : `\$\{view\.label\}, \$\{count\}/);
 });
 
 test('command-rail selection and shareable query state cannot drift apart', () => {
