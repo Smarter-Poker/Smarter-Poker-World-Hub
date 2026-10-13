@@ -481,6 +481,11 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     page.on('request', request => { if (/\/api\/video-library\/(catalog|discovery)/.test(request.url())) browseRequests.push(new URL(request.url())); });
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
     await expect(page.locator('.vl-card-title', { hasText: VIDEO_A.title })).toBeVisible({ timeout: 20_000 });
+    for (const name of ['Game', 'Stakes', 'Skill Level']) {
+      const bounds = await page.getByRole('combobox', { name, exact: true }).boundingBox();
+      expect(bounds?.height || 0, `${name} native control height`).toBeGreaterThanOrEqual(44);
+      expect(bounds?.width || 0, `${name} native control width`).toBeGreaterThanOrEqual(44);
+    }
     await page.getByRole('combobox', { name: 'Game', exact: true }).selectOption('holdem');
     await page.getByRole('combobox', { name: 'Stakes', exact: true }).selectOption('low');
     await page.getByRole('combobox', { name: 'Skill Level', exact: true }).selectOption('beginner');
