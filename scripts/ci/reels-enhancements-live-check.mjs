@@ -39,9 +39,9 @@ export async function qualifyOwnedNativePipeline({request,client,setup,session,j
  return reel;
 }
 export function isStartupMetricAcknowledgment(observation) {
- return observation?.origin===APP&&observation.path==='/api/reels/delivery-metrics'&&observation.method==='POST'&&observation.status===202&&observation.bodyReadable===true&&observation.success===true&&observation.kind==='startup'&&Number.isFinite(observation.startupMs)&&observation.startupMs>=0&&observation.startupMs<=120000;
+ return observation?.origin===APP&&observation.path==='/api/reels/delivery-metrics'&&observation.method==='POST'&&observation.status===202&&observation.bodyReadable===true&&observation.success===true&&observation.kind==='startup'&&observation.surface==='standalone'&&observation.playbackType==='native'&&Number.isFinite(observation.startupMs)&&observation.startupMs>=0&&observation.startupMs<=120000;
 }
-/** Read real browser fetch receipts without changing requests, responses or timing. */
+/** Read real browser fetch receipts without changing requests or responses. */
 export async function observeBrowserMetrics(context,page,bindingName,onObservation) {
  await context.exposeBinding(bindingName,(source,observation)=>{if(source.page===page&&source.frame===page.mainFrame())onObservation(observation);});
  await context.addInitScript(({bindingName,appOrigin})=>{
@@ -50,7 +50,7 @@ export async function observeBrowserMetrics(context,page,bindingName,onObservati
    const pending=Reflect.apply(originalFetch,this,[input,options]);
    let url,body;try{url=new URL(typeof input==='string'?input:input.url,location.href);if(url.origin!==appOrigin||url.pathname!=='/api/reels/delivery-metrics'||options?.method?.toUpperCase()!=='POST'||typeof options.body!=='string')return pending;body=JSON.parse(options.body);}catch(_){return pending;}
    void pending.then(async response=>{
-    const finalUrl=new URL(response.url||url.href),observation={origin:finalUrl.origin,path:finalUrl.pathname,method:'POST',status:response.status,bodyReadable:false,success:false,kind:['startup','swipe','summary'].includes(body?.event_kind)?body.event_kind:null,startupMs:Number.isFinite(body?.startup_ms)?body.startup_ms:null};
+    const finalUrl=new URL(response.url||url.href),observation={origin:finalUrl.origin,path:finalUrl.pathname,method:'POST',status:response.status,bodyReadable:false,success:false,kind:['startup','swipe','summary'].includes(body?.event_kind)?body.event_kind:null,surface:['standalone','social','library'].includes(body?.surface)?body.surface:null,playbackType:['native','youtube_embed','unknown'].includes(body?.playback_type)?body.playback_type:null,startupMs:Number.isFinite(body?.startup_ms)?body.startup_ms:null};
     try{const acknowledgment=await response.clone().json();observation.bodyReadable=true;observation.success=acknowledgment?.success===true;}catch(_){}
     await globalThis[bindingName](observation);
    }).catch(()=>{});

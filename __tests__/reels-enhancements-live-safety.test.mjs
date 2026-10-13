@@ -27,9 +27,9 @@ test('proof uses real UI writes and exact scoped cleanup without feeding synthet
 
 test('startup proof requires the actual successful browser acknowledgment before any UI reload',async()=>{
  const {isStartupMetricAcknowledgment}=await import('../scripts/ci/reels-enhancements-live-check.mjs');
- const receipt={origin:'https://smarter.poker',path:'/api/reels/delivery-metrics',method:'POST',status:202,bodyReadable:true,success:true,kind:'startup',startupMs:81};
+ const receipt={origin:'https://smarter.poker',path:'/api/reels/delivery-metrics',method:'POST',status:202,bodyReadable:true,success:true,kind:'startup',surface:'standalone',playbackType:'native',startupMs:81};
  assert.equal(isStartupMetricAcknowledgment(receipt),true);
- for(const change of[{status:503},{kind:'summary'},{startupMs:null},{startupMs:-1},{startupMs:120001},{success:false},{path:'/api/other'},{origin:'https://other.example'},{method:'GET'},{bodyReadable:false}])assert.equal(isStartupMetricAcknowledgment({...receipt,...change}),false);
+ for(const change of[{status:503},{kind:'summary'},{surface:'library'},{playbackType:'youtube_embed'},{startupMs:null},{startupMs:-1},{startupMs:120001},{success:false},{path:'/api/other'},{origin:'https://other.example'},{method:'GET'},{bodyReadable:false}])assert.equal(isStartupMetricAcknowledgment({...receipt,...change}),false);
  const source=readFileSync(new URL('../scripts/ci/reels-enhancements-live-check.mjs',import.meta.url),'utf8');
  assert.match(source,/await observeBrowserMetrics/);assert.match(source,/const startupAcknowledgment=new Promise/);
  assert.ok(source.indexOf('const startupAcknowledgment=new Promise')<source.indexOf('await open();journal.checks.actualPrivateNativeViewer'));
@@ -47,7 +47,7 @@ test('actual in-browser observer reads a real Response clone and leaves fetch ar
  const context={async exposeBinding(name,fn){binding=fn;globalThis[name]=value=>fn({page,frame},value);},async addInitScript(fn,args){fn(args);}};
  try{
   await observeBrowserMetrics(context,page,bindingName,value=>{observations.push(value);receive(value);});
-  const options={method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({event_kind:'startup',startup_ms:395})};
+  const options={method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({event_kind:'startup',surface:'standalone',playback_type:'native',startup_ms:395})};
   const result=globalThis.fetch('/api/reels/delivery-metrics',options);assert.equal(result,pending);assert.equal(calls[0][0],'/api/reels/delivery-metrics');assert.equal(calls[0][1],options);
   const receipt=await received;assert.equal(isStartupMetricAcknowledgment(receipt),true);assert.equal(receipt.startupMs,395);assert.equal(originalResponse.bodyUsed,false);assert.deepEqual(await originalResponse.json(),{success:true});
   await binding({page,frame:{}},receipt);assert.equal(observations.length,1,'other frames cannot report this page acknowledgment');
