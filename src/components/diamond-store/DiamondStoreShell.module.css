@@ -121,6 +121,15 @@
   display: none;
 }
 
+/* Product photographs sit on the page; retain the existing fill only on their copy face. */
+.contentShell[data-store-section='merch'] {
+  background: transparent;
+}
+
+.contentShell[data-store-section='merch']::before {
+  background: transparent;
+}
+
 .contentShell[data-store-section='vip'] {
   background: #080805;
   border-color: #6c5b2d;
@@ -423,16 +432,20 @@
 
 .merchSurface :global(article) {
   border-color: #607a8b !important;
-  background: #050a0f !important;
+  background: transparent !important;
   box-shadow:
     inset 0 1px 0 rgba(236, 251, 255, 0.16),
     0 14px 30px rgba(0, 0, 0, 0.45) !important;
 }
 
+.merchSurface :global(article) > div:last-child {
+  background: #050a0f !important;
+}
+
 .merchSurface :global(article) > div:first-child {
   min-height: 250px;
   border-bottom: 1px solid #526e80;
-  background: #02070b !important;
+  background: transparent !important;
 }
 
 .merchSurface :global(article img) {

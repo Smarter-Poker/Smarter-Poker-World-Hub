@@ -4,6 +4,7 @@ import MarketplaceDetailExperience from '../../../src/components/store/Marketpla
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
 import RewardTelemetryConsole from '../../../src/components/store/RewardTelemetryConsole';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
+import { VERIFIED_EGG_KEYS } from '../../../src/lib/rewards/eggCoverage';
 import {
   STANDARD_REWARDS,
   EASTER_EGGS,
@@ -24,6 +25,7 @@ const ALL_REWARDS = [
     kind: 'Standard Reward',
     countsTowardDailyCap: reward.countsTowardDailyCap,
     lifetime: reward.lifetime,
+    available: true,
   })),
   ...Object.entries(EASTER_EGGS).flatMap(([category, rewards]) =>
     rewards.map((reward) => ({
@@ -38,19 +40,25 @@ const ALL_REWARDS = [
       rarity: reward.rarity,
       countsTowardDailyCap: false,
       lifetime: true,
+      available: VERIFIED_EGG_KEYS.includes(reward.id),
     }))
   ),
 ];
 
 export default function RewardDetail({ reward }) {
   const canonical = `/hub/smarter-rewards/${reward.id}`;
+  const unavailable = reward.available === false;
+  const description =
+    unavailable && !/^Coming Soon:/i.test(reward.description)
+      ? `Coming Soon: ${reward.description}`
+      : reward.description;
   const image = '/images/store-v3/rewards-hero.webp';
   const schema = [
     {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
       name: `${reward.name}: Smarter Rewards`,
-      description: reward.description,
+      description,
       url: `https://smarter.poker${canonical}`,
     },
     {
@@ -83,7 +91,7 @@ export default function RewardDetail({ reward }) {
     <MarketplaceDetailExperience
       canonical={canonical}
       title={reward.name}
-      description={reward.description}
+      description={description}
       eyebrow={`${reward.kind} / ${reward.category}`}
       image={image}
       imageAlt="Smarter.Poker trophy vault surrounded by blue diamonds"
@@ -95,8 +103,12 @@ export default function RewardDetail({ reward }) {
       diamondPrice={reward.diamonds}
       diamondLabel="Reward Value"
       inventoryLabel="Reward Signal"
-      securityCopy="Reward telemetry is verified against your Smarter.Poker account before eligible Diamonds are credited."
-      status={reward.lifetime ? 'Lifetime Signal' : 'Repeatable'}
+      securityCopy={
+        unavailable
+          ? 'This Hidden Achievement Is Not Unlockable Yet. Diamonds Cannot Be Awarded Until Its Verified Tracking Is Available.'
+          : 'Reward telemetry is verified against your Smarter.Poker account before eligible Diamonds are credited.'
+      }
+      status={unavailable ? 'Coming Soon' : reward.lifetime ? 'Lifetime Signal' : 'Repeatable'}
       presentation="reward"
       actions={
         <>
@@ -109,11 +121,12 @@ export default function RewardDetail({ reward }) {
       <RewardTelemetryConsole reward={reward} canonical={canonical} />
       <div className={detailStyles.detailGrid}>
         <section className={detailStyles.detailCard}>
-          <h2>How This Signal Unlocks</h2>
+          <h2>{unavailable ? 'Planned Unlock Signal' : 'How This Signal Unlocks'}</h2>
           <p>{marketplaceCopy(reward.detail)}</p>
           <p>
-            Reward Telemetry Is Verified By Smarter.Poker. Eligible Actions Are Credited To The Same
-            Diamond Wallet Used Throughout The Marketplace.
+            {unavailable
+              ? 'This Reward Is Coming Soon. Its Unlock Tracking Is Not Available Yet, So It Cannot Award Diamonds.'
+              : 'Reward Telemetry Is Verified By Smarter.Poker. Eligible Actions Are Credited To The Same Diamond Wallet Used Throughout The Marketplace.'}
           </p>
         </section>
         <section className={detailStyles.detailCard}>
