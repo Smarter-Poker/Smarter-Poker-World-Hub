@@ -371,10 +371,10 @@ export function sanitizePokerReels(rows) {
   return sanitizeReels(rows, { category: 'poker' });
 }
 
-export function mergeReels(current, incoming, { category = 'for-you' } = {}) {
+export function mergeReels(current, incoming, { category = 'for-you', directId = null } = {}) {
   return sanitizeReels(
     [...(Array.isArray(current) ? current : []), ...(Array.isArray(incoming) ? incoming : [])],
-    { category },
+    { category, directId },
   );
 }
 

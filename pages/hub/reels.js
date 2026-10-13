@@ -1427,6 +1427,7 @@ export default function ReelsPage({ reelsListing = null }) {
         : modeWasExplicit
           ? modeContract.sort
           : feedMode === 'trending' ? 'popular' : 'recent';
+      const directId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id;
       const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
       if (feedMode === 'following' && !followingAccessToken) {
         setFollowingReauthRequired(true);
@@ -1477,7 +1478,7 @@ export default function ReelsPage({ reelsListing = null }) {
         }
       } else {
         setReels((prev) => capReelsInMemory(
-          mergeReels(prev, mappedFiltered, { category: routeCategory }),
+          mergeReels(prev, mappedFiltered, { category: routeCategory, directId }),
           currentReel?.id,
         ));
         const lc = {},

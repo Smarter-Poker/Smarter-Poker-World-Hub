@@ -35,6 +35,7 @@ const {
   isPlayableReel,
   isUnclassifiedNativeCommunityReel,
   normalizeReelsCategory,
+  mergeReels,
   reelCategoryForTopic,
   sanitizeReels,
 } = await import(
@@ -148,6 +149,26 @@ test('the client keeps category boundaries while For You admits every approved t
   ]) {
     assert.equal(isPlayableReel(hostile, { category: 'for-you' }), false);
   }
+});
+
+test('feed append preserves only the exact pinned native bookmark exception', () => {
+  assert.match(REELS_PAGE_SOURCE, /const directId = Array\.isArray\(router\.query\.id\) \? router\.query\.id\[0\] : router\.query\.id;/);
+  assert.match(REELS_PAGE_SOURCE, /mergeReels\(prev, mappedFiltered, \{ category: routeCategory, directId \}\)/);
+  const pinned = unclassifiedNativeCommunityReel();
+  const incoming = verifiedYouTubeReel();
+  for (const directId of [pinned.id, pinned.source_post_id]) {
+    const initial = sanitizeReels([pinned], { category: 'poker', directId });
+    assert.equal(initial.length, 1);
+    const appended = mergeReels(initial, [incoming, incoming], { category: 'poker', directId });
+    assert.deepEqual(appended.map(row => row.id), [pinned.id, incoming.id]);
+  }
+  for (const directId of [null, incoming.id]) {
+    assert.deepEqual(mergeReels([pinned], [incoming], { category: 'poker', directId }).map(row => row.id), [incoming.id]);
+  }
+  for (const invalid of [{ ...pinned, is_public: false }, { ...pinned, rights_status: 'unknown' }, { ...pinned, video_url: 'https://attacker.example/file.mp4' }]) {
+    assert.deepEqual(mergeReels([invalid], [incoming], { category: 'poker', directId: pinned.id }).map(row => row.id), [incoming.id]);
+  }
+  assert.deepEqual(mergeReels([pinned], [incoming], { category: 'following', directId: pinned.id }).map(row => row.id), [incoming.id]);
 });
 
 test('canonical Reel links preserve category and old bookmarks can fall back to For You', () => {

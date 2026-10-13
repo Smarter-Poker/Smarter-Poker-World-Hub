@@ -168,7 +168,7 @@ test('reels pagination and route modes do not skip or ignore requested feeds', (
   assert.match(REELS_PAGE, /payload\.next_cursor/);
   assert.match(
     REELS_PAGE,
-    /mergeReels\(prev, mappedFiltered, \{ category: routeCategory \}\)/,
+    /mergeReels\(prev, mappedFiltered, \{ category: routeCategory, directId \}\)/,
   );
   assert.match(REELS_PAGE, /category: routeCategory/);
   assert.match(REELS_PAGE, /feedMode === 'trending'/);
