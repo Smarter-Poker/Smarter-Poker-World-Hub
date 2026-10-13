@@ -320,3 +320,47 @@ test('completion and error events preserve the active Reels viewport ownership',
   handlers.handleComplete('/hub/social-media',{shallow:false});
   assert.ok(calls.includes('sweep')); assert.ok(calls.includes('root-remove'));
 });
+
+test('incoming Saved to Reels navigation reveals mounted media without clearing the incoming lock', () => {
+  const source = readFileSync(new URL('../pages/_app.js', import.meta.url), 'utf8');
+  const start = source.indexOf('    const preservesReelsMedia =');
+  const end = source.indexOf("    router.events.on('routeChangeStart', handleStart);", start);
+  for (const finish of ['complete', 'error']) {
+    const calls = [];
+    const classes = new Set(['reels-lock']);
+    const document = {
+      body: { classList: { add(value) { classes.add(value); }, remove(value) { classes.delete(value); calls.push(value); } }, style: { position: 'fixed' } },
+      documentElement: { classList: { remove(value) { calls.push(`root-${value}`); } } },
+      querySelectorAll() { return []; },
+    };
+    const window = { location: new URL('https://smarter.poker/hub/reels/saved'), scrollTo() { calls.push('scroll'); } };
+    let navigating = false;
+    const handlers = new Function('window', 'document', 'setIsNavigating', 'advanceScrollLockGeneration', 'sweepStaleScrollLocks', 'clearBodyScrollLockIfUnheld', 'setTimeout', 'releaseMediaStreamOnLeave', 'router', source.slice(start, end) + '\nreturn {handleStart,handleComplete,handleError};')(
+      window, document, value => { navigating = value; }, () => calls.push('generation'), () => calls.push('sweep'), () => calls.push('clear'), () => {}, () => {}, { pathname: '/hub/reels/saved' },
+    );
+    const target = '/hub/reels?category=poker&id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    handlers.handleStart(target, { shallow: false });
+    assert.equal(classes.has('page-transitioning'), true);
+    assert.equal(navigating, true);
+    window.location = new URL(target, window.location);
+    if (finish === 'complete') handlers.handleComplete(target, { shallow: false });
+    else handlers.handleError(new Error('cancelled after mount'), target, { shallow: false });
+    assert.equal(classes.has('page-transitioning'), false, `${finish} must reveal the incoming video`);
+    assert.equal(navigating, false);
+    assert.equal(classes.has('reels-lock'), true);
+    assert.equal(document.body.style.position, 'fixed');
+    assert.deepEqual(calls, ['generation', 'page-transitioning']);
+    handlers.handleStart('/hub/reels?category=sports', { shallow: false });
+    handlers.handleComplete('/hub/reels?category=sports', { shallow: false });
+    assert.deepEqual(calls, ['generation', 'page-transitioning'], 'later same-page query retains media and lock');
+    handlers.handleStart('/hub/social-media', { shallow: false });
+    window.location = new URL('https://smarter.poker/hub/social-media');
+    handlers.handleComplete('/hub/social-media', { shallow: false });
+    assert.equal(classes.has('page-transitioning'), false);
+    assert.equal(classes.has('reels-lock'), false);
+    assert.equal(document.body.style.position, '');
+    assert.ok(calls.includes('sweep'));
+    assert.ok(calls.includes('clear'));
+    assert.ok(calls.includes('root-reels-lock'));
+  }
+});
