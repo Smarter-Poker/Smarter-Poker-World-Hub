@@ -28,3 +28,9 @@ test('standalone server rendering uses configured runtime catalog URL before the
  assert.equal(evaluate({NEXT_PUBLIC_SUPABASE_URL:'https://compiled-public.invalid'}),'https://compiled-public.invalid');
  assert.equal(evaluate({}),undefined);
 });
+
+test('the learning directory uses existing client navigation instead of cancelling pending document chunks', () => {
+ const library=read('pages/hub/video-library.js');
+ assert.match(library,/import Link from 'next\/link'/);
+ assert.match(library,/<nav[^>]*aria-label="Poker Learning"><Link href="\/hub\/video-library\/players">Poker Players<\/Link>/);
+});

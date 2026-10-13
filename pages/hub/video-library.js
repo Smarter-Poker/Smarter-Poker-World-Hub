@@ -32,6 +32,7 @@ const VIDEO_LIBRARY_SCHEMA = hubProductSchema({
     trail: [['Hub', '/hub'], ['Video Library', '/hub/video-library']],
 });
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getVideoPlaylists, createPlaylist, addVideoToPlaylist, removeVideoFromPlaylist } from '../../src/services/videoPlaylists';
 import { getAccessToken } from '../../src/lib/authUtils';
@@ -2145,7 +2146,7 @@ export default function VideoLibraryPage() {
                             {Object.values(browseFilters).some(value => value !== 'ALL') && ' Filtered Search Matches Published Titles And Channels.'}</p>
                     </section>
 
-                    <nav className="vl-learning-navigation" aria-label="Poker Learning"><a href="/hub/video-library/players">Poker Players</a></nav>
+                    <nav className="vl-learning-navigation" aria-label="Poker Learning"><Link href="/hub/video-library/players">Poker Players</Link></nav>
                     {/* Channels: round avatars like YouTube subscriptions, laid out
                         in rows (no hidden sideways rail), the rest behind Show All. */}
                     <div className={`vl-source-pills${sourcesExpanded ? ' is-expanded' : ''}`} data-tutorial="sources" role="group" aria-label="Channels">
