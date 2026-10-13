@@ -30,6 +30,15 @@ export default function ReelCaptionControl({ native = false, reel, ownerId = nul
     const load = () => {
       if (!matches()) return;
       clearTimeout(trackRef.current.timeout);
+      // Native browser cues using automatic placement otherwise sit behind
+      // the Reels progress controls. Preserve every explicitly authored line
+      // and horizontal setting, and render the original cue text natively.
+      for (const cue of Array.from(element.track.cues || [])) {
+        if (cue.line !== 'auto') continue;
+        cue.snapToLines = false;
+        cue.line = 70;
+        if (cue.position === 'auto' && cue.align === 'center' && cue.size === 100) cue.size = 70;
+      }
       element.track.mode = currentRef.current.requested ? 'showing' : 'disabled';
       setTrackState('available'); setMessage('Creator Captions Are Available');
     };
