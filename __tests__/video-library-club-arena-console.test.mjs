@@ -50,7 +50,7 @@ test('feed cards are YouTube cards: full-width 16:9 media, avatar, title, one me
   assert.match(PAGE, /className="vl-card-menu-button"[\s\S]{0,300}setCardMenuVideo\(video\)/);
   assert.match(CSS, /\.vl-video-grid \{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
   assert.match(CSS, /\.vl-video-thumb[\s\S]*aspect-ratio: 16 \/ 9/);
-  assert.match(CSS, /\.vl-card-info \{[\s\S]*grid-template-columns: 36px minmax\(0, 1fr\) 44px/);
+  assert.match(CSS, /\.vl-card-info \{[\s\S]*grid-template-columns: 44px minmax\(0, 1fr\) 44px/);
   assert.match(CSS, /\.vl-card-info \{[\s\S]*pointer-events: none/);
   assert.match(CSS, /\.vl-card-menu-button \{[\s\S]*pointer-events: auto/);
   assert.match(CSS, /\.vl-media-failed::after \{[\s\S]*Preview unavailable/);

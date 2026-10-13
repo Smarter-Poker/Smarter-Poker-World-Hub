@@ -33,7 +33,24 @@ test.describe('Phase 5 Video Library Channels', () => {
     expect(alias.headers().location).toBe(PATH);
     const unknown = await request.get('/hub/video-library/channels/made-up-channel');
     expect(unknown.status()).toBe(404);
-    await page.goto(PATH, { waitUntil: 'commit' });
+    await page.route('**/api/video-library/catalog**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      success: true,
+      data: [{ id: 'phase5v0000', videoId: 'phase5v0000', source: 'HCL', sourceName: NAME, attributionName: NAME, type: 'cash', title: 'NLH River Study Session 1', duration: '18:42', views: '120K', publishedAt: new Date().toISOString(), availabilityStatus: 'verified', embeddable: true, availabilityCheckedAt: new Date().toISOString(), tags: ['nlh'] }],
+      pagination: { limit: 30, offset: 0, total: 1, nextOffset: 1, hasMore: false },
+    }) }));
+    await page.goto('/hub/video-library', { waitUntil: 'commit' });
+    const avatar = page.locator('#video-library-grid .vl-channel-avatar').first();
+    await expect(avatar).toBeVisible();
+    const target = await avatar.boundingBox();
+    expect(target?.width || 0).toBeGreaterThanOrEqual(44);
+    expect(target?.height || 0).toBeGreaterThanOrEqual(44);
+    await avatar.scrollIntoViewIfNeeded();
+    expect(await avatar.evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      return document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)?.closest('.vl-channel-avatar') === element;
+    })).toBe(true);
+    await avatar.click();
+    await expect(page).toHaveURL(PATH);
     await expect(page.getByRole('heading', { name: NAME, exact: true })).toBeVisible();
     await expect(page.locator('.vl-channel-page')).toHaveAttribute('data-channel-id', CHANNEL);
     await expect(page.locator('.vl-card-title')).toHaveCount(30);
@@ -45,6 +62,22 @@ test.describe('Phase 5 Video Library Channels', () => {
     await expect(page.getByRole('button', { name: 'Load More Videos', exact: true })).toHaveCount(0);
     const signIn = page.getByRole('link', { name: 'Sign In To Follow', exact: true });
     await expect(signIn).toHaveAttribute('href', `/auth/login?redirect=${encodeURIComponent(PATH)}`);
+    const titleLink = page.locator('.vl-channel-videos .vl-card-title a').first();
+    await titleLink.scrollIntoViewIfNeeded();
+    const titleBounds = await titleLink.boundingBox();
+    const textBounds = await page.locator('.vl-channel-videos .vl-card-text').first().boundingBox();
+    expect(titleBounds?.width || 0).toBeGreaterThanOrEqual(200);
+    expect(Math.abs((titleBounds?.width || 0) - (textBounds?.width || 0))).toBeLessThanOrEqual(1);
+    expect(await titleLink.evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      return document.elementFromPoint(rect.x + rect.width / 2, rect.y + Math.min(rect.height / 2, 22))?.closest('.vl-card-title a') === element;
+    })).toBe(true);
+    const watchHref = await titleLink.getAttribute('href');
+    await titleLink.click();
+    await expect(page).toHaveURL(watchHref!);
+    await page.goBack({ waitUntil: 'commit' });
+    await expect(page).toHaveURL(PATH);
+    await expect(page.getByRole('heading', { name: NAME, exact: true })).toBeVisible();
     await geometry(page);
   });
   test('signed-in follow, refresh, notification opt-out and error readback reflect acknowledged owner state', async ({ page }) => {

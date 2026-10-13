@@ -1,5 +1,5 @@
 // Fresh, public YouTube channel-live evidence. A title containing "LIVE" is
-// never evidence; only the exact provider player and current broadcast flag are.
+// never evidence; only provider identity and structured current-live signals are.
 export const LIVE_RESPONSE_MAX_BYTES = 2 * 1024 * 1024;
 export const LIVE_CACHE_MS = 45_000;
 
@@ -11,8 +11,16 @@ export function youtubeChannelLiveUrl(channel) {
 }
 
 export function extractPlayerResponse(html) {
+    return extractAssignedJson(html, 'ytInitialPlayerResponse');
+}
+
+export function extractInitialData(html) {
+    return extractAssignedJson(html, 'ytInitialData');
+}
+
+function extractAssignedJson(html, name) {
     const source = String(html || '');
-    const marker = /\bytInitialPlayerResponse\s*=\s*/.exec(source);
+    const marker = new RegExp(`\\b${name}\\s*=\\s*`).exec(source);
     if (!marker) return null;
     const start = marker.index + marker[0].length;
     if (source[start] !== '{') return null;
@@ -32,6 +40,62 @@ export function extractPlayerResponse(html) {
         }
     }
     return null;
+}
+
+export function youtubeChannelStreamsUrl(channel) {
+    return youtubeChannelLiveUrl(channel)?.replace(/\/live$/, '/streams') || null;
+}
+
+function attributionChannelIds(value, ids = new Set()) {
+    if (!value || typeof value !== 'object') return ids;
+    const id = value.browseEndpoint?.browseId;
+    if (typeof id === 'string' && /^UC[A-Za-z0-9_-]{22}$/.test(id)) ids.add(id);
+    for (const child of Object.values(value)) attributionChannelIds(child, ids);
+    return ids;
+}
+
+// A public channel listing proves the provider labels this stream LIVE now.
+// It does not prove embed availability or supply a broadcast start timestamp.
+export function verifiedChannelLiveListing(data, channel, now = Date.now()) {
+    const streamsUrl = youtubeChannelStreamsUrl(channel);
+    if (!streamsUrl) return { status: 'unknown' };
+    const metadata = data?.metadata?.channelMetadataRenderer;
+    if (metadata?.externalId !== channel?.providerSourceId) return { status: 'unknown' };
+    const tabs = data?.contents?.twoColumnBrowseResultsRenderer?.tabs || data?.contents?.singleColumnBrowseResultsRenderer?.tabs;
+    if (!Array.isArray(tabs)) return { status: 'unknown' };
+    const selected = tabs.filter(item => item.tabRenderer?.selected === true);
+    if (selected.length !== 1) return { status: 'unknown' };
+    const tab = selected[0].tabRenderer;
+    const endpoint = tab.endpoint;
+    const expectedPath = new URL(streamsUrl).pathname;
+    if (endpoint?.browseEndpoint?.browseId !== channel.providerSourceId
+        || endpoint?.commandMetadata?.webCommandMetadata?.url !== expectedPath) return { status: 'unknown' };
+    const grid = tab.content?.richGridRenderer || tab.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.gridRenderer;
+    if (!Array.isArray(grid?.contents) && !Array.isArray(grid?.items)) return { status: 'unknown' };
+    const found = new Map();
+    let invalidLive = false;
+    for (const item of (grid.contents || grid.items)) {
+        const content = item.richItemRenderer?.content || item;
+        const video = content.videoRenderer || content.gridVideoRenderer;
+        const lockup = content.lockupViewModel;
+        const id = video?.videoId || lockup?.contentId;
+        const title = video?.title?.simpleText || video?.title?.runs?.map(run => run.text || '').join('') || lockup?.metadata?.lockupMetadataViewModel?.title?.content;
+        const watchId = video?.navigationEndpoint?.watchEndpoint?.videoId || lockup?.rendererContext?.commandContext?.onTap?.innertubeCommand?.watchEndpoint?.videoId;
+        const live = video
+            ? video.thumbnailOverlays?.some(overlay => overlay.thumbnailOverlayTimeStatusRenderer?.style === 'LIVE')
+            : lockup?.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO' && lockup.contentImage?.thumbnailViewModel?.overlays?.some(overlay =>
+                overlay.thumbnailBottomOverlayViewModel?.badges?.some(badge => badge.thumbnailBadgeViewModel?.badgeStyle === 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE'));
+        if (!live || video?.upcomingEventData || video?.isUpcoming === true) continue;
+        const ownerIds = new Set();
+        for (const attribution of [video?.ownerText, video?.shortBylineText, video?.longBylineText,
+            lockup?.metadata?.lockupMetadataViewModel?.metadata]) attributionChannelIds(attribution, ownerIds);
+        if (!/^[A-Za-z0-9_-]{11}$/.test(String(id || '')) || watchId !== id || !String(title || '').trim()
+            || [...ownerIds].some(ownerId => ownerId !== channel.providerSourceId)) { invalidLive = true; continue; }
+        found.set(id, { status: 'live', videoId: id, title: String(title).trim(), channelId: channel.id,
+            channelName: String(metadata.title || channel.name), thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+            watchUrl: `https://www.youtube.com/watch?v=${id}`, evidence: 'public_channel_live_listing', asOf: new Date(now).toISOString() });
+    }
+    return found.size ? found.values().next().value : { status: invalidLive ? 'unknown' : 'offline' };
 }
 
 export function verifiedLiveBroadcast(player, channel, now = Date.now()) {
@@ -70,12 +134,12 @@ export async function readBoundedProviderHtml(response) {
 }
 
 export async function checkChannelLive(channel, fetcher = fetch) {
-    const url = youtubeChannelLiveUrl(channel);
+    const url = youtubeChannelStreamsUrl(channel);
     if (!url) return { status: 'unknown' };
     try {
         const response = await fetcher(url, { redirect: 'error', signal: AbortSignal.timeout(8000),
-            headers: { 'Cache-Control': 'no-cache', 'Accept-Language': 'en-US,en;q=0.9' } });
-        return verifiedLiveBroadcast(extractPlayerResponse(await readBoundedProviderHtml(response)), channel);
+            headers: { 'Cache-Control': 'no-cache', 'Accept': 'text/html', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', 'Accept-Language': 'en-US,en;q=0.9' } });
+        return verifiedChannelLiveListing(extractInitialData(await readBoundedProviderHtml(response)), channel);
     } catch { return { status: 'unknown' }; }
 }
 
