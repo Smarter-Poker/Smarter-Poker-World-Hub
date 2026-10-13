@@ -432,7 +432,7 @@
 .merchSurface :global(article) > div:first-child {
   min-height: 250px;
   border-bottom: 1px solid #526e80;
-  background: #02070b !important;
+  background: transparent !important;
 }
 
 .merchSurface :global(article img) {

@@ -10,7 +10,9 @@ const read = (relativePath) => readFile(path.join(root, relativePath), 'utf8');
 test('store image zones have no separate opaque background behind preserved artwork', async () => {
   const zones = {
     'src/components/diamond-store/SmarterStoreShowcase.module.css': ['.starterArt', '.packageArt'],
-    'src/components/diamond-store/DiamondStoreShell.module.css': ['.clubProductMedia', '.dialogProductMedia'],
+    'src/components/diamond-store/DiamondStoreShell.module.css': [
+      '.clubProductMedia', '.dialogProductMedia', '.merchSurface :global(article) > div:first-child',
+    ],
     'src/components/store/MerchStore.module.css': ['.mediaBay'],
     'src/components/store/MarketplaceDetailExperience.module.css': [
       '.mediaFrame', '.spriteMedia,\n.spriteMediaExpanded', '.mediaRail',
