@@ -31,3 +31,12 @@ test('Phase 6 qualification executes in the maintained workflows with manual-onl
     assert.match(live, /signOut\(\{ scope: 'local' \}\)/);
     assert.doesNotMatch(live, /award_diamonds_v2|rewards\/video-watch|fn_create_social_post/);
 });
+test('Live stale playlist proof requires bounded definitive conflict and unchanged persisted order', () => {
+    const live = read('scripts/qualification/videoLibraryPhase6Live.mjs');
+    assert.match(live, /client\.rpc\('fn_reorder_video_playlist',[^\n]+\.abortSignal\(AbortSignal\.timeout\(20000\)\)/);
+    assert.match(live, /assert\.equal\(stale\.status, 409\)/);
+    assert.match(live, /assert\.equal\(stale\.error\?\.code, 'PT409'\)/);
+    assert.match(live, /assert\.equal\(stale\.error\?\.code, 'PT409'\); assert\.deepEqual\(await order\(\), \[\.\.\.ids\]\.reverse\(\)\)/);
+    assert.ok(live.indexOf('report.staleWriteResponse =') < live.indexOf('assert.equal(stale.status, 409)'));
+    for (const field of ['status: stale.status', 'statusText: safeText(stale.statusText)', 'code: safeText(stale.error.code)', 'message: safeText(stale.error.message)', 'details: safeText(stale.error.details)', 'hint: safeText(stale.error.hint)']) assert(live.includes(field));
+});

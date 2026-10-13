@@ -17,13 +17,14 @@ const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !ke
 const args = ['-h', work, '-U', 'playlist_fixture', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-qAt'];
 const sql = text => execFileSync(`${bin}/psql`, args, { input: text, encoding: 'utf8', env }).trim();
 const migration = readFileSync('supabase/migrations/20261013182000_video_playlist_reorder.sql', 'utf8');
+const conflictMigration = readFileSync('supabase/migrations/20261013191500_video_playlist_conflict_response.sql', 'utf8');
 const owner = '11111111-1111-4111-8111-111111111111';
 const foreign = '22222222-2222-4222-8222-222222222222';
 const playlist = '33333333-3333-4333-8333-333333333333';
 const asOwner = (query, id = owner) => `BEGIN;SET LOCAL ROLE authenticated;SET LOCAL request.jwt.claim.sub='${id}';${query};COMMIT;`;
 const call = (expected, next) => `SELECT public.fn_reorder_video_playlist('${playlist}',ARRAY[${expected.map(id => `'${id}'`).join(',')} ]::text[],ARRAY[${next.map(id => `'${id}'`).join(',')} ]::text[])`;
 const order = () => sql(`SELECT string_agg(video_id,',' ORDER BY sort_order,created_at,id) FROM video_playlist_items WHERE playlist_id='${playlist}'`);
-const report = { migrationSHA256: createHash('sha256').update(migration).digest('hex'), startedAt: new Date().toISOString(), cases: [], status: 'running' };
+const report = { migrationSHA256: createHash('sha256').update(migration).digest('hex'), conflictMigrationSHA256: createHash('sha256').update(conflictMigration).digest('hex'), startedAt: new Date().toISOString(), cases: [], status: 'running' };
 const pass = name => report.cases.push({ name, status: 'passed' });
 const reject = (name, query, pattern) => { const result = spawnSync(`${bin}/psql`, args, { input: query, encoding: 'utf8', env }); assert.notEqual(result.status, 0); assert.match(result.stderr, pattern); pass(name); };
 try {
@@ -33,18 +34,21 @@ try {
     sql(readFileSync('supabase/migrations/20260423_video_playlists.sql', 'utf8'));
     sql(`GRANT SELECT,INSERT,UPDATE,DELETE ON video_playlists,video_playlist_items TO authenticated;INSERT INTO video_playlists(id,user_id,name) VALUES('${playlist}','${owner}','Fixture');INSERT INTO video_playlist_items(playlist_id,video_id,sort_order) VALUES('${playlist}','abcdefghijk',0),('${playlist}','bcdefghijkl',1),('${playlist}','cdefghijklm',2);`);
     reject('Absent RPC Fails Before Migration', asOwner(call(['abcdefghijk','bcdefghijkl','cdefghijklm'],['cdefghijklm','abcdefghijk','bcdefghijkl'])), /does not exist/);
-    sql(migration); pass('Exact Migration Installs');
+    sql(migration);
+    const originalConflict = spawnSync(`${bin}/psql`, [...args,'-v','VERBOSITY=verbose'], { input: asOwner(call([],[])), encoding: 'utf8', env });
+    assert.notEqual(originalConflict.status,0);assert.match(originalConflict.stderr,/40001/);
+    sql(conflictMigration); pass('Exact Original And Permanent Conflict Migrations Install');
     assert.equal(sql(asOwner(call(['abcdefghijk','bcdefghijkl','cdefghijklm'],['cdefghijklm','abcdefghijk','bcdefghijkl']))), 't');
     assert.equal(order(), 'cdefghijklm,abcdefghijk,bcdefghijkl'); pass('Owner Order Persists');
     reject('Foreign Owner Denied', asOwner(call([],[]), foreign), /Playlist unavailable/);
-    reject('Stale Order Denied', asOwner(call(['abcdefghijk','bcdefghijkl','cdefghijklm'],['abcdefghijk','bcdefghijkl','cdefghijklm'])), /Playlist changed/);
+    const conflict = spawnSync(`${bin}/psql`, [...args,'-v','VERBOSITY=verbose'], { input: asOwner(call(['abcdefghijk','bcdefghijkl','cdefghijklm'],['abcdefghijk','bcdefghijkl','cdefghijklm'])),encoding:'utf8',env });assert.notEqual(conflict.status,0);assert.match(conflict.stderr,/PT409/);pass('Permanent PT409 Stale Order Denied');
     reject('Duplicate Membership Denied', asOwner(call(['cdefghijklm','abcdefghijk','bcdefghijkl'],['abcdefghijk','abcdefghijk','bcdefghijkl'])), /Invalid playlist order/);
     reject('Missing Membership Denied', asOwner(call(['cdefghijklm','abcdefghijk','bcdefghijkl'],['abcdefghijk'])), /membership changed/);
     reject('Anonymous Execution Denied', 'SET ROLE anon;SELECT public.fn_reorder_video_playlist(null,ARRAY[]::text[],ARRAY[]::text[])', /permission denied/);
     assert.equal(sql(`SELECT prosecdef::text FROM pg_proc WHERE oid='public.fn_reorder_video_playlist(uuid,text[],text[])'::regprocedure`), 'false');pass('Owner RLS Security Invoker Preserved');
-    const concurrent = query => new Promise(resolve => { const child = spawn(`${bin}/psql`, args, { env }); let error=''; child.stderr.on('data',data => error+=data); child.stdout.resume();child.on('close',code=>resolve({code,error}));child.stdin.end(query); });
+    const concurrent = query => new Promise(resolve => { const child = spawn(`${bin}/psql`, [...args,'-v','VERBOSITY=verbose'], { env }); let error=''; child.stderr.on('data',data => error+=data); child.stdout.resume();child.on('close',code=>resolve({code,error}));child.stdin.end(query); });
     const results = await Promise.all([concurrent(asOwner(`${call(['cdefghijklm','abcdefghijk','bcdefghijkl'],['abcdefghijk','bcdefghijkl','cdefghijklm'])};SELECT pg_sleep(0.2)`)),concurrent(asOwner(call(['cdefghijklm','abcdefghijk','bcdefghijkl'],['bcdefghijkl','cdefghijklm','abcdefghijk'])))]);
-    assert.equal(results.filter(result=>result.code===0).length,1);assert.match(results.find(result=>result.code!==0).error,/Playlist changed/);pass('Concurrent CAS Exactly One Winner');
+    assert.equal(results.filter(result=>result.code===0).length,1);assert.match(results.find(result=>result.code!==0).error,/PT409/);pass('Concurrent CAS Exactly One Winner');
     const beforeAppend = order().split(',');
     assert.equal(sql(asOwner(`SELECT fn_append_video_playlist('${playlist}','defghijklmn','Append Fixture','HCL')`)), 't');
     assert.equal(order(), [...beforeAppend,'defghijklmn'].join(','));pass('Append Uses Persisted Last Position');
@@ -57,6 +61,7 @@ try {
     reject('Foreign Append Denied',asOwner(`SELECT fn_append_video_playlist('${playlist}','efghijklmno',null,null)`,foreign),/Playlist unavailable/);
     reject('Invalid Append Id Denied',asOwner(`SELECT fn_append_video_playlist('${playlist}','invalid',null,null)`),/Invalid video id/);
     reject('Migration Replay Refused',migration,/already installed/);
+    const replay=spawnSync(`${bin}/psql`,args,{input:conflictMigration,encoding:'utf8',env});assert.notEqual(replay.status,0);assert.match(replay.stderr,/already installed/);
     report.status='passed';
 } catch(error) { report.status='failed';report.error=error.message;process.exitCode=1; }
 finally { try { execFileSync(`${bin}/pg_ctl`, ['-D', `${work}/data`, 'stop', '-m', 'fast'], { stdio:'ignore',env });rmSync(work,{recursive:true,force:true}); } catch(error) { report.cleanupError=error.message;report.status='failed';process.exitCode=1; }report.completedAt=new Date().toISOString();writeFileSync(path.join(evidence,'playlist-reorder-native.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2)); }

@@ -1,3 +1,4 @@
+import './video-library-playlist-conflict.test.mjs';
 import './video-library-personal-delivery.test.mjs';
 import './video-library-queue-hook.test.mjs';
 import './video-library-study-component.test.mjs';
