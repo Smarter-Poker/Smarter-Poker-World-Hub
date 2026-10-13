@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 const OWNER = '33333333-3333-4333-8333-333333333333';
 const PLAYLIST = '44444444-4444-4444-8444-444444444444';
+const NAME = 'river Study ace9196c-4f5f-491f-aeae-28b0d0032aa5';
 const PATH = `/hub/video-library/playlists/${PLAYLIST}`;
 const IDS = ['abcdefghijk', 'bcdefghijkl', 'cdefghijklm'];
 const VIDEO = IDS.map((videoId, index) => ({ videoId, id: videoId, title: `Playlist Contract Video ${index + 1}`, source: 'HCL', type: 'cash', availabilityStatus: 'verified', embeddable: true, availabilityCheckedAt: new Date().toISOString(), duration: '10:00' }));
@@ -31,14 +32,14 @@ test.describe('Phase 6 Playlist Browsing', () => {
       }
       if (url.pathname.endsWith('/video_playlists')) {
         expect(url.searchParams.get('user_id')).toBe(`eq.${OWNER}`);
-        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: PLAYLIST, user_id: OWNER, name: 'Contract Playlist', created_at: '2026-10-01T00:00:00Z', items: order.map((video_id, sort_order) => ({ id: video_id, video_id, sort_order, created_at: '2026-10-01T00:00:00Z' })) }) });
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: PLAYLIST, user_id: OWNER, name: NAME, created_at: '2026-10-01T00:00:00Z', items: order.map((video_id, sort_order) => ({ id: video_id, video_id, sort_order, created_at: '2026-10-01T00:00:00Z' })) }) });
       }
       return route.fulfill({ contentType: 'application/json', body: '[]' });
     });
     await page.route('**/api/video-library/catalog**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: VIDEO, pagination: { hasMore: false } }) }));
     await page.route('**/api/vip/check-status**', route => route.fulfill({ contentType: 'application/json', body: '{"isVip":false}' }));
     await page.goto(PATH, { waitUntil: 'commit' });
-    await expect(page.getByRole('heading', { name: 'Contract Playlist' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: NAME, exact: true })).toBeVisible();
     await expect(page.locator('.vl-playlist-video-row')).toHaveCount(3);
     await page.getByRole('button', { name: 'Move Video 2 Up', exact: true }).click();
     await expect(page.getByRole('status')).toHaveText('Playlist Order Saved.');
