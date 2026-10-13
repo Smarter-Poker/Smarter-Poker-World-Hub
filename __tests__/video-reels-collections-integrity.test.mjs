@@ -588,6 +588,62 @@ test('collection cursors are typed, keyset-based, and reject cross-page replay',
   assert.match(SERVER, /saved_at['"],\s*\{ ascending: false \}/);
 });
 
+test('own private native bookmarks survive status and Saved reads without widening public eligibility', async () => {
+  const owner = '11111111-1111-4111-8111-111111111111';
+  const foreign = '22222222-2222-4222-8222-222222222222';
+  const postId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const row = nativeRow({ is_public: false, source_post_id: postId });
+  const post = { id: postId, author_id: owner, visibility: 'private', audience_mode: 'only_me', is_deleted: false };
+  const save = { id: 'ffffffff-ffff-4fff-8fff-ffffffffffff', user_id: owner, reel_id: row.id, source_type: 'reel', saved_at: '2026-09-06T15:00:00.000Z' };
+  const alias = { ...save, id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', reel_id: postId, source_type: 'post', saved_at: '2026-09-06T14:00:00.000Z' };
+  const run = async (reel = row, source = post, userId = owner) => {
+    const client = createMemoryClient({ social_reels: [reel], social_posts: [source], saved_reels: [{ ...save, user_id: userId }, { ...alias, user_id: userId }], profiles: [], video_library_videos: [], youtube_embed_failures: [], social_follows: [] });
+    const readers = loadCollectionReaderHarness(client);
+    return { status: await readers.readSavedForIds({ client, userId, reelIds: [row.id] }), page: await readers.readSaved({ client, userId }), publicPage: await readers.readFeed({ client, category: 'poker' }) };
+  };
+  const good = await run();
+  for (const rows of [good.status, good.page.data]) {
+    assert.equal(rows.length, 1, 'own private bookmark must remain actionable after reload');
+    assert.equal(rows[0].reel_id, row.id);
+    assert.equal(rows[0].reel.is_public, false);
+    assert.equal('caption_track_url' in rows[0].reel, false);
+    assert.deepEqual([...rows[0].saved_target_ids].sort(), [row.id, postId].sort());
+  }
+  assert.equal(good.publicPage.data.length, 0);
+  for (const [reel, source, user] of [
+    [row, post, foreign],
+    [row, { ...post, author_id: foreign }, owner],
+    [row, { ...post, author_id: foreign, visibility: 'public', audience_mode: 'public' }, owner],
+    [{ ...row, rights_status: 'licensed' }, post, owner],
+    [{ ...row, moderation_state: 'taken_down' }, post, owner],
+    [{ ...row, is_deleted: true }, post, owner],
+    [{ ...row, rights_status: 'restricted' }, post, owner],
+    [{ ...row, video_url: 'https://foreign.example/clip.mp4' }, post, owner],
+    [row, { ...post, is_deleted: true }, owner],
+  ]) {
+    const denied = await run(reel, source, user);
+    assert.equal(denied.status.length, 0);
+    assert.equal(denied.page.data.length, 0);
+  }
+});
+
+test('saved private fallback preserves public canonical winners and other creators', async () => {
+  const owner = '11111111-1111-4111-8111-111111111111';
+  const foreign = '22222222-2222-4222-8222-222222222222';
+  const privateRow = nativeRow({ is_public: false, created_at: '2026-09-01T00:00:00.000Z' });
+  const publicRow = nativeRow({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', author_id: foreign });
+  const client = createMemoryClient({ social_reels: [privateRow, publicRow], social_posts: [], saved_reels: [{ id: 'ffffffff-ffff-4fff-8fff-ffffffffffff', user_id: owner, reel_id: privateRow.id, source_type: 'reel', saved_at: '2026-09-06T15:00:00.000Z' }], profiles: [], video_library_videos: [], youtube_embed_failures: [] });
+  const readers = loadCollectionReaderHarness(client);
+  const status = await readers.readSavedForIds({ client, userId: owner, reelIds: [publicRow.id] });
+  const page = await readers.readSaved({ client, userId: owner });
+  for (const rows of [status, page.data]) {
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].reel_id, publicRow.id, 'public winner keeps existing precedence over older private upload');
+    assert.equal(rows[0].reel.author_id, foreign);
+    assert.deepEqual([...rows[0].saved_target_ids], [privateRow.id]);
+  }
+});
+
 test('collection readers keep slots and sports across My Reels, Saved, and saved-status', async () => {
   const ownerId = '11111111-1111-4111-8111-111111111111';
   const reelA = nativeRow({
