@@ -683,12 +683,14 @@ function NavigationGuard({ children }) {
         return false;
       }
     };
+    let transitionOwned = false;
     const handleStart = (nextUrl, routeOptions) => {
       // Both the canonical menu and shallow feed tabs change this same page.
       // Reels commits channel media only after its feed response succeeds.
       if (preservesReelsMedia(nextUrl, routeOptions)) return;
       // SYNCHRONOUS: Add class immediately (no React state delay)
       document.body.classList.add('page-transitioning');
+      transitionOwned = true;
 
       // Force stop all media SYNCHRONOUSLY
       document.querySelectorAll('video').forEach((video) => {
@@ -733,10 +735,14 @@ function NavigationGuard({ children }) {
     };
 
     const handleComplete = (nextUrl, routeOptions) => {
-      if (preservesReelsMedia(nextUrl, routeOptions)) return;
-      // Remove the hiding class
+      const preserveMedia = preservesReelsMedia(nextUrl, routeOptions);
+      if (preserveMedia && !transitionOwned) return;
+      // Entry from another page must reveal the incoming Reels player. The
+      // destination pathname cannot tell whether this guard hid the old page.
       document.body.classList.remove('page-transitioning');
+      transitionOwned = false;
       setIsNavigating(false);
+      if (preserveMedia) return;
       // Scroll to the very top so the global header is always visible
       window.scrollTo(0, 0);
       setTimeout(() => {

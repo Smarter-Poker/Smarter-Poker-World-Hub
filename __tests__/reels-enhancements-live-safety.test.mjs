@@ -18,4 +18,5 @@ test('proof uses real UI writes and exact scoped cleanup without feeding synthet
  assert.doesNotMatch(source,/route\.fulfill|TEST_USER_PASSWORD|auth\.admin|SUPABASE_SERVICE_ROLE_KEY/);
  assert.match(source,/flag:first\?'wx':'w'/);
  assert.match(source,/\/hub\/reels\/saved/);assert.match(source,/a\.vlc-saved-link/);assert.match(source,/actualPrivateSavedCollection=true/);assert.match(source,/savedLink\.click\(\)/);
+ assert.match(source,/failureMedia=await page\.evaluate/);assert.match(source,/transitioning:document\.body\.classList\.contains\('page-transitioning'\)/);assert.match(source,/reels-native-failed\.png/);
 });
