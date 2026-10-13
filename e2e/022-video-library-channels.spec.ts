@@ -40,15 +40,19 @@ test.describe('Phase 5 Video Library Channels', () => {
     }) }));
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
     const avatar = page.locator('#video-library-grid .vl-channel-avatar').first();
-    await expect(avatar).toBeVisible();
-    const target = await avatar.boundingBox();
-    expect(target?.width || 0).toBeGreaterThanOrEqual(44);
-    expect(target?.height || 0).toBeGreaterThanOrEqual(44);
-    await avatar.scrollIntoViewIfNeeded();
-    expect(await avatar.evaluate(element => {
-      const rect = element.getBoundingClientRect();
-      return document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)?.closest('.vl-channel-avatar') === element;
-    })).toBe(true);
+    // Catalog hydration may replace the card between visibility and scrolling.
+    // Retry the read-only geometry observation as a unit, never the click.
+    await expect(async () => {
+      await expect(avatar).toBeVisible();
+      await avatar.scrollIntoViewIfNeeded();
+      const target = await avatar.boundingBox();
+      expect(target?.width || 0).toBeGreaterThanOrEqual(44);
+      expect(target?.height || 0).toBeGreaterThanOrEqual(44);
+      expect(await avatar.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        return document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)?.closest('.vl-channel-avatar') === element;
+      })).toBe(true);
+    }).toPass({ timeout: 5000 });
     await avatar.click();
     await expect(page).toHaveURL(PATH);
     await expect(page.getByRole('heading', { name: NAME, exact: true })).toBeVisible();
