@@ -31,6 +31,7 @@ function fixture({unmarked=false,existing=false,wrongBytes=false}={}) {
   if(operation==='update'){calls.push({actorUpdate:{table,payload}});for(const row of tables[table].filter(match))Object.assign(row,payload);}
   const data=table==='profiles'?{id:filters.id,created_at:createdAt,username:filters.id===actor?'reels_qa':'reels_qa_target'}:tables[table].find(match)||null;return Promise.resolve({error:null,data}).then(resolve,reject);
  }};return q;}};
+ admin.from=table=>actorClient.from(table);
  return{admin,actorClient,calls,tables,users,receipts,password:'dedicated-test-password-only-32chars',bytes,mediaProof:validateMediaProof(bytes,codec),readObject:async()=>storage?(wrongBytes?Buffer.alloc(80):storage):null,persist:async value=>receipts.push(structuredClone(value))};
 }
 test('setup isolates confirmed no-email Auth fixtures and private native content through actor RLS',async()=>{
@@ -58,4 +59,16 @@ test('actual Storage HTTP400 NoSuchKey body is absence; other failures remain re
 test('failed signin and profile read retain sanitized exact stage without secrets',async()=>{
  for(const phase of ['actor-signin','profile-read']){const f=fixture();if(phase==='actor-signin')f.actorClient.auth.signInWithPassword=async()=>({error:{message:f.password},data:{}});else f.actorClient.from=()=>({select(){return this;},eq(){return this;},maybeSingle(){return Promise.resolve({error:{code:'42501',message:f.password}});}});
  await assert.rejects(()=>setupQAFixture(f));const last=f.receipts.at(-1);assert.equal(last.status,'failed');assert.equal(last.failure.stage,phase);if(phase==='profile-read')assert.equal(last.failure.code,'42501');assert.equal(JSON.stringify(f.receipts).includes(f.password),false);assert.equal(f.calls.filter(x=>x.upload||x.actorInsert).length,0);}
+});
+
+test('actor post read excludes withheld metadata columns; exact admin read validates fixture marker',async()=>{
+ const f=fixture();const original=f.actorClient.from;const selected=[];f.actorClient.from=table=>{const q=original.call(f.actorClient,table);const select=q.select;q.select=fields=>{if(table==='social_posts'){selected.push(fields);assert.notEqual(fields,'*');assert.equal(fields.includes('metadata'),false);assert.equal(fields.includes('origin_type'),false);}return select.call(q,fields);};return q;};f.admin.from=table=>original.call(f.actorClient,table);
+ await setupQAFixture(f);assert.ok(selected.length>=2);assert.ok(f.receipts.some(r=>r.stages.some(s=>s.name==='source-post-read')));
+});
+test('retained original requires exact prior receipt and decoded stored media proof, without upload',async()=>{
+ const f=fixture({existing:true});const retained=Buffer.from(bytes);retained[retained.length-1]=1;const proof=validateMediaProof(retained,codec);f.readObject=async()=>retained;f.priorReceipt={kind:'reels-qa-fixture-setup',operationId:'00000000-0000-4000-8000-000000000004',purpose:QA_PURPOSE,mediaProof:proof,stages:[{name:'actor-auth',state:'read-back',id:actor},{name:'native-storage',state:'read-back',objectPath:`reels/${actor}/qa-reels.mp4`}]};f.validateStoredMedia=async stored=>validateMediaProof(stored,codec);const result=await setupQAFixture(f);assert.deepEqual(result.mediaProof,proof);assert.equal(f.calls.filter(c=>c.upload).length,0);assert.equal(f.tables.social_posts[0].metadata.media_sha256,proof.sha256);
+ const bad=fixture({existing:true});bad.readObject=async()=>retained;bad.priorReceipt={...f.priorReceipt,mediaProof:{...proof,sha256:'0'.repeat(64)}};bad.validateStoredMedia=f.validateStoredMedia;await assert.rejects(()=>setupQAFixture(bad));assert.equal(bad.calls.filter(c=>c.upload||c.actorInsert).length,0);
+});
+test('all three QA scripts select explicit allowed Reel fields rather than withheld columns',async()=>{
+ const {readFile}=await import('node:fs/promises');for(const file of ['reels-qa-fixture-setup.mjs','reels-interaction-live-check.mjs','reels-enhancements-live-check.mjs']){const source=await readFile(new URL(`../scripts/ci/${file}`,import.meta.url),'utf8');assert.equal(/from\('social_reels'\)\.select\('\*'\)/.test(source),false,file);for(const match of source.matchAll(/from\('social_reels'\)\.select\('([^']+)'\)/g)){assert.equal(match[1].split(',').includes('origin_type'),false);assert.equal(match[1].split(',').includes('caption_track_url'),false);}}
 });

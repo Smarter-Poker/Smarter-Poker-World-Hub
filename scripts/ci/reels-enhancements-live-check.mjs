@@ -43,7 +43,7 @@ export async function runPublishedEnhancements({page,context,client,setup,env,pe
  const scopes={social_likes:{post_id:setup.reelId,user_id:setup.actorId},saved_reels:{reel_id:setup.reelId,user_id:setup.actorId},social_follows:{follower_id:setup.actorId,following_id:setup.followTargetId},social_comments:{post_id:setup.reelId,author_id:setup.actorId}};
  const read=async table=>{let q=client.from(table).select('*');for(const[k,v]of Object.entries(scopes[table]))q=q.eq(k,v);return checked(q);};
  for(const table of Object.keys(scopes))assert.equal((await read(table)).length,0,'QA baseline must be clean; never remove an existing interaction');
- const baseline=await checked(client.from('social_reels').select('*').eq('id',setup.reelId).maybeSingle());validateFixture(baseline,setup.actorId,setup.reelId);assert.equal(baseline.like_count||0,0);assert.equal(baseline.comment_count||0,0);
+ const baseline=await checked(client.from('social_reels').select('id,author_id,is_public,is_deleted,media_status,playback_type,rights_status,caption,video_url,like_count,comment_count').eq('id',setup.reelId).maybeSingle());validateFixture(baseline,setup.actorId,setup.reelId);assert.equal(baseline.like_count||0,0);assert.equal(baseline.comment_count||0,0);
  await persist(journal,true);
  await context.addInitScript(({session})=>{if(!sessionStorage.getItem('reels-qa-auth-initialized')){localStorage.setItem('smarter-poker-auth',JSON.stringify(session));sessionStorage.setItem('reels-qa-auth-initialized','1');}}, {session});
  const notificationsBlocked=[];await context.route('**/api/notifications/follow',async route=>{notificationsBlocked.push('follow');await route.abort('blockedbyclient');});

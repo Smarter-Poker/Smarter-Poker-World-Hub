@@ -44,7 +44,7 @@ on:
         options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live]
         default: full
       reels_qa_setup_run:
-        description: Exact successful private Reels QA setup run
+        description: Exact private Reels QA setup run (successful for live checks, retained partial receipt for setup recovery)
         type: string
         default: ''
       reels_fixture_safety:
@@ -1014,6 +1014,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -1021,6 +1022,14 @@ jobs:
           node-version: '24.12.0'
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Recover the exact retained private original receipt
+        if: inputs.reels_qa_setup_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: reels-qa-setup-receipt
+          run-id: ${{ inputs.reels_qa_setup_run }}
+          github-token: ${{ github.token }}
+          path: test-results/reels-qa-prior
       - name: Generate the small private original qualification clip
         run: |
           set -euo pipefail
@@ -1037,6 +1046,7 @@ jobs:
           REELS_QA_PASSWORD: ${{ secrets.REELS_QA_PASSWORD }}
           REELS_QA_VIDEO_FILE: test-results/reels-qa/original.mp4
           REELS_QA_SETUP_RECEIPT: test-results/reels-qa/setup.json
+          REELS_QA_PRIOR_SETUP_RECEIPT: ${{ inputs.reels_qa_setup_run != '' && 'test-results/reels-qa-prior/setup.json' || '' }}
       - name: Retain the exact private fixture receipt
         if: always()
         uses: actions/upload-artifact@v4
