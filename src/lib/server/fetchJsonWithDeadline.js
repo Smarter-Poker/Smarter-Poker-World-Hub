@@ -1,4 +1,4 @@
-export async function fetchJsonWithDeadline(url, { fetchImpl = fetch, timeoutMs = 5_000 } = {}) {
+export async function fetchJsonWithDeadline(url, { fetchImpl = fetch, timeoutMs = 5_000, requestOptions = {} } = {}) {
   const controller = new AbortController();
   let timer;
   const deadline = new Promise((_, reject) => {
@@ -13,7 +13,7 @@ export async function fetchJsonWithDeadline(url, { fetchImpl = fetch, timeoutMs 
   try {
     return await Promise.race([
       (async () => {
-        const response = await fetchImpl(url, { signal: controller.signal });
+        const response = await fetchImpl(url, { ...requestOptions, signal: controller.signal });
         if (!response.ok) return null;
         return response.json();
       })(),

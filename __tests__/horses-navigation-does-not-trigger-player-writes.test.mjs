@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { fetchJsonWithDeadline } from '../src/lib/server/fetchJsonWithDeadline.js';
 
 const app = readFileSync(new URL('../pages/_app.js', import.meta.url), 'utf8');
 const avatar = readFileSync(new URL('../src/contexts/AvatarContext.jsx', import.meta.url), 'utf8');
@@ -20,7 +21,7 @@ test('profile initialization is guarded but session and VIP reads resume across 
   const ensure = avatar.slice(avatar.indexOf('async function ensureUserProfile'), avatar.indexOf('// Listen for auth changes'));
   assert.match(avatar, /playerWritesAllowedRef\.current = automaticPlayerWrites/);
   assert.match(ensure, /if \(!playerWritesAllowedRef\.current\) return;/);
-  assert.ok(ensure.indexOf('if (!automaticPlayerWrites || !user) return;') < ensure.indexOf("fetch('/api/auth/ensure-profile'"));
+  assert.ok(ensure.indexOf('if (!automaticPlayerWrites || !user) return;') < ensure.indexOf("fetchJsonWithDeadline('/api/auth/ensure-profile'"));
   const subscription = avatar.slice(avatar.indexOf('// Listen for auth changes'), avatar.indexOf('// HARDENED: Listen for vip-status-changed'));
   assert.match(subscription, /setUser\(session\.user\)/);
   assert.match(subscription, /fetchVipStatus\(session\.user\.id\)/);
@@ -43,6 +44,10 @@ test('actual auth subscription suppresses initialization on staff routes and res
   let unsubscribed = 0;
   const globals = {
     playerWritesAllowedRef: ref,
+    identityRef: { current: { id: 'test-user', generation: 0 } },
+    vipRequestRef: { current: 0 },
+    recordIdentity: noop,
+    fetchJsonWithDeadline: (url, options) => fetchJsonWithDeadline(url, { ...options, fetchImpl: globals.fetch }),
     fetch: async (url, options = {}) => {
       requests.push({ url, method: options.method || 'GET' });
       return { ok: true, json: async () => url.startsWith('/api/vip/') ? { isVip: false } : { created: false } };

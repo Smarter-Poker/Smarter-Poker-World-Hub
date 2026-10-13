@@ -116,7 +116,7 @@ export function useProfileRealtime(userId, { onDiamondsUpdate, onVipUpdate, onPr
         entry.subscribers.add(id);
         entry.callbacks.set(id, {
             onDiamondsUpdate: (v) => onDiamondsRef.current?.(v),
-            onVipUpdate:      (v) => onVipRef.current?.(v),
+            onVipUpdate:      (v) => onVipRef.current?.(v, userId),
             onProfileUpdate:  (v) => onProfileRef.current?.(v),
         });
 
