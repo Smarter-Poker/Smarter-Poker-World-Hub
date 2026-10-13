@@ -89,11 +89,10 @@ const lines = [
   '- `/hub/vip-membership`, `/hub/merch-store`, `/hub/smarter-rewards` and `/hub/club-shop` render the same Marketplace store page with a different initial tab, so they own the same in-flow commerce footer. The fixed illustrated footer previously covered the VIP plan purchase buttons and the Marketplace commerce links on these routes because no clearance was reserved for it.',
   '- `/hub/my-clubs` is a server-side redirect to Social Pages Managed and does not render a footer document of its own.',
   '- Routes outside the 13 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.',
-  '',
 ];
 
-if (rows.length !== 191) {
-  throw new Error(`Expected 191 applicable routes, found ${rows.length}`);
+if (rows.length !== 194) {
+  throw new Error(`Expected 194 applicable routes, found ${rows.length}`);
 }
 
 fs.writeFileSync(path.join(root, 'docs/world-hub-footer-route-matrix.md'), `${lines.join('\n')}\n`);

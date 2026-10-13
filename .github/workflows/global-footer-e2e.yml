@@ -7,6 +7,15 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      video_library_phase5_live:
+        description: Run Only The Authorized Phase 5 Live Verification
+        type: boolean
+        default: false
+      expected_revision:
+        description: Exact Published Revision For Phase 5 Verification
+        type: string
+        required: false
 
 concurrency:
   group: global-footer-e2e-${{ github.ref }}
@@ -14,6 +23,7 @@ concurrency:
 
 jobs:
   footer:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.video_library_phase5_live }}
     name: Chromium and WebKit footer contract
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # A clean production build currently takes about six minutes. The serialized
@@ -92,6 +102,13 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+
+      - name: Verify Video Library channel browsing and following
+        run: node scripts/qualification/videoLibraryChannelsBrowser.mjs
+        env:
+          CI: true
+          VIDEO_LIBRARY_BROWSER_WORK_ROOT: ${{ runner.temp }}
+          VIDEO_LIBRARY_BROWSER_EVIDENCE: ${{ github.workspace }}/test-results/video-library-channels
 
       # PER-RUNNER PORT (2026-09-04). `next start -p 3000` collided the hour the
       # World Hub got six runners per box: two pull requests reaching this step
@@ -224,3 +241,35 @@ jobs:
             test-results/
             ${{ steps.trivia_browser_races.outputs.evidence-directory }}/results.json
           retention-days: 14
+
+  video-library-phase5-live:
+    name: Video Library Phase 5 Authenticated Live Verification
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.video_library_phase5_live }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Locked Verification Dependencies
+        run: npm ci
+      - name: Install Chromium For Scoped Live Proof
+        run: npx playwright install --with-deps chromium
+      - name: Verify Published Phase 5 With The Existing CI Test Identity
+        env:
+          VIDEO_CHANNEL_EXPECTED_REVISION: ${{ inputs.expected_revision }}
+          VIDEO_CHANNEL_LIVE_EVIDENCE_DIR: ${{ runner.temp }}/video-channel-live-evidence
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: node scripts/qualification/videoLibraryPhase5Live.mjs
+      - name: Retain Scoped Live Verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-library-phase5-live-evidence
+          path: ${{ runner.temp }}/video-channel-live-evidence
+          retention-days: 7

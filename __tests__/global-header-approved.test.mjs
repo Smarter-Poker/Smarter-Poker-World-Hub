@@ -248,7 +248,7 @@ test('mobile unread badges keep the notification bell visible and the number rea
   assert.match(header, /font-size: clamp\(7px, 1vw, 10px\)/);
 });
 
-test('all 267 Hub page modules own the shared header or inherit the app-root fallback', () => {
+test('all 268 Hub page modules own the shared header or inherit the app-root fallback', () => {
   const files = walk(join(root, 'pages/hub'));
   const filesByRoute = new Map(files.map((file) => [pageRoute(file), file]));
   const fallbackBlock = appRoot.match(
@@ -272,9 +272,9 @@ test('all 267 Hub page modules own the shared header or inherit the app-root fal
     .filter((route) => moduleOwnsHeader(filesByRoute.get(route)))
     .sort();
 
-  // 267 since Video Library Phase 2 (2026-10-12) added the video watch page,
-  // which owns its UniversalHeader like the library does.
-  assert.equal(files.length, 267);
+  // Phase 5 adds one channel page with its own UniversalHeader. Preserve the
+  // complete route inventory and the same uncovered/duplicate assertions.
+  assert.equal(files.length, 268);
   assert.deepEqual(uncovered, []);
   assert.deepEqual(duplicateHeaders, []);
   assert.match(appRoot, /!trainingPageOwnsHeader && <UniversalHeader/);

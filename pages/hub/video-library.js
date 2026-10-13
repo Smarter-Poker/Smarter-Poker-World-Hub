@@ -7,6 +7,8 @@ import { Component, Fragment, useState, useEffect, useRef, useCallback, useMemo 
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager } from '../../src/hooks/useYouTubeErrorManager';
 import BrowseSearch from '../../src/components/video-library/BrowseSearch';
+import LiveNow from '../../src/components/video-library/LiveNow';
+import { channelPath, CHANNEL_KEY_RE } from '../../src/lib/videoLibraryChannels.mjs';
 import { BROWSE_FILTER_OPTIONS, normalizeBrowseFilters } from '../../src/lib/videoLibraryBrowse.mjs';
 import WatchPlaybackTools, { WatchDescription } from '../../src/components/video-library/WatchPlaybackTools';
 import { buildWatchDescription } from '../../src/lib/videoLibraryWatch.mjs';
@@ -254,6 +256,10 @@ function VideoThumbnail({ video, size = THUMBNAIL_SIZES.card, priority = false, 
 }
 
 function ChannelAvatar({ video, channel = getVideoChannel(video) }) {
+    const source = String(video?.source || '');
+    const path = source !== 'ALL' && CHANNEL_KEY_RE.test(source) ? channelPath(source) : null;
+    const content = channel.logo ? <img src={channel.logo} alt="" loading="lazy" decoding="async" /> : <span>{channel.initials}</span>;
+    if (path) return <a className="vl-avatar vl-channel-avatar" href={path} aria-label={`View ${channel.name} Channel`}>{content}</a>;
     return (
         <span className="vl-avatar" aria-hidden="true">
             {channel.logo
@@ -2169,6 +2175,7 @@ export default function VideoLibraryPage() {
                                 : `Show All ${SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL').length} Channels`}
                         </button>
                     )}
+                    {selectedSource !== 'ALL' && <a className="vl-channel-link vl-selected-channel" href={channelPath(selectedSource)}>View {activeSourceName} Channel</a>}
 
                     {/* Search results count — shown when query is active */}
                     {searchQuery && (
@@ -2316,6 +2323,7 @@ export default function VideoLibraryPage() {
                 <span className="vl-sr-only" role="status" aria-live="polite">
                     {`${videos.length} videos available`}
                 </span>
+                {libraryFilter === 'ALL' && <LiveNow channelId={selectedSource === 'ALL' ? undefined : selectedSource} />}
                 <div
                     id="video-library-grid"
                     className="vl-video-grid"
