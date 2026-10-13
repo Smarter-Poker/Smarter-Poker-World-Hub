@@ -962,6 +962,7 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
     if (scope === 'library' && !managedLibrary) return null;
     if (row.source_post_id) {
         const sourcePost = context.postById.get(row.source_post_id);
+        if (row.is_public !== true && sourcePost?.author_id !== ownerId) return null;
         const publicSourceIsLive = isPublicAudiencePost(sourcePost);
         const ownerSourceIsLive = isOwnerPrivate
             && sourcePost?.is_deleted === false
@@ -1189,19 +1190,23 @@ async function canonicalWinners(client, candidateRawRows, scope, options = {}) {
     return winnerByKey;
 }
 
-async function canonicalOwnerWinners(client, candidateRawRows, ownerId) {
-    if (!candidateRawRows.length) return new Map();
+async function canonicalOwnerRows(client, candidateRawRows, ownerId) {
+    if (!candidateRawRows.length) return [];
     const allRawRows = await fetchCanonicalGroupRows(client, candidateRawRows, {
         ownerId,
         category: COLLECTION_CATEGORY,
         allowUnknownNativeUpload: true,
     });
-    const allEligibleRows = await eligibleRows(client, allRawRows, 'all', {
+    return eligibleRows(client, allRawRows, 'all', {
         allowOwnerPrivate: true,
         allowUnknownNativeUpload: true,
         ownerId,
         category: COLLECTION_CATEGORY,
     });
+}
+
+async function canonicalOwnerWinners(client, candidateRawRows, ownerId) {
+    const allEligibleRows = await canonicalOwnerRows(client, candidateRawRows, ownerId);
     const winnerByKey = new Map();
     for (const row of allEligibleRows) {
         const current = winnerByKey.get(row.canonical_asset_key);
@@ -1594,6 +1599,17 @@ async function loadSavedTargetContext(client, savedRows, userId) {
         category: COLLECTION_CATEGORY,
         allowUnknownNativeUpload: true,
     });
+    // Public canonical selection remains unchanged. A verified saver can also
+    // recover their own private native upload, with the same ownership,
+    // source-post, storage and rights validation used by My Reels.
+    const privateNative = row => row?.is_public !== true
+        && row?.author_id === userId
+        && row?.playback_type === 'native'
+        && row?.rights_status === 'user_authorized';
+    const ownerCandidates = candidateRawRows.filter(row => row?.playback_type === 'native'
+        && row?.rights_status === 'user_authorized');
+    const ownerEligibleRows = (await canonicalOwnerRows(client, ownerCandidates, userId))
+        .filter(privateNative);
     const winnerByKey = new Map();
     const directTargetKeys = new Map();
     const postTargetKeys = new Map();
@@ -1605,6 +1621,17 @@ async function loadSavedTargetContext(client, savedRows, userId) {
         );
         addTargetKey(directTargetKeys, row.id, row.canonical_asset_key);
         addTargetKey(postTargetKeys, row.source_post_id, row.canonical_asset_key);
+    }
+
+    const ownerWinnerByKey = new Map();
+    for (const row of ownerEligibleRows) {
+        const current = ownerWinnerByKey.get(row.canonical_asset_key);
+        ownerWinnerByKey.set(row.canonical_asset_key, current ? canonicalWinner(current, row) : row);
+        addTargetKey(directTargetKeys, row.id, row.canonical_asset_key);
+        addTargetKey(postTargetKeys, row.source_post_id, row.canonical_asset_key);
+    }
+    for (const [key, winner] of ownerWinnerByKey) {
+        if (!winnerByKey.has(key)) winnerByKey.set(key, winner);
     }
 
     const aliasTargetIds = unique([
@@ -1735,8 +1762,7 @@ export async function readSavedPokerReelsForIds(options = {}) {
 
 /**
  * Read the authenticated creator's own playable Reels across every supported
- * category. This is the only
- * collection reader that may return a non-public Reel, and then only when the
+ * category. Non-public Reels are returned only when the
  * verified caller owns both the Reel and any linked source post.
  */
 export async function readOwnedPokerReels(options = {}) {
@@ -1902,7 +1928,8 @@ export async function readPublicProfileReels(options = {}) {
 /**
  * Read a user's saved collection without trusting historical saved targets.
  * Target Reel rows are loaded in bounded batches and passed through the same
- * public eligibility and canonical-winner checks as the public feed.
+ * public eligibility and canonical-winner checks as the public feed, with a
+ * verified-owner fallback for eligible private user-authorized native uploads.
  */
 export async function readSavedPokerReels(options = {}) {
     const client = options.client || getServiceClient();
