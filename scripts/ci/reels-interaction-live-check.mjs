@@ -100,7 +100,7 @@ export async function recoverFixtureProbe({client,env,safetyReceipt,journal,pers
   assert.equal(journal.actorId,env.REELS_TEST_USER_ID);assert.equal(journal.reelId,env.REELS_TEST_REEL_ID);assert.equal(journal.followTargetId,env.REELS_TEST_FOLLOW_USER_ID);
   assert.equal(journal.checks.baselineClean,true);assert.ok(Array.isArray(journal.commentIds)&&journal.commentIds.length===2);for(const id of journal.commentIds)assert.match(id,UUID);
   const auth=await client.auth.getUser();assert.equal(auth.error,null);assert.equal(auth.data.user?.id,journal.actorId);
-  validateFixture(await checked(client.from('social_reels').select('*').eq('id',journal.reelId).maybeSingle()),journal.actorId,journal.reelId);
+  validateFixture(await checked(client.from('social_reels').select('id,author_id,is_public,is_deleted,media_status,playback_type,rights_status,caption,video_url,like_count,comment_count').eq('id',journal.reelId).maybeSingle()),journal.actorId,journal.reelId);
   const scopes={social_likes:{post_id:journal.reelId,user_id:journal.actorId,reaction_type:'like'},saved_reels:{reel_id:journal.reelId,user_id:journal.actorId},social_follows:{follower_id:journal.actorId,following_id:journal.followTargetId},social_comments:{post_id:journal.reelId,author_id:journal.actorId}};
   const tables=[...new Set(journal.writes.map(write=>write.table))];for(const table of tables)assert.ok(scopes[table],'Journal cannot authorize an unrelated table');
   // A signed-out denial may have committed unexpectedly; its explicit ID is
