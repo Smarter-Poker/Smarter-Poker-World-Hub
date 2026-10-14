@@ -2120,6 +2120,12 @@
 @media(min-width: 768px) { .vl-playlist-video-link { flex-direction: row; align-items: center; } .vl-playlist-video-link img { width: 240px; flex-shrink: 0; } }
 .vl-learning-navigation, .vl-player-links, .vl-player-directory-links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .vl-learning-navigation { margin: 8px 12px 16px; }
+.vl-member-clips { margin: 8px 12px 16px; }
+.vl-member-clips a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; color: #ededed; text-decoration: none; border-radius: 22px; background: #252525; }
+.vl-member-clips p { margin: 8px 0; color: #aaa; font-size: 14px; line-height: 1.5; }
+.vl-member-clips a:focus-visible { outline: 2px solid #44aaff; outline-offset: 3px; }
+.vl-watch-tracking { margin: 12px 0; color: #aaa; font-size: 14px; line-height: 1.5; }
+.vl-watch-tracking a, .vl-watch-tracking button { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; color: #ededed; }
 .vl-learning-navigation a, .vl-player-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; color: #ededed; text-decoration: none; border-radius: 22px; background: #252525; }
 .vl-player-links { position: relative; z-index: 2; pointer-events: auto; margin: 4px 0; font-size: 13px; }
 .vl-player-links > span { color: #aaa; }

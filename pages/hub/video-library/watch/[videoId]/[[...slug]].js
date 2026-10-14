@@ -26,6 +26,8 @@ import PlayerLinks from '../../../../../src/components/video-library/PlayerLinks
 import { useAvatar } from '../../../../../src/contexts/AvatarContext';
 import VideoQueue from '../../../../../src/components/video-library/VideoQueue';
 import StudyStatus from '../../../../../src/components/video-library/StudyStatus';
+import WatchTracking from '../../../../../src/components/video-library/WatchTracking';
+import useVideoLibraryWatchTracking from '../../../../../src/hooks/useVideoLibraryWatchTracking';
 import useVideoLibraryQueue from '../../../../../src/components/video-library/useVideoLibraryQueue';
 import { videoLibrarySocialShareHref } from '../../../../../src/lib/videoLibrarySocialShare.mjs';
 import Link from 'next/link';
@@ -249,6 +251,11 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
     const [playing, setPlaying] = useState(false);
     const [shareState, setShareState] = useState('idle');
     const { ytError, errorInfo } = useYouTubeErrorManager({ active: playing, videoId: video?.videoId, iframeRef, surface: 'VideoWatchPage', autoActionDelay: 0 });
+    const tracking = useVideoLibraryWatchTracking({ iframeRef, video: { ...video, durationSeconds: durationSeconds(video?.duration) }, ownerId: user?.id, active: playing && !ytError });
+    const resumeSnapshot = useRef({ key: null, seconds: 0 });
+    const resumeKey = `${video?.videoId}:${user?.id || 'anonymous'}`;
+    if (resumeSnapshot.current.key !== resumeKey) resumeSnapshot.current = { key: resumeKey, seconds: 0 };
+    const startWatching = () => { resumeSnapshot.current = { key: resumeKey, seconds: tracking.resumeSeconds || 0 }; setPlaying(true); };
     // The library menu, minus its player settings (autoplay and captions
     // belong to the library's own player, not this page).
     const libraryMenu = getMenuConfig('video-library', null, {}, {});
@@ -345,7 +352,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                             key={video.videoId}
                                             ref={iframeRef}
                                             onLoad={event => subscribeWatchPlayer(event.currentTarget)}
-                                            src={`https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=1&rel=0&playsinline=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
+                                            src={`https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=1&rel=0&playsinline=1&iv_load_policy=3&enablejsapi=1&start=${resumeSnapshot.current.seconds}&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
                                             title={video.title}
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                                             referrerPolicy="strict-origin-when-cross-origin"
@@ -355,7 +362,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                         <button
                                             type="button"
                                             className="vl-play-facade"
-                                            onClick={() => setPlaying(true)}
+                                            onClick={startWatching}
                                             aria-label={`Play ${video.title}`}
                                         >
                                             <Thumbnail videoId={video.videoId} size="sddefault" catalogThumbnail={video.thumbnail} priority />
@@ -373,6 +380,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
                                     mini={miniPlayer} onMiniChange={setMiniPlayer} />}
                                 {playing && VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
+                                <WatchTracking tracking={tracking} ownerId={user?.id} />
 
                                 {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
                                 {navigationError && <p role="alert">The Next Video Could Not Open. Choose A Video Below To Try Again.</p>}
