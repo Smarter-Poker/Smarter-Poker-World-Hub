@@ -28,6 +28,17 @@ async function claimEligibleWatchReward(userId, videoId) {
 }
 
 /**
+ * A lifecycle flush (tab closed or hidden) can cross the five-minute line
+ * without a client left to ask for the reward. When the server-confirmed total
+ * already qualifies, ask the existing endpoint once; it re-verifies proof of
+ * watch, catalog length and dedup server-side, so this adds no reward rule.
+ */
+export function claimEarnedWatchReward(userId, videoId, confirmedSeconds) {
+    if (!userId || !videoId || !(Number(confirmedSeconds) >= 300)) return;
+    void claimEligibleWatchReward(userId, videoId).catch(() => {});
+}
+
+/**
  * Get watch history for a user
  */
 export async function getWatchHistory(userId, limit = 50) {
