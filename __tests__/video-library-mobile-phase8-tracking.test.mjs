@@ -177,3 +177,34 @@ test('actual hook clears personal result on logout before an old write completes
     await h.owner(null); await h.write(0, { watch_duration_seconds: 15, progress_seconds: 25 });
     assert.equal(h.result.status, 'anonymous'); assert.equal(h.result.savedSeconds, undefined); h.close();
 });
+
+test('leaving while a heartbeat is in flight sends the remaining segment once, never for a changed owner', async () => {
+    let finish;
+    const f = fixture({ persist: () => new Promise(resolve => { finish = resolve; }) });
+    f.session.receive({ event: 'onStateChange', info: 1 }); f.advance(15000);
+    const heartbeat = f.session.heartbeat();
+    f.advance(4000);
+    assert.equal(await f.session.close(), false);
+    finish({ watch_duration_seconds: 15, progress_seconds: 0 }); await heartbeat; await settle();
+    assert.deepEqual(f.writes, [{ seconds: 4, position: 0, lifecycle: true }]);
+    await f.session.close(); await settle();
+    assert.equal(f.writes.length, 1);
+    let current = true, release;
+    const stale = fixture({ isCurrent: () => current, persist: () => new Promise(resolve => { release = resolve; }) });
+    stale.session.receive({ event: 'onStateChange', info: 1 }); stale.advance(15000);
+    const pending = stale.session.heartbeat(); stale.advance(4000);
+    await stale.session.close(); current = false;
+    release({ watch_duration_seconds: 15, progress_seconds: 0 }); await pending; await settle();
+    assert.equal(stale.writes.length, 0);
+});
+
+test('anonymous watch sign-in returns to the same video and rejects foreign destinations', () => {
+    const jsx = ts.transpileModule(readFileSync(new URL('../src/components/video-library/WatchTracking.jsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, allowJs: true } }).outputText;
+    const module = { exports: {} };
+    new Function('require', 'module', 'exports', jsx)(name => name === 'next/link' ? { default: 'a' } : require(name), module, module.exports);
+    const { watchSignInHref } = module.exports;
+    assert.equal(watchSignInHref('/hub/video-library/watch/ABC123video/poker-lesson'), '/auth/login?redirect=%2Fhub%2Fvideo-library%2Fwatch%2FABC123video%2Fpoker-lesson');
+    assert.equal(watchSignInHref('https://example.com/x'), '/auth/login?redirect=%2Fhub%2Fvideo-library');
+    assert.equal(watchSignInHref('//example.com/hub/video-library'), '/auth/login?redirect=%2Fhub%2Fvideo-library');
+    assert.equal(watchSignInHref(undefined), '/auth/login?redirect=%2Fhub%2Fvideo-library');
+});

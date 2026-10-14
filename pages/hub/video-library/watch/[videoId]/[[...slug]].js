@@ -28,6 +28,7 @@ import VideoQueue from '../../../../../src/components/video-library/VideoQueue';
 import StudyStatus from '../../../../../src/components/video-library/StudyStatus';
 import WatchTracking from '../../../../../src/components/video-library/WatchTracking';
 import useVideoLibraryWatchTracking from '../../../../../src/hooks/useVideoLibraryWatchTracking';
+import { claimEarnedWatchReward } from '../../../../../src/services/videoWatchHistory';
 import useVideoLibraryQueue from '../../../../../src/components/video-library/useVideoLibraryQueue';
 import { videoLibrarySocialShareHref } from '../../../../../src/lib/videoLibrarySocialShare.mjs';
 import Link from 'next/link';
@@ -252,6 +253,11 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
     const [shareState, setShareState] = useState('idle');
     const { ytError, errorInfo } = useYouTubeErrorManager({ active: playing, videoId: video?.videoId, iframeRef, surface: 'VideoWatchPage', autoActionDelay: 0 });
     const tracking = useVideoLibraryWatchTracking({ iframeRef, video: { ...video, durationSeconds: durationSeconds(video?.duration) }, ownerId: user?.id, active: playing && !ytError });
+    // A visit after a lifecycle-flushed qualifying session asks the existing,
+    // server-verified reward endpoint once; no client-side reward rule.
+    useEffect(() => {
+        if (tracking.status === 'ready') claimEarnedWatchReward(user?.id, video?.videoId, tracking.savedSeconds);
+    }, [tracking.status, tracking.savedSeconds, user?.id, video?.videoId]);
     const resumeSnapshot = useRef({ key: null, seconds: 0 });
     const resumeKey = `${video?.videoId}:${user?.id || 'anonymous'}`;
     if (resumeSnapshot.current.key !== resumeKey) resumeSnapshot.current = { key: resumeKey, seconds: 0 };
@@ -380,7 +386,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
                                     mini={miniPlayer} onMiniChange={setMiniPlayer} />}
                                 {playing && VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
-                                <WatchTracking tracking={tracking} ownerId={user?.id} />
+                                <WatchTracking tracking={tracking} ownerId={user?.id} returnPath={watchPath(video)} />
 
                                 {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
                                 {navigationError && <p role="alert">The Next Video Could Not Open. Choose A Video Below To Try Again.</p>}

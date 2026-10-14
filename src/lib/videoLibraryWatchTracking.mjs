@@ -10,7 +10,11 @@ export function createWatchTrackingSession({ now = Date.now, persist, lifecycleP
     let position = 0;
     let closed = false;
     let writing = false;
+    let flushQueued = false;
     const live = () => !closed && isCurrent();
+    // A lifecycle flush may still write after close, but only for the same
+    // current owner and video; it never reopens counting.
+    const writable = lifecycle => (lifecycle || !closed) && isCurrent();
     const stop = () => {
         if (startedAt !== null) pendingMilliseconds += Math.max(0, now() - startedAt);
         startedAt = null;
@@ -18,7 +22,13 @@ export function createWatchTrackingSession({ now = Date.now, persist, lifecycleP
     const start = () => { if (live() && visible && state === 1 && startedAt === null) startedAt = now(); };
     const emit = value => { if (live()) onStatus(value); };
     async function save(lifecycle = false) {
-        if (!live() || writing) return false;
+        if (!writable(lifecycle)) return false;
+        if (writing) {
+            // Leaving while a heartbeat is in flight: send the remaining
+            // segment once that request settles instead of dropping it.
+            if (lifecycle) flushQueued = true;
+            return false;
+        }
         stop();
         const additionalSeconds = Math.min(120, Math.floor(pendingMilliseconds / 1000));
         start();
@@ -30,7 +40,7 @@ export function createWatchTrackingSession({ now = Date.now, persist, lifecycleP
         emit({ status: 'saving' });
         try {
             const result = await (lifecycle ? lifecyclePersist : persist)(additionalSeconds, position);
-            if (!live()) return false;
+            if (!live()) return lifecycle && result === true;
             if (lifecycle) {
                 if (result !== true) throw new Error('Watch Progress Could Not Be Saved');
                 emit({ status: 'submitted' });
@@ -48,6 +58,7 @@ export function createWatchTrackingSession({ now = Date.now, persist, lifecycleP
             return false;
         } finally {
             writing = false;
+            if (flushQueued) { flushQueued = false; void save(true); }
         }
     }
     return {
@@ -69,7 +80,7 @@ export function createWatchTrackingSession({ now = Date.now, persist, lifecycleP
             if (visible) start();
             else { stop(); void save(true); }
         },
-        close() { stop(); const result = save(true); closed = true; return result; },
+        close() { stop(); closed = true; return save(true); },
     };
 }
 
