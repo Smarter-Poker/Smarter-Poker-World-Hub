@@ -1,3 +1,8 @@
+import './video-library-mobile-phase8-delivery.test.mjs';
+import './video-library-mobile-phase8-integration.test.mjs';
+import './video-library-owner-panel.test.mjs';
+import './video-library-member-upload.test.mjs';
+import './video-library-mobile-phase8-tracking.test.mjs';
 import './video-library-learning-delivery.test.mjs';
 import './video-library-pause-quiz.test.mjs';
 import './video-library-players.test.mjs';

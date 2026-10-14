@@ -234,7 +234,7 @@ export async function getWatchProgress(userId) {
     const progressMap = new Map();
     (data || []).forEach(v => {
         progressMap.set(v.video_id, {
-            watchedSeconds: v.progress_seconds || v.watch_duration_seconds || 0,
+            watchedSeconds: v.progress_seconds ?? v.watch_duration_seconds ?? 0,
             totalWatchedSeconds: v.watch_duration_seconds || 0,
             durationSeconds: v.duration_seconds || 0,
             watchedAt: v.watched_at

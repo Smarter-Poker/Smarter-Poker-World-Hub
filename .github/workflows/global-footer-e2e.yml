@@ -16,8 +16,12 @@ on:
         description: Run Only The Authorized Phase 6 Live Verification
         type: boolean
         default: false
+      video_library_phase8_live:
+        description: Run Only The Authorized Phase 8 Live Verification
+        type: boolean
+        default: false
       expected_revision:
-        description: Exact Published Revision For Phase 5 Verification
+        description: Exact Published Video Library Revision
         type: string
         required: false
 
@@ -27,7 +31,7 @@ concurrency:
 
 jobs:
   footer:
-    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.video_library_phase5_live && !inputs.video_library_phase6_live }}
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.video_library_phase5_live && !inputs.video_library_phase6_live && !inputs.video_library_phase8_live }}
     name: Chromium and WebKit footer contract
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # A clean production build currently takes about six minutes. The serialized
@@ -106,6 +110,13 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+
+      - name: Verify Video Library owner tools and watch tracking
+        run: node scripts/qualification/videoLibraryOwnerToolsBrowser.mjs
+        env:
+          CI: true
+          VIDEO_LIBRARY_BROWSER_WORK_ROOT: ${{ runner.temp }}
+          VIDEO_LIBRARY_BROWSER_EVIDENCE: ${{ github.workspace }}/test-results/video-library-owner-tools
 
       - name: Verify Video Library pause quizzes and player pages
         run: node scripts/qualification/videoLibraryLearningBrowser.mjs
@@ -323,4 +334,40 @@ jobs:
         with:
           name: video-library-phase6-live-evidence
           path: ${{ runner.temp }}/video-personal-live-evidence
+          retention-days: 7
+
+  video-library-phase8-live:
+    name: Video Library Phase 8 Authenticated Live Verification
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.video_library_phase8_live }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Locked Verification Dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Native Verification Dependencies
+        run: |
+          npx playwright install --with-deps chromium
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+      - name: Verify Published Phase 8 With The Existing CI Identity
+        env:
+          VIDEO_PHASE8_EXPECTED_REVISION: ${{ inputs.expected_revision }}
+          VIDEO_PHASE8_LIVE_EVIDENCE_DIR: ${{ runner.temp }}/video-owner-live-evidence
+          VIDEO_PHASE8_LIVE_WORK_ROOT: ${{ runner.temp }}/video-owner-live-work
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/qualification/videoLibraryPhase8Live.mjs
+      - name: Retain Scoped Live Verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-library-phase8-live-evidence
+          path: ${{ runner.temp }}/video-owner-live-evidence
           retention-days: 7

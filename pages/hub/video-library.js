@@ -9,6 +9,7 @@ import { useYouTubeErrorManager } from '../../src/hooks/useYouTubeErrorManager';
 import BrowseSearch from '../../src/components/video-library/BrowseSearch';
 import LiveNow from '../../src/components/video-library/LiveNow';
 import StudyStatus from '../../src/components/video-library/StudyStatus';
+import MemberClipUpload from '../../src/components/video-library/MemberClipUpload';
 import VideoQueue from '../../src/components/video-library/VideoQueue';
 import useVideoLibraryQueue from '../../src/components/video-library/useVideoLibraryQueue';
 import { playlistPath } from '../../src/lib/videoLibraryQueue.mjs';
@@ -1063,9 +1064,6 @@ export default function VideoLibraryPage() {
         const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
         if (watchedSeconds <= 0) return false;
 
-        const previousWatched = watchProgressRef.current.get(video.id)?.watchedSeconds || 0;
-        const totalWatched = previousWatched + watchedSeconds;
-
         try {
             const savedSession = await updateWatchDuration(effectiveUserId, video.id, watchedSeconds, {
                 title: video.title,
@@ -1096,9 +1094,8 @@ export default function VideoLibraryPage() {
             if (!ownerScopeRef.current.isCurrent(ownerToken)) return false;
             const persistedProgress = Number(savedSession?.progress_seconds);
             const persistedTotal = Number(savedSession?.watch_duration_seconds);
-            const nextProgress = Number.isFinite(persistedProgress)
-                ? persistedProgress
-                : totalWatched;
+            if (!Number.isFinite(persistedProgress) || persistedProgress < 0 || !Number.isFinite(persistedTotal) || persistedTotal < 0) throw new Error('Watch Progress Could Not Be Confirmed');
+            const nextProgress = persistedProgress;
 
             ownerScopeRef.current.commit(ownerToken, () => {
                 setWatchProgress(prev => {
@@ -1106,18 +1103,18 @@ export default function VideoLibraryPage() {
                     const current = next.get(video.id) || {};
                     next.set(video.id, {
                         ...current,
-                        watchedSeconds: Math.max(current.watchedSeconds || 0, nextProgress),
-                        totalWatchedSeconds: Math.max(current.totalWatchedSeconds || 0, Number.isFinite(persistedTotal) ? persistedTotal : totalWatched),
+                        watchedSeconds: nextProgress,
+                        totalWatchedSeconds: persistedTotal,
                         durationSeconds: parseDuration(video.duration) || current.durationSeconds || 0,
                         watchedAt: new Date().toISOString()
                     });
                     watchProgressRef.current = next;
                     return next;
                 });
-                const confirmedTotal = Math.max(totalWatched, Number.isFinite(persistedTotal) ? persistedTotal : 0);
+                const confirmedTotal = persistedTotal;
                 if (confirmedTotal >= 30) setWatchedVideos(prev => new Set(prev).add(video.id));
             });
-            const confirmedTotal = Math.max(totalWatched, Number.isFinite(persistedTotal) ? persistedTotal : 0);
+            const confirmedTotal = persistedTotal;
             getRecentlyWatched(effectiveUserId, 10)
                 .then(recent => {
                     ownerScopeRef.current.commit(ownerToken, () => setRecentlyWatched(recent));
@@ -2146,7 +2143,8 @@ export default function VideoLibraryPage() {
                             {Object.values(browseFilters).some(value => value !== 'ALL') && ' Filtered Search Matches Published Titles And Channels.'}</p>
                     </section>
 
-                    <nav className="vl-learning-navigation" aria-label="Poker Learning"><Link href="/hub/video-library/players">Poker Players</Link></nav>
+                    <nav className="vl-learning-navigation" aria-label="Poker Learning"><Link href="/hub/video-library/players">Poker Players</Link><Link href="/hub/video-library/owner">Control Panel</Link></nav>
+                    <MemberClipUpload />
                     {/* Channels: round avatars like YouTube subscriptions, laid out
                         in rows (no hidden sideways rail), the rest behind Show All. */}
                     <div className={`vl-source-pills${sourcesExpanded ? ' is-expanded' : ''}`} data-tutorial="sources" role="group" aria-label="Channels">

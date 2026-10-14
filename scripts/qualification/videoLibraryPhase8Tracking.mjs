@@ -1,0 +1,121 @@
+// Explicit bounded release proof, called by the owning driver with its
+// configured dedicated session. No synthetic watch credit or reward claims.
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { expect } from 'playwright/test';
+import { isDedicatedProbeAccount } from '../../src/lib/probeIdentity.js';
+import { durationSeconds } from '../../src/lib/videoLibraryCuration.mjs';
+import { watchPath } from '../../src/lib/videoLibraryWatch.mjs';
+
+export async function runPhase8Tracking({ page, client, admin, session, ownerId, email, base = 'https://smarter.poker', evidence, report, readFinancialSnapshot }) {
+    assert(isDedicatedProbeAccount(email));
+    assert.equal((await client.auth.getUser(session.access_token)).data?.user?.id, ownerId);
+    assert.equal(typeof readFinancialSnapshot, 'function');
+    const checked = result => { assert(!result.error, 'Authoritative owned watch history must be readable'); return result.data; };
+    const existing = checked(await admin.from('video_watch_history').select('video_id').eq('user_id', ownerId));
+    const alreadyWatched = new Set(existing.map(row => row.video_id));
+    const response = await fetch(`${base}/api/video-library/catalog?source=HCL&limit=30`, { signal: AbortSignal.timeout(20000) });
+    assert(response.ok);
+    const catalog = await response.json();
+    const video = catalog.data?.find(item => durationSeconds(item.duration) >= 300 && !alreadyWatched.has(item.videoId));
+    assert(video, 'An eligible long catalog video without prior dedicated-account history is required');
+    const readRow = async () => checked(await admin.from('video_watch_history').select('id,user_id,video_id,watch_duration_seconds,progress_seconds,watch_started_at,last_heartbeat_at').eq('user_id', ownerId).eq('video_id', video.videoId).maybeSingle());
+    assert.equal(await readRow(), null);
+    const financialBefore = await readFinancialSnapshot(ownerId);
+    let createdRowId;
+    const pendingWrites = new Set();
+    const watchWrite = request => {
+        const pathname = new URL(request.url()).pathname;
+        if (request.method() === 'POST' && (pathname.endsWith('/rest/v1/rpc/record_video_watch_session') || pathname === '/api/video-library/watch-progress')) pendingWrites.add(request);
+    };
+    const finishedWrite = request => pendingWrites.delete(request);
+    page.on('request', watchWrite);
+    page.on('requestfinished', finishedWrite);
+    page.on('requestfailed', finishedWrite);
+    // Observes only real provider replies. Nothing is sent to the provider.
+    await page.addInitScript(() => {
+        window.__phase8WatchObserved = [];
+        addEventListener('message', event => {
+            const iframe = document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]');
+            if (!iframe || event.source !== iframe.contentWindow || !['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(event.origin)) return;
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (data.event === 'onStateChange' || data.event === 'infoDelivery') {
+                    window.__phase8WatchObserved.push({ event: data.event, state: data.event === 'onStateChange' ? data.info : data.info?.playerState, position: data.info?.currentTime });
+                    if (window.__phase8WatchObserved.length > 200) window.__phase8WatchObserved.shift();
+                }
+            } catch { /* unrelated page messages are not provider telemetry */ }
+        });
+    });
+    const state = () => page.evaluate(() => [...(window.__phase8WatchObserved || [])].reverse().find(item => [-1, 0, 1, 2, 3, 5].includes(item.state))?.state ?? null);
+    const position = () => page.evaluate(() => [...(window.__phase8WatchObserved || [])].reverse().find(item => Number.isFinite(item.position))?.position ?? 0);
+    const startProvider = async () => {
+        const frame = page.frameLocator('iframe[src*="youtube-nocookie.com/embed/"]');
+        await expect.poll(async () => (await state()) === 1 || await frame.locator('button.ytp-large-play-button').isVisible(), { timeout: 45000 }).toBe(true);
+        if ((await state()) !== 1) await frame.locator('button.ytp-large-play-button').click();
+        await expect.poll(state, { timeout: 20000 }).toBe(1);
+        return frame;
+    };
+    try {
+        await page.goto(`${base}${watchPath(video)}`, { waitUntil: 'domcontentloaded' });
+        await page.locator('[data-watch-tracking="ready"]').waitFor({ timeout: 20000 });
+        await page.getByRole('button', { name: `Play ${video.title}`, exact: true }).click();
+        const frame = await startProvider();
+        const iframe = await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').elementHandle();
+        const initialSource = await iframe.getAttribute('src');
+        await expect.poll(async () => {
+            const row = await readRow();
+            if (row) createdRowId = row.id;
+            return row?.watch_duration_seconds || 0;
+        }, { timeout: 30000 }).toBeGreaterThanOrEqual(10);
+        assert(await iframe.evaluate(element => element.isConnected && element === document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]')));
+        assert.equal(await iframe.getAttribute('src'), initialSource, 'Saving must not reload the running iframe');
+        await expect(page.locator('[data-watch-tracking="saved"]')).toBeVisible();
+        // Cross a real elapsed interval after the heartbeat so pause submits
+        // a distinct segment, and await that exact server acknowledgment.
+        const afterHeartbeatPosition = await position();
+        await expect.poll(position, { timeout: 15000 }).toBeGreaterThan(afterHeartbeatPosition + 5);
+        const pauseSaved = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/rest/v1/rpc/record_video_watch_session'), { timeout: 20000 });
+        // The normal native provider control acknowledges a real pause.
+        await frame.locator('button.ytp-play-button').click();
+        await expect.poll(state).toBe(2);
+        assert((await pauseSaved).ok());
+        await page.locator('[data-watch-tracking="saved"]').waitFor();
+        // A database read and passive provider observation, never injected
+        // commands or manufactured seconds, establish the stopped interval.
+        const paused = await readRow();
+        assert(paused && paused.id === createdRowId && paused.user_id === ownerId && paused.video_id === video.videoId);
+        await new Promise(resolve => setTimeout(resolve, 6000));
+        const stopped = await readRow();
+        assert.equal(stopped.watch_duration_seconds, paused.watch_duration_seconds);
+        assert.equal(stopped.progress_seconds, paused.progress_seconds);
+        assert(stopped.watch_duration_seconds > 0 && stopped.watch_duration_seconds < 300);
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.locator('[data-watch-tracking="ready"]').waitFor();
+        await page.getByRole('button', { name: `Play ${video.title}`, exact: true }).click();
+        const resumedIframe = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
+        const resumeSource = await resumedIframe.getAttribute('src');
+        assert.equal(Number(new URL(resumeSource).searchParams.get('start')), Math.floor(stopped.progress_seconds));
+        await startProvider();
+        await expect.poll(position, { timeout: 20000 }).toBeGreaterThan(Math.floor(stopped.progress_seconds));
+        if (evidence) await page.screenshot({ path: path.join(evidence, 'phase8-authenticated-watch-tracking.png'), fullPage: false });
+        report.cases.push({ name: 'Canonical real playback saves owned server-confirmed history, pause excludes time and reload resumes without heartbeat reload', status: 'passed', videoId: video.videoId, createdRowId, savedSeconds: stopped.watch_duration_seconds, savedPositionSeconds: stopped.progress_seconds, resumeStart: Number(new URL(resumeSource).searchParams.get('start')) });
+    } finally {
+        // Stop the task's player before removing only its previously absent row.
+        await page.goto(`${base}/hub/video-library`, { waitUntil: 'domcontentloaded' });
+        await expect.poll(() => pendingWrites.size, { timeout: 20000 }).toBe(0);
+        const row = await readRow();
+        if (row) {
+            assert(!alreadyWatched.has(row.video_id) && row.user_id === ownerId && row.video_id === video.videoId);
+            if (createdRowId) assert.equal(row.id, createdRowId);
+            assert(row.watch_duration_seconds < 300, 'This bounded playback qualification must not cross reward eligibility');
+            checked(await client.from('video_watch_history').delete().eq('id', row.id).eq('user_id', ownerId).eq('video_id', video.videoId).select('id'));
+            assert.equal(await readRow(), null);
+        }
+        assert.deepEqual(await readFinancialSnapshot(ownerId), financialBefore, 'Watch qualification must leave authoritative rewards and balance unchanged');
+        report.trackingFixtureRemoved = true;
+        page.off('request', watchWrite);
+        page.off('requestfinished', finishedWrite);
+        page.off('requestfailed', finishedWrite);
+    }
+}
