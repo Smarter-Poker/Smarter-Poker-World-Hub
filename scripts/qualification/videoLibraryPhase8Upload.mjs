@@ -66,7 +66,7 @@ export async function runPhase8Upload({ page, client, admin, session, ownerId, e
         videoUrl = post.media_urls?.[0]; thumbnailUrl = post.thumbnail_url;
         ownedUploadObject(videoUrl, ownerId, 'video');
         assert.equal(post.content.length, 19);
-        const stored = await fetch(videoUrl, { signal: AbortSignal.timeout(20000) }); assert(stored.ok());
+        const stored = await fetch(videoUrl, { signal: AbortSignal.timeout(20000) }); assert(stored.ok, 'Stored upload bytes must be publicly readable');
         const storedBytes = Buffer.from(await stored.arrayBuffer());
         assert.equal(createHash('sha256').update(storedBytes).digest('hex'), createHash('sha256').update(original).digest('hex'));
         const reel = checked(await admin.from('social_reels').select('id,author_id,caption,source_post_id,playback_type,rights_status,media_status,video_url').eq('id', published.social_reel_id).maybeSingle());
