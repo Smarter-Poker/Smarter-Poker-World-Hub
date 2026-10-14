@@ -20,6 +20,11 @@ on:
         description: Run Only The Authorized Phase 8 Live Verification
         type: boolean
         default: false
+      video_library_phase8_scope:
+        description: Select The Finite Phase 8 Live Proof
+        type: choice
+        default: all
+        options: [all, upload, tracking]
       expected_revision:
         description: Exact Published Video Library Revision
         type: string
@@ -355,6 +360,7 @@ jobs:
           if ! command -v ffmpeg >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
       - name: Verify Published Phase 8 With The Existing CI Identity
         env:
+          VIDEO_PHASE8_LIVE_SCOPE: ${{ inputs.video_library_phase8_scope || 'all' }}
           VIDEO_PHASE8_EXPECTED_REVISION: ${{ inputs.expected_revision }}
           VIDEO_PHASE8_LIVE_EVIDENCE_DIR: ${{ runner.temp }}/video-owner-live-evidence
           VIDEO_PHASE8_LIVE_WORK_ROOT: ${{ runner.temp }}/video-owner-live-work

@@ -2,6 +2,7 @@
 // configured dedicated session. No synthetic watch credit or reward claims.
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { writeFile } from 'node:fs/promises';
 import { expect } from 'playwright/test';
 import { isDedicatedProbeAccount } from '../../src/lib/probeIdentity.js';
 import { durationSeconds } from '../../src/lib/videoLibraryCuration.mjs';
@@ -14,10 +15,13 @@ export async function runPhase8Tracking({ page, client, admin, session, ownerId,
     const checked = result => { assert(!result.error, 'Authoritative owned watch history must be readable'); return result.data; };
     const existing = checked(await admin.from('video_watch_history').select('video_id').eq('user_id', ownerId));
     const alreadyWatched = new Set(existing.map(row => row.video_id));
-    const response = await fetch(`${base}/api/video-library/catalog?source=HCL&limit=30`, { signal: AbortSignal.timeout(20000) });
-    assert(response.ok);
-    const catalog = await response.json();
-    const video = catalog.data?.find(item => durationSeconds(item.duration) >= 300 && !alreadyWatched.has(item.videoId));
+    const catalogs = await Promise.all(['HCL', 'POKERGO', 'WPT'].map(async source => {
+        const response = await fetch(`${base}/api/video-library/catalog?source=${source}&limit=30`, { signal: AbortSignal.timeout(20000) });
+        assert(response.ok); const catalog = await response.json();
+        return catalog.data?.find(item => durationSeconds(item.duration) >= 300 && !alreadyWatched.has(item.videoId));
+    }));
+    const candidates = catalogs.filter(Boolean);
+    let video = candidates[0];
     assert(video, 'An eligible long catalog video without prior dedicated-account history is required');
     const readRow = async () => checked(await admin.from('video_watch_history').select('id,user_id,video_id,watch_duration_seconds,progress_seconds,watch_started_at,last_heartbeat_at').eq('user_id', ownerId).eq('video_id', video.videoId).maybeSingle());
     assert.equal(await readRow(), null);
@@ -49,18 +53,60 @@ export async function runPhase8Tracking({ page, client, admin, session, ownerId,
     });
     const state = () => page.evaluate(() => [...(window.__phase8WatchObserved || [])].reverse().find(item => [-1, 0, 1, 2, 3, 5].includes(item.state))?.state ?? null);
     const position = () => page.evaluate(() => [...(window.__phase8WatchObserved || [])].reverse().find(item => Number.isFinite(item.position))?.position ?? 0);
+    const diagnostics = async (stage, error) => {
+        const iframe = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
+        const handle = await iframe.elementHandle().catch(() => null);
+        const provider = await handle?.contentFrame().catch(() => null);
+        const observation = {
+            stage, videoId: video.videoId, source: video.source, observedAt: new Date().toISOString(),
+            error: String(error?.message || error).slice(0, 1000), providerState: await state(),
+            providerPosition: await position(), frameSource: await iframe.getAttribute('src').catch(() => null),
+            providerBody: await provider?.locator('body').innerText({ timeout: 3000 }).then(value => value.slice(0, 2000)).catch(() => null),
+            media: await provider?.locator('video').evaluateAll(elements => elements.map(element => ({
+                currentTime: element.currentTime, paused: element.paused, readyState: element.readyState,
+                errorCode: element.error?.code || null,
+            }))).catch(() => null),
+            providerEvents: await page.evaluate(() => window.__phase8WatchObserved || []),
+        };
+        report.trackingProviderDiagnostics ||= [];
+        report.trackingProviderDiagnostics.push(observation);
+        if (evidence) {
+            const prefix = `phase8-tracking-${stage}-${video.videoId}`;
+            await page.screenshot({ path: path.join(evidence, `${prefix}.png`), fullPage: false });
+            await writeFile(path.join(evidence, `${prefix}.json`), JSON.stringify(observation, null, 2));
+        }
+        return observation;
+    };
     const startProvider = async () => {
         const frame = page.frameLocator('iframe[src*="youtube-nocookie.com/embed/"]');
-        await expect.poll(async () => (await state()) === 1 || await frame.locator('button.ytp-large-play-button').isVisible(), { timeout: 45000 }).toBe(true);
+        await expect.poll(async () => (await state()) === 1 || await frame.locator('button.ytp-large-play-button').isVisible(), { timeout: 20000 }).toBe(true);
         if ((await state()) !== 1) await frame.locator('button.ytp-large-play-button').click();
         await expect.poll(state, { timeout: 20000 }).toBe(1);
         return frame;
     };
     try {
-        await page.goto(`${base}${watchPath(video)}`, { waitUntil: 'domcontentloaded' });
-        await page.locator('[data-watch-tracking="ready"]').waitFor({ timeout: 20000 });
-        await page.getByRole('button', { name: `Play ${video.title}`, exact: true }).click();
-        const frame = await startProvider();
+        let frame;
+        for (let index = 0; index < candidates.length; index += 1) {
+            video = candidates[index];
+            assert.equal(await readRow(), null, 'Every candidate must have no existing dedicated-account history');
+            await page.goto(`${base}${watchPath(video)}`, { waitUntil: 'domcontentloaded' });
+            await page.locator('[data-watch-tracking="ready"]').waitFor({ timeout: 20000 });
+            await page.getByRole('button', { name: `Play ${video.title}`, exact: true }).click();
+            try { frame = await startProvider(); break; }
+            catch (error) {
+                const observed = await diagnostics('provider-unavailable', error);
+                // Only an unstarted provider may move to another actual
+                // catalog candidate. Tracking or persistence failures never
+                // become a skipped assertion or a fabricated pass.
+                assert.notEqual(observed.providerState, 1);
+                assert(!observed.media?.some(media => !media.paused || media.currentTime > 0), 'A playing provider without valid telemetry requires diagnosis');
+                await page.goto(`${base}/hub/video-library`, { waitUntil: 'domcontentloaded' });
+                await expect.poll(() => pendingWrites.size, { timeout: 20000 }).toBe(0);
+                assert.equal(await readRow(), null, 'Unavailable provider must not have written watch credit');
+                if (index === candidates.length - 1) throw error;
+            }
+        }
+        assert(frame, 'An actual available catalog provider is required');
         const iframe = await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').elementHandle();
         const initialSource = await iframe.getAttribute('src');
         await expect.poll(async () => {
@@ -100,6 +146,9 @@ export async function runPhase8Tracking({ page, client, admin, session, ownerId,
         await expect.poll(position, { timeout: 20000 }).toBeGreaterThan(Math.floor(stopped.progress_seconds));
         if (evidence) await page.screenshot({ path: path.join(evidence, 'phase8-authenticated-watch-tracking.png'), fullPage: false });
         report.cases.push({ name: 'Canonical real playback saves owned server-confirmed history, pause excludes time and reload resumes without heartbeat reload', status: 'passed', videoId: video.videoId, createdRowId, savedSeconds: stopped.watch_duration_seconds, savedPositionSeconds: stopped.progress_seconds, resumeStart: Number(new URL(resumeSource).searchParams.get('start')) });
+    } catch (error) {
+        await diagnostics('qualification-failure', error);
+        throw error;
     } finally {
         // Stop the task's player before removing only its previously absent row.
         await page.goto(`${base}/hub/video-library`, { waitUntil: 'domcontentloaded' });

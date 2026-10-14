@@ -9,6 +9,8 @@ import { qualifyVideoLibraryPhase8Owner } from './videoLibraryPhase8Owner.mjs';
 import { runPhase8Upload } from './videoLibraryPhase8Upload.mjs';
 import { runPhase8Tracking } from './videoLibraryPhase8Tracking.mjs';
 const base = 'https://smarter.poker';
+const scope = process.env.VIDEO_PHASE8_LIVE_SCOPE || 'all';
+assert(['all','upload','tracking'].includes(scope), 'Choose An Explicit Scoped Live Proof');
 const expected = process.env.VIDEO_PHASE8_EXPECTED_REVISION;
 assert.match(expected || '', /^[0-9a-f]{40}$/);
 const evidence = process.env.VIDEO_PHASE8_LIVE_EVIDENCE_DIR;
@@ -20,7 +22,7 @@ assert(isDedicatedProbeAccount(email), 'Only configured dedicated verification i
 assert(process.env.TEST_USER_PASSWORD && process.env.SUPABASE_SERVICE_ROLE_KEY, 'Configured authentication and readback access required');
 const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-const report = { startedAt: new Date().toISOString(), expectedRevision: expected, cases: [], mockedRequests: false, financialWrites: false, status: 'running' };
+const report = { startedAt: new Date().toISOString(), expectedRevision: expected, scope, cases: [], mockedRequests: false, financialWrites: false, status: 'running' };
 let browser, page, session, ownerId;
 const pass = (name, data = {}) => report.cases.push({ name, status: 'passed', ...data });
 const safe = value => {
@@ -53,6 +55,7 @@ try {
  browser=await chromium.launch();const context=await browser.newContext({viewport:{width:375,height:844},serviceWorkers:'block'});
  await context.addInitScript(({authSession})=>localStorage.setItem('smarter-poker-auth',JSON.stringify(authSession)),{authSession:session});
  page=await context.newPage();
+ if(scope==='all'){
  await qualifyVideoLibraryPhase8Owner({page,baseUrl:base,accessToken:session.access_token,report});pass('Actual owner metrics, refresh, authorization and native tools');
  await page.goto(`${base}/hub/video-library/owner`,{waitUntil:'domcontentloaded'});
  await page.getByRole('navigation',{name:'Owner Tools',exact:true}).waitFor();
@@ -61,8 +64,9 @@ try {
  await footer.waitFor();
  await page.waitForFunction(()=>{const e=document.querySelector('[aria-label="Video Library Footer" i]');return e&&Math.abs(e.getBoundingClientRect().bottom-innerHeight)<=1;});
  assert.equal(await footer.evaluate(e=>getComputedStyle(e).position),'fixed');pass('Owner mobile fixed footer and native controls');
- await runPhase8Tracking({page,client,admin,session,ownerId,email,base,report,evidence,readFinancialSnapshot});
- await runPhase8Upload({page,client,admin,session,ownerId,email,base,workRoot,report,readFinancialSnapshot,rewardSafety:{verifiedNoAward:true,source:'Installed MCP readback: reward hash 7529dddd2e04426432a1fdc113086a6b; trigger hashes c06b9bc893b963718ccac1ffc6aeec91 and ea97f832f60b21eb2606f730f18324f6; legacy content floor 20; social_post_share absent and rechecked before write',observedAt:'2026-10-14T00:12:26.061017Z'}});
+ }
+ if(scope!=='upload') await runPhase8Tracking({page,client,admin,session,ownerId,email,base,report,evidence,readFinancialSnapshot});
+ if(scope!=='tracking') await runPhase8Upload({page,client,admin,session,ownerId,email,base,workRoot,report,readFinancialSnapshot,rewardSafety:{verifiedNoAward:true,source:'Installed MCP readback: reward hash 7529dddd2e04426432a1fdc113086a6b; trigger hashes c06b9bc893b963718ccac1ffc6aeec91 and ea97f832f60b21eb2606f730f18324f6; legacy content floor 20; social_post_share absent and rechecked before write',observedAt:'2026-10-14T00:12:26.061017Z'}});
  await page.screenshot({path:path.join(evidence,'final-native-upload.png')});
  const finalHealth=await (await fetch(`${base}/api/health`,{signal:AbortSignal.timeout(20000)})).json();assert.equal(finalHealth.commitSha,expected);report.finalHealth=finalHealth;
  report.status='passed';
