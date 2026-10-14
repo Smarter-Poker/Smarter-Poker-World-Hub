@@ -59,6 +59,11 @@ async function nativeClick(button) {
     await button.click();
 }
 async function quizFlow(name, surface) {
+    // Safari may require a genuine provider gesture: accept actual playing
+    // telemetry, otherwise one normal click on the visible native poster Play.
+    const nativePlay = page.frameLocator('iframe[src*="youtube-nocookie.com/embed/"]').locator('button.ytp-large-play-button');
+    await expect.poll(async () => (await timeline()).state === 1 || await nativePlay.isVisible(), { timeout: 20000 }).toBe(true);
+    if ((await timeline()).state !== 1 && await nativePlay.isVisible()) await nativePlay.click();
     await expect(page.getByRole('region', { name: 'Playback Tools', exact: true })).toHaveCount(1);
     const region = page.getByRole('region', { name: 'What Would You Do?', exact: true });
     await expect(region).toHaveCount(1);
