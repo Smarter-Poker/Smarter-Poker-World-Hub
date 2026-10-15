@@ -55,7 +55,7 @@ test('personal-library recovery is persistent, actionable, and includes Playlist
 
 test('loading, broken-media, featured, and mobile rail treatments are explicit', () => {
   assert.match(PAGE, /vl-video-skeleton/);
-  assert.match(PAGE, /vl-media-failed/);
+  assert.match(read('../src/components/video-library/VideoThumbnail.jsx'), /vl-media-failed/);
   assert.match(PAGE, /isFeatured = index === 0 && !hasActiveFilters/);
   assert.match(CSS, /\.vl-video-card\.is-featured/);
   assert.match(CSS, /\.vl-video-skeleton/);

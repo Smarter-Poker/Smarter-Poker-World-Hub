@@ -146,16 +146,12 @@ export function dedupeVideos(list, seenKeys = new Set()) {
 }
 
 /**
- * Thumbnail ladder. Cards use YouTube's 640px image (about a third of the
- * 1280px "maxres" file, and "maxres" is often missing or a black frame on
- * live streams); shelves and Up Next use 320px. Shorts use "oar2", YouTube's
- * original-aspect frame (1080x1920 for a Short, 16:9 for anything else), so a
- * vertical card is filled instead of showing a letterboxed 4:3 image.
- * Measured 2026-10-12: "oardefault" is 404 for these Shorts, "oar2" is 200.
- * A missing size falls down the ladder, then to the catalog's own image, then
- * to "Preview unavailable".
+ * Thumbnail ladder. Feed and live cards request the publisher's largest
+ * YouTube preview first, with a bounded fallback for missing resolutions.
+ * Smaller secondary shelves use 640px previews; Shorts keep original aspect.
+ * A missing size falls down the ladder, then to a trusted catalog image.
  */
-export const THUMBNAIL_SIZES = Object.freeze({ card: 'sddefault', small: 'mqdefault', vertical: 'oar2' });
+export const THUMBNAIL_SIZES = Object.freeze({ card: 'maxresdefault', small: 'sddefault', vertical: 'oar2' });
 const THUMBNAIL_LADDER = ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault'];
 const YOUTUBE_IMAGE_RE = /^https:\/\/(i\.ytimg\.com|img\.youtube\.com)\//;
 

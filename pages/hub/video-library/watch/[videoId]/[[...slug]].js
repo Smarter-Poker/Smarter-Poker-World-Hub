@@ -1,3 +1,4 @@
+import ThumbnailImage from '../../../../../src/components/video-library/VideoThumbnail';
 /**
  * VIDEO WATCH PAGE - /hub/video-library/watch/<youtube id>/<title-slug>
  *
@@ -49,8 +50,6 @@ import {
     VIDEO_LIBRARY_POKER_TYPES,
     isCuratedFeedVideo,
     mixedContentFilter,
-    thumbnailCandidates,
-    nextThumbnailFallback,
     durationSeconds,
 } from '../../../../../src/lib/videoLibraryCuration.mjs';
 import {
@@ -198,29 +197,7 @@ export async function getServerSideProps({ params, res }) {
 }
 
 function Thumbnail({ videoId, size, vertical = false, catalogThumbnail, priority = false }) {
-    const candidates = thumbnailCandidates(videoId, { size, vertical, catalogThumbnail });
-    const recover = (event) => {
-        const image = event.currentTarget;
-        if (event.type !== 'error' && image.naturalWidth > 120) return;
-        const next = nextThumbnailFallback(image.getAttribute('src'), candidates);
-        if (next) {
-            image.src = next;
-            return;
-        }
-        image.hidden = true;
-        image.parentElement?.classList.add('vl-media-failed');
-    };
-    return (
-        <img
-            src={candidates[0]}
-            alt=""
-            loading={priority ? 'eager' : 'lazy'}
-            fetchpriority={priority ? 'high' : 'auto'}
-            decoding="async"
-            onLoad={recover}
-            onError={recover}
-        />
-    );
+    return <ThumbnailImage video={{ videoId, thumbnail: catalogThumbnail }} size={size} vertical={vertical} priority={priority} />;
 }
 
 function VideoList({ title, videos }) {
@@ -386,7 +363,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                             onClick={startWatching}
                                             aria-label={`Play ${video.title}`}
                                         >
-                                            <Thumbnail videoId={video.videoId} size="sddefault" catalogThumbnail={video.thumbnail} priority />
+                                            <Thumbnail videoId={video.videoId} size="maxresdefault" catalogThumbnail={video.thumbnail} priority />
                                             <span className="vl-play-facade-button" aria-hidden="true" />
                                             {video.duration && <span className="vl-duration">{video.duration}</span>}
                                         </button>

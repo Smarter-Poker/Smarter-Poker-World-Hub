@@ -81,19 +81,19 @@ test('reposted short clips collapse, separate long sessions never do', () => {
     assert.match(PAGE, /libraryFilter === 'ALL' \? dedupeVideos\(unique\) : unique/);
 });
 
-test('thumbnails start phone-sized, Shorts use the vertical frame, and nothing goes blank', () => {
-    assert.equal(youtubeThumbnail('abcdefghijk'), 'https://i.ytimg.com/vi/abcdefghijk/sddefault.jpg');
+test('thumbnails start at publisher resolution, Shorts use the vertical frame, and nothing goes blank', () => {
+    assert.equal(youtubeThumbnail('abcdefghijk'), 'https://i.ytimg.com/vi/abcdefghijk/maxresdefault.jpg');
     assert.deepEqual(thumbnailCandidates('x', { catalogThumbnail: 'https://i.ytimg.com/vi/x/maxresdefault.jpg' }), [
+        'https://i.ytimg.com/vi/x/maxresdefault.jpg',
         'https://i.ytimg.com/vi/x/sddefault.jpg',
         'https://i.ytimg.com/vi/x/hqdefault.jpg',
         'https://i.ytimg.com/vi/x/mqdefault.jpg',
-        'https://i.ytimg.com/vi/x/maxresdefault.jpg',
     ]);
     const shorts = thumbnailCandidates('x', { vertical: true });
     assert.equal(shorts[0], 'https://i.ytimg.com/vi/x/oar2.jpg');
     assert.equal(nextThumbnailFallback(shorts[0], shorts), 'https://i.ytimg.com/vi/x/hqdefault.jpg');
     assert.equal(nextThumbnailFallback(shorts[shorts.length - 1], shorts), null);
-    assert.equal(thumbnailCandidates('x', { catalogThumbnail: 'https://evil.example/x.jpg' }).length, 3);
+    assert.equal(thumbnailCandidates('x', { catalogThumbnail: 'https://evil.example/x.jpg' }).length, 4);
     assert.doesNotMatch(PAGE, /getThumbnail/);
     assert.match(PAGE, /function VideoThumbnail\(/);
     assert.match(PAGE, /<VideoThumbnail video=\{short\} vertical \/>/);

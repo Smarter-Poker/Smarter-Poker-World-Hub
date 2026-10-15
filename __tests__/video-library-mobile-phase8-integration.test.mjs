@@ -5,7 +5,8 @@ const library = readFileSync(new URL('../pages/hub/video-library.js', import.met
 const watch = readFileSync(new URL('../pages/hub/video-library/watch/[videoId]/[[...slug]].js', import.meta.url), 'utf8');
 test('Phase 8 entries are actually mounted and canonical tracking owns only one save path', () => {
  assert.match(library, /<MemberClipUpload \/>/);
- assert.match(library, /href="\/hub\/video-library\/owner"/);
+ // Owner update 2026-10-15: no Control Panel in public browsing navigation.
+ assert.doesNotMatch(library, /href="\/hub\/video-library\/owner"|Control Panel/);
  assert.match(watch, /const tracking = useVideoLibraryWatchTracking\(/);
  assert.match(watch, /<WatchTracking tracking=\{tracking\}/);
  assert.doesNotMatch(watch, /updateWatchDuration\(|flushWatchDuration\(/);

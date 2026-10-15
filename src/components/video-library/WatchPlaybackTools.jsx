@@ -15,9 +15,11 @@ export function subscribeWatchPlayer(iframe, attemptPlayback = false) {
 export function WatchDescription({ text }) {
     const [expanded, setExpanded] = useState(false);
     if (!text) return null;
+    const words = text.trim().split(/\s+/);
+    const collapsible = words.length > 45;
     return <section className="vl-description" aria-label="Video Description">
-        <p className={expanded ? '' : 'is-collapsed'}>{text}</p>
-        <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Show Less' : 'Show More'}</button>
+        <p>{expanded || !collapsible ? text : words.slice(0, 45).join(' ')}</p>
+        {collapsible && <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Show Less' : 'Show More'}</button>}
     </section>;
 }
 

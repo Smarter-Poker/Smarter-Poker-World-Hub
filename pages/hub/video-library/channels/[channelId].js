@@ -8,7 +8,7 @@ import LiveNow from '../../../../src/components/video-library/LiveNow';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { getVideoMetaLine } from '../../../../src/lib/videoLibraryCards';
 import { watchPath } from '../../../../src/lib/videoLibraryWatch.mjs';
-import { thumbnailCandidates, nextThumbnailFallback } from '../../../../src/lib/videoLibraryCuration.mjs';
+import VideoThumbnail from '../../../../src/components/video-library/VideoThumbnail';
 
 const UniversalHeader = dynamic(() => import('../../../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../../../src/components/ui/HamburgerMenu'), { ssr: false });
@@ -69,7 +69,7 @@ export default function VideoChannelPage({ initial, unavailable }) {
                 <ChannelFollow key={channel.id} channelId={channel.id} channelPath={channel.path} />
                 <LiveNow channelId={channel.id} />
                 <section className="vl-channel-videos" aria-labelledby="vl-channel-newest"><h2 id="vl-channel-newest">Newest Videos</h2>
-                    {current.data.length ? <div className="vl-video-grid" id="video-library-grid">{current.data.map((video, index) => <div key={video.videoId} className="vl-video-card"><Link className="vl-video-link" href={watchPath(video)} aria-label={`Watch ${video.title}`}><div className="vl-video-thumb"><img src={thumbnailCandidates(video.videoId, { catalogThumbnail: video.thumbnail })[0]} alt="" loading={index === 0 ? 'eager' : 'lazy'} decoding="async" onError={event => { const next = nextThumbnailFallback(event.currentTarget.currentSrc || event.currentTarget.src, thumbnailCandidates(video.videoId, { catalogThumbnail: video.thumbnail })); if (next) event.currentTarget.src = next; }} />{video.duration && <span className="vl-duration">{video.duration}</span>}</div></Link><div className="vl-card-info"><div className="vl-card-text"><h3 className="vl-card-title"><Link href={watchPath(video)}>{video.title}</Link></h3><p className="vl-card-meta">{getVideoMetaLine(video)}</p></div></div></div>)}</div> : <div className="vl-empty-state"><h3>No Verified Videos Right Now</h3><p>This Channel Has No Videos Available In The Verified Library.</p></div>}
+                    {current.data.length ? <div className="vl-video-grid" id="video-library-grid">{current.data.map((video, index) => <div key={video.videoId} className="vl-video-card"><Link className="vl-video-link" href={watchPath(video)} aria-label={`Watch ${video.title}`}><div className="vl-video-thumb"><VideoThumbnail video={video} priority={index === 0} />{video.duration && <span className="vl-duration">{video.duration}</span>}</div></Link><div className="vl-card-info"><div className="vl-card-text"><h3 className="vl-card-title"><Link href={watchPath(video)}>{video.title}</Link></h3><p className="vl-card-meta">{getVideoMetaLine(video)}</p></div></div></div>)}</div> : <div className="vl-empty-state"><h3>No Verified Videos Right Now</h3><p>This Channel Has No Videos Available In The Verified Library.</p></div>}
                     {error && <p role="alert">{error}</p>}{current.pagination.hasMore && <button type="button" className="vl-pill-button" disabled={loading} onClick={() => void loadMore()}>{loading ? 'Loading Videos' : error ? 'Retry Loading Videos' : 'Load More Videos'}</button>}
                 </section>
             </article>
