@@ -51,3 +51,12 @@ test('notification stacks stay in the viewport above the composer on short phone
   assert.ok(placement.maxHeight>=60);
  }
 });
+
+test('measured footer and keyboard clearances bound the window without double counting the keyboard',()=>{
+ const rows=open([],1);
+ const desktop=dockLayout(rows,{width:1440,height:900,clearance:140});assert.equal(desktop.height,500);
+ const short=dockLayout(rows,{width:800,height:400,clearance:140});assert.ok(short.height+140+24<=400);
+ const keyboard=dockLayout(rows,{width:320,height:280,clearance:8});assert.equal(keyboard.height,248);
+ const root=readFileSync(new URL('../src/components/messenger/dock/MessengerDock.jsx',import.meta.url),'utf8');
+ assert.match(root,/--sp-footer-height/);assert.match(root,/--ca-bottom-chrome-h/);assert.match(root,/next !== measuredFooter/);
+});
