@@ -360,6 +360,17 @@ export default function ArticleCard({
     // If we have an image URL, use it (don't be too strict with validation)
     const displayImage = metadata.image && (!imageError || metadata.image !== imageError.failed) ? newsImageUrl(metadata.image) : null;
 
+    // Old event posts link to the generic listings, not an article or a
+    // particular photographed venue. Keep that honest destination compact;
+    // never invent a story heading or unrelated illustration from its caption.
+    if (internalPath === '/hub/poker-near-me' && !title && !description && !image) {
+        return <button type="button" onClick={handleClick} style={{
+            display: 'block', minHeight: 44, margin: '0 12px 12px', padding: 0,
+            border: 0, background: 'none', color: '#1877F2', cursor: 'pointer',
+            textAlign: 'left', fontSize: 14,
+        }}>Browse Poker Events</button>;
+    }
+
     return (
         <div
             role="button"

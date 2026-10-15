@@ -370,6 +370,17 @@ test('mounted shared previews hydrate, order copy before media, and activate the
     assert.deepEqual(calls.at(-1), ['internal', '/hub/poker-near-me']);
     assert.ok(tree.some((node) => node.value === 'Open On Smarter.Poker →'));
 
+    render({ url: '/hub/poker-near-me', fallbackContent: 'Looks like Red Rock is running a local event.' });
+    tree = nodes();
+    assert.ok(tree.some((node) => node.value === 'Browse Poker Events'), 'generic listing has an honest compact destination label');
+    assert.ok(!tree.some((node) => node.value?.includes('Looks like')), 'a listing does not fabricate an article heading from the caption');
+    const listingButton = tree.find((node) => node.type === 'button');
+    assert.equal(listingButton.props.type, 'button', 'native button retains Enter/Space activation');
+    assert.equal(listingButton.props.style.border, 0, 'no large empty duplicate card frame');
+    listingButton.props.onClick(event());
+    assert.deepEqual(calls.at(-1), ['internal', '/hub/poker-near-me']);
+    assert.equal(pending.length, 2, 'generic listing cannot request unrelated external art');
+
     render({ url: 'https://www.espn.com/fantasy/basketball/story/_/id/50189270/backup-plans',
       title: 'Fantasy backup plans',
       image: 'https://a.espncdn.com/combiner/i?img=%2Fi%2Fespn%2Fespn_logos%2Fespn_red.png' });
