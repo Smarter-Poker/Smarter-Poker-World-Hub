@@ -206,10 +206,11 @@ test('ESPN fantasy stories resolve exact article art outside the latest league w
   const calls = [];
   const { handler } = loadKnownPublisherReader(async (url) => {
     calls.push(String(url));
-    return { ok: true, async text() { return JSON.stringify({ headlines: [{
+    const payload = { headlines: [{
       id: 50189270, headline: 'Fantasy backup plans',
       images: [{ url: 'https://a.espncdn.com/photo/2026/1015/r1731149_1296x729_16-9.jpg' }],
-    }] }); } };
+    }] };
+    return { ok: true, async text() { return JSON.stringify(payload); }, async json() { return payload; } };
   });
   const res = response();
   await handler({ method: 'GET', query: { url: 'https://www.espn.com/fantasy/basketball/story/_/id/50189270/backup-plans' } }, res);
