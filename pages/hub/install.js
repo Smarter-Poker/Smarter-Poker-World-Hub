@@ -140,6 +140,7 @@ export default function InstallPage() {
             <SEOHead
                 title="Install Smarter.Poker - iPad & Android App"
                 description="Get Smarter.Poker on your iPad or Android device. Add to home screen for a native app experience - free, no app store required."
+                canonical="/hub/install"
             />
             <div className="min-h-screen bg-gradient-to-br from-[#0a0a15] via-[#0f1029] to-[#0a0a15] text-white font-['Inter']" style={{ paddingBottom: 70 }}>
 

@@ -259,7 +259,7 @@ export default function SavedPostsPage() {
 
     return (
         <>
-            <SEOHead title="Saved Posts | Smarter.Poker" description="View your saved and bookmarked posts" />
+            <SEOHead title="Saved Posts | Smarter.Poker" description="View your saved and bookmarked posts" canonical="/hub/saved-posts" />
             <UniversalHeader pageDepth={1} />
             <PageTransition>
                 <div style={{ background: C.bg, minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', paddingTop: 72 }}>

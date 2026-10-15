@@ -1,6 +1,18 @@
 /**
  * BANKROLL MANAGER — Route Alias
- * Redirects /hub/bankroll to /hub/bankroll-manager
+ * Permanent 308 redirect to /hub/bankroll-manager
  */
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
-export { default } from './bankroll-manager';
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: '/hub/bankroll-manager',
+      permanent: true,
+    },
+  };
+}
+
+export default function BankrollRedirect() {
+  return <UniversalHeader />;
+}

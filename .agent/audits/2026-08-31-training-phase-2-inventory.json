@@ -47672,8 +47672,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "isInternalSsrRequest",
+          "line": 65,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "rateLimit",
-          "line": 69,
+          "line": 79,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -47681,7 +47689,7 @@
         },
         {
           "name": "applyRateLimit",
-          "line": 111,
+          "line": 136,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -47689,7 +47697,7 @@
         },
         {
           "name": "applyDurableRateLimit",
-          "line": 128,
+          "line": 153,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -93304,7 +93312,7 @@
       {
         "file": "src/lib/apiRateLimit.js",
         "name": "applyDurableRateLimit",
-        "line": 128,
+        "line": 153,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102405,7 +102413,7 @@
       {
         "file": "src/lib/apiRateLimit.js",
         "name": "applyDurableRateLimit",
-        "line": 128,
+        "line": 153,
         "references": 1,
         "exported": true,
         "defaultExport": false,

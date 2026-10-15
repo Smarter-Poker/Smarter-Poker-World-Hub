@@ -250,6 +250,7 @@ export default function PokerToolsPage() {
             <Head>
                 <title>Poker Odds Calculator | Smarter.Poker</title>
                 <meta name="description" content="Free poker odds calculator for Hold'em, Omaha, PLO5, PLO6, Stud, and Razz." />
+                <link key="canonical" rel="canonical" href="https://smarter.poker/hub/poker-tools" />
             </Head>
 
             <div className="odds-page" style={THEME_VARS}>

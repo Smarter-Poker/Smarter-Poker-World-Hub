@@ -642,7 +642,7 @@ export default function MyVenuesPage() {
 
     return (
         <>
-            <SEOHead title="My Venues | Smarter.Poker" description="View your schedule, downs, and time clock from venues where you work." path="/hub/my-venues" />
+            <SEOHead title="My Venues | Smarter.Poker" description="View your schedule, downs, and time clock from venues where you work." canonical="/hub/my-venues" />
             <style dangerouslySetInnerHTML={{
                 __html: `
         @keyframes spin { to { transform: rotate(360deg); } }
