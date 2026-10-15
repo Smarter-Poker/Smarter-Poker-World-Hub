@@ -1,0 +1,124 @@
+# Smarter.Poker — Complete Knowledge Corpus
+
+> Smarter.Poker is a free online poker platform: GTO training, private poker clubs in Poker Arena, Club Commander room management, live venue discovery, home games and a bankroll manager. Free to play, no real-money gambling.
+
+## What This Is, And What It Is Not
+
+Smarter.Poker is operated by Smarter Software Inc. There is no real-money gambling on the platform. Club chips are play credits with no cash value and diamonds are a promotional rewards currency. Nothing on the platform pays out cash, and no wager placed here is a real-money wager. The platform is free to play and intended for players aged 18 and over.
+
+The trading name "Smarter Poker" is shared with unrelated businesses. The entity described in this file is the one at https://smarter.poker, and https://smarter.poker/about is the page that states it.
+
+- Official Website: https://smarter.poker
+- About the Company & Products: https://smarter.poker/about
+- World Hub (All Modules): https://smarter.poker/hub
+- Full Sitemap: https://smarter.poker/sitemap.xml
+- Arena Sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
+- Terms of Service: https://smarter.poker/terms
+- Privacy Policy: https://smarter.poker/privacy
+- Open Source Work & Repositories: https://github.com/Smarter-Poker
+
+---
+
+## 1. GTO Training & Strategy
+
+Smarter.Poker provides interactive Game Theory Optimal (GTO) training drills, preflop ranges, and solver-grade strategic education.
+
+### Core Training Products
+- **Training Hub**: https://smarter.poker/hub/training
+  Over 100 scenario-based interactive drills across Multi-Table Tournaments (MTT), Cash Games, Spins & Sit-and-Gos (SNG), and ICM end-game simulations.
+- **Preflop Charts & Range Drills**: https://smarter.poker/hub/preflop-charts
+  Comprehensive preflop opening, 3-betting, and 4-betting ranges across 6-max, 8-max, and 9-max cash games and MTTs at variable stack depths (15bb to 100bb+).
+- **Strategy Lessons**: https://smarter.poker/learn
+  Structured lessons explaining solver solutions, bet sizing theory, board texture classification, and exploit adjustments.
+- **Poker Glossary**: https://smarter.poker/glossary
+  Authoritative, encyclopedic definitions of poker terminology, live table jargon, club poker concepts, and modern GTO terminology.
+
+### AI Strategic Intelligence (Jarvis & Geeves)
+- **Jarvis Tactical Intelligence**: Real-time GTO scenario evaluation providing instant feedback on hand decision lines, frequency distributions, and EV comparisons.
+- **Geeves Concierge Assistant**: Interactive live assistant assisting players with platform navigation, rule inquiries, and room management workflows.
+
+---
+
+## 2. Poker Near Me (Live Poker Discovery & Tournament Schedules)
+
+The most comprehensive live poker room directory and tournament tracking system across the United States.
+
+### Primary Directories
+- **Poker Near Me Lobby**: https://smarter.poker/hub/poker-near-me/lobby
+  Real-time venue activity, active cash games, waiting lists, and nearby room suggestions.
+- **State & City Directory**: https://smarter.poker/hub/poker-near-me/in
+  State-by-state catalog of legal card rooms, commercial casinos, and charitable poker halls.
+- **Venue Directory**: https://smarter.poker/hub/poker-near-me/venues
+  Individual venue profiles featuring live table counts, rake structures, amenities, contact information, and daily schedules.
+- **Major Poker Tours**: https://smarter.poker/hub/poker-tours
+  Official schedules, dates, and stops for major poker circuits including WSOP, WSOP Circuit (WSOPC), World Poker Tour (WPT), Mid-States Poker Tour (MSPT), RunGood Poker Series (RGPS), and PokerGO Tour (PGT).
+- **Tournament Series Catalog**: https://smarter.poker/hub/poker-near-me/series
+  Festival schedules, structures, main event guarantees, and official calendar export integration (`.ics` downloads and Google Calendar sync).
+- **Live Events Calendar**: https://smarter.poker/hub/poker-near-me/events-calendar
+  Daily and multi-day tournament schedule calendar across all mapped venues.
+- **Poker Home Games**: https://smarter.poker/hub/home-games
+  Discover and organize private local home games and community groups.
+
+---
+
+## 3. Bankroll Manager & Session Analytics
+
+A comprehensive, zero-cost financial tracking tool designed specifically for poker players to log results, monitor variance, and eliminate leaks.
+
+- **Bankroll Manager**: https://smarter.poker/hub/bankroll-manager
+- **Capabilities**:
+  - Live cash game, tournament, and online session logging.
+  - Multi-currency support with custom stake and game type filters (Hold'em, Omaha, Mixed Games).
+  - Advanced statistical reporting: Hourly win rate, BB/100, ROI percentage, standard deviation, and Risk of Ruin computations.
+  - Interactive bankroll trajectory charts and variance simulation curves.
+  - Pure offline-compatible player ledger; no real-money transactions, deposits, or withdrawals are handled by Smarter.Poker.
+
+---
+
+## 4. Poker Arena (Club Arena)
+
+The premier private club poker experience on the web and mobile, engineered with high-integrity game logic.
+
+- **Poker Arena Portal**: https://smarter.poker/hub/club-arena
+- **Key Features**:
+  - **Game Formats**: No-Limit Texas Hold'em (NLH), Pot-Limit Omaha (PLO-4, PLO-5, PLO-6), Short Deck (6+), and Open-Face Chinese / Pineapple.
+  - **Tournaments**: Scheduled Multi-Table Tournaments (MTTs), Sit & Go (SNG) tournaments, progressive knockouts, and satellite qualifiers.
+  - **Club Ecosystem**: Create private clubs, establish multi-club unions, manage player rosters, and review audit-verified chip ledgers.
+  - **Fair Play Standards**: Certified cryptographic shuffling, collusion detection, bot prevention algorithms, and transparent game history replay.
+  - **Fair Gaming Standard**: https://smarter.poker/hub/club-arena/legal/fair-gaming
+
+---
+
+## 5. Club Commander (Live Room & Poker Venue Management)
+
+An end-to-end management operating system for brick-and-mortar card rooms, poker clubs, and event organizers.
+
+- **Club Commander Hub**: https://smarter.poker/hub/commander
+- **Core Functionality**:
+  - **Live Waitlists**: Remote waitlist registration via SMS and web with automated seat-call notifications.
+  - **Digital Game Boards**: Real-time display of active cash tables, waitlist lengths, and stakes for lobby monitors.
+  - **Tournament Director Software**: Blind timers, level clocks, chip calculators, prize pool payouts, and seat redraws.
+  - **Home Games & League Tracking**: Season leaderboard tracking, point distributions, and recurring league administration.
+  - **Venues & FAQ**: https://smarter.poker/hub/commander/faq
+  - **Responsible Gaming Framework**: https://smarter.poker/hub/commander/responsible-gaming
+
+---
+
+## 6. Social, Media & Entertainment Hubs
+
+- **Social Hub**: Follow players, share hand replays, participate in community discussion boards, and track friend achievements.
+- **Poker News**: Hourly aggregated tournament reports, high-stakes action recaps, and industry news from verified publishers.
+- **Video Library**: Curated poker video highlights, livestream streams, and educational strategy breakdowns.
+- **Poker Trivia**: https://smarter.poker/hub/trivia
+  Test poker history, mathematical odds, and rule knowledge across Endless, Survival, and Time Attack modes with global player leaderboards.
+
+---
+
+## 7. Technical Architecture & Citation Grounding
+
+- **Host Entity**: Smarter Software Inc.
+- **Domain**: https://smarter.poker
+- **Frameworks**: Next.js Server-Side Rendered (World Hub) with edge caching on Vercel; React + Vite Single-Page Application (Club Arena).
+- **Data Schemas**: Rich Schema.org microdata embedded across all pages, including `@type: WebPage`, `SoftwareApplication`, `BreadcrumbList`, `FAQPage`, `SportsActivityLocation`, `Casino`, and `EventSeries`.
+- **Integrations**: RFC 5545 `.ics` iCalendar event feeds, Google Calendar web intents, dynamic OpenGraph / Twitter metadata.
+- **Licensing & Policy**: Free-to-play social and training platform. Strict zero-real-money wagering policy.

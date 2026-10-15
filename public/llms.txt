@@ -24,6 +24,7 @@ https://smarter.poker/about is the page that states it.
 - Poker strategy lessons, every answer with its chart: https://smarter.poker/learn
 - Sitemap: https://smarter.poker/sitemap.xml
 - Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
+- Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
 
 ## Core Features
 
