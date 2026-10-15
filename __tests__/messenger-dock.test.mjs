@@ -84,3 +84,12 @@ test('quick native unmount flushes draft for the same actor and remains invalid 
  actor=id(2);await controller.write(id(10),'draft');assert.equal(writes,1);
  const source=readFileSync(new URL('../src/components/messenger/dock/MessengerChat.jsx',import.meta.url),'utf8');assert.match(source,/isCurrent: \(\) => identity.current === actorId/);
 });
+
+test('an authoritative zero clears a minimized unread flag after the panel unmounts',()=>{
+ let chats=open([],1,{incoming:true});chats=updateDock(chats,{type:'minimize',id:id(1)});
+ chats=updateDock(chats,{type:'refresh',conversation:{id:id(1),unreadCount:0}});assert.equal(chats[0].unread,false);assert.equal(chats[0].minimized,true);
+ const source=readFileSync(new URL('../src/components/messenger/dock/MessengerChat.jsx',import.meta.url),'utf8');
+ const section=source.slice(source.indexOf("const result = await request('mark-read'"),source.indexOf('const prefs = await services.getPreferences'));
+ assert.ok(section.indexOf("broadcastSync('smarter_poker_unread_sync'")<section.indexOf('!mounted.current'));
+ assert.match(section,/identity.current !== actorId/);
+});

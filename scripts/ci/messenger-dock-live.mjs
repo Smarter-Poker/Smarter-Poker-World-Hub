@@ -54,8 +54,9 @@ try{
  report.passed=true;
 }catch(error){report.error=error.message;process.exitCode=1;}
 finally{
- for(const {client,channel} of channels)await client.removeChannel(channel);
- for(const client of clients){await client.auth.signOut({scope:'local'});await client.realtime.disconnect();}
+ const channelsClosed=await Promise.allSettled(channels.map(({client,channel})=>client.removeChannel(channel)));
+ const clientsClosed=await Promise.allSettled(clients.map(async client=>{try{await client.auth.signOut({scope:'local'});}finally{await client.realtime.disconnect();}}));
+ if([...channelsClosed,...clientsClosed].some(result=>result.status==='rejected')){report.transportCleanupError='A Fixture Transport Did Not Close';process.exitCode=1;}
  try{
   const fixture=await admin.from('social_conversations').select('id,group_name').eq('id',conversationId).maybeSingle();assert.ifError(fixture.error);
   if(fixture.data){
@@ -78,3 +79,7 @@ finally{
  await mkdir(output,{recursive:true});await writeFile(`${output}/backend-realtime.json`,JSON.stringify(report,null,2)+'\n');
  console.log(JSON.stringify({passed:report.passed,cleanup:report.cleanup,cases:report.cases,deliveryMs:report.deliveryMs,error:report.error,sendStatus:report.sendStatus,sendError:report.sendError,cleanupError:report.cleanupError}));
 }
+
+// All owned operations, transport cleanup and authoritative data cleanup have completed.
+// Terminate this finite CLI even if the SDK retains an idle internal timer.
+process.exit(process.exitCode || (report.passed && report.cleanup ? 0 : 1));
