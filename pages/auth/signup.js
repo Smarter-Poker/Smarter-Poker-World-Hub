@@ -10,6 +10,12 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
+import {
+  claimInvite,
+  readPendingInvite,
+  rememberInvite,
+  safeClubArenaPath,
+} from '../../src/lib/clubInvite';
 // [Phase 6.1.20] Password strength + HIBP breach-list check
 import {
   validatePassword,
@@ -189,7 +195,10 @@ export default function SignUpPage() {
   // Auto-fill promo/referral code from ?ref= or ?promo= query parameter
   useEffect(() => {
     if (router.isReady) {
-      const { ref, promo } = router.query;
+      const { ref, promo, invite } = router.query;
+      // A Share & Invite link (/i/<code>) sends the player here first. Keep
+      // the code (first link wins) so it survives email confirmation.
+      if (invite) rememberInvite(String(invite));
       if (ref && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: String(ref).toUpperCase() }));
       } else if (promo && !formData.promoCode) {
@@ -580,6 +589,16 @@ export default function SignUpPage() {
     const cleanFullName = `${cleanFirstName} ${cleanLastName}`.trim();
 
     try {
+      // The club invite this signup came from, if any. Written into the
+      // account's metadata so /auth/callback can claim it even when the
+      // confirmation email is opened on another device (2026-10-15).
+      const pendingInvite = readPendingInvite();
+      // An older /invite/<club>?ref=<n> link has no code; it sends the way
+      // back to the club as ?redirect=, kept the same way.
+      const clubJoinPath = safeClubArenaPath(
+        Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
+      );
+
       // Step 1: Create auth user with email/password
       // [2026-08-04] Normalize the email the same way login.js does —
       // "Dan@X.com " and "dan@x.com" must be the same account.
@@ -601,6 +620,13 @@ export default function SignUpPage() {
             // server-side receipt, never from this client metadata.
             phone: null,
             phone_verified: false,
+            ...(pendingInvite
+              ? {
+                  club_invite_code: pendingInvite.code,
+                  club_invite_first_seen: new Date(pendingInvite.firstSeen).toISOString(),
+                }
+              : {}),
+            ...(clubJoinPath ? { club_join_path: clubJoinPath } : {}),
           },
           // Enable email confirmation - redirect to /auth/callback after verification
           emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -1788,12 +1814,28 @@ export default function SignUpPage() {
                 </div>
 
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     // Set flag so hub plays intro animation
                     sessionStorage.setItem('just_authenticated', 'true');
+                    // Arrived on a club invite: attach this account to it now,
+                    // and after the phone step go straight to that club's join
+                    // page (Dan 2026-10-15).
+                    let next = null;
+                    try {
+                      const { data } = await supabase.auth.getSession();
+                      const claimed = await claimInvite(data?.session?.access_token);
+                      next = safeClubArenaPath(claimed?.join_path) ||
+                        safeClubArenaPath(
+                          Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
+                        );
+                    } catch (_claimErr) {
+                      /* the club join page claims again from the stored code */
+                    }
                     // A brand-new player's first screen is the welcome package:
                     // verify a phone for the VIP card + 500 diamonds, or skip.
-                    router.push('/hub/verify-phone?welcome=1');
+                    router.push(
+                      `/hub/verify-phone?welcome=1${next ? `&next=${encodeURIComponent(next)}` : ''}`
+                    );
                   }}
                   style={styles.submitButton}
                 >
