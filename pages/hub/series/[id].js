@@ -353,15 +353,17 @@ export async function getServerSideProps({ params, req, res }) {
     };
   }
 
-  const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req), req);
+  const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req));
   if (seoSeries) {
     const primary = await primarySeriesRouteId(seoSeries);
     if (primary && primary !== String(seoSeries.id)) seoSeries.canonicalId = primary;
   }
   if (status === 'unavailable') {
-    // The API did not answer: do not send 503 to search engines (Search Console flags 503
-    // as "Server error (5xx) for pages in a sitemap"). Serve 200 with no-cache so client SWR fetches.
-    res.setHeader('Cache-Control', 'private, no-cache, no-store, max-age=0, must-revalidate');
+    // The API did not answer: the browser still fetches as before, but a
+    // crawler is told to come back rather than to index a spinner.
+    res.statusCode = 503;
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', '120');
   } else if (status === 'not-found') {
     // A 404 IS NOT CACHED THE WAY A PAGE IS (AEO phase 3, 2026-09-19).
     //

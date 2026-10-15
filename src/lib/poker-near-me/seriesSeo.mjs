@@ -149,14 +149,14 @@ export function isPublicSeries(v) {
  * a 404, and a 404 is a statement that the page does not exist, made to
  * something that will believe it and cache it.
  */
-export async function fetchSeries(id, origin, req = null) {
+export async function fetchSeries(id, origin) {
   if (!/^[A-Za-z0-9_:-]{1,64}$/.test(String(id ?? ''))) return { series: null, status: 'not-found' };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(`${origin}/api/poker/series?id=${encodeURIComponent(id)}`, {
       signal: ctrl.signal,
-      headers: buildSsrHeaders(req),
+      headers: buildSsrHeaders(),
     });
     let data = null;
     try {
