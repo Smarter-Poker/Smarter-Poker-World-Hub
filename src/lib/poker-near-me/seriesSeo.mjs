@@ -375,8 +375,14 @@ export function seriesSchema(v) {
 
   // schema.org requires a start date and a location on an Event. Without
   // both, the page is described honestly as a page and no Event is claimed.
-  const place = venue || city;
+  const place = venue || city || realPlace(v.location);
   if (v.startDate && place) {
+    const organizer = {
+      '@type': 'Organization',
+      name: 'Smarter.Poker',
+      url: site,
+    };
+
     const event = {
       '@type': 'EventSeries',
       '@id': `${url}#series`,
@@ -385,6 +391,7 @@ export function seriesSchema(v) {
       startDate: v.startDate,
       eventStatus: 'https://schema.org/EventScheduled',
       eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      organizer,
       location: {
         '@type': 'Place',
         name: place,
@@ -424,6 +431,7 @@ export function seriesSchema(v) {
         startDate: item.startTime ? `${item.startDate}T${item.startTime}` : item.startDate,
         eventStatus: 'https://schema.org/EventScheduled',
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+        organizer,
         location: event.location,
         superEvent: { '@id': `${url}#series` },
         ...(item.buyin ? {

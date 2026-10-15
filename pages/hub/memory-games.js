@@ -37,6 +37,28 @@ const PREFLOP_SCHEMA = hubProductSchema({
   description:
     'Free Local Practice Against Authored Preflop Reference Ranges. Results Stay On The Page And Do Not Change Account Progress, Rank Or Rewards.',
   trail: [['Hub', '/hub'], ['Preflop Charts', '/hub/preflop-charts']],
+  faqs: [
+    {
+      question: 'What are GTO preflop charts in poker?',
+      answer:
+        'GTO (Game Theory Optimal) preflop charts display mathematically balanced ranges for opening, 3-betting, 4-betting, and folding from each table position based on Nash equilibrium solver computations.',
+    },
+    {
+      question: 'Are Smarter.Poker preflop charts free to use?',
+      answer:
+        'Yes, Smarter.Poker provides free interactive GTO preflop charts and range drills for 6-max, 8-max, and 9-max cash games and tournaments across multiple stack depths.',
+    },
+    {
+      question: 'How do preflop ranges change by position?',
+      answer:
+        'As position moves closer to the button (from Under the Gun to the Button), opening ranges expand significantly because fewer opponents remain to act behind you, giving you positional advantage postflop.',
+    },
+    {
+      question: 'How do stack depths affect preflop strategy?',
+      answer:
+        'Shallow stacks (15-25bb) favor high-card equity and push/fold decisions, while deep stacks (100bb+) increase the implied odds value of suited connectors, pocket pairs, and suited aces.',
+    },
+  ],
 });
 import { useState, useEffect, useRef, useCallback } from 'react';
 // confetti loaded lazily on first use

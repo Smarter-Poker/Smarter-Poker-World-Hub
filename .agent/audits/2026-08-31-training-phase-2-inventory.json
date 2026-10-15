@@ -6617,6 +6617,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
@@ -9432,6 +9433,7 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/training/TrainerEmptyState.jsx",
             "src/engines/HandHistoryParser.js",
+            "src/lib/seo/hubPageSchema.js",
             "src/lib/training/handHistoryReviewAuthority.mjs"
           ],
           "tests": [
@@ -10153,6 +10155,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
@@ -10422,6 +10425,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
@@ -15458,6 +15462,7 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/RangeGrid.jsx",
+            "src/lib/seo/hubPageSchema.js",
             "src/utils/pokerHandEvaluator.js"
           ],
           "tests": [
@@ -17645,6 +17650,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
@@ -49164,7 +49170,7 @@
       },
       "states": {
         "loading": false,
-        "empty": false,
+        "empty": true,
         "error": false,
         "retry": false,
         "offline": false,
@@ -49196,8 +49202,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "faqSchema",
+          "line": 54,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "hubProductSchema",
-          "line": 55,
+          "line": 75,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49205,7 +49219,7 @@
         },
         {
           "name": "hubCollectionSchema",
-          "line": 103,
+          "line": 131,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49214,7 +49228,7 @@
         {
           "name": "absolute",
           "line": 30,
-          "references": 5,
+          "references": 6,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -93529,7 +93543,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubProductSchema",
-        "line": 55,
+        "line": 75,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93538,6 +93552,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/bankroll-manager.js",
           "pages/hub/home-games.js",
           "pages/hub/memory-games.js",
@@ -93552,7 +93567,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 103,
+        "line": 131,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102630,7 +102645,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubProductSchema",
-        "line": 55,
+        "line": 75,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102639,6 +102654,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/bankroll-manager.js",
           "pages/hub/home-games.js",
           "pages/hub/memory-games.js",
@@ -102653,7 +102669,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 103,
+        "line": 131,
         "references": 1,
         "exported": true,
         "defaultExport": false,
