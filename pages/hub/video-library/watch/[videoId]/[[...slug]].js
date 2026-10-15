@@ -33,7 +33,7 @@ import useVideoLibraryQueue from '../../../../../src/components/video-library/us
 import { videoLibrarySocialShareHref } from '../../../../../src/lib/videoLibrarySocialShare.mjs';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { channelPath, CHANNEL_KEY_RE } from '../../../../../src/lib/videoLibraryChannels.mjs';
+import { CHANNEL_KEY_RE } from '../../../../../src/lib/videoLibraryChannels.mjs';
 import WatchPlaybackTools, { WatchDescription, subscribeWatchPlayer } from '../../../../../src/components/video-library/WatchPlaybackTools';
 import { useYouTubeErrorManager } from '../../../../../src/hooks/useYouTubeErrorManager';
 import dynamic from 'next/dynamic';
@@ -149,6 +149,20 @@ export async function getServerSideProps({ params, res }) {
         if (relatedResult.error) console.warn('[video-watch] related videos unavailable:', relatedResult.error.message);
 
         const channel = getVideoChannel(video);
+        // Link only to a channel page that exists, at its canonical address.
+        // video.source is often a legacy key (WSOP) that 308-redirects, or a
+        // key with no registered channel at all (a 404): neither belongs in
+        // crawlable HTML.
+        let channelHref = null;
+        if (CHANNEL_KEY_RE.test(String(video.source || ''))) {
+            try {
+                const { loadVideoLibraryChannels } = await import('../../../../../src/lib/server/videoLibraryChannels');
+                const resolved = await loadVideoLibraryChannels({ channelId: video.source, limit: 1 });
+                channelHref = resolved?.channel?.path || null;
+            } catch (error) {
+                channelHref = null;
+            }
+        }
         const description = buildWatchDescription(video, channel.name);
         res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600');
         return {
@@ -165,6 +179,7 @@ export async function getServerSideProps({ params, res }) {
                     attributionUrl: video.attributionUrl || null,
                 },
                 channel,
+                channelHref,
                 description,
                 canonical: watchPath(video),
                 indexable: isIndexableWatchVideo(video),
@@ -233,7 +248,7 @@ function VideoList({ title, videos }) {
     );
 }
 
-export default function VideoWatchPage({ unavailable, video, channel, description, canonical, indexable, jsonLd, channelVideos, relatedVideos }) {
+export default function VideoWatchPage({ unavailable, video, channel, channelHref = null, description, canonical, indexable, jsonLd, channelVideos, relatedVideos }) {
     const router = useRouter();
     const { user } = useAvatar();
     const playbackQueue = useVideoLibraryQueue(user?.id);
@@ -400,7 +415,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     <span className="vl-avatar" aria-hidden="true">
                                         {channel.logo ? <img src={channel.logo} alt="" loading="lazy" decoding="async" /> : <span>{channel.initials}</span>}
                                     </span>
-                                    {CHANNEL_KEY_RE.test(String(video.source || '')) ? <Link className="vl-info-source vl-channel-link" href={channelPath(video.source)}>{channel.name}</Link> : <span className="vl-info-source">{channel.name}</span>}
+                                    {channelHref ? <Link className="vl-info-source vl-channel-link" href={channelHref}>{channel.name}</Link> : <span className="vl-info-source">{channel.name}</span>}
                                 </div>
 
                                 <div className="vl-hud" role="group" aria-label="Video actions">
@@ -424,7 +439,7 @@ export default function VideoWatchPage({ unavailable, video, channel, descriptio
                                     <h2 id="vl-watch-about-title">About This Video</h2>
                                     <WatchDescription key={video.videoId} text={description} />
                                     <dl>
-                                        <div><dt>Channel</dt><dd>{CHANNEL_KEY_RE.test(String(video.source || '')) ? <Link href={channelPath(video.source)}>{channel.name}</Link> : channel.name}</dd></div>
+                                        <div><dt>Channel</dt><dd>{channelHref ? <Link href={channelHref}>{channel.name}</Link> : channel.name}</dd></div>
                                         <div><dt>Type</dt><dd><Link href={`/hub/video-library?type=${encodeURIComponent(video.type)}`}>{typeLabel}</Link></dd></div>
                                         {published && <div><dt>Published</dt><dd>{published}</dd></div>}
                                         {seconds > 0 && <div><dt>Length</dt><dd>{readableDuration(seconds)}</dd></div>}
