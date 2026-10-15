@@ -62,11 +62,36 @@ function bumpBucket(key, now, windowMs) {
     return entry;
 }
 
+function isInternalSsrRequest(req) {
+    const userAgent = req?.headers?.['user-agent'];
+    if (userAgent !== 'sp-ssr') return false;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) return false;
+    const expectedToken = Buffer.from(serviceKey.slice(0, 32)).toString('base64');
+    const providedToken = req?.headers?.['x-sp-internal-ssr'];
+    return providedToken === expectedToken;
+}
+
 // Headroom multiplier for the IP bucket when a Bearer token is present, so
 // legitimate shared-IP users (offices, CGNAT) don't starve each other.
 const IP_HEADROOM = 5;
 
 export function rateLimit(req, { max = 60, windowMs = 60_000, scope = '' } = {}) {
+    // Verified internal SSR loopback calls (e.g. from getServerSideProps during crawler index passes)
+    // must not be throttled or fail with 429/503.
+    if (isInternalSsrRequest(req)) {
+        return {
+            ok: true,
+            remaining: 999999,
+            reset: Date.now() + windowMs,
+            headers: {
+                'X-RateLimit-Limit': '999999',
+                'X-RateLimit-Remaining': '999999',
+                'X-RateLimit-Reset': String(Math.floor((Date.now() + windowMs) / 1000)),
+            },
+        };
+    }
+
     // [2026-07-25] DUAL-BUCKET enforcement. The old implementation keyed
     // SOLELY on the Bearer header when one was present — but that value is
     // attacker-supplied and unvalidated, so sending a random 40-char Bearer

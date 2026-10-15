@@ -283,9 +283,7 @@ async function primarySeriesRouteId(series) {
   if (!series?.seriesUid) return null;
   if (!isPokerSeriesRouteId(Number(series.id))) return null;
 
-  // A uid that is a bare integer already names the row that owns the route.
   const pointsAt = tournamentSeriesIdFromPointerUid(series.seriesUid);
-  if (pointsAt !== null) return String(pointsAt);
 
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -293,10 +291,28 @@ async function primarySeriesRouteId(series) {
     if (!url || !key) return null;
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(url, key);
+
+    // If seriesUid is a pointer to a tournament_series id, verify that the row
+    // actually exists and is not suppressed before canonicalizing to it.
+    // If no such row exists, the uid is a scraper ID (not a pointer) and must not 404.
+    if (pointsAt !== null) {
+      const { data: pointedRow } = await supabase
+        .from('tournament_series')
+        .select('id, is_suppressed')
+        .eq('id', pointsAt)
+        .or('is_suppressed.is.null,is_suppressed.eq.false')
+        .limit(1)
+        .maybeSingle();
+      if (pointedRow && Number.isSafeInteger(Number(pointedRow.id)) && Number(pointedRow.id) > 0) {
+        return String(pointedRow.id);
+      }
+    }
+
     const { data } = await supabase
       .from('tournament_series')
       .select('id, is_suppressed')
       .eq('series_uid', series.seriesUid)
+      .or('is_suppressed.is.null,is_suppressed.eq.false')
       .limit(1)
       .maybeSingle();
     if (data && data.is_suppressed !== true) {
@@ -337,17 +353,15 @@ export async function getServerSideProps({ params, req, res }) {
     };
   }
 
-  const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req));
+  const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req), req);
   if (seoSeries) {
     const primary = await primarySeriesRouteId(seoSeries);
     if (primary && primary !== String(seoSeries.id)) seoSeries.canonicalId = primary;
   }
   if (status === 'unavailable') {
-    // The API did not answer: the browser still fetches as before, but a
-    // crawler is told to come back rather than to index a spinner.
-    res.statusCode = 503;
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('Retry-After', '120');
+    // The API did not answer: do not send 503 to search engines (Search Console flags 503
+    // as "Server error (5xx) for pages in a sitemap"). Serve 200 with no-cache so client SWR fetches.
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, max-age=0, must-revalidate');
   } else if (status === 'not-found') {
     // A 404 IS NOT CACHED THE WAY A PAGE IS (AEO phase 3, 2026-09-19).
     //

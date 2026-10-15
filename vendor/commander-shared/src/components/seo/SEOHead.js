@@ -38,6 +38,7 @@ export default function SEOHead({
     title,
     description,
     canonical,
+    path,
     ogImage,
     ogType = 'website',
     noindex = false,
@@ -53,10 +54,11 @@ export default function SEOHead({
         : title.includes(SITE_NAME)
             ? title
             : `${title} | ${SITE_NAME}`;
-    const fullCanonical = canonical
-        ? canonical.startsWith('http')
-            ? canonical
-            : `${SITE_URL}${canonical.startsWith('/') ? '' : '/'}${canonical}`
+    const canonicalTarget = canonical || path;
+    const fullCanonical = canonicalTarget
+        ? canonicalTarget.startsWith('http')
+            ? canonicalTarget
+            : `${SITE_URL}${canonicalTarget.startsWith('/') ? '' : '/'}${canonicalTarget}`
         : undefined;
     const ogImageUrl = ogImage || DEFAULT_OG_IMAGE;
 
@@ -65,7 +67,7 @@ export default function SEOHead({
             {/* Primary Meta Tags */}
             <title>{fullTitle}</title>
             {description && <meta name="description" content={description} />}
-            {fullCanonical && <link rel="canonical" href={fullCanonical} />}
+            {fullCanonical && <link key="canonical" rel="canonical" href={fullCanonical} />}
 
             {/* Robots */}
             {noindex ? (

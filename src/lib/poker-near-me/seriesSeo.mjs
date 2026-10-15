@@ -19,7 +19,23 @@
  */
 import { firstThatFits } from '../seo/titleFit.js';
 
-const TIMEOUT_MS = 4000;
+const TIMEOUT_MS = 10000;
+
+/** Build request headers for internal SSR loopback calls. */
+export function buildSsrHeaders(req) {
+  const headers = { accept: 'application/json', 'User-Agent': 'sp-ssr' };
+  const clientIp = req?.headers?.['x-real-ip'] || req?.headers?.['x-forwarded-for'];
+  if (clientIp) {
+    const ip = String(clientIp).split(',')[0].trim();
+    headers['x-real-ip'] = ip;
+    headers['x-forwarded-for'] = ip;
+  }
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (key) {
+    headers['x-sp-internal-ssr'] = Buffer.from(key.slice(0, 32)).toString('base64');
+  }
+  return headers;
+}
 
 /** Absolute origin for a same-origin API call from getServerSideProps. */
 export function originFrom(req) {
@@ -133,14 +149,14 @@ export function isPublicSeries(v) {
  * a 404, and a 404 is a statement that the page does not exist, made to
  * something that will believe it and cache it.
  */
-export async function fetchSeries(id, origin) {
+export async function fetchSeries(id, origin, req = null) {
   if (!/^[A-Za-z0-9_:-]{1,64}$/.test(String(id ?? ''))) return { series: null, status: 'not-found' };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(`${origin}/api/poker/series?id=${encodeURIComponent(id)}`, {
       signal: ctrl.signal,
-      headers: { accept: 'application/json' },
+      headers: buildSsrHeaders(req),
     });
     let data = null;
     try {

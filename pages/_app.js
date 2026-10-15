@@ -928,6 +928,8 @@ export default function App({ Component, pageProps }) {
   // over its internal routes.
   const resolvedPath =
     (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  const defaultCanonical =
+    resolvedPath === '/' ? 'https://smarter.poker/' : `https://smarter.poker${resolvedPath}`;
   // Query-state changes must not remount the full-screen Reel viewer or the
   // Stable Admin console or browsing search while their in-flight work and keyboard state settle.
   // Other routes retain the historical full-URL error-boundary reset behavior.
@@ -1039,6 +1041,7 @@ export default function App({ Component, pageProps }) {
               name="viewport"
               content="width=device-width, initial-scale=1, viewport-fit=cover"
             />
+            <link key="canonical" rel="canonical" href={defaultCanonical} />
             {/* These defaults must live inside next/head. _document metadata
                 cannot be deduplicated, so route-level SEOHead used to produce
                 two contradictory social previews. */}

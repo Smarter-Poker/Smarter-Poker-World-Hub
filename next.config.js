@@ -1270,6 +1270,8 @@ const nextConfig = {
       // link to /hub/avatars-complete, which no longer exists as a page)
       { source: '/hub/avatars-complete', destination: '/hub/avatars', permanent: true },
       { source: '/hub/avatars-standalone', destination: '/hub/avatars', permanent: true },
+      // Bankroll → Bankroll Manager (edge 308 redirect)
+      { source: '/hub/bankroll', destination: '/hub/bankroll-manager', permanent: true },
       // Memory Games → Preflop Charts (renamed April 2026)
       { source: '/hub/memory-games', destination: '/hub/preflop-charts', permanent: true },
       {
