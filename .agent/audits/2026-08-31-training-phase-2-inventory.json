@@ -93938,6 +93938,7 @@
           "src/lib/__tests__/supabaseKeys.test.mjs",
           "src/lib/authUtils.js",
           "src/lib/authUtils.ts",
+          "src/lib/clubInvite.js",
           "src/lib/seo/publicFeedData.js",
           "src/lib/supabase.ts"
         ]
@@ -103040,6 +103041,7 @@
           "src/lib/__tests__/supabaseKeys.test.mjs",
           "src/lib/authUtils.js",
           "src/lib/authUtils.ts",
+          "src/lib/clubInvite.js",
           "src/lib/seo/publicFeedData.js",
           "src/lib/supabase.ts"
         ]
