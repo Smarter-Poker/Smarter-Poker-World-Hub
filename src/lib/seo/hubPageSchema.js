@@ -99,7 +99,7 @@ export function hubProductSchema({
       ...(withBreadcrumb ? { breadcrumb: { '@id': `${url}#breadcrumb` } } : {}),
     },
     {
-      '@type': 'SoftwareApplication',
+      '@type': ['SoftwareApplication', 'WebApplication'],
       '@id': `${url}#app`,
       name,
       url,

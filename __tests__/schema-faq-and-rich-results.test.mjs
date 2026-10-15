@@ -56,3 +56,42 @@ test('seriesSchema includes organizer in EventSeries and subEvents', () => {
   assert.ok(subEvent, 'subEvent should be present');
   assert.equal(subEvent.organizer?.name, 'Smarter.Poker');
 });
+
+test('hubProductSchema emits both SoftwareApplication and WebApplication in @type', () => {
+  const nodes = hubProductSchema({
+    path: '/hub/test-app',
+    name: 'Test App',
+    description: 'An interactive poker app',
+    trail: [['Hub', '/hub'], ['App', '/hub/test-app']],
+  });
+  const appNode = nodes.find((n) => Array.isArray(n['@type']) && n['@type'].includes('WebApplication'));
+  assert.ok(appNode, 'WebApplication should be included in app types');
+  assert.ok(appNode['@type'].includes('SoftwareApplication'));
+  assert.equal(appNode.isAccessibleForFree, true);
+  assert.equal(appNode.offers?.price, '0');
+});
+
+test('seriesSchema emits hierarchical BreadcrumbList including state and venue when available', () => {
+  const sample = {
+    id: '468',
+    name: 'Spring Series',
+    venueName: 'The Lodge Card Club',
+    venueId: '1828',
+    city: 'Round Rock',
+    state: 'TX',
+    startDate: '2026-04-01',
+  };
+  const nodes = seriesSchema(sample);
+  const breadcrumbNode = nodes.find((n) => n['@type'] === 'BreadcrumbList');
+  assert.ok(breadcrumbNode, 'BreadcrumbList must be emitted in series schema');
+  const items = breadcrumbNode.itemListElement;
+  assert.ok(items.length >= 5, 'Should have root, hub, poker series, state, venue, and series');
+  assert.equal(items[0].name, 'Smarter.Poker');
+  assert.equal(items[1].name, 'Hub');
+  assert.equal(items[2].name, 'Poker Series');
+  assert.equal(items[3].name, 'TX');
+  assert.ok(items[3].item.includes('/hub/poker-near-me/in/tx'));
+  assert.equal(items[4].name, 'The Lodge Card Club');
+  assert.ok(items[4].item.includes('/hub/venues/1828'));
+});
+

@@ -168,9 +168,9 @@ function buildVenueJsonLd(venue, canonical, image) {
 
   const isCasino = venue.venue_type === 'casino';
   const isCardRoomOrClub = venue.venue_type === 'card_room' || venue.venue_type === 'poker_club';
-  const node = {
-    '@context': 'https://schema.org',
+  const venueNode = {
     '@type': isCasino ? 'Casino' : (isCardRoomOrClub ? 'SportsActivityLocation' : 'LocalBusiness'),
+    '@id': `${canonical}#venue`,
     name: venue.name,
     url: canonical,
     currenciesAccepted: 'USD',
@@ -185,28 +185,70 @@ function buildVenueJsonLd(venue, canonical, image) {
     if (venue.state) address.addressRegion = String(venue.state);
     if (venue.zip_code) address.postalCode = String(venue.zip_code);
     if (Object.keys(address).length > 0) {
-      node.address = Object.assign({ '@type': 'PostalAddress' }, address);
+      venueNode.address = Object.assign({ '@type': 'PostalAddress' }, address);
     }
   }
 
   const lat = parseFloat(venue.latitude);
   const lng = parseFloat(venue.longitude);
   if (!locationConflict && venue.latitude != null && venue.longitude != null && !isNaN(lat) && !isNaN(lng)) {
-    node.geo = { '@type': 'GeoCoordinates', latitude: lat, longitude: lng };
+    venueNode.geo = { '@type': 'GeoCoordinates', latitude: lat, longitude: lng };
   }
 
-  if (venue.phone) node.telephone = String(venue.phone);
-  if (image) node.image = image;
+  if (venue.phone) venueNode.telephone = String(venue.phone);
+  if (image) venueNode.image = image;
 
   // Same as buildVenueSeo: the poker_venues blurb lives in `about`.
   const rawBlurb = venue.about || venue.description || venue.tagline;
   const blurb = typeof rawBlurb === 'string' ? rawBlurb.replace(/\s+/g, ' ').trim() : '';
-  if (blurb) node.description = clampText(blurb, 500);
+  if (blurb) venueNode.description = clampText(blurb, 500);
 
   const sameAs = [toAbsoluteUrl(venue.website), toAbsoluteUrl(venue.poker_atlas_url)].filter(Boolean);
-  if (sameAs.length > 0) node.sameAs = sameAs;
+  if (sameAs.length > 0) venueNode.sameAs = sameAs;
 
-  return node;
+  // Breadcrumbs: Home -> Hub -> Poker Near Me -> [State (if present)] -> [City (if present)] -> Venue
+  const breadcrumbItems = [
+    { name: 'Smarter.Poker', item: 'https://smarter.poker' },
+    { name: 'Hub', item: 'https://smarter.poker/hub' },
+    { name: 'Poker Near Me', item: 'https://smarter.poker/hub/poker-near-me/lobby' },
+  ];
+
+  if (venue.state) {
+    const stateCode = String(venue.state).trim().toUpperCase();
+    breadcrumbItems.push({
+      name: stateCode,
+      item: `https://smarter.poker/hub/poker-near-me/in/${encodeURIComponent(stateCode.toLowerCase())}`,
+    });
+
+    if (venue.city) {
+      const citySlug = String(venue.city).trim().toLowerCase().replace(/\s+/g, '-');
+      breadcrumbItems.push({
+        name: String(venue.city).trim(),
+        item: `https://smarter.poker/hub/poker-near-me/in/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(citySlug)}`,
+      });
+    }
+  }
+
+  breadcrumbItems.push({
+    name: venue.name,
+    item: canonical,
+  });
+
+  const breadcrumbNode = {
+    '@type': 'BreadcrumbList',
+    '@id': `${canonical}#breadcrumb`,
+    itemListElement: breadcrumbItems.map((crumb, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: crumb.name,
+      item: crumb.item,
+    })),
+  };
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [venueNode, breadcrumbNode],
+  };
 }
 
 /** Count schedule rows across either daily_tournaments shape. */
