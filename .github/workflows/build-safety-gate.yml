@@ -138,6 +138,9 @@ jobs:
       # named here: this step is its reader (CLAUDE.md 10.86, rule 3). Pure
       # git and bash in a throwaway repo under $TMPDIR; no network, no
       # node_modules, so it sits above the install steps on purpose.
+      - name: Single field focus regression
+        run: node --test __tests__/single-field-focus.test.mjs
+
       - name: The ref guard tells the truth about origin
         run: node --test __tests__/ref-guard-tells-the-truth-about-origin.test.mjs
 
