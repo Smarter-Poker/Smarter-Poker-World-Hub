@@ -29,6 +29,7 @@ import './schema-faq-and-rich-results.test.mjs';
 import './series-edge-cache-and-410.test.mjs';
 import './watch-page-links-only-to-real-channels.test.mjs';
 import './series-calendar-and-og.test.mjs';
+import './llms-full-txt-standards.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────

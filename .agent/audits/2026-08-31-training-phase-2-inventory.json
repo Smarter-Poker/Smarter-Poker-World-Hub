@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 79,
     "realtimeFiles": 6,
-    "tests": 157,
+    "tests": 158,
     "markerCandidates": 336,
     "possibleUnwiredFunctions": 381,
     "routeStateCells": 752,
@@ -62982,6 +62982,7 @@
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
+    "__tests__/llms-full-txt-standards.test.mjs",
     "__tests__/llms-txt-states-the-entity.law.test.mjs",
     "__tests__/no-slide-to-see.law.test.mjs",
     "__tests__/page-tutorials.test.mjs",
@@ -81501,6 +81502,7 @@
       "tests": [
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/llms-full-txt-standards.test.mjs",
         "__tests__/llms-txt-states-the-entity.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs"
