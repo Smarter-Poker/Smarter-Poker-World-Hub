@@ -385,6 +385,8 @@ def handler(state):
                 }])
             if table == 'youtube_embed_failures':
                 return self._reply(200, [])
+            if table == 'social_reel_reconciliation_quarantine':
+                return self._reply(200, [])  # no unresolved reconciliation hold
             if table in ('poker_clips', 'sports_clips'):
                 return self._reply(200, [])
             return self._reply(404, {'message': 'unknown relation ' + table})

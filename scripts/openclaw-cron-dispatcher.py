@@ -713,7 +713,15 @@ ALL_CRONS = [
     ('/api/cron/refresh-venue-json',              dict(hour=5, minute=0)),   # cache refresh
     ('/api/cron/news-scraper',                    dict(hour='*/2', minute=0)),
     ('/api/cron/cardplayer-scraper',              dict(hour='*/2', minute=5)),
-    ('/api/cron/pokernews-videos',                dict(hour='*/3', minute=30)),
+    # RETIRED 2026-10-15: /api/cron/pokernews-videos (workers /cron/pokernews-videos).
+    # It answered HTTP 500 every 3 hours from 2026-09-30: no PokerNews
+    # content_author exists, the importer correctly refuses to attribute
+    # official items to a horse, and its RSS source now answers 404.
+    # PokerNews is already an active source in the content_sources registry
+    # (handle @PokerNews), so this duplicated work that lives there. Recorded in
+    # Club Arena ca_retired_cron_jobs (migration 20261015035957) so the
+    # silence alerts stop waiting for it. Do not re-add it; the registry
+    # source is the PokerNews path.
     ('/api/cron/poker-news',                      dict(hour='*/4', minute=15)),
     # Licensed Global Poker Index feed adapter. The normal /api/news path is
     # deliberate: policy forbids adding a net-new pages/api/cron route.
@@ -1119,7 +1127,6 @@ WORKERS_PREFERRED = {
     '/api/cron/refresh-venue-json':     '/cron/refresh-venue-json',
     '/api/cron/content-health-check':   '/cron/content-health-check',
     '/api/cron/trivia-daily-generator': '/cron/trivia-daily-generator',
-    '/api/cron/pokernews-videos':       '/cron/pokernews-videos',
     # NOT FLIPPED: /api/cron/daily-challenges — workers handler returns 500
     # (references training_daily_challenges.bonus_xp_multiplier column that
     # does not exist in the production schema). Defer until workers repo

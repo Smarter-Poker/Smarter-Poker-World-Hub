@@ -1539,6 +1539,41 @@ def _load_existing_publications():
     return existing
 
 
+def _load_reconciliation_held_keys():
+    """Canonical asset keys an unresolved Reel reconciliation quarantine holds private.
+
+    fn_keep_unresolved_reel_quarantine_private (the BEFORE INSERT/UPDATE OF
+    is_public trigger on social_reels) forces every Reel named by an unresolved
+    social_reel_reconciliation_quarantine row back to is_public = false, after
+    publish_video_library_reel has set it true and returned success. That hold
+    is deliberate and ends only when the reconciliation is resolved, so the
+    publisher can never make such a Reel visible. Before 2026-10-15 it
+    published them anyway, its own feed-visibility readback then found them
+    private, and every daily run exited 1 (50 held Reels among the assets
+    verified on 2026-10-14). They are now counted as reconciliation_held and
+    left alone. An unreadable quarantine raises, like every other inventory.
+    """
+    held = set()
+    offset = 0
+    while True:
+        rows = _select_page(
+            'social_reel_reconciliation_quarantine',
+            'quarantine_id,canonical_asset_key',
+            {'resolved_at': 'is.null'},
+            'quarantine_id.asc',
+            EXISTING_PAGE_SIZE,
+            offset,
+        )
+        for row in rows:
+            key = str(row.get('canonical_asset_key') or '')
+            if key:
+                held.add(key)
+        if len(rows) < EXISTING_PAGE_SIZE:
+            break
+        offset += len(rows)
+    return held
+
+
 def _load_embed_failure_rows():
     """Load pending work plus positive and negative verdicts due for renewal."""
     failure_rows = []
@@ -1928,6 +1963,8 @@ def _new_stats():
         'checkpoint_write_errors': 0,
         'deadline_reached': False,
         'deadline_phase': None,
+        'reconciliation_held_keys': 0,
+        'reconciliation_held': 0,
         'catalog_scan_complete': False,
         'aborted_reason': None,
         'publication_controls': None,
@@ -2063,6 +2100,8 @@ def run_bridge(args):
         return stats
 
     existing = _load_existing_publications()
+    held_keys = _load_reconciliation_held_keys()
+    stats['reconciliation_held_keys'] = len(held_keys)
     if _deadline_due(deadline_at):
         _mark_deadline(stats, 'publication_inventory')
         _write_checkpoint(args, stats, 'deadline')
@@ -2178,6 +2217,9 @@ def run_bridge(args):
             if plan == 'already_current':
                 if vid_id in active_confirmed_ids:
                     stats['confirmed_blocked_current'] += 1
+                elif f'youtube:{vid_id}' in held_keys:
+                    # Private by an unresolved reconciliation hold, not by us.
+                    stats['reconciliation_held'] += 1
                 else:
                     stats['already_current'] += 1
                     _record_ops07(stats, 'verified', row)
@@ -2420,6 +2462,11 @@ def run_bridge(args):
                 # The verdict RPC owns both youtube_embed_failures and every
                 # matching catalog availability row in one transaction. Only
                 # the accepted current attempt can proceed to publication.
+                if f'youtube:{video_id}' in held_keys:
+                    # Verified, but its Reel is held private by an unresolved
+                    # reconciliation quarantine; publishing cannot show it.
+                    stats['reconciliation_held'] += 1
+                    continue
                 if _deadline_due(deadline_at):
                     stats['publication_deferred_deadline'] += 1
                     _mark_deadline(stats, 'catalog_publication')
@@ -2592,6 +2639,12 @@ def run_bridge(args):
                     if (
                         selected_for_catalog
                         and outcome == 'verified'
+                        and f'youtube:{vid_id}' in held_keys
+                    ):
+                        stats['reconciliation_held'] += 1
+                    elif (
+                        selected_for_catalog
+                        and outcome == 'verified'
                     ):
                         if _deadline_due(deadline_at):
                             stats['publication_deferred_deadline'] += 1
@@ -2735,13 +2788,51 @@ def _verifier_inconclusive_budget_exceeded(stats):
     return inconclusive > budget
 
 
+# A deadline in one of these phases stops a run that has already verified
+# and committed work batch by batch. Supabase verdict and publication state is
+# the resume cursor (resume_basis in every checkpoint), so the next run picks
+# up exactly the unfinished rows: that is the bounded daily batch doing what it
+# was built to do, not a failure. From 2026-09-27 the 750-row daily renewal
+# plus platform supply filled the whole 1,650 s budget on most days and exited
+# 1 every time.
+DEADLINE_PHASES_AFTER_COMMITTED_WORK = frozenset({
+    'supply_verification',
+    'supply_verdict',
+    'catalog_publication',
+    'failure_verification',
+    'failure_verdict',
+    'failure_race_publication',
+})
+
+
+def _deadline_is_failure(stats):
+    """A deadline fails the run only when it stopped before any committed work.
+
+    A deadline during startup, the publisher or control reads, either
+    inventory or the catalog scan published nothing (a partial scan never
+    publishes), and so is still a non-zero exit, as is any deadline in a run
+    that attempted no verification at all.
+    """
+    if not stats['deadline_reached']:
+        return False
+    attempted = (
+        stats['verification_attempted']
+        + stats['platform_verification_attempted']
+        + stats['failure_verification_attempted']
+    )
+    return (
+        stats.get('deadline_phase') not in DEADLINE_PHASES_AFTER_COMMITTED_WORK
+        or attempted == 0
+    )
+
+
 def _stats_require_nonzero_exit(stats):
     return bool(
         stats['rpc_errors']
         or stats['failure_verdict_errors']
         or _verifier_inconclusive_budget_exceeded(stats)
         or stats['checkpoint_write_errors']
-        or stats['deadline_reached']
+        or _deadline_is_failure(stats)
         or stats['feed_visibility_failures']
     )
 

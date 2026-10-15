@@ -146,6 +146,13 @@ jobs:
       - name: Test explicit cron success semantics
         run: node --test __tests__/openclaw-script-execution-log.test.mjs
 
+      # 2026-10-15: /api/cron/pokernews-videos answered HTTP 500 every 3 hours
+      # and duplicated the content_sources PokerNews source, so it was retired
+      # from the dispatcher and recorded in Club Arena ca_retired_cron_jobs.
+      # A retired job that is scheduled again is a job that cannot succeed.
+      - name: Test a retired dispatcher job stays retired
+        run: node --test __tests__/pokernews-videos-stays-retired.test.mjs
+
       # Non-blocking for the same reason as U4.2 above: it currently reports 8
       # real failures plus 14 jobs that have never fired at all. Flip
       # continue-on-error to false once those are cleared — leaving it red
