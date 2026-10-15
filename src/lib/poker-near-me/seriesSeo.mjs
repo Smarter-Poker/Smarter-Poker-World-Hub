@@ -366,6 +366,8 @@ export function seriesSchema(v) {
     // tab of the same name: the tab is the near-you view and the trail should
     // climb to the index (AEO phase 3, 2026-09-19).
     ['Poker Series', '/hub/poker-series'],
+    ...(state ? [[state.toUpperCase(), `/hub/poker-near-me/in/${encodeURIComponent(state.toLowerCase())}`]] : []),
+    ...(v.venueId ? [[venue || 'Venue', `/hub/venues/${encodeURIComponent(String(v.venueId))}`]] : []),
     [name || 'Series', path],
   ];
 
