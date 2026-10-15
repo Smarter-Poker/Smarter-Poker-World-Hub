@@ -82,7 +82,7 @@ test('quick native unmount flushes draft for the same actor and remains invalid 
  controller.edit(id(10),'draft',{text:'Draft Before Minimize',replyToId:null});const queued=controller.write(id(10),'draft');mounted=false;const before=notices;
  await queued;assert.equal(writes,1);assert.equal(notices,before);
  actor=id(2);await controller.write(id(10),'draft');assert.equal(writes,1);
- const source=readFileSync(new URL('../src/components/messenger/dock/MessengerChat.jsx',import.meta.url),'utf8');assert.match(source,/isCurrent: \(\) => identity.current === actorId/);
+ const source=readFileSync(new URL('../src/components/messenger/dock/MessengerChat.jsx',import.meta.url),'utf8');assert.match(source,/continuityOwner.get\(actorId/);
 });
 
 test('an authoritative zero clears a minimized unread flag after the panel unmounts',()=>{
@@ -92,4 +92,22 @@ test('an authoritative zero clears a minimized unread flag after the panel unmou
  const section=source.slice(source.indexOf("const result = await request('mark-read'"),source.indexOf('const prefs = await services.getPreferences'));
  assert.ok(section.indexOf("broadcastSync('smarter_poker_unread_sync'")<section.indexOf('!mounted.current'));
  assert.match(section,/identity.current !== actorId/);
+});
+
+test('minimize/restore reuses one continuity owner so late receipts retain the newer draft',async()=>{
+ const {createDockContinuityOwner}=await import('../src/components/messenger/dock/dockContinuityOwner.mjs');
+ let actor=id(1),notices=0,finish;
+ const map=new Map();const storage={getItem:key=>map.get(key)||null,setItem:(key,value)=>map.set(key,value),removeItem:key=>map.delete(key),get length(){return map.size;},key:index=>[...map.keys()][index]};
+ const owner=createDockContinuityOwner({getIdentity:()=>actor,notify:()=>notices++});
+ const options={storage,request:()=>new Promise(resolve=>{finish=resolve;})};
+ const first=owner.get(actor,{workspace:'social'},options);first.edit(id(10),'draft',{text:'First Draft',replyToId:null});
+ const writing=first.write(id(10),'draft');await Promise.resolve();
+ const restored=owner.get(actor,{workspace:'social'},options);assert.equal(restored,first);
+ restored.edit(id(10),'draft',{text:'Newer Restored Draft',replyToId:null});
+ finish({ok:true,status:200,body:{success:true,revision:1}});await writing;
+ assert.equal(restored.state(id(10)).draft.text,'Newer Restored Draft');assert.equal(restored.state(id(10)).draft.dirty,true);
+ assert.equal(JSON.parse([...map.values()][0]).draft.text,'Newer Restored Draft');
+ const reading=restored.read(id(10));await Promise.resolve();const before=notices;owner.clear();
+ finish({ok:true,status:200,body:{success:true,state:{draft:{text:'Old',replyToId:null,revision:2},position:{messageId:null,offset:0,revision:0},pin:{value:false,revision:0}}}});await reading;
+ assert.equal(notices,before);actor=id(2);const other=owner.get(actor,{workspace:'social'},options);assert.equal(other.state(id(10)).draft.text,'');
 });
