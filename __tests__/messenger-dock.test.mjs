@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { dockCapacity, dockLayout, restoreDock, updateDock, DOCK_MAX_CHATS } from '../src/components/messenger/dock/messengerDock.mjs';
+import { dockCapacity, dockLayout, dockNotificationLayout, restoreDock, updateDock, DOCK_MAX_CHATS } from '../src/components/messenger/dock/messengerDock.mjs';
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const open = (rows,n,options={}) => updateDock(rows,{type:'open',conversation:{id:id(n),title:`Player ${n}`},...options});
 test('new message opens once, keeps explicitly minimized thread minimized, and highlights unread',()=>{
@@ -41,4 +41,13 @@ test('native dock has no iframe bridge, polling, forced focus or alternate send 
  assert.match(root,/event === 'SIGNED_OUT'.*if \(!identity.current\) \+\+generation.current/);assert.match(root,/workspace: 'resolve'/);assert.match(root,/generation\.current !== epoch/);assert.match(root,/table: 'social_messages'/);
  assert.match(panel,/performMessengerSend/);assert.match(panel,/visibleMessageBoundary/);assert.match(panel,/clearDraftIfUnchanged/);
  assert.match(panel,/nativeEvent\.isComposing/);assert.match(panel,/pending.*ops\.current/);
+});
+
+test('notification stacks stay in the viewport above the composer on short phones and keyboards',()=>{
+ for(const [height,bottom,panel] of [[568,76,468],[667,76,567],[844,76,680],[900,76,500],[568,296,180]]){
+  const placement=dockNotificationLayout(height,bottom,panel);
+  assert.ok(height-placement.bottom<=height-bottom-116-12);
+  assert.ok(height-placement.bottom-placement.maxHeight>=0);
+  assert.ok(placement.maxHeight>=60);
+ }
 });
