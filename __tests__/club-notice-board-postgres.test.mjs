@@ -12,15 +12,16 @@ test('native board authorization, cursors, duplicate writes, CAS, audit and real
  const bin=[process.env.PHASE6_POSTGRES_BIN,'/opt/homebrew/opt/postgresql@17/bin','/usr/lib/postgresql/17/bin'].filter(Boolean).find(path=>existsSync(join(path,'initdb')));
  assert.ok(bin,'PostgreSQL 17 required; no skipped qualification');
  const root=join(process.cwd(),'work');mkdirSync(root,{recursive:true});
- const directory=mkdtempSync(join(root,'notice-pg-'));
- const socket=join(directory,'socket');mkdirSync(socket);
+ const directory=mkdtempSync(join(root,'notice-board-postgresql-long-checkout-fixture-'));
  const reserve=net.createServer();await new Promise(resolve=>reserve.listen(0,'127.0.0.1',resolve));
  const port=reserve.address().port;await new Promise(resolve=>reserve.close(resolve));
  const run=(cmd,args)=>execFileSync(join(bin,cmd),args,{stdio:'pipe',env:{...process.env,TMPDIR:directory}});
  let started=false;let db;
  try {
   run('initdb',['-D',join(directory,'data'),'-A','trust','-U','postgres','--no-locale','--encoding=UTF8']);
-  run('pg_ctl',['-D',join(directory,'data'),'-l',join(directory,'server.log'),'-o',`-k ${socket} -p ${port} -c listen_addresses=127.0.0.1 -c wal_level=logical`,'start']);started=true;
+  // Only loopback TCP is used. Unix sockets exceed the platform path limit
+  // in long GitHub checkout paths, even though the data directory is valid.
+  run('pg_ctl',['-D',join(directory,'data'),'-l',join(directory,'server.log'),'-o',`-p ${port} -c listen_addresses=127.0.0.1 -c unix_socket_directories='' -c wal_level=logical`,'start']);started=true;
   db=new Client({host:'127.0.0.1',port,user:'postgres',database:'postgres'});await db.connect();
   await db.query(`CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN BYPASSRLS;
    CREATE SCHEMA extensions; CREATE SCHEMA auth;
