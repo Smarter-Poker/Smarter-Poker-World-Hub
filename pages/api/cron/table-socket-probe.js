@@ -362,6 +362,39 @@ async function platformIsFrozen(admin) {
   }
 }
 
+/**
+ * Is an owner floor park or pause in force right now?
+ *
+ * A floor park (Club Arena `ca_operator_floor_hold`, written by the owner's
+ * park/pause command) closes the cash floor ON PURPOSE. While it holds, no
+ * table this account may open deals a hand, so `fn_probe_table_candidate`
+ * answers nothing, and that is the park working, not the fleet failing.
+ * 2026-10-15: the owner parked the cash floor at 16:53 UTC for a horse wallet
+ * reset; this probe failed every run from 17:04 to 17:43 with
+ * "no table this account may open has dealt a hand" and paged OpenClaw
+ * CRITICAL for a stop the owner had declared. The park is not unwatched: the
+ * hold is a lease that expires and its own watchdog
+ * (fn_ca_operator_floor_hold_watchdog) pages a hold older than ten minutes.
+ *
+ * Only an UNEXPIRED hold counts (expires_at in the future), so a park left
+ * behind cannot silence this probe past its lease. Fails OPEN like
+ * `platformIsFrozen`: a hold that cannot be read is no hold, and the failure
+ * stays a failure.
+ */
+export async function activeFloorPark(admin, now = new Date()) {
+  try {
+    const { data, error } = await admin
+      .from('ca_operator_floor_hold')
+      .select('operation_id, mode, reason, held_since, expires_at')
+      .gt('expires_at', now.toISOString())
+      .limit(1);
+    if (error || !Array.isArray(data) || !data[0]) return null;
+    return data[0];
+  } catch {
+    return null;
+  }
+}
+
 /** Outcomes that mean the platform is fine and the PROBE needs attention. */
 export const PROBE_FAULT_OUTCOMES = Object.freeze(['probe_outdated']);
 
@@ -444,6 +477,29 @@ async function handler(req, res) {
     steps.pick_table.table_id = tableId;
     steps.pick_table.viewer_id = ld.user.id;
     if (!tableId) {
+      // A declared owner floor park is not an outage: the floor is closed
+      // because the owner closed it, and the hold's own watchdog pages it.
+      // 200 so the dispatcher's consecutive-failure counter never sees it.
+      const park = await activeFloorPark(admin);
+      if (park) {
+        await anon.auth.signOut({ scope: 'local' }).catch(() => null);
+        steps.pick_table.ok = false;
+        const skipped = {
+          status: 'skipped',
+          reason: 'owner_floor_park',
+          duration_ms: Date.now() - startedAt,
+          floor_hold: park,
+          steps,
+        };
+        const { error: hbErr } = await admin.from('probe_heartbeats').insert({
+          probe_name: 'table-socket-probe',
+          status: 'skipped',
+          duration_ms: skipped.duration_ms,
+          details: skipped,
+        });
+        if (hbErr) console.warn('[table-socket-probe] heartbeat insert failed:', hbErr.message);
+        return res.status(200).json(skipped);
+      }
       // NOT a "skip". Every condition in that function mirrors a gate the
       // upgrade would apply, so a zero result means "no table this account may
       // open has dealt a hand in ten minutes" on a platform that deals
