@@ -39,7 +39,7 @@ test('native dock has no iframe bridge, polling, forced focus or alternate send 
  const panel=readFileSync(new URL('../src/components/messenger/dock/MessengerChat.jsx',import.meta.url),'utf8');
  assert.doesNotMatch(root+panel,/<iframe|postMessage|setInterval|autoFocus/);
  assert.match(root,/event === 'SIGNED_OUT'.*if \(!identity.current\) \+\+generation.current/);assert.match(root,/void refresh\(true\);\s+const channel/);assert.match(root,/workspace: 'resolve'/);assert.match(root,/generation\.current !== epoch/);assert.match(root,/table: 'social_messages'/);
- assert.match(panel,/performMessengerSend/);assert.match(panel,/visibleMessageBoundary/);assert.match(panel,/clearDraftIfUnchanged/);
+ assert.match(panel,/onMinimize\(\); services.openMessenger\(id\)/);assert.match(panel,/performMessengerSend/);assert.match(panel,/visibleMessageBoundary/);assert.match(panel,/clearDraftIfUnchanged/);
  assert.match(panel,/nativeEvent\.isComposing/);assert.match(panel,/pending.*ops\.current/);
 });
 
