@@ -1,4 +1,10 @@
 import { test, expect, type Locator, type Page, type Route } from '@playwright/test';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
+
+// This file plants a fabricated session. Keep it off live Supabase Realtime.
+test.beforeEach(async ({ context }) => {
+  await installRealtimeSessionGuard(context);
+});
 
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
 const COPY_AUDIT_CLUB_ID = '00000000-0000-4000-8000-000000000093';

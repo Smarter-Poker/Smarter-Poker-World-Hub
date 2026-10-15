@@ -1,4 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
+
+// This file plants a fabricated session. Keep it off live Supabase Realtime.
+test.beforeEach(async ({ context }) => {
+  await installRealtimeSessionGuard(context);
+});
 const OWNER = '33333333-3333-4333-8333-333333333333';
 const PLAYLIST = '44444444-4444-4444-8444-444444444444';
 const NAME = 'river Study ace9196c-4f5f-491f-aeae-28b0d0032aa5';

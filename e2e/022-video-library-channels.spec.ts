@@ -1,4 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
+
+// This file plants a fabricated session. Keep it off live Supabase Realtime.
+test.beforeEach(async ({ context }) => {
+  await installRealtimeSessionGuard(context);
+});
 
 // Isolated SSR catalog fixture supplied by the scoped runner. These records
 // never enter production; follow/browser API mocks exercise real components.

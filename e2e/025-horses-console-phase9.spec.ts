@@ -1,4 +1,10 @@
 import { expect, test, type Page, type Request, type Response, type Route } from '@playwright/test';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
+
+// This file plants a fabricated session. Keep it off live Supabase Realtime.
+test.beforeEach(async ({ context }) => {
+  await installRealtimeSessionGuard(context);
+});
 
 test.use({
   storageState: { cookies: [], origins: [] },

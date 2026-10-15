@@ -1,4 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
+
+// This file plants a fabricated session. Keep it off live Supabase Realtime.
+test.beforeEach(async ({ context }) => {
+  await installRealtimeSessionGuard(context);
+});
 const OWNER = '33333333-3333-4333-8333-333333333333';
 const video = { id: 'phase6v0000', videoId: 'phase6v0000', source: 'HCL', sourceName: 'Hustler Casino Live', title: 'NLH Personal Study Lesson', type: 'cash', duration: '18:42', thumbnail: 'https://i.ytimg.com/vi/phase6v0000/hqdefault.jpg', availabilityStatus: 'verified', embeddable: true, availabilityCheckedAt: new Date().toISOString(), publishedAt: new Date().toISOString(), recommendationReasons: ['Continue where you stopped'] };
 const catalog = { success: true, data: [video], pagination: { total: 1, nextOffset: 1, hasMore: false } };

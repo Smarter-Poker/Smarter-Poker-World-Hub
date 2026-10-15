@@ -3,6 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import footerRegistry from '../src/config/world-footer-navigation.json';
 import { VIDEO_LIBRARY_PLAYERS } from '../src/lib/videoLibraryPlayers.mjs';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
+
+// This file plants a fabricated session. Keep it off live Supabase Realtime.
+test.beforeEach(async ({ context }) => {
+  await installRealtimeSessionGuard(context);
+});
 
 const VIEWPORTS = [
   { width: 320, height: 568 },

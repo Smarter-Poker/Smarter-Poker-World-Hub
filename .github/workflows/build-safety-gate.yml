@@ -230,6 +230,9 @@ jobs:
       - name: Phone Verification Artwork And Welcome Guards
         run: node --test __tests__/phone-verification-console.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs
 
+      - name: Fabricated Test Sessions Stay Off Live Realtime
+        run: node --test __tests__/a-fabricated-session-never-reaches-live-realtime.law.test.mjs
+
       - name: Messenger Live Probe Safety
         run: node scripts/ci/messenger-live-check.mjs --self-test
 
