@@ -55,7 +55,7 @@ try{
 }catch(error){report.error=error.message;process.exitCode=1;}
 finally{
  for(const {client,channel} of channels)await client.removeChannel(channel);
- for(const client of clients){await client.auth.signOut({scope:'local'});client.realtime.disconnect();}
+ for(const client of clients){await client.auth.signOut({scope:'local'});await client.realtime.disconnect();}
  try{
   const fixture=await admin.from('social_conversations').select('id,group_name').eq('id',conversationId).maybeSingle();assert.ifError(fixture.error);
   if(fixture.data){assert.equal(fixture.data.group_name,title);const removed=await admin.from('social_conversations').delete().eq('id',conversationId).eq('group_name',title);assert.ifError(removed.error);}
