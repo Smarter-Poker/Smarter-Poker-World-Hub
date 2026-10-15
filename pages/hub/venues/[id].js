@@ -2437,53 +2437,57 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             )}
 
             {/* Contact & Info Section */}
-            <section className="info-section">
-              <h2 className="section-title">Contact &amp; Info</h2>
-              <div className="info-grid">
+            <section className="info-section" aria-label="Venue Quick Facts and Contact Information">
+              <h2 className="section-title">Contact &amp; Quick Facts</h2>
+              <dl className="info-grid">
                 {/* Address */}
                 <div className="info-card">
-                  <div className="info-icon">
+                  <div className="info-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
                   </div>
                   <div className="info-content">
-                    <span className="info-label">Address</span>
+                    <dt className="info-label">Address</dt>
                     {venue.address && !locationConflict ? (
-                      <a href="#" onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }} className="info-value info-link">
-                        {venue.address}
-                        {venue.city && (', ' + venue.city)}
-                        {venue.state && (', ' + venue.state)}
-                      </a>
+                      <dd className="info-value">
+                        <a href="#" onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }} className="info-link">
+                          {venue.address}
+                          {venue.city && (', ' + venue.city)}
+                          {venue.state && (', ' + venue.state)}
+                        </a>
+                      </dd>
                     ) : (
-                      <span className="info-value">
+                      <dd className="info-value">
                         {venue.city && venue.state ? venue.city + ', ' + venue.state : 'Not available'}
-                      </span>
+                      </dd>
                     )}
                   </div>
                 </div>
 
                 {/* Phone */}
                 <div className="info-card">
-                  <div className="info-icon">
+                  <div className="info-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                     </svg>
                   </div>
                   <div className="info-content">
-                    <span className="info-label">Phone</span>
+                    <dt className="info-label">Phone</dt>
                     {venue.phone ? (
-                      <a href={'tel:' + venue.phone} className="info-value info-link">{venue.phone}</a>
+                      <dd className="info-value">
+                        <a href={'tel:' + venue.phone} className="info-link">{venue.phone}</a>
+                      </dd>
                     ) : (
-                      <span className="info-value muted">Not Available</span>
+                      <dd className="info-value muted">Not Available</dd>
                     )}
                   </div>
                 </div>
 
                 {/* Website */}
                 <div className="info-card">
-                  <div className="info-icon">
+                  <div className="info-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
                       <line x1="2" y1="12" x2="22" y2="12" />
@@ -2491,58 +2495,53 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     </svg>
                   </div>
                   <div className="info-content">
-                    <span className="info-label">Website</span>
+                    <dt className="info-label">Website</dt>
                     {/* Stored websites are often protocol-less ('bellagio.com').
                         A raw href resolves relative to this page and navigates
                         to /hub/venues/bellagio.com, a 404 — normalize first. */}
                     {toAbsoluteUrl(venue.website) ? (
-                      <a href={toAbsoluteUrl(venue.website)} target="_blank" rel="noopener noreferrer" className="info-value info-link">
-                        {String(venue.website).replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
-                      </a>
+                      <dd className="info-value">
+                        <a href={toAbsoluteUrl(venue.website)} target="_blank" rel="noopener noreferrer" className="info-link">
+                          {String(venue.website).replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                        </a>
+                      </dd>
                     ) : (
-                      <span className="info-value muted">Not Available</span>
+                      <dd className="info-value muted">Not Available</dd>
                     )}
                   </div>
                 </div>
 
                 {/* Hours */}
                 <div className="info-card">
-                  <div className="info-icon">
+                  <div className="info-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
                       <polyline points="12 6 12 12 16 14" />
                     </svg>
                   </div>
                   <div className="info-content">
-                    <span className="info-label">Hours</span>
-                    <span className="info-value">{venue.hours || 'Not listed'}</span>
+                    <dt className="info-label">Hours</dt>
+                    <dd className="info-value">{venue.hours || 'Not listed'}</dd>
                   </div>
                 </div>
 
-                {/* External Listing */}
+                {/* Room Type */}
                 <div className="info-card">
-                  <div className="info-icon">
+                  <div className="info-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <polyline points="9 22 9 12 15 12 15 22" />
                     </svg>
                   </div>
                   <div className="info-content">
-                    <span className="info-label">External Listing</span>
-                    {venue.poker_atlas_url ? (
-                      <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="info-value info-link">
-                        View Details
-                      </a>
-                    ) : (
-                      <span className="info-value muted">Not Listed</span>
-                    )}
+                    <dt className="info-label">Venue Type</dt>
+                    <dd className="info-value">{String(venue.venue_type || 'Poker Room').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</dd>
                   </div>
                 </div>
 
                 {/* Has Tournaments */}
                 <div className="info-card">
-                  <div className="info-icon">
+                  <div className="info-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
                       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
@@ -2552,13 +2551,52 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     </svg>
                   </div>
                   <div className="info-content">
-                    <span className="info-label">Tournaments</span>
-                    <span className={'info-value' + (venue.has_tournaments ? ' has-yes' : ' muted')}>
+                    <dt className="info-label">Tournaments</dt>
+                    <dd className={'info-value' + (venue.has_tournaments ? ' has-yes' : ' muted')}>
                       {venue.has_tournaments ? 'Yes - Tournaments Available' : 'No'}
-                    </span>
+                    </dd>
                   </div>
                 </div>
-              </div>
+
+                {/* External Listing */}
+                <div className="info-card">
+                  <div className="info-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </div>
+                  <div className="info-content">
+                    <dt className="info-label">External Listing</dt>
+                    {venue.poker_atlas_url ? (
+                      <dd className="info-value">
+                        <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="info-link">
+                          View Details
+                        </a>
+                      </dd>
+                    ) : (
+                      <dd className="info-value muted">Not Listed</dd>
+                    )}
+                  </div>
+                </div>
+
+                {/* Schedules Available */}
+                <div className="info-card">
+                  <div className="info-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                  </div>
+                  <div className="info-content">
+                    <dt className="info-label">Active Schedules</dt>
+                    <dd className="info-value">{countSchedules(venue)} Listed Schedules</dd>
+                  </div>
+                </div>
+              </dl>
             </section>
 
             {/* ============================================ */}
@@ -4139,6 +4177,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           letter-spacing: 0.5px;
         }
         .info-value {
+          margin: 0;
           font-size: 14px;
           color: #e2e8f0;
           font-weight: 500;

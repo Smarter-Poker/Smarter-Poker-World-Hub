@@ -1049,77 +1049,81 @@ export default function SeriesDetailPage({ seoSeries = null }) {
         </PokerNearMePanelShell>
 
         {/* Key Stats Grid */}
-        <PokerNearMePanelShell className="stats-grid" bodyClassName="stats-grid__body">
-          <div className="stat-card">
-            <div className="stat-label">Dates</div>
-            <div className="stat-value">{formatDateRange(series.start_date, series.end_date)}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Main Event Buy-In</div>
-            <div className="stat-value gold">{series.main_event_buyin ? formatMoney(series.main_event_buyin) : 'TBD'}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Total Events</div>
-            <div className="stat-value">{events.length || series.total_events || 'TBD'}</div>
-          </div>
-          {(() => {
-            const buyIns = events.filter(e => e.buy_in).map(e => Number(e.buy_in));
-            const minBuy = buyIns.length ? Math.min(...buyIns) : null;
-            const maxBuy = buyIns.length ? Math.max(...buyIns) : null;
-            return minBuy ? (
-              <div className="stat-card">
-                <div className="stat-label">Buy-In Range</div>
-                <div className="stat-value gold">{formatMoney(minBuy)} - {formatMoney(maxBuy)}</div>
-              </div>
-            ) : null;
-          })()}
-          {(() => {
-            const totalGtd = events.reduce((sum, e) => sum + (Number(e.guarantee) || 0), 0);
-            const seriesGtd = series.total_guaranteed || totalGtd;
-            return seriesGtd ? (
-              <div className="stat-card">
-                <div className="stat-label">Total Guaranteed</div>
-                <div className="stat-value gold">{formatMoney(seriesGtd)}</div>
-              </div>
-            ) : null;
-          })()}
-          {series.main_event_guaranteed && (
+        <PokerNearMePanelShell className="stats-grid" bodyClassName="stats-grid__body" aria-label="Tournament Series Quick Facts">
+          <dl className="stats-grid-dl" style={{ display: 'contents' }}>
             <div className="stat-card">
-              <div className="stat-label">Main Event GTD</div>
-              <div className="stat-value gold">{formatMoney(series.main_event_guaranteed)}</div>
+              <dt className="stat-label">Dates</dt>
+              <dd className="stat-value">{formatDateRange(series.start_date, series.end_date)}</dd>
             </div>
-          )}
-          <div className="stat-card">
-            <div className="stat-label">Series Type</div>
-            <div className="stat-value">
-              <span className="inline-type-dot" style={{ background: detailCategoryColor }} />
-              {detailCategory}
+            <div className="stat-card">
+              <dt className="stat-label">Main Event Buy-In</dt>
+              <dd className="stat-value gold">{series.main_event_buyin ? formatMoney(series.main_event_buyin) : 'TBD'}</dd>
             </div>
-          </div>
+            <div className="stat-card">
+              <dt className="stat-label">Total Events</dt>
+              <dd className="stat-value">{events.length || series.total_events || 'TBD'}</dd>
+            </div>
+            {(() => {
+              const buyIns = events.filter(e => e.buy_in).map(e => Number(e.buy_in));
+              const minBuy = buyIns.length ? Math.min(...buyIns) : null;
+              const maxBuy = buyIns.length ? Math.max(...buyIns) : null;
+              return minBuy ? (
+                <div className="stat-card">
+                  <dt className="stat-label">Buy-In Range</dt>
+                  <dd className="stat-value gold">{formatMoney(minBuy)} - {formatMoney(maxBuy)}</dd>
+                </div>
+              ) : null;
+            })()}
+            {(() => {
+              const totalGtd = events.reduce((sum, e) => sum + (Number(e.guarantee) || 0), 0);
+              const seriesGtd = series.total_guaranteed || totalGtd;
+              return seriesGtd ? (
+                <div className="stat-card">
+                  <dt className="stat-label">Total Guaranteed</dt>
+                  <dd className="stat-value gold">{formatMoney(seriesGtd)}</dd>
+                </div>
+              ) : null;
+            })()}
+            {series.main_event_guaranteed && (
+              <div className="stat-card">
+                <dt className="stat-label">Main Event GTD</dt>
+                <dd className="stat-value gold">{formatMoney(series.main_event_guaranteed)}</dd>
+              </div>
+            )}
+            <div className="stat-card">
+              <dt className="stat-label">Series Type</dt>
+              <dd className="stat-value">
+                <span className="inline-type-dot" style={{ background: detailCategoryColor }} />
+                {detailCategory}
+              </dd>
+            </div>
+          </dl>
         </PokerNearMePanelShell>
 
         {/* Venue Info */}
         <PokerNearMePanelShell className="section-card" bodyClassName="section-card__body">
           <h2 className="section-title">Venue Information</h2>
-          <div className="venue-info">
+          <dl className="venue-info">
             {venueName && (
               <div className="venue-row">
-                <span className="venue-label">Venue</span>
+                <dt className="venue-label">Venue</dt>
                 {series.venue_id ? (
-                  <Link href={'/hub/venues/' + series.venue_id} legacyBehavior>
-                    <a className="venue-value venue-value-link">{venueName}</a>
-                  </Link>
+                  <dd className="venue-value">
+                    <Link href={'/hub/venues/' + series.venue_id} legacyBehavior>
+                      <a className="venue-value-link">{venueName}</a>
+                    </Link>
+                  </dd>
                 ) : (
-                  <span className="venue-value">{venueName}</span>
+                  <dd className="venue-value">{venueName}</dd>
                 )}
               </div>
             )}
             {(location.city || location.state) && (
               <div className="venue-row">
-                <span className="venue-label">Location</span>
-                <span className="venue-value">
+                <dt className="venue-label">Location</dt>
+                <dd className="venue-value">
                   {location.city}{location.city && location.state ? ', ' : ''}{location.state}
-                </span>
+                </dd>
               </div>
             )}
             <div className="venue-links">
@@ -1154,7 +1158,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                 </a>
               )}
             </div>
-          </div>
+          </dl>
         </PokerNearMePanelShell>
 
         {/* Events Section */}
@@ -1703,6 +1707,7 @@ const styles = `
   }
 
   .stat-value {
+    margin: 0;
     font-size: 18px;
     font-weight: 700;
     color: #f1f5f9;
@@ -1778,6 +1783,7 @@ const styles = `
 
   /* Venue Info */
   .venue-info {
+    margin: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -1798,6 +1804,7 @@ const styles = `
   }
 
   .venue-value {
+    margin: 0;
     font-size: 15px;
     color: #e2e8f0;
     font-weight: 500;

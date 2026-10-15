@@ -95,3 +95,19 @@ test('seriesSchema emits hierarchical BreadcrumbList including state and venue w
   assert.ok(items[4].item.includes('/hub/venues/1828'));
 });
 
+test('venue and series pages contain semantic definition lists (dl, dt, dd) for quick facts', async () => {
+  const fs = await import('node:fs/promises');
+  const venueFile = await fs.readFile('pages/hub/venues/[id].js', 'utf8');
+  assert.ok(venueFile.includes('<dl className="info-grid">'), 'Venue page should use dl for info-grid');
+  assert.ok(venueFile.includes('<dt className="info-label">'), 'Venue page should use dt for info-label');
+  assert.ok(venueFile.includes('<dd className="info-value">'), 'Venue page should use dd for info-value');
+
+  const seriesFile = await fs.readFile('pages/hub/series/[id].js', 'utf8');
+  assert.ok(seriesFile.includes('<dl className="stats-grid-dl"'), 'Series page should use dl for stats-grid');
+  assert.ok(seriesFile.includes('<dt className="stat-label">'), 'Series page should use dt for stat-label');
+  assert.ok(seriesFile.includes('<dd className="stat-value'), 'Series page should use dd for stat-value');
+  assert.ok(seriesFile.includes('<dl className="venue-info">'), 'Series page should use dl for venue-info');
+  assert.ok(seriesFile.includes('<dt className="venue-label">'), 'Series page should use dt for venue-label');
+  assert.ok(seriesFile.includes('<dd className="venue-value'), 'Series page should use dd for venue-value');
+});
+
