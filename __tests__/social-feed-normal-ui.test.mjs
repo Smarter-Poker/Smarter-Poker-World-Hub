@@ -53,6 +53,8 @@ test('titled image-less horse news still hydrates its actual preview image', () 
   assert.equal(isArticlePreviewImage(emoji), false);
   assert.equal(isArticlePreviewImage('https://example.com/wp-includes/images/smilies/icon_wink.gif'), false);
   assert.equal(isArticlePreviewImage('https://example.com/assets/default-placeholder.jpg'), false);
+  assert.equal(isArticlePreviewImage('https://a.espncdn.com/combiner/i?img=%2Fi%2Fespn%2Fespn_logos%2Fespn_red.png'), false);
+  assert.equal(suppliedArticleMetadata({ image: 'https://a.espncdn.com/combiner/i?img=/i/espn/espn_logos/espn_red.png' }).image, null);
   assert.equal(isArticlePreviewImage('https://user:secret@example.com/article.jpg'), false);
   assert.equal(isArticlePreviewImage('https://upswingpoker.com/wp-content/uploads/story.jpg'), true);
   assert.equal(suppliedArticleMetadata({ title: 'Live Poker Tips', image: emoji }).image, null);
@@ -64,7 +66,7 @@ test('titled image-less horse news still hydrates its actual preview image', () 
   assert.match(article, /newsImageUrl\(metadata\.image\)/);
   assert.match(article, /setMetadata\(supplied\)/);
   assert.match(article, /fetchLinkPreview\(url, \{ requireImage: !supplied\.image \}\)/);
-  assert.match(article, /preview=story-image-v3/);
+  assert.match(article, /preview=story-image-v4/);
   assert.doesNotMatch(article, /#1a1a2e|#16213e|#0f3460/);
 });
 
@@ -323,7 +325,7 @@ test('mounted shared previews hydrate, order copy before media, and activate the
     const url = 'https://upswingpoker.com/mounted-preview-regression/';
     render({ url, description: 'The author description stays above its image.' });
     assert.equal(pending.length, 1, 'missing thumbnail triggers metadata hydration');
-    assert.match(pending[0].url, /preview=story-image-v3/);
+    assert.match(pending[0].url, /preview=story-image-v4/);
     assert.equal(nodes().filter((node) => node.type === 'img').length, 0);
     await settle(pending[0], { title: 'Ace &amp; King', image: 'https://upswingpoker.com/uploads/actual-story.jpg' });
     let tree = nodes();
@@ -367,6 +369,25 @@ test('mounted shared previews hydrate, order copy before media, and activate the
     tree.find((node) => node.props?.role === 'button').props.onClick(event());
     assert.deepEqual(calls.at(-1), ['internal', '/hub/poker-near-me']);
     assert.ok(tree.some((node) => node.value === 'Open On Smarter.Poker →'));
+
+    render({ url: '/hub/poker-near-me', fallbackContent: 'Looks like Red Rock is running a local event.' });
+    tree = nodes();
+    assert.ok(tree.some((node) => node.value === 'Browse Poker Events'), 'generic listing has an honest compact destination label');
+    assert.ok(!tree.some((node) => node.value?.includes('Looks like')), 'a listing does not fabricate an article heading from the caption');
+    const listingButton = tree.find((node) => node.type === 'button');
+    assert.equal(listingButton.props.type, 'button', 'native button retains Enter/Space activation');
+    assert.equal(listingButton.props.style.border, 0, 'no large empty duplicate card frame');
+    listingButton.props.onClick(event());
+    assert.deepEqual(calls.at(-1), ['internal', '/hub/poker-near-me']);
+    assert.equal(pending.length, 2, 'generic listing cannot request unrelated external art');
+
+    render({ url: 'https://www.espn.com/fantasy/basketball/story/_/id/50189270/backup-plans',
+      title: 'Fantasy backup plans',
+      image: 'https://a.espncdn.com/combiner/i?img=%2Fi%2Fespn%2Fespn_logos%2Fespn_red.png' });
+    assert.equal(nodes().filter((node) => node.type === 'img').length, 0, 'persisted generic artwork is never painted');
+    assert.equal(pending.length, 3, 'rejected persisted logo requests true story artwork');
+    await settle(pending[2], { image: 'https://a.espncdn.com/photo/2026/1015/r1731149_1296x729_16-9.jpg' });
+    assert.ok(nodes().find((node) => node.type === 'img').props.src.includes('r1731149_1296x729'), 'same-story real image reaches renderer');
 
     const Thumbnail = load(resolve(rootDir, 'src/components/reels/ReelThumbnail.jsx')).default;
     const thumbnailProps = { thumbnail: 'https://publisher.example/expired.jpg',

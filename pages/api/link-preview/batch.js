@@ -72,7 +72,7 @@ export default async function handler(req, res) {
       if (isBlockedUrl(url)) return [url, null];
       try {
         const singleRes = await fetch(
-          `${baseUrl}/api/link-preview?url=${encodeURIComponent(url)}`,
+          `${baseUrl}/api/link-preview?url=${encodeURIComponent(url)}&preview=story-image-v4`,
           { headers: { 'x-internal-batch': '1' } }
         );
         if (!singleRes.ok) return [url, null];

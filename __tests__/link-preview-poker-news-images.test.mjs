@@ -201,3 +201,85 @@ test('Upswing falls back to bounded first-party OpenGraph when WordPress media f
     assert.equal(calls.at(-1), 'https://upswingpoker.com/how-to-respond-big-blind-small-blind-too-tight/');
   }
 });
+
+test('ESPN fantasy stories resolve exact article art outside the latest league window', async () => {
+  const calls = [];
+  const { handler } = loadKnownPublisherReader(async (url) => {
+    calls.push(String(url));
+    const payload = { headlines: [{
+      id: 50189270, headline: 'Fantasy backup plans',
+      images: [{ url: 'https://a.espncdn.com/photo/2026/1015/r1731149_1296x729_16-9.jpg' }],
+    }] };
+    return { ok: true, async text() { return JSON.stringify(payload); }, async json() { return payload; } };
+  });
+  const res = response();
+  await handler({ method: 'GET', query: { url: 'https://www.espn.com/fantasy/basketball/story/_/id/50189270/backup-plans' } }, res);
+  assert.equal(res.body.image, 'https://a.espncdn.com/photo/2026/1015/r1731149_1296x729_16-9.jpg');
+  assert.deepEqual(calls, ['https://content.core.api.espn.com/v1/sports/news/50189270']);
+});
+
+function response() {
+  return { headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; },
+    status() { return this; }, json(body) { this.body = body; return this; } };
+}
+
+test('ESPN rejects mismatched story identity and encoded generic logo without caching the miss', async () => {
+  const { handler } = loadKnownPublisherReader(async (url) => ({ ok: true,
+    async text() { return JSON.stringify({ headlines: [{ id: 999, images: [{ url: 'https://a.espncdn.com/photo/unrelated.jpg' }] }] }); },
+    async json() { return String(url).includes('microlink')
+      ? { status: 'success', data: { image: { url: 'https://a.espncdn.com/combiner/i?img=%2Fi%2Fespn%2Fespn_logos%2Fespn_red.png' } } }
+      : { articles: [] }; },
+  }));
+  const res = response();
+  await handler({ method: 'GET', query: { url: 'https://www.espn.com/fantasy/basketball/story/_/id/50189270/backup-plans' } }, res);
+  assert.equal(res.body.image, null);
+  assert.equal(res.headers['cache-control'], 'private, no-store');
+});
+
+test('Poker.org metadata preserves apostrophes and resolves genuine story art', async () => {
+  const { handler } = loadKnownPublisherReader(async () => ({ ok: true, async text() {
+    return `<meta property="og:description" content="Here's the Panama guide."><meta property="og:image" content="https://media.poker.org/prod/images/article_landscape/panama.jpg">`;
+  } }));
+  const res = response();
+  await handler({ method: 'GET', query: { url: 'https://www.poker.org/latest-news/panama/' } }, res);
+  assert.equal(res.body.description, "Here's the Panama guide.");
+  assert.equal(res.body.image, 'https://media.poker.org/prod/images/article_landscape/panama.jpg');
+});
+
+test('ESPN malformed exact response uses the correct fantasy league and never related-story art', async () => {
+  const calls = [];
+  const { handler } = loadKnownPublisherReader(async (url) => ({ ok: true, async text() {
+    calls.push(String(url));
+    return JSON.stringify(String(url).includes('content.core') ? { headlines: { id: 50189270 } } : {
+      articles: [
+        { id: 999, images: [{ url: 'https://a.espncdn.com/photo/related.jpg' }] },
+        { id: 50189270, images: [
+          { url: 'https://a.espncdn.com/combiner/i?img=/i/espn/espn_logos/espn_red.png' },
+          { url: 'https://a.espncdn.com/photo/correct-story.jpg' },
+        ] },
+      ],
+    });
+  } }));
+  const res = response();
+  await handler({ method: 'GET', query: { url: 'https://www.espn.com/fantasy/basketball/story/_/id/50189270/backup-plans' } }, res);
+  assert.equal(res.body.image, 'https://a.espncdn.com/photo/correct-story.jpg');
+  assert.equal(calls[1], 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?limit=50');
+});
+
+test('ESPN-like foreign hosts cannot enter the fixed first-party story path', async () => {
+  const calls = [];
+  const { handler } = loadKnownPublisherReader(async (url) => { calls.push(String(url)); return { ok: true, async text() { return '<title>Foreign</title>'; } }; });
+  await handler({ method: 'GET', query: { url: 'https://espn.com.example.org/fantasy/basketball/story/_/id/50189270/test' } }, response());
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0], 'https://espn.com.example.org/fantasy/basketball/story/_/id/50189270/test');
+});
+
+test('generic publisher fallback rejects brand art without caching the missing image', async () => {
+  const { handler } = loadKnownPublisherReader(async (url) => String(url).includes('microlink')
+    ? { ok: true, async json() { return { status: 'success', data: { title: 'Actual story', image: { url: 'https://publisher.example/assets/logo.png' } } }; } }
+    : { ok: false, status: 503 });
+  const res = response();
+  await handler({ method: 'GET', query: { url: 'https://publisher.example/actual-story' } }, res);
+  assert.equal(res.body.image, null);
+  assert.equal(res.headers['cache-control'], 'private, no-store');
+});
