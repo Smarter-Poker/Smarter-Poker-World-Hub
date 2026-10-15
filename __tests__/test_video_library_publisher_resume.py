@@ -29,6 +29,8 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         self.bridge.EVIDENCE_DIR = Path(self.temporary_directory.name)
         self.bridge.VERIFY_CONCURRENCY = 1
         self.bridge.time.sleep = lambda _seconds: None
+        # No reconciliation quarantine unless a test names one.
+        self.bridge._load_reconciliation_held_keys = lambda: set()
 
     def tearDown(self):
         self.temporary_directory.cleanup()
@@ -2362,6 +2364,135 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'Could not prove feed visibility'):
             bridge._feed_visible_asset_ids(publications)
 
+    def test_a_deadline_after_committed_batches_is_the_bounded_stop_not_a_failure(self):
+        bridge = self.bridge
+        for phase in sorted(bridge.DEADLINE_PHASES_AFTER_COMMITTED_WORK):
+            stats = bridge._new_stats()
+            stats['verification_attempted'] = 600
+            stats['platform_verification_attempted'] = 150
+            stats['deadline_reached'] = True
+            stats['deadline_phase'] = phase
+            self.assertFalse(bridge._stats_require_nonzero_exit(stats), phase)
+
+    def test_a_deadline_before_any_committed_work_still_fails(self):
+        bridge = self.bridge
+        for phase in ('startup', 'publisher_identity', 'publication_inventory',
+                      'failure_inventory', 'catalog_scan', None):
+            stats = bridge._new_stats()
+            stats['verification_attempted'] = 600
+            stats['deadline_reached'] = True
+            stats['deadline_phase'] = phase
+            self.assertTrue(bridge._stats_require_nonzero_exit(stats), phase)
+        stats = bridge._new_stats()
+        stats['deadline_reached'] = True
+        stats['deadline_phase'] = 'supply_verification'
+        self.assertTrue(bridge._stats_require_nonzero_exit(stats), 'no verification attempted')
+
+    def test_a_deadline_does_not_hide_another_failure(self):
+        stats = self.bridge._new_stats()
+        stats['verification_attempted'] = 600
+        stats['deadline_reached'] = True
+        stats['deadline_phase'] = 'supply_verification'
+        stats['feed_visibility_failures'] = 1
+        self.assertTrue(self.bridge._stats_require_nonzero_exit(stats))
+
+    def _held_asset(self, checked_at=None, status='unknown'):
+        return {
+            'id': '11111111-1111-4111-8111-111111111111',
+            'youtube_video_id': 'M7lc1UVf-VE',
+            'source_id': 'HCL',
+            'source_name': 'Hustler Casino Live',
+            'title': 'Poker Candidate',
+            'thumbnail_url': None,
+            'published_at': '2026-09-20T01:00:00+00:00',
+            'type': 'cash',
+            'availability_status': status,
+            'embeddable': True if status == 'verified' else None,
+            'availability_checked_at': checked_at,
+        }
+
+    def test_a_reel_held_private_by_reconciliation_is_not_published_or_failed(self):
+        asset = self._held_asset()
+        self._configure_ops07_run(
+            [asset],
+            {asset['youtube_video_id']: {'available': True, 'status': 'verified'}},
+            visible_asset_ids=set(),
+        )
+        self.bridge._load_reconciliation_held_keys = lambda: {'youtube:' + asset['youtube_video_id']}
+        self.bridge._publish_row = mock.Mock(
+            side_effect=AssertionError('a quarantined Reel must not be republished')
+        )
+
+        stats = self.bridge.run_bridge(self._arguments())
+
+        self.assertEqual(stats['verified'], 1)
+        self.assertEqual(stats['reconciliation_held'], 1)
+        self.assertEqual(stats['reconciliation_held_keys'], 1)
+        self.assertEqual(stats['created'], 0)
+        self.assertEqual(stats['feed_visibility_checked'], 0)
+        self.assertEqual(stats['feed_visibility_failures'], 0)
+        self.assertFalse(self.bridge._stats_require_nonzero_exit(stats))
+        self.bridge._publish_row.assert_not_called()
+
+    def test_an_already_current_reel_held_by_reconciliation_is_not_a_visibility_failure(self):
+        asset = self._held_asset(datetime.now(timezone.utc).isoformat(), 'verified')
+        self._configure_ops07_run([asset], {}, visible_asset_ids=set())
+        self.bridge._load_existing_publications = lambda: {
+            asset['id']: {
+                'id': '33333333-3333-4333-8333-333333333333',
+                'source_asset_id': asset['id'],
+                'source_post_id': '22222222-2222-4222-8222-222222222222',
+                'caption': asset['title'],
+            },
+        }
+        self.bridge._load_reconciliation_held_keys = lambda: {'youtube:' + asset['youtube_video_id']}
+        self.bridge._verify_row = mock.Mock(side_effect=AssertionError('already current'))
+
+        stats = self.bridge.run_bridge(self._arguments())
+
+        self.assertEqual(stats['reconciliation_held'], 1)
+        self.assertEqual(stats['already_current'], 0)
+        self.assertEqual(stats['feed_visibility_checked'], 0)
+        self.assertEqual(stats['feed_visibility_failures'], 0)
+        self.assertFalse(self.bridge._stats_require_nonzero_exit(stats))
+
+    def test_a_reel_not_held_still_fails_when_the_feed_cannot_show_it(self):
+        asset = self._held_asset()
+        self._configure_ops07_run(
+            [asset],
+            {asset['youtube_video_id']: {'available': True, 'status': 'verified'}},
+            visible_asset_ids=set(),
+        )
+        self.bridge._load_reconciliation_held_keys = lambda: {'youtube:someone-else'}
+
+        stats = self.bridge.run_bridge(self._arguments())
+
+        self.assertEqual(stats['reconciliation_held'], 0)
+        self.assertEqual(stats['feed_visibility_failures'], 1)
+        self.assertTrue(self.bridge._stats_require_nonzero_exit(stats))
+
+    def test_the_reconciliation_hold_is_read_from_unresolved_quarantine_rows(self):
+        calls = []
+
+        def select_page(table, select, filters, order, limit, offset):
+            calls.append((table, select, dict(filters), order, offset))
+            if offset == 0:
+                return [{'quarantine_id': i, 'canonical_asset_key': 'youtube:v%d' % i} for i in range(limit)]
+            return [{'quarantine_id': 'x', 'canonical_asset_key': 'youtube:last'}, {'quarantine_id': 'y', 'canonical_asset_key': None}]
+
+        self.bridge._select_page = select_page
+        bridge_module = self.bridge
+        spec = importlib.util.spec_from_file_location(f'held_{id(self)}', BRIDGE_PATH)
+        fresh = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fresh)
+        fresh._select_page = select_page
+        held = fresh._load_reconciliation_held_keys()
+
+        self.assertEqual(len(held), fresh.EXISTING_PAGE_SIZE + 1)
+        self.assertIn('youtube:last', held)
+        self.assertEqual(calls[0][0], 'social_reel_reconciliation_quarantine')
+        self.assertEqual(calls[0][2], {'resolved_at': 'is.null'})
+        self.assertIsNotNone(bridge_module)
 
 if __name__ == '__main__':
     unittest.main()
