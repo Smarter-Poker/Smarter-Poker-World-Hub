@@ -12,6 +12,10 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import useHasMounted from '../../../src/hooks/useHasMounted';
 import {
+  buildSeriesIcs,
+  buildGoogleCalendarUrl,
+} from '../../../src/lib/poker-near-me/calendarExport.mjs';
+import {
   fetchSeries,
   formatRange,
   isPublicSeries,
@@ -752,6 +756,27 @@ export default function SeriesDetailPage({ seoSeries = null }) {
     }
   }
 
+  const handleDownloadIcs = () => {
+    if (!series) return;
+    const icsData = buildSeriesIcs(series);
+    if (!icsData) return;
+    const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${String(series.name || 'series').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-schedule.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    if (isMountedRef.current) {
+      setShareMessage('Calendar downloaded');
+      if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
+      shareTimeoutRef.current = setTimeout(() => { if (isMountedRef.current) setShareMessage(''); }, 2500);
+    }
+  };
+
+  const googleCalUrl = series ? buildGoogleCalendarUrl(series) : null;
+
   const handleShare = async () => {
     const url = window.location.href;
     const setMsg = (msg) => {
@@ -1001,6 +1026,25 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               <PokerNearMeConsoleIcon name="share" className="action-btn__glyph" />
               {shareMessage || 'Share'}
             </button>
+            <button
+              className="action-btn calendar-btn"
+              onClick={handleDownloadIcs}
+              title="Add to iCal / Outlook Calendar (.ics)"
+            >
+              <PokerNearMeConsoleIcon name="calendar" className="action-btn__glyph" />
+              Add To Calendar
+            </button>
+            {googleCalUrl && (
+              <a
+                href={googleCalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="action-btn google-cal-btn"
+                title="Add to Google Calendar"
+              >
+                Google Cal
+              </a>
+            )}
           </div>
         </PokerNearMePanelShell>
 
