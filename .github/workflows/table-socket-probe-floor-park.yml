@@ -1,0 +1,32 @@
+name: Table Socket Probe Reads A Declared Floor Park
+
+# __tests__/a-declared-floor-park-is-not-a-table-outage.test.mjs pins that
+# /api/cron/table-socket-probe answers a declared Club Arena floor park
+# (ca_operator_floor_hold with an unexpired lease) as a skipped run, never a
+# 503 page, and that it fails open when the hold cannot be read. Node built-ins
+# only, so no install. No timer: pull_request only, scoped to the paths it
+# proves.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - pages/api/cron/table-socket-probe.js
+      - __tests__/a-declared-floor-park-is-not-a-table-outage.test.mjs
+      - .github/workflows/table-socket-probe-floor-park.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: table-socket-probe-floor-park-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  floor-park:
+    name: A declared floor park is not a table outage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: A declared floor park is not a table outage
+        run: node --test __tests__/a-declared-floor-park-is-not-a-table-outage.test.mjs
