@@ -26,6 +26,7 @@ import './union-leave-read-errors.test.mjs';
 import './delete-account-closes-the-account.test.mjs';
 import './poker-arena-is-always-first.law.test.mjs';
 import './schema-faq-and-rich-results.test.mjs';
+import './series-edge-cache-and-410.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────

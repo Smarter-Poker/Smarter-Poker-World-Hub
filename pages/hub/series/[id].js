@@ -16,6 +16,7 @@ import {
   formatRange,
   isPublicSeries,
   originFrom,
+  seriesCacheControl,
   seriesDescription,
   seriesPath,
   seriesPlace,
@@ -364,6 +365,11 @@ export async function getServerSideProps({ params, req, res }) {
     res.statusCode = 503;
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Retry-After', '120');
+  } else if (status === 'gone') {
+    // Deliberately withdrawn: 410 tells crawlers to drop the URL. Kept to an
+    // hour at the edge so a mistaken suppression is quickly recoverable.
+    res.statusCode = 410;
+    res.setHeader('Cache-Control', 'public, s-maxage=3600');
   } else if (status === 'not-found') {
     // A 404 IS NOT CACHED THE WAY A PAGE IS (AEO phase 3, 2026-09-19).
     //
@@ -381,7 +387,7 @@ export async function getServerSideProps({ params, req, res }) {
     res.statusCode = 404;
     res.setHeader('Cache-Control', 'public, s-maxage=60');
   } else {
-    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', seriesCacheControl(seoSeries));
   }
   return { props: { seoSeries } };
 }
