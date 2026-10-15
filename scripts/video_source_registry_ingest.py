@@ -34,6 +34,30 @@ class QuotaStopped(RuntimeError):
     pass
 
 
+# A SOURCE YOUTUBE SAYS DOES NOT EXIST IS QUARANTINED, NOT RETRIED (2026-10-15).
+# Seven registered channels failed every daily run from 2026-10-03: three
+# handles that resolve to no channel (youtube_channel_not_found) and four
+# uploads playlists YouTube answers 404 for. The ingestor kept each one
+# active, re-asked YouTube every run, recorded the same failure and exited 1,
+# so Open Claw paged "/api/cron/video-library-scraper STILL FAILING" daily
+# while every other source ingested normally. These answers are the provider
+# saying the source is gone, not a transient fault: the source moves to the
+# registry's existing 'quarantined' lifecycle (sources() reads only 'active')
+# for an operator to correct or retire, and the run that found it is not a
+# failed run. Transport errors, quota, 5xx and any other failure still fail
+# the run exactly as before.
+PERMANENT_SOURCE_ABSENCE = (
+    'youtube_channel_not_found',
+    'youtube_uploads_playlist_missing',
+    'source_missing_channel_identity',
+    'youtube_http_404',
+)
+
+
+def is_permanent_source_absence(failure: str | None) -> bool:
+    return bool(failure) and any(failure.startswith(code) for code in PERMANENT_SOURCE_ABSENCE)
+
+
 def load_env() -> None:
     env_file = Path(os.environ.get('SP_ENV_FILE') or REPO_ROOT / '.env.local')
     if not env_file.exists():
@@ -327,9 +351,28 @@ class RegistryIngestor:
             cursor_after = cursor_before
         counts['quota_units'] = self.quota_units - quota_before
         self.record(source, operation_id, status, counts, cursor_before, cursor_after, failure)
+        if status == 'failed' and is_permanent_source_absence(failure):
+            try:
+                self.quarantine(source)
+                status = 'quarantined'
+            except Exception as error:  # the source stays active, so the run still fails
+                failure = f'{failure} (quarantine refused: {type(error).__name__})'[:240]
         return {'operation_id': operation_id, 'source_id': source['id'], 'source_name': source['name'],
                 'topic': source['ingest_topic'], 'status': status, **counts,
                 'failure_code': failure}
+
+    def quarantine(self, source: dict) -> None:
+        """Move a source YouTube says does not exist out of the active registry.
+
+        Guarded on lifecycle_status 'active' so an operator's own decision about
+        the row (paused, retired) is never overwritten. The failed observation is
+        already recorded by fn_record_video_source_observation above.
+        """
+        if self.dry_run:
+            return
+        (self.supabase.table('content_sources')
+         .update({'lifecycle_status': 'quarantined', 'updated_at': iso_now()})
+         .eq('id', source['id']).eq('lifecycle_status', 'active').execute())
 
     def run(self, source_id: str | None = None, max_sources: int = 500) -> dict:
         rows = self.sources(source_id)[:max_sources]
@@ -372,6 +415,12 @@ def main() -> int:
     ingestor = RegistryIngestor(db, youtube_key, dry_run=args.dry_run)
     summary = ingestor.run(args.source_id, max(1, min(args.max_sources, 500)))
     print(json.dumps(summary, sort_keys=True))
+    return run_exit_code(summary)
+
+
+def run_exit_code(summary: dict) -> int:
+    """1 when any source failed this run. A quarantined source is not a failure:
+    the provider answered that it does not exist and the registry now says so."""
     return 1 if any(row['status'] == 'failed' for row in summary['results']) else 0
 
 
