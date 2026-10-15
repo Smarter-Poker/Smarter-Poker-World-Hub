@@ -293,3 +293,19 @@ test('a failed empty-thread proof stays unavailable instead of granting first-se
  const setup=emptyThreadFixture();const from=setup.db.from;setup.db.from=table=>{const query=from(table);if(table==='social_messages'){const select=query.select;query.select=columns=>columns==='id'?{eq(){return this;},limit(){return Promise.resolve({data:null,error:{code:'57014'}});}}:select(columns);}return query;};
  await assert.rejects(getMessengerWorkspace(setup.db,ids.user,{workspace:'resolve',conversationId:setup.emptyId}),error=>error.status===503);
 });
+
+
+test('global dock reconnect includes authorized social, club and private invoice discussions',async()=>{
+ const {db}=fixture();const result=await getMessengerWorkspace(db,ids.user,{workspace:'dock'});
+ assert.deepEqual(new Set(result.conversations.map(c=>c.id)),new Set([ids.social,ids.chat,ids.invoice]));
+ assert.deepEqual(result.conversations.find(c=>c.id===ids.chat).dockWorkspace,{workspace:'club',clubId:ids.club,folder:'messages'});
+ assert.equal(result.conversations.find(c=>c.id===ids.invoice).dockWorkspace.folder,'invoices');
+});
+test('global dock never includes revoked club or hidden private documents',async()=>{
+ const revoked=fixture({member:false});assert.deepEqual((await getMessengerWorkspace(revoked.db,ids.user,{workspace:'dock'})).conversations.map(c=>c.id),[ids.social]);
+ const hidden=fixture();hidden.tables.accounting_conversations[0].recipient_visible=false;
+ assert.deepEqual(new Set((await getMessengerWorkspace(hidden.db,ids.user,{workspace:'dock'})).conversations.map(c=>c.id)),new Set([ids.social,ids.chat]));
+});
+test('global dock authority failure never returns a partial inbox or fabricated zero',async()=>{
+ await assert.rejects(getMessengerWorkspace(fixture({broken:'visibility'}).db,ids.user,{workspace:'dock'}),e=>e.status===503);
+});

@@ -104,6 +104,24 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
     const clubs = internal.clubs || await getMessengerClubs(db, userId);
     const workspace = request.workspace || 'social';
+    if (workspace === 'dock') {
+        // Global reconnect/inbox reads must cover each currently authorized
+        // workspace, including club discussions missed while offline.
+        const options = { clubs, countsOnly: true };
+        const workspaces = [await getMessengerWorkspace(db, userId, { workspace: 'social' }, options)];
+        for (let start = 0; start < clubs.length; start += 2) {
+            const batch = await Promise.all(clubs.slice(start, start + 2).flatMap(club =>
+                ['messages', 'invoices'].map(folder => getMessengerWorkspace(db, userId,
+                    { workspace: 'club', clubId: club.id, folder }, options))));
+            workspaces.push(...batch);
+        }
+        const combined = workspaces.flatMap(selected => selected.conversations.map(conversation => ({
+            ...conversation, dockWorkspace: { workspace: selected.workspace, clubId: selected.clubId, folder: selected.folder },
+        })));
+        return { success: true, clubs, workspace: 'dock', clubId: null, folder: 'messages',
+            conversations: [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]
+                .sort((a, b) => (Date.parse(b.last_message_at) || 0) - (Date.parse(a.last_message_at) || 0)) };
+    }
     if (!['social', 'club', 'resolve'].includes(workspace)) fail(400, 'Invalid Messenger Workspace');
     let club = null;
     let folder = request.folder || 'messages';
