@@ -101,7 +101,7 @@ async function fetchLinkPreview(url, { requireImage = false, refresh = false } =
 
     const promise = (async () => {
         try {
-            const version = requireImage ? '&preview=story-image-v3' : '';
+            const version = requireImage ? '&preview=story-image-v4' : '';
             const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}${version}`, { signal: AbortSignal.timeout(PREVIEW_REQUEST_TIMEOUT_MS) });
             if (response.ok) {
                 const data = await response.json();

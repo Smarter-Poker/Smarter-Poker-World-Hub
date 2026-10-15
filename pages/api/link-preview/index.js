@@ -125,7 +125,9 @@ function isArticleImage(url) {
     try {
         const parsed = new URL(url);
         if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-        return !/(?:^|[\/_-])(?:logo|favicon|icon)(?:[\/_\-.]|$)/i.test(parsed.pathname);
+        if (parsed.username || parsed.password) return false;
+        const imagePath = `${parsed.pathname} ${parsed.searchParams.get('img') || ''} ${parsed.searchParams.get('url') || ''}`;
+        return !/(?:^|[\s\/_-])(?:logos?|favicon|icon|emoji|smiley|smilies|emoticon|avatar|sprite|placeholder|default)(?:[\/_\-.]|$)|espn_red|espnlogo|espn_logos/i.test(imagePath);
     } catch {
         return false;
     }
@@ -295,7 +297,7 @@ export default async function handler(req, res) {
         if (espnResult) {
             return res.status(200).json(espnResult);
         }
-        // ESPN API miss — fall through to Microlink, then logo fallback
+        // A missing story photograph is never replaced with a brand logo.
         try {
             const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
             const microlinkRes = await fetchWithTimeout(microlinkUrl, {}, 6000);
@@ -305,15 +307,13 @@ export default async function handler(req, res) {
                     const d = microlinkData.data;
                     // Only accept Microlink's image if it's an article image (not the generic ESPN logo)
                     const mlImage = d.image?.url || null;
-                    const isGenericLogo = mlImage && (
-                        mlImage.includes('espn_red') || mlImage.includes('espnlogo') ||
-                        mlImage.includes('/i/espn/espn_logos/')
-                    );
+                    const validImage = isArticleImage(mlImage) ? mlImage : null;
+                    if (!validImage) res.setHeader('Cache-Control', 'private, no-store');
                     return res.status(200).json({
                         url,
                         title: d.title || 'ESPN Article',
                         description: d.description || 'Click to view on ESPN',
-                        image: isGenericLogo ? isSocialPlatform.fallbackImage : (mlImage || isSocialPlatform.fallbackImage),
+                        image: validImage,
                         siteName: d.publisher || 'ESPN',
                         platform: 'espn',
                         contentType: 'article',
@@ -323,11 +323,12 @@ export default async function handler(req, res) {
         } catch (e) {
             console.warn('[link-preview] Microlink fallback for ESPN failed:', e.message);
         }
+        res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json({
             url,
             title: 'ESPN Article',
             description: 'Click to view on ESPN',
-            image: isSocialPlatform.fallbackImage,
+            image: null,
             siteName: 'ESPN',
             platform: 'espn',
             contentType: 'article',
@@ -345,11 +346,13 @@ export default async function handler(req, res) {
 
             if (microlinkData.status === 'success' && microlinkData.data) {
                 const data = microlinkData.data;
+                const articleImage = isArticleImage(data.image?.url) ? data.image.url : null;
+                if (!articleImage) res.setHeader('Cache-Control', 'private, no-store');
                 return res.status(200).json({
                     url,
                     title: data.title || `${isSocialPlatform.platform} Content`,
                     description: data.description || `Click to view on ${isSocialPlatform.platform}`,
-                    image: data.image?.url || isSocialPlatform.fallbackImage,
+                    image: articleImage,
                     siteName: data.publisher || isSocialPlatform.platform,
                     platform: isSocialPlatform.platformId,
                     contentType: isSocialPlatform.contentType,
@@ -360,11 +363,12 @@ export default async function handler(req, res) {
         }
 
         // Fallback to generic preview if Microlink fails
+        res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json({
             url,
             title: `${isSocialPlatform.platform} ${isSocialPlatform.contentType}`,
             description: `Click to view on ${isSocialPlatform.platform}`,
-            image: isSocialPlatform.fallbackImage,
+            image: null,
             siteName: isSocialPlatform.platform,
             platform: isSocialPlatform.platformId,
             contentType: isSocialPlatform.contentType.toLowerCase(),
@@ -402,7 +406,7 @@ export default async function handler(req, res) {
 
         // Parse OpenGraph meta tags
         const metadata = parseOpenGraph(html, url);
-
+        if (!metadata.image) res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json(metadata);
 
     } catch (error) {
@@ -419,11 +423,12 @@ export default async function handler(req, res) {
                 const data = await externalResponse.json();
                 if (data.status === 'success' && data.data) {
                     const d = data.data;
+                    if (!isArticleImage(d.image?.url)) res.setHeader('Cache-Control', 'private, no-store');
                     return res.status(200).json({
                         url: url,
                         title: d.title || null,
                         description: d.description || null,
-                        image: d.image?.url || null,
+                        image: isArticleImage(d.image?.url) ? d.image.url : null,
                         siteName: d.publisher || new URL(url).hostname.replace(/^www\./, ''),
                     });
                 }
@@ -434,6 +439,7 @@ export default async function handler(req, res) {
 
         // Final fallback: extract metadata from URL
         const fallback = extractFallbackMetadata(url, req);
+        res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json(fallback);
     }
 
@@ -455,67 +461,29 @@ function parseOpenGraph(html, originalUrl) {
         siteName: null,
     };
 
-    // Extract og:title
-    const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
-    if (ogTitleMatch) {
-        metadata.title = decodeHTMLEntities(ogTitleMatch[1]);
+    // Parse attributes with their matching quote. An apostrophe inside a
+    // double-quoted description is text, not the end of its value.
+    const tags = [...html.matchAll(/<meta\b[^>]*>/gi)].map(([tag]) => {
+        const attrs = {};
+        for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(["'])([\s\S]*?)\2/g)) attrs[match[1].toLowerCase()] = match[3];
+        return attrs;
+    });
+    const meta = (key) => tags.find((tag) => (tag.property || tag.name || '').toLowerCase() === key)?.content;
+    metadata.title = decodeHTMLEntities(meta('og:title')) || null;
+    metadata.description = decodeHTMLEntities(meta('og:description') || meta('description')) || null;
+    for (const storyImage of [meta('og:image'), meta('twitter:image')].filter(Boolean)) {
+        try {
+            const absolute = new URL(decodeHTMLEntities(storyImage), originalUrl).href;
+            if (isArticleImage(absolute)) { metadata.image = absolute; break; }
+        } catch { /* Invalid publisher metadata is not an image. */ }
     }
-
-    // Extract og:description
-    const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i) ||
-        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:description["']/i);
-    if (ogDescMatch) {
-        metadata.description = decodeHTMLEntities(ogDescMatch[1]);
-    }
-
-    // Extract og:image
-    const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
-        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
-    if (ogImageMatch) {
-        let imageUrl = ogImageMatch[1];
-        // Make relative URLs absolute
-        if (imageUrl.startsWith('/')) {
-            const urlObj = new URL(originalUrl);
-            imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
-        }
-        metadata.image = imageUrl;
-    }
-
-    // Extract og:site_name
-    const ogSiteMatch = html.match(/<meta[^>]*property=["']og:site_name["'][^>]*content=["']([^"']+)["']/i) ||
-        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:site_name["']/i);
-    if (ogSiteMatch) {
-        metadata.siteName = decodeHTMLEntities(ogSiteMatch[1]);
-    }
+    metadata.siteName = decodeHTMLEntities(meta('og:site_name')) || null;
 
     // Fallback to standard meta tags if OG not found
     if (!metadata.title) {
         const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
         if (titleMatch) {
             metadata.title = decodeHTMLEntities(titleMatch[1].trim());
-        }
-    }
-
-    if (!metadata.description) {
-        const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
-            html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
-        if (descMatch) {
-            metadata.description = decodeHTMLEntities(descMatch[1]);
-        }
-    }
-
-    // Extract twitter:image as fallback for image
-    if (!metadata.image) {
-        const twitterImageMatch = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i) ||
-            html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image["']/i);
-        if (twitterImageMatch) {
-            let imageUrl = twitterImageMatch[1];
-            if (imageUrl.startsWith('/')) {
-                const urlObj = new URL(originalUrl);
-                imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
-            }
-            metadata.image = imageUrl;
         }
     }
 
@@ -646,7 +614,7 @@ function checkSocialPlatform(url) {
         }
 
         // ESPN — blocks direct server-side scraping with Cloudflare
-        if (hostname.includes('espn.com') || hostname.includes('espnfc.com')) {
+        if (hostname === 'espn.com' || hostname.endsWith('.espn.com') || hostname === 'espnfc.com' || hostname.endsWith('.espnfc.com')) {
             return {
                 platform: 'ESPN',
                 platformId: 'espn',
@@ -731,17 +699,42 @@ async function fetchEspnArticleMetadata(url) {
         const pathParts = urlObj.pathname.split('/').filter(Boolean);
         if (pathParts.length < 1) return null;
 
-        const sportSlug = pathParts[0].toLowerCase();
+        const sportSlug = (pathParts[0] === 'fantasy' ? pathParts[1] : pathParts[0])?.toLowerCase();
         
         // Extract story ID from URL (usually /_/id/12345/...)
-        const idMatch = url.match(/\/_\/id\/(\d+)\//) || url.match(/\/(\d+)$/);
+        const idMatch = urlObj.pathname.match(/\/_\/id\/(\d+)(?:\/|$)/);
         const storyId = idMatch ? idMatch[1] : null;
         
         if (!storyId) return null;
 
+        const metadataFor = (article) => {
+            if (!article || String(article.id) !== storyId) return null;
+            const image = Array.isArray(article.images) ? article.images.find((candidate) => isArticleImage(candidate?.url))?.url : null;
+            if (!image) return null;
+            return { url, title: article.headline || null, description: article.description || null,
+                image, siteName: 'ESPN', platform: 'espn', contentType: 'article' };
+        };
+        // Fixed first-party origin, numeric story ID only. This is the exact
+        // story endpoint advertised by ESPN's own news payload, not a search
+        // that may select an unrelated recent article or expire from a window.
+        try {
+            const exact = await fetchKnownPublisherPayload(
+                `https://content.core.api.espn.com/v1/sports/news/${storyId}`,
+                { headers: { Accept: 'application/json' }, redirect: 'error' },
+                { json: true, timeoutMs: 5000 }
+            );
+            const article = Array.isArray(exact?.headlines)
+                ? exact.headlines.find((candidate) => String(candidate?.id) === storyId) : null;
+            const metadata = metadataFor(article);
+            if (metadata) return metadata;
+        } catch { /* Continue to the same story in the league endpoint. */ }
+
         // Map URL sport slug to ESPN API sport/league pair
         const SPORT_MAP = {
             'nba': ['basketball', 'nba'],
+            'basketball': ['basketball', 'nba'],
+            'football': ['football', 'nfl'],
+            'baseball': ['baseball', 'mlb'],
             'wnba': ['basketball', 'wnba'],
             'nfl': ['football', 'nfl'],
             'mlb': ['baseball', 'mlb'],
@@ -760,36 +753,17 @@ async function fetchEspnArticleMetadata(url) {
         const leaguePath = league ? `/${league}` : '';
         const apiUrl = `https://site.api.espn.com/apis/site/v2/sports/${sport}${leaguePath}/news?limit=50`;
 
-        const response = await fetchWithTimeout(apiUrl, {
-            headers: { 'Accept': 'application/json' }
-        }, 5000);
-
-        if (!response.ok) return null;
-        
-        const data = await response.json();
-        const articles = data.articles || [];
+        const data = await fetchKnownPublisherPayload(apiUrl, {
+            headers: { Accept: 'application/json' }, redirect: 'error',
+        }, { json: true, timeoutMs: 5000 });
+        const articles = Array.isArray(data?.articles) ? data.articles : [];
 
         // Find the article with the matching story ID
         const article = articles.find(a => {
-            if (a.id && String(a.id) === storyId) return true;
-            const aLink = a.links?.web?.href || '';
-            return aLink.includes(storyId);
+            return String(a?.id) === storyId;
         });
 
-        if (article) {
-            const images = article.images || [];
-            const imageUrl = images.length > 0 ? images[0].url : null;
-            
-            return {
-                url: url,
-                title: article.headline || 'ESPN Article',
-                description: article.description || 'Click to view on ESPN',
-                image: imageUrl || 'https://a.espncdn.com/combiner/i?img=/i/espn/espn_logos/espn_red.png',
-                siteName: 'ESPN',
-                platform: 'espn',
-                contentType: 'article'
-            };
-        }
+        if (article) return metadataFor(article);
         
         return null;
     } catch (e) {

@@ -18,7 +18,8 @@ export function isArticlePreviewImage(value) {
     if (!value.startsWith('/') && !/^https?:\/\//i.test(value)) return false;
     if (!['http:', 'https:'].includes(url.protocol)) return false;
     if (url.username || url.password) return false;
-    return !/(?:^|[\/_-])(?:logo|favicon|icon|emoji|smiley|smilies|emoticon|avatar|sprite|placeholder|default)(?:[\/_.-]|$)/i.test(url.pathname);
+    const imagePath = `${url.pathname} ${url.searchParams.get('img') || ''} ${url.searchParams.get('url') || ''}`;
+    return !/(?:^|[\s\/_-])(?:logos?|favicon|icon|emoji|smiley|smilies|emoticon|avatar|sprite|placeholder|default)(?:[\/_.-]|$)|espn_red|espnlogo|espn_logos/i.test(imagePath);
   } catch {
     return false;
   }
