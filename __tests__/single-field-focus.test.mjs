@@ -28,6 +28,7 @@ test('a pill search uses its existing painted well while a standalone field owns
     const f = fixture();
     const well = f.node({ parent: f.document.body, width: 280, border: true, rounded: true });
     const search = f.node({ parent: well, field: true });
+    search.style.boxShadow = '0 0 0 4px blue'; // legacy ring during its transition
     const plain = f.node({ parent: f.document.body, field: true, border: true });
     assert.equal(fieldFocusOwner(search), well);
     assert.equal(fieldFocusOwner(plain), plain);

@@ -17,7 +17,8 @@ export function fieldFocusOwner(field) {
         const border = ['Top', 'Right', 'Bottom', 'Left'].some(side => parseFloat(style[`border${side}Width`]) > 0 && style[`border${side}Style`] !== 'none');
         const roundedSurface = parseFloat(style.borderTopLeftRadius) > 0
             && style.backgroundColor !== 'transparent' && style.backgroundColor !== 'rgba(0, 0, 0, 0)';
-        if (border || roundedSurface || (style.boxShadow && style.boxShadow !== 'none')) return candidate;
+        // A transitioning focus shadow on a transparent input is not its frame.
+        if (border || roundedSurface || (candidate !== field && style.boxShadow && style.boxShadow !== 'none')) return candidate;
     }
     return field;
 }
