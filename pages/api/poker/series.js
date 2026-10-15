@@ -372,6 +372,12 @@ async function handler(req, res) {
 
           if (ts) {
             if (!isServableSeriesParentEvidence(ts)) {
+              // An explicitly suppressed parent was withdrawn on purpose: say
+              // so (410) so the page can tell crawlers to drop the URL.
+              if (ts.is_suppressed === true) {
+                res.setHeader('Cache-Control', 'public, s-maxage=300');
+                return res.status(410).json({ success: false, error: 'Series removed' });
+              }
               return res.status(404).json({ success: false, error: 'Series not found' });
             }
             singleSeries = { ...ts, source_table: 'tournament_series' };
@@ -408,6 +414,10 @@ async function handler(req, res) {
 
             if (ps) {
               if (!isServableSeriesParentEvidence(ps)) {
+                if (ps.is_suppressed === true) {
+                  res.setHeader('Cache-Control', 'public, s-maxage=300');
+                  return res.status(410).json({ success: false, error: 'Series removed' });
+                }
                 return res.status(404).json({ success: false, error: 'Series not found' });
               }
               // Normalize poker_series fields to match tournament_series shape.

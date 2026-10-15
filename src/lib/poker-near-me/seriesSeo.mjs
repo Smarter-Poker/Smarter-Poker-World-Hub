@@ -135,13 +135,28 @@ export function toSeoEvents(raw) {
     .slice(0, SEO_EVENT_LIMIT);
 }
 
+/**
+ * Edge Cache-Control for a series page that rendered. A series whose end date
+ * is more than a day in the past no longer changes, so it is cached for 30
+ * days; anything current, upcoming or undated keeps the short window.
+ */
+export const SERIES_CACHE_ACTIVE = 'public, s-maxage=300, stale-while-revalidate=600';
+export const SERIES_CACHE_CONCLUDED = 'public, s-maxage=2592000, stale-while-revalidate=86400';
+export function seriesCacheControl(series, nowMs = Date.now()) {
+  const end = String(series?.endDate ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) return SERIES_CACHE_ACTIVE;
+  const endMs = Date.parse(`${end}T00:00:00Z`);
+  if (!Number.isFinite(endMs)) return SERIES_CACHE_ACTIVE;
+  return nowMs - endMs > 2 * 24 * 60 * 60 * 1000 ? SERIES_CACHE_CONCLUDED : SERIES_CACHE_ACTIVE;
+}
+
 /** A series with no name has nothing to index. */
 export function isPublicSeries(v) {
   return !!v && !!v.name;
 }
 
 /**
- * Resolves to { series, status }: 'ok', 'not-found' (the API answered 404 or
+ * Resolves to { series, status }: 'ok', 'gone' (the API answered 410: deliberately removed), 'not-found' (the API answered 404 or
  * 400, or the id is not a series id) or 'unavailable' (anything else: the API
  * did not answer, rate limited, or failed).
  *
@@ -179,6 +194,9 @@ export async function fetchSeries(id, origin) {
     // /5001254 all answered 404 from the edge with x-vercel-cache: HIT while
     // the same URL with a cache busting parameter answered 200, and the API
     // answered 200 for every one of them.
+    if (res.status === 410) {
+      return { series: null, status: 'gone' };
+    }
     if (res.status === 404 || res.status === 400) {
       return { series: null, status: 'not-found' };
     }
