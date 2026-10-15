@@ -60,3 +60,27 @@ test('measured footer and keyboard clearances bound the window without double co
  const root=readFileSync(new URL('../src/components/messenger/dock/MessengerDock.jsx',import.meta.url),'utf8');
  assert.match(root,/--sp-footer-height/);assert.match(root,/--ca-bottom-chrome-h/);assert.match(root,/next !== measuredFooter/);
 });
+
+
+test('async token acquisition cannot send an old actor payload as the new account',async()=>{
+ const {requestForDockActor}=await import('../src/components/messenger/dock/bindDockRequest.mjs');
+ const actor=id(1),other=id(2);let current=actor,calls=0,release;
+ const token=user=>`test.${btoa(JSON.stringify({sub:user}))}.test`;
+ const pending=requestForDockActor('/api/messenger/send-message',{method:'POST',body:'immutable',actorId:actor,currentActor:()=>current},()=>new Promise(resolve=>{release=resolve;}),()=>{calls++;});
+ current=other;release(token(other));await assert.rejects(pending,/Account Changed/);assert.equal(calls,0);
+ current=actor;
+ await requestForDockActor('/api/messenger/send-message',{method:'POST',body:'immutable',actorId:actor,currentActor:()=>current},async()=>token(actor),async(url,options)=>{calls++;assert.equal(options.body,'immutable');assert.equal(options.headers.Authorization,`Bearer ${token(actor)}`);assert.equal(options.actorId,undefined);return {ok:true};});
+ assert.equal(calls,1);
+ await assert.rejects(requestForDockActor('/api/messenger/continuity',{actorId:actor,currentActor:()=>actor},async()=>token(other),()=>{calls++;}),/Account Changed/);assert.equal(calls,1);
+});
+
+test('quick native unmount flushes draft for the same actor and remains invalid after an account switch',async()=>{
+ const {createContinuityController}=await import('../src/components/messenger/dock/messengerContinuity.mjs');
+ let actor=id(1),mounted=true,writes=0,notices=0;
+ const map=new Map();const storage={getItem:key=>map.get(key)||null,setItem:(key,value)=>map.set(key,value),removeItem:key=>map.delete(key),get length(){return map.size;},key:index=>[...map.keys()][index]};
+ const controller=createContinuityController({actorId:id(1),workspace:{workspace:'social'},storage,isCurrent:()=>actor===id(1),changed:()=>{if(mounted)notices++;},request:async body=>{writes++;return {ok:true,status:200,body:{success:true,revision:1,value:body.value}};}});
+ controller.edit(id(10),'draft',{text:'Draft Before Minimize',replyToId:null});const queued=controller.write(id(10),'draft');mounted=false;const before=notices;
+ await queued;assert.equal(writes,1);assert.equal(notices,before);
+ actor=id(2);await controller.write(id(10),'draft');assert.equal(writes,1);
+ const source=readFileSync(new URL('../src/components/messenger/dock/MessengerChat.jsx',import.meta.url),'utf8');assert.match(source,/isCurrent: \(\) => identity.current === actorId/);
+});

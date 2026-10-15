@@ -58,10 +58,20 @@ finally{
  for(const client of clients){await client.auth.signOut({scope:'local'});await client.realtime.disconnect();}
  try{
   const fixture=await admin.from('social_conversations').select('id,group_name').eq('id',conversationId).maybeSingle();assert.ifError(fixture.error);
-  if(fixture.data){assert.equal(fixture.data.group_name,title);const removed=await admin.from('social_conversations').delete().eq('id',conversationId).eq('group_name',title);assert.ifError(removed.error);}
+  if(fixture.data){
+   assert.equal(fixture.data.group_name,title);
+   for(const user of users)assert.equal(user.user_metadata.agent_fixture,runId);
+   const receipts=await admin.from('messenger_send_requests').select('sender_id,request_id').eq('conversation_id',conversationId);assert.ifError(receipts.error);
+   check(receipts.data.every(row=>users.some(user=>user.id===row.sender_id)),'Unowned Receipt In Fixture');
+   if(receipts.data.length){const removed=await admin.from('messenger_send_requests').delete().eq('conversation_id',conversationId).in('sender_id',users.map(user=>user.id));assert.ifError(removed.error);}
+   const removed=await admin.from('social_conversations').delete().eq('id',conversationId).eq('group_name',title);assert.ifError(removed.error);
+  }
   for(const user of users){assert.equal(user.user_metadata.agent_fixture,runId);const removed=await admin.auth.admin.deleteUser(user.id);assert.ifError(removed.error);}
   for(const table of ['social_conversations','social_messages','social_conversation_participants']){
    const result=await admin.from(table).select('id',{count:'exact',head:true}).eq(table==='social_conversations'?'id':'conversation_id',conversationId);assert.ifError(result.error);assert.equal(result.count,0,`Fixture Remains In ${table}`);
+  }
+  for(const table of ['messenger_send_requests','messenger_conversation_state','messenger_saved_messages']){
+   const result=await admin.from(table).select('conversation_id',{count:'exact',head:true}).eq('conversation_id',conversationId);assert.ifError(result.error);assert.equal(result.count,0,`Fixture Remains In ${table}`);
   }
   report.cleanup=true;
  }catch(error){report.cleanupError=error.message;process.exitCode=1;}
