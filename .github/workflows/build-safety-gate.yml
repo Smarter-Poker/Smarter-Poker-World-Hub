@@ -205,6 +205,7 @@ jobs:
       - name: Messenger Club And Invoice Separation
         run: >-
           node --experimental-vm-modules --test
+          __tests__/messenger-dock.test.mjs
           __tests__/messenger-workspace.test.mjs
           __tests__/messenger-send-reliability.test.mjs
           __tests__/messenger-send-operation.test.mjs
@@ -348,6 +349,12 @@ jobs:
           node --test scripts/qualification/playerControlLockPreflight.test.mjs
           node scripts/qualify-player-control-pg17.mjs
           node scripts/qualify-operator-export-artifacts-pg17.mjs
+
+      - name: Messenger Dock Publication PostgreSQL 17
+        env:
+          PG_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+          TMPDIR: ${{ runner.temp }}
+        run: python3 scripts/ci/test-messenger-dock-publication.py
 
       - name: Caption Model Budget PostgreSQL 17 Contracts
         env:

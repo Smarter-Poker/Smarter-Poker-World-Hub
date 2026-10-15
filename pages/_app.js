@@ -1,3 +1,4 @@
+import '../src/components/messenger/dock/MessengerDock.css';
 /* ═══════════════════════════════════════════════════════════════════════════
    NEXT.JS APP WRAPPER — Vanguard Silver + Anti-Gravity Auto-Boot
    Global styles, providers, and Diamond Celebration System
@@ -892,6 +893,8 @@ const MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES = new Set([
   '/hub/club-shop',
 ]);
 
+const MessengerDockHost = dynamic(() => import('../src/components/messenger/MessengerDockHost'), { ssr: false });
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
@@ -1187,6 +1190,7 @@ export default function App({ Component, pageProps }) {
                                 )}
                               </PageErrorBoundary>
                               {!isClubArenaRoute && <WorldCommandDock />}
+                              {!isEmbedded && !isClubArenaRoute && path !== '/hub/messenger' && !path.startsWith('/auth/') && automaticPlayerWrites && <MessengerDockHost />}
                               {showBottomNav && (
                                 <BottomNavSpacer
                                   config={bottomNavConfig}
