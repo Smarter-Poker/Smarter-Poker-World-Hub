@@ -206,6 +206,8 @@ jobs:
         run: >-
           node --experimental-vm-modules --test
           __tests__/messenger-workspace.test.mjs
+          __tests__/club-notice-board.test.mjs
+          __tests__/club-notice-board-component.test.mjs
           __tests__/messenger-send-reliability.test.mjs
           __tests__/messenger-send-operation.test.mjs
           __tests__/messenger-send-live-safety.test.mjs
@@ -314,6 +316,9 @@ jobs:
           echo "PHASE6_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
+
+      - name: Club Notice Board Native Authorization And Pagination
+        run: node --test __tests__/club-notice-board-postgres.test.mjs
 
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db

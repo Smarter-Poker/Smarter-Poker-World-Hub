@@ -4,5 +4,5 @@ export function resolveMessengerClubEntry(clubs, query) {
     if (query.conversation || typeof requested !== 'string') return null;
     const club = clubs.find(item => item.id === requested || item.pageId === requested);
     if (!club) return null;
-    return { club, folder: query.folder === 'invoices' ? 'invoices' : 'messages' };
+    return { club, folder: ['invoices', 'notice-board'].includes(query.folder) ? query.folder : 'messages' };
 }

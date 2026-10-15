@@ -129,7 +129,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     } else {
         folder = 'messages';
     }
-    if (!['messages', 'invoices'].includes(folder)) fail(400, 'Invalid Messenger Tab');
+    if (!['messages', 'invoices', 'notice-board'].includes(folder)) fail(400, 'Invalid Messenger Tab');
     // A club with no social page has no ordinary club-context messages. Its
     // accounting conversations are still found through the authoritative map.
     const { data, error } = await db.rpc('fn_get_user_conversations', {
@@ -172,7 +172,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
             } : null,
         };
     }).filter(c => !c.isRequest || c.requestSenderId === userId);
-    const selected = club && !club.pageId && folder === 'messages' ? []
+    const selected = folder === 'notice-board' || (club && !club.pageId && folder === 'messages') ? []
         : selectWorkspaceConversations(conversations, accounting, userId, club, folder);
     const countUnread = list => list.reduce((sum, c) => sum + c.unreadCount, 0);
     // Invoice attention preserves the real unread-message total. A separate
