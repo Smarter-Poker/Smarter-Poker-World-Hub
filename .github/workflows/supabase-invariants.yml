@@ -150,8 +150,11 @@ jobs:
       # and duplicated the content_sources PokerNews source, so it was retired
       # from the dispatcher and recorded in Club Arena ca_retired_cron_jobs.
       # A retired job that is scheduled again is a job that cannot succeed.
+      # 2026-10-15: /api/cron/tour-schedule-scraper read two configuration
+      # tables that never held a row and paged ScraperCritical every third
+      # day; retired the same way (Club Arena migration 20261015095255).
       - name: Test a retired dispatcher job stays retired
-        run: node --test __tests__/pokernews-videos-stays-retired.test.mjs
+        run: node --test __tests__/pokernews-videos-stays-retired.test.mjs __tests__/tour-schedule-scraper-stays-retired.test.mjs
 
       # Non-blocking for the same reason as U4.2 above: it currently reports 8
       # real failures plus 14 jobs that have never fired at all. Flip
