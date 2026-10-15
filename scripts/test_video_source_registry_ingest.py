@@ -1,5 +1,6 @@
 import importlib.util
 import unittest
+import unittest.mock
 from pathlib import Path
 
 SPEC = importlib.util.spec_from_file_location(
@@ -78,6 +79,98 @@ class RegistryIngestTests(unittest.TestCase):
         ids, cursor = ingestor.creator_candidates(source)
         self.assertEqual(ids, ['new'])
         self.assertEqual(cursor['video_id'], 'new')
+
+
+class FakeQuery:
+    def __init__(self, log):
+        self.log = log
+
+    def update(self, values):
+        self.log.append(('update', values))
+        return self
+
+    def eq(self, column, value):
+        self.log.append(('eq', column, value))
+        return self
+
+    def execute(self):
+        self.log.append(('execute',))
+        return self
+
+
+class FakeSupabase:
+    def __init__(self):
+        self.log = []
+        self.rpcs = []
+
+    def table(self, name):
+        self.log.append(('table', name))
+        return FakeQuery(self.log)
+
+    def rpc(self, name, params):
+        self.rpcs.append((name, params))
+        return FakeQuery(self.log)
+
+
+class PermanentSourceAbsenceTests(unittest.TestCase):
+    """2026-10-03 to 2026-10-14: seven vanished channels made every daily run exit 1."""
+
+    def source(self):
+        return {'id': 'source-uuid', 'name': 'Gone', 'ingest_topic': 'sports', 'handle': '@gone',
+                'ingestion_mode': 'creator_uploads', 'provider_cursor': {}, 'max_candidates_per_run': 50}
+
+    def ingestor_raising(self, error):
+        db = FakeSupabase()
+        ingestor = MODULE.RegistryIngestor(db, 'unused')
+
+        def boom(source):
+            raise error
+        ingestor.creator_candidates = boom
+        return ingestor, db
+
+    def test_a_channel_youtube_cannot_find_is_quarantined_and_the_run_does_not_fail(self):
+        ingestor, db = self.ingestor_raising(RuntimeError('youtube_channel_not_found'))
+        result = ingestor.process(self.source())
+        self.assertEqual(result['status'], 'quarantined')
+        self.assertEqual(db.rpcs[0][1]['p_status'], 'failed')
+        self.assertEqual(db.rpcs[0][1]['p_failure_code'], 'youtube_channel_not_found')
+        self.assertIn(('update', {'lifecycle_status': 'quarantined', 'updated_at': unittest.mock.ANY}), db.log)
+        self.assertIn(('eq', 'lifecycle_status', 'active'), db.log)
+        self.assertEqual(MODULE.run_exit_code({'results': [result]}), 0)
+
+    def test_an_uploads_playlist_youtube_answers_404_for_is_quarantined(self):
+        ingestor, db = self.ingestor_raising(RuntimeError('youtube_http_404: {"error": {"code": 404}}'))
+        result = ingestor.process(self.source())
+        self.assertEqual(result['status'], 'quarantined')
+        self.assertEqual(MODULE.run_exit_code({'results': [result]}), 0)
+
+    def test_a_transient_failure_still_fails_the_run_and_quarantines_nothing(self):
+        for error in (RuntimeError('youtube_transport: URLError'), RuntimeError('youtube_http_503: busy'),
+                      RuntimeError('youtube_http_403: quotaExceeded'), RuntimeError('Server disconnected')):
+            ingestor, db = self.ingestor_raising(error)
+            result = ingestor.process(self.source())
+            self.assertEqual(result['status'], 'failed', error)
+            self.assertNotIn(('table', 'content_sources'), db.log, error)
+            self.assertEqual(MODULE.run_exit_code({'results': [result]}), 1, error)
+
+    def test_one_vanished_source_beside_a_real_failure_still_fails_the_run(self):
+        self.assertEqual(MODULE.run_exit_code({'results': [{'status': 'quarantined'}, {'status': 'failed'}]}), 1)
+        self.assertEqual(MODULE.run_exit_code({'results': [{'status': 'quarantined'}, {'status': 'succeeded'}]}), 0)
+
+    def test_a_refused_quarantine_leaves_the_run_failed(self):
+        ingestor, db = self.ingestor_raising(RuntimeError('youtube_channel_not_found'))
+
+        def refuse(source):
+            raise RuntimeError('permission denied')
+        ingestor.quarantine = refuse
+        result = ingestor.process(self.source())
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(MODULE.run_exit_code({'results': [result]}), 1)
+
+    def test_a_dry_run_quarantines_nothing(self):
+        ingestor = MODULE.RegistryIngestor(FakeSupabase(), 'unused', dry_run=True)
+        ingestor.quarantine(self.source())
+        self.assertEqual(ingestor.supabase.log, [])
 
 
 if __name__ == '__main__':

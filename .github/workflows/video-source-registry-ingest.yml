@@ -1,0 +1,33 @@
+name: Video Source Registry Ingest
+
+# scripts/video_source_registry_ingest.py runs daily as the Open Claw script
+# job /api/cron/video-library-scraper. Its regression suite pins that a source
+# YouTube says does not exist (channel not found, uploads playlist 404) is
+# quarantined in content_sources and does not fail the run, while transport,
+# quota, 5xx and every other failure still fail it. From 2026-10-03 seven
+# vanished channels made every daily run exit 1 and paged the fleet daily.
+#
+# pull_request only: no schedule (World Hub CLAUDE.md section 11).
+on:
+  pull_request:
+    paths:
+      - scripts/video_source_registry_ingest.py
+      - scripts/test_video_source_registry_ingest.py
+      - .github/workflows/video-source-registry-ingest.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: video-source-registry-ingest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  registry-ingest:
+    name: A Vanished Video Source Is Quarantined, Not A Failed Run
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the registry ingest regression suite
+        run: python3 scripts/test_video_source_registry_ingest.py -v
