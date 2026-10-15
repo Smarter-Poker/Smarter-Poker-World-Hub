@@ -6,11 +6,14 @@ import styles from './VerificationConsole.module.css';
 export default function VerificationConsole({ checking, alreadyVerified, stage, busy, error,
     phone, digits, code, codeRef, cooldown, formatPhone, onPhoneChange, onCodeChange,
     sendCode, verifyCode, skip, goHub, changePhone, doneLead, vipDays, welcomeDiamonds,
-    bonusDiamonds, packageStatus }) {
+    bonusDiamonds, packageStatus, continueLabel }) {
+    // A player who arrived on a club invite continues to that club, not the Hub.
+    const doneLabel = continueLabel || 'Enter The Hub';
+    const doneShort = continueLabel || 'Go To The Hub';
     const complete = alreadyVerified || stage === 'done';
     const isCode = stage === 'code' && !complete;
     const action = complete ? goHub : isCode ? verifyCode : sendCode;
-    const actionLabel = checking ? 'Loading Your Account...' : complete ? 'Enter The Hub'
+    const actionLabel = checking ? 'Loading Your Account...' : complete ? doneLabel
         : busy ? (isCode ? 'Verifying...' : 'Sending...') : isCode ? 'Verify And Claim' : cooldown > 0 ? `Send In ${cooldown}s` : 'Send Verification Code';
     return <main className={styles.page}>
         <section className={styles.console} aria-labelledby="verification-title" aria-busy={busy || checking}>
@@ -47,8 +50,8 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
                 <button type="button" onClick={sendCode} disabled={busy || cooldown > 0}>{cooldown > 0 ? `Resend In ${cooldown}s` : 'Resend Code'}</button>
             </div><button type="button" onClick={skip} disabled={busy}>Skip For Now</button></div>}
             {complete && <div className={styles.stateFooter}><div className={styles.codeActions}>{bonusDiamonds > 0 ? `Plus ${bonusDiamonds} Bonus Diamonds For Verifying Your Phone.` : 'Your Account Status Is Up To Date.'}</div></div>}
-            {!isCode && <button type="button" className={`${styles.hitbox} ${styles.skip}`} disabled={busy || checking} onClick={complete ? goHub : skip} aria-label={complete ? 'Go To The Hub' : 'Skip For Now'}>
-                {complete && <span className={styles.liveSkip}>Go To The Hub</span>}
+            {!isCode && <button type="button" className={`${styles.hitbox} ${styles.skip}`} disabled={busy || checking} onClick={complete ? goHub : skip} aria-label={complete ? doneShort : 'Skip For Now'}>
+                {complete && <span className={styles.liveSkip}>{doneShort}</span>}
             </button>}
             <Link href="/hub" className={`${styles.hitbox} ${styles.hub}`} onClick={(event) => { event.preventDefault(); if (!busy && !checking) (complete ? goHub : skip)(); }} aria-label="Hub" />
             <Link href="/hub/help" className={`${styles.hitbox} ${styles.help}`} aria-label="Help" />

@@ -25,6 +25,13 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import {
+    claimInvite,
+    clearPendingInvite,
+    normalizeInviteCode,
+    readPendingInvite,
+    safeClubArenaPath,
+} from '../../src/lib/clubInvite';
+import {
     AUTH_DETAIL_KEY,
     AUTH_ORIGIN_KEY,
     AUTH_ORIGINS,
@@ -357,6 +364,47 @@ export default function AuthCallback() {
                     }
                 } catch (e) { /* non-blocking */ }
 
+                // ── 6.6 Claim the club invite this account came from ──
+                // Share & Invite (Dan 2026-10-15): the code rides in the
+                // account's metadata (written at signUp, so it crosses
+                // devices) and in this browser's storage. The database is
+                // first-wins, so claiming from either copy is safe. A claimed
+                // invite decides where the player goes next: the phone step,
+                // then that club's join page.
+                let inviteJoinPath = null;
+                // Only a young account is routed by its signup invite: the
+                // metadata stays on the account, and a sign-in months later
+                // must go where it always went.
+                const accountAgeMs = Date.now() - Date.parse(user.created_at || '');
+                const youngAccount = Number.isFinite(accountAgeMs) && accountAgeMs < 30 * 24 * 60 * 60 * 1000;
+                try {
+                    const meta = user.user_metadata || {};
+                    const metaCode = normalizeInviteCode(meta.club_invite_code);
+                    const metaSeen = Date.parse(meta.club_invite_first_seen || '');
+                    const invite = metaCode
+                        ? { code: metaCode, firstSeen: Number.isFinite(metaSeen) ? metaSeen : Date.now() }
+                        : readPendingInvite();
+                    if (invite) {
+                        const claimed = await claimInvite(session.access_token, invite);
+                        if (claimed?.success) {
+                            if (youngAccount && claimed.status !== 'already_member') {
+                                inviteJoinPath = safeClubArenaPath(claimed.join_path);
+                            }
+                            clearPendingInvite();
+                        } else if (claimed && ['self_referral', 'expired', 'invalid_code', 'club_unavailable'].includes(claimed.code)) {
+                            clearPendingInvite();
+                        }
+                    }
+                } catch (inviteErr) {
+                    // Non-blocking: the club join page claims again from the code.
+                    console.warn('[auth-callback] club invite claim failed (non-blocking):', inviteErr?.message || inviteErr);
+                }
+                // An older /invite/<club>?ref=<n> link carries no code, only the
+                // way back to the club (kept in metadata at signup).
+                if (!inviteJoinPath && youngAccount) {
+                    inviteJoinPath = safeClubArenaPath(user.user_metadata?.club_join_path) || null;
+                }
+
                 // ── 7. Decide where to send the user ──
                 let isCommanderOrigin = false;
                 try {
@@ -375,7 +423,14 @@ export default function AuthCallback() {
                     nextPath = rawNext;
                 }
 
+                const inviteDest = inviteJoinPath
+                    ? (newPlayerNeedsPhone
+                        ? `/hub/verify-phone?welcome=1&next=${encodeURIComponent(inviteJoinPath)}`
+                        : inviteJoinPath)
+                    : null;
+
                 const dest = nextPath
+                    || inviteDest
                     || (isCommanderOrigin ? '/commander/dashboard' : null)
                     || (newPlayerNeedsPhone ? '/hub/verify-phone?welcome=1' : '/hub');
 

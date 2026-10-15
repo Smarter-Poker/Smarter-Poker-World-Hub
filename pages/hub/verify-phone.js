@@ -23,6 +23,7 @@ import { supabase } from '../../src/lib/supabase';
 import { useRequireAuth, authedFetch } from '../../src/lib/authUtils';
 import { busEmit } from '../../src/engine/EventBus';
 import { showDiamondToast } from '../../src/components/diamonds/DiamondToast';
+import { safeClubArenaPath } from '../../src/lib/clubInvite';
 
 const RESEND_COOLDOWN_S = 60;
 const DISMISS_KEY = 'phone_prompt_dismissed_at';
@@ -37,10 +38,15 @@ function formatPhone(value) {
 export default function VerifyPhonePage() {
     const router = useRouter();
     const isWelcome = router.query.welcome === '1';
+    // Arrived on a Share & Invite link (Dan 2026-10-15): once the phone step is
+    // done, or skipped, the player goes straight to that club's join page. Only
+    // a Club Arena path on this origin is honoured.
+    const nextPath = safeClubArenaPath(Array.isArray(router.query.next) ? router.query.next[0] : router.query.next);
+    const selfPath = `/hub/verify-phone${isWelcome ? '?welcome=1' : ''}${nextPath ? `${isWelcome ? '&' : '?'}next=${encodeURIComponent(nextPath)}` : ''}`;
 
     // The repo's guard: resolves the session through every recovery layer
     // and only bounces to /auth/login when the player really is signed out.
-    const { user, checking: authChecking } = useRequireAuth(isWelcome ? '/hub/verify-phone?welcome=1' : '/hub/verify-phone');
+    const { user, checking: authChecking } = useRequireAuth(selfPath);
     const [profileChecked, setProfileChecked] = useState(false);
     const [alreadyVerified, setAlreadyVerified] = useState(false);
 
@@ -78,6 +84,11 @@ export default function VerifyPhonePage() {
     // useRequireAuth only resolves with a null user on its way to /auth/login,
     // so a missing user keeps the skeleton up instead of flashing the form.
     const checking = authChecking || !user?.id || !profileChecked;
+
+    // Already verified and on their way to an invited club: nothing to do here.
+    useEffect(() => {
+        if (!checking && alreadyVerified && nextPath) window.location.replace(nextPath);
+    }, [checking, alreadyVerified, nextPath]);
 
     // Funnel: how many players reach this screen, and from where.
     useEffect(() => {
@@ -143,6 +154,8 @@ export default function VerifyPhonePage() {
             if (!res.ok || !data.success) throw new Error(data.error || 'Verification Failed');
             setResult(data);
             setStage('done');
+            // Invited player: the welcome package toast plays, then the club.
+            if (nextPath) setTimeout(() => window.location.replace(nextPath), 1800);
             try {
                 capture(FunnelEvents.PHONE_VERIFIED, {
                     welcome: isWelcome,
@@ -193,13 +206,17 @@ export default function VerifyPhonePage() {
             supabase.auth.updateUser({ data: { [DISMISS_KEY]: new Date().toISOString() } })
                 .catch(() => { /* non-blocking */ });
         } catch (_e) { /* non-blocking */ }
-        router.replace('/hub');
-    }, [router, busy, isWelcome]);
+        // Club Arena is a separate app behind a rewrite, so a club path is a
+        // full navigation rather than a Next route change.
+        if (nextPath) window.location.replace(nextPath);
+        else router.replace('/hub');
+    }, [router, busy, isWelcome, nextPath]);
 
     const goHub = useCallback(() => {
         try { sessionStorage.setItem('just_authenticated', 'true'); } catch (_e) { /* ignore */ }
-        router.replace('/hub');
-    }, [router]);
+        if (nextPath) window.location.replace(nextPath);
+        else router.replace('/hub');
+    }, [router, nextPath]);
 
     const vipDays = result?.vipDays || (result?.vipGranted ? 30 : 0);
     const welcomeDiamonds = Number(result?.welcomeDiamonds || 0);
@@ -224,6 +241,7 @@ export default function VerifyPhonePage() {
                 cooldown={cooldown} formatPhone={formatPhone} sendCode={sendCode} verifyCode={verifyCode}
                 skip={skip} goHub={goHub} doneLead={doneLead} vipDays={vipDays}
                 welcomeDiamonds={welcomeDiamonds} bonusDiamonds={bonusDiamonds} packageStatus={packageStatus}
+                continueLabel={nextPath ? 'Continue To The Club' : undefined}
                 onPhoneChange={(event) => { setPhone(event.target.value); setError(''); }}
                 onCodeChange={(event) => { setCode(event.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
                 changePhone={() => { if (!busy) { setStage('phone'); setError(''); } }}
