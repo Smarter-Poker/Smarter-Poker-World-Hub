@@ -49,6 +49,26 @@ export function breadcrumbSchema(trail) {
 }
 
 /**
+ * FAQ schema for pages with authoritative questions and answers.
+ */
+export function faqSchema(items, path) {
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const url = absolute(path);
+  return {
+    '@type': 'FAQPage',
+    '@id': `${url}#faq`,
+    mainEntity: items.map(({ question, answer }) => ({
+      '@type': 'Question',
+      name: question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: typeof answer === 'string' ? answer.trim() : '',
+      },
+    })),
+  };
+}
+
+/**
  * A hub page that IS a product: the trainer, the bankroll manager, the home
  * games directory. Ships the page, the application it hosts and the trail.
  */
@@ -63,9 +83,10 @@ export function hubProductSchema({
   // family does, through commanderBreadcrumbs). Two of them on one page is
   // one more than the page has.
   withBreadcrumb = true,
+  faqs = null,
 }) {
   const url = absolute(path);
-  return [
+  const nodes = [
     {
       '@type': 'WebPage',
       '@id': `${url}#page`,
@@ -93,6 +114,13 @@ export function hubProductSchema({
     },
     ...(withBreadcrumb ? [breadcrumbSchema(trail)] : []),
   ];
+
+  if (Array.isArray(faqs) && faqs.length > 0) {
+    const faqNode = faqSchema(faqs, path);
+    if (faqNode) nodes.push(faqNode);
+  }
+
+  return nodes;
 }
 
 /**

@@ -166,11 +166,15 @@ function buildVenueSeo(venue, routeId, scheduleCount) {
 function buildVenueJsonLd(venue, canonical, image) {
   if (!venue || !venue.name) return null;
 
+  const isCasino = venue.venue_type === 'casino';
+  const isCardRoomOrClub = venue.venue_type === 'card_room' || venue.venue_type === 'poker_club';
   const node = {
     '@context': 'https://schema.org',
-    '@type': venue.venue_type === 'casino' ? 'Casino' : 'LocalBusiness',
+    '@type': isCasino ? 'Casino' : (isCardRoomOrClub ? 'SportsActivityLocation' : 'LocalBusiness'),
     name: venue.name,
     url: canonical,
+    currenciesAccepted: 'USD',
+    priceRange: '$$',
   };
 
   const locationConflict = venue?.location_quality?.status === 'conflict';
