@@ -25,7 +25,7 @@ import {
     parseInviteCookieValue,
     readCookie,
     rememberInvite,
-    resolveInvite,
+    resolveInviteServer,
     safeClubArenaPath,
 } from '../../src/lib/clubInvite';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -39,7 +39,7 @@ export async function getServerSideProps({ params, req, res }) {
     const bot = isLinkPreviewBot(req.headers['user-agent']);
     let invite = null;
     try {
-        invite = await resolveInvite(code, { countClick: !bot });
+        invite = await resolveInviteServer(code, { countClick: !bot });
     } catch (err) {
         console.warn('[club-invite] resolve failed:', err?.message || err);
     }

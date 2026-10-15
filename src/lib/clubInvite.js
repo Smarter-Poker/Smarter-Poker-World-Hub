@@ -166,9 +166,31 @@ async function rpc(name, body, accessToken) {
     return res.json();
 }
 
-/** Public lookup for the landing page and the link preview. */
-export function resolveInvite(code, { countClick = true } = {}) {
-    return rpc('fn_club_invite_resolve', { p_code: code, p_count_click: countClick });
+/**
+ * SERVER ONLY. The landing page (getServerSideProps) and the link preview
+ * read an invite with the service role: fn_club_invite_resolve counts opens,
+ * so no anonymous browser may call it (Club Arena's definer-authorization
+ * gate). The key is never NEXT_PUBLIC_, so this cannot run in a browser.
+ */
+export async function resolveInviteServer(code, { countClick = true } = {}) {
+    const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+    if (!key) throw new Error('fn_club_invite_resolve: SUPABASE_SERVICE_ROLE_KEY is not configured');
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_club_invite_resolve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            apikey: key,
+            // A legacy service JWT also goes in Authorization; a modern secret
+            // key (sb_secret_...) is not a JWT and travels as apikey alone.
+            ...(key.startsWith('eyJ') ? { Authorization: `Bearer ${key}` } : {}),
+        },
+        body: JSON.stringify({ p_code: code, p_count_click: countClick }),
+    });
+    if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`fn_club_invite_resolve ${res.status}: ${text.slice(0, 200)}`);
+    }
+    return res.json();
 }
 
 /**

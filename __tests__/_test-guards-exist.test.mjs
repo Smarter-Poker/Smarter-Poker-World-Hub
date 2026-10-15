@@ -785,6 +785,8 @@ const CI_UNREACHABLE_ON_PURPOSE = {
 import './video-operations-phase10.test.mjs';
 // Dan 2026-10-11: four World Hub cards hidden from everyone but him.
 import './owner-only-hub-cards.test.mjs';
+// Dan 2026-10-15: Share & Invite short links credit the sender.
+import './club-invite-short-links.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

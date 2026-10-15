@@ -4,27 +4,20 @@
  *
  * The 1200x630 preview image a messaging app shows for smarter.poker/i/<code>:
  * the club's logo and name, who sent the invite, members and players playing.
- * Reads fn_club_invite_resolve with p_count_click=false, so drawing a preview
- * is never counted as somebody opening the link.
+ * Reads fn_club_invite_resolve server-side (service role) with
+ * p_count_click=false, so drawing a preview is never counted as an open.
  * Every element MUST have display:'flex' for Satori compatibility.
  */
 import { ImageResponse } from '@vercel/og';
-import { resolveAnonKey, SUPABASE_URL_FALLBACK } from '../../../src/lib/supabaseKeys';
+import { resolveInviteServer } from '../../../src/lib/clubInvite';
 
 export const config = { runtime: 'edge' };
 
 const CODE_RE = /^[A-HJ-NP-Z2-9]{7}$/;
 
 async function lookup(code) {
-    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_FALLBACK).trim();
-    const key = resolveAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).key;
-    const res = await fetch(`${url}/rest/v1/rpc/fn_club_invite_resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: key },
-        body: JSON.stringify({ p_code: code, p_count_click: false }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
+    // Server-side, with the service role; a preview is never counted as an open.
+    const data = await resolveInviteServer(code, { countClick: false });
     return data?.found ? data : null;
 }
 
