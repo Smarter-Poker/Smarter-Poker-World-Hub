@@ -1,0 +1,403 @@
+diff --git a/__tests__/pokernews-videos-stays-retired.test.mjs b/__tests__/pokernews-videos-stays-retired.test.mjs
+new file mode 100644
+index 00000000..f39372e5
+--- /dev/null
++++ b/__tests__/pokernews-videos-stays-retired.test.mjs
+@@ -0,0 +1,54 @@
++/**
++ * GUARD: __tests__/pokernews-videos-stays-retired.test.mjs
++ * ---------------------------------------------------------------------------
++ * /api/cron/pokernews-videos (workers /cron/pokernews-videos) answered HTTP
++ * 500 every 3 hours from 2026-09-30: no PokerNews content_author exists, the
++ * importer correctly refuses to attribute official items to a horse, and its
++ * RSS source answers 404. PokerNews is an active content_sources registry
++ * source (handle @PokerNews), so the job only duplicated that work. It was
++ * retired from the dispatcher on 2026-10-15 and recorded in Club Arena's
++ * ca_retired_cron_jobs (migration 20261015035957), which the silence alerts
++ * read. Scheduling it again would page on a job the registry calls retired.
++ */
++import fs from 'node:fs';
++import path from 'node:path';
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++
++const root = path.resolve(import.meta.dirname, '..');
++const src = fs.readFileSync(path.join(root, 'scripts', 'openclaw-cron-dispatcher.py'), 'utf8');
++const code = src.split('\n').filter((line) => !line.trim().startsWith('#')).join('\n');
++
++function block(name, open, close) {
++  const at = code.search(new RegExp(`^${name}\\s*=\\s*\\${open}`, 'm'));
++  assert.ok(at > -1, `${name} is not defined in the dispatcher`);
++  const start = code.indexOf(open, at);
++  let depth = 0;
++  for (let i = start; i < code.length; i += 1) {
++    if (code[i] === open) depth += 1;
++    if (code[i] === close) depth -= 1;
++    if (depth === 0) return code.slice(start, i + 1);
++  }
++  throw new Error(`${name} is never closed`);
++}
++
++test('pokernews-videos is not scheduled', () => {
++  assert.doesNotMatch(block('ALL_CRONS', '[', ']'), /pokernews-videos/);
++});
++
++test('pokernews-videos is not routed to the workers service', () => {
++  assert.doesNotMatch(block('WORKERS_PREFERRED', '{', '}'), /pokernews-videos/);
++});
++
++test('no executable dispatcher line names the retired job', () => {
++  assert.doesNotMatch(code, /pokernews-videos/);
++});
++
++test('the retirement says why, in the dispatcher', () => {
++  assert.match(src, /# RETIRED 2026-10-15: \/api\/cron\/pokernews-videos/);
++  assert.match(src, /ca_retired_cron_jobs \(migration 20261015035957\)/);
++});
++
++test('the PokerNews feed itself is still scheduled', () => {
++  assert.match(block('ALL_CRONS', '[', ']'), /'\/api\/cron\/poker-news',\s*dict\(/);
++});
+diff --git a/__tests__/test_video_library_publisher_resume.py b/__tests__/test_video_library_publisher_resume.py
+index 4d6de484..370e0fb4 100644
+--- a/__tests__/test_video_library_publisher_resume.py
++++ b/__tests__/test_video_library_publisher_resume.py
+@@ -29,6 +29,8 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
+         self.bridge.EVIDENCE_DIR = Path(self.temporary_directory.name)
+         self.bridge.VERIFY_CONCURRENCY = 1
+         self.bridge.time.sleep = lambda _seconds: None
++        # No reconciliation quarantine unless a test names one.
++        self.bridge._load_reconciliation_held_keys = lambda: set()
+ 
+     def tearDown(self):
+         self.temporary_directory.cleanup()
+@@ -2362,6 +2364,135 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
+         with self.assertRaisesRegex(RuntimeError, 'Could not prove feed visibility'):
+             bridge._feed_visible_asset_ids(publications)
+ 
++    def test_a_deadline_after_committed_batches_is_the_bounded_stop_not_a_failure(self):
++        bridge = self.bridge
++        for phase in sorted(bridge.DEADLINE_PHASES_AFTER_COMMITTED_WORK):
++            stats = bridge._new_stats()
++            stats['verification_attempted'] = 600
++            stats['platform_verification_attempted'] = 150
++            stats['deadline_reached'] = True
++            stats['deadline_phase'] = phase
++            self.assertFalse(bridge._stats_require_nonzero_exit(stats), phase)
++
++    def test_a_deadline_before_any_committed_work_still_fails(self):
++        bridge = self.bridge
++        for phase in ('startup', 'publisher_identity', 'publication_inventory',
++                      'failure_inventory', 'catalog_scan', None):
++            stats = bridge._new_stats()
++            stats['verification_attempted'] = 600
++            stats['deadline_reached'] = True
++            stats['deadline_phase'] = phase
++            self.assertTrue(bridge._stats_require_nonzero_exit(stats), phase)
++        stats = bridge._new_stats()
++        stats['deadline_reached'] = True
++        stats['deadline_phase'] = 'supply_verification'
++        self.assertTrue(bridge._stats_require_nonzero_exit(stats), 'no verification attempted')
++
++    def test_a_deadline_does_not_hide_another_failure(self):
++        stats = self.bridge._new_stats()
++        stats['verification_attempted'] = 600
++        stats['deadline_reached'] = True
++        stats['deadline_phase'] = 'supply_verification'
++        stats['feed_visibility_failures'] = 1
++        self.assertTrue(self.bridge._stats_require_nonzero_exit(stats))
++
++    def _held_asset(self, checked_at=None, status='unknown'):
++        return {
++            'id': '11111111-1111-4111-8111-111111111111',
++            'youtube_video_id': 'M7lc1UVf-VE',
++            'source_id': 'HCL',
++            'source_name': 'Hustler Casino Live',
++            'title': 'Poker Candidate',
++            'thumbnail_url': None,
++            'published_at': '2026-09-20T01:00:00+00:00',
++            'type': 'cash',
++            'availability_status': status,
++            'embeddable': True if status == 'verified' else None,
++            'availability_checked_at': checked_at,
++        }
++
++    def test_a_reel_held_private_by_reconciliation_is_not_published_or_failed(self):
++        asset = self._held_asset()
++        self._configure_ops07_run(
++            [asset],
++            {asset['youtube_video_id']: {'available': True, 'status': 'verified'}},
++            visible_asset_ids=set(),
++        )
++        self.bridge._load_reconciliation_held_keys = lambda: {'youtube:' + asset['youtube_video_id']}
++        self.bridge._publish_row = mock.Mock(
++            side_effect=AssertionError('a quarantined Reel must not be republished')
++        )
++
++        stats = self.bridge.run_bridge(self._arguments())
++
++        self.assertEqual(stats['verified'], 1)
++        self.assertEqual(stats['reconciliation_held'], 1)
++        self.assertEqual(stats['reconciliation_held_keys'], 1)
++        self.assertEqual(stats['created'], 0)
++        self.assertEqual(stats['feed_visibility_checked'], 0)
++        self.assertEqual(stats['feed_visibility_failures'], 0)
++        self.assertFalse(self.bridge._stats_require_nonzero_exit(stats))
++        self.bridge._publish_row.assert_not_called()
++
++    def test_an_already_current_reel_held_by_reconciliation_is_not_a_visibility_failure(self):
++        asset = self._held_asset(datetime.now(timezone.utc).isoformat(), 'verified')
++        self._configure_ops07_run([asset], {}, visible_asset_ids=set())
++        self.bridge._load_existing_publications = lambda: {
++            asset['id']: {
++                'id': '33333333-3333-4333-8333-333333333333',
++                'source_asset_id': asset['id'],
++                'source_post_id': '22222222-2222-4222-8222-222222222222',
++                'caption': asset['title'],
++            },
++        }
++        self.bridge._load_reconciliation_held_keys = lambda: {'youtube:' + asset['youtube_video_id']}
++        self.bridge._verify_row = mock.Mock(side_effect=AssertionError('already current'))
++
++        stats = self.bridge.run_bridge(self._arguments())
++
++        self.assertEqual(stats['reconciliation_held'], 1)
++        self.assertEqual(stats['already_current'], 0)
++        self.assertEqual(stats['feed_visibility_checked'], 0)
++        self.assertEqual(stats['feed_visibility_failures'], 0)
++        self.assertFalse(self.bridge._stats_require_nonzero_exit(stats))
++
++    def test_a_reel_not_held_still_fails_when_the_feed_cannot_show_it(self):
++        asset = self._held_asset()
++        self._configure_ops07_run(
++            [asset],
++            {asset['youtube_video_id']: {'available': True, 'status': 'verified'}},
++            visible_asset_ids=set(),
++        )
++        self.bridge._load_reconciliation_held_keys = lambda: {'youtube:someone-else'}
++
++        stats = self.bridge.run_bridge(self._arguments())
++
++        self.assertEqual(stats['reconciliation_held'], 0)
++        self.assertEqual(stats['feed_visibility_failures'], 1)
++        self.assertTrue(self.bridge._stats_require_nonzero_exit(stats))
++
++    def test_the_reconciliation_hold_is_read_from_unresolved_quarantine_rows(self):
++        calls = []
++
++        def select_page(table, select, filters, order, limit, offset):
++            calls.append((table, select, dict(filters), order, offset))
++            if offset == 0:
++                return [{'quarantine_id': i, 'canonical_asset_key': 'youtube:v%d' % i} for i in range(limit)]
++            return [{'quarantine_id': 'x', 'canonical_asset_key': 'youtube:last'}, {'quarantine_id': 'y', 'canonical_asset_key': None}]
++
++        self.bridge._select_page = select_page
++        bridge_module = self.bridge
++        spec = importlib.util.spec_from_file_location(f'held_{id(self)}', BRIDGE_PATH)
++        fresh = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(fresh)
++        fresh._select_page = select_page
++        held = fresh._load_reconciliation_held_keys()
++
++        self.assertEqual(len(held), fresh.EXISTING_PAGE_SIZE + 1)
++        self.assertIn('youtube:last', held)
++        self.assertEqual(calls[0][0], 'social_reel_reconciliation_quarantine')
++        self.assertEqual(calls[0][2], {'resolved_at': 'is.null'})
++        self.assertIsNotNone(bridge_module)
+ 
+ if __name__ == '__main__':
+     unittest.main()
+diff --git a/__tests__/video-library-reels-fails-closed.test.mjs b/__tests__/video-library-reels-fails-closed.test.mjs
+index 8952825f..0c8f001e 100644
+--- a/__tests__/video-library-reels-fails-closed.test.mjs
++++ b/__tests__/video-library-reels-fails-closed.test.mjs
+@@ -385,6 +385,8 @@ def handler(state):
+                 }])
+             if table == 'youtube_embed_failures':
+                 return self._reply(200, [])
++            if table == 'social_reel_reconciliation_quarantine':
++                return self._reply(200, [])  # no unresolved reconciliation hold
+             if table in ('poker_clips', 'sports_clips'):
+                 return self._reply(200, [])
+             return self._reply(404, {'message': 'unknown relation ' + table})
+diff --git a/scripts/openclaw-cron-dispatcher.py b/scripts/openclaw-cron-dispatcher.py
+index 2123f804..78110315 100644
+--- a/scripts/openclaw-cron-dispatcher.py
++++ b/scripts/openclaw-cron-dispatcher.py
+@@ -713,7 +713,15 @@ ALL_CRONS = [
+     ('/api/cron/refresh-venue-json',              dict(hour=5, minute=0)),   # cache refresh
+     ('/api/cron/news-scraper',                    dict(hour='*/2', minute=0)),
+     ('/api/cron/cardplayer-scraper',              dict(hour='*/2', minute=5)),
+-    ('/api/cron/pokernews-videos',                dict(hour='*/3', minute=30)),
++    # RETIRED 2026-10-15: /api/cron/pokernews-videos (workers /cron/pokernews-videos).
++    # It answered HTTP 500 every 3 hours from 2026-09-30: no PokerNews
++    # content_author exists, the importer correctly refuses to attribute
++    # official items to a horse, and its RSS source now answers 404.
++    # PokerNews is already an active source in the content_sources registry
++    # (handle @PokerNews), so this duplicated work that lives there. Recorded in
++    # Club Arena ca_retired_cron_jobs (migration 20261015035957) so the
++    # silence alerts stop waiting for it. Do not re-add it; the registry
++    # source is the PokerNews path.
+     ('/api/cron/poker-news',                      dict(hour='*/4', minute=15)),
+     # Licensed Global Poker Index feed adapter. The normal /api/news path is
+     # deliberate: policy forbids adding a net-new pages/api/cron route.
+@@ -1119,7 +1127,6 @@ WORKERS_PREFERRED = {
+     '/api/cron/refresh-venue-json':     '/cron/refresh-venue-json',
+     '/api/cron/content-health-check':   '/cron/content-health-check',
+     '/api/cron/trivia-daily-generator': '/cron/trivia-daily-generator',
+-    '/api/cron/pokernews-videos':       '/cron/pokernews-videos',
+     # NOT FLIPPED: /api/cron/daily-challenges — workers handler returns 500
+     # (references training_daily_challenges.bonus_xp_multiplier column that
+     # does not exist in the production schema). Defer until workers repo
+diff --git a/scripts/video_library_to_reels.py b/scripts/video_library_to_reels.py
+index 9a31c90c..f2fa04fc 100644
+--- a/scripts/video_library_to_reels.py
++++ b/scripts/video_library_to_reels.py
+@@ -1539,6 +1539,41 @@ def _load_existing_publications():
+     return existing
+ 
+ 
++def _load_reconciliation_held_keys():
++    """Canonical asset keys an unresolved Reel reconciliation quarantine holds private.
++
++    fn_keep_unresolved_reel_quarantine_private (the BEFORE INSERT/UPDATE OF
++    is_public trigger on social_reels) forces every Reel named by an unresolved
++    social_reel_reconciliation_quarantine row back to is_public = false, after
++    publish_video_library_reel has set it true and returned success. That hold
++    is deliberate and ends only when the reconciliation is resolved, so the
++    publisher can never make such a Reel visible. Before 2026-10-15 it
++    published them anyway, its own feed-visibility readback then found them
++    private, and every daily run exited 1 (50 held Reels among the assets
++    verified on 2026-10-14). They are now counted as reconciliation_held and
++    left alone. An unreadable quarantine raises, like every other inventory.
++    """
++    held = set()
++    offset = 0
++    while True:
++        rows = _select_page(
++            'social_reel_reconciliation_quarantine',
++            'quarantine_id,canonical_asset_key',
++            {'resolved_at': 'is.null'},
++            'quarantine_id.asc',
++            EXISTING_PAGE_SIZE,
++            offset,
++        )
++        for row in rows:
++            key = str(row.get('canonical_asset_key') or '')
++            if key:
++                held.add(key)
++        if len(rows) < EXISTING_PAGE_SIZE:
++            break
++        offset += len(rows)
++    return held
++
++
+ def _load_embed_failure_rows():
+     """Load pending work plus positive and negative verdicts due for renewal."""
+     failure_rows = []
+@@ -1928,6 +1963,8 @@ def _new_stats():
+         'checkpoint_write_errors': 0,
+         'deadline_reached': False,
+         'deadline_phase': None,
++        'reconciliation_held_keys': 0,
++        'reconciliation_held': 0,
+         'catalog_scan_complete': False,
+         'aborted_reason': None,
+         'publication_controls': None,
+@@ -2063,6 +2100,8 @@ def run_bridge(args):
+         return stats
+ 
+     existing = _load_existing_publications()
++    held_keys = _load_reconciliation_held_keys()
++    stats['reconciliation_held_keys'] = len(held_keys)
+     if _deadline_due(deadline_at):
+         _mark_deadline(stats, 'publication_inventory')
+         _write_checkpoint(args, stats, 'deadline')
+@@ -2178,6 +2217,9 @@ def run_bridge(args):
+             if plan == 'already_current':
+                 if vid_id in active_confirmed_ids:
+                     stats['confirmed_blocked_current'] += 1
++                elif f'youtube:{vid_id}' in held_keys:
++                    # Private by an unresolved reconciliation hold, not by us.
++                    stats['reconciliation_held'] += 1
+                 else:
+                     stats['already_current'] += 1
+                     _record_ops07(stats, 'verified', row)
+@@ -2420,6 +2462,11 @@ def run_bridge(args):
+                 # The verdict RPC owns both youtube_embed_failures and every
+                 # matching catalog availability row in one transaction. Only
+                 # the accepted current attempt can proceed to publication.
++                if f'youtube:{video_id}' in held_keys:
++                    # Verified, but its Reel is held private by an unresolved
++                    # reconciliation quarantine; publishing cannot show it.
++                    stats['reconciliation_held'] += 1
++                    continue
+                 if _deadline_due(deadline_at):
+                     stats['publication_deferred_deadline'] += 1
+                     _mark_deadline(stats, 'catalog_publication')
+@@ -2592,6 +2639,12 @@ def run_bridge(args):
+                     if (
+                         selected_for_catalog
+                         and outcome == 'verified'
++                        and f'youtube:{vid_id}' in held_keys
++                    ):
++                        stats['reconciliation_held'] += 1
++                    elif (
++                        selected_for_catalog
++                        and outcome == 'verified'
+                     ):
+                         if _deadline_due(deadline_at):
+                             stats['publication_deferred_deadline'] += 1
+@@ -2735,13 +2788,51 @@ def _verifier_inconclusive_budget_exceeded(stats):
+     return inconclusive > budget
+ 
+ 
++# A deadline in one of these phases stops a run that has already verified
++# and committed work batch by batch. Supabase verdict and publication state is
++# the resume cursor (resume_basis in every checkpoint), so the next run picks
++# up exactly the unfinished rows: that is the bounded daily batch doing what it
++# was built to do, not a failure. From 2026-09-27 the 750-row daily renewal
++# plus platform supply filled the whole 1,650 s budget on most days and exited
++# 1 every time.
++DEADLINE_PHASES_AFTER_COMMITTED_WORK = frozenset({
++    'supply_verification',
++    'supply_verdict',
++    'catalog_publication',
++    'failure_verification',
++    'failure_verdict',
++    'failure_race_publication',
++})
++
++
++def _deadline_is_failure(stats):
++    """A deadline fails the run only when it stopped before any committed work.
++
++    A deadline during startup, the publisher or control reads, either
++    inventory or the catalog scan published nothing (a partial scan never
++    publishes), and so is still a non-zero exit, as is any deadline in a run
++    that attempted no verification at all.
++    """
++    if not stats['deadline_reached']:
++        return False
++    attempted = (
++        stats['verification_attempted']
++        + stats['platform_verification_attempted']
++        + stats['failure_verification_attempted']
++    )
++    return (
++        stats.get('deadline_phase') not in DEADLINE_PHASES_AFTER_COMMITTED_WORK
++        or attempted == 0
++    )
++
++
+ def _stats_require_nonzero_exit(stats):
+     return bool(
+         stats['rpc_errors']
+         or stats['failure_verdict_errors']
+         or _verifier_inconclusive_budget_exceeded(stats)
+         or stats['checkpoint_write_errors']
+-        or stats['deadline_reached']
++        or _deadline_is_failure(stats)
+         or stats['feed_visibility_failures']
+     )
+ 
