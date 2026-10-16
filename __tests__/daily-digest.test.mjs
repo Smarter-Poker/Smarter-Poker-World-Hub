@@ -139,7 +139,7 @@ test('ai summary falls back when the model invents a number or is unavailable', 
     const r2 = await generateAiSummary(d, { apiKey: 'k', fetchImpl: good, model: 'test-model', ...NO_GROK });
     assert.equal(r2.source, 'test-model');
     const none = await generateAiSummary(d, { apiKey: '', ...NO_GROK });
-    assert.equal(none.reason, 'no_api_key');
+    assert.match(none.reason, /no_api_key$/);
 });
 
 test('signed view link verifies, expires and refuses tampering', () => {
@@ -177,41 +177,46 @@ test('ai fallback reason names the provider error, never the key', async () => {
     try {
         const r = await generateAiSummary(d, { apiKey: 'sk-secret-should-not-appear', fetchImpl: bad, model: 'm1', ...NO_GROK });
         assert.equal(r.source, 'fallback');
-        assert.match(r.reason, /^http_400 invalid_request_error: Your credit balance is too low/);
+        assert.match(r.reason, /http_400 invalid_request_error: Your credit balance is too low/);
         assert.ok(!r.reason.includes('sk-secret'));
     } finally { console.warn = warn; }
 });
 
-test('an out of credits AI provider becomes an attention item', async () => {
+test('only a summary no provider could write becomes an attention item', async () => {
     const { withProviderAttention } = await import('../src/lib/dailyDigest/assemble.mjs');
     const d = fixture();
-    const out = withProviderAttention(d, { source: 'fallback', reason: 'http_400 invalid_request_error: Your credit balance is too low to access the Anthropic API. (m1)' });
+    const out = withProviderAttention(d, { source: 'fallback', reason: 'grok 503 boom; http_400 invalid_request_error: Your credit balance is too low (m1)' });
     assert.equal(out.attention.length, d.attention.length + 1);
     assert.equal(out.attention.at(-1).rule, 'ai_provider_unavailable');
     assert.equal(out.attention_status.not_picked_up, d.attention_status.not_picked_up + 1);
     assert.match(buildSubject(out), /^\[4 Need Attention\]/);
-    assert.ok(buildHtml(out).includes('out of credits'));
-    assert.equal(withProviderAttention(d, { source: 'fallback', reason: 'unverified numbers: 22' }), d, 'a guard rejection is not an owner action');
-    assert.equal(withProviderAttention(d, { source: 'claude-sonnet-5-5' }), d);
+    assert.ok(buildHtml(out).includes('Neither Grok nor Anthropic answered'));
+    assert.equal(withProviderAttention(d, { source: 'fallback', reason: 'grok unverified numbers: 22; unverified numbers: 9' }), d, 'a guard rejection is not an owner action');
+    assert.equal(withProviderAttention(d, { source: 'grok-3' }), d);
+    assert.equal(withProviderAttention(d, { source: 'claude-sonnet-5-5', reason: 'grok 503 boom' }), d, 'the backup answering is not news');
     assert.equal(withProviderAttention(d, null), d);
 });
 
-test('summary falls back to Grok when Anthropic is out of credits, under the same number guard', async () => {
+test('Grok writes the summary first; Anthropic is only the backup; both under the number guard', async () => {
     const d = fixture();
+    let anthropicCalls = 0;
+    const anthropicOk = async () => { anthropicCalls++; return { ok: true, json: async () => ({ content: [{ type: 'text', text: 'Cash rake was 73,222.58 chips. 3 items need attention.' }] }) }; };
     const broke = async () => ({ ok: false, status: 400, json: async () => ({ error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } }) });
     const grokSays = (text) => async () => ({ chat: { completions: { create: async (p) => { assert.equal(p.model, 'grok-3'); return { choices: [{ message: { content: text } }] }; } } } });
+    const grokDown = async () => { throw Object.assign(new Error('boom'), { status: 503 }); };
     const warn = console.warn; console.warn = () => {};
     try {
-        const ok = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: grokSays('Cash rake was 73,222.58 chips across 287,809 hands. 3 items need attention.') });
+        const ok = await generateAiSummary(d, { apiKey: 'k', fetchImpl: anthropicOk, grok: grokSays('Cash rake was 73,222.58 chips across 287,809 hands. 3 items need attention.') });
         assert.equal(ok.source, 'grok-3');
-        assert.match(ok.reason, /credit balance/);
-        const { withProviderAttention } = await import('../src/lib/dailyDigest/assemble.mjs');
-        assert.match(withProviderAttention(d, ok).attention.at(-1).title, /running on Grok/);
+        assert.equal(anthropicCalls, 0, 'Anthropic is not called when Grok answers');
+        const backup = await generateAiSummary(d, { apiKey: 'k', fetchImpl: anthropicOk, model: 'm1', grok: grokDown });
+        assert.equal(backup.source, 'm1');
         const bad = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: grokSays('Rake rose 999,999 chips.') });
         assert.equal(bad.source, 'fallback');
-        assert.match(bad.reason, /grok unverified numbers/);
-        const down = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: async () => { throw Object.assign(new Error('boom'), { status: 503 }); } });
+        assert.match(bad.reason, /^grok unverified numbers/);
+        const down = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: grokDown });
         assert.equal(down.source, 'fallback');
-        assert.match(withProviderAttention(d, down).attention.at(-1).title, /are down/);
+        const { withProviderAttention } = await import('../src/lib/dailyDigest/assemble.mjs');
+        assert.match(withProviderAttention(d, down).attention.at(-1).title, /Neither Grok nor Anthropic/);
     } finally { console.warn = warn; }
 });

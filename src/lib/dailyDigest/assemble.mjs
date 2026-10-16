@@ -4,26 +4,18 @@ import { generateAiSummary, fallbackSummary } from './aiSummary.mjs';
 import { providerSpend, viewUrlFor } from './delivery.mjs';
 
 /**
- * The AI provider failing for a reason only the owner can fix (no credits, a
- * revoked key) is itself something that needs attention: the same key powers
- * in-app translation. Added to the list the email renders; a model blip or an
- * invented number in the summary is not, the plain summary covers those.
+ * Only when no AI provider could write the summary does it need the owner:
+ * Grok is primary and Anthropic the backup, so one of them having a bad day is
+ * not news. A guard rejection (an invented number) is not an owner action either.
  */
 export function withProviderAttention(digest, ai) {
+    if (!digest || ai?.source !== 'fallback') return digest;
     const reason = String(ai?.reason || '');
-    const onGrok = ai?.source === 'grok-3';
-    let title = null;
-    if (/credit balance/i.test(reason)) {
-        title = onGrok
-            ? 'The Anthropic API account is out of credits; the AI summary and in-app translation are running on Grok until it is topped up'
-            : 'The Anthropic API account is out of credits and Grok did not answer, so the AI summary and in-app translation are down';
-    } else if (/^http_(401|403)\b/.test(reason)) {
-        title = onGrok
-            ? 'The Anthropic API key was refused; the AI summary and in-app translation are running on Grok'
-            : 'The Anthropic API key was refused and Grok did not answer, so the AI summary and in-app translation are down';
-    }
-    if (!title || !digest) return digest;
-    const item = { rule: 'ai_provider_unavailable', severity: 'warning', title, status: 'not_picked_up', detail: { reason: reason.slice(0, 200) } };
+    const grokPart = reason.split(';')[0];
+    if (!grokPart.startsWith('grok') || /unverified numbers|empty/i.test(grokPart)) return digest;
+    const item = { rule: 'ai_provider_unavailable', severity: 'warning',
+        title: 'Neither Grok nor Anthropic answered, so the AI summary used the plain written version',
+        status: 'not_picked_up', detail: { reason: reason.slice(0, 200) } };
     const status = { ...(digest.attention_status || {}) };
     status.not_picked_up = Number(status.not_picked_up || 0) + 1;
     return { ...digest, attention: [...(digest.attention || []), item], attention_status: status };
