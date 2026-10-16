@@ -416,6 +416,9 @@ function SeriesHead({ series }) {
       />
     );
   }
+  const geoRegion = series.state ? `US-${String(series.state).trim().toUpperCase()}` : null;
+  const geoPlacename = [series.city, series.state].filter(Boolean).join(', ') || null;
+
   return (
     <SEOHead
       title={seriesTitle(series)}
@@ -423,6 +426,8 @@ function SeriesHead({ series }) {
       canonical={seriesPath(series)}
       ogImage={seriesOgImage(series) || series.logoUrl || null}
       jsonLd={seriesSchema(series)}
+      geoRegion={geoRegion}
+      geoPlacename={geoPlacename}
     />
   );
 }
