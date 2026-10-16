@@ -442,7 +442,16 @@ test('the reader never reads a post\'s metadata or origin_type, and every exit i
   assert.doesNotMatch(context, /'metadata'|'origin_type'/);
   assert.doesNotMatch(code, /^\s*origin_type:/m, 'a normalized Reel carries no origin_type');
   assert.match(code, /function publicRow[\s\S]*?return toBrowserReel\(\{/);
-  assert.match(code, /data: detail\.row \? toBrowserReel\(detail\.row\) : null/);
+  const detailReader = code.slice(code.indexOf('export async function readPublicReelById('), code.indexOf('export async function readPokerReelsFeed('));
+  assert.match(detailReader, /data: detail\.row \? \{\s*\.\.\.toBrowserReel\(detail\.row\),/);
+  assert.match(detailReader, /options\.includeVideoMetadata === true && detail\.row\.is_public === true\s*\? detail\.row\._sourceVideoMetadata : \{\}/);
+  const videoFacts = code.match(/_sourceVideoMetadata: asset \? \{([\s\S]*?)\} : null/)?.[1];
+  assert.ok(videoFacts, 'optional facts come from the already eligible catalog asset');
+  assert.deepEqual([...videoFacts.matchAll(/(source_[a-z_]+):/g)].map(match => match[1]).sort(), ['source_duration', 'source_published_at', 'source_thumbnail_url']);
+  assert.match(videoFacts, /source_published_at: asset\.published_at \|\| null/);
+  assert.match(videoFacts, /source_thumbnail_url: asset\.thumbnail_url \|\| null/);
+  assert.match(videoFacts, /source_duration: asset\.duration \|\| null/);
+  assert.doesNotMatch(videoFacts, /author|origin|profile|created_at|metadata|clip_source/);
   assert.doesNotMatch(stripComments(read('pages/api/news/videos.js')), /origin_type/);
   for (const route of ['pages/api/reels/feed.js', 'pages/api/reels/profile.js', 'pages/api/reels/mine.js', 'pages/api/reels/saved.js', 'pages/api/reels/saved-status.js', 'pages/api/news/reels.js']) {
     assert.doesNotMatch(stripComments(read(route)), /origin_type/, `${route} adds no origin_type`);

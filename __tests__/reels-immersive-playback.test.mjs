@@ -1,3 +1,4 @@
+import { reelYouTubeFrameHtml } from '../src/lib/reelsSeo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -28,8 +29,11 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   const ts = require('typescript');
   const instances = [], messages = new Set(), delivered = [], observedSound = [];
   const calls = [], frames = new Map(); let frameId = 0;
-  const host = {appendChild(frame){ this.frame = frame; }};
   const frame = () => ({src:'',style:{},contentWindow:{},dataset:{}});
+  const serverFrame = frame(); let appends = 0;
+  const host = {frame:serverFrame,querySelector(selector){assert.equal(selector,'iframe');return this.frame;},appendChild(frame){appends++;this.frame=frame;frame.parentNode=this;}};
+  serverFrame.parentNode = host;
+  serverFrame.src = 'https://www.youtube-nocookie.com/embed/AAAAAAAAAAA?autoplay=0&enablejsapi=1';
   const win = {requestAnimationFrame(fn){frames.set(++frameId,fn);return frameId;},cancelAnimationFrame(id){frames.delete(id);},location:{origin:'https://smarter.poker'}, addEventListener(name,fn){ if(name==='message')messages.add(fn); },removeEventListener(name,fn){messages.delete(fn);},YT:{Player: class {
     constructor(iframe,options){this.frame=iframe;this.events=options.events; instances.push(this);}
     getIframe(){return this.frame;}
@@ -43,13 +47,15 @@ test('the actual mounted API owner preserves identity, pause intent, latest clip
   const api = {exports:{}};
   new Function('module','exports','window','document',compile('../src/lib/loadReelYouTubeAPI.mjs'))(api,api.exports,win,doc);
   const mod = {exports:{}};
-  new Function('require','module','exports','window','document',compile('../src/components/reels/ReelYouTubePlayer.jsx'))(name=>name.endsWith('loadReelYouTubeAPI.mjs')?api.exports:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:require(name),mod,mod.exports,win,doc);
+  new Function('require','module','exports','window','document',compile('../src/components/reels/ReelYouTubePlayer.jsx'))(name=>name.endsWith('loadReelYouTubeAPI.mjs')?api.exports:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:name.endsWith('reelsSeo.mjs')?{reelYouTubeFrameHtml}:require(name),mod,mod.exports,win,doc);
   const Component = mod.exports.default;
   const iframeRef={current:null},eventRef={current:event=>delivered.push(event)}, commandRef={current:null};
   const props={videoId:'AAAAAAAAAAA',iframeRef,eventRef,commandRef,onMutedChange:value=>observedSound.push(value),title:'Original Clip'};
   let tree;
   await act(async()=>{tree=create(React.createElement(Component,props),{createNodeMock:()=>host});});
   assert.equal(instances.length,1);
+  assert.equal(instances[0].frame, serverFrame, 'official player adopts the pre-existing SSR frame');
+  assert.equal(appends, 0, 'adoption never appends or replaces a second player');
   const player=instances[0];
   assert.equal(new URL(iframeRef.current.src).host,'www.youtube-nocookie.com');
   assert.equal(new URL(iframeRef.current.src).searchParams.get('enablejsapi'),'1');
@@ -130,13 +136,13 @@ test('the mounted provider suspends background playback and resumes only the sam
     playVideo(){calls.push('play');state=1;} pauseVideo(){calls.push('pause');state=2;}
     mute(){calls.push('mute');} unMute(){calls.push('unmute');} setVolume(){}
     loadVideoById(){calls.push('load');state=1;} cueVideoById(){calls.push('cue');state=5;}
-    destroy(){calls.push('destroy');}
+    destroy(){calls.push('destroy');if(this.frame.parentNode)this.frame.parentNode.frame=null;}
   }}};
   const compile = path => ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{fileName:path.replace('.mjs','.js'),compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   const api={exports:{}},mod={exports:{}};
   new Function('module','exports','window','document',compile('../src/lib/loadReelYouTubeAPI.mjs'))(api,api.exports,win,doc);
-  new Function('require','module','exports','window','document',compile('../src/components/reels/ReelYouTubePlayer.jsx'))(name=>name.endsWith('loadReelYouTubeAPI.mjs')?api.exports:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:require(name),mod,mod.exports,win,doc);
-  const commandRef={current:null}, host={appendChild(){}};
+  new Function('require','module','exports','window','document',compile('../src/components/reels/ReelYouTubePlayer.jsx'))(name=>name.endsWith('loadReelYouTubeAPI.mjs')?api.exports:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:name.endsWith('reelsSeo.mjs')?{reelYouTubeFrameHtml}:require(name),mod,mod.exports,win,doc);
+  const commandRef={current:null}, host={frame:null,querySelector(){return this.frame;},appendChild(frame){this.frame=frame;frame.parentNode=this;}};
   let props={videoId:'AAAAAAAAAAA',playbackScopeKey:'owner-a',commandRef,muted:false},tree;
   const update=async values=>{props={...props,...values};await act(async()=>tree.update(React.createElement(mod.exports.default,props)));};
   const visibility=async hidden=>{doc.hidden=hidden;doc.visibilityState=hidden?'hidden':'visible';await act(async()=>{for(const fn of documentListeners.get('visibilitychange')||[])fn();});};
@@ -196,7 +202,7 @@ test('the actual provider renders on the server without document or window globa
   const path='../src/components/reels/ReelYouTubePlayer.jsx';
   const code=ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{fileName:path,compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   const mod={exports:{}};
-  new Function('require','module','exports','window','document',code)(name=>name.endsWith('loadReelYouTubeAPI.mjs')?{loadReelYouTubeAPI(){throw new Error('Server rendering must never load the SDK');}}:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:require(name),mod,mod.exports,undefined,undefined);
+  new Function('require','module','exports','window','document',code)(name=>name.endsWith('loadReelYouTubeAPI.mjs')?{loadReelYouTubeAPI(){throw new Error('Server rendering must never load the SDK');}}:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:name.endsWith('reelsSeo.mjs')?{reelYouTubeFrameHtml}:require(name),mod,mod.exports,undefined,undefined);
   assert.match(renderToString(React.createElement(mod.exports.default,{videoId:'AAAAAAAAAAA'})),/data-reel-youtube-api="loading"/);
 });
 
@@ -243,7 +249,7 @@ test('mounted scrubber commits one drag seek, supports keyboard seeks and ignore
   const React=require('react'), {create,act}=require('react-test-renderer'), ts=require('typescript');
   const mod={exports:{}};
   const code=ts.transpileModule(readFileSync(new URL('../src/components/reels/ReelProgress.jsx',import.meta.url),'utf8'),{fileName:'ReelProgress.jsx',compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
-  new Function('require','module','exports',code)(name=>name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:require(name),mod,mod.exports);
+  new Function('require','module','exports',code)(name=>name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds}:name.endsWith('reelsSeo.mjs')?{reelYouTubeFrameHtml}:require(name),mod,mod.exports);
   const videoRef={current:{duration:80,currentTime:7}},calls=[],commandRef={current:(...args)=>calls.push(args)};
   let tree;
   await act(async()=>{tree=create(React.createElement(mod.exports.default,{value:10,videoRef,commandRef}));});

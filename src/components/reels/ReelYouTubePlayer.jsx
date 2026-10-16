@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { reelYouTubeFrameHtml } from '../../lib/reelsSeo.mjs';
 import { reelSeekSeconds } from '../../lib/reelGestureNavigation.mjs';
 import { loadReelYouTubeAPI } from '../../lib/loadReelYouTubeAPI.mjs';
 
@@ -6,6 +7,7 @@ import { loadReelYouTubeAPI } from '../../lib/loadReelYouTubeAPI.mjs';
 // video in one player; cleanup destroys only that API-owned child.
 export default function ReelYouTubePlayer({ videoId, active = true, autoplay = true, muted = true, iframeRef, eventRef, onMutedChange, commandRef, title, playbackScopeKey = null, captionsRequested = false, captionsFontSize = 0, onCaptionsStateChange }) {
   const hostRef = useRef(null);
+  const initialFrameHtmlRef = useRef(reelYouTubeFrameHtml(videoId));
   const playerRef = useRef(null);
   const readyRef = useRef(false);
   const loadedIdRef = useRef(null);
@@ -110,7 +112,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
     loadReelYouTubeAPI().then((YT) => {
       if (disposed || !hostRef.current) return;
       const initial = desiredRef.current;
-      const frame = document.createElement('iframe');
+      const frame = hostRef.current.querySelector('iframe') || document.createElement('iframe');
       const params = new URLSearchParams({ autoplay: initial.active && initial.autoplay && visible() && !visibilityHoldRef.current ? '1' : '0', mute: '1', playsinline: '1', controls: '0', rel: '0', enablejsapi: '1', origin: window.location.origin, widget_referrer: window.location.origin });
       if (initial.captionsRequested) params.set('cc_load_policy', '1');
       const saved = restartPositionRef.current;
@@ -124,7 +126,7 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
       frame.allowFullscreen = true;
       frame.referrerPolicy = 'strict-origin-when-cross-origin';
       Object.assign(frame.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0' });
-      hostRef.current.appendChild(frame);
+      if (!frame.parentNode) hostRef.current.appendChild(frame);
       if (iframeRef) iframeRef.current = frame;
       loadedIdRef.current = initial.videoId;
       player = new YT.Player(frame, { events: {
@@ -242,7 +244,8 @@ export default function ReelYouTubePlayer({ videoId, active = true, autoplay = t
     window.addEventListener('message', observeSound);
     return () => window.removeEventListener('message', observeSound);
   }, [iframeRef, onMutedChange, eventRef]);
-  return <div ref={hostRef} data-reel-youtube-api={failure ? 'error' : ready ? 'ready' : 'loading'} data-reel-youtube-active={active ? 'true' : 'false'} style={{ position: 'absolute', inset: 0 }}>
+  return <div data-reel-youtube-api={failure ? 'error' : ready ? 'ready' : 'loading'} data-reel-youtube-active={active ? 'true' : 'false'} style={{ position: 'absolute', inset: 0 }}>
+    <div ref={hostRef} style={{ position: 'absolute', inset: 0 }} dangerouslySetInnerHTML={{ __html: initialFrameHtmlRef.current }} />
     {failure ? <div role="alert" style={{ position: 'absolute', inset: 0, zIndex: 90, display: 'grid', placeContent: 'center', gap: 12, textAlign: 'center', color: '#fff', background: '#000c', padding: 24 }}><p>Video Player Could Not Load</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry Player</button></div> : null}
   </div>;
 }
