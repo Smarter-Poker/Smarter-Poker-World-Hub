@@ -22,6 +22,7 @@ import {
   buildSeriesFaqJsonLd,
   buildSeriesSpeakableJsonLd,
 } from './venueAeo.mjs';
+import { resolveSeriesWikidataLinks } from '../seo/wikidataRegistry.mjs';
 
 const TIMEOUT_MS = 10000;
 
@@ -430,6 +431,10 @@ export function seriesSchema(v) {
       },
       description: seriesDescription(v),
     };
+    const wikidataLinks = resolveSeriesWikidataLinks(v);
+    if (wikidataLinks.length > 0) {
+      event.sameAs = wikidataLinks;
+    }
     if (v.endDate) event.endDate = v.endDate;
     if (v.logoUrl) event.image = v.logoUrl;
     if (v.mainEventBuyin) {

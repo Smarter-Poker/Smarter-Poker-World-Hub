@@ -53,6 +53,7 @@ import {
   buildVenueFaqJsonLd,
   buildVenueSpeakableJsonLd,
 } from '../../../src/lib/poker-near-me/venueAeo.mjs';
+import { resolveVenueWikidataLinks } from '../../../src/lib/seo/wikidataRegistry.mjs';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
@@ -209,7 +210,12 @@ function buildVenueJsonLd(venue, canonical, image) {
   const blurb = typeof rawBlurb === 'string' ? rawBlurb.replace(/\s+/g, ' ').trim() : '';
   if (blurb) venueNode.description = clampText(blurb, 500);
 
-  const sameAs = [toAbsoluteUrl(venue.website), toAbsoluteUrl(venue.poker_atlas_url)].filter(Boolean);
+  const wikidataLinks = resolveVenueWikidataLinks(venue);
+  const sameAs = [
+    toAbsoluteUrl(venue.website),
+    toAbsoluteUrl(venue.poker_atlas_url),
+    ...wikidataLinks,
+  ].filter(Boolean);
   if (sameAs.length > 0) venueNode.sameAs = sameAs;
 
   // Breadcrumbs: Home -> Hub -> Poker Near Me -> [State (if present)] -> [City (if present)] -> Venue
