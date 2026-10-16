@@ -1,10 +1,9 @@
-// Daily Operations Digest: rendering, AI number guard and the signed view link.
+// Daily Operations Digest: rendering, admin recipients and the signed view link.
 // Run: node --test __tests__/daily-digest.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS } from '../src/lib/dailyDigest/render.mjs';
-import { extractNumbers, summaryPassesGuard, fallbackSummary, generateAiSummary } from '../src/lib/dailyDigest/aiSummary.mjs';
-import { signViewToken, verifyViewToken, ownerPhone, digestRecipients } from '../src/lib/dailyDigest/delivery.mjs';
+import { signViewToken, verifyViewToken, ownerPhone, digestRecipients, adminRecipients } from '../src/lib/dailyDigest/delivery.mjs';
 
 function fixture(overrides = {}) {
     return {
@@ -53,7 +52,7 @@ test('subject carries attention count, signups, rake and sales', () => {
 });
 
 test('html renders every section, escapes untrusted text, has no em dashes', () => {
-    const html = buildHtml(fixture(), { aiSummary: 'All good.', viewUrl: 'https://smarter.poker/api/digest/view?t=x' });
+    const html = buildHtml(fixture(), { viewUrl: 'https://smarter.poker/api/digest/view?t=x' });
     for (const def of SECTION_DEFS) assert.ok(html.includes(esc(def.title)), def.title);
     assert.ok(html.includes('Needs Your Attention (3)'));
     assert.ok(html.includes('Already In The Fleet Queue'));
@@ -103,45 +102,6 @@ test('plain text version lists attention and sections', () => {
     assert.match(t, /Cash Game Rake: 73,222.58/);
 });
 
-test('number guard accepts numbers from the data and rejects invented ones', () => {
-    const d = fixture();
-    assert.deepEqual(extractNumbers('Rake was 73,222.58 and $0.00 sales, 31% up'), [73222.58, 0, 31]);
-    assert.equal(summaryPassesGuard('3 real players signed up and cash rake was 73,222.58 chips across 287,809 hands on Oct 14.', d).ok, true);
-    assert.equal(summaryPassesGuard('Cash rake grew 22% to 73,222.58 chips.', d).ok, false);
-    assert.equal(summaryPassesGuard('', d).ok, false);
-});
-
-// These tests never reach a real AI provider. The Vercel build runs this file
-// with the production XAI_API_KEY in its environment, so a call that leaves
-// `grok` at its default would import and call the live Grok client from the
-// build (2026-10-16: dpl_G9uvjpYuYJfBTa1CCmyzrqTrNesT and
-// dpl_9RjcCpPmidQzcxWiqBw9JLQJSD9m failed exactly that way). Every call passes
-// a provider stub or `grok: null`, and the Grok cases below inject their own.
-const NO_GROK = { grok: null };
-
-test('every AI summary call in this file names its Grok provider', async () => {
-    const { readFile } = await import('node:fs/promises');
-    const src = await readFile(new URL(import.meta.url), 'utf8');
-    const call = ['generateAiSummary', '(d, {'].join('');
-    const calls = src.split(call).slice(1).map((rest) => rest.slice(0, rest.indexOf('})')));
-    assert.ok(calls.length >= 6);
-    for (const args of calls) assert.match(args, /grok/i, `a call leaves grok at its live default: ${args.slice(0, 80)}`);
-});
-
-test('ai summary falls back when the model invents a number or is unavailable', async () => {
-    const d = fixture();
-    const fake = async () => ({ ok: true, json: async () => ({ content: [{ type: 'text', text: 'Rake rose 999,999 chips.' }] }) });
-    const r = await generateAiSummary(d, { apiKey: 'k', fetchImpl: fake, ...NO_GROK });
-    assert.equal(r.source, 'fallback');
-    assert.match(r.reason, /unverified numbers/);
-    assert.equal(r.text, fallbackSummary(d));
-    const good = async () => ({ ok: true, json: async () => ({ content: [{ type: 'text', text: '3 real players signed up. Cash rake was 73,222.58 chips. 3 items need attention.' }] }) });
-    const r2 = await generateAiSummary(d, { apiKey: 'k', fetchImpl: good, model: 'test-model', ...NO_GROK });
-    assert.equal(r2.source, 'test-model');
-    const none = await generateAiSummary(d, { apiKey: '', ...NO_GROK });
-    assert.equal(none.reason, 'no_api_key');
-});
-
 test('signed view link verifies, expires and refuses tampering', () => {
     process.env.CRON_SECRET = 'test-secret-value-123';
     const t = signViewToken('2026-10-14', 45, Date.parse('2026-10-15T12:00:00Z'));
@@ -170,48 +130,24 @@ test('long grouped attention titles end at a complete item', () => {
     assert.equal(shortTitle('short'), 'short');
 });
 
-test('ai fallback reason names the provider error, never the key', async () => {
-    const d = fixture();
-    const bad = async () => ({ ok: false, status: 400, json: async () => ({ type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } }) });
-    const warn = console.warn; console.warn = () => {};
-    try {
-        const r = await generateAiSummary(d, { apiKey: 'sk-secret-should-not-appear', fetchImpl: bad, model: 'm1', ...NO_GROK });
-        assert.equal(r.source, 'fallback');
-        assert.match(r.reason, /^http_400 invalid_request_error: Your credit balance is too low/);
-        assert.ok(!r.reason.includes('sk-secret'));
-    } finally { console.warn = warn; }
+test('admins come from the database, like the Pep Nation Lab digest; the env list is only a fallback', async () => {
+    const users = { a1: 'admin-one@example.test', a2: null };
+    const fakeSb = (rows) => ({
+        from: () => ({ select: () => ({ eq: () => ({ limit: async () => ({ data: rows }) }) }) }),
+        auth: { admin: { getUserById: async (id) => ({ data: { user: users[id] ? { email: users[id] } : null } }) } },
+    });
+    process.env.DAILY_DIGEST_TO = 'fallback@example.test';
+    const got = await adminRecipients(fakeSb([{ id: 'a1', full_name: 'Admin One' }, { id: 'a2', username: 'noemail' }]));
+    assert.deepEqual(got, [{ id: 'a1', name: 'Admin One', email: 'admin-one@example.test' }], 'admins without an email are skipped');
+    const none = await adminRecipients(fakeSb([]));
+    assert.deepEqual(none, [{ id: null, name: 'Admin', email: 'fallback@example.test' }]);
+    delete process.env.DAILY_DIGEST_TO;
 });
 
-test('an out of credits AI provider becomes an attention item', async () => {
-    const { withProviderAttention } = await import('../src/lib/dailyDigest/assemble.mjs');
-    const d = fixture();
-    const out = withProviderAttention(d, { source: 'fallback', reason: 'http_400 invalid_request_error: Your credit balance is too low to access the Anthropic API. (m1)' });
-    assert.equal(out.attention.length, d.attention.length + 1);
-    assert.equal(out.attention.at(-1).rule, 'ai_provider_unavailable');
-    assert.equal(out.attention_status.not_picked_up, d.attention_status.not_picked_up + 1);
-    assert.match(buildSubject(out), /^\[4 Need Attention\]/);
-    assert.ok(buildHtml(out).includes('out of credits'));
-    assert.equal(withProviderAttention(d, { source: 'fallback', reason: 'unverified numbers: 22' }), d, 'a guard rejection is not an owner action');
-    assert.equal(withProviderAttention(d, { source: 'claude-sonnet-5-5' }), d);
-    assert.equal(withProviderAttention(d, null), d);
-});
-
-test('summary falls back to Grok when Anthropic is out of credits, under the same number guard', async () => {
-    const d = fixture();
-    const broke = async () => ({ ok: false, status: 400, json: async () => ({ error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } }) });
-    const grokSays = (text) => async () => ({ chat: { completions: { create: async (p) => { assert.equal(p.model, 'grok-3'); return { choices: [{ message: { content: text } }] }; } } } });
-    const warn = console.warn; console.warn = () => {};
-    try {
-        const ok = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: grokSays('Cash rake was 73,222.58 chips across 287,809 hands. 3 items need attention.') });
-        assert.equal(ok.source, 'grok-3');
-        assert.match(ok.reason, /credit balance/);
-        const { withProviderAttention } = await import('../src/lib/dailyDigest/assemble.mjs');
-        assert.match(withProviderAttention(d, ok).attention.at(-1).title, /running on Grok/);
-        const bad = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: grokSays('Rake rose 999,999 chips.') });
-        assert.equal(bad.source, 'fallback');
-        assert.match(bad.reason, /grok unverified numbers/);
-        const down = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: async () => { throw Object.assign(new Error('boom'), { status: 503 }); } });
-        assert.equal(down.source, 'fallback');
-        assert.match(withProviderAttention(d, down).attention.at(-1).title, /are down/);
-    } finally { console.warn = warn; }
+test('the digest is straight data: no AI module, no model call', async () => {
+    const fs = await import('node:fs');
+    assert.ok(!fs.existsSync(new URL('../src/lib/dailyDigest/aiSummary.mjs', import.meta.url)));
+    const src = fs.readFileSync(new URL('../src/lib/dailyDigest/assemble.mjs', import.meta.url), 'utf8');
+    assert.ok(!/anthropic|grok|openai/i.test(src));
+    assert.ok(!buildHtml(fixture()).includes('Daniel'), 'no personal name is baked into the template');
 });

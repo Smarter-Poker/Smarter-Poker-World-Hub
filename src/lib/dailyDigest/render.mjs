@@ -346,7 +346,7 @@ export function buildSubject(digest) {
 }
 
 export function buildHtml(digest, opts = {}) {
-    const name = opts.recipientName || 'Daniel Bekavac';
+    const name = opts.recipientName || 'Admin';
     const m = digest.metrics || {};
     let body = '';
 

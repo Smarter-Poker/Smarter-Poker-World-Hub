@@ -14,7 +14,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
-import { digestRecipients, sendEmail, sendSms } from '../../../src/lib/dailyDigest/delivery.mjs';
+import { adminRecipients, sendEmail, sendSms } from '../../../src/lib/dailyDigest/delivery.mjs';
 import { esc } from '../../../src/lib/dailyDigest/render.mjs';
 
 export const config = { maxDuration: 60 };
@@ -62,7 +62,7 @@ async function handler(req, res) {
         const errors = [];
         if (p.need_email) {
             const msg = pageEmail(p);
-            const r = await sendEmail({ to: digestRecipients(), ...msg, idempotencyKey: `sp-critical-page-${p.id}` });
+            const r = await sendEmail({ to: (await adminRecipients(sb)).map((a) => a.email), ...msg, idempotencyKey: `sp-critical-page-${p.id}` });
             emailed = r.ok;
             if (!r.ok) errors.push(r.error);
         }

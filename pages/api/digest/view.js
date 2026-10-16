@@ -24,14 +24,12 @@ export default async function handler(req, res) {
     if (!url || !key) return res.status(500).send('Not configured');
     const sb = createClient(url, key, { auth: { persistSession: false } });
 
-    const [{ data: digest, error }, { data: run }] = await Promise.all([
+    const [{ data: digest, error }] = await Promise.all([
         sb.rpc('fn_sp_daily_digest', { p_day: day, p_dispatch: false }),
-        sb.from('sp_daily_digest_runs').select('ai_summary').eq('day', day).maybeSingle(),
     ]);
     if (error || !digest) return res.status(500).send('The digest could not be loaded.');
 
-    const ai = run?.ai_summary ? String(run.ai_summary).replace(/^\[[^\]]*\]\s*/, '') : null;
-    const html = buildHtml(digest, { aiSummary: ai, viewUrl: viewUrlFor(day), dashboardUrl: 'https://smarter.poker/admin' });
+    const html = buildHtml(digest, { viewUrl: viewUrlFor(day), dashboardUrl: 'https://smarter.poker/admin' });
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(200).send(html);
 }
