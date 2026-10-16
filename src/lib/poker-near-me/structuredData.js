@@ -193,8 +193,10 @@ export function buildSeriesDirectorySchema(series = [], totalCount = 0) {
   });
 }
 
-export function buildDailyTournamentSchema(tournaments = [], generatedAt) {
-  const canonical = `${SITE_ORIGIN}/hub/daily-tournaments`;
+export function buildDailyTournamentSchema(tournaments = [], generatedAt, options = {}) {
+  const canonical = options.canonical || `${SITE_ORIGIN}/hub/daily-tournaments`;
+  const pageName = options.pageName || 'Daily Poker Tournaments';
+  const pageDescription = options.pageDescription || 'Browse recurring daily poker tournament schedules from verified poker venues and home games.';
   const items = tournaments.slice(0, 50).map((tournament, index) => {
     const isHomeGame = tournament.is_home_game || String(tournament.venue_id || '').startsWith('home_game_');
     const rawHomeId = String(tournament.venue_id || '').replace(/^home_game_/, '');
@@ -241,8 +243,8 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt) {
     '@type': 'CollectionPage',
     '@id': `${canonical}#schedule`,
     url: canonical,
-    name: 'Daily Poker Tournaments',
-    description: 'Browse recurring daily poker tournament schedules from verified poker venues and home games.',
+    name: pageName,
+    description: pageDescription,
     dateModified: generatedAt || undefined,
     mainEntity: {
       '@type': 'ItemList',

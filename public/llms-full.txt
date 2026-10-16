@@ -54,6 +54,10 @@ The most comprehensive live poker room directory and tournament tracking system 
   Official schedules, dates, and stops for major poker circuits including WSOP, WSOP Circuit (WSOPC), World Poker Tour (WPT), Mid-States Poker Tour (MSPT), RunGood Poker Series (RGPS), and PokerGO Tour (PGT).
 - **Tournament Series Catalog**: https://smarter.poker/hub/poker-near-me/series
   Festival schedules, structures, main event guarantees, and official calendar export integration (`.ics` downloads and Google Calendar sync).
+- **Tournaments This Weekend**: https://smarter.poker/hub/tournaments/this-weekend
+  High-intent programmatic schedule aggregator filtering verified tournaments across Friday, Saturday, and Sunday nationwide, with buy-in, state, and guarantee filters.
+- **Daily Tournaments Guide**: https://smarter.poker/hub/daily-tournaments
+  Day-by-day poker tournament directory across hundreds of licensed casinos and rooms.
 - **Live Events Calendar**: https://smarter.poker/hub/poker-near-me/events-calendar
   Daily and multi-day tournament schedule calendar across all mapped venues.
 - **Poker Home Games**: https://smarter.poker/hub/home-games

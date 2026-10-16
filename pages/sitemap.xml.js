@@ -113,6 +113,7 @@ const staticPages = [
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
+  { path: '/hub/tournaments/this-weekend', priority: '0.8', changefreq: 'daily' },
   // These standalone map/card directories are distinct, self-canonical public
   // surfaces. Keep them discoverable alongside the unified PNM tour/series
   // tabs instead of publishing canonical pages that the sitemap omits.

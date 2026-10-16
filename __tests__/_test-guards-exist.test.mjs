@@ -31,6 +31,7 @@ import './watch-page-links-only-to-real-channels.test.mjs';
 import './series-calendar-and-og.test.mjs';
 import './llms-full-txt-standards.test.mjs';
 import './indexing-webhook.test.mjs';
+import './weekend-tournaments-landing.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
