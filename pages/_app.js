@@ -54,6 +54,8 @@ import '../src/styles/worlds/poker-near-me-console-tools.css';
 import '../src/styles/worlds/poker-near-me-console-pods.css';
 import '../src/styles/worlds/poker-near-me-console-menu.css';
 import '../src/styles/worlds/poker-near-me-home-games-directory.css';
+import '../src/styles/single-field-focus.css';
+import { installSingleFieldFocus } from '../src/lib/singleFieldFocus.mjs';
 import {
   Orbitron,
   Inter,
@@ -896,6 +898,7 @@ const MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES = new Set([
 const MessengerDockHost = dynamic(() => import('../src/components/messenger/MessengerDockHost'), { ssr: false });
 
 export default function App({ Component, pageProps }) {
+  useEffect(() => installSingleFieldFocus(document), []);
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
   const isCommander = router.asPath.startsWith('/commander');

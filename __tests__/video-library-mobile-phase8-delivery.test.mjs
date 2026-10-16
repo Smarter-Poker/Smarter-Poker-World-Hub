@@ -28,3 +28,15 @@ test('native upload proof requires real owner/rights/byte identity, refuses rewa
  assert.match(source,/assert\.deepEqual\(await readFinancialSnapshot/);
  assert.doesNotMatch(source,/force:\s*true|award_diamonds|claimReward\(/);
 });
+
+test('live tracking proof uses the discoverable non-autoplaying player and native resume without iframe rewrites',()=>{
+ const source=read('scripts/qualification/videoLibraryPhase8Tracking.mjs');
+ assert.match(source,/discoverableSource\.searchParams\.get\('autoplay'\), '0'/);
+ assert.match(source,/Discovering the non-autoplaying iframe must not write watch credit/);
+ assert.match(source,/name: 'Resume Saved Position'/);
+ assert.match(source,/await resumeButton\.click\(\)/);
+ assert.match(source,/await resumedIframe\.getAttribute\('src'\), resumeSource/);
+ assert.match(source,/await expect\.poll\(state, \{ timeout: 20000 \}\)\.toBe\(1\)/);
+ assert.match(source,/The real provider must resume near the saved position/);
+ assert.doesNotMatch(source,/name: `Play \$\{video\.title\}`|searchParams\.get\('start'\)/);
+});

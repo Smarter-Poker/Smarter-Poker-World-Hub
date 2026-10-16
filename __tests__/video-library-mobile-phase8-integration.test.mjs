@@ -11,11 +11,23 @@ test('Phase 8 entries are actually mounted and canonical tracking owns only one 
  assert.match(watch, /<WatchTracking tracking=\{tracking\}/);
  assert.doesNotMatch(watch, /updateWatchDuration\(|flushWatchDuration\(/);
 });
-test('canonical iframe start captures resume once on Play rather than changing on persisted progress', () => {
- assert.match(watch, /resumeSnapshot\.current = \{ key: resumeKey, seconds: tracking\.resumeSeconds \|\| 0 \}/);
- assert.match(watch, /start=\$\{resumeSnapshot\.current\.seconds\}/);
- assert.doesNotMatch(watch, /start=\$\{tracking\./);
- assert.match(watch, /onClick=\{startWatching\}/);
+test('canonical iframe is discoverable without autoplay and resume commands preserve its source', () => {
+ assert.doesNotMatch(watch, /resumeSnapshot|start=\$\{tracking\.|onClick=\{startWatching\}/);
+ assert.match(watch, /autoplay=0/);
+ assert.match(watch, /onClick=\{resumeWatching\}/);
+ const start=watch.indexOf('    const commandPlayer =');
+ const end=watch.indexOf('    // The library menu',start);
+ assert.ok(start>=0 && end>start,'actual watch command handlers exist');
+ const sent=[],iframe={contentWindow:{postMessage:(body,origin)=>sent.push({data:JSON.parse(body),origin})}};
+ const document={hidden:false},tracking={resumeSeconds:120};let mini=true;
+ const handlers=new Function('iframeRef','PLAYER_ORIGIN','document','tracking','setMiniPlayer',`${watch.slice(start,end)};return {resumeWatching,closePlayer};`)({current:iframe},'https://www.youtube-nocookie.com',document,tracking,value=>{mini=value;});
+ handlers.resumeWatching();
+ assert.deepEqual(sent.map(item=>item.data),[{event:'command',func:'seekTo',args:[120,true]},{event:'command',func:'playVideo',args:[]}]);
+ assert.ok(sent.every(item=>item.origin==='https://www.youtube-nocookie.com'));
+ handlers.closePlayer();assert.equal(sent.at(-1).data.func,'pauseVideo');assert.equal(mini,false);
+ document.hidden=true;handlers.resumeWatching();assert.equal(sent.length,3,'hidden tabs cannot start a resume');
+ document.hidden=false;tracking.resumeSeconds=0;handlers.resumeWatching();assert.equal(sent.length,3,'missing saved position cannot seek');
+ assert.equal(iframe.src,undefined,'resume/close handlers never replace the iframe source');
 });
 test('library totals and current seek position reflect authoritative acknowledgment instead of local elapsed estimates', () => {
  const body = library.slice(library.indexOf('const saveWatchSession ='), library.indexOf('saveWatchSessionRef.current ='));
