@@ -204,3 +204,22 @@ test('video schema and sitemap share the exact factual thumbnail URL', () => {
         assert.match(sitemapThumbnail, /^https:\/\/(?:i\.ytimg\.com|img\.youtube\.com)\//);
     }
 });
+
+
+test('uploader URL uses the verified registered channel profile shown on the watch page', () => {
+    const channelHref = '/hub/video-library/channels/7a12825b-0559-4fc8-a69f-d88377434c08';
+    const [object] = buildVideoJsonLd(normaliseVideoRow(ROW), { channelName: 'Hustler Casino Live', channelHref, description: 'D' });
+    assert.equal(object.author.url, `https://smarter.poker${channelHref}`);
+    assert.match(WATCH_PAGE, /buildVideoJsonLd\(video, \{ channelName: channel.name, channelHref, description \}\)/);
+    assert.match(WATCH_PAGE, /channelHref = resolved\?\.channel\?\.path \|\| null/);
+});
+
+test('missing or unsafe uploader profiles never become invented author URLs', () => {
+    const video = normaliseVideoRow({ ...ROW, attribution_url: 'javascript:alert(1)' });
+    for (const channelHref of [undefined, null, '', '/hub/video-library/channels/HCL', 'https://evil.test/hub/video-library/channels/7a12825b-0559-4fc8-a69f-d88377434c08', '//evil.test/channel', 'javascript:alert(1)', '/hub/video-library/channels/7a12825b-0559-4fc8-a69f-d88377434c08?other=1']) {
+        const [object] = buildVideoJsonLd(video, { channelName: 'Hustler Casino Live', channelHref, description: 'D' });
+        assert.equal(object.author.url, undefined, String(channelHref));
+    }
+    const [object] = buildVideoJsonLd({ ...video, attributionUrl: 'https://www.youtube.com/@unverified' }, { channelName: 'Hustler Casino Live', description: 'D' });
+    assert.equal(object.author.url, undefined, 'raw attribution alone does not verify uploader identity');
+});

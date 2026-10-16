@@ -184,7 +184,7 @@ export async function getServerSideProps({ params, res }) {
                 description,
                 canonical: watchPath(video),
                 indexable: isIndexableWatchVideo(video),
-                jsonLd: buildVideoJsonLd(video, { channelName: channel.name, description }),
+                jsonLd: buildVideoJsonLd(video, { channelName: channel.name, channelHref, description }),
                 channelVideos: usable(channelResult, CHANNEL_LIMIT),
                 relatedVideos: usable(relatedResult, RELATED_LIMIT),
             },

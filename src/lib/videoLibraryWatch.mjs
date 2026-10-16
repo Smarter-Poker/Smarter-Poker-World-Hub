@@ -162,12 +162,16 @@ export function videoThumbnailUrl(video) {
 }
 
 /** Only emit Google's video entity when its required publication fact exists. */
-export function buildVideoObject(video, { channelName, description } = {}) {
+export function buildVideoObject(video, { channelName, channelHref, description } = {}) {
     const uploadDate = videoPublicationDate(video?.publishedAt);
     if (!uploadDate || !video?.title || !/^[A-Za-z0-9_-]{11}$/.test(video?.videoId || '')) return null;
     const seconds = durationSeconds(video.duration);
     const url = watchUrl(video);
     const thumbnail = videoThumbnailUrl(video);
+    // SSR supplies this only after resolving the source through the channel
+    // registry. Raw source keys and row attribution do not prove identity.
+    const authorUrl = typeof channelHref === 'string' && /^\/hub\/video-library\/channels\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(channelHref)
+        ? `${SITE_URL}${channelHref}` : null;
     const videoObject = {
         '@type': 'VideoObject',
         '@id': `${url}#video`,
@@ -178,7 +182,7 @@ export function buildVideoObject(video, { channelName, description } = {}) {
         duration: isoDuration(seconds) || undefined,
         embedUrl: `https://www.youtube-nocookie.com/embed/${video.videoId}`,
         url,
-        ...(channelName ? { author: { '@type': 'Organization', name: channelName, ...(video.attributionUrl ? { url: video.attributionUrl } : {}) } } : {}),
+        ...(channelName ? { author: { '@type': 'Organization', name: channelName, ...(authorUrl ? { url: authorUrl } : {}) } } : {}),
         ...(Number.isSafeInteger(video.viewsCount) && video.viewsCount > 0 ? {
             interactionStatistic: {
                 '@type': 'InteractionCounter',
