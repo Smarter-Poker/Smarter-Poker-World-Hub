@@ -8,11 +8,30 @@ import crypto from 'crypto';
 const trim = (v) => (typeof v === 'string' ? v.trim() : '');
 
 /**
- * The owner's inbox comes from DAILY_DIGEST_TO (Vercel production env), never
- * a literal here (repo law: a script never wears a person's face). Unset means
- * no recipient, which the route records as a failed send so the 8:15 AM
- * watchdog pages instead of the email silently going nowhere.
+ * Who gets the digest: every account that can open the admin dashboard
+ * (profiles.is_admin, the same flag the admin pages check), at the email on
+ * its sign-in. This is how the Pep Nation Lab digest picks its admins, and it
+ * keeps every address out of the code (repo law: a script never wears a
+ * person's face). DAILY_DIGEST_TO is only a fallback for when no admin
+ * account has an email, so the send fails loudly instead of going nowhere.
  */
+export async function adminRecipients(sb) {
+    const out = [];
+    try {
+        const { data: admins } = await sb.from('profiles').select('id, full_name, username').eq('is_admin', true).limit(50);
+        for (const a of admins || []) {
+            try {
+                const { data } = await sb.auth.admin.getUserById(a.id);
+                const email = data?.user?.email;
+                if (email && email.includes('@')) out.push({ id: a.id, name: (a.full_name || a.username || '').trim() || 'Admin', email });
+            } catch { /* one admin's lookup never blocks the rest */ }
+        }
+    } catch { /* fall through to the env fallback */ }
+    if (!out.length) for (const email of digestRecipients()) out.push({ id: null, name: 'Admin', email });
+    return out;
+}
+
+/** Fallback addresses from DAILY_DIGEST_TO (comma separated); empty when unset. */
 export function digestRecipients() {
     const raw = trim(process.env.DAILY_DIGEST_TO);
     return raw.split(',').map((s) => s.trim()).filter(Boolean);
@@ -37,7 +56,7 @@ export async function sendEmail({ to, subject, html, text, idempotencyKey, fetch
                     'Content-Type': 'application/json',
                     ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
                 },
-                signal: AbortSignal.timeout(15000),
+                signal: AbortSignal.timeout(10000),
                 body: JSON.stringify({ from: digestFrom(), to, subject, html, text }),
             });
             const body = await res.json().catch(() => ({}));

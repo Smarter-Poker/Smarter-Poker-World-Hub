@@ -1,15 +1,16 @@
 /**
  * /api/cron/daily-digest - Smarter.Poker Daily Operations Digest
  * ═══════════════════════════════════════════════════════════════════════════
- * One email to the owner at 7:00 AM Central about the previous Central day,
- * modelled on the Pep Nation Lab daily digest.
+ * One email to every admin at 7:00 AM Central about the previous Central day,
+ * built and delivered the same way as the Pep Nation Lab daily digest:
+ * straight data (no AI), one Resend email per admin, plus a bell notification.
  *
  *   1. public.fn_sp_daily_digest(day) returns every metric, the 7 day series,
  *      month to date, the Monday week card and the Needs Your Attention items
  *      (each already handed to the alert-fixing fleet, with its status).
- *   2. Provider spend (Twilio, Vercel) and a three sentence Claude summary are
- *      added. The summary passes a number guard or is replaced by a plain one.
- *   3. The email is sent through Resend and the run is recorded in
+ *   2. Provider spend (Twilio, Vercel) is added from their billing APIs.
+ *   3. Admins are read from profiles.is_admin (the admin dashboard's own gate),
+ *      each gets the email through Resend, and the run is recorded in
  *      public.sp_daily_digest_runs (one row per day, so a retry never sends twice).
  *
  * Schedule (vercel.json): 12:00, 12:20, 12:40, 13:00, 13:20, 13:40 UTC. Only the
@@ -26,7 +27,8 @@ import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { assembleDigest } from '../../../src/lib/dailyDigest/assemble.mjs';
-import { digestRecipients, sendEmail } from '../../../src/lib/dailyDigest/delivery.mjs';
+import { adminRecipients, sendEmail } from '../../../src/lib/dailyDigest/delivery.mjs';
+import { notify } from '../../../src/lib/notify';
 
 export const config = { maxDuration: 300 };
 
@@ -84,28 +86,46 @@ async function handler(req, res) {
     if (claimErr) return res.status(500).json({ ok: false, error: `claim: ${claimErr.message}` });
     if (!claimed) return res.status(200).json({ ok: true, skipped: true, reason: 'already sent or in progress', day });
 
-    const recipients = digestRecipients();
+    // Same delivery as the Pep Nation Lab digest: one email per admin through
+    // Resend with a personal greeting, plus an in-app bell notification.
+    const admins = await adminRecipients(sb);
+    const recipients = admins.map((a) => a.email);
     try {
-        const out = await assembleDigest(sb, day);
-        const sent = await sendEmail({
-            to: recipients, subject: out.subject, html: out.html, text: out.text,
-            idempotencyKey: force ? undefined : `sp-daily-digest-${day}`,
-        });
+        let firstId = null;
+        const errors = [];
+        let out = null;
+        for (const a of admins) {
+            out = await assembleDigest(sb, day, { recipientName: a.name });
+            const sent = await sendEmail({
+                to: [a.email], subject: out.subject, html: out.html, text: out.text,
+                idempotencyKey: force ? undefined : `sp-daily-digest-${day}-${a.id || a.email}`,
+            });
+            if (sent.ok) firstId = firstId || sent.id;
+            else errors.push(sent.error);
+            if (a.id) {
+                await notify(sb, {
+                    userId: a.id, type: 'system', withPush: false, url: '/admin',
+                    title: `Daily Digest: ${out.subject.replace(/^\[[^\]]*\]\s*/, '').replace(/^Smarter\.Poker Daily Digest - /, '')}`,
+                    body: `${(out.digest.attention || []).length} items need attention. The full digest is in your email.`,
+                }).catch(() => null);
+            }
+        }
+        if (!out) out = await assembleDigest(sb, day);
+        const ok = admins.length > 0 && errors.length < admins.length;
+        const error = admins.length ? (errors.length ? errors.join('; ').slice(0, 1000) : null) : 'No admin account has an email address';
         await sb.rpc('fn_sp_digest_finish', {
             p_day: day,
-            p_status: sent.ok ? 'sent' : 'failed',
-            p_resend_id: sent.id || null,
+            p_status: ok ? 'sent' : 'failed',
+            p_resend_id: firstId,
             p_recipients: recipients,
             p_subject: out.subject,
-            p_ai_summary: out.ai ? `[${out.ai.source}${out.ai.reason ? `: ${out.ai.reason}` : ''}] ${out.ai.text}` : null,
+            p_ai_summary: null,
             p_digest: out.digest,
-            p_error: sent.ok ? null : sent.error,
+            p_error: ok ? (errors.length ? error : null) : error,
         });
-        if (!sent.ok) return res.status(502).json({ ok: false, day, error: sent.error });
-        return res.status(200).json({
-            ok: true, day, resend_id: sent.id, subject: out.subject,
-            attention: (out.digest.attention || []).length, ai: out.ai?.source,
-        });
+        if (!ok) return res.status(502).json({ ok: false, day, error });
+        return res.status(200).json({ ok: true, day, resend_id: firstId, subject: out.subject, recipients: recipients.length,
+            attention: (out.digest.attention || []).length });
     } catch (err) {
         const msg = String(err?.message || err).slice(0, 1000);
         await sb.rpc('fn_sp_digest_finish', {
