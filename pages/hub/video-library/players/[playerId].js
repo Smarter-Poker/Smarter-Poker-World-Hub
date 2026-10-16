@@ -5,7 +5,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { getVideoMetaLine } from '../../../../src/lib/videoLibraryCards';
-import { getVideoLibraryPlayer, matchesVideoPlayer } from '../../../../src/lib/videoLibraryPlayers.mjs';
+import { getVideoLibraryPlayer, matchesVideoPlayer, buildPlayerJsonLd } from '../../../../src/lib/videoLibraryPlayers.mjs';
 import { watchPath } from '../../../../src/lib/videoLibraryWatch.mjs';
 import VideoThumbnail from '../../../../src/components/video-library/VideoThumbnail';
 
@@ -61,7 +61,7 @@ export default function VideoLibraryPlayerPage({ initial, unavailable }) {
         finally { clearTimeout(deadline); if (requestRef.current === controller) { requestRef.current = null; setLoading(false); } }
     };
     if (unavailable || !player) return <><SEOHead title="Player Temporarily Unavailable" noindex /><div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}><div className="vl-empty-state"><h1>This Player Could Not Load Right Now</h1><p>The Video Catalog Did Not Answer. Try Again In A Minute.</p><Link href="/hub/video-library" className="vl-pill-button">Browse The Video Library</Link></div></HubPageShell></div></>;
-    return <><SEOHead title={`${player.name} | Video Library`} description={`Browse Verified Catalog Videos Naming ${player.name} In Their Titles Or Tags.`} canonical={`https://smarter.poker${player.path}`} />
+    return <><SEOHead title={`${player.name} | Video Library`} description={`Browse Verified Catalog Videos Naming ${player.name} In Their Titles Or Tags.`} canonical={`https://smarter.poker${player.path}`} jsonLd={buildPlayerJsonLd(player, current?.data || [])} />
         <div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}>
             <article className="vl-player-page" data-player-id={player.id}>
                 <nav className="vl-breadcrumbs" aria-label="Breadcrumb"><Link href="/hub">World Hub</Link><span aria-hidden="true">/</span><Link href="/hub/video-library">Video Library</Link><span aria-hidden="true">/</span><Link href="/hub/video-library/players">Poker Players</Link><span aria-hidden="true">/</span><span aria-current="page">{player.name}</span></nav>

@@ -25,3 +25,41 @@ export function canonicalVideoChannelId(video, channels = []) {
     const source = String(video?.source || '');
     return channels.find(channel => channel.id === source || (channel.aliases || []).some(alias => alias.toUpperCase() === source.toUpperCase()))?.id || null;
 }
+
+export function buildChannelJsonLd(channel, videos = []) {
+    if (!channel) return null;
+    const url = `https://smarter.poker${channel.path}`;
+    const organization = {
+        '@type': 'Organization',
+        '@id': `${url}#channel`,
+        name: channel.name,
+        description: channel.description,
+        url,
+        ...(channel.logo ? { logo: channel.logo } : {}),
+        ...(channel.externalUrl ? { sameAs: [channel.externalUrl] } : {}),
+    };
+    const breadcrumbs = {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'World Hub', item: 'https://smarter.poker/hub' },
+            { '@type': 'ListItem', position: 2, name: 'Video Library', item: 'https://smarter.poker/hub/video-library' },
+            { '@type': 'ListItem', position: 3, name: channel.name, item: url },
+        ],
+    };
+    const itemList = {
+        '@type': 'ItemList',
+        name: `Videos From ${channel.name}`,
+        numberOfItems: videos.length,
+        itemListElement: videos.map((video, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            item: {
+                '@type': 'VideoObject',
+                name: video.title,
+                url: `https://smarter.poker/hub/video-library/watch/${encodeURIComponent(video.videoId)}`,
+                thumbnailUrl: video.thumbnail || `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
+            },
+        })),
+    };
+    return [organization, breadcrumbs, itemList];
+}

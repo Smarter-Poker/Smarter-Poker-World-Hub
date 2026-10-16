@@ -47,3 +47,41 @@ export function playerCatalogFilter(playerOrId) {
     const tags = [player.name, player.name.toLowerCase(), player.name.toUpperCase()];
     return [`title.ilike.%${player.name}%`, ...tags.map(tag => `tags.cs.${JSON.stringify([tag])}`)].join(',');
 }
+
+export function buildPlayerJsonLd(player, videos = []) {
+    if (!player) return null;
+    const url = `https://smarter.poker${player.path}`;
+    const person = {
+        '@type': 'Person',
+        '@id': `${url}#person`,
+        name: player.name,
+        description: `Poker Player Featured In Verified Video Library Highlights And Full Matches.`,
+        url,
+    };
+    const breadcrumbs = {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'World Hub', item: 'https://smarter.poker/hub' },
+            { '@type': 'ListItem', position: 2, name: 'Video Library', item: 'https://smarter.poker/hub/video-library' },
+            { '@type': 'ListItem', position: 3, name: 'Poker Players', item: 'https://smarter.poker/hub/video-library/players' },
+            { '@type': 'ListItem', position: 4, name: player.name, item: url },
+        ],
+    };
+    const itemList = {
+        '@type': 'ItemList',
+        name: `Videos Naming ${player.name}`,
+        numberOfItems: videos.length,
+        itemListElement: videos.map((video, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            item: {
+                '@type': 'VideoObject',
+                name: video.title,
+                url: `https://smarter.poker/hub/video-library/watch/${encodeURIComponent(video.videoId)}`,
+                thumbnailUrl: video.thumbnail || `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
+            },
+        })),
+    };
+    return [person, breadcrumbs, itemList];
+}
+
