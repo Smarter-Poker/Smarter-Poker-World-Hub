@@ -302,19 +302,20 @@
  */
 .filterRail {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 4px 18px;
   padding: 2px 16px 4px;
-  overflow-x: auto;
   border-bottom: 1px solid #000;
   background: transparent;
   box-shadow: inset 0 -1px 0 rgb(255 255 255 / 6%);
-  scrollbar-width: none;
 }
 
 .rangeSelect {
-  flex-shrink: 0;
+  flex: 1 0 100%;
   min-height: 44px;
+  margin-bottom: 2px;
   padding: 0 14px;
   border: 1px solid var(--vault-gunmetal);
   border-radius: 0;
@@ -374,7 +375,6 @@
 
 .statsToggle {
   composes: filterChip;
-  margin-left: auto;
 }
 
 .statsToggleOn {
@@ -389,27 +389,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
+  width: auto;
   min-width: 44px;
   height: 44px;
   min-height: 44px;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: var(--vault-radius);
-  background: #0e141c;
-  color: var(--vault-chrome);
-  font: 800 11px/1 var(--vault-font-label);
-  letter-spacing: 0.06em;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--desk-white);
+  font: 800 14px/1 var(--vault-font-label);
+  letter-spacing: 0.1em;
   text-transform: capitalize;
+  text-shadow: var(--desk-glow);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }
 
 .closeBtn:active {
-  border-color: #4d5c6d;
-  color: var(--vault-chrome-hot);
-  transform: translateY(1px);
+  opacity: 0.75;
 }
 
 .closeBtn:focus-visible {
@@ -1571,6 +1571,20 @@
   letter-spacing: 0.12em;
   text-align: center;
   text-shadow: var(--desk-shadow);
+}
+
+/* Every filter word on screen at 375 and 393 (Dan 2026-10-16): the rail wraps
+   instead of hiding Earned, Spent and Gifts in a sideways strip, and on a
+   phone the words tighten while each keeps its 44px tap height. */
+@media (max-width: 480px) {
+  .filterRail {
+    gap: 2px 14px;
+  }
+
+  .filterChip {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
 }
 
 /* Available to assistive technology, absent from the render. */

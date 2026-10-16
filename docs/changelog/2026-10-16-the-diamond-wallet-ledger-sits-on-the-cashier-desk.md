@@ -20,3 +20,9 @@ remove the "diamonds in play" at the top."
 Only `DiamondWalletModal.module.css` rules changed for the bottom half; every
 handler, query, filter, pagination and aria wire in the component is as it
 was.
+
+Follow-up the same day: the filter rail wraps (centred, the date range on its
+own line above the words) so All, Purchases, Earned, Spent, Gifts, Refunds and
+Stats are all on screen at 375 and 393 with no sideways strip, and the words
+tighten on phones while keeping their 44px tap height. Close is a lit white
+word with no frame, as on the Cashier desk, still 44px.
