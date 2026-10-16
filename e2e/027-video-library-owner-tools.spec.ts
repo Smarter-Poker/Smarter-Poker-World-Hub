@@ -36,16 +36,16 @@ async function geometry(page: Page) {
     expect(await footer.evaluate(element => getComputedStyle(element).position)).toBe('fixed');
 }
 test.describe('Phase 8 Video Library Owner Tools', () => {
-    test('native library control panel entry and anonymous sign-in preserve mobile shell', async ({ page }) => {
+    test('library omits the public control panel entry and direct owner sign-in preserves mobile shell', async ({ page }) => {
         await fixtures(page);
         let adminReads = 0;
         await page.route('**/api/admin/video-operations**', route => { adminReads += 1; return route.fulfill({ status: 401, body: '{}' }); });
         await page.goto('/hub/video-library', { waitUntil: 'commit' });
         const entry = page.getByRole('link', { name: 'Control Panel', exact: true });
-        await expect(entry).toHaveAttribute('href', '/hub/video-library/owner');
-        expect((await entry.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-        await nativeClick(entry);
-        await expect(page).toHaveURL(/\/video-library\/owner$/);
+        await expect(page.getByRole('heading', { name: 'Poker Video Library', exact: true })).toBeVisible();
+        await expect(entry).toHaveCount(0);
+        await geometry(page);
+        await page.goto('/hub/video-library/owner', { waitUntil: 'commit' });
         const panel = page.locator('[data-video-library-owner-panel]');
         const signIn = panel.getByRole('link', { name: 'Sign In To Open The Control Panel', exact: true });
         await expect(signIn).toHaveAttribute('href', '/auth/login?redirect=%2Fhub%2Fvideo-library%2Fowner');
