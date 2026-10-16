@@ -130,7 +130,11 @@ export const schemas = {
         logo: 'https://smarter.poker/smarter-poker-logo.png',
         // Only profiles that exist today. Add each new one (LinkedIn,
         // Crunchbase, Wikidata, YouTube) the day it goes live, not before.
-        sameAs: ['https://github.com/Smarter-Poker'],
+        sameAs: [
+            'https://github.com/Smarter-Poker',
+            'https://twitter.com/SmarterPoker',
+            'https://x.com/SmarterPoker',
+        ],
         contactPoint: {
             '@type': 'ContactPoint',
             contactType: 'customer support',

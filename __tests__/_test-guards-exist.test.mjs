@@ -33,6 +33,7 @@ import './llms-full-txt-standards.test.mjs';
 import './indexing-webhook.test.mjs';
 import './weekend-tournaments-landing.test.mjs';
 import './aeo-direct-answers-and-paa.test.mjs';
+import './aeo-wikidata-disambiguation.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
