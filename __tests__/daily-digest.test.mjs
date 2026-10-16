@@ -178,3 +178,23 @@ test('an out of credits AI provider becomes an attention item', async () => {
     assert.equal(withProviderAttention(d, { source: 'claude-sonnet-5-5' }), d);
     assert.equal(withProviderAttention(d, null), d);
 });
+
+test('summary falls back to Grok when Anthropic is out of credits, under the same number guard', async () => {
+    const d = fixture();
+    const broke = async () => ({ ok: false, status: 400, json: async () => ({ error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } }) });
+    const grokSays = (text) => async () => ({ chat: { completions: { create: async (p) => { assert.equal(p.model, 'grok-3'); return { choices: [{ message: { content: text } }] }; } } } });
+    const warn = console.warn; console.warn = () => {};
+    try {
+        const ok = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: grokSays('Cash rake was 73,222.58 chips across 287,809 hands. 3 items need attention.') });
+        assert.equal(ok.source, 'grok-3');
+        assert.match(ok.reason, /credit balance/);
+        const { withProviderAttention } = await import('../src/lib/dailyDigest/assemble.mjs');
+        assert.match(withProviderAttention(d, ok).attention.at(-1).title, /running on Grok/);
+        const bad = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: grokSays('Rake rose 999,999 chips.') });
+        assert.equal(bad.source, 'fallback');
+        assert.match(bad.reason, /grok unverified numbers/);
+        const down = await generateAiSummary(d, { apiKey: 'k', fetchImpl: broke, grok: async () => { throw Object.assign(new Error('boom'), { status: 503 }); } });
+        assert.equal(down.source, 'fallback');
+        assert.match(withProviderAttention(d, down).attention.at(-1).title, /are down/);
+    } finally { console.warn = warn; }
+});
