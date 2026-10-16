@@ -48,6 +48,12 @@ import { venueTitle } from '../../../src/lib/seo/venueTitle';
 import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
 import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, readVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 import {
+  buildVenueFactKernel,
+  buildVenuePaaQuestions,
+  buildVenueFaqJsonLd,
+  buildVenueSpeakableJsonLd,
+} from '../../../src/lib/poker-near-me/venueAeo.mjs';
+import {
   createPokerMapSession,
   loadPokerMapRuntime,
   resetPokerMapRuntime,
@@ -245,9 +251,16 @@ function buildVenueJsonLd(venue, canonical, image) {
     })),
   };
 
+  const faqNode = buildVenueFaqJsonLd(venue, canonical);
+  const speakableNode = buildVenueSpeakableJsonLd(canonical);
+
+  const graphNodes = [venueNode, breadcrumbNode];
+  if (faqNode) graphNodes.push(faqNode);
+  if (speakableNode) graphNodes.push(speakableNode);
+
   return {
     '@context': 'https://schema.org',
-    '@graph': [venueNode, breadcrumbNode],
+    '@graph': graphNodes,
   };
 }
 
@@ -2206,6 +2219,23 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 <PlayerRatingDisplay avgRating={avgRating} totalReviews={totalReviews} trustScore={venue.trust_score} />
               </div>
 
+              {/* AEO Fact Kernel */}
+              <div className="venue-aeo-kernel" style={{
+                marginTop: '12px',
+                padding: '12px 14px',
+                background: 'rgba(0, 212, 255, 0.04)',
+                border: '1px solid rgba(0, 212, 255, 0.15)',
+                borderRadius: '8px',
+                fontSize: '13px',
+                lineHeight: '1.5',
+                color: '#cbd5e1'
+              }}>
+                <strong style={{ color: '#00D4FF', display: 'block', marginBottom: '4px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Quick Overview
+                </strong>
+                <p style={{ margin: 0 }}>{buildVenueFactKernel(venue)}</p>
+              </div>
+
               {/* Action Buttons */}
               <div className="action-buttons">
                 <button
@@ -2598,6 +2628,37 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 </div>
               </dl>
             </section>
+
+            {/* Conversational People Also Ask (AEO FAQ Section) */}
+            {venue && (
+              <section className="info-section venue-paa-section" aria-label="Frequently Asked Questions">
+                <h2 className="section-title">Frequently Asked Questions</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                  {buildVenuePaaQuestions(venue).map((item, qIdx) => (
+                    <details key={qIdx} style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      color: '#e2e8f0'
+                    }}>
+                      <summary style={{
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        color: '#00D4FF',
+                        outline: 'none'
+                      }}>
+                        {item.question}
+                      </summary>
+                      <p style={{ margin: '8px 0 0', fontSize: '13px', lineHeight: '1.5', color: '#94a3b8' }}>
+                        {item.answer}
+                      </p>
+                    </details>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* ============================================ */}
             {/* UPCOMING TOURNAMENT SCHEDULE               */}

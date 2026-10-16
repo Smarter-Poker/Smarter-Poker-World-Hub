@@ -19,7 +19,7 @@
     "persistenceFiles": 79,
     "realtimeFiles": 6,
     "tests": 158,
-    "markerCandidates": 336,
+    "markerCandidates": 335,
     "possibleUnwiredFunctions": 381,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 276,
@@ -7896,9 +7896,11 @@
       },
       "reachableFiles": [
         "pages/hub/training/equity-calculator.js",
+        "src/components/seo/SEOHead.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -25573,6 +25575,7 @@
     {
       "file": "pages/hub/training/equity-calculator.js",
       "imports": [
+        "src/components/seo/SEOHead.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js"
@@ -25588,7 +25591,7 @@
         {
           "element": "button",
           "name": "X",
-          "line": 221,
+          "line": 222,
           "handler": "() => setOpen(false)",
           "destination": null,
           "type": null,
@@ -25598,7 +25601,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 240,
+          "line": 241,
           "handler": "() => !used && handlePick(rank, suit)",
           "destination": null,
           "type": null,
@@ -25608,7 +25611,7 @@
         {
           "element": "button",
           "name": "X",
-          "line": 442,
+          "line": 443,
           "handler": "() => setActiveSlot(null)",
           "destination": null,
           "type": null,
@@ -25618,7 +25621,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 461,
+          "line": 462,
           "handler": "() => !used && handlePick(rank, suit)",
           "destination": null,
           "type": null,
@@ -25628,7 +25631,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 777,
+          "line": 832,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -25638,7 +25641,7 @@
         {
           "element": "button",
           "name": "-Way",
-          "line": 838,
+          "line": 893,
           "handler": "() => changePlayerCount(n)",
           "destination": null,
           "type": null,
@@ -25648,7 +25651,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 921,
+          "line": 976,
           "handler": "calculate",
           "destination": null,
           "type": null,
@@ -25658,7 +25661,7 @@
         {
           "element": "button",
           "name": "Clear All",
-          "line": 943,
+          "line": 998,
           "handler": "clearAll",
           "destination": null,
           "type": null,
@@ -25668,7 +25671,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1036,
+          "line": 1091,
           "handler": "() => loadPreset(preset)",
           "destination": null,
           "type": null,
@@ -25708,7 +25711,7 @@
       "functions": [
         {
           "name": "CardPicker",
-          "line": 58,
+          "line": 59,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -25716,7 +25719,7 @@
         },
         {
           "name": "BoardPicker",
-          "line": 282,
+          "line": 283,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -25724,7 +25727,7 @@
         },
         {
           "name": "EquityBar",
-          "line": 503,
+          "line": 504,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -25732,7 +25735,7 @@
         },
         {
           "name": "formatHand",
-          "line": 626,
+          "line": 627,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -25740,7 +25743,7 @@
         },
         {
           "name": "EquityCalculatorPage",
-          "line": 639,
+          "line": 640,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -25748,7 +25751,7 @@
         },
         {
           "name": "handlePick",
-          "line": 62,
+          "line": 63,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -25756,7 +25759,7 @@
         },
         {
           "name": "removeCard",
-          "line": 74,
+          "line": 75,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -25777,16 +25780,8 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 755,
-          "excerpt": "content=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
-          "disposition": "domain-simulation",
-          "review": "accepted",
-          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
-        },
-        {
-          "kind": "SIMULATION",
-          "line": 1081,
-          "excerpt": "The Equity Calculator Uses Monte Carlo Simulation (5,000 Iterations) To Determine",
+          "line": 809,
+          "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
           "disposition": "domain-simulation",
           "review": "accepted",
           "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -60511,6 +60506,10 @@
     },
     {
       "from": "pages/hub/training/equity-calculator.js",
+      "to": "src/components/seo/SEOHead.js"
+    },
+    {
+      "from": "pages/hub/training/equity-calculator.js",
       "to": "src/engine/EventBus.js"
     },
     {
@@ -64412,11 +64411,11 @@
       "effectRef": "pages/hub/training/drill-builder.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:221:1",
+      "id": "pages/hub/training/equity-calculator.js:222:1",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "X",
-      "line": 221,
+      "line": 222,
       "handler": "() => setOpen(false)",
       "destination": null,
       "type": null,
@@ -64425,11 +64424,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:240:2",
+      "id": "pages/hub/training/equity-calculator.js:241:2",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 240,
+      "line": 241,
       "handler": "() => !used && handlePick(rank, suit)",
       "destination": null,
       "type": null,
@@ -64438,11 +64437,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:442:3",
+      "id": "pages/hub/training/equity-calculator.js:443:3",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "X",
-      "line": 442,
+      "line": 443,
       "handler": "() => setActiveSlot(null)",
       "destination": null,
       "type": null,
@@ -64451,11 +64450,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:461:4",
+      "id": "pages/hub/training/equity-calculator.js:462:4",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 461,
+      "line": 462,
       "handler": "() => !used && handlePick(rank, suit)",
       "destination": null,
       "type": null,
@@ -64464,11 +64463,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:777:5",
+      "id": "pages/hub/training/equity-calculator.js:832:5",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "← Training",
-      "line": 777,
+      "line": 832,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -64477,11 +64476,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:838:6",
+      "id": "pages/hub/training/equity-calculator.js:893:6",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "-Way",
-      "line": 838,
+      "line": 893,
       "handler": "() => changePlayerCount(n)",
       "destination": null,
       "type": null,
@@ -64490,11 +64489,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:921:7",
+      "id": "pages/hub/training/equity-calculator.js:976:7",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 921,
+      "line": 976,
       "handler": "calculate",
       "destination": null,
       "type": null,
@@ -64503,11 +64502,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:943:8",
+      "id": "pages/hub/training/equity-calculator.js:998:8",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "Clear All",
-      "line": 943,
+      "line": 998,
       "handler": "clearAll",
       "destination": null,
       "type": null,
@@ -64516,11 +64515,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1036:9",
+      "id": "pages/hub/training/equity-calculator.js:1091:9",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1036,
+      "line": 1091,
       "handler": "() => loadPreset(preset)",
       "destination": null,
       "type": null,
@@ -74122,9 +74121,11 @@
       "file": "pages/hub/training/equity-calculator.js",
       "reachableFiles": [
         "pages/hub/training/equity-calculator.js",
+        "src/components/seo/SEOHead.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -86989,17 +86990,8 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 755,
-        "excerpt": "content=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
-        "disposition": "domain-simulation",
-        "review": "accepted",
-        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
-      },
-      {
-        "file": "pages/hub/training/equity-calculator.js",
-        "kind": "SIMULATION",
-        "line": 1081,
-        "excerpt": "The Equity Calculator Uses Monte Carlo Simulation (5,000 Iterations) To Determine",
+        "line": 809,
+        "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -90796,7 +90788,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "name": "EquityCalculatorPage",
-        "line": 639,
+        "line": 640,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -96092,17 +96084,8 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 755,
-        "excerpt": "content=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
-        "disposition": "domain-simulation",
-        "review": "accepted",
-        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
-      },
-      {
-        "file": "pages/hub/training/equity-calculator.js",
-        "kind": "SIMULATION",
-        "line": 1081,
-        "excerpt": "The Equity Calculator Uses Monte Carlo Simulation (5,000 Iterations) To Determine",
+        "line": 809,
+        "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -99899,7 +99882,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "name": "EquityCalculatorPage",
-        "line": 639,
+        "line": 640,
         "references": 1,
         "exported": true,
         "defaultExport": true,

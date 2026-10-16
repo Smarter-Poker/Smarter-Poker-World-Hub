@@ -18,6 +18,10 @@
  * This is the pattern already proven on /hub/commander/venues/[id].
  */
 import { firstThatFits } from '../seo/titleFit.js';
+import {
+  buildSeriesFaqJsonLd,
+  buildSeriesSpeakableJsonLd,
+} from './venueAeo.mjs';
 
 const TIMEOUT_MS = 10000;
 
@@ -470,6 +474,14 @@ export function seriesSchema(v) {
     nodes[0].about = { '@id': `${url}#series` };
     nodes.push(event);
   }
+
+  const range = v.startDate && v.endDate
+    ? `${v.startDate} to ${v.endDate}`
+    : v.startDate || '';
+
+  const faqNode = buildSeriesFaqJsonLd(v, venue || place, range, url);
+  if (faqNode) nodes.push(faqNode);
+  nodes.push(buildSeriesSpeakableJsonLd(url));
 
   return nodes;
 }
