@@ -928,6 +928,7 @@ jobs:
             src/lib/loadReelYouTubeAPI.mjs \
             src/lib/reelGestureNavigation.mjs \
             src/lib/articlePreviewMetadata.mjs \
+            src/lib/previewImageValidation.mjs \
             src/lib/canonicalBrowserPost.mjs \
             src/lib/reelCreatorName.mjs \
             src/lib/reelsRealtimeRefresh.mjs \
