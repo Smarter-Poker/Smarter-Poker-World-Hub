@@ -123,8 +123,8 @@ const CONTENT_GUARDS = [
     },
     {
         file: 'pages/auth/signup.js',
-        pattern: /maxLength=\{6\}/,
-        why: 'Email OTP input must accept 6 digits — Supabase email tokens are 6 digits; maxLength=4 made code entry impossible (fixed 2026-07-25).',
+        pattern: /maxLength=\{8\}/,
+        why: 'Email OTP input must accept all 8 digits configured by the live provider; the former 6-digit limit truncated valid signup tokens.',
     },
 ];
 

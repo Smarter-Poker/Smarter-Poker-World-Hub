@@ -107,3 +107,170 @@ test('signup.js handleOAuthSignIn handles www → apex pre-flight', () => {
         'handleOAuthSignIn must address www→apex PKCE-verifier scope, or comment why not.',
     );
 });
+
+// The live provider moved to eight digits; the UI must preserve the token.
+const { isEmailVerificationCode, installPromptDelay } = await import('../src/lib/signupExperience.mjs');
+test('email verification accepts current and legacy tokens without partial tokens', () => {
+    for (const code of ['12623502', '123456', '00000000']) assert.equal(isEmailVerificationCode(code), true);
+    for (const code of ['', '12345', '1234567', '123456789', '1234ab56']) assert.equal(isEmailVerificationCode(code), false);
+    const signup = read('pages/auth/signup.js');
+    assert.match(signup, /slice\(0, 8\)/);
+    assert.match(signup, /maxLength=\{8\}/);
+    assert.match(signup, /token: verificationCode/);
+    assert.match(signup, /isEmailVerificationCode\(verificationCode\)/);
+    assert.doesNotMatch(signup, /6-Digit Verification Code|slice\(0, 6\)/);
+});
+
+test('install prompt waits three minutes after account creation, across routes and reloads', () => {
+    const created = Date.parse('2026-10-16T14:00:00Z');
+    const user = { id: 'test-player', created_at: new Date(created).toISOString() };
+    assert.equal(installPromptDelay(null, '/hub', created + 999999), null);
+    assert.equal(installPromptDelay({ id: 'missing-date' }, '/hub', created), null);
+    for (const route of ['/auth/signup', '/auth/callback', '/auth/login', '/i/abc']) {
+        assert.equal(installPromptDelay(user, route, created + 999999), null);
+    }
+    assert.equal(installPromptDelay(user, '/hub', created), 180000);
+    assert.equal(installPromptDelay(user, '/hub', created + 25000), 155000);
+    assert.equal(installPromptDelay(user, '/hub', created + 179999), 1);
+    assert.equal(installPromptDelay(user, '/hub', created + 180000), 0);
+    assert.equal(installPromptDelay(user, '/hub', created + 360000), 0);
+    const prompt = read('src/components/ui/PWAInstallPrompt.jsx');
+    assert.match(prompt, /onAuthStateChange/);
+    assert.match(prompt, /subscribeInstallState\(evaluate\)/);
+    assert.match(prompt, /installPromptDelay\(authUser, pathname\)/);
+    assert.ok(prompt.indexOf('const delay = installPromptDelay') < prompt.indexOf('if (isInstallable())'));
+    assert.match(prompt, /Your Seat\.\.\.<\/span><span[^>]*>Always Within Reach\./);
+});
+
+test('club invite uses club artwork only and has no yellow fallback', () => {
+    const invite = read('pages/i/[code].js');
+    assert.doesNotMatch(invite, /logoLetter|C\.gold|245,197,66|#f5c542/);
+    assert.match(invite, /club\.logoUrl \? \(/);
+});
+
+test('install availability events cannot bypass account-age gating in the mounted component', async () => {
+    const { createRequire } = await import('node:module');
+    const { default: vm } = await import('node:vm');
+    const require = createRequire(import.meta.url);
+    const ts = require('typescript');
+    const React = require('react');
+    const { create, act } = require('react-test-renderer');
+    let now = Date.parse('2026-10-16T14:00:00Z');
+    let route = '/auth/signup';
+    let authChange;
+    let installChange;
+    let cancelled = 0;
+    const timers = new Map();
+    let nextTimer = 0;
+    const storage = new Map();
+    const module = { exports: {} };
+    const compiled = ts.transpileModule(read('src/components/ui/PWAInstallPrompt.jsx'), {
+        compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+        fileName: 'PWAInstallPrompt.jsx',
+    }).outputText;
+    vm.runInNewContext(compiled, {
+        exports: module.exports, module, console,
+        localStorage: { getItem: k => storage.get(k), setItem: (k, v) => storage.set(k, v) },
+        setTimeout: (fn, delay) => { const id = ++nextTimer; timers.set(id, { fn, at: now + delay }); return id; },
+        clearTimeout: id => timers.delete(id),
+        fetch: async () => ({}),
+        require: name => {
+            if (name === 'react' || name === 'react/jsx-runtime') return require(name);
+            if (name === 'next/router') return { useRouter: () => ({ pathname: route }) };
+            if (name.endsWith('/supabase')) return { supabase: { auth: {
+                getSession: async () => ({ data: { session: null } }),
+                onAuthStateChange: fn => { authChange = fn; return { data: { subscription: { unsubscribe: () => cancelled++ } } }; },
+            } } };
+            if (name.endsWith('/signupExperience.mjs')) return { installPromptDelay: (user, path) => installPromptDelay(user, path, now) };
+            if (name.endsWith('/pwaInstall')) return {
+                isRunningAsApp: () => false, isKnownInstalled: () => false,
+                isInstallable: () => true, canPromptInstall: () => false, isIos: () => true,
+                subscribeInstallState: fn => { installChange = fn; return () => {}; }, PWA_INSTALLED_KEY: 'installed',
+            };
+            if (name.endsWith('/promptMaterials')) return {};
+            if (name.endsWith('/InstallAppSheet')) return { default: () => null };
+            throw new Error(`Unexpected Import: ${name}`);
+        },
+    });
+    const Component = module.exports.default;
+    let tree;
+    await act(async () => { tree = create(React.createElement(Component)); });
+    assert.equal(tree.toJSON(), null);
+    await act(async () => { installChange(); });
+    assert.equal(tree.toJSON(), null, 'signed-out availability event must stay hidden');
+    const user = { id: 'test-player', created_at: new Date(now).toISOString() };
+    await act(async () => { authChange('SIGNED_IN', { user }); });
+    assert.equal(tree.toJSON(), null, 'registration must stay hidden even with a session');
+    route = '/hub';
+    await act(async () => { tree.update(React.createElement(Component)); });
+    now += 25000;
+    await act(async () => { installChange(); });
+    assert.equal(tree.toJSON(), null, 'the previous 25-second bypass must stay hidden');
+    now += 154999;
+    await act(async () => { installChange(); });
+    assert.equal(tree.toJSON(), null, '179999 milliseconds is still too early');
+    now += 1;
+    await act(async () => {
+        for (const [id, timer] of [...timers]) if (timer.at <= now) { timers.delete(id); timer.fn(); }
+    });
+    assert.equal(tree.root.findByProps({ 'data-startup-prompt': 'install' }).type, 'div');
+    route = '/auth/signup';
+    await act(async () => { tree.update(React.createElement(Component)); });
+    assert.equal(tree.toJSON(), null, 'route transition must immediately hide the prompt');
+    route = '/hub';
+    await act(async () => { tree.update(React.createElement(Component)); authChange('SIGNED_OUT', null); });
+    assert.equal(tree.toJSON(), null, 'sign-out must hide the prompt');
+    await act(async () => { tree.unmount(); });
+    assert.equal(timers.size, 0);
+    assert.equal(cancelled, 1);
+});
+
+test('the verification screen passes all eight digits to Auth and renders rejection then success', async () => {
+    const { createRequire } = await import('node:module');
+    const { default: vm } = await import('node:vm');
+    const require = createRequire(import.meta.url);
+    const ts = require('typescript');
+    const React = require('react');
+    const { create, act } = require('react-test-renderer');
+    const submitted = [];
+    let reject = true;
+    const module = { exports: {} };
+    const compiled = ts.transpileModule(read('pages/auth/signup.js'), {
+        compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+        fileName: 'signup.jsx',
+    }).outputText;
+    vm.runInNewContext(compiled, {
+        module, exports: module.exports, console: { log() {}, warn() {} },
+        require: name => {
+            if (name === 'react') return { ...React, useEffect: () => {}, useState: initial => React.useState(
+                initial === 'info' ? 'email_pending' : initial?.firstName === '' ? { ...initial, email: ' Signup@Example.Invalid ', pokerAlias: 'Test Player' } : initial
+            ) };
+            if (name === 'react/jsx-runtime' || name === 'lucide-react') return require(name);
+            if (name === 'next/router') return { useRouter: () => ({ query: {} }) };
+            if (name.endsWith('/SEOHead')) return { default: () => null };
+            if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
+            if (name.endsWith('/supabase')) return { supabase: { auth: { verifyOtp: async payload => {
+                submitted.push(payload);
+                return reject ? { error: new Error('Invalid Verification Code') } : { data: {} };
+            } } } };
+            return {};
+        },
+    });
+    let tree;
+    await act(async () => { tree = create(React.createElement(module.exports.default)); });
+    const input = () => tree.root.findByProps({ id: 'signup-email-code' });
+    assert.equal(input().props.maxLength, 8);
+    await act(async () => { input().props.onChange({ target: { value: '1262 3502' } }); });
+    assert.equal(input().props.value, '12623502');
+    assert.equal(tree.root.findByProps({ type: 'submit' }).props.disabled, false);
+    const submit = () => tree.root.findByType('form').props.onSubmit({ preventDefault() {} });
+    await act(async () => { await submit(); });
+    assert.equal(submitted[0].token, '12623502');
+    assert.equal(submitted[0].email, 'signup@example.invalid');
+    assert.equal(tree.root.findByProps({ role: 'alert' }).children[0], 'Invalid Verification Code');
+    reject = false;
+    await act(async () => { await submit(); });
+    assert.equal(tree.root.findAllByProps({ id: 'signup-email-code' }).length, 0);
+    assert.ok(JSON.stringify(tree.toJSON()).includes('Welcome To Smarter.Poker!'));
+    await act(async () => { tree.unmount(); });
+});
