@@ -1487,6 +1487,7 @@ jobs:
             __tests__/the-faq-answers-its-own-questions.law.test.mjs \
             __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
             __tests__/first-paint-never-waits-for-javascript.law.test.mjs \
+            __tests__/news-photo-resize.test.mjs \
             __tests__/the-feeds-say-what-they-hold.law.test.mjs \
             __tests__/gsc-phase1-geo-meta-tags.test.mjs \
             __tests__/indexing-webhook.test.mjs \

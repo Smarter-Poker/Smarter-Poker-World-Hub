@@ -91,6 +91,8 @@ const ArticleReaderModal = dynamic(() => import('../../src/components/social/Art
 // clock-dependent label only after mount), from source boxes seeded below.
 const NewsBox = dynamic(() => import('../../src/components/news/NewsBox'));
 import { newsBoxImage } from '../../src/components/news/NewsBox';
+// A 60x45 thumbnail asks for the 240w resize, not the publisher's original.
+import { newsPhotoSources } from '../../src/lib/news/newsPhoto.mjs';
 const ReelCard = dynamic(() => import('../../src/components/news/ReelCard'), { ssr: false });
 const VideoCard = dynamic(() => import('../../src/components/news/VideoCard'), { ssr: false });
 
@@ -1425,9 +1427,10 @@ function NewsHub() {
         };
     })();
 
-    const leadImageUrl = activeSection === 'news' && topArticles[0] && !topArticles[0]._isEmpty && !topArticles[0]._isError
-        ? newsBoxImage(topArticles[0]).imageUrl
+    const leadImage = activeSection === 'news' && topArticles[0] && !topArticles[0]._isEmpty && !topArticles[0]._isError
+        ? newsBoxImage(topArticles[0])
         : null;
+    const leadImageUrl = leadImage?.imageUrl || null;
 
     return (
         <>
@@ -1458,7 +1461,7 @@ function NewsHub() {
                 the card. Same URL NewsBox renders, same high priority. */}
             {leadImageUrl && (
                 <Head>
-                    <link key="news-lead-image" rel="preload" as="image" href={leadImageUrl} fetchpriority="high" />
+                    <link key="news-lead-image" rel="preload" as="image" href={leadImageUrl} imageSrcSet={leadImage.srcSet} imageSizes={leadImage.sizes} fetchpriority="high" />
                 </Head>
             )}
 
@@ -1948,7 +1951,7 @@ function NewsHub() {
                                                                         config. The onError category fallback also needs the plain
                                                                         <img> src swap. */}
                                                                     <img
-                                                                        src={newsImageUrl(article.image_url) || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
+                                                                        src={(newsImageUrl(article.image_url) && newsPhotoSources(article, [240])?.src) || newsImageUrl(article.image_url) || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                                         alt=""
                                                                         className="list-thumb"
                                                                         width={60}

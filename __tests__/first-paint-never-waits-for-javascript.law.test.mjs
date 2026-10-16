@@ -131,7 +131,9 @@ test('the news lead story and its photo are in the server HTML, not behind JavaS
   assert.match(src, /priority=\{index === 0\}/);
   // The lead photo is preloaded from the head with the card's own URL logic.
   assert.match(src, /import \{ newsBoxImage \} from '\.\.\/\.\.\/src\/components\/news\/NewsBox';/);
-  assert.match(src, /newsBoxImage\(topArticles\[0\]\)\.imageUrl/);
-  assert.match(src, /<link key="news-lead-image" rel="preload" as="image" href=\{leadImageUrl\} fetchpriority="high" \/>/);
-  assert.match(box, /const \{ imageUrl, fallbackUrl \} = newsBoxImage\(article\);/, 'the card and the preload share one URL function');
+  assert.match(src, /\? newsBoxImage\(topArticles\[0\]\)/);
+  assert.match(src, /<link key="news-lead-image" rel="preload" as="image" href=\{leadImageUrl\} imageSrcSet=\{leadImage\.srcSet\} imageSizes=\{leadImage\.sizes\} fetchpriority="high" \/>/,
+    'the preload names the same candidates the card chooses from');
+  assert.match(box, /const \{ imageUrl, srcSet, sizes, fallbackUrl \} = newsBoxImage\(article\);/, 'the card and the preload share one URL function');
+  assert.match(box, /srcSet=\{srcSet\}\s*sizes=\{sizes\}/);
 });

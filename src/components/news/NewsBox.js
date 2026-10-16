@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Eye, Bookmark, BookmarkCheck, Share2, CheckCircle, Clock, Trophy, BookOpen, Briefcase, Newspaper, Monitor } from 'lucide-react';
 import { newsImageUrl } from '../../lib/security/imageHosts.js';
+import { newsPhotoSources } from '../../lib/news/newsPhoto.mjs';
 import useHasMounted from '../../hooks/useHasMounted';
 
 // Fallback images for different categories
@@ -118,15 +119,26 @@ function pickOwn(map, key, fallback) {
  * folder can reuse it.
  */
 /**
- * The exact photo URL a card renders, and its category fallback. Shared with
+ * The exact photo a card renders, and its category fallback. Shared with
  * pages/hub/news.js so the lead story's preload names the same bytes the
  * <img> asks for; a preload for a different URL is a wasted download.
+ *
+ * A real story (a poker_news uuid with a photo) is served resized through
+ * /api/news/photo (2026-10-16: the live lead photo was a 1.7 MB PNG shown
+ * ~390 CSS px wide). Anything else keeps the URL it always used.
  */
+export const NEWS_BOX_IMAGE_SIZES = '(max-width: 768px) 100vw, 640px';
+
 export function newsBoxImage(article) {
     const rawImageUrl = typeof article?.image_url === 'string' ? article.image_url : '';
     const categoryFallback = pickOwn(FALLBACK_IMAGES, article?.category, FALLBACK_IMAGES.news);
     const fallbackUrl = typeof categoryFallback === 'string' ? categoryFallback : FALLBACK_IMAGES.news;
-    return { imageUrl: newsImageUrl(rawImageUrl) || fallbackUrl, fallbackUrl };
+    const original = newsImageUrl(rawImageUrl);
+    const resized = original ? newsPhotoSources(article) : null;
+    if (resized) {
+        return { imageUrl: resized.src, srcSet: resized.srcSet, sizes: NEWS_BOX_IMAGE_SIZES, fallbackUrl };
+    }
+    return { imageUrl: original || fallbackUrl, srcSet: undefined, sizes: undefined, fallbackUrl };
 }
 
 export class CardErrorBoundary extends React.Component {
@@ -227,7 +239,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
     // It was proxied here because that host blocks direct browser access; the
     // other publishers do not block it, they just cost an img-src violation
     // apiece, which is the same problem with a quieter symptom.
-    const { imageUrl, fallbackUrl } = newsBoxImage(article);
+    const { imageUrl, srcSet, sizes, fallbackUrl } = newsBoxImage(article);
 
     const srcAccent = pickOwn(SOURCE_COLORS_LOCAL, article.source_name, '#00d4ff');
     const srcColor = typeof srcAccent === 'string' ? srcAccent : '#00d4ff';
@@ -329,6 +341,8 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
             <div className="box-image">
                 <img
                     src={imageUrl}
+                    srcSet={srcSet}
+                    sizes={sizes}
                     alt={title || 'Poker news article'}
                     loading={priority ? 'eager' : 'lazy'}
                     fetchpriority={priority ? 'high' : 'auto'}
@@ -338,6 +352,10 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                         const img = e?.target;
                         if (!img) return;
                         if (img.src !== fallbackUrl) {
+                            // srcset outranks src, so a failed resized photo
+                            // must drop it or the fallback is never shown.
+                            img.removeAttribute('srcset');
+                            img.removeAttribute('sizes');
                             img.src = fallbackUrl;
                         } else {
                             img.style.display = 'none';
