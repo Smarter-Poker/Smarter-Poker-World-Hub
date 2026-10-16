@@ -397,6 +397,23 @@ export async function getServerSideProps({ params, req, res }) {
     res.setHeader('Cache-Control', 'public, s-maxage=60');
   } else {
     res.setHeader('Cache-Control', seriesCacheControl(seoSeries));
+
+    // LLM Raw Markdown Ingestion (Phase 3 of AEO)
+    const acceptHeader = String(req?.headers?.accept || '');
+    const isMarkdownRequested = acceptHeader.includes('text/markdown') || req?.url?.includes('format=md');
+    if (isMarkdownRequested && isPublicSeries(seoSeries)) {
+      const { renderSeriesMarkdown } = await import('../../../src/lib/seo/markdownIngestion.mjs');
+      const mdContent = renderSeriesMarkdown(seoSeries, {
+        venueName: seoSeries.venueName || '',
+        dateRange: formatRange(seoSeries.startDate, seoSeries.endDate),
+        canonicalUrl: `https://smarter.poker/hub/series/${encodeURIComponent(String(seoSeries.id || requestedId))}`,
+      });
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.write(mdContent);
+      res.end();
+      return { props: {} };
+    }
   }
   return { props: { seoSeries } };
 }
