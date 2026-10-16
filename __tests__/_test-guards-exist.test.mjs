@@ -34,6 +34,7 @@ import './indexing-webhook.test.mjs';
 import './weekend-tournaments-landing.test.mjs';
 import './aeo-direct-answers-and-paa.test.mjs';
 import './aeo-wikidata-disambiguation.test.mjs';
+import './aeo-comparative-matrix-tables.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────

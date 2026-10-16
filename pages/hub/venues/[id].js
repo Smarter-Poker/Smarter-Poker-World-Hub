@@ -2633,6 +2633,60 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </div>
                 </div>
               </dl>
+
+              {/* Structured Amenities & Services Comparative Matrix Table */}
+              <div className="venue-amenities-matrix-wrap" style={{ marginTop: '20px', overflowX: 'auto' }}>
+                <table className="venue-amenities-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
+                  <caption className="sr-only">
+                    Venue Amenities, Stakes, And Services Matrix For {venue.name || 'Poker Venue'}
+                  </caption>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Feature Or Service</th>
+                      <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Status</th>
+                      <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <th scope="row" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#f8fafc' }}>Poker Tables</th>
+                      <td style={{ padding: '10px 14px', color: venue.poker_tables ? '#22c55e' : '#94a3b8' }}>
+                        {venue.poker_tables ? 'Available' : 'Unspecified'}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>
+                        {venue.poker_tables ? `${venue.poker_tables} Active Tables` : 'Contact Room For Table Count'}
+                      </td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <th scope="row" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#f8fafc' }}>Scheduled Tournaments</th>
+                      <td style={{ padding: '10px 14px', color: venue.has_tournaments ? '#22c55e' : '#94a3b8' }}>
+                        {venue.has_tournaments ? 'Yes' : 'No / Cash Only'}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>
+                        {venue.has_tournaments ? 'Daily Or Weekly Tournament Schedule' : 'Primary Focus On Live Cash Games'}
+                      </td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <th scope="row" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#f8fafc' }}>Operating Hours</th>
+                      <td style={{ padding: '10px 14px', color: venue.hours ? '#22c55e' : '#94a3b8' }}>
+                        {venue.hours ? 'Listed' : 'Standard Hours'}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>
+                        {venue.hours || 'Contact Venue For Current Daily Schedule'}
+                      </td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <th scope="row" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#f8fafc' }}>Phone &amp; Direct Inquiries</th>
+                      <td style={{ padding: '10px 14px', color: venue.phone ? '#22c55e' : '#94a3b8' }}>
+                        {venue.phone ? 'Verified' : 'Unavailable'}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>
+                        {venue.phone || 'Directory Record Sourced Online'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </section>
 
             {/* Conversational People Also Ask (AEO FAQ Section) */}
@@ -2674,7 +2728,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 <div className="section-header-row">
                   <h2 className="section-title">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
-                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7" />
                       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
                       <path d="M4 22h16" />
                       <path d="M10 22V2h4v20" />
@@ -2683,35 +2737,46 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     Upcoming Tournaments
                   </h2>
                 </div>
-                <div className="tournament-schedule-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-                  {tournamentSchedule.map((t, idx) => (
-                    <div key={t.id || idx} style={{
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <span style={{ color: '#00D4FF', fontWeight: '800', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div className="tournament-schedule-table-wrap" style={{ marginTop: '12px', overflowX: 'auto' }}>
+                  <table className="tournament-matrix-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
+                    <caption className="sr-only">
+                      Upcoming Poker Tournaments Schedule At {venue.name || 'This Venue'}
+                    </caption>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Day &amp; Time</th>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Tournament Name</th>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Buy-In</th>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Guarantee</th>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Game &amp; Structure</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tournamentSchedule.map((t, idx) => (
+                        <tr key={t.id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <th scope="row" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#00D4FF' }}>
                             {t.day_of_week} • {t.start_time}
-                          </span>
-                          <h4 style={{ margin: '4px 0 0', fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>
+                          </th>
+                          <td style={{ padding: '10px 14px', color: '#ffffff', fontWeight: '600' }}>
                             {t.tournament_name || 'No Limit Hold\'em Tournament'}
-                          </h4>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', color: '#fff' }}>
+                          </td>
+                          <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: '700' }}>
                             ${t.buy_in}
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-                        {t.guaranteed && <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{formatMoney(t.guaranteed)} GTD</span>}
-                        {t.game_type && <span>{t.game_type}</span>}
-                        {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString('en-US')}</span>}
-                        {t.blind_levels && <span>Levels: {t.blind_levels}m</span>}
-                      </div>
-                    </div>
-                  ))}
+                          </td>
+                          <td style={{ padding: '10px 14px', color: t.guaranteed ? '#4ade80' : '#94a3b8', fontWeight: t.guaranteed ? '700' : 'normal' }}>
+                            {t.guaranteed ? `${formatMoney(t.guaranteed)} GTD` : '--'}
+                          </td>
+                          <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>
+                            {[
+                              t.game_type,
+                              t.starting_stack ? `Stack: ${t.starting_stack.toLocaleString('en-US')}` : null,
+                              t.blind_levels ? `Levels: ${t.blind_levels}m` : null,
+                            ].filter(Boolean).join(' • ') || '--'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </section>
             )}
@@ -2813,58 +2878,53 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {groupedSchedules && Object.keys(groupedSchedules || {}).length > 0 && (
               <PokerNearMePanelShell as="section" id="tournaments-section" className="tournaments-section venue-console-body">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
-                <div className="schedule-container">
-                  {Object.entries(groupedSchedules || {}).map(function ([day, schedules]) {
-                    var isToday = scheduleGroupIsToday(day, schedules, scheduleToday);
-                    return (
-                      <div key={day} className={'day-group' + (isToday ? ' today' : '')}>
-                        <div className="day-header">
-                          <h3 className="day-name">{day}</h3>
-                          {isToday && <span className="today-badge">Today</span>}
-                        </div>
-                        <div className="schedule-cards">
-                          {schedules.map(function (s, idx) {
-                            var scheduleDate = formatScheduleOccurrenceDate(s.event_date);
-                            return (
-                              <div key={idx} className="schedule-card">
-                                {scheduleDate && <p className="schedule-notes"><time dateTime={scheduleDate.iso}>{scheduleDate.label}</time></p>}
-                                <div className="schedule-row">
-                                  <div className="schedule-time">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
-                                      <circle cx="12" cy="12" r="10" />
-                                      <polyline points="12 6 12 12 16 14" />
-                                    </svg>
-                                    {formatTime(s.start_time) || 'TBD'}
-                                  </div>
-                                  {s.buy_in && (
-                                    <div className="schedule-buyin">
-                                      {formatMoney(s.buy_in)}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="schedule-details">
-                                  {s.game_type && (
-                                    <span className="detail-chip game-type">{formatGameType(s.game_type)}</span>
-                                  )}
-                                  {s.format && (
-                                    <span className="detail-chip format">{s.format}</span>
-                                  )}
-                                  {s.guaranteed && (
-                                    <span className="detail-chip guaranteed">
-                                      GTD: {formatMoney(s.guaranteed)}
-                                    </span>
-                                  )}
-                                </div>
-                                {s.notes && (
-                                  <p className="schedule-notes">{s.notes}</p>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="schedule-table-matrix-wrap" style={{ overflowX: 'auto', marginTop: '12px' }}>
+                  <table className="daily-tournaments-matrix-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
+                    <caption className="sr-only">
+                      Daily Recurring Tournament Schedule At {venue.name || 'This Venue'}
+                    </caption>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Day</th>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Start Time</th>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Buy-In</th>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Game Type</th>
+                        <th scope="col" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: '#00D4FF' }}>Format &amp; Guarantee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(groupedSchedules || {}).map(function ([day, schedules]) {
+                        var isToday = scheduleGroupIsToday(day, schedules, scheduleToday);
+                        return schedules.map(function (s, idx) {
+                          var scheduleDate = formatScheduleOccurrenceDate(s.event_date);
+                          return (
+                            <tr key={`${day}-${idx}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: isToday ? 'rgba(0, 212, 255, 0.04)' : 'transparent' }}>
+                              <th scope="row" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: isToday ? '#00D4FF' : '#f8fafc' }}>
+                                {day}{isToday ? ' (Today)' : ''}
+                                {scheduleDate && <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#94a3b8' }}><time dateTime={scheduleDate.iso}>{scheduleDate.label}</time></div>}
+                              </th>
+                              <td style={{ padding: '10px 14px', color: '#ffffff', fontWeight: '600' }}>
+                                {formatTime(s.start_time) || 'TBD'}
+                              </td>
+                              <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: '700' }}>
+                                {s.buy_in ? formatMoney(s.buy_in) : 'TBD'}
+                              </td>
+                              <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>
+                                {s.game_type ? formatGameType(s.game_type) : 'No Limit Hold\'em'}
+                              </td>
+                              <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>
+                                {[
+                                  s.format,
+                                  s.guaranteed ? `${formatMoney(s.guaranteed)} GTD` : null,
+                                  s.notes,
+                                ].filter(Boolean).join(' • ') || '--'}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </PokerNearMePanelShell>
             )}

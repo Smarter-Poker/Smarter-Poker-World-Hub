@@ -1222,17 +1222,20 @@ export default function SeriesDetailPage({ seoSeries = null }) {
 
           {events.length > 0 ? (
             <div className="events-table-wrap">
-              <table className="events-table">
+              <table className="events-table" aria-label="Official Tournament Event Schedule">
+                <caption className="sr-only">
+                  Official Tournament Event Schedule For {series.name || 'Poker Series'}
+                </caption>
                 <thead>
                   <tr>
-                    <th onClick={() => handleSort('event_number')} style={{ cursor: 'pointer' }}># {sortConfig.key === 'event_number' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-                    <th>Event</th>
-                    <th onClick={() => handleSort('start_date')} style={{ cursor: 'pointer' }}>Date {sortConfig.key === 'start_date' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-                    <th onClick={() => handleSort('buy_in')} style={{ cursor: 'pointer' }}>Buy-In {sortConfig.key === 'buy_in' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-                    <th onClick={() => handleSort('guarantee')} style={{ cursor: 'pointer' }}>GTD {sortConfig.key === 'guarantee' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-                    <th>Game</th>
-                    <th>Stack</th>
-                    <th>Format</th>
+                    <th scope="col" onClick={() => handleSort('event_number')} style={{ cursor: 'pointer' }}># {sortConfig.key === 'event_number' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th scope="col">Event</th>
+                    <th scope="col" onClick={() => handleSort('start_date')} style={{ cursor: 'pointer' }}>Date {sortConfig.key === 'start_date' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th scope="col" onClick={() => handleSort('buy_in')} style={{ cursor: 'pointer' }}>Buy-In {sortConfig.key === 'buy_in' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th scope="col" onClick={() => handleSort('guarantee')} style={{ cursor: 'pointer' }}>GTD {sortConfig.key === 'guarantee' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th scope="col">Game</th>
+                    <th scope="col">Stack</th>
+                    <th scope="col">Format</th>
                   </tr>
                 </thead>
                 <tbody>
