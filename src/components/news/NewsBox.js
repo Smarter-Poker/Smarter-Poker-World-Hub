@@ -117,6 +117,18 @@ function pickOwn(map, key, fallback) {
  * news grid down with it. Exported so the sibling card components in this
  * folder can reuse it.
  */
+/**
+ * The exact photo URL a card renders, and its category fallback. Shared with
+ * pages/hub/news.js so the lead story's preload names the same bytes the
+ * <img> asks for; a preload for a different URL is a wasted download.
+ */
+export function newsBoxImage(article) {
+    const rawImageUrl = typeof article?.image_url === 'string' ? article.image_url : '';
+    const categoryFallback = pickOwn(FALLBACK_IMAGES, article?.category, FALLBACK_IMAGES.news);
+    const fallbackUrl = typeof categoryFallback === 'string' ? categoryFallback : FALLBACK_IMAGES.news;
+    return { imageUrl: newsImageUrl(rawImageUrl) || fallbackUrl, fallbackUrl };
+}
+
 export class CardErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
@@ -215,10 +227,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
     // It was proxied here because that host blocks direct browser access; the
     // other publishers do not block it, they just cost an img-src violation
     // apiece, which is the same problem with a quieter symptom.
-    const rawImageUrl = typeof article.image_url === 'string' ? article.image_url : '';
-    const categoryFallback = pickOwn(FALLBACK_IMAGES, article.category, FALLBACK_IMAGES.news);
-    const fallbackUrl = typeof categoryFallback === 'string' ? categoryFallback : FALLBACK_IMAGES.news;
-    const imageUrl = newsImageUrl(rawImageUrl) || fallbackUrl;
+    const { imageUrl, fallbackUrl } = newsBoxImage(article);
 
     const srcAccent = pickOwn(SOURCE_COLORS_LOCAL, article.source_name, '#00d4ff');
     const srcColor = typeof srcAccent === 'string' ? srcAccent : '#00d4ff';

@@ -90,6 +90,7 @@ const ArticleReaderModal = dynamic(() => import('../../src/components/social/Art
 // LCP at 3.7-4.4s on a 3.5s budget. It server-renders now (it already fills its
 // clock-dependent label only after mount), from source boxes seeded below.
 const NewsBox = dynamic(() => import('../../src/components/news/NewsBox'));
+import { newsBoxImage } from '../../src/components/news/NewsBox';
 const ReelCard = dynamic(() => import('../../src/components/news/ReelCard'), { ssr: false });
 const VideoCard = dynamic(() => import('../../src/components/news/VideoCard'), { ssr: false });
 
@@ -1424,6 +1425,10 @@ function NewsHub() {
         };
     })();
 
+    const leadImageUrl = activeSection === 'news' && topArticles[0] && !topArticles[0]._isEmpty && !topArticles[0]._isError
+        ? newsBoxImage(topArticles[0]).imageUrl
+        : null;
+
     return (
         <>
             {/* AEO phase 3 (2026-09-17): this MUST stay outside <PageTransition>.
@@ -1447,6 +1452,16 @@ function NewsHub() {
                 dynamic(..., { ssr: false }), so anything inside it is absent from the
                 server-rendered HTML — and JSON-LD that is not in the SSR payload is
                 invisible to crawlers, which defeats the point of emitting it. */}
+            {/* The lead story's photo is this page's Largest Contentful Paint.
+                Preloading it from the head starts the download while the
+                stylesheets and scripts load, instead of when the parser reaches
+                the card. Same URL NewsBox renders, same high priority. */}
+            {leadImageUrl && (
+                <Head>
+                    <link key="news-lead-image" rel="preload" as="image" href={leadImageUrl} fetchpriority="high" />
+                </Head>
+            )}
+
             {headlineJsonLd && (
                 <Head>
                     <script
