@@ -97,7 +97,10 @@ export async function generateAiSummary(digest, { apiKey = process.env.ANTHROPIC
             });
             const text = String(out?.choices?.[0]?.message?.content || '').replace(/\s+/g, ' ').trim();
             const guard = summaryPassesGuard(text, digest);
-            if (guard.ok) return { text, source: 'grok-3', reason: anthropic.reason };
+            if (guard.ok) {
+                console.info('[daily-digest] ai summary from grok-3', anthropic.reason ? `(anthropic: ${String(anthropic.reason).slice(0, 80)})` : '');
+                return { text, source: 'grok-3', reason: anthropic.reason };
+            }
             grokReason = `grok ${guard.reason}`;
         }
     } catch (err) {
