@@ -1,3 +1,4 @@
+import { enrichMessengerClubRelationships } from './messengerClubRelationships.mjs';
 // Server-side workspace selection. A page identity or URL is never membership.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ADMIN_ROLES = new Set(['owner', 'co_owner', 'admin']);
@@ -118,9 +119,10 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         const combined = workspaces.flatMap(selected => selected.conversations.map(conversation => ({
             ...conversation, dockWorkspace: { workspace: selected.workspace, clubId: selected.clubId, folder: selected.folder },
         })));
+        const conversations = await enrichMessengerClubRelationships(db, userId,
+            [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]);
         return { success: true, clubs, workspace: 'dock', clubId: null, folder: 'messages',
-            conversations: [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]
-                .sort((a, b) => (Date.parse(b.last_message_at) || 0) - (Date.parse(a.last_message_at) || 0)) };
+            conversations: conversations.sort((a, b) => (Date.parse(b.last_message_at) || 0) - (Date.parse(a.last_message_at) || 0)) };
     }
     if (!['social', 'club', 'resolve'].includes(workspace)) fail(400, 'Invalid Messenger Workspace');
     let club = null;
@@ -265,7 +267,9 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
             }
         }
     }
-    return { success: true, clubs, conversations: selected, conversation, weeklySummary, unreadCounts, attentionCounts,
+    const visible = internal.countsOnly ? selected : await enrichMessengerClubRelationships(db, userId, selected);
+    if (resolvedId) conversation = visible.find(row => row.id === resolvedId);
+    return { success: true, clubs, conversations: visible, conversation, weeklySummary, unreadCounts, attentionCounts,
         workspace: club ? 'club' : 'social', clubId: club?.id || null, folder };
 }
 
