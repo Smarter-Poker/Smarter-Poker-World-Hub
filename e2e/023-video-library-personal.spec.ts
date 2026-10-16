@@ -13,6 +13,8 @@ async function fixtures(page: Page) {
     await page.route('**/api/video-library/live**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [], checkedAt: new Date().toISOString(), unavailableChannels: 0 }) }));
 }
 async function geometry(page: Page) {
+    // Scroll-triggered hiding is allowed; check the footer after returning upward.
+    await page.evaluate(() => window.scrollTo(0, 0));
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     const footer = page.getByRole('navigation', { name: /Video Library Footer/i });
     await expect.poll(() => footer.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - innerHeight))).toBeLessThanOrEqual(1);
