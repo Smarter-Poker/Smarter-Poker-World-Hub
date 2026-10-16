@@ -36,6 +36,7 @@ import './aeo-direct-answers-and-paa.test.mjs';
 import './aeo-wikidata-disambiguation.test.mjs';
 import './aeo-comparative-matrix-tables.test.mjs';
 import './aeo-segmented-sitemaps.test.mjs';
+import './aeo-dynamic-og-cards.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────

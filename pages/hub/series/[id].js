@@ -26,6 +26,7 @@ import {
   seriesPlace,
   seriesSchema,
   seriesTitle,
+  seriesOgImage,
   toSeoSeries,
 } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 import {
@@ -420,7 +421,7 @@ function SeriesHead({ series }) {
       title={seriesTitle(series)}
       description={seriesDescription(series)}
       canonical={seriesPath(series)}
-      ogImage={series.logoUrl || null}
+      ogImage={seriesOgImage(series) || series.logoUrl || null}
       jsonLd={seriesSchema(series)}
     />
   );
