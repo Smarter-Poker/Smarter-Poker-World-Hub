@@ -119,7 +119,11 @@ export async function providerSpend(day, { fetchImpl = fetch } = {}) {
                 signal: AbortSignal.timeout(10000),
             });
             if (!res.ok) {
-                items.push({ label: 'Vercel', value: null, note: `HTTP ${res.status}` });
+                // 401/403/404 here means the stored VERCEL_TOKEN cannot read this team's billing
+                const note = [401, 403, 404].includes(res.status)
+                    ? `VERCEL_TOKEN cannot read team billing (HTTP ${res.status})`
+                    : `HTTP ${res.status}`;
+                items.push({ label: 'Vercel', value: null, note });
             } else {
                 // FOCUS rows, newline-delimited JSON; sum BilledCost
                 const raw = await res.text();
