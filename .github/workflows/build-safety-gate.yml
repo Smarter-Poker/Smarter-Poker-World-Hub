@@ -206,6 +206,7 @@ jobs:
         run: >-
           node --experimental-vm-modules --test
           __tests__/messenger-dock.test.mjs
+          __tests__/messenger-club-welcome.test.mjs
           __tests__/messenger-workspace.test.mjs
           __tests__/club-notice-board.test.mjs
           __tests__/club-notice-board-component.test.mjs
@@ -481,6 +482,9 @@ jobs:
 
       - name: Messenger Reads Stop At The Displayed Message
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-bounded-read-postgres.py
+
+      - name: Club Messenger Welcomes Follow The Committed Downline
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-club-messenger-welcome-postgres.py
 
       - name: Owner Operational Notification PostgreSQL Contracts
         id: owner_notification_postgres

@@ -309,3 +309,17 @@ test('global dock never includes revoked club or hidden private documents',async
 test('global dock authority failure never returns a partial inbox or fabricated zero',async()=>{
  await assert.rejects(getMessengerWorkspace(fixture({broken:'visibility'}).db,ids.user,{workspace:'dock'}),e=>e.status===503);
 });
+
+test('dock inbox refresh retains authoritative relationship labels without changing header count reads',async()=>{
+ const {db}=fixture(); const baseRpc=db.rpc.bind(db);let labels=0;
+ db.rpc=async(name,args)=>{
+  if(name==='fn_messenger_club_relationships'){labels++;return{data:[{peer_user_id:ids.other,club_id:ids.club,club_name:'First Club',role:'agent',is_upline:true,label:'Your Agent In First Club'}]};}
+  const result=await baseRpc(name,args);
+  if(name==='fn_get_user_conversations')result.data=result.data.map(row=>row.conversation_id===ids.social?{...row,is_group:false,other_user_id:ids.other}:row);
+  return result;
+ };
+ const {getMessengerUnreadSummary}=await import('../src/lib/messengerWorkspace.mjs');
+ await getMessengerUnreadSummary(db,ids.user);assert.equal(labels,0);
+ const result=await getMessengerWorkspace(db,ids.user,{workspace:'dock'});
+ assert.equal(result.conversations.find(row=>row.id===ids.social).relationshipTags[0].label,'Your Agent In First Club');assert.equal(labels,1);
+});

@@ -4366,6 +4366,9 @@ function MessengerPage() {
 
                                     <div style={{ flex: 1 }}>
                                         <div style={{ color: C.text, fontWeight: 600, fontSize: 15 }}>{activeTitle}</div>
+                                        {activeConversation.relationshipTags?.length > 0 && <div aria-label="Club Relationships" style={{ color: C.blue, fontSize: 12, fontWeight: 600, maxHeight: 96, overflowY: 'auto', overflowWrap: 'anywhere' }}>
+                                            {activeConversation.relationshipTags.map(tag => <div key={tag.clubId}>{tag.label}</div>)}
+                                        </div>}
                                         <div style={{ fontSize: 12, color: otherUserStatus === 'online' ? C.green : C.textSec }}>
                                             {activeConversation.isAccounting ? 'Invoices And Accounting Discussions' : otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
                                                 const diff = Date.now() - new Date(otherUserLastSeen).getTime();
