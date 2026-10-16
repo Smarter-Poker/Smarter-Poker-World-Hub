@@ -92800,7 +92800,8 @@
           "pages/glossary/index.js",
           "pages/hub/training/glossary.js",
           "pages/sitemap.xml.js",
-          "src/content/compare/pages.js"
+          "src/content/compare/pages.js",
+          "src/lib/seo/sitemapBuilders.mjs"
         ]
       },
       {
@@ -101894,7 +101895,8 @@
           "pages/glossary/index.js",
           "pages/hub/training/glossary.js",
           "pages/sitemap.xml.js",
-          "src/content/compare/pages.js"
+          "src/content/compare/pages.js",
+          "src/lib/seo/sitemapBuilders.mjs"
         ]
       },
       {

@@ -406,13 +406,20 @@ async function fetchAllSitemapRows({ supabase, table, select, orderBy, applyFilt
 async function buildPokerEventDetailUrls() {
   const urls = new Map();
   const offeredSeriesIds = new Set();
-  const addSeries = (rawId) => {
+  const addSeries = (rawId, evidenceRow = null) => {
     const canonicalId = canonicalSeriesRouteId(rawId);
     const id = Number(canonicalId);
     if (!Number.isSafeInteger(id) || id <= 0) return;
     offeredSeriesIds.add(String(id));
     const path = `/hub/series/${id}`;
-    urls.set(path, { path, priority: '0.7', changefreq: 'daily' });
+    let lastmod = null;
+    if (evidenceRow?.scrape_timestamp) {
+      const time = new Date(evidenceRow.scrape_timestamp).getTime();
+      if (Number.isFinite(time) && time > 0) {
+        lastmod = new Date(time).toISOString();
+      }
+    }
+    urls.set(path, { path, priority: '0.7', changefreq: 'daily', ...(lastmod ? { lastmod } : {}) });
   };
   const addTour = (rawCode) => {
     const code = String(rawCode || '').trim().toUpperCase();
@@ -500,7 +507,7 @@ async function buildPokerEventDetailUrls() {
         .forEach((row) => {
           const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
           if (uid) claimedUids.add(uid);
-          addSeries(row.id);
+          addSeries(row.id, row);
         });
     } else {
       console.warn('[sitemap] tournament_series detail URLs unavailable:', results[0].reason?.message);
@@ -521,7 +528,7 @@ async function buildPokerEventDetailUrls() {
           // is added to as this pass runs, so the first row wins here too.
           if (uid && claimedUids.has(uid)) return;
           if (uid) claimedUids.add(uid);
-          addSeries(toPokerSeriesRouteId(row.id));
+          addSeries(toPokerSeriesRouteId(row.id), row);
         });
     } else {
       console.warn('[sitemap] poker_series detail URLs unavailable:', results[1].reason?.message);
