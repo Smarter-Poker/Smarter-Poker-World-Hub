@@ -8,15 +8,20 @@ test.beforeEach(async ({ context }) => {
 
 const OWNER = '33333333-3333-4333-8333-333333333333';
 const VIDEO_ID = 'phase7v0000';
-const TITLE = 'Daniel Negreanu Poker Decision';
 // Native buttons in the actual official-origin iframe emit the isolated
 // provider protocol. This is compiled wiring proof, not live provider proof.
 const PROVIDER = `<!doctype html><title>Tracking Provider Contract</title><button id="play">Play</button><button id="pause">Pause</button><script>
-let started = null, position = 21;
+let started = null, position = 0; window.commands = [];
 const emit = (event,info) => parent.postMessage(JSON.stringify({event,info}), '*');
 function tick(){if(started!==null) emit('infoDelivery',{currentTime:position+(Date.now()-started)/1000,duration:70,playerState:1});}
-document.getElementById('play').onclick=()=>{started=Date.now();tick();emit('onStateChange',1);};
-document.getElementById('pause').onclick=()=>{if(started!==null)position+=(Date.now()-started)/1000;started=null;emit('infoDelivery',{currentTime:position,duration:70,playerState:2});emit('onStateChange',2);};
+function play(){if(started===null)started=Date.now();tick();emit('onStateChange',1);}
+function pause(){if(started!==null)position+=(Date.now()-started)/1000;started=null;emit('infoDelivery',{currentTime:position,duration:70,playerState:2});emit('onStateChange',2);}
+document.getElementById('play').onclick=play;
+document.getElementById('pause').onclick=pause;
+addEventListener('message',event=>{if(event.source!==parent)return;let data;try{data=JSON.parse(event.data);}catch{return;}
+if(data.event!=='command')return;window.commands.push(data);
+if(data.func==='seekTo'){position=Number(data.args[0]);if(started!==null)started=Date.now();}
+if(data.func==='playVideo')play();if(data.func==='pauseVideo')pause();});
 setInterval(tick,100);
 </script>`;
 
@@ -45,23 +50,45 @@ test('canonical compiled viewer persists confirmed owned watch progress without 
     await page.route('https://www.youtube-nocookie.com/embed/**', route => route.fulfill({ contentType: 'text/html', body: PROVIDER }));
     await page.goto(`/hub/video-library/watch/${VIDEO_ID}/daniel-negreanu-poker-decision`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('[data-watch-tracking="ready"]')).toBeVisible();
-    await page.getByRole('button', { name: `Play ${TITLE}`, exact: true }).click();
     const iframe = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
+    await expect(iframe).toBeVisible();
+    await expect(page.locator('.vl-play-facade')).toHaveCount(0);
     const original = await iframe.elementHandle();
     const source = await iframe.getAttribute('src');
-    expect(Number(new URL(source!).searchParams.get('start'))).toBe(20);
-    const frame = page.frameLocator('iframe[src*="youtube-nocookie.com/embed/"]');
-    await frame.getByRole('button', { name: 'Play', exact: true }).click();
-    await expect.poll(() => page.getByRole('slider', { name: 'Seek Video' }).inputValue()).not.toBe('21');
+    expect(new URL(source!).searchParams.get('autoplay')).toBe('0');
+    expect(new URL(source!).searchParams.has('start')).toBe(false);
+    const provider = await original!.contentFrame();
+    await expect(provider!.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+    const commands = () => provider!.evaluate(() => (window as any).commands);
+    expect((await commands()).filter((item: any) => item.func === 'playVideo')).toHaveLength(0);
+    expect(writes).toHaveLength(0);
+    const resume = page.getByRole('button', { name: 'Resume Saved Position', exact: true });
+    await expect(resume).toBeVisible();
+    await resume.evaluate(element => element.scrollIntoView({block:'center'}));
+    await resume.click();
+    await expect.poll(async () => (await commands()).some((item: any) => item.func === 'seekTo' && item.args[0] === 20)).toBe(true);
+    await expect.poll(async () => (await commands()).some((item: any) => item.func === 'playVideo')).toBe(true);
     await expect.poll(async () => Number(await page.getByRole('slider', { name: 'Seek Video' }).inputValue())).toBeGreaterThan(22);
-    await frame.getByRole('button', { name: 'Pause', exact: true }).click();
+    const mini = page.getByRole('button', { name: 'Mini-Player', exact: true });
+    await mini.evaluate(element => element.scrollIntoView({block:'center'}));
+    await mini.click();
+    const close = page.locator('.vl-mini-controls').getByRole('button', { name: 'Close Player', exact: true });
+    await close.click();
+    await expect.poll(async () => (await commands()).some((item: any) => item.func === 'pauseVideo')).toBe(true);
     await expect(page.locator('[data-watch-tracking="saved"]')).toHaveText('Watch Progress Saved');
     expect(writes).toHaveLength(1);
     expect(await iframe.getAttribute('src')).toBe(source);
     expect(await original?.evaluate(element => element.isConnected && element === document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]'))).toBe(true);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('[data-watch-tracking="ready"]')).toBeVisible();
-    await page.getByRole('button', { name: `Play ${TITLE}`, exact: true }).click();
-    expect(Number(new URL((await iframe.getAttribute('src'))!).searchParams.get('start'))).toBe(Math.floor(row.progress_seconds));
+    await expect(iframe).toBeVisible();
+    expect(await iframe.getAttribute('src')).toBe(source);
+    const resumedFrame = await (await iframe.elementHandle())!.contentFrame();
+    const restoredPosition = Math.floor(row.progress_seconds);
+    await expect(resume).toBeVisible();
+    await resume.evaluate(element => element.scrollIntoView({block:'center'}));
+    await resume.click();
+    await expect.poll(() => resumedFrame!.evaluate(position => (window as any).commands.some((item: any) => item.func === 'seekTo' && item.args[0] === position), restoredPosition)).toBe(true);
+    expect(await iframe.getAttribute('src')).toBe(source);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(await page.evaluate(() => document.documentElement.clientWidth));
 });

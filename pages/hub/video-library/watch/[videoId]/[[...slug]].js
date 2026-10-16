@@ -9,9 +9,9 @@ import ThumbnailImage from '../../../../../src/components/video-library/VideoThu
  *
  * Rendered on the server from the verified public catalog, so a crawler that
  * runs no JavaScript reads the title, channel, date, length and the related
- * videos, and Google reads a VideoObject. The player is a click-to-play
- * thumbnail: the YouTube embed (about a megabyte of script) loads only when
- * the viewer presses play.
+ * videos, and Google reads a VideoObject. The visible privacy-enhanced
+ * YouTube player is present in server HTML with autoplay disabled, so search
+ * crawlers can discover it without clicking a facade.
  *
  * Rules carried over from the library: only rows that pass the catalog's
  * availability gate render (blocked, stale, non-embeddable or taken-down
@@ -31,6 +31,7 @@ import WatchTracking from '../../../../../src/components/video-library/WatchTrac
 import useVideoLibraryWatchTracking from '../../../../../src/hooks/useVideoLibraryWatchTracking';
 import { claimEarnedWatchReward } from '../../../../../src/services/videoWatchHistory';
 import useVideoLibraryQueue from '../../../../../src/components/video-library/useVideoLibraryQueue';
+import { PLAYER_ORIGIN } from '../../../../../src/lib/videoLibraryPlayback.mjs';
 import { videoLibrarySocialShareHref } from '../../../../../src/lib/videoLibrarySocialShare.mjs';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -61,6 +62,7 @@ import {
     normaliseVideoRow,
     readableDate,
     readableDuration,
+    videoThumbnailUrl,
     watchPath,
     watchUrl,
 } from '../../../../../src/lib/videoLibraryWatch.mjs';
@@ -239,21 +241,27 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
     useEffect(() => { setQuizMarkers([]); }, [video?.videoId, user?.id]);
     const [autoplayNext, setAutoplayNext] = useState(true);
     const [navigationError, setNavigationError] = useState(false);
-    useEffect(() => { setPlaying(router.query.play === '1'); setMiniPlayer(false); }, [video?.videoId, router.query.play]);
+    const attemptPlayback = router.query.play === '1';
+    useEffect(() => { setMiniPlayer(false); }, [video?.videoId]);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [playing, setPlaying] = useState(false);
     const [shareState, setShareState] = useState('idle');
-    const { ytError, errorInfo } = useYouTubeErrorManager({ active: playing, videoId: video?.videoId, iframeRef, surface: 'VideoWatchPage', autoActionDelay: 0 });
-    const tracking = useVideoLibraryWatchTracking({ iframeRef, video: { ...video, durationSeconds: durationSeconds(video?.duration) }, ownerId: user?.id, active: playing && !ytError });
+    const { ytError, errorInfo } = useYouTubeErrorManager({ active: Boolean(video) && !unavailable, videoId: video?.videoId, iframeRef, surface: 'VideoWatchPage', autoActionDelay: 0 });
+    const tracking = useVideoLibraryWatchTracking({ iframeRef, video: { ...video, durationSeconds: durationSeconds(video?.duration) }, ownerId: user?.id, active: Boolean(video) && !unavailable && !ytError });
     // A visit after a lifecycle-flushed qualifying session asks the existing,
     // server-verified reward endpoint once; no client-side reward rule.
     useEffect(() => {
         if (tracking.status === 'ready') claimEarnedWatchReward(user?.id, video?.videoId, tracking.savedSeconds);
     }, [tracking.status, tracking.savedSeconds, user?.id, video?.videoId]);
-    const resumeSnapshot = useRef({ key: null, seconds: 0 });
-    const resumeKey = `${video?.videoId}:${user?.id || 'anonymous'}`;
-    if (resumeSnapshot.current.key !== resumeKey) resumeSnapshot.current = { key: resumeKey, seconds: 0 };
-    const startWatching = () => { resumeSnapshot.current = { key: resumeKey, seconds: tracking.resumeSeconds || 0 }; setPlaying(true); };
+    // Saved progress never changes the mounted iframe URL. Resume is an
+    // explicit seek/play command, and only real provider PLAYING events earn time.
+    const commandPlayer = (func, args = []) => iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func, args }), PLAYER_ORIGIN);
+    const resumeWatching = () => {
+        if (document.hidden || !(tracking.resumeSeconds > 0)) return;
+        commandPlayer('seekTo', [tracking.resumeSeconds, true]);
+        commandPlayer('playVideo');
+    };
+    const closePlayer = () => { commandPlayer('pauseVideo'); setMiniPlayer(false); };
     // The library menu, minus its player settings (autoplay and captions
     // belong to the library's own player, not this page).
     const libraryMenu = getMenuConfig('video-library', null, {}, {});
@@ -326,7 +334,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                 title={`${video.title} | ${channel.name}`}
                 description={description}
                 canonical={canonical}
-                ogImage={`https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`}
+                ogImage={videoThumbnailUrl(video)}
                 ogType="video.other"
                 noindex={!indexable}
                 jsonLd={jsonLd}
@@ -345,39 +353,27 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                         <div className="vl-watch-page-grid">
                             <div className="vl-watch-page-main">
                                 <div className={`vl-player-stage vl-watch-page-player${miniPlayer ? ' is-mini-player' : ''}${seconds > 0 && seconds <= 180 ? ' is-vertical-player' : ''}`}>
-                                    {playing ? (
-                                        <iframe
-                                            key={video.videoId}
-                                            ref={iframeRef}
-                                            onLoad={event => subscribeWatchPlayer(event.currentTarget)}
-                                            src={`https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=1&rel=0&playsinline=1&iv_load_policy=3&enablejsapi=1&start=${resumeSnapshot.current.seconds}&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
-                                            title={video.title}
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                                            referrerPolicy="strict-origin-when-cross-origin"
-                                            allowFullScreen
-                                        />
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            className="vl-play-facade"
-                                            onClick={startWatching}
-                                            aria-label={`Play ${video.title}`}
-                                        >
-                                            <Thumbnail videoId={video.videoId} size="maxresdefault" catalogThumbnail={video.thumbnail} priority />
-                                            <span className="vl-play-facade-button" aria-hidden="true" />
-                                            {video.duration && <span className="vl-duration">{video.duration}</span>}
-                                        </button>
-                                    )}
-                                    {ytError && <div className="vl-playback-error" role="alert"><p>{errorInfo?.description}</p><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
-                                    {miniPlayer && <div className="vl-mini-controls"><button type="button" onClick={() => setMiniPlayer(false)}>Expand Player</button><button type="button" onClick={() => { setPlaying(false); setMiniPlayer(false); }}>Close Player</button></div>}
+                                    <iframe
+                                        key={video.videoId}
+                                        ref={iframeRef}
+                                        onLoad={event => subscribeWatchPlayer(event.currentTarget, attemptPlayback)}
+                                        src={`https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=0&rel=0&playsinline=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
+                                        title={video.title}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                                        referrerPolicy="strict-origin-when-cross-origin"
+                                        allowFullScreen
+                                    />
+                                    {ytError && <div className="vl-playback-error" role="alert"><p>{errorInfo?.description}</p><button type="button" onClick={closePlayer}>Close Player</button></div>}
+                                    {miniPlayer && <div className="vl-mini-controls"><button type="button" onClick={() => setMiniPlayer(false)}>Expand Player</button><button type="button" onClick={closePlayer}>Close Player</button></div>}
                                 </div>
-                                {playing && <WatchPlaybackTools key={`tools:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} active={!ytError}
+                                <WatchPlaybackTools key={`tools:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} active={!ytError} attemptPlayback={attemptPlayback}
                                     onMarkersChange={setQuizMarkers}
                                     duration={seconds} nextTitle={nextVideo?.title}
                                     onNext={() => openQueuedVideo(queueIndex >= 0 ? playbackQueue.advance(video.videoId) : nextVideo)}
                                     autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
-                                    mini={miniPlayer} onMiniChange={setMiniPlayer} />}
-                                {playing && VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
+                                    mini={miniPlayer} onMiniChange={setMiniPlayer} />
+                                {VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
+                                {tracking.status === 'ready' && tracking.resumeSeconds > 0 && <button type="button" className="vl-pill-button" onClick={resumeWatching}>Resume Saved Position</button>}
                                 <WatchTracking tracking={tracking} ownerId={user?.id} returnPath={watchPath(video)} />
 
                                 {playbackQueue.error && <p role="alert">{playbackQueue.error}</p>}
