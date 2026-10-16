@@ -14,6 +14,12 @@ import { join } from 'node:path';
 
 export const SITE_ORIGIN = 'https://smarter.poker';
 export const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/indexnow';
+export const INDEXNOW_ENDPOINTS = [
+  'https://api.indexnow.org/indexnow',
+  'https://www.bing.com/indexnow',
+  'https://yandex.com/indexnow',
+  'https://searchadvisor.naver.com/indexnow',
+];
 export const GOOGLE_INDEXING_ENDPOINT = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 
 /**
@@ -65,28 +71,37 @@ export async function submitToIndexNow(urls, { key = null, dryRun = false } = {}
     };
   }
 
-  try {
-    const res = await fetch(INDEXNOW_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(payload),
-    });
+  let lastStatus = 500;
+  let lastStatusText = 'Submission Failed';
+  let dispatched = false;
 
-    const isSuccess = res.status === 200 || res.status === 202;
-    return {
-      ok: isSuccess,
-      count: cleanUrls.length,
-      status: res.status,
-      statusText: res.statusText,
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      count: cleanUrls.length,
-      status: 500,
-      error: err.message || String(err),
-    };
+  // Try the primary endpoint first; if network error or non-200/202, attempt fallback endpoints
+  for (const endpoint of INDEXNOW_ENDPOINTS) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(payload),
+      });
+
+      lastStatus = res.status;
+      lastStatusText = res.statusText;
+      if (res.status === 200 || res.status === 202) {
+        dispatched = true;
+        break; // IndexNow automatically shares across participating search engines
+      }
+    } catch (err) {
+      lastStatus = 500;
+      lastStatusText = err.message || String(err);
+    }
   }
+
+  return {
+    ok: dispatched,
+    count: cleanUrls.length,
+    status: lastStatus,
+    statusText: lastStatusText,
+  };
 }
 
 /**
