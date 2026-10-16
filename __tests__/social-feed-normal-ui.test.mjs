@@ -188,7 +188,7 @@ test('post deep links pin the target through the caller-scoped post API without 
     social.indexOf('const formatDeepLinkPost = (p) => {'),
     social.indexOf('  // "N new posts" pill', social.indexOf('const formatDeepLinkPost = (p) => {'))
   );
-  assert.match(formatter, /contentType: p\.link_url \? \(p\.content_type === 'article' \? 'article' : 'link'\) : p\.content_type/);
+  assert.match(formatter, /contentType: p\.link_url && \(!p\.content_type \|\| p\.content_type === 'text'\) \? 'link' : p\.content_type/);
   const deepLink = social.slice(
     social.indexOf('// Handle ?post=<postId> deep link'),
     social.indexOf('// Handle ?stream=<streamId> query param')

@@ -3827,9 +3827,9 @@ function SocialMediaPage() {
       content: p.content,
       // Older news/article rows were published with a text-ish content_type
       // but a real link_url. The normal feed formatter promotes those into
-      // link cards; deep links must do the same or the pinned card renders as
-      // plain text and never mounts ArticleCard's preview-image hydration.
-      contentType: p.link_url ? (p.content_type === 'article' ? 'article' : 'link') : p.content_type,
+      // link cards; deep links must do the same. Explicit media types remain
+      // authoritative: a video's paired Reel link is navigation, not an article.
+      contentType: p.link_url && (!p.content_type || p.content_type === 'text') ? 'link' : p.content_type,
       mediaUrls: p.media_urls || [],
       thumbnailUrl: p.thumbnail_url || null,
       thumbnail_url: p.thumbnail_url || null,
