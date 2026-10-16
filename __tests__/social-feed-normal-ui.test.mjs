@@ -10,6 +10,22 @@ import {
 } from '../src/lib/articlePreviewMetadata.mjs';
 import { mergeCanonicalBrowserPost } from '../src/lib/canonicalBrowserPost.mjs';
 import { reelCreatorName } from '../src/lib/reelCreatorName.mjs';
+import { decodedPreviewIsUsable } from '../src/lib/previewImageValidation.mjs';
+
+test('browser-loaded previews reject tiny placeholders and failed decodes without rejecting real event art', async () => {
+  const photo = { src: '/api/proxy?url=source-specific-photo', naturalWidth: 1200, naturalHeight: 630, decode: async () => {} };
+  assert.equal(await decodedPreviewIsUsable(photo), true);
+  assert.equal(await decodedPreviewIsUsable({ ...photo, naturalWidth: 1, naturalHeight: 1 }), false);
+  assert.equal(await decodedPreviewIsUsable({ ...photo, naturalWidth: 120, naturalHeight: 90 }), false);
+  assert.equal(await decodedPreviewIsUsable({ ...photo, naturalWidth: 0, naturalHeight: 0 }), false, 'HTML or unsupported MIME never decodes to an image');
+  assert.equal(await decodedPreviewIsUsable({ ...photo, naturalWidth: Infinity }), false);
+  assert.equal(await decodedPreviewIsUsable({ ...photo, naturalWidth: 4000, naturalHeight: 120 }), false, 'banner strip is not a story thumbnail');
+  assert.equal(await decodedPreviewIsUsable({ ...photo, decode: async () => { throw new Error('Corrupt image'); } }), false);
+  const changed = { ...photo, decode: async () => { changed.src = '/new-article-image.jpg'; } };
+  assert.equal(await decodedPreviewIsUsable(changed), null, 'stale decode cannot reject replacement artwork');
+  assert.equal(await decodedPreviewIsUsable({ ...photo, isConnected: false }), null);
+  assert.equal(await decodedPreviewIsUsable({ ...photo, decode: undefined }), true, 'older browser dimension check remains available');
+});
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const article = read('src/components/social/ArticleCard.jsx');
@@ -343,7 +359,7 @@ test('mounted shared previews hydrate, order copy before media, and activate the
     button.props.onKeyDown(event(' '));
     button.props.onKeyDown(event('Escape'));
     assert.deepEqual(calls, Array(3).fill([url, 'Ace & King']), 'one callback per mouse/keyboard activation');
-    renderer.flushSync(() => img.props.onError());
+    await img.props.onLoad({ currentTarget: { src: img.props.src, naturalWidth: 1, naturalHeight: 1 } });
     assert.equal(nodes().filter((node) => node.type === 'img').length, 0, 'failed image disappears without fake media');
     assert.ok(nodes().some((node) => node.value === 'Ace & King'), 'copy remains available after image failure');
 
@@ -395,10 +411,11 @@ test('mounted shared previews hydrate, order copy before media, and activate the
     renderer.flushSync(() => renderer.updateContainer(React.createElement(Thumbnail, thumbnailProps), root, null, null));
     let cover = nodes().find((node) => node.type === 'img');
     assert.equal(cover.props.src, '/api/proxy?url=https%3A%2F%2Fpublisher.example%2Fexpired.jpg');
-    renderer.flushSync(() => cover.props.onError());
+    await cover.props.onLoad({ currentTarget: { src: cover.props.src, naturalWidth: 120, naturalHeight: 90 } });
     cover = nodes().find((node) => node.type === 'img');
     assert.equal(cover.props.src, thumbnailProps.fallback, 'failed persisted cover reaches actual YouTube artwork');
-    renderer.flushSync(() => cover.props.onError());
+    await cover.props.onLoad({ currentTarget: { src: cover.props.src, naturalWidth: 480, naturalHeight: 360,
+      decode: async () => { throw new Error('Corrupt fallback response'); } } });
     assert.equal(nodes().filter((node) => node.type === 'img').length, 0, 'both failures terminate without a retry loop');
     assert.ok(nodes().some((node) => node.value === 'Preview Unavailable'));
 

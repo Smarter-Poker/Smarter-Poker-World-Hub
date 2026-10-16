@@ -12,6 +12,8 @@ import {
 } from '../../lib/socialHelpers';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
 import toast from '../../stores/toastStore';
+import { decodedPreviewIsUsable } from '../../lib/previewImageValidation.mjs';
+import { isArticlePreviewImage } from '../../lib/articlePreviewMetadata.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // YOUTUBE POSTER LADDER (2026-08-15 poster-quality fix, per Dan)
@@ -49,15 +51,16 @@ export function YouTubePosterImg({ videoId, alt = '', style = {}, onLoadValid, o
 
   return (
     <img
+      key={src}
       src={src}
       alt={alt}
       loading="lazy"
       style={style}
       onError={advance}
-      onLoad={(e) => {
-        const img = e.target;
-        if (img.naturalWidth <= 120 && img.naturalHeight <= 90) advance();
-        else if (onLoadValid) onLoadValid(e);
+      onLoad={async (e) => {
+        const usable = await decodedPreviewIsUsable(e.currentTarget || e.target);
+        if (usable === false) advance();
+        else if (usable === true && onLoadValid) onLoadValid(e);
       }}
       {...props}
     />
@@ -398,7 +401,7 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
     // (ytPosterFailed). The prior single-state design caused an infinite
     // broken-img stuck-state when both URLs 404'd — see comment block
     // above the useState declarations for the full root-cause writeup.
-    if (thumbnailUrl && !imgFailed) {
+    if (thumbnailUrl && isArticlePreviewImage(thumbnailUrl) && !imgFailed) {
       return (
         <img
           src={thumbnailUrl}
@@ -406,6 +409,9 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
           loading="lazy"
           style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
           onError={() => setImgFailed(true)}
+          onLoad={async (event) => {
+            if (await decodedPreviewIsUsable(event.currentTarget) === false) setImgFailed(true);
+          }}
         />
       );
     }
@@ -439,7 +445,7 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
 
   // Branch 1 — happy path: we have a thumbnail URL and it hasn't errored yet.
   // VideoPostWrapper draws the play button overlay above this img.
-  if (thumbnailUrl && !imgFailed) {
+  if (thumbnailUrl && isArticlePreviewImage(thumbnailUrl) && !imgFailed) {
     return (
       <img
         src={thumbnailUrl}
@@ -447,6 +453,9 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
         loading="lazy"
         style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
         onError={() => setImgFailed(true)}
+        onLoad={async (event) => {
+          if (await decodedPreviewIsUsable(event.currentTarget) === false) setImgFailed(true);
+        }}
       />
     );
   }
