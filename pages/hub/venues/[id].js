@@ -364,7 +364,7 @@ function pickPublicVenueFields(row) {
   return out;
 }
 
-export async function getServerSideProps({ params, req, res }) {
+export async function getServerSideProps({ params, query, req, res }) {
   const rawId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const id = String(rawId || '').trim();
   if (!id) return { notFound: true };
@@ -443,7 +443,11 @@ export async function getServerSideProps({ params, req, res }) {
 
     // LLM Raw Markdown Ingestion (Phase 3 of AEO)
     const acceptHeader = String(req?.headers?.accept || '');
-    const isMarkdownRequested = acceptHeader.includes('text/markdown') || req?.url?.includes('format=md');
+    const isMarkdownRequested =
+      acceptHeader.includes('text/markdown') ||
+      query?.format === 'md' ||
+      String(query?.id || '').endsWith('.md') ||
+      req?.url?.includes('format=md');
     if (isMarkdownRequested) {
       const { renderVenueMarkdown } = await import('../../../src/lib/seo/markdownIngestion.mjs');
       const mdContent = renderVenueMarkdown(venue, {
