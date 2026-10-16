@@ -1,0 +1,297 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smarter.Poker Public AI Agent API",
+    "description": "Public, machine-readable API for autonomous AI agents, LLMs, and poker players to query verified poker venues, live rooms, tournament series, and schedules nationwide.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Smarter Software Inc.",
+      "url": "https://smarter.poker",
+      "email": "support@smarter.poker"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://smarter.poker/terms"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://smarter.poker",
+      "description": "Production Server"
+    }
+  ],
+  "paths": {
+    "/api/ai/venues": {
+      "get": {
+        "operationId": "searchVenues",
+        "summary": "Search Poker Venues and Card Rooms",
+        "description": "Returns verified poker venues filtered by state, city, name, or keyword query.",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "Search term matching venue name, city, address, or brand.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Two-letter US state code (e.g., NV, CA, TX, FL).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "description": "City name filter.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (default 20, max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of matching poker venues with location and contact metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/venues/{id}": {
+      "get": {
+        "operationId": "getVenueDetails",
+        "summary": "Get Detailed Poker Venue Information",
+        "description": "Retrieves comprehensive information about a single poker venue, including address, phone, amenities, social card image, and canonical URL.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Unique numeric or string ID of the venue.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed venue profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Venue not found."
+          }
+        }
+      }
+    },
+    "/api/ai/series": {
+      "get": {
+        "operationId": "searchSeries",
+        "summary": "Search Poker Tournament Series and Festivals",
+        "description": "Returns upcoming, ongoing, and past major poker tournament series across WSOP, WPT, MSPT, RGPS, and independent festivals.",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "Search term matching tour, series name, or host casino.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Two-letter US state code.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of series to return (default 20, max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of matching poker tournament series.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "VenueSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "venueType": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "tablesCount": {
+            "type": "integer",
+            "nullable": true
+          },
+          "url": {
+            "type": "string"
+          },
+          "ogImageUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "VenueSearchResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueSummary"
+            }
+          }
+        }
+      },
+      "VenueDetailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/VenueSummary"
+          }
+        }
+      },
+      "SeriesSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "venueName": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalEvents": {
+            "type": "integer"
+          },
+          "mainEventBuyin": {
+            "type": "number",
+            "nullable": true
+          },
+          "mainEventGuaranteed": {
+            "type": "number",
+            "nullable": true
+          },
+          "url": {
+            "type": "string"
+          },
+          "ogImageUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "SeriesSearchResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesSummary"
+            }
+          }
+        }
+      }
+    }
+  }
+}

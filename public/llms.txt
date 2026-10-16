@@ -25,6 +25,8 @@ https://smarter.poker/about is the page that states it.
 - Sitemap: https://smarter.poker/sitemap.xml
 - Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
+- Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json
+- ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
 
 ## Core Features
 

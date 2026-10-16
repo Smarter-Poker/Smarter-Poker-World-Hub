@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "smarter_poker",
+  "name_for_human": "Smarter.Poker Assistant",
+  "description_for_model": "Live poker venue discovery, tournament schedules, GTO poker strategy, glossary definitions, and room information across the United States. Allows AI agents and language models to retrieve verified poker room locations, phone numbers, table counts, upcoming tournament series, and live cash game details directly from Smarter.Poker.",
+  "description_for_human": "Search live poker venues, tournament schedules, GTO strategy, and poker rules across the US.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://smarter.poker/api/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://smarter.poker/icons/icon-512.png",
+  "contact_email": "support@smarter.poker",
+  "legal_info_url": "https://smarter.poker/terms"
+}

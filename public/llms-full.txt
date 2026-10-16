@@ -19,6 +19,10 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Terms of Service: https://smarter.poker/terms
 - Privacy Policy: https://smarter.poker/privacy
 - Open Source Work & Repositories: https://github.com/Smarter-Poker
+- Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json
+- ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
+- AI Venues API: https://smarter.poker/api/ai/venues
+- AI Series API: https://smarter.poker/api/ai/series
 
 ---
 
