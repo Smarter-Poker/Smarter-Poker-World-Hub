@@ -73,7 +73,8 @@ async function handler(req, res) {
     const day = manualDay || previousDay(now.date);
 
     if (dry) {
-        const out = await assembleDigest(sb, day);
+        // a preview never files alerts
+        const out = await assembleDigest(sb, day, { dispatch: false });
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('Cache-Control', 'no-store');
         return res.status(200).send(out.html);
