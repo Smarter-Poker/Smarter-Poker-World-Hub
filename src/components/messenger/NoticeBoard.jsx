@@ -66,11 +66,13 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         captureAnchor(bottom);
         const oldest = state.current.rows.find(row => !row.is_deleted);
         const updates = entries.filter(row => state.current.rows.some(old => old.id === row.id) || !oldest || compareNotices(row, oldest) >= 0);
+        const knownIds = new Set(state.current.rows.map(row => row.id));
+        const hasNewEntries = updates.some(row => !row.is_deleted && !knownIds.has(row.id));
         state.current.rows = mergeNotices(state.current.rows, updates);
         setRows(state.current.rows);
         state.current.pinRows = mergeNotices(state.current.pinRows, entries);
         setPins(pendingPins(state.current.pinRows));
-        if (!bottom && entries.some(row => !row.is_deleted && !state.current.rows.some(old => old.id === row.id && old.version > row.version))) setNewItems(true);
+        if (!bottom && hasNewEntries) setNewItems(true);
     }
     async function hydrate() {
         const s = state.current;
