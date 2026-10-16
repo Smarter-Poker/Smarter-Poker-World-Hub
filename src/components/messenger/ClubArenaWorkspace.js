@@ -3,7 +3,7 @@ import React from 'react';
 export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnter, onExit, onFolder, unreadCounts, attentionCounts, clubUnread, theme: C }) {
     if (!clubs.length) return null;
     const club = clubs.find(c => c.id === clubId);
-    const button = { background: C.card, color: C.text, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', font: 'inherit' };
+    const button = { background: C.card, color: C.text, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 8px', cursor: 'pointer', font: 'inherit' };
     const badge = (count, label = 'Unread') => count > 0 ? <span aria-label={`${count} ${label}`} style={{ display: 'inline-block', marginLeft: 6, minWidth: 20, padding: '1px 5px', borderRadius: 12, background: C.red || '#E4405F', color: '#fff', fontSize: 12, fontWeight: 700 }}>{count > 99 ? '99+' : count}</span> : null;
     const clubTotal = Object.values(clubUnread || {}).reduce((sum, counts) => sum + counts.messages + counts.invoices, 0);
     return <section aria-label="Club Arena" style={{ padding: '8px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
@@ -24,11 +24,11 @@ export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnte
                 </select>
             </label>
             <div role="tablist" aria-label="Club Arena Inbox" style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                {['messages', 'invoices'].map(tab => <button key={tab} type="button" role="tab"
+                {['messages', 'invoices', 'notice-board'].map(tab => <button key={tab} type="button" role="tab"
                     aria-selected={folder === tab} onClick={() => onFolder(tab)}
-                    style={{ ...button, flex: 1, color: folder === tab ? C.blue : C.text, borderColor: folder === tab ? C.blue : C.border }}>
-                    {tab === 'invoices' ? 'Invoices' : 'Messages'}
-                    {badge(tab === 'invoices' ? (attentionCounts?.invoices ?? unreadCounts?.invoices) : unreadCounts?.messages,
+                    style={{ ...button, flex: 1, fontSize: 12, color: folder === tab ? C.blue : C.text, borderColor: folder === tab ? C.blue : C.border }}>
+                    {tab === 'notice-board' ? 'Notice Board' : tab === 'invoices' ? 'Invoices' : 'Messages'}
+                    {tab !== 'notice-board' && badge(tab === 'invoices' ? (attentionCounts?.invoices ?? unreadCounts?.invoices) : unreadCounts?.messages,
                         tab === 'invoices' && attentionCounts?.invoices !== undefined ? 'Needs Attention' : 'Unread')}
                 </button>)}
             </div>

@@ -54,6 +54,7 @@ import { isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // BottomNavBar intentionally removed from messenger — input area was blocked
 
+import NoticeBoard from '../../src/components/messenger/NoticeBoard';
 import ClubArenaWorkspace from '../../src/components/messenger/ClubArenaWorkspace';
 import { requestPushNudge } from '../../src/lib/push/enrollment-nudge.mjs';
 import AccountingInvoiceCard from '../../src/components/messenger/AccountingInvoiceCard';
@@ -3015,7 +3016,8 @@ function MessengerPage() {
 
     const enterClubWorkspace = (club, folder = 'messages') => {
         if (!club || !joinedClubs.some(c => c.id === club.id)) return;
-        setWorkspaceSelection({ clubId: club.id, folder: folder === 'invoices' ? 'invoices' : 'messages' });
+        setWorkspaceSelection({ clubId: club.id, folder: ['invoices', 'notice-board'].includes(folder) ? folder : 'messages' });
+        if (folder === 'notice-board') setShowSidebar(false);
         const page = club.canManage && ownedPages.find(p => p.id === club.pageId);
         if (page) switchToClub(page);
         else switchToPersonal();
@@ -3977,7 +3979,7 @@ function MessengerPage() {
                         attentionCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.attentionCounts : null}
                         clubUnread={messengerUnread?.clubs}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
-                        onFolder={folder => setWorkspaceSelection(prev => ({ ...prev, folder }))} />
+                        onFolder={folder => { setWorkspaceSelection(prev => ({ ...prev, folder })); if (folder === 'notice-board') setShowSidebar(false); }} />
                     {loading && <div role="status" style={{ padding: 12, color: C.textSec }}>Loading Inbox...</div>}
                     {inboxError && <div role="alert" style={{ padding: 16, color: C.textSec }}>
                         {inboxError}
@@ -4018,7 +4020,7 @@ function MessengerPage() {
                     )}
 
                     {/* Conversations List - Only show actual conversations with messages */}
-                    <div>
+                    <div hidden={workspaceSelection.folder === 'notice-board'}>
                         {!loading && !inboxError && weeklyPreview?.key === workspaceKey && selectedClub?.canManage && workspaceSelection.folder === 'invoices' && <div style={{ padding: 12 }}>
                             <AccountingInvoiceCard theme={C} meta={{ invoice_type: 'club_weekly_accounting', preview: true,
                                 status: weeklyPreview.report.status, lines: weeklyPreview.report }}
@@ -4322,7 +4324,10 @@ function MessengerPage() {
                     position: 'relative', // Phase 3 BUGFIX: anchor for scroll-to-bottom FAB
                 }}>
                     {
-                        activeConversation ? (
+                        workspaceSelection.folder === 'notice-board' && selectedClub ? (
+                            <NoticeBoard key={`${user.id}:${selectedClub.id}`} club={selectedClub} userId={user.id} theme={C}
+                                onBack={() => { setWorkspaceSelection(prev => ({ ...prev, folder: 'messages' })); setShowSidebar(true); }} />
+                        ) : activeConversation ? (
                             <>
                                 {/* Chat Header */}
                                 <div style={{
