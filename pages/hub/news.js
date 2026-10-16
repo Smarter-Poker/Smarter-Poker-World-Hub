@@ -84,7 +84,12 @@ import { newsImageUrl } from '../../src/lib/security/imageHosts.js';
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
-const NewsBox = dynamic(() => import('../../src/components/news/NewsBox'), { ssr: false });
+// MOBILE LCP (2026-10-16). The lead story's photo is the largest thing on this
+// page. As a client-only import it could not start loading until the page had
+// hydrated, fetched the source boxes and loaded this chunk, which put the live
+// LCP at 3.7-4.4s on a 3.5s budget. It server-renders now (it already fills its
+// clock-dependent label only after mount), from source boxes seeded below.
+const NewsBox = dynamic(() => import('../../src/components/news/NewsBox'));
 const ReelCard = dynamic(() => import('../../src/components/news/ReelCard'), { ssr: false });
 const VideoCard = dynamic(() => import('../../src/components/news/VideoCard'), { ssr: false });
 
@@ -204,6 +209,9 @@ const NEWS_PAGE_SIZE = 24;
 // number below it, so the two-column rows never end on a lone card.
 const FILTERED_TOP_GRID_SIZE = 7;
 export const FIRST_PAGE_KEY = `/api/news/articles?limit=${NEWS_PAGE_SIZE}&offset=0`;
+// The top grid's source boxes, seeded on the server for the same reason: the
+// lead story and its photo are in the HTML instead of waiting for the browser.
+export const SOURCE_BOXES_KEY = '/api/news/source-boxes';
 
 /**
  * DISCOVERABILITY PHASE 7 (2026-09-19). /hub/news served Googlebot 124 words
@@ -215,8 +223,14 @@ export const FIRST_PAGE_KEY = `/api/news/articles?limit=${NEWS_PAGE_SIZE}&offset
  */
 export async function getServerSideProps({ req, res }) {
   catalogueCacheHeaders(res);
-  const fallback = await swrFallback(originFrom(req), FIRST_PAGE_KEY);
-  return { props: { fallback } };
+  // Fetched together: each is independently optional and capped by
+  // swrFallback's own timeout, so a slow or failed source-boxes read leaves
+  // the page exactly as it rendered before (browser fetch) and never fails it.
+  const [firstPage, sourceBoxes] = await Promise.all([
+    swrFallback(originFrom(req), FIRST_PAGE_KEY),
+    swrFallback(originFrom(req), SOURCE_BOXES_KEY),
+  ]);
+  return { props: { fallback: { ...firstPage, ...sourceBoxes } } };
 }
 
 export default function NewsHubPage({ fallback }) {
@@ -393,7 +407,7 @@ function NewsHub() {
     }, [enableNearbyEvents]);
 
     // SWR-backed static data — cached 60s, survive navigation
-    const { data: sourceBoxesData, error: sourceBoxesError } = useSWR('/api/news/source-boxes', fetchNewsJson);
+    const { data: sourceBoxesData, error: sourceBoxesError } = useSWR(SOURCE_BOXES_KEY, fetchNewsJson);
     const rawSourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
     const sourceBoxesUnavailable = !!sourceBoxesError || (!!sourceBoxesData && (
         sourceBoxesData.success !== true || !Array.isArray(sourceBoxesData.data) || sourceBoxesData.data.length === 0
@@ -1826,7 +1840,10 @@ function NewsHub() {
                                                 {topArticles.map((article, index) => (
                                                     <motion.div
                                                         key={article.id}
-                                                        initial={{ opacity: 0, y: 20 }}
+                                                        // Server-seeded cards are painted as they arrive, not
+                                                        // at opacity 0 waiting for JavaScript. Cards that
+                                                        // appear after mount (filters, refresh) still animate.
+                                                        initial={hasMounted ? { opacity: 0, y: 20 } : false}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: index * 0.06, duration: 0.3 }}
                                                         className={`news-card-wrap ${focusedArticleIdx === index ? 'keyboard-focused' : ''}`}
