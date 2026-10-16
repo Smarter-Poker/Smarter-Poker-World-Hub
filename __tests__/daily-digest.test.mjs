@@ -136,7 +136,9 @@ test('signed view link verifies, expires and refuses tampering', () => {
 
 test('recipient and phone defaults', () => {
     delete process.env.DAILY_DIGEST_TO;
-    assert.deepEqual(digestRecipients(), ['Daniel@bekavactrading.com']);
+    assert.deepEqual(digestRecipients(), [], 'no literal fallback recipient');
+    process.env.DAILY_DIGEST_TO = 'owner@example.test, second@example.test';
+    assert.deepEqual(digestRecipients(), ['owner@example.test', 'second@example.test']);
     process.env.MY_PHONE_NUMBER = '(708) 555-0101\n';
     delete process.env.DIGEST_ALERT_PHONE;
     assert.equal(ownerPhone(), '+17085550101');

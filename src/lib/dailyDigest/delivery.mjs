@@ -7,8 +7,14 @@ import crypto from 'crypto';
 
 const trim = (v) => (typeof v === 'string' ? v.trim() : '');
 
+/**
+ * The owner's inbox comes from DAILY_DIGEST_TO (Vercel production env), never
+ * a literal here (repo law: a script never wears a person's face). Unset means
+ * no recipient, which the route records as a failed send so the 8:15 AM
+ * watchdog pages instead of the email silently going nowhere.
+ */
 export function digestRecipients() {
-    const raw = trim(process.env.DAILY_DIGEST_TO) || 'Daniel@bekavactrading.com';
+    const raw = trim(process.env.DAILY_DIGEST_TO);
     return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
@@ -20,6 +26,7 @@ export function digestFrom() {
 export async function sendEmail({ to, subject, html, text, idempotencyKey, fetchImpl = fetch }) {
     const apiKey = trim(process.env.RESEND_API_KEY);
     if (!apiKey) return { ok: false, error: 'RESEND_API_KEY not configured' };
+    if (!Array.isArray(to) || !to.length) return { ok: false, error: 'DAILY_DIGEST_TO not configured' };
     let lastError = '';
     for (let attempt = 1; attempt <= 3; attempt++) {
         try {
