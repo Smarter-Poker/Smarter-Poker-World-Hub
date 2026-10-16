@@ -400,7 +400,11 @@ export async function getServerSideProps({ params, req, res }) {
 
     // LLM Raw Markdown Ingestion (Phase 3 of AEO)
     const acceptHeader = String(req?.headers?.accept || '');
-    const isMarkdownRequested = acceptHeader.includes('text/markdown') || req?.url?.includes('format=md');
+    const reqUrl = String(req?.url || '');
+    const isMarkdownRequested =
+      acceptHeader.includes('text/markdown') ||
+      reqUrl.includes('format=md') ||
+      reqUrl.includes('.md');
     if (isMarkdownRequested && isPublicSeries(seoSeries)) {
       const { renderSeriesMarkdown } = await import('../../../src/lib/seo/markdownIngestion.mjs');
       const mdContent = renderSeriesMarkdown(seoSeries, {
