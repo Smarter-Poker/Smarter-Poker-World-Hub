@@ -111,6 +111,8 @@ test('every sitemap and the Content-Signal line are declared once each', () => {
   // every poker video watch page with Google's video fields.
   assert.deepEqual(sitemaps, [
     'https://smarter.poker/sitemap.xml',
+    'https://smarter.poker/sitemap-venues.xml',
+    'https://smarter.poker/sitemap-series.xml',
     'https://smarter.poker/sitemap-videos.xml',
     'https://smarter.poker/hub/club-arena/sitemap.xml',
   ]);
