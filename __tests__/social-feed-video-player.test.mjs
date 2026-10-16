@@ -210,6 +210,39 @@ const feedPost = (extra) => ({
 // the life of a loaded surface, so a second card would show the first's text.
 const renderCard = (post) => render(loadCard().exposed.PostCard(cardProps(feedPost(post))));
 
+test('the actual horse video and paired Reel link retain the video consumer through deep-link normalization', () => {
+  const source = read(PAGE_FILE);
+  const start = source.indexOf('  const formatDeepLinkPost = (p) => {');
+  const end = source.indexOf('  // "N new posts" pill', start);
+  const format = new Function('timeAgo', `${source.slice(start, end)}; return formatDeepLinkPost;`)(() => 'Just now');
+  const actual = {
+    id: '253cb68a-d8c6-4bc2-9225-6915b55ef646', content_type: 'video',
+    content: 'A take on the nine-seven bluff needs context: the value combinations',
+    media_urls: ['https://www.youtube.com/watch?v=jHhRq7IfBDs'],
+    link_url: '/hub/reels?id=5f99203a-aa8e-40e4-a3e0-31eb788c731a',
+    thumbnail_url: POSTER,
+  };
+  const formatted = format(actual);
+  assert.equal(formatted.contentType, 'video');
+  assert.deepEqual(formatted.mediaUrls, actual.media_urls);
+  assert.equal(formatted.link_url, actual.link_url);
+  const html = renderCard(formatted);
+  assert.match(html, /data-feed-video="poster"/);
+  assert.match(html, /data-video-url="https:\/\/www.youtube.com\/watch\?v=jHhRq7IfBDs"/);
+  assert.ok(html.indexOf(actual.content) < html.indexOf('data-feed-video='));
+  for (const content_type of ['image', 'photo', 'live', 'live_session_ended']) {
+    assert.equal(format({ ...actual, content_type }).contentType, content_type, 'explicit media type is authoritative');
+  }
+  for (const content_type of ['text', null, undefined, '', 'link']) {
+    assert.equal(format({ ...actual, content_type }).contentType, 'link', 'legacy text links retain preview hydration');
+  }
+  assert.equal(format({ ...actual, content_type: 'article' }).contentType, 'article');
+  assert.equal(format({ ...actual, content_type: 'text', link_url: null }).contentType, 'text');
+  assert.match(source, /const formatted = formatDeepLinkPost\(p\)/);
+  assert.match(source, /const formatted = formatDeepLinkPost\(linkedPost\)/);
+  assert.match(read('pages/api/social/feed.js'), /contentType: p\.content_type/, 'ordinary feed already preserves the authoritative media type');
+});
+
 test('a video post renders its caption before the media, through the feed video player, with its cover frame as the poster', () => {
   const caption = 'Rivered the nuts [[sp-card:As]] and got paid';
   const html = renderCard({
