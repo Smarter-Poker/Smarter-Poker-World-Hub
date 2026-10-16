@@ -49,7 +49,6 @@ import { showStoreToast } from './StoreToast';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
-import DiamondInPlayBalance from './DiamondInPlayBalance';
 // One definition of what each wallet tab means, shared with the API that counts
 // and queries them. See the file header for why it is not a list of type names.
 import { matchesFilter } from '../../lib/diamonds/ledgerFilters';
@@ -1713,7 +1712,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           {/* ═══════════════════════════════════════════════
                      PREMIUM HEADER : Image-Backed Layout
                 ═══════════════════════════════════════════════ */}
-          <DiamondInPlayBalance refreshKey={balance} />
           <div className={styles.art}>
             <img
               className={styles.artImage}

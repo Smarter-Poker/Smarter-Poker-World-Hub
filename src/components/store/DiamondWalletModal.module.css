@@ -52,6 +52,15 @@
   --vault-gold: #ffc93c;
   --vault-muted: #7f8c9b;
   --vault-radius: 8px;
+  --desk-white: #f4f7fb;
+  --desk-silver: #e4e7ec;
+  --desk-muted: #9aa5b3;
+  --desk-blue: #45adff;
+  --desk-red: #ff5b6e;
+  --desk-row: #080b0f;
+  --desk-well: #05070a;
+  --desk-shadow: 0 1px 1.5px rgb(0 0 0 / 80%);
+  --desk-glow: 0 0 5px rgb(140 210 255 / 90%), 0 1px 0 rgb(0 0 0 / 70%);
   --vault-font-display:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   --vault-font-label:
@@ -205,44 +214,56 @@
 
 /* ── Search ─────────────────────────────────────────────────────────────── */
 
+/*
+ * THE BOTTOM HALF IS THE CASHIER DESK (Dan 2026-10-16: "the bottom needs to be
+ * enhanced and optimized. it still has the flat boring buttons"). The same
+ * desk Club Arena's Cashier and wallets now wear: a hairline well for search,
+ * filters as lit words with the chosen one white, hairline rows on #080b0f,
+ * credits in blue and debits in red, and no drawn pill or rounded key
+ * anywhere. Words stay Title Case here (the Marketplace typography law bans
+ * uppercase transforms on this surface).
+ */
+
 .searchWrap {
-  padding: 8px 16px 4px;
+  padding: 12px 16px 6px;
 }
 
 .searchField {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  min-height: 50px;
+  padding: 0 4px 0 14px;
   border: 1px solid var(--vault-gunmetal);
-  border-radius: 10px;
-  background: var(--vault-carbon);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  border-radius: 0;
+  background: var(--desk-well);
+  box-shadow: none;
 }
 
 /* The whole field lights when the input inside it has focus, so the machined
    frame is what shows focus rather than a ring around a transparent input. */
 .searchField:focus-within {
-  border-color: rgba(0, 212, 255, 0.55);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.5),
-    0 0 0 2px rgba(0, 212, 255, 0.25);
+  border-color: var(--desk-blue);
+  box-shadow: none;
 }
 
 .searchInput {
   flex: 1;
+  min-width: 0;
+  min-height: 48px;
   border: none;
   outline: none;
   background: transparent;
   box-shadow: none;
-  color: var(--vault-chrome-hot);
-  font-family: var(--vault-font-body, var(--font-inter), Inter, Arial, sans-serif);
-  font-size: 13px;
+  color: var(--desk-white);
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
   text-transform: capitalize;
 }
 
 .searchInput::placeholder {
-  color: var(--vault-muted);
+  color: var(--desk-muted);
 }
 
 .searchClear {
@@ -250,21 +271,21 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
-  min-height: 28px;
-  padding: 0 6px;
-  border: 1px solid var(--vault-gunmetal);
+  min-width: 52px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
   border-radius: 0;
-  background: var(--vault-gunmetal);
-  color: var(--vault-chrome);
-  font: 800 10px/1 var(--vault-font-label);
-  letter-spacing: 0.05em;
+  background: transparent;
+  color: var(--desk-blue);
+  font: 800 13px/1 var(--vault-font-label);
+  letter-spacing: 0.12em;
   text-transform: capitalize;
   cursor: pointer;
 }
 
 .searchClear:active {
-  transform: translateY(1px);
+  opacity: 0.75;
 }
 
 .searchClear:focus-visible {
@@ -282,25 +303,28 @@
 .filterRail {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 4px 18px;
+  padding: 2px 16px 4px;
   overflow-x: auto;
-  border-bottom: 1px solid var(--vault-gunmetal);
-  background: var(--vault-panel);
+  border-bottom: 1px solid #000;
+  background: transparent;
+  box-shadow: inset 0 -1px 0 rgb(255 255 255 / 6%);
+  scrollbar-width: none;
 }
 
 .rangeSelect {
   flex-shrink: 0;
-  padding: 5px 22px 5px 8px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 1px solid var(--vault-gunmetal);
-  border-radius: var(--vault-radius);
-  background: var(--vault-carbon);
+  border-radius: 0;
+  background: var(--desk-well);
   background-image: none;
-  color: var(--vault-muted);
+  color: var(--desk-muted);
   font-family: var(--vault-font-label);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -308,8 +332,8 @@
 
 /* An active range is a lit control, like a filter that is doing something. */
 .rangeSelectActive {
-  border-color: rgba(0, 212, 255, 0.55);
-  color: var(--vault-cyan);
+  border-color: var(--desk-blue);
+  color: var(--desk-white);
 }
 
 .rangeSelect:focus-visible,
@@ -321,49 +345,41 @@
 
 .filterChip {
   flex-shrink: 0;
-  padding: 6px 14px;
-  border: 1px solid var(--vault-gunmetal);
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
   border-radius: 0;
-  background: #0e141c;
-  color: var(--vault-chrome);
+  background: transparent;
+  color: var(--desk-muted);
   font-family: var(--vault-font-label);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition:
-    border-color 0.15s ease,
-    transform 0.15s ease;
+  box-shadow: none;
+  text-shadow: var(--desk-shadow);
 }
 
 /* No hover; a press is the feedback (Dan 2026-08-29). */
 .filterChip:active,
 .statsToggle:active {
-  transform: translateY(1px);
+  opacity: 0.75;
 }
 
 .filterChipOn {
-  border-color: rgba(0, 212, 255, 0.6);
-  background: #071822;
-  color: var(--vault-cyan);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 0 14px rgba(0, 212, 255, 0.22);
+  color: var(--desk-white);
+  text-shadow: var(--desk-glow);
 }
 
 .statsToggle {
   composes: filterChip;
   margin-left: auto;
-  padding: 6px 10px;
-  font-size: 11px;
 }
 
 .statsToggleOn {
-  border-color: rgba(65, 105, 225, 0.65);
-  background: #101b32;
-  color: var(--vault-chrome-hot);
+  color: var(--desk-blue);
+  text-shadow: none;
 }
 
 /* ── Chrome ─────────────────────────────────────────────────────────────── */
@@ -1047,22 +1063,23 @@
 
 /* The way back out of a search or date range that emptied the view. */
 .emptyReset {
+  min-height: 44px;
   margin-top: 12px;
-  padding: 7px 16px;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: 16px;
-  background: #0e141c;
-  color: var(--vault-cyan);
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--desk-blue);
   font-family: var(--vault-font-label);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: capitalize;
   cursor: pointer;
 }
 
 .emptyReset:active {
-  transform: translateY(1px);
+  opacity: 0.75;
 }
 
 .emptyReset:focus-visible {
@@ -1082,26 +1099,30 @@
  * read. A press is the feedback.
  */
 .txRow {
-  border-bottom: 1px solid var(--vault-gunmetal);
-  background: transparent;
+  margin: 0 16px 8px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 0;
+  background: var(--desk-row);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .txRow:active {
-  background: rgba(0, 212, 255, 0.06);
+  border-color: var(--desk-blue);
 }
 
 .txRowOpen {
-  background: rgba(0, 212, 255, 0.05);
-  box-shadow: inset 3px 0 0 var(--vault-cyan);
+  border-color: var(--desk-blue);
+  background: var(--desk-row);
+  box-shadow: none;
 }
 
 .txRowMain {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  min-height: 68px;
+  padding: 10px 14px;
 }
 
 .txBody {
@@ -1135,8 +1156,8 @@
 }
 
 .txLabel {
-  margin-bottom: 4px;
-  color: var(--vault-chrome-hot);
+  margin-bottom: 3px;
+  color: var(--desk-white);
   font-family: var(--vault-font-label);
   font-size: 15px;
   font-weight: 700;
@@ -1145,9 +1166,10 @@
 
 .txDesc {
   overflow: hidden;
-  color: var(--vault-muted);
-  font-size: 13px;
+  color: var(--desk-muted);
+  font-size: 12px;
   text-overflow: ellipsis;
+  text-shadow: var(--desk-shadow);
   white-space: nowrap;
 }
 
@@ -1156,23 +1178,25 @@
   flex-shrink: 0;
   flex-direction: column;
   align-items: flex-end;
+  gap: 2px;
 }
 
 .txAmount {
   font-family: var(--vault-font-display);
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
-/* A credit reads as the vault's own energy; a debit as chrome, not alarm red.
-   Spending diamonds is a normal thing to do, not an error. */
+/* A credit in the desk's lit blue, a debit in its red, exactly as the Club
+   Arena Cashier and wallet desks print them, so one diamond economy reads the
+   same from both places. */
 .txAmountIn {
-  color: var(--vault-cyan);
+  color: var(--desk-blue);
 }
 
 .txAmountOut {
-  color: var(--vault-chrome);
+  color: var(--desk-red);
 }
 
 /* ── The shell: backdrop, dialog, close bar, scroll body ─────────────────── */
@@ -1298,8 +1322,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  min-height: 68px;
+  margin: 0 16px 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--vault-gunmetal);
+  background: var(--desk-row);
 }
 
 .skeletonBone {
@@ -1377,7 +1404,7 @@
 
 .stateText {
   margin-bottom: 14px;
-  color: var(--vault-chrome);
+  color: var(--desk-silver);
   font-size: 13px;
 }
 
@@ -1394,23 +1421,20 @@
 
 /* Retry, Load More, and the first-diamonds call to action share one lit key. */
 .litKey {
-  padding: 8px 20px;
-  border: 1px solid rgba(0, 212, 255, 0.55);
-  border-radius: 16px;
-  background: #071822;
-  color: var(--vault-cyan);
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--desk-blue);
   font-family: var(--vault-font-label);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: capitalize;
   cursor: pointer;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 0 14px rgba(0, 212, 255, 0.22);
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
+  box-shadow: none;
+  transition: opacity 0.15s ease;
 }
 
 .litKey:disabled {
@@ -1419,7 +1443,7 @@
 }
 
 .litKey:not(:disabled):active {
-  transform: translateY(1px);
+  opacity: 0.75;
 }
 
 .litKey:focus-visible {
@@ -1429,47 +1453,50 @@
 
 .litKeyLarge {
   margin-top: 16px;
-  padding: 10px 28px;
-  border-radius: 20px;
-  font-size: 14px;
-  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  padding: 0 12px;
+  color: var(--desk-white);
+  font-size: 15px;
+  text-shadow: var(--desk-glow);
 }
 
 .loadMore {
-  padding: 12px 16px;
+  padding: 4px 16px 12px;
   text-align: center;
 }
 
 /* Today / Yesterday / This Week / Earlier. */
 .groupHeader {
-  padding: 10px 16px 4px;
-  color: rgba(0, 212, 255, 0.6);
+  padding: 14px 16px 8px;
+  color: var(--desk-muted);
   font-family: var(--vault-font-label);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-shadow: var(--desk-shadow);
   text-transform: capitalize;
 }
 
 .groupHeaderRuled {
-  border-top: 1px solid var(--vault-gunmetal);
+  margin-top: 4px;
 }
 
 .txAfter {
-  color: var(--vault-muted);
+  color: var(--desk-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .txWhen {
-  margin-top: 4px;
-  color: var(--vault-muted);
-  font-size: 12px;
+  color: var(--desk-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
 
 /* The row opened: its receipt, laid under the icon column. */
 .txDetail {
-  padding: 0 16px 12px 64px;
+  padding: 0 14px 10px;
+  border-top: 1px solid #000;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
   animation: walletFadeIn 0.15s ease;
 }
 
@@ -1477,7 +1504,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px 16px;
-  font-size: 11px;
+  padding-top: 10px;
+  font-size: 12px;
 }
 
 .txDetailWide {
@@ -1485,38 +1513,37 @@
 }
 
 .txDetailKey {
-  color: var(--vault-muted);
+  color: var(--desk-muted);
 }
 
 .txDetailValue {
-  color: var(--vault-chrome);
+  color: var(--desk-silver);
 }
 
 .txDetailRef {
-  color: var(--vault-chrome);
+  color: var(--desk-silver);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .copyKey {
-  margin-top: 6px;
-  padding: 3px 10px;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: 6px;
-  background: #0e141c;
-  color: var(--vault-chrome);
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--desk-blue);
   font-family: var(--vault-font-label);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .copyKey:active {
-  transform: translateY(1px);
+  opacity: 0.75;
 }
 
 .copyKey:focus-visible {
@@ -1525,21 +1552,25 @@
 }
 
 .copyKeyDone {
-  border-color: rgba(0, 212, 255, 0.5);
-  color: var(--vault-cyan);
+  color: var(--desk-white);
+  text-shadow: var(--desk-glow);
 }
 
 .footer {
   display: flex;
   justify-content: center;
   gap: 12px;
-  padding: 8px 16px;
-  border-top: 1px solid var(--vault-gunmetal);
-  color: var(--vault-muted);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #000;
+  background: var(--desk-well);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+  color: var(--desk-muted);
   font-family: var(--vault-font-label);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-align: center;
+  text-shadow: var(--desk-shadow);
 }
 
 /* Available to assistive technology, absent from the render. */
