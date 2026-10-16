@@ -109,3 +109,29 @@ test('the budgets this law protects are unchanged', () => {
   assert.deepEqual(routes['/hub/personal-assistant'], { jsKb: 850, lcpMs: 2500, converted: true });
   assert.deepEqual(routes['/hub/news'], { jsKb: 900, lcpMs: 3500, converted: false });
 });
+
+test('the news lead story and its photo are in the server HTML, not behind JavaScript', () => {
+  // Live on 29a6a92 the lead photo was LCP at 3.7-4.4s on the 3.5s budget:
+  // it waited for hydration, a browser fetch of the source boxes, a
+  // client-only NewsBox chunk and an opacity-0 entrance before it could load.
+  const src = read('pages/hub/news.js');
+  assert.match(src, /export const SOURCE_BOXES_KEY = '\/api\/news\/source-boxes';/);
+  assert.match(src, /swrFallback\(originFrom\(req\), SOURCE_BOXES_KEY\)/, 'the source boxes are seeded on the server');
+  assert.match(src, /swrFallback\(originFrom\(req\), FIRST_PAGE_KEY\)/, 'the first feed page is still seeded');
+  assert.match(src, /useSWR\(SOURCE_BOXES_KEY, fetchNewsJson\)/, 'the hook reads the seeded key, so the fallback is used');
+  assert.match(src, /const NewsBox = dynamic\(\(\) => import\('\.\.\/\.\.\/src\/components\/news\/NewsBox'\)\);/, 'NewsBox renders on the server');
+  assert.doesNotMatch(stripComments(src), /const NewsBox = dynamic\([^;]*ssr: false/);
+  assert.match(src, /initial=\{hasMounted \? \{ opacity: 0, y: 20 \} : false\}/, 'server-seeded top cards are not served at opacity 0');
+  // NewsBox keeps the lead photo prioritised and its clock-dependent label
+  // client-only, which is what makes it safe to render on a cached server page.
+  const box = read('src/components/news/NewsBox.js');
+  assert.match(box, /loading=\{priority \? 'eager' : 'lazy'\}/);
+  assert.match(box, /fetchpriority=\{priority \? 'high' : 'auto'\}/);
+  assert.match(box, /\{hasMounted \? timeAgo\(article\.published_at\) : ''\}/);
+  assert.match(src, /priority=\{index === 0\}/);
+  // The lead photo is preloaded from the head with the card's own URL logic.
+  assert.match(src, /import \{ newsBoxImage \} from '\.\.\/\.\.\/src\/components\/news\/NewsBox';/);
+  assert.match(src, /newsBoxImage\(topArticles\[0\]\)\.imageUrl/);
+  assert.match(src, /<link key="news-lead-image" rel="preload" as="image" href=\{leadImageUrl\} fetchpriority="high" \/>/);
+  assert.match(box, /const \{ imageUrl, fallbackUrl \} = newsBoxImage\(article\);/, 'the card and the preload share one URL function');
+});

@@ -30,8 +30,13 @@ test.describe('Phase 6 Personal Video Study', () => {
         await page.goto('/hub/video-library', { waitUntil: 'commit' });
         const study = page.getByRole('region', { name: 'Diamond Study Streak', exact: true });
         await expect(study.getByRole('link', { name: 'Sign In To See Your Study Streak' })).toHaveAttribute('href', '/auth/login?redirect=%2Fhub%2Fvideo-library');
-        await page.getByRole('button', { name: /^Recommended For You/ }).first().click();
-        await expect(page).toHaveURL(/filter=recommended/);
+        // The filter button is server-rendered and visible from the first parse
+        // (2026-10-16), so after waitUntil 'commit' it can be clicked before
+        // React has attached its handler. Retry the click until it takes.
+        await expect(async () => {
+            await page.getByRole('button', { name: /^Recommended For You/ }).first().click();
+            await expect(page).toHaveURL(/filter=recommended/, { timeout: 2_500 });
+        }).toPass({ timeout: 15_000 });
         await expect(page.locator('#video-library-grid .vl-card-title').first()).toHaveText('NLH Personal Study Lesson');
         expect(recommendations).toBeGreaterThan(0); expect(personalReads).toBe(0); await geometry(page);
     });
