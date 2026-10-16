@@ -161,6 +161,8 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         try {
             const result = await request(method, payload);
             if (!result) return false;
+            // A delayed read must replay acknowledged writes even without a socket.
+            if (state.current.loading) state.current.events.push(result.entry);
             accept([result.entry]); return true;
         } catch (failure) { if (state.current.alive) setError(failure.message); return false; }
         finally { if (state.current.alive) setBusy(false); }

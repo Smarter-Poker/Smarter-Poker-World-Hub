@@ -19,11 +19,12 @@ test('rendered board hydrates socket events, removes pins/tombstones and isolate
  '../../lib/authUtils':synthetic({getAccessToken:()=>null,authedFetch:async(_url,options)=>{
   if(options.method!=='POST') {
    const payload=JSON.parse(options.body).payload;mutations.push({method:options.method,payload});
-   records=[{...records[0],...payload,version:records[0].version+1}];
+   records=[{...records[0],...payload,version:options.method==='PUT'?1:records[0].version+1,...(options.method==='PUT'?{created_at:'2026-10-15T10:02:00Z'}:{})}];
    return {status:200,ok:true,json:async()=>({success:true,entry:records[0]})};
   }
+  const snapshot=records;
   if(wait)await new Promise(resolve=>{pending=resolve;});
-  return {status:allow?200:403,ok:allow,json:async()=>allow?{success:true,entries:records,pinned:records.filter(r=>r.is_pinned),canManage:true,hasMore:false,cursor:null}:{success:false,error:'Active Club Membership Required'}};
+  return {status:allow?200:403,ok:allow,json:async()=>allow?{success:true,entries:snapshot,pinned:snapshot.filter(r=>r.is_pinned),canManage:true,hasMore:false,cursor:null}:{success:false,error:'Active Club Membership Required'}};
  }}),'../../lib/clubNoticeBoard.mjs':synthetic(board)};
  const source=transformSync(readFileSync('src/components/messenger/NoticeBoard.jsx','utf8'),{loader:'jsx',format:'esm'}).code;
  const module=new vm.SourceTextModule(source,{context});await module.link(name=>modules[name]);await module.evaluate();
@@ -55,6 +56,12 @@ test('rendered board hydrates socket events, removes pins/tombstones and isolate
  // adding the latest page onto an obsolete local snapshot.
  records=[{...row,version:4,content:'Reconnect Snapshot',is_pinned:false,status:'paid'}];
  await act(async()=>{subscribed('SUBSCRIBED');});assert.match(text(),/Reconnect Snapshot/);
+ wait=true;await act(async()=>{subscribed('SUBSCRIBED');});
+ await act(async()=>{root.root.findByType('textarea').props.onChange({target:{value:'Saved While Reconnecting'}});});
+ await act(async()=>{await root.root.findByType('form').props.onSubmit({preventDefault(){}});});
+ assert.match(text(),/Saved While Reconnecting/);
+ await act(async()=>{pending();await Promise.resolve();});wait=false;
+ assert.match(text(),/Saved While Reconnecting/,'an older read cannot erase an acknowledged local mutation');
  allow=false;await act(async()=>{await listeners.focus();});assert.doesNotMatch(text(),/Notice Actions/);assert.doesNotMatch(text(),/Reconnect Snapshot/);
  await act(async()=>{handlers.postgres_changes({new:{...row,version:5,content:'Revoked Leak'}});});assert.doesNotMatch(text(),/Revoked Leak/);
  allow=true;wait=true;await act(async()=>{subscribed('SUBSCRIBED');});
