@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead from '../../../src/components/seo/SEOHead';
 /**
  * AEO phase 3 (2026-09-18): this redirect runs in the browser, so a crawler
  * that does not execute JavaScript is served a 200 with an empty body, no
