@@ -60,8 +60,8 @@ const KNOWN_PUBLISHER_BODY_LIMIT = 2 * 1024 * 1024;
 
 // Keep the deadline active through body consumption. fetch() resolves when
 // headers arrive, so fetchWithTimeout alone cannot bound a slow or unbounded
-// publisher body. This helper is intentionally limited to the two fixed
-// first-party poker publisher origins below.
+// publisher body. This helper is intentionally limited to the fixed
+// approved first-party publisher origins below.
 export async function fetchKnownPublisherPayload(
     url,
     options = {},
@@ -137,6 +137,59 @@ function plainText(html) {
     return decodeHTMLEntities(String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
 }
 
+function espnSoccerReportId(value) {
+    try {
+        const parsed = new URL(value);
+        if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port
+            || !['espn.com', 'www.espn.com'].includes(parsed.hostname)) return null;
+        return parsed.pathname.match(/^\/soccer\/report\/_\/gameId\/([1-9]\d{0,11})\/?$/)?.[1] || null;
+    } catch { return null; }
+}
+
+// Poker.org video articles can omit og:image while identifying the primary
+// video's thumbnail in JSON-LD. Never take a related video or the site logo.
+function pokerVideoThumbnail(html, articleUrl) {
+    const pageKey = (value) => {
+        try {
+            const parsed = new URL(value, articleUrl);
+            return `${parsed.origin.replace('://www.', '://')}${parsed.pathname.replace(/\/$/, '')}`;
+        } catch { return null; }
+    };
+    let scripts = 0;
+    for (const match of html.matchAll(/<script\b[^>]*type\s*=\s*(["'])application\/ld\+json\1[^>]*>([\s\S]*?)<\/script\s*>/gi)) {
+        if (++scripts > 8) break;
+        let data;
+        try { data = JSON.parse(match[2]); } catch { continue; }
+        const pending = [data];
+        for (let visited = 0; pending.length && visited < 128; visited += 1) {
+            const node = pending.shift();
+            if (Array.isArray(node)) { pending.push(...node.slice(0, 128)); continue; }
+            if (!node || typeof node !== 'object') continue;
+            if (Array.isArray(node['@graph'])) pending.push(...node['@graph'].slice(0, 128));
+            const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+            if (!types.includes('VideoObject') || ![node.url, node['@id']].some(value => (
+                typeof value === 'string' && value.trim() && pageKey(value) === pageKey(articleUrl)
+            ))) continue;
+            const thumbnails = Array.isArray(node.thumbnailUrl) ? node.thumbnailUrl : [node.thumbnailUrl];
+            for (const candidate of thumbnails.slice(0, 8)) {
+                if (typeof candidate !== 'string') continue;
+                try {
+                    const image = new URL(candidate, articleUrl);
+                    if (image.protocol !== 'https:' || image.username || image.password || image.port
+                        || !['img.youtube.com', 'i.ytimg.com', 'media.poker.org'].includes(image.hostname)
+                        || !isArticleImage(image.href)) continue;
+                    const videoId = typeof node.contentUrl === 'string'
+                        ? node.contentUrl.match(/^https:\/\/(?:www\.)?youtube\.com\/(?:v|embed)\/([A-Za-z0-9_-]{11})(?:[/?#]|$)/)?.[1] : null;
+                    if (videoId && image.hostname !== 'media.poker.org'
+                        && !image.pathname.startsWith(`/vi/${videoId}/`)) continue;
+                    return image.href;
+                } catch { /* Malformed structured art is not an image. */ }
+            }
+        }
+    }
+    return null;
+}
+
 /**
  * Known poker publishers expose first-party metadata even when generic page
  * scrapers or Microlink are challenged. These are fixed public origins, not a
@@ -151,7 +204,8 @@ export async function fetchKnownPokerArticleMetadata(url) {
     }
     const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
 
-    if (hostname === 'pokernews.com') {
+    if (hostname === 'pokernews.com' || hostname === 'poker.org') {
+        if (hostname === 'poker.org' && (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port)) return null;
         try {
             const html = await fetchKnownPublisherPayload(
                 url,
@@ -160,8 +214,9 @@ export async function fetchKnownPokerArticleMetadata(url) {
             );
             if (!html) return null;
             const metadata = parseOpenGraph(html, url);
+            if (!metadata.image && hostname === 'poker.org') metadata.image = pokerVideoThumbnail(html, url);
             if (!isArticleImage(metadata.image)) return null;
-            return { ...metadata, siteName: metadata.siteName || 'PokerNews' };
+            return { ...metadata, siteName: metadata.siteName || (hostname === 'poker.org' ? 'Poker.org' : 'PokerNews') };
         } catch {
             return null;
         }
@@ -234,7 +289,7 @@ export async function fetchKnownPokerArticleMetadata(url) {
 function knownPokerPublisher(url) {
     try {
         const hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
-        return hostname === 'pokernews.com' || hostname === 'upswingpoker.com';
+        return hostname === 'pokernews.com' || hostname === 'upswingpoker.com' || hostname === 'poker.org';
     } catch {
         return false;
     }
@@ -296,6 +351,13 @@ export default async function handler(req, res) {
         const espnResult = await fetchEspnArticleMetadata(url);
         if (espnResult) {
             return res.status(200).json(espnResult);
+        }
+        if (espnSoccerReportId(url)) {
+            // A report's missing exact-event art must not be replaced with
+            // an unverifiable related-game thumbnail from a generic scraper.
+            res.setHeader('Cache-Control', 'private, no-store');
+            return res.status(200).json({ url, title: null, description: null,
+                image: null, siteName: 'ESPN', platform: 'espn', contentType: 'article' });
         }
         // A missing story photograph is never replaced with a brand logo.
         try {
@@ -696,6 +758,27 @@ function checkSocialPlatform(url) {
 async function fetchEspnArticleMetadata(url) {
     try {
         const urlObj = new URL(url);
+        const eventId = espnSoccerReportId(url);
+        if (eventId) {
+            // A game ID is not a news story ID. Read the exact first-party
+            // report instead of asking a news window or guessing its league.
+            const html = await fetchKnownPublisherPayload(
+                `https://www.espn.com/soccer/report/_/gameId/${eventId}`,
+                // The publisher serves a challenge to the shared browser
+                // fingerprint, but supplies this public report to plain HTTP.
+                { headers: { Accept: 'text/html' }, redirect: 'error' },
+                { timeoutMs: 6000 }
+            );
+            if (!html) return null;
+            const metadata = parseOpenGraph(html, url);
+            if (!isArticleImage(metadata.image)) return null;
+            const image = new URL(metadata.image);
+            if (image.protocol !== 'https:' || image.port
+                || !(image.hostname === 'espncdn.com' || image.hostname.endsWith('.espncdn.com'))) return null;
+            const imageEvent = image.pathname.match(/\/events\/(\d+)(?:[/.]|$)/)?.[1];
+            if (image.pathname.includes('/events/') && imageEvent !== eventId) return null;
+            return { ...metadata, siteName: 'ESPN', platform: 'espn', contentType: 'article' };
+        }
         const pathParts = urlObj.pathname.split('/').filter(Boolean);
         if (pathParts.length < 1) return null;
 
