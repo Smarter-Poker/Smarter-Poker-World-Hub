@@ -12,6 +12,8 @@ import {
     CLUB_INVITE_TTL_MS,
     authSwitchHref,
     fetchPendingJoinPath,
+    isSafeRelativePath,
+    lookupPendingJoinPath,
     inviteCookieValue,
     isInviteCode,
     isInviteFresh,
@@ -145,7 +147,7 @@ test('magic link and OAuth sign-in return through the callback to the redirect t
     assert.match(login, /\?next=\$\{encodeURIComponent\(target\)\}/);
     assert.doesNotMatch(login, /redirectTo: `\$\{window\.location\.origin\}\/auth\/callback`/);
     const cb = read('pages/auth/callback.js');
-    assert.match(cb, /rawNext\.startsWith\('\/'\) && !rawNext\.startsWith\('\/\/'\) && !rawNext\.includes\('\\\\'\)/);
+    assert.match(cb, /if \(isSafeRelativePath\(rawNext\)\)/);
 });
 
 test('the callback routes an invite only for a fresh claim, and Commander wins', () => {
@@ -153,7 +155,7 @@ test('the callback routes an invite only for a fresh claim, and Commander wins',
     assert.match(cb, /INVITE_ROUTE_STATUSES = \['signed_up', 'verified'\]/);
     assert.match(cb, /INVITE_SETTLED_STATUSES = \['already_member', 'joined', 'blocked'\]/);
     assert.match(cb, /youngAccount && INVITE_ROUTE_STATUSES\.includes\(claimed\.status\)/);
-    assert.match(cb, /claimed\.success === false && \['invalid_code', 'expired'\]\.includes\(claimed\.code\)/);
+    assert.match(cb, /claimed\.success === false && !!claimed\.code/);
     assert.match(cb, /!inviteJoinPath && youngAccount && \(!claimAttempted \|\| !claimSettled\)/);
     const dest = cb.slice(cb.indexOf('const dest = nextPath'));
     assert.ok(dest.indexOf("isCommanderOrigin ? '/commander/dashboard'") < dest.indexOf('|| inviteDest'));
@@ -187,8 +189,43 @@ test('verify phone without ?next= continues to the account\'s pending invite', (
 test('the hub forwards a pending invite once per browser session', () => {
     const c = read('src/components/gates/PendingInviteForward.jsx');
     assert.match(c, /'sp-pending-invite-forwarded'/);
-    assert.ok(c.indexOf('sessionStorage.setItem(PENDING_INVITE_FORWARDED_KEY') < c.indexOf('await fetchPendingJoinPath(token)'));
+    // Spent only on a real answer, and any value (Club Arena's too) counts.
+    assert.ok(c.indexOf('await lookupPendingJoinPath(token)') < c.indexOf('sessionStorage.setItem(PENDING_INVITE_FORWARDED_KEY'));
+    assert.match(c, /if \(path === undefined \|\| cancelled\) return;/);
+    assert.match(c, /if \(sessionStorage\.getItem\(PENDING_INVITE_FORWARDED_KEY\)\) return undefined;/);
     assert.match(c, /window\.location\.assign\(path\)/);
     const hub = read('pages/hub/index.js');
     assert.match(hub, /<PendingInviteForward enabled=\{phoneVerified !== null && !redirectingToWelcome\} \/>/);
+});
+
+test('a redirect target with a control character, space or backslash is refused', () => {
+    for (const bad of ['/\t/evil.com', '/\n/evil.com', '/\r/evil.com', '/ /evil.com', '/\\evil.com', '//evil.com', 'https://evil.com', 'javascript:alert(1)']) {
+        assert.equal(isSafeRelativePath(bad), false, JSON.stringify(bad));
+        assert.equal(safeClubArenaPath(bad), null, JSON.stringify(bad));
+    }
+    assert.equal(isSafeRelativePath('/hub/club-arena/invite/x?ref=1&i=ABCDEFG'), true);
+    assert.equal(safeClubArenaPath('/hub/club-arena/\t/evil.com'), null);
+    assert.match(read('pages/auth/callback.js'), /if \(isSafeRelativePath\(rawNext\)\)/);
+    assert.match(read('pages/auth/login.js'), /isSafeRelativePath\(r\)\) return r;/);
+});
+
+test('any explained claim refusal stops the metadata fallback', () => {
+    assert.match(read('pages/auth/callback.js'), /\(claimed\.success === false && !!claimed\.code\)/);
+});
+
+test('a successful verify continues to a pending invite that loaded late', () => {
+    assert.match(read('pages/hub/verify-phone.js'), /\[busy, code, digits, user\?\.id, isWelcome, nextPath\]\);/);
+});
+
+test('lookupPendingJoinPath tells "could not ask" from "nothing pending"', async () => {
+    const real = globalThis.fetch;
+    try {
+        globalThis.fetch = async () => { throw new Error('offline'); };
+        assert.equal(await lookupPendingJoinPath('t'), undefined);
+        assert.equal(await fetchPendingJoinPath('t'), null);
+        globalThis.fetch = async () => new Response(JSON.stringify({ pending: false }), { status: 200 });
+        assert.equal(await lookupPendingJoinPath('t'), null);
+    } finally {
+        globalThis.fetch = real;
+    }
 });

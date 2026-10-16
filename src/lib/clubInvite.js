@@ -42,9 +42,26 @@ export function normalizeInviteCode(value) {
     return isInviteCode(value) ? value.trim().toUpperCase() : null;
 }
 
+/**
+ * A same-origin relative path, safe to navigate to. Browsers strip tab and
+ * newline characters while parsing a URL, so "/\t/evil.com" would become
+ * "//evil.com" and leave the site: any control character, space or backslash
+ * is refused, and the result must resolve on this origin.
+ */
+export function isSafeRelativePath(path) {
+    if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//')) return false;
+    if (/[\u0000-\u0020\u007f\\]/.test(path)) return false;
+    try {
+        return new URL(path, 'https://same.origin.invalid').origin === 'https://same.origin.invalid';
+    } catch {
+        return false;
+    }
+}
+
 /** Only ever a Club Arena path on this origin: never an open redirect. */
 export function safeClubArenaPath(path) {
     if (typeof path !== 'string') return null;
+    if (!isSafeRelativePath(path)) return null;
     if (!path.startsWith(CLUB_ARENA_PREFIX) || path.startsWith('//') || path.includes('\\')) return null;
     // No dot segments, plain or encoded: /hub/club-arena/../x would resolve outside Club Arena.
     if (/(^|\/)(\.|%2e){2}(\/|\?|#|$)/i.test(path)) return null;
@@ -226,12 +243,21 @@ export async function claimInvite(accessToken, invite) {
  * works on a device that never saw the /i/ link. Never throws.
  */
 export async function fetchPendingJoinPath(accessToken) {
-    if (!accessToken) return null;
+    return (await lookupPendingJoinPath(accessToken)) ?? null;
+}
+
+/**
+ * Like fetchPendingJoinPath, but tells "nothing pending" (null) apart from
+ * "could not ask" (undefined), so a once-per-session forward only spends its
+ * slot on a real answer. Never throws.
+ */
+export async function lookupPendingJoinPath(accessToken) {
+    if (!accessToken) return undefined;
     try {
         const result = await rpc('fn_club_invite_pending', {}, accessToken);
         return result?.pending ? safeClubArenaPath(result.join_path) : null;
     } catch {
-        return null;
+        return undefined;
     }
 }
 

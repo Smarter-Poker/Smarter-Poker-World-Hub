@@ -29,8 +29,7 @@ import {
     clearPendingInvite,
     normalizeInviteCode,
     readPendingInvite,
-    safeClubArenaPath,
-} from '../../src/lib/clubInvite';
+    safeClubArenaPath, isSafeRelativePath } from '../../src/lib/clubInvite';
 import {
     AUTH_DETAIL_KEY,
     AUTH_ORIGIN_KEY,
@@ -422,10 +421,13 @@ export default function AuthCallback() {
                 // way back to the club (kept in metadata at signup).
                 // Not when the claim already answered (joined, member, blocked)
                 // or refused the code as invalid or expired.
+                // Any refusal the database explains (invalid, expired, self
+                // referral, club gone) is settled too; only a claim that never
+                // answered (claimed === null, a network failure) falls back.
                 const claimSettled = !!claimed && (
                     INVITE_SETTLED_STATUSES.includes(claimed.status) ||
                     INVITE_SETTLED_STATUSES.includes(claimed.code) ||
-                    (claimed.success === false && ['invalid_code', 'expired'].includes(claimed.code))
+                    (claimed.success === false && !!claimed.code)
                 );
                 if (!inviteJoinPath && youngAccount && (!claimAttempted || !claimSettled)) {
                     inviteJoinPath = safeClubArenaPath(user.user_metadata?.club_join_path) || null;
@@ -445,7 +447,7 @@ export default function AuthCallback() {
                 // Honour an explicit ?next=/path override if it's a same-origin path
                 let nextPath = null;
                 const rawNext = Array.isArray(router.query.next) ? router.query.next[0] : router.query.next;
-                if (typeof rawNext === 'string' && rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.includes('\\')) {
+                if (isSafeRelativePath(rawNext)) {
                     nextPath = rawNext;
                 }
 
