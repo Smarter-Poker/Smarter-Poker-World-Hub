@@ -166,6 +166,11 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════════
 
       const targetOrigin = new URL(targetUrl).origin;
+      const imageTarget = new URL(targetUrl);
+      const upswingSourceImage = imageTarget.protocol === 'https:'
+          && imageTarget.hostname === 'upswingpoker.com'
+          && !imageTarget.username && !imageTarget.password && !imageTarget.port
+          && /^\/wp-content\/uploads\/.+\.(?:jpe?g|png|webp|avif|gif)$/i.test(imageTarget.pathname);
       let response;
       let lastError;
 
@@ -180,7 +185,14 @@ export default async function handler(req, res) {
 
               response = await fetchGuarded(targetUrl, {
                   signal: controller.signal,
-                  headers: {
+                  // A publisher image is a server image request, not a
+                  // navigation impersonating a Google-referred Chrome browser.
+                  // Keep every other publisher/document request unchanged.
+                  headers: upswingSourceImage ? {
+                      'User-Agent': 'SmarterPokerImageProxy/1.0',
+                      'Accept': 'image/*,*/*;q=0.8',
+                      'Accept-Encoding': 'identity',
+                  } : {
                       'User-Agent': USER_AGENTS[attempt % USER_AGENTS.length],
                       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                       'Accept-Language': 'en-US,en;q=0.9',
@@ -209,6 +221,9 @@ export default async function handler(req, res) {
               // Return HTTP 200 so the iframe can render it: Next.js global X-Frame-Options: DENY
               // overrides our SAMEORIGIN setHeader for non-2xx responses, blocking the iframe.
               if ([403, 404, 451].includes(response.status)) {
+                  if (upswingSourceImage) {
+                      return res.status(502).json({ error: 'IMAGE_UNAVAILABLE', upstreamStatus: response.status });
+                  }
                   res.setHeader('Content-Type', 'text/html; charset=utf-8');
                   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
 
@@ -298,6 +313,9 @@ export default async function handler(req, res) {
 
       try {
           const contentType = response.headers.get('content-type') || 'text/html';
+          if (upswingSourceImage && !/^image\/(?:jpeg|png|webp|avif|gif)(?:;|$)/i.test(contentType)) {
+              return res.status(502).json({ error: 'IMAGE_UNAVAILABLE', message: 'Publisher did not return an image' });
+          }
 
           // For non-HTML content, pass through directly
           if (!contentType.includes('text/html')) {
