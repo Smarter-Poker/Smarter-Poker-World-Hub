@@ -283,3 +283,23 @@ export function isLinkPreviewBot(userAgent) {
         String(userAgent || '')
     );
 }
+
+/** Finish an email-code signup using its returned session, before auth caches settle. */
+export async function resolveSignupClubPath(session, redirect) {
+    let next = safeClubArenaPath(redirect);
+    const token = session?.access_token;
+    if (!token) return next;
+    const meta = session.user?.user_metadata || {};
+    const code = normalizeInviteCode(meta.club_invite_code);
+    const seen = Date.parse(meta.club_invite_first_seen || '');
+    const invite = readPendingInvite() || (code ? {
+        code, firstSeen: Number.isFinite(seen) ? seen : Date.now(),
+    } : null);
+    try {
+        if (invite) {
+            const claimed = await claimInvite(token, invite);
+            next = safeClubArenaPath(claimed?.join_path) || next;
+        }
+    } catch { /* the safe join page can claim again */ }
+    return next || await fetchPendingJoinPath(token) || safeClubArenaPath(meta.club_join_path);
+}

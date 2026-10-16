@@ -65,7 +65,10 @@ test('Google gets a VideoObject and breadcrumbs for each page', () => {
     assert.equal(object['@type'], 'VideoObject');
     assert.equal(object.duration, 'PT18M42S');
     assert.equal(object.embedUrl, 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
-    assert.equal(object.contentUrl, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    assert.equal(object.contentUrl, undefined, 'a YouTube watch document is not media bytes');
+    assert.equal(object.uploadDate, '2026-10-01T12:00:00.000Z');
+    assert.equal(object.isFamilyFriendly, undefined);
+    assert.equal(object.inLanguage, undefined);
     assert.equal(object.url, 'https://smarter.poker/hub/video-library/watch/dQw4w9WgXcQ/huge-pot-vs-negreanu');
     assert.equal(object.interactionStatistic.userInteractionCount, 65000);
     assert.equal(crumbs['@type'], 'BreadcrumbList');
@@ -130,7 +133,7 @@ test('the watch page thumbnail fills the player with no black band', () => {
     assert.match(rule[1], /object-fit: cover;/);
 });
 
-test('channel and player detail pages provide VideoObject ItemList structured data', async () => {
+test('channel and player detail pages reference canonical watch documents in ItemList structured data', async () => {
     const { buildChannelJsonLd } = await import('../src/lib/videoLibraryChannels.mjs');
     const { buildPlayerJsonLd } = await import('../src/lib/videoLibraryPlayers.mjs');
 
@@ -142,7 +145,8 @@ test('channel and player detail pages provide VideoObject ItemList structured da
     assert.equal(org.name, 'Hustler Casino Live');
     assert.equal(cBreadcrumbs['@type'], 'BreadcrumbList');
     assert.equal(cItemList['@type'], 'ItemList');
-    assert.equal(cItemList.itemListElement[0].item['@type'], 'VideoObject');
+    assert.equal(cItemList.itemListElement[0].item['@type'], 'WebPage');
+    assert.equal(cItemList.itemListElement[0].item.url, 'https://smarter.poker/hub/video-library/watch/abc12345678/epic-hand');
     assert.equal(cItemList.itemListElement[0].item.name, 'Epic Hand');
 
     const player = { id: 'phil-ivey', name: 'Phil Ivey', path: '/hub/video-library/players/phil-ivey' };
@@ -151,6 +155,30 @@ test('channel and player detail pages provide VideoObject ItemList structured da
     assert.equal(person.name, 'Phil Ivey');
     assert.equal(pBreadcrumbs['@type'], 'BreadcrumbList');
     assert.equal(pItemList['@type'], 'ItemList');
-    assert.equal(pItemList.itemListElement[0].item['@type'], 'VideoObject');
+    assert.equal(pItemList.itemListElement[0].item['@type'], 'WebPage');
+    assert.equal(pItemList.itemListElement[0].item.url, cItemList.itemListElement[0].item.url);
+    assert.equal(person.description, 'Poker Player Named In Published Video Titles Or Tags.');
 });
 
+
+
+test('video schema never substitutes scrape time for missing or invalid publication time', () => {
+    for (const published_at of [null, '', 'not-a-date', '2026-02-30T12:00:00Z', '2026-10-01', 123]) {
+        const video = normaliseVideoRow({ ...ROW, published_at, scraped_at: '2026-10-10T12:00:00Z' });
+        const schema = buildVideoJsonLd(video, { description: 'D' });
+        assert.equal(schema.some(item => item['@type'] === 'VideoObject'), false, String(published_at));
+        assert.equal(schema.at(-1)['@type'], 'BreadcrumbList');
+        assert.doesNotMatch(videoSitemapEntry(video), /video:publication_date/);
+    }
+});
+
+test('video metadata uses a factual catalog image and finite positive duration', () => {
+    const video = normaliseVideoRow({ ...ROW, thumbnail_url: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg' });
+    const [schema] = buildVideoJsonLd(video, { description: 'D' });
+    assert.deepEqual(schema.thumbnailUrl, [video.thumbnail]);
+    const [fallback] = buildVideoJsonLd({ ...video, thumbnail: 'javascript:bad' }, { description: 'D' });
+    assert.deepEqual(fallback.thumbnailUrl, ['https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg']);
+    assert.equal(isoDuration(Infinity), null);
+    assert.equal(isoDuration(-1), null);
+    assert.equal(isoDuration(NaN), null);
+});

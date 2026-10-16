@@ -451,6 +451,9 @@ jobs:
       - name: Engine Alert Receipt PostgreSQL Contracts
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
 
+      - name: Article Preview Publisher Image Contracts
+        run: node --test __tests__/link-preview-poker-news-images.test.mjs
+
       - name: Social Articles And Immersive Reel Playback
         run: node --test __tests__/social-feed-normal-ui.test.mjs __tests__/social-feed-normal-live-safety.test.mjs __tests__/reels-carousel-console.test.mjs __tests__/reels-embedded-console-visual.test.mjs __tests__/reels-immersive-playback.test.mjs __tests__/reels-native-visibility.test.mjs __tests__/reels-prefetch-boundary.test.mjs __tests__/reel-mutation-guard.test.mjs __tests__/reel-comment-attempts.test.mjs __tests__/reel-comment-handlers.test.mjs __tests__/reel-comments-reader.test.mjs __tests__/reel-comment-deletion.test.mjs __tests__/reel-comment-edit.test.mjs __tests__/reels-enhancements-live-safety.test.mjs __tests__/reels-enhancement-delivery-workflows.test.mjs __tests__/openclaw-component-diff.test.mjs __tests__/native-reels-worker-authority.test.mjs __tests__/reel-reaction-mutation.test.mjs __tests__/reels-atomic-viewer-interactions.test.mjs __tests__/reels-hydration-order.test.mjs __tests__/reels-enhancement-state.test.mjs __tests__/reels-enhancements-hook.test.mjs __tests__/reels-viewer-relevance.test.mjs __tests__/reels-owner-private-detail.test.mjs __tests__/reels-measured-delivery-events.test.mjs __tests__/reels-youtube-captions.test.mjs __tests__/reels-native-captions.test.mjs __tests__/reels-native-captions-api.test.mjs __tests__/reels-native-caption-control.test.mjs __tests__/reels-interaction-live-safety.test.mjs __tests__/reels-qa-fixture-setup.test.mjs __tests__/native-reels-worker-check.test.mjs
 

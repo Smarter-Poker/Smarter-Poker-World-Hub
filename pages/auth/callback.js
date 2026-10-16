@@ -451,11 +451,8 @@ export default function AuthCallback() {
                     nextPath = rawNext;
                 }
 
-                const inviteDest = inviteJoinPath
-                    ? (newPlayerNeedsPhone
-                        ? `/hub/verify-phone?welcome=1&next=${encodeURIComponent(inviteJoinPath)}`
-                        : inviteJoinPath)
-                    : null;
+                const inviteDest = inviteJoinPath;
+
 
                 // A Club Commander sign-in returns to Commander even when the
                 // account also carries a club invite.
@@ -473,7 +470,8 @@ export default function AuthCallback() {
                 } catch (_ssErr) { /* ignore */ }
 
                 setStatus('Redirecting…');
-                setTimeout(() => router.replace(dest), 400);
+                if (safeClubArenaPath(dest)) window.location.replace(dest);
+                else router.replace(dest);
             } catch (err) {
                 console.warn('[auth-callback] unexpected error:', err);
                 goLogin(err?.message || 'Something went wrong. Please try signing in.', 'generic');

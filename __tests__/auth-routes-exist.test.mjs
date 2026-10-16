@@ -123,8 +123,8 @@ const CONTENT_GUARDS = [
     },
     {
         file: 'pages/auth/signup.js',
-        pattern: /maxLength=\{8\}/,
-        why: 'Email OTP input must accept all 8 digits configured by the live provider; the former 6-digit limit truncated valid signup tokens.',
+        pattern: /maxLength=\{6\}/,
+        why: 'Email OTP input must match the configured six-digit provider length and the owner maximum of six; eight digits are forbidden.',
     },
 ];
 
