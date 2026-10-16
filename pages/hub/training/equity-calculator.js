@@ -805,7 +805,7 @@ export default function EquityCalculatorPage() {
   return (
     <>
       <SEOHead
-        title="Poker Equity Calculator - Free Hand vs Hand Odds - Smarter.Poker"
+        title="Poker Equity Calculator"
         description="Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards."
         canonical={pageUrl}
         jsonLd={equityJsonLd}
