@@ -245,6 +245,13 @@ async function run(env) {
         receipt.articleImages.push(await inspectArticle(page, id));
       } catch (error) {
         receipt.failureArticleId = id;
+        receipt.failure = {
+          name: error?.name || 'Error',
+          code: error?.code || null,
+          // Assertion messages here contain only public fixture facts. Do not
+          // serialize arbitrary browser/authentication errors or credential data.
+          message: error?.name === 'AssertionError' ? String(error.message).slice(0, 2000) : 'Article browser inspection failed',
+        };
         await page.screenshot({
           path: `test-results/social-feed-normal/mobile-article-${id}.png`,
           fullPage: true,

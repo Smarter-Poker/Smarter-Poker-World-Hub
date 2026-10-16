@@ -8,7 +8,56 @@
    them, which source matching could not do. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 import { assertFetchableUrl, isBlockedAddress, fetchGuarded } from '../src/lib/security/fetchableUrl.js';
+
+test('the existing proxy negotiates exact Upswing source images honestly and propagates binary images', async () => {
+    const source = readFileSync(new URL('../pages/api/proxy.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '')
+        .replace('export default async function handler', 'async function handler')
+        .replace('export const config', 'const config');
+    const image = 'https://upswingpoker.com/wp-content/uploads/2026/09/1200x630-2.jpg';
+    const body = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    async function request(url, status = 200, type = 'image/jpeg') {
+        let sentHeaders;
+        const context = { URL, Buffer, AbortController, console, setTimeout, clearTimeout,
+            setInterval() {}, reportApiError() {}, assertFetchableUrl: async () => true,
+            fetchGuarded: async (target, options) => {
+                assert.equal(target, url);
+                assert.ok(options.signal instanceof AbortSignal);
+                sentHeaders = options.headers;
+                return { ok: status === 200, status, headers: { get: () => type },
+                    arrayBuffer: async () => body, text: async () => '<html><head></head><body>Public article</body></html>' };
+            } };
+        vm.createContext(context);
+        vm.runInContext(source + ';globalThis.handler=handler;', context);
+        const res = { statusCode: 200, headers: {}, setHeader(k, v) { this.headers[k] = v; },
+            status(code) { this.statusCode = code; return this; }, send(value) { this.body = value; }, json(value) { this.body = value; } };
+        await context.handler({ query: { url }, headers: {}, socket: { remoteAddress: 'fixture' } }, res);
+        return { res, sentHeaders };
+    }
+    const valid = await request(image);
+    assert.equal(valid.sentHeaders['User-Agent'], 'SmarterPokerImageProxy/1.0');
+    assert.equal(valid.sentHeaders.Accept, 'image/*,*/*;q=0.8');
+    assert.equal(valid.sentHeaders.Referer, undefined);
+    assert.equal(valid.sentHeaders['Sec-Fetch-Dest'], undefined);
+    assert.equal(valid.sentHeaders['Sec-Ch-Ua'], undefined);
+    assert.equal(valid.res.headers['Content-Type'], 'image/jpeg');
+    assert.deepEqual(valid.res.body, body);
+    for (const url of ['https://upswingpoker.com/article/', 'https://other.example/wp-content/uploads/story.jpg',
+        'https://upswingpoker.com.evil.example/wp-content/uploads/story.jpg', 'http://upswingpoker.com/wp-content/uploads/story.jpg']) {
+        const other = await request(url);
+        assert.match(other.sentHeaders['User-Agent'], /Mozilla/);
+        assert.equal(other.sentHeaders.Referer, 'https://www.google.com/');
+    }
+    for (const [status, type] of [[403, 'text/html'], [200, 'text/html'], [200, 'application/octet-stream']]) {
+        const bad = await request(image, status, type);
+        assert.equal(bad.res.statusCode, 502);
+        assert.equal(bad.res.body.error, 'IMAGE_UNAVAILABLE');
+        assert.notEqual(bad.res.headers['Content-Type'], 'text/html; charset=utf-8');
+    }
+});
 
 const MUST_REFUSE = [
     ['http://169.254.169.254/latest/meta-data/', 'cloud metadata, plain'],

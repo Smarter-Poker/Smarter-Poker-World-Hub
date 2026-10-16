@@ -223,13 +223,20 @@ export async function fetchKnownPokerArticleMetadata(url) {
     }
 
     if (hostname === 'upswingpoker.com') {
+        // This publisher rejects the spoofed Chrome identity with HTTP 403
+        // even on its public WordPress JSON endpoints. Use ordinary server
+        // content negotiation for this fixed origin, not browser impersonation.
+        const publisherHeaders = {
+            Accept: ARTICLE_HEADERS.Accept,
+            'Accept-Language': ARTICLE_HEADERS['Accept-Language'],
+        };
         const slug = parsed.pathname.split('/').filter(Boolean).at(-1);
         if (!slug || !/^[a-z0-9-]{3,160}$/i.test(slug)) return null;
         try {
             const postsUrl = `https://upswingpoker.com/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&_fields=link,title,excerpt,featured_media,yoast_head_json.og_image,yoast_head_json.og_title,yoast_head_json.og_description`;
             const posts = await fetchKnownPublisherPayload(
                 postsUrl,
-                { headers: ARTICLE_HEADERS, redirect: 'error' },
+                { headers: publisherHeaders, redirect: 'error' },
                 { timeoutMs: 6000, json: true }
             );
             const post = posts?.[0];
@@ -251,7 +258,7 @@ export async function fetchKnownPokerArticleMetadata(url) {
             }
             const media = await fetchKnownPublisherPayload(
                 `https://upswingpoker.com/wp-json/wp/v2/media/${mediaId}?_fields=source_url`,
-                { headers: ARTICLE_HEADERS, redirect: 'error' },
+                { headers: publisherHeaders, redirect: 'error' },
                 { timeoutMs: 6000, json: true }
             );
             const image = media?.source_url || null;
@@ -271,7 +278,7 @@ export async function fetchKnownPokerArticleMetadata(url) {
         try {
             const html = await fetchKnownPublisherPayload(
                 url,
-                { headers: ARTICLE_HEADERS, redirect: 'error' },
+                { headers: publisherHeaders, redirect: 'error' },
                 { timeoutMs: 6000 }
             );
             if (!html) return null;
