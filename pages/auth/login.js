@@ -31,7 +31,7 @@ import {
   reportAuthError,
   takeAuthErrorDetail,
 } from '../../src/lib/authErrors';
-import { authSwitchHref } from '../../src/lib/clubInvite';
+import { authSwitchHref, isSafeRelativePath } from '../../src/lib/clubInvite';
 
 // A successful Supabase sign-in updates the auth store before React finishes
 // rendering this page. A Next.js client transition at that exact boundary can
@@ -145,7 +145,7 @@ export default function LoginPage() {
     const r = router.query.redirect;
     // Only allow internal redirects (prevent open redirect attacks).
     // '//evil.com' is protocol-relative and WOULD leave the site — block it.
-    if (r && typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) return r;
+    if (r && typeof r === 'string' && isSafeRelativePath(r)) return r;
     return '/hub';
   }, [router.query.redirect]);
 
@@ -157,7 +157,7 @@ export default function LoginPage() {
     const base = `${window.location.origin}/auth/callback`;
     if (!router.query.redirect) return base;
     const target = getRedirectUrl();
-    return target.includes('\\') ? base : `${base}?next=${encodeURIComponent(target)}`;
+    return `${base}?next=${encodeURIComponent(target)}`;
   }, [getRedirectUrl, router.query.redirect]);
 
   // ── [2026-08-04] Server-side error visibility ────────────────────────────
