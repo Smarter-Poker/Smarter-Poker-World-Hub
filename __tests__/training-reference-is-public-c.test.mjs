@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import * as vm from 'node:vm';
+import * as dailyCandidateScan from '../src/lib/training/dailyCandidateScan.mjs';
 
 const ROOT = process.cwd();
 const read = (relative) => readFileSync(join(ROOT, relative), 'utf8');
@@ -103,6 +104,9 @@ function recordingClient(resolve, { authUser = null } = {}) {
         select(columns) { state.columns = columns; return builder; },
         eq(column, value) { state.filters.push(['eq', column, value]); return builder; },
         in(column, value) { state.filters.push(['in', column, value]); return builder; },
+        gte(column, value) { state.filters.push(['gte', column, value]); return builder; },
+        gt(column, value) { state.filters.push(['gt', column, value]); return builder; },
+        lt(column, value) { state.filters.push(['lt', column, value]); return builder; },
         order() { return builder; },
         limit() { return builder; },
         range() { return builder; },
@@ -190,6 +194,7 @@ test('hand-of-the-day: the anonymous handler response is blind and writes nothin
       prepareTrainingAttemptDelivery: async () => { throw new Error('anonymous read opened an attempt'); },
       recordTrainingQuestionsServedForAttempt: async () => { throw new Error('anonymous read recorded a serve'); },
     },
+    '../../../src/lib/training/dailyCandidateScan.mjs': dailyCandidateScan,
     '../../../src/lib/training/trainingPersistence.mjs': {
       isTrainingPersistenceUnavailable: () => false,
       runTrainingPersistenceQuery: async (factory) => {

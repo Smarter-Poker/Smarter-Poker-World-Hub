@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { SourceTextModule, SyntheticModule } from 'node:vm';
+import * as dailyCandidateScan from '../src/lib/training/dailyCandidateScan.mjs';
 
 const ROOT = process.cwd();
 const API_SOURCE = readFileSync(join(ROOT, 'pages/api/training/hand-of-the-day.js'), 'utf8');
@@ -425,6 +426,8 @@ function queryClient(mode, initialQuestion = canonicalQuestion) {
           eq(column, value) { state.filters.push(['eq', column, value]); return builder; },
           neq(column, value) { state.filters.push(['neq', column, value]); return builder; },
           gt(column, value) { state.filters.push(['gt', column, value]); return builder; },
+          gte(column, value) { state.filters.push(['gte', column, value]); return builder; },
+          lt(column, value) { state.filters.push(['lt', column, value]); return builder; },
           or(value) { state.filters.push(['or', value]); return builder; },
           like(column, value) { state.filters.push(['like', column, value]); return builder; },
           in(column, value) { state.filters.push(['in', column, value]); return builder; },
@@ -520,6 +523,8 @@ async function loadHandler({ mode = 'new', authenticated = true, today = '2026-0
       runTrainingPersistenceQuery: async (factory) => factory().abortSignal(new AbortController().signal),
       trainingPersistenceUnavailableBody: () => ({ success: false, code: 'TRAINING_PERSISTENCE_UNAVAILABLE' }),
     },
+    // The real scan: selection order and fail-closed rules stay under test.
+    '../../../src/lib/training/dailyCandidateScan.mjs': dailyCandidateScan,
     '../../../src/lib/training/cacheTruthPersistence.mjs': {
       cacheRowIsServingEligible: () => true,
       recordTrainingQuestionsServed: async () => ({ questionCount: 1 }),
