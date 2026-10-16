@@ -161,7 +161,7 @@ test('starter packs, store analytics, legible legal copy, and pressed metal stat
 test('the global header remains outside every Phase 5 surface', () => {
   const headerIndex = STORE.indexOf('<UniversalHeader pageDepth={1} />');
   const mainMatch = STORE.match(
-    /<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}/
+    /<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}[^`]*`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}/
   );
   assert.ok(headerIndex > -1 && mainMatch?.index > headerIndex);
   for (const source of [STATUS_PANEL, STATUS_CSS, SHOWCASE_CSS]) {

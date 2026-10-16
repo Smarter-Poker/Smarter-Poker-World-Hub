@@ -85,6 +85,8 @@ import { reconcilePurchasedCart } from '../../src/lib/store/checkoutReconciliati
 import useCartStore from '../../src/stores/cartStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
+import vipStyles from '../../src/components/store/VipMembershipPage.module.css';
+import { vipSignInHref } from '../../src/lib/store/vipNavigation.mjs';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), {
   ssr: false,
@@ -2039,7 +2041,7 @@ export default function DiamondStorePage({
       authUser.id !== committedStoreAccountId ||
       activeStoreAccountRef.current !== authUser.id
     ) {
-      showStoreToast('error', 'Please Sign In To Subscribe To VIP.');
+      router.push(vipSignInHref(plan.id));
       return;
     }
     const expectedAccountId = authUser.id;
@@ -3497,7 +3499,7 @@ export default function DiamondStorePage({
           <UniversalHeader pageDepth={1} />
 
           <main
-            className={`store-redesign-content ${shellStyles.root}`}
+            className={`store-redesign-content ${shellStyles.root} ${activeTab === 'vip' ? vipStyles.page : ''}`}
             data-marketplace-route={TAB_ROUTES[activeTab]}
             data-title-case-strategy="css"
           >
@@ -3506,7 +3508,7 @@ export default function DiamondStorePage({
               onDismiss={() => setCheckoutReturn(null)}
               onRetry={() => setCheckoutVerificationAttempt((attempt) => attempt + 1)}
             />
-            <SmarterStoreShowcase
+            {activeTab !== 'vip' && <SmarterStoreShowcase
               activeTab={activeTab}
               clubId={routeClubId || clubShopClubId}
               packages={diamondPackages}
@@ -3514,352 +3516,115 @@ export default function DiamondStorePage({
               isProcessing={isProcessing || diamondCatalogState !== 'database'}
               busyPackageId={busyPackageId}
               onBuy={handleDirectCheckout}
-            />
+            />}
 
             {activeTab === 'diamonds' && marketplaceCommerceFooter}
 
             {/* Main Content (non-diamonds tabs) */}
             <div
-              className={shellStyles.contentShell}
+              className={activeTab === 'vip' ? vipStyles.content : shellStyles.contentShell}
               data-store-section={activeTab}
-              style={{
-                ...styles.content,
-                ...(activeTab === 'vip' ? { paddingTop: 8 } : {}),
-              }}
+              style={activeTab === 'vip' ? undefined : styles.content}
             >
               {/* ═══════════════════════════════════════════════════════════════════ */}
               {/* VIP MEMBERSHIP TAB */}
               {/* ═══════════════════════════════════════════════════════════════════ */}
               {activeTab === 'vip' && (
                 <>
-                  {/* ═══════════════════════════════════════════════════════════
-                    VIP PURCHASE BLOCK
+                  <section className={vipStyles.hero} aria-labelledby="vip-page-title">
+                    <div className={vipStyles.heroCopy}>
+                      <span className={vipStyles.membershipLabel}>Smarter.Poker VIP</span>
+                      <h1 id="vip-page-title">Your Edge, Compounded.</h1>
+                      <p>Premium Training. More Table Features. One Membership Across Smarter.Poker And Club Arena.</p>
+                      <a href="#vip-plans" className={vipStyles.heroAction}>Explore VIP Plans</a>
+                    </div>
+                    <img src="/images/store-v3/vip-hero.webp" width={883} height={439} alt="" fetchPriority="high" className={vipStyles.heroArtwork} />
+                  </section>
 
-                    Restored 2026-08-26. `VIPCard` was imported and never
-                    rendered, `handleVIPSubscribe` was defined and never called,
-                    and `vipSubscribeLabel` was computed and never read : so the
-                    VIP page listed 23 benefits and 11 FAQs and then offered no
-                    way whatsoever to become a member. Verified against the
-                    deployed bundle before touching anything: "subscribe-button
-                    .png" and "Subscribe :" both returned 0 occurrences in
-                    production.
-                   ═══════════════════════════════════════════════════════════ */}
-
-                  {/* Current membership, when there is one. Without this the page
-                    invites an existing member to "Subscribe" as though they had
-                    nothing : the single most likely way to take a second
-                    payment from someone who already paid. */}
                   {isVip && (
-                    <div
-                      className={shellStyles.vipStatusBar}
-                      style={{
-                        background: '#020403',
-                        border: '1px solid rgba(255,215,0,0.35)',
-                        borderRadius: 14,
-                        padding: '14px 18px',
-                        marginBottom: 18,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 15 }}>
-                          You Are Already A VIP Member
-                          {vipTier ? `: ${marketplaceCopy(vipTier)}` : ''}
-                        </div>
-                        <div style={{ color: '#B0B3B8', fontSize: 13, marginTop: 2 }}>
-                          {vipExpiresAt
-                            ? `Your Access Runs Until ${new Date(vipExpiresAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}. Anything You Buy Below Is Added To The End Of That, Never Instead Of It.`
-                            : 'Anything You Buy Below Extends Your Membership Rather Than Replacing It.'}
-                        </div>
+                    <section className={vipStyles.memberStatus} aria-label="Your VIP Membership">
+                      <div>
+                        <strong>You Are Already A VIP Member{vipTier ? `: ${marketplaceCopy(vipTier)}` : ''}</strong>
+                        <p>{vipTier === 'lifetime'
+                          ? 'Your Lifetime Access Never Expires. Every VIP Plan Is Already Included.'
+                          : vipExpiresAt
+                            ? `Your Access Runs Until ${new Date(vipExpiresAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}. Diamond Terms Extend Your Existing Access. Manage Card Renewals Below.`
+                            : 'Your VIP Benefits Are Active. Review Your Membership Before Buying Another Term.'}</p>
                       </div>
-                      <a
-                        href="/hub/settings?section=billing"
-                        className={shellStyles.vipManageAction}
-                        style={{
-                          minHeight: 44,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '10px 16px',
-                          border: '1px solid rgba(255,215,0,0.55)',
-                          background: 'transparent',
-                          color: '#FFF1A6',
-                          fontSize: 13,
-                          fontWeight: 700,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        Manage VIP In Account Settings
-                      </a>
-                    </div>
+                      <Link href="/hub/vip-membership/manage" className={vipStyles.action}>Manage My VIP</Link>
+                    </section>
                   )}
 
-                  {/* Plan selection */}
-                  <div
-                    className={shellStyles.planRail}
-                    style={styles.vipPlansRow}
-                    role="region"
-                    aria-label="VIP Membership Plans"
-                    tabIndex={0}
-                  >
-                    <VIPCard
-                      plan={VIP_MEMBERSHIP.monthly}
-                      isSelected={selectedVIP === 'vip-monthly'}
-                      onSelect={setSelectedVIP}
-                    />
-                    <VIPCard
-                      plan={VIP_MEMBERSHIP.yearly}
-                      isSelected={selectedVIP === 'vip-yearly'}
-                      onSelect={setSelectedVIP}
-                    />
-                    <VIPCard
-                      plan={VIP_MEMBERSHIP.lifetime}
-                      isSelected={selectedVIP === 'vip-lifetime'}
-                      onSelect={setSelectedVIP}
-                    />
-                  </div>
-
-                  <nav
-                    aria-label="VIP Membership Tools"
-                    className={shellStyles.vipTools}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      flexWrap: 'wrap',
-                      gap: 10,
-                      marginTop: 14,
-                    }}
-                  >
-                    <Link
-                      href="/hub/vip-membership/compare"
-                      className={shellStyles.vipToolLink}
-                      style={{
-                        display: 'inline-flex',
-                        minHeight: 44,
-                        alignItems: 'center',
-                        padding: '9px 15px',
-                        border: '1px solid #385D70',
-                        color: '#8FE8FF',
-                        textDecoration: 'none',
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Compare Every VIP Plan
-                    </Link>
-                    <Link
-                      href="/hub/vip-membership/manage"
-                      className={shellStyles.vipToolLink}
-                      style={{
-                        display: 'inline-flex',
-                        minHeight: 44,
-                        alignItems: 'center',
-                        padding: '9px 15px',
-                        border: '1px solid #385D70',
-                        color: '#8FE8FF',
-                        textDecoration: 'none',
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Open VIP Command Center
-                    </Link>
-                  </nav>
-
-                  {/* Yearly saving, stated in money rather than implied by a badge */}
-                  {selectedVIP === 'vip-yearly' && VIP_MEMBERSHIP.yearly.savings > 0 && (
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        marginTop: 10,
-                        fontSize: 13,
-                        color: '#58d9ff',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Saves ${Number(VIP_MEMBERSHIP.yearly.savings).toFixed(2)} A Year Against
-                      Paying Monthly: About Two Months Free
+                  <section id="vip-plans" className={vipStyles.purchase} aria-labelledby="vip-plan-title">
+                    <div className={vipStyles.sectionHeading}>
+                      <h2 id="vip-plan-title">Choose Your VIP Membership</h2>
+                      <p>Monthly Flexibility, A Year Of Access, Or Lifetime Membership.</p>
                     </div>
-                  )}
-
-                  {/* Primary call to action */}
-                  <div style={styles.vipSubscribeSection}>
-                    <button
-                      type="button"
-                      disabled={isProcessing || vipPrimaryBlocked}
-                      aria-busy={isProcessing}
-                      aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
-                      onClick={handleVIPSubscribe}
-                      style={{
-                        cursor: isProcessing
-                          ? 'wait'
-                          : vipPrimaryBlocked
-                            ? 'not-allowed'
-                            : 'pointer',
-                        opacity: isProcessing || vipPrimaryBlocked ? 0.6 : 1,
-                        transition: 'transform 0.15s ease, filter 0.15s ease',
-                        display: 'inline-block',
-                        padding: 0,
-                        border: 0,
-                        background: 'transparent',
-                        color: 'inherit',
-                      }}
-                    >
-                      {vipCardReady ? (
-                        <img
-                          src="/images/subscribe-button.webp"
-                          width={1249}
-                          height={258}
-                          alt=""
-                          style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
-                          draggable={false}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span
-                          aria-hidden="true"
-                          className={shellStyles.vipPrimaryFallback}
-                          style={{
-                            width: 'min(420px, 88vw)',
-                            minHeight: 92,
-                            padding: '16px 30px',
-                            border: '2px solid #8CDFFF',
-                            background: 'transparent',
-                            boxShadow:
-                              'inset 0 0 0 2px #02080D, inset 0 0 0 3px rgba(140, 223, 255, 0.5), 0 0 28px rgba(0, 180, 255, 0.32)',
-                            clipPath:
-                              'polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px)',
-                            color: '#EAF8FF',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 14,
-                          }}
-                        >
-                          <span style={{ display: 'grid', gap: 2, textAlign: 'left' }}>
-                            <strong style={{ fontSize: 18, letterSpacing: '0.04em' }}>
-                              {selectedVipHasExactRecovery ? 'Verify Purchase' : 'Buy Lifetime VIP'}
-                            </strong>
-                            <span style={{ color: '#8CDFFF', fontSize: 14, fontWeight: 700 }}>
-                              49,900 Diamonds · One Time
-                            </span>
-                          </span>
-                        </span>
-                      )}
-                      {/* Card-ready terms use the monthly artwork and state the
-                        selected live term below it. Lifetime renders its own
-                        Diamond action so the picture and settlement agree. */}
-                      <div
-                        style={{
-                          textAlign: 'center',
-                          marginTop: 8,
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: '#FFD700',
-                        }}
-                      >
-                        {isProcessing ? 'Processing...' : vipSubscribeLabel}
+                    <div className={vipStyles.plans} role="region" aria-label="VIP Membership Plans">
+                      <VIPCard plan={VIP_MEMBERSHIP.monthly} isSelected={selectedVIP === 'vip-monthly'} onSelect={setSelectedVIP} />
+                      <VIPCard plan={VIP_MEMBERSHIP.yearly} isSelected={selectedVIP === 'vip-yearly'} onSelect={setSelectedVIP} />
+                      <VIPCard plan={VIP_MEMBERSHIP.lifetime} isSelected={selectedVIP === 'vip-lifetime'} onSelect={setSelectedVIP} />
+                    </div>
+                    <div className={vipStyles.checkout}>
+                      <div className={vipStyles.selectedTerm} aria-live="polite" aria-atomic="true">
+                        <strong>{marketplaceCopy(selectedVIPPlan.name)}</strong>
+                        <span>{selectedVIPPlan.oneTime ? 'One Payment. No Renewal.' : `Renews Every ${selectedVIPPlan.interval === 'year' ? 'Year' : 'Month'}. Cancel Anytime.`}</span>
+                        {selectedVIP === 'vip-yearly' && VIP_MEMBERSHIP.yearly.savings > 0 && (
+                          <span className={vipStyles.savings}>Save ${Number(VIP_MEMBERSHIP.yearly.savings).toFixed(2)} A Year Compared With Monthly.</span>
+                        )}
                       </div>
-                    </button>
-                  </div>
-
-                  {vipDiamondRecovery.message && (
-                    <div
-                      role={vipDiamondRecovery.status === 'recoverable' ? 'status' : 'alert'}
-                      style={{
-                        maxWidth: 620,
-                        margin: '10px auto 0',
-                        color: vipDiamondRecovery.status === 'recoverable' ? '#8CDFFF' : '#FFD18C',
-                        fontSize: 13,
-                        lineHeight: 1.5,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {marketplaceCopy(vipDiamondRecovery.message)}
-                    </div>
-                  )}
-
-                  {/* Card-ready terms also expose Diamonds as the alternate
-                    settlement path. Lifetime's primary action is already the
-                    Diamond purchase, so do not render the same action twice. */}
-                  {selectedVIPPlan && vipCardReady && (
-                    <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
-                      {(() => {
-                        const planKey =
-                          selectedVIP === 'vip-lifetime'
-                            ? 'lifetime'
-                            : selectedVIP === 'vip-yearly'
-                              ? 'yearly'
-                              : 'monthly';
-                        // Mirrors the server: 100 diamonds per dollar, derived
-                        // from the same catalog price rather than a second copy.
-                        const cost = Math.round(Number(selectedVIPPlan.price) * 100);
-                        const known = diamondBalance != null;
-                        const short = known ? cost - diamondBalance : 0;
-                        const canAfford = vipTier !== 'lifetime' && (!known || short <= 0);
-                        const hasExactRecovery = selectedVipHasExactRecovery;
-                        const canOpenDiamondReview =
-                          !vipRecoveryBlocksPurchase && (hasExactRecovery || canAfford);
-                        return (
-                          <>
-                            <button
-                              type="button"
-                              className={shellStyles.vipDiamondAction}
-                              disabled={isProcessing || !canOpenDiamondReview}
-                              onClick={() => {
-                                openVipDiamondReview(selectedVIPPlan, {
-                                  freshAllowed: canAfford,
-                                  freshBlockedMessage:
-                                    vipTier === 'lifetime'
+                      <div className={vipStyles.paymentActions}>
+                        <button type="button" className={`${vipStyles.action} ${vipStyles.primaryAction}`}
+                          disabled={isProcessing || vipPrimaryBlocked} aria-busy={isProcessing}
+                          aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
+                          onClick={handleVIPSubscribe}>
+                          {isProcessing ? 'Processing...' : vipSubscribeLabel}
+                        </button>
+                        {selectedVIPPlan && vipCardReady && (() => {
+                          const cost = Math.round(Number(selectedVIPPlan.price) * 100);
+                          const known = diamondBalance != null;
+                          const short = known ? cost - diamondBalance : 0;
+                          const canAfford = vipTier !== 'lifetime' && (!known || short <= 0);
+                          const hasExactRecovery = selectedVipHasExactRecovery;
+                          const canOpenDiamondReview = !vipRecoveryBlocksPurchase && (hasExactRecovery || canAfford);
+                          return (
+                            <>
+                              <button type="button" className={vipStyles.action}
+                                disabled={isProcessing || !canOpenDiamondReview}
+                                onClick={() => {
+                                  if (!getAuthUser()?.id) {
+                                    router.push(vipSignInHref(selectedVIP));
+                                    return;
+                                  }
+                                  openVipDiamondReview(selectedVIPPlan, {
+                                    freshAllowed: canAfford,
+                                    freshBlockedMessage: vipTier === 'lifetime'
                                       ? 'Lifetime VIP Already Includes This Membership.'
                                       : 'Your Verified Diamond Balance Cannot Fund This Purchase.',
-                                });
-                              }}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '11px 22px',
-                                borderRadius: 12,
-                                background: canOpenDiamondReview
-                                  ? 'rgba(0,180,255,0.12)'
-                                  : 'rgba(255,255,255,0.04)',
-                                border: `1px solid ${canOpenDiamondReview ? 'rgba(0,180,255,0.4)' : 'rgba(255,255,255,0.12)'}`,
-                                color: canOpenDiamondReview ? '#00D4FF' : 'rgba(255,255,255,0.4)',
-                                fontSize: 15,
-                                fontWeight: 600,
-                                cursor:
-                                  isProcessing || !canOpenDiamondReview ? 'not-allowed' : 'pointer',
-                              }}
-                            >
-                              {hasExactRecovery
-                                ? 'Verify Purchase'
-                                : `Pay With Diamonds Instead: ${Number(cost).toLocaleString()}`}
-                            </button>
-                            <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 8 }}>
-                              {hasExactRecovery
+                                  });
+                                }}>
+                                {hasExactRecovery ? 'Verify Purchase' : `Pay With Diamonds Instead: ${Number(cost).toLocaleString()}`}
+                              </button>
+                              <p className={vipStyles.paymentNote}>{hasExactRecovery
                                 ? 'This Reuses The Protected Request For These Exact VIP Terms.'
-                                : !known
-                                  ? 'Sign In To Pay With Diamonds.'
-                                  : vipTier === 'lifetime'
-                                    ? 'Lifetime VIP Already Includes This Membership.'
+                                : vipTier === 'lifetime'
+                                  ? 'Lifetime VIP Already Includes This Membership.'
+                                  : !known
+                                    ? 'Sign In To Continue To Secure Checkout Or Pay With Diamonds.'
                                     : canAfford
                                       ? `You Have ${Number(diamondBalance).toLocaleString()} Diamonds.`
-                                      : `You Have ${Number(diamondBalance).toLocaleString()} And Need ${Number(short).toLocaleString()} More.`}
-                            </div>
-                          </>
-                        );
-                      })()}
+                                      : `You Have ${Number(diamondBalance).toLocaleString()} And Need ${Number(short).toLocaleString()} More.`}</p>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
-                  )}
-
-                  {/* Diamond-spend confirmation. Replaces the native browser prompt, which
-                    blocks the tab, cannot be styled, and is easy to miss inside
-                    an installed PWA. Nothing is spent until Confirm is pressed,
-                    and the idempotency key is minted when the modal OPENS so a
-                    double-tap cannot mint a second purchase. */}
+                    {vipDiamondRecovery.message && <p role={vipDiamondRecovery.status === 'recoverable' ? 'status' : 'alert'} className={vipStyles.recovery}>{marketplaceCopy(vipDiamondRecovery.message)}</p>}
+                    <nav aria-label="VIP Membership Tools" className={vipStyles.tools}>
+                      <Link href="/hub/vip-membership/compare" className={vipStyles.action}>Compare Every VIP Plan</Link>
+                      <Link href="/hub/vip-membership/manage" className={vipStyles.action}>Open VIP Command Center</Link>
+                    </nav>
+                  </section>
                   {pendingSpend && (
                     <div
                       onClick={() => !isProcessing && setPendingSpend(null)}
@@ -3883,10 +3648,10 @@ export default function DiamondStorePage({
                         aria-describedby="vip-spend-dialog-description"
                         tabIndex={-1}
                         onClick={(e) => e.stopPropagation()}
-                        className={shellStyles.dialogPanel}
+                        className={`${shellStyles.dialogPanel} ${vipStyles.spendDialog}`}
                         style={{
                           background: '#16181C',
-                          border: '1px solid rgba(255,215,0,0.3)',
+                          border: '1px solid #456778',
                           borderRadius: 16,
                           padding: '22px 20px',
                           maxWidth: 420,
@@ -3895,7 +3660,7 @@ export default function DiamondStorePage({
                       >
                         <h4
                           id="vip-spend-dialog-title"
-                          style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#FFD700' }}
+                          style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#eef8ff' }}
                         >
                           {marketplaceCopy(pendingSpend.title)}
                         </h4>
@@ -3980,101 +3745,44 @@ export default function DiamondStorePage({
                     </div>
                   )}
 
-                  {/* VIP Benefits Table */}
-                  <div className={shellStyles.vipBenefits} style={styles.benefitsSection}>
-                    <h2 style={styles.benefitsTitle}>
-                      Everything Included With {lifetimeSelected ? 'Lifetime VIP' : 'VIP'}
-                    </h2>
-                    <nav className={shellStyles.vipBenefitJumpNav} aria-label="VIP Page Sections">
-                      <a href="#vip-benefits-platform">Platform Benefits</a>
-                      <a href="#vip-benefits-arena">Club Arena Benefits</a>
-                      <a href="#vip-faq">Frequently Asked Questions</a>
-                    </nav>
 
+                  <section className={vipStyles.benefits} aria-labelledby="vip-benefits-title">
+                    <div className={vipStyles.sectionHeading}>
+                      <h2 id="vip-benefits-title">Everything Included With {lifetimeSelected ? 'Lifetime VIP' : 'VIP'}</h2>
+                      <p>Your Selected Membership Covers The Platform And The Table.</p>
+                    </div>
+                    <nav className={vipStyles.jumpNav} aria-label="VIP Page Sections">
+                      <a className={vipStyles.action} href="#vip-benefits-platform">Platform Benefits</a>
+                      <a className={vipStyles.action} href="#vip-benefits-arena">Club Arena Benefits</a>
+                      <a className={vipStyles.action} href="#vip-faq">Frequently Asked Questions</a>
+                    </nav>
                     {[
-                      {
-                        id: 'vip-benefits-platform',
-                        label: 'Smarter.Poker Platform',
-                        category: 'Smarter.Poker',
-                      },
-                      {
-                        id: 'vip-benefits-arena',
-                        label: 'Club Arena Features',
-                        category: 'Club Arena',
-                      },
+                      { id: 'vip-benefits-platform', label: 'Smarter.Poker Platform', category: 'Smarter.Poker' },
+                      { id: 'vip-benefits-arena', label: 'Club Arena Features', category: 'Club Arena' },
                     ].map((group) => {
-                      const benefits = displayedVipBenefits.filter(
-                        (benefit) => benefit.category === group.category
-                      );
+                      const benefits = displayedVipBenefits.filter((benefit) => benefit.category === group.category);
                       return (
-                        <details
-                          key={group.id}
-                          id={group.id}
-                          className={shellStyles.vipBenefitGroup}
-                          open
-                        >
-                          <summary>
-                            <span>{group.label}</span>
-                            <span>{benefits.length} Included</span>
-                          </summary>
-                          <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
+                        <details key={group.id} id={group.id} className={vipStyles.benefitGroup} open>
+                          <summary><span>{group.label}</span><span>{benefits.length} Included</span></summary>
+                          <div className={vipStyles.benefitGrid}>
                             {benefits.map((benefit) => (
-                              <div
-                                key={benefit.title}
-                                className={shellStyles.premiumDataCard}
-                                style={styles.benefitCard}
-                              >
-                                <div style={styles.benefitInfo}>
-                                  <div style={styles.benefitTitle}>
-                                    {marketplaceCopy(benefit.title)}
-                                  </div>
-                                  <div style={styles.benefitDesc}>
-                                    {marketplaceCopy(benefit.description)}
-                                  </div>
-                                </div>
-                                <div style={styles.benefitValue}>
-                                  {marketplaceCopy(benefit.value)}
-                                </div>
-                              </div>
+                              <article key={benefit.title} className={vipStyles.benefit}>
+                                <h3>{marketplaceCopy(benefit.title)}</h3>
+                                <p>{marketplaceCopy(benefit.description)}</p>
+                                <span>{marketplaceCopy(benefit.value)}</span>
+                              </article>
                             ))}
                           </div>
                         </details>
                       );
                     })}
-                  </div>
-
-                  {/* View in Marketplace Link */}
-                  <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 32 }}>
-                    <a
-                      href={TAB_ROUTES.merch}
-                      className={shellStyles.vipMarketplaceLink}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 16,
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                        cursor: 'pointer',
-                        padding: '12px 24px',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      View In Marketplace
-                    </a>
-                  </div>
-
-                  {/* ─── Frequently Asked Questions ─── */}
-                  <div id="vip-faq" className={shellStyles.vipFaq}>
-                    <h2>Frequently Asked Questions</h2>
-
-                    {VIP_FAQ.map((faq, idx) => (
-                      <details key={idx}>
-                        <summary>{faq.q}</summary>
-                        <p>{faq.a}</p>
-                      </details>
+                  </section>
+                  <section id="vip-faq" className={vipStyles.faq} aria-labelledby="vip-faq-title">
+                    <h2 id="vip-faq-title">Frequently Asked Questions</h2>
+                    {VIP_FAQ.map((faq) => (
+                      <details key={faq.q}><summary>{faq.q}</summary><p>{faq.a}</p></details>
                     ))}
-                  </div>
+                  </section>
                 </>
               )}
 
@@ -6443,7 +6151,7 @@ export default function DiamondStorePage({
               </p>
             </div>
 
-            {activeTab !== 'diamonds' && marketplaceCommerceFooter}
+            {activeTab !== 'diamonds' && activeTab !== 'vip' && marketplaceCommerceFooter}
           </main>
         </div>
       </PageTransition>

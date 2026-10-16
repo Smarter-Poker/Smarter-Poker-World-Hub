@@ -160,11 +160,11 @@ test('the VIP surfaces are sized by their content, not by a painted plate', () =
     assert.doesNotMatch(rule[0], /aspect-ratio/, `${name} must be sized by its content`);
     assert.doesNotMatch(rule[0], /utility-shell\.webp/, `${name} must not carry the console housing`);
   }
-  // The approved gold plan artwork remains the product image, not a CSS shell.
+  // The VIP-only upgrade uses decorative silver art beside accessible live text.
   assert.match(
     vipCards,
-    /src="\/images\/vip-card\.webp"/,
-    'the approved gold VIP artwork must remain the plan image'
+    /className=\{styles\.vipCardCrown\} aria-hidden="true"/,
+    'VIP plan artwork must remain decorative beside real accessible plan text'
   );
   const plan = /\.plan \{[^}]*\}/.exec(vipCss)?.[0] || '';
   assert.ok(plan, 'the VIP plan rule is gone');

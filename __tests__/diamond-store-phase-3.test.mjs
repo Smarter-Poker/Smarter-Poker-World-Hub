@@ -60,7 +60,7 @@ test('hidden legacy image maps and their stale assets stay removed', () => {
 test('the global header remains outside the redesigned store surface', () => {
   const headerIndex = STORE.indexOf('<UniversalHeader pageDepth={1} />');
   const mainMatch = STORE.match(
-    /<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}/
+    /<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}[^`]*`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}/
   );
   assert.ok(headerIndex > -1, 'global header is missing');
   assert.ok(mainMatch?.index > headerIndex, 'store styling must not wrap or alter the global header');
