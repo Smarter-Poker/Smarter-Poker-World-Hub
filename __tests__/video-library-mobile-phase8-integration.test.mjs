@@ -33,3 +33,32 @@ test('saved zero seek position is retained instead of falling back to cumulative
  assert.equal(project({progress_seconds:30,watch_duration_seconds:120}),30);
  assert.equal(project({progress_seconds:null,watch_duration_seconds:120}),120);
 });
+
+function libraryLifecycle() {
+ const video={id:'abcdefghijk',videoId:'abcdefghijk'};
+ const refs={watchStartTimeRef:{current:1000},currentWatchingVideoRef:{current:video},isPlayerPlayingRef:{current:true},watchSessionUserIdRef:{current:'owner'},pendingFlushRef:{current:false},playerPositionRef:{current:12},saveWatchSessionRef:{current:()=>{}}};
+ let clock=11000;
+ const document={visibilityState:'visible',hidden:false,addEventListener(){},removeEventListener(){}};
+ const calls=[];
+ const values={...refs,document,window:{addEventListener(){},removeEventListener(){}},Date:{now:()=>clock},userId:'owner',selectedVideo:video,ownerScopeRef:{current:{capture:()=>({}),isCurrent:()=>true}},flushWatchDuration:(...args)=>{calls.push(args);return Promise.resolve(true);},parseDuration:()=>600,reportVideoLibraryIssue(){},setTimeout:()=>0};
+ const names=Object.keys(values);
+ const evaluate=body=>new Function(...names,body)(...Object.values(values));
+ const stateBody=library.slice(library.indexOf('const handlePlayerStateChange = useCallback((state) => {')+'const handlePlayerStateChange = useCallback((state) => {'.length,library.indexOf('}, [userId]);',library.indexOf('const handlePlayerStateChange =')));
+ const state=evaluate(`return state=>{${stateBody}}`);
+ const start=library.indexOf('const flushWatchTime = () => {');
+ const end=library.indexOf("document.addEventListener('visibilitychange', onVisibilityChange);",start);
+ const lifecycle=evaluate(`${library.slice(start,end)};return {flushWatchTime,onVisibilityChange};`);
+ return {refs,calls,state,hide(){document.hidden=true;document.visibilityState='hidden';lifecycle.onVisibilityChange();},show(){document.hidden=false;document.visibilityState='visible';lifecycle.onVisibilityChange();},advance(ms){clock+=ms;},flush:lifecycle.flushWatchTime};
+}
+test('actual library handlers resume tracking after a hidden pause without crediting hidden playback',()=>{
+ const h=libraryLifecycle();h.hide();
+ assert.equal(h.calls.length,1);
+ h.state(2);h.advance(30000);h.show();h.state(1);
+ assert.ok(h.refs.currentWatchingVideoRef.current,'the mounted viewer retains its video identity');
+ assert.equal(h.refs.watchStartTimeRef.current,41000,'resume starts a fresh visible credit segment');
+ h.advance(5000);h.hide();assert.equal(h.calls.length,2);assert.equal(h.calls[1][1],5);
+ h.state(1);assert.equal(h.refs.watchStartTimeRef.current,null,'hidden PLAYING cannot restart credited time');
+ h.advance(30000);h.flush();assert.equal(h.calls.length,2,'duplicate lifecycle events cannot resubmit a segment');
+ h.show();assert.equal(h.refs.watchStartTimeRef.current,76000);
+ h.advance(2000);h.hide();assert.equal(h.calls.length,3,'a distinct short visible segment is not lost to a debounce');assert.equal(h.calls[2][1],2);
+});

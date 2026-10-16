@@ -1,3 +1,6 @@
+import { buildVideoLibraryBreadcrumbs } from './videoLibraryBreadcrumbs.mjs';
+import { watchUrl } from './videoLibraryWatch.mjs';
+
 /**
  * Public player browsing is an index of names in the published catalog.
  * These full names were read from actual catalog titles on 2026-10-13.
@@ -55,18 +58,15 @@ export function buildPlayerJsonLd(player, videos = []) {
         '@type': 'Person',
         '@id': `${url}#person`,
         name: player.name,
-        description: `Poker Player Featured In Verified Video Library Highlights And Full Matches.`,
+        description: `Poker Player Named In Published Video Titles Or Tags.`,
         url,
     };
-    const breadcrumbs = {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'World Hub', item: 'https://smarter.poker/hub' },
-            { '@type': 'ListItem', position: 2, name: 'Video Library', item: 'https://smarter.poker/hub/video-library' },
-            { '@type': 'ListItem', position: 3, name: 'Poker Players', item: 'https://smarter.poker/hub/video-library/players' },
-            { '@type': 'ListItem', position: 4, name: player.name, item: url },
-        ],
-    };
+    const breadcrumbs = buildVideoLibraryBreadcrumbs([
+        ['World Hub', '/hub'],
+        ['Video Library', '/hub/video-library'],
+        ['Poker Players', '/hub/video-library/players'],
+        [player.name, url],
+    ]);
     const itemList = {
         '@type': 'ItemList',
         name: `Videos Naming ${player.name}`,
@@ -75,10 +75,10 @@ export function buildPlayerJsonLd(player, videos = []) {
             '@type': 'ListItem',
             position: index + 1,
             item: {
-                '@type': 'VideoObject',
+                '@type': 'WebPage',
+                '@id': `${watchUrl(video)}#page`,
                 name: video.title,
-                url: `https://smarter.poker/hub/video-library/watch/${encodeURIComponent(video.videoId)}`,
-                thumbnailUrl: video.thumbnail || `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
+                url: watchUrl(video),
             },
         })),
     };

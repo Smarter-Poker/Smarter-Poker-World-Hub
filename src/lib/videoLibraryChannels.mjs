@@ -1,3 +1,6 @@
+import { buildVideoLibraryBreadcrumbs } from './videoLibraryBreadcrumbs.mjs';
+import { watchUrl } from './videoLibraryWatch.mjs';
+
 /** Stable links and public channel metadata. Follow identity is the registry UUID. */
 export const CHANNEL_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const CHANNEL_KEY_RE = /^[A-Za-z0-9_-]{1,80}$/;
@@ -38,14 +41,11 @@ export function buildChannelJsonLd(channel, videos = []) {
         ...(channel.logo ? { logo: channel.logo } : {}),
         ...(channel.externalUrl ? { sameAs: [channel.externalUrl] } : {}),
     };
-    const breadcrumbs = {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'World Hub', item: 'https://smarter.poker/hub' },
-            { '@type': 'ListItem', position: 2, name: 'Video Library', item: 'https://smarter.poker/hub/video-library' },
-            { '@type': 'ListItem', position: 3, name: channel.name, item: url },
-        ],
-    };
+    const breadcrumbs = buildVideoLibraryBreadcrumbs([
+        ['World Hub', '/hub'],
+        ['Video Library', '/hub/video-library'],
+        [channel.name, url],
+    ]);
     const itemList = {
         '@type': 'ItemList',
         name: `Videos From ${channel.name}`,
@@ -54,10 +54,10 @@ export function buildChannelJsonLd(channel, videos = []) {
             '@type': 'ListItem',
             position: index + 1,
             item: {
-                '@type': 'VideoObject',
+                '@type': 'WebPage',
+                '@id': `${watchUrl(video)}#page`,
                 name: video.title,
-                url: `https://smarter.poker/hub/video-library/watch/${encodeURIComponent(video.videoId)}`,
-                thumbnailUrl: video.thumbnail || `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
+                url: watchUrl(video),
             },
         })),
     };

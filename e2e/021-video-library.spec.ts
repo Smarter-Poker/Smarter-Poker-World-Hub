@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
 
 /*
@@ -329,6 +330,46 @@ test.describe('21. Video Library — YouTube layout, poker first', () => {
     await expect(page.getByRole('button', { name: 'Sign In To Sync' }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Sign In To Sync' }).first().click();
     await expect(page).toHaveURL(/\/auth\/login\?redirect=%2Fhub%2Fvideo-library/);
+  });
+
+  test('library lifecycle resumes owned tracking after hidden pause and excludes hidden credit', async ({ page, context }) => {
+    await installRealtimeSessionGuard(context);
+    const owner = '33333333-3333-4333-8333-333333333333';
+    const lifecycle: any[] = [], saves: any[] = [];
+    await page.addInitScript(({ owner }) => {
+      localStorage.setItem('smarter-poker-auth', JSON.stringify({ access_token: 'local-browser-fixture-only', refresh_token: 'local-browser-fixture-only', expires_at: Math.floor(Date.now()/1000)+3600, user: { id: owner, email: 'library-lifecycle@example.invalid', user_metadata: {} } }));
+      const originalNow=Date.now.bind(Date); (window as any).testWatchOffset=0;
+      Date.now=()=>originalNow()+(window as any).testWatchOffset;
+      (window as any).testWatchHidden=false;
+      Object.defineProperty(document,'hidden',{configurable:true,get:()=>(window as any).testWatchHidden});
+      Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>(window as any).testWatchHidden?'hidden':'visible'});
+    }, { owner });
+    await page.route('**/auth/v1/**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({id:owner,email:'library-lifecycle@example.invalid'})}));
+    await page.route('**/rest/v1/**',route=>route.fulfill({contentType:'application/json',body:'[]'}));
+    await page.route('**/api/video-library/study-list**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({success:true,ownerId:owner,data:{lists:[],progress:[]}})}));
+    await page.route('**/api/video-library/watch-progress',route=>{lifecycle.push(route.request().postDataJSON());return route.fulfill({contentType:'application/json',body:'{"success":true}'});});
+    await page.route('**/rest/v1/rpc/record_video_watch_session',route=>{const body=route.request().postDataJSON();saves.push(body);return route.fulfill({contentType:'application/json',body:JSON.stringify([{watch_duration_seconds:22,progress_seconds:body.p_progress_seconds}])});});
+    await page.route('https://www.youtube-nocookie.com/**',route=>route.fulfill({contentType:'text/html',body:'<html><body>Lifecycle Provider Fixture</body></html>'}));
+    await page.goto('/hub/video-library',{waitUntil:'domcontentloaded'});
+    await expect(page.getByRole('region',{name:'Member Poker Clips'})).toBeVisible();
+    await page.getByRole('link',{name:`Play ${VIDEO_A.title}`,exact:true}).click();
+    const player=page.locator('#youtube-player');await expect(player).toBeVisible();
+    const original=await player.elementHandle(), source=await player.getAttribute('src');
+    const frame=await original!.contentFrame();
+    const emit=async(state:number,position:number)=>{await frame!.evaluate(({state,position})=>{parent.postMessage(JSON.stringify({event:'infoDelivery',info:{currentTime:position,duration:1122,playerState:state}}),'*');parent.postMessage(JSON.stringify({event:'onStateChange',info:state}),'*');},{state,position});await expect(page.getByRole('slider',{name:'Seek Video'})).toHaveValue(String(position));};
+    const visibility=async(hidden:boolean)=>page.evaluate(hidden=>{(window as any).testWatchHidden=hidden;document.dispatchEvent(new Event('visibilitychange'));},hidden);
+    await emit(1,10);await page.evaluate(()=>(window as any).testWatchOffset+=3000);await visibility(true);
+    await expect.poll(()=>lifecycle.length).toBe(1);
+    expect(lifecycle[0].additionalSeconds).toBeGreaterThanOrEqual(3);
+    await emit(2,13);await page.evaluate(()=>(window as any).testWatchOffset+=30000);
+    await visibility(false);await emit(1,13);await page.evaluate(()=>(window as any).testWatchOffset+=3000);await emit(2,16);
+    await expect.poll(()=>saves.length).toBe(1);
+    expect(saves[0].p_expected_user_id).toBe(owner);expect(saves[0].p_video_id).toBe(VIDEO_A.videoId);
+    expect(saves[0].p_additional_seconds).toBeGreaterThanOrEqual(3);expect(saves[0].p_additional_seconds).toBeLessThan(6);
+    await visibility(true);await emit(1,17);await page.evaluate(()=>(window as any).testWatchOffset+=30000);await emit(2,47);
+    expect(saves).toHaveLength(1);expect(lifecycle).toHaveLength(1);
+    await visibility(false);expect(await player.getAttribute('src')).toBe(source);
+    expect(await original!.evaluate(element=>element.isConnected&&element===document.querySelector('#youtube-player'))).toBe(true);
   });
 
   test('Phase 3 timeline markers, description and mini-player use one retained iframe', async ({ page }, testInfo) => {
