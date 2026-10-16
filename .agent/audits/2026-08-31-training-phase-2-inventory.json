@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 347,
+    "dependencyFiles": 348,
     "componentFiles": 52,
     "hookFiles": 14,
     "ctas": 348,
@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 158,
     "markerCandidates": 335,
-    "possibleUnwiredFunctions": 381,
+    "possibleUnwiredFunctions": 382,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 276,
     "routeStateUnassignedGaps": 0,
@@ -20521,6 +20521,7 @@
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/dailyCandidateScan.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
         "src/lib/training/questionContract.mjs",
@@ -20565,15 +20566,15 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 40,
-          "references": 26,
+          "line": 44,
+          "references": 27,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "dateHash",
-          "line": 50,
+          "line": 54,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20581,7 +20582,7 @@
         },
         {
           "name": "tomorrowAtChicagoMidnight",
-          "line": 59,
+          "line": 63,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -20589,15 +20590,23 @@
         },
         {
           "name": "canonicalizeCandidate",
-          "line": 88,
+          "line": 92,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "readCandidateRange",
-          "line": 104,
+          "name": "readCandidateIdAt",
+          "line": 112,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readCandidatePage",
+          "line": 128,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20605,7 +20614,7 @@
         },
         {
           "name": "selectDailyCanonicalQuestion",
-          "line": 122,
+          "line": 155,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20613,7 +20622,7 @@
         },
         {
           "name": "sealedDailyCandidate",
-          "line": 154,
+          "line": 177,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -20621,7 +20630,7 @@
         },
         {
           "name": "readSealedDailyQuestion",
-          "line": 197,
+          "line": 220,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -20629,7 +20638,7 @@
         },
         {
           "name": "dailyQuestionHasConflict",
-          "line": 222,
+          "line": 245,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20637,7 +20646,7 @@
         },
         {
           "name": "sealDailyCanonicalQuestion",
-          "line": 235,
+          "line": 258,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20645,7 +20654,7 @@
         },
         {
           "name": "getOrCreateSealedDailyQuestion",
-          "line": 277,
+          "line": 300,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20653,7 +20662,7 @@
         },
         {
           "name": "optionText",
-          "line": 289,
+          "line": 312,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20661,7 +20670,7 @@
         },
         {
           "name": "postCompletionFeedback",
-          "line": 296,
+          "line": 319,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20669,7 +20678,7 @@
         },
         {
           "name": "readDailyRows",
-          "line": 324,
+          "line": 347,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20677,7 +20686,7 @@
         },
         {
           "name": "readDailyAttemptIntegrity",
-          "line": 361,
+          "line": 384,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20685,7 +20694,7 @@
         },
         {
           "name": "readAttemptEvidence",
-          "line": 395,
+          "line": 418,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20693,7 +20702,7 @@
         },
         {
           "name": "readCompletedAttempt",
-          "line": 469,
+          "line": 492,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20701,7 +20710,7 @@
         },
         {
           "name": "readPendingScoredAttempt",
-          "line": 523,
+          "line": 546,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20709,7 +20718,7 @@
         },
         {
           "name": "chicagoProductDate",
-          "line": 550,
+          "line": 573,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20717,7 +20726,7 @@
         },
         {
           "name": "readRecoverablePriorScoredAttempt",
-          "line": 570,
+          "line": 593,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20725,7 +20734,7 @@
         },
         {
           "name": "failureStatus",
-          "line": 758,
+          "line": 781,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20733,7 +20742,7 @@
         },
         {
           "name": "readPublicDailyQuestion",
-          "line": 772,
+          "line": 795,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20741,7 +20750,7 @@
         },
         {
           "name": "servePublicDailyQuestion",
-          "line": 790,
+          "line": 813,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20749,7 +20758,7 @@
         },
         {
           "name": "handler",
-          "line": 834,
+          "line": 857,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -20757,7 +20766,7 @@
         },
         {
           "name": "part",
-          "line": 76,
+          "line": 80,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -52174,6 +52183,57 @@
       ]
     },
     {
+      "file": "src/lib/training/dailyCandidateScan.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "scanDailyCandidates",
+          "line": 51,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "scanDailyCandidates"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/training/declaredStreet.js",
       "imports": [],
       "links": [],
@@ -59495,6 +59555,10 @@
     {
       "from": "pages/api/training/hand-of-the-day.js",
       "to": "src/lib/training/cacheTruthPersistence.mjs"
+    },
+    {
+      "from": "pages/api/training/hand-of-the-day.js",
+      "to": "src/lib/training/dailyCandidateScan.mjs"
     },
     {
       "from": "pages/api/training/hand-of-the-day.js",
@@ -69845,6 +69909,7 @@
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/dailyCandidateScan.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/gradingReceipt.mjs",
         "src/lib/training/gradingReceiptSecret.mjs",
@@ -85610,6 +85675,19 @@
       ]
     },
     {
+      "file": "src/lib/training/dailyCandidateScan.mjs",
+      "reachableFiles": [
+        "src/lib/training/dailyCandidateScan.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-daily-challenge-authority.test.mjs",
+        "__tests__/training-reference-is-public-c.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/training/declaredStreet.js",
       "reachableFiles": [
         "src/lib/training/declaredStreet.js"
@@ -90099,7 +90177,7 @@
       {
         "file": "pages/api/training/hand-of-the-day.js",
         "name": "handler",
-        "line": 834,
+        "line": 857,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -94267,6 +94345,24 @@
           "pages/api/session/start.js",
           "pages/hub/training/arena/[gameId].js",
           "src/components/training/LevelSelector.tsx"
+        ]
+      },
+      {
+        "file": "src/lib/training/dailyCandidateScan.mjs",
+        "name": "scanDailyCandidates",
+        "line": 51,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/daily-candidate-scan.test.mjs",
+          "__tests__/training-daily-challenge-authority.test.mjs",
+          "__tests__/training-reference-is-public-c.test.mjs",
+          "pages/api/training/hand-of-the-day.js"
         ]
       },
       {
@@ -99194,7 +99290,7 @@
       {
         "file": "pages/api/training/hand-of-the-day.js",
         "name": "handler",
-        "line": 834,
+        "line": 857,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -103362,6 +103458,24 @@
           "pages/api/session/start.js",
           "pages/hub/training/arena/[gameId].js",
           "src/components/training/LevelSelector.tsx"
+        ]
+      },
+      {
+        "file": "src/lib/training/dailyCandidateScan.mjs",
+        "name": "scanDailyCandidates",
+        "line": 51,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/daily-candidate-scan.test.mjs",
+          "__tests__/training-daily-challenge-authority.test.mjs",
+          "__tests__/training-reference-is-public-c.test.mjs",
+          "pages/api/training/hand-of-the-day.js"
         ]
       },
       {
