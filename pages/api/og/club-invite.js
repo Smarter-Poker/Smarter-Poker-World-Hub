@@ -21,6 +21,31 @@ async function lookup(code) {
     return data?.found ? data : null;
 }
 
+// Satori renders png, jpeg and gif only, and a logo it cannot fetch throws the
+// whole card into a 500. So the logo is fetched here first and embedded as a
+// data URL; anything else falls back to the letter avatar.
+const LOGO_TYPES = /^image\/(png|jpe?g|gif)\b/i;
+const LOGO_MAX_BYTES = 2_000_000;
+
+async function embeddableLogo(url) {
+    if (typeof url !== 'string' || !/^https:\/\//i.test(url)) return null;
+    try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        const type = res.headers.get('content-type') || '';
+        if (!res.ok || !LOGO_TYPES.test(type)) return null;
+        const buf = await res.arrayBuffer();
+        if (!buf.byteLength || buf.byteLength > LOGO_MAX_BYTES) return null;
+        const bytes = new Uint8Array(buf);
+        let bin = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+            bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        }
+        return `data:${type.split(';')[0].trim()};base64,${btoa(bin)}`;
+    } catch {
+        return null;
+    }
+}
+
 export default async function handler(req) {
     const { searchParams } = new URL(req.url);
     const code = String(searchParams.get('code') || '').trim().toUpperCase();
@@ -37,7 +62,7 @@ export default async function handler(req) {
     const alias = invite?.inviter?.alias || 'A Friend';
     const members = Number(invite?.club?.member_count || 0);
     const playing = invite?.club?.players_playing;
-    const logo = invite?.club?.logo_url || null;
+    const logo = await embeddableLogo(invite?.club?.logo_url);
 
     return new ImageResponse(
         (

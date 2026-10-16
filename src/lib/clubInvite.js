@@ -46,13 +46,21 @@ export function normalizeInviteCode(value) {
 export function safeClubArenaPath(path) {
     if (typeof path !== 'string') return null;
     if (!path.startsWith(CLUB_ARENA_PREFIX) || path.startsWith('//') || path.includes('\\')) return null;
+    // No dot segments, plain or encoded: /hub/club-arena/../x would resolve outside Club Arena.
+    if (/(^|\/)(\.|%2e){2}(\/|\?|#|$)/i.test(path)) return null;
     return path;
 }
 
 /** `CODE.1739999999999` -> { code, firstSeen } ; anything else -> null. */
 export function parseInviteCookieValue(raw) {
     if (!raw || typeof raw !== 'string') return null;
-    const [codePart, tsPart] = decodeURIComponent(raw).split('.');
+    let decoded;
+    try {
+        decoded = decodeURIComponent(raw);
+    } catch {
+        return null; // a malformed cookie is no invite, never a crash
+    }
+    const [codePart, tsPart] = decoded.split('.');
     const code = normalizeInviteCode(codePart);
     const firstSeen = Number(tsPart);
     if (!code || !Number.isFinite(firstSeen) || firstSeen <= 0) return null;

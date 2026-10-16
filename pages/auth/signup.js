@@ -1820,14 +1820,15 @@ export default function SignUpPage() {
                     // Arrived on a club invite: attach this account to it now,
                     // and after the phone step go straight to that club's join
                     // page (Dan 2026-10-15).
-                    let next = null;
+                    // The ?redirect= join page is the fallback even when the
+                    // claim fails, so the player still reaches the club.
+                    let next = safeClubArenaPath(
+                      Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
+                    );
                     try {
                       const { data } = await supabase.auth.getSession();
                       const claimed = await claimInvite(data?.session?.access_token);
-                      next = safeClubArenaPath(claimed?.join_path) ||
-                        safeClubArenaPath(
-                          Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
-                        );
+                      next = safeClubArenaPath(claimed?.join_path) || next;
                     } catch (_claimErr) {
                       /* the club join page claims again from the stored code */
                     }

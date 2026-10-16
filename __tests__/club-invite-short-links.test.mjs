@@ -86,3 +86,36 @@ test('phone verification (or skipping it) continues to the invited club', () => 
     assert.match(s, /safeClubArenaPath/);
     assert.match(s, /if \(nextPath\) window\.location\.replace\(nextPath\);\n\s+else router\.replace\('\/hub'\);/);
 });
+
+test('a malformed invite cookie is no invite, never a crash', () => {
+    assert.equal(parseInviteCookieValue('%E0'), null);
+});
+
+test('a dot segment cannot walk a join path out of Club Arena', () => {
+    assert.equal(safeClubArenaPath('/hub/club-arena/../../hub/x'), null);
+    assert.equal(safeClubArenaPath('/hub/club-arena/%2e%2e/x'), null);
+    assert.equal(safeClubArenaPath('/hub/club-arena/invite/abc?ref=1&i=ABCDEFG'), '/hub/club-arena/invite/abc?ref=1&i=ABCDEFG');
+});
+
+test('an older account claims the invite this browser holds, not its signup invite', () => {
+    const s = read('pages/auth/callback.js');
+    assert.match(s, /youngAccount && metaCode/);
+    assert.match(s, /if \(claimedStored\) clearPendingInvite\(\)/);
+});
+
+test('signup keeps the ?redirect= join page when the claim fails', () => {
+    const s = read('pages/auth/signup.js');
+    assert.match(s, /next = safeClubArenaPath\(claimed\?\.join_path\) \|\| next;/);
+});
+
+test('the landing page trusts a stored session, not the cached header user', () => {
+    const s = read('pages/i/[code].js');
+    assert.match(s, /if \(getSessionToken\(\)\)/);
+    assert.doesNotMatch(s, /getAuthUser\(\)/);
+});
+
+test('the share card only embeds a logo Satori can draw', () => {
+    const s = read('pages/api/og/club-invite.js');
+    assert.match(s, /embeddableLogo\(invite\?\.club\?\.logo_url\)/);
+    assert.match(s, /image\\\/\(png\|jpe\?g\|gif\)/);
+});
