@@ -21,7 +21,7 @@ import WatchPlaybackTools, { WatchDescription } from '../../src/components/video
 import PauseQuiz from '../../src/components/video-library/PauseQuiz';
 import PlayerLinks from '../../src/components/video-library/PlayerLinks';
 import { buildWatchDescription } from '../../src/lib/videoLibraryWatch.mjs';
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead from '../../src/components/video-library/VideoLibrarySEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
@@ -273,7 +273,6 @@ export default function VideoLibraryPage() {
     const watchStartTimeRef = useRef(null);
     const currentWatchingVideoRef = useRef(null);
     const watchSessionUserIdRef = useRef(null);
-    const pendingFlushRef = useRef(false);
     const shareToastTimer = useRef(null);
 
     if (!ownerScopeRef.current) {
@@ -289,7 +288,6 @@ export default function VideoLibraryPage() {
         watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = null;
         watchSessionUserIdRef.current = null;
-        pendingFlushRef.current = false;
         if (shareToastTimer.current) clearTimeout(shareToastTimer.current);
         shareToastTimer.current = null;
     }
@@ -657,7 +655,7 @@ export default function VideoLibraryPage() {
         if (state === 1) {
             isPlayerPlayingRef.current = true;
             watchSessionUserIdRef.current = userId || null;
-            if (currentWatchingVideoRef.current && !watchStartTimeRef.current) watchStartTimeRef.current = Date.now();
+            if (!document.hidden && currentWatchingVideoRef.current && !watchStartTimeRef.current) watchStartTimeRef.current = Date.now();
             return;
         }
         if (state === 0 || state === 2 || state === 3 || state === 5) {
@@ -1832,17 +1830,17 @@ export default function VideoLibraryPage() {
     // handleCloseVideo never runs. visibilitychange fires reliably on mobile too.
     useEffect(() => {
         const flushWatchTime = () => {
-            if (pendingFlushRef.current) return; // debounce double-fire
             if (!watchStartTimeRef.current || !currentWatchingVideoRef.current || !userId) return;
             const sessionOwnerId = watchSessionUserIdRef.current;
             if (!sessionOwnerId || sessionOwnerId !== userId) return;
             const ownerToken = ownerScopeRef.current.capture(sessionOwnerId);
-            pendingFlushRef.current = true;
             const startTime = watchStartTimeRef.current;
             const video = currentWatchingVideoRef.current;
             const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            // Stop the submitted segment synchronously, but retain the mounted
+            // video identity so a genuine resume after a hidden pause can count.
+            // A repeated lifecycle event sees no start and cannot submit twice.
             watchStartTimeRef.current = null;
-            currentWatchingVideoRef.current = null;
             if (watchedSeconds > 0) {
                 void flushWatchDuration(video.id, watchedSeconds, {
                     title: video.title,
@@ -1855,15 +1853,11 @@ export default function VideoLibraryPage() {
                     reportVideoLibraryIssue('watch_progress_flush', error);
                 });
             }
-            // Reset debounce after 2s
-            setTimeout(() => { pendingFlushRef.current = false; }, 2000);
         };
         const onVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
                 flushWatchTime();
-            } else if (selectedVideo && isPlayerPlayingRef.current && !currentWatchingVideoRef.current) {
-                pendingFlushRef.current = false;
-                currentWatchingVideoRef.current = selectedVideo;
+            } else if (selectedVideo && currentWatchingVideoRef.current?.id === selectedVideo.id && isPlayerPlayingRef.current && !watchStartTimeRef.current) {
                 watchStartTimeRef.current = Date.now();
             }
         };

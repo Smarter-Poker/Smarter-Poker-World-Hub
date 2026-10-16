@@ -17,6 +17,8 @@ import {
     isCuratedFeedVideo,
 } from './videoLibraryCuration.mjs';
 
+import { buildVideoLibraryBreadcrumbs } from './videoLibraryBreadcrumbs.mjs';
+
 export const SITE_URL = 'https://smarter.poker';
 export const WATCH_BASE_PATH = '/hub/video-library/watch';
 
@@ -41,7 +43,7 @@ export function normaliseVideoRow(row) {
         views: row.views_text && row.views_text !== '0' ? row.views_text : String(row.views_count || ''),
         viewsCount: Number(row.views_count || 0),
         duration: row.duration || '',
-        thumbnail: row.thumbnail_url || `https://img.youtube.com/vi/${row.youtube_video_id}/maxresdefault.jpg`,
+        thumbnail: row.thumbnail_url || `https://i.ytimg.com/vi/${row.youtube_video_id}/hqdefault.jpg`,
         publishedAt: row.published_at,
         scrapedAt: row.scraped_at,
         tags: Array.isArray(row.tags) ? row.tags : [],
@@ -79,7 +81,9 @@ export function watchUrl(video) {
 
 /** 3725 -> "PT1H2M5S" (ISO 8601, what Google reads for a video). */
 export function isoDuration(seconds) {
-    const total = Math.max(0, Math.round(Number(seconds) || 0));
+    const number = Number(seconds);
+    if (!Number.isFinite(number) || number <= 0) return null;
+    const total = Math.round(number);
     if (!total) return null;
     const hours = Math.floor(total / 3600);
     const minutes = Math.floor((total % 3600) / 60);
@@ -140,26 +144,37 @@ export function isIndexableWatchVideo(video) {
     return VIDEO_LIBRARY_POKER_TYPES.includes(video?.type) && isCuratedFeedVideo(video);
 }
 
-export function buildVideoJsonLd(video, { channelName, description }) {
-    const seconds = durationSeconds(video?.duration);
+/** Provider publication time only; a scrape timestamp is not an upload date. */
+export function videoPublicationDate(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return null;
+    const date = new Date(value);
+    const day = value.slice(0, 10);
+    const calendar = new Date(`${day}T00:00:00Z`);
+    if (!Number.isFinite(date.getTime()) || date.getTime() <= 0 || !Number.isFinite(calendar.getTime()) || calendar.toISOString().slice(0, 10) !== day) return null;
+    return date.toISOString();
+}
+
+/** Only emit Google's video entity when its required publication fact exists. */
+export function buildVideoObject(video, { channelName, description } = {}) {
+    const uploadDate = videoPublicationDate(video?.publishedAt);
+    if (!uploadDate || !video?.title || !/^[A-Za-z0-9_-]{11}$/.test(video?.videoId || '')) return null;
+    const seconds = durationSeconds(video.duration);
     const url = watchUrl(video);
-    const thumbnails = ['maxresdefault', 'sddefault', 'hqdefault']
-        .map(size => `https://i.ytimg.com/vi/${video.videoId}/${size}.jpg`);
+    const image = String(video.thumbnail || '');
+    const thumbnail = /^https:\/\/(?:i\.ytimg\.com|img\.youtube\.com)\//.test(image)
+        ? image : `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
     const videoObject = {
         '@type': 'VideoObject',
         '@id': `${url}#video`,
         name: video.title,
         description,
-        thumbnailUrl: thumbnails,
-        uploadDate: video.publishedAt || video.scrapedAt || undefined,
+        thumbnailUrl: [thumbnail],
+        uploadDate,
         duration: isoDuration(seconds) || undefined,
         embedUrl: `https://www.youtube-nocookie.com/embed/${video.videoId}`,
-        contentUrl: `https://www.youtube.com/watch?v=${video.videoId}`,
         url,
-        isFamilyFriendly: true,
-        inLanguage: 'en',
         ...(channelName ? { author: { '@type': 'Organization', name: channelName, ...(video.attributionUrl ? { url: video.attributionUrl } : {}) } } : {}),
-        ...(video.viewsCount > 0 ? {
+        ...(Number.isSafeInteger(video.viewsCount) && video.viewsCount > 0 ? {
             interactionStatistic: {
                 '@type': 'InteractionCounter',
                 interactionType: { '@type': 'WatchAction' },
@@ -168,15 +183,17 @@ export function buildVideoJsonLd(video, { channelName, description }) {
         } : {}),
         publisher: { '@type': 'Organization', name: 'Smarter.Poker', url: SITE_URL },
     };
-    const breadcrumbs = {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'World Hub', item: `${SITE_URL}/hub` },
-            { '@type': 'ListItem', position: 2, name: 'Video Library', item: `${SITE_URL}/hub/video-library` },
-            { '@type': 'ListItem', position: 3, name: video.title, item: url },
-        ],
-    };
-    return [videoObject, breadcrumbs];
+    return videoObject;
+}
+
+export function buildVideoJsonLd(video, options = {}) {
+    const videoObject = buildVideoObject(video, options);
+    const breadcrumbs = buildVideoLibraryBreadcrumbs([
+        ['World Hub', '/hub'],
+        ['Video Library', '/hub/video-library'],
+        [video.title, watchUrl(video)],
+    ]);
+    return [videoObject, breadcrumbs].filter(Boolean);
 }
 
 const XML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' };
@@ -187,7 +204,7 @@ export function xmlEscape(value) {
 /** One <url> entry of the video sitemap (Google video sitemap extension). */
 export function videoSitemapEntry(video, channelName) {
     const seconds = durationSeconds(video.duration);
-    const published = new Date(video.publishedAt || video.scrapedAt || 0);
+    const published = videoPublicationDate(video.publishedAt);
     const lines = [
         '  <url>',
         `    <loc>${xmlEscape(watchUrl(video))}</loc>`,
@@ -197,8 +214,7 @@ export function videoSitemapEntry(video, channelName) {
         `      <video:description>${xmlEscape(buildWatchDescription(video, channelName))}</video:description>`,
         `      <video:player_loc>${xmlEscape(`https://www.youtube-nocookie.com/embed/${video.videoId}`)}</video:player_loc>`,
         ...(seconds > 0 && seconds <= 28800 ? [`      <video:duration>${seconds}</video:duration>`] : []),
-        ...(Number.isFinite(published.getTime()) && published.getTime() > 0 ? [`      <video:publication_date>${published.toISOString()}</video:publication_date>`] : []),
-        '      <video:family_friendly>yes</video:family_friendly>',
+        ...(published ? [`      <video:publication_date>${published}</video:publication_date>`] : []),
         ...(channelName ? [`      <video:uploader>${xmlEscape(channelName)}</video:uploader>`] : []),
         '    </video:video>',
         '  </url>',

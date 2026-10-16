@@ -38,7 +38,7 @@ import { CHANNEL_KEY_RE } from '../../../../../src/lib/videoLibraryChannels.mjs'
 import WatchPlaybackTools, { WatchDescription, subscribeWatchPlayer } from '../../../../../src/components/video-library/WatchPlaybackTools';
 import { useYouTubeErrorManager } from '../../../../../src/hooks/useYouTubeErrorManager';
 import dynamic from 'next/dynamic';
-import SEOHead from '../../../../../src/components/seo/SEOHead';
+import SEOHead from '../../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
 import { getMenuConfig } from '../../../../../src/config/hamburgerMenus';
 import {
@@ -339,7 +339,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                             <span aria-hidden="true">/</span>
                             <Link href="/hub/video-library">Video Library</Link>
                             <span aria-hidden="true">/</span>
-                            <span aria-current="page">{typeLabel}</span>
+                            <span aria-current="page">{video.title}</span>
                         </nav>
 
                         <div className="vl-watch-page-grid">
