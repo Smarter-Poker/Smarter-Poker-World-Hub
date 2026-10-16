@@ -66,11 +66,13 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         captureAnchor(bottom);
         const oldest = state.current.rows.find(row => !row.is_deleted);
         const updates = entries.filter(row => state.current.rows.some(old => old.id === row.id) || !oldest || compareNotices(row, oldest) >= 0);
+        const knownIds = new Set(state.current.rows.map(row => row.id));
+        const hasNewEntries = updates.some(row => !row.is_deleted && !knownIds.has(row.id));
         state.current.rows = mergeNotices(state.current.rows, updates);
         setRows(state.current.rows);
         state.current.pinRows = mergeNotices(state.current.pinRows, entries);
         setPins(pendingPins(state.current.pinRows));
-        if (!bottom && entries.some(row => !row.is_deleted && !state.current.rows.some(old => old.id === row.id && old.version > row.version))) setNewItems(true);
+        if (!bottom && hasNewEntries) setNewItems(true);
     }
     async function hydrate() {
         const s = state.current;
@@ -145,12 +147,22 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         } catch (failure) { if (s.alive) setError(failure.message); }
         finally { if (s.alive) { s.loading = false; setOlderLoading(false); if (s.refreshAfterLoad) { s.refreshAfterLoad = false; void hydrate(); } } }
     }
+    useEffect(() => {
+        if (!editing) return;
+        const entry = [...state.current.rows, ...state.current.pinRows].find(row => row.id === editing.id && row.is_deleted);
+        if (!entry) return;
+        setEditing(null); setDraft('');
+        setError('This Notice Was Removed. Your Edit Was Not Saved.');
+    }, [rows, pins, editing]);
+
     async function mutate(method, payload) {
         if (busy) return false;
         setBusy(true); setError('');
         try {
             const result = await request(method, payload);
             if (!result) return false;
+            // A delayed read must replay acknowledged writes even without a socket.
+            if (state.current.loading) state.current.events.push(result.entry);
             accept([result.entry]); return true;
         } catch (failure) { if (state.current.alive) setError(failure.message); return false; }
         finally { if (state.current.alive) setBusy(false); }
@@ -182,6 +194,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                 <button type="button" disabled={busy} style={button} onClick={() => void mutate('PATCH', { id: row.id, version: row.version, is_pinned: !row.is_pinned })}>{row.is_pinned ? 'Unpin' : 'Pin'}</button>
                 <button type="button" disabled={busy} style={button} onClick={() => { if (window.confirm('Confirm This Payout Has Already Been Paid? This Updates The Board Record Only.')) void mutate('PATCH', { id: row.id, version: row.version, status: 'paid' }); }}>Mark As Paid</button>
             </>}
+            {row.status === 'paid' && <button type="button" disabled={busy} style={button} onClick={() => { if (window.confirm('Reopen This Payout Request? This Updates The Board Record Only.')) void mutate('PATCH', { id: row.id, version: row.version, status: 'pending_payout', is_pinned: true }); }}>Reopen Payout</button>}
             <button type="button" disabled={busy} style={button} onClick={() => { if (window.confirm('Remove This Notice From The Board?')) void mutate('DELETE', { id: row.id, version: row.version }); }}>Delete</button>
         </div>}
     </article>;
