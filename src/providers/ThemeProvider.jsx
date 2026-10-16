@@ -103,11 +103,21 @@ export function ThemeProvider({ children }) {
         setTheme,
     };
 
-    // Prevent flash of wrong theme
-    if (!mounted) {
-        return <div style={{ visibility: 'hidden' }}>{children}</div>;
-    }
-
+    // ONE TREE ON EVERY RENDER (2026-10-16). This used to return
+    // <div style={{ visibility: 'hidden' }}>{children}</div> until the mount
+    // effect ran, then the Provider. That did two things to every page:
+    //   1. nothing the server rendered could paint until the whole app had
+    //      downloaded, parsed and hydrated, so first paint and Largest
+    //      Contentful Paint waited on JavaScript (mobile budget failures on
+    //      /hub/personal-assistant and /hub/news, Global Footer E2E
+    //      38847919432 and 38941797654);
+    //   2. the root element changed type from div to Provider on the first
+    //      effect, so React unmounted and remounted the entire application
+    //      below this point - every provider, the page, its effects and its
+    //      requests ran twice on every load.
+    // The "flash of wrong theme" it guarded against cannot happen: the
+    // variables and body class below are only applied after mount either way,
+    // and the first render on both server and client is the light default.
     return (
         <ThemeContext.Provider value={value}>
             {children}

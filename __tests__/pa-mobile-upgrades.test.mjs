@@ -86,7 +86,9 @@ test('the retry and the daily reload are guarded when the browser is offline', (
 
 test('the loading flags are the capped pair, not the raw hook flags', () => {
   const src = stripComments(read(HUB_PAGE));
-  const body = src.slice(src.indexOf('return (\n    <PageTransition>'));
+  const start = src.indexOf('return (\n    <PageTransition disableInitialAnimation>');
+  assert.ok(start > 0, 'the render body is found, so the checks below judge real code');
+  const body = src.slice(start);
   assert.doesNotMatch(body, /\bstatsLoading\b/, 'the render reads statsBusy, not the uncapped statsLoading');
   assert.doesNotMatch(body, /\bsessionsLoading\b/, 'the render reads sessionsBusy, not the uncapped sessionsLoading');
   assert.match(src, /const statsBusy = statsLoading && dataLoading;/);
