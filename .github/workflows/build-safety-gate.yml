@@ -1481,6 +1481,7 @@ jobs:
             __tests__/the-faq-answers-its-own-questions.law.test.mjs \
             __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
             __tests__/the-feeds-say-what-they-hold.law.test.mjs \
+            __tests__/gsc-phase1-geo-meta-tags.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # Phase 9-12 Trivia contracts stay focused and run once in the existing
