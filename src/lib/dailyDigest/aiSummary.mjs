@@ -88,7 +88,11 @@ export async function generateAiSummary(digest, { apiKey = process.env.ANTHROPIC
                 }),
             });
             if (!res.ok) {
-                lastReason = `http_${res.status}`;
+                // Anthropic error bodies carry a type and a human message, never the key
+                const body = await res.json().catch(() => ({}));
+                const detail = [body?.error?.type, body?.error?.message].filter(Boolean).join(': ').slice(0, 200);
+                lastReason = `http_${res.status}${detail ? ` ${detail}` : ''} (${mdl})`;
+                console.warn('[daily-digest] ai summary model call failed', lastReason);
                 continue;
             }
             const json = await res.json();
@@ -100,5 +104,6 @@ export async function generateAiSummary(digest, { apiKey = process.env.ANTHROPIC
             lastReason = String(err?.message || err).slice(0, 120);
         }
     }
+    if (lastReason) console.warn('[daily-digest] ai summary using fallback', lastReason);
     return { text: fallbackSummary(digest), source: 'fallback', reason: lastReason };
 }
