@@ -1,3 +1,4 @@
+import { reelYouTubeFrameHtml } from '../src/lib/reelsSeo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -16,15 +17,15 @@ async function fixture(props={}) {
     getOptions(module){return module==='captions'?['fontSize','reload']:this.modules;}
     setOption(...args){calls.push(['option',...args]);}mute(){calls.push(['mute']);}unMute(){calls.push(['unmute']);}setVolume(){}
     playVideo(){calls.push(['play']);this.state=1;}pauseVideo(){calls.push(['pause']);this.state=2;}seekTo(seconds){calls.push(['seek',seconds]);this.seconds=seconds;}
-    loadVideoById(value){this.videoId=value.videoId;this.state=1;calls.push(['load',value.videoId]);}cueVideoById(value){this.videoId=value.videoId;this.state=5;calls.push(['cue',value.videoId]);}destroy(){calls.push(['destroy']);}
+    loadVideoById(value){this.videoId=value.videoId;this.state=1;calls.push(['load',value.videoId]);}cueVideoById(value){this.videoId=value.videoId;this.state=5;calls.push(['cue',value.videoId]);}destroy(){calls.push(['destroy']);if(this.frame.parentNode)this.frame.parentNode.frame=null;}
   }};
   const path='../src/components/reels/ReelYouTubePlayer.jsx';
   const source=ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{fileName:path,compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   const mod={exports:{}};
-  new Function('require','module','exports','window','document','setTimeout','clearTimeout',source)(name=>name.endsWith('loadReelYouTubeAPI.mjs')?{loadReelYouTubeAPI:()=>Promise.resolve(YT)}:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds:()=>null}:require(name),mod,mod.exports,win,doc,(fn,ms)=>{timers.set(++nextTimer,{fn,ms});return nextTimer;},id=>timers.delete(id));
+  new Function('require','module','exports','window','document','setTimeout','clearTimeout',source)(name=>name.endsWith('loadReelYouTubeAPI.mjs')?{loadReelYouTubeAPI:()=>Promise.resolve(YT)}:name.endsWith('reelGestureNavigation.mjs')?{reelSeekSeconds:()=>null}:name.endsWith('reelsSeo.mjs')?{reelYouTubeFrameHtml}:require(name),mod,mod.exports,win,doc,(fn,ms)=>{timers.set(++nextTimer,{fn,ms});return nextTimer;},id=>timers.delete(id));
   const commandRef={current:null},iframeRef={current:null};
   let current={videoId:'AAAAAAAAAAA',playbackScopeKey:'account-a',commandRef,iframeRef,eventRef:{current:event=>events.push({...event,frameAtDelivery:iframeRef.current})},onCaptionsStateChange:value=>captions.push(value),...props},tree;
-  await act(async()=>{tree=create(React.createElement(mod.exports.default,current),{createNodeMock:()=>({appendChild(){}})});});
+  await act(async()=>{tree=create(React.createElement(mod.exports.default,current),{createNodeMock:()=>({frame:null,querySelector(){return this.frame;},appendChild(frame){this.frame=frame;frame.parentNode=this;}})});});
   return {calls,instances,captions,events,timers,doc,commandRef,iframeRef,act,tree,
     ready:async()=>act(async()=>instances.at(-1).events.onReady()),
     update:async values=>{current={...current,...values};await act(async()=>tree.update(React.createElement(mod.exports.default,current)));},

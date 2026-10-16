@@ -204,20 +204,13 @@ function itemList(name, nodes) {
   };
 }
 
-/**
- * ItemList of VideoObject for reels. A reel without a thumbnail is left out
- * of the schema (it is still listed in the HTML): VideoObject requires name,
- * thumbnailUrl and uploadDate, and an incomplete node is worse than none.
- */
+/** Browsing feeds link to watch pages without claiming each video is primary. */
 export function reelsItemListSchema(items, origin = 'https://smarter.poker') {
   const nodes = (items || [])
-    .filter((r) => r && r.caption && r.thumbnailUrl && r.createdAt)
+    .filter((r) => r && r.caption && r.href)
     .map((r) => ({
-      '@type': 'VideoObject',
+      '@type': 'WebPage',
       name: r.caption,
-      description: r.caption,
-      thumbnailUrl: r.thumbnailUrl,
-      uploadDate: r.createdAt,
       url: `${origin}${r.href}`,
     }));
   return itemList('Latest Reels On Smarter Poker', nodes);

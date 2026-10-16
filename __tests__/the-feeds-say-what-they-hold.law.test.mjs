@@ -93,7 +93,7 @@ test('Reels SSR uses the canonical mixed reader directly, bounded and without pe
   assert.ok(gssp, 'Reels must export getServerSideProps');
   assert.match(gssp[1], /await readCanonicalCrawlerReels\(\)/);
   assert.match(gssp[1], /feedListingCacheHeaders\(res\)/);
-  assert.match(src, /import \{ readPokerReelsFeed \} from '\.\.\/\.\.\/src\/lib\/server\/reelsFeed'/);
+  assert.match(src, /import \{[^}]*\breadPokerReelsFeed\b[^}]*\} from '\.\.\/\.\.\/src\/lib\/server\/reelsFeed'/);
   assert.match(src, /readPokerReelsFeed\(\{[\s\S]*?limit: FEED_LISTING_LIMIT,[\s\S]*?scope: 'all',[\s\S]*?category: 'for-you',[\s\S]*?includeProfiles: false/);
   assert.match(src, /withDeadline\([\s\S]*?REELS_FEED_LISTING_TIMEOUT_MS,[\s\S]*?null/);
   assert.match(src, /result\?\.category !== 'for-you'/);
@@ -174,17 +174,16 @@ test('reels: mixed canonical rows keep only public listing fields and a real lin
   assert.equal(toReelListing(many).length, FEED_LISTING_LIMIT);
 });
 
-test('reels schema: VideoObject only where name, thumbnail and upload date all exist', () => {
+test('Reels feeds link to watch pages without claiming browse pages are video watch pages', () => {
   const items = toReelListing([REEL(), REEL({ id: 'r2', thumbnail_url: null, video_url: 'v2' })]);
   const schema = reelsItemListSchema(items);
   assert.equal(schema['@type'], 'ItemList');
   assert.equal(schema.name, 'Latest Reels On Smarter Poker');
-  assert.equal(schema.itemListElement.length, 1);
-  const v = schema.itemListElement[0].item;
-  assert.equal(v['@type'], 'VideoObject');
-  for (const k of ['name', 'thumbnailUrl', 'uploadDate']) assert.ok(v[k], `${k} required`);
-  assert.equal(v.url, 'https://smarter.poker/hub/reels?id=r1');
-  assert.equal(reelsItemListSchema(toReelListing([REEL({ thumbnail_url: null })])), null, 'no complete node, no schema');
+  assert.equal(schema.itemListElement.length, 2);
+  assert.equal(schema.itemListElement[0].item['@type'], 'WebPage');
+  assert.equal(schema.itemListElement[0].item.url, 'https://smarter.poker/hub/reels?id=r1');
+  assert.doesNotMatch(JSON.stringify(schema), /VideoObject|uploadDate|thumbnailUrl/);
+  assert.equal(reelsItemListSchema([]), null);
 });
 
 test('the Reels summary tells the truth about the approved mixed feed', () => {

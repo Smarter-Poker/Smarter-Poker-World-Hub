@@ -1606,3 +1606,39 @@ test('saved collection resolves targets in bounded batches, never per saved row'
   assert.match(resolver, /representative\?\.id !== saved\.id/);
   assert.doesNotMatch(`${contextLoader}\n${resolver}`, /for \(const saved[^)]*\)[\s\S]*client\.from/);
 });
+
+test('public detail optionally exposes only eligible catalog video facts without changing feed shape', async () => {
+  const youtubeId = 'dQw4w9WgXcQ';
+  const checkedAt = new Date().toISOString();
+  const reel = nativeRow({
+    video_url: `https://www.youtube.com/watch?v=${youtubeId}`,
+    original_youtube_url: `https://www.youtube.com/watch?v=${youtubeId}`,
+    youtube_video_id: youtubeId,
+    source_type: 'horse', origin_type: 'horse', playback_type: 'youtube_embed',
+    topic: 'sports', rights_status: 'embed_only', canonical_asset_key: `youtube:${youtubeId}`,
+    publication_key: `horse:${youtubeId}`, created_at: checkedAt,
+  });
+  const asset = {
+    id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', youtube_video_id: youtubeId,
+    type: 'cash', availability_status: 'verified', embeddable: true,
+    availability_checked_at: checkedAt, published_at: '2020-01-02T12:00:00Z',
+    thumbnail_url: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`, duration: '3:12',
+  };
+  const tables = { social_reels: [reel], social_posts: [], profiles: [], video_library_videos: [asset], youtube_embed_failures: [] };
+  const client = createMemoryClient(tables);
+  const { readPublic, readFeed } = loadCollectionReaderHarness(client);
+  const detail = await readPublic({ client, id: reel.id, includeVideoMetadata: true });
+  assert.equal(detail.data.source_published_at, asset.published_at);
+  assert.notEqual(detail.data.source_published_at, reel.created_at);
+  assert.equal(detail.data.source_thumbnail_url, asset.thumbnail_url);
+  assert.equal(detail.data.source_duration, asset.duration);
+  assert.equal(Object.hasOwn(detail.data, '_sourceVideoMetadata'), false);
+  const ordinary = await readPublic({ client, id: reel.id });
+  assert.equal(Object.hasOwn(ordinary.data, 'source_published_at'), false);
+  const feed = await readFeed({ client, category: 'for-you', includeProfiles: false });
+  assert.equal(Object.hasOwn(feed.data[0], 'source_published_at'), false);
+  assert.equal(Object.hasOwn(feed.data[0], '_sourceVideoMetadata'), false);
+  asset.availability_checked_at = '2020-01-01T00:00:00Z';
+  const stale = await readPublic({ client, id: reel.id, includeVideoMetadata: true });
+  assert.equal(stale.data, null);
+});

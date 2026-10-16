@@ -1,3 +1,4 @@
+import './reels-seo.test.mjs';
 import './video-library-breadcrumbs.test.mjs';
 import './video-library-mobile-phase8-delivery.test.mjs';
 import './video-library-mobile-phase8-integration.test.mjs';

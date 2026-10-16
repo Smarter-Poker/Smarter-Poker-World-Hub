@@ -164,6 +164,9 @@ const LIBRARY_SELECT = [
     'youtube_video_id',
     'source_id',
     'source_name',
+    'published_at',
+    'thumbnail_url',
+    'duration',
     'type',
     'availability_status',
     'embeddable',
@@ -1048,6 +1051,13 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
         like_count: Math.max(0, Number(row.like_count || 0)),
         comment_count: Math.max(0, Number(row.comment_count || 0)),
         share_count: Math.max(0, Number(row.share_count || 0)),
+        // Internal facts follow the same eligible asset; never derive upload time
+        // from a Reel publication or availability check. Ordinary feeds strip them.
+        _sourceVideoMetadata: asset ? {
+            source_published_at: asset.published_at || null,
+            source_thumbnail_url: asset.thumbnail_url || null,
+            source_duration: asset.duration || null,
+        } : null,
         created_at: row.created_at,
         updated_at: row.updated_at || null,
         is_public: effectiveIsPublic,
@@ -2017,7 +2027,11 @@ export async function readPublicReelById(options = {}) {
         category,
     );
     return {
-        data: detail.row ? toBrowserReel(detail.row) : null,
+        data: detail.row ? {
+            ...toBrowserReel(detail.row),
+            ...(options.includeVideoMetadata === true && detail.row.is_public === true
+                ? detail.row._sourceVideoMetadata : {}),
+        } : null,
         category,
         detailStatus: detail.status,
         redirectedFrom: detail.redirectedFrom || null,

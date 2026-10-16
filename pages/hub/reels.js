@@ -104,7 +104,8 @@ import {
   toReelListing,
   withDeadline,
 } from '../../src/lib/seo/publicFeedListing.mjs';
-import { readPokerReelsFeed } from '../../src/lib/server/reelsFeed';
+import { REEL_ID_RE, reelMetadata } from '../../src/lib/reelsSeo.mjs';
+import { readPublicReelById, readPokerReelsFeed } from '../../src/lib/server/reelsFeed';
 import { capReelsInMemory, nativeDeliveryPolicy, reelsFeedModeContract, reelsFeedModeForQuery } from '../../src/lib/reelsDeliveryContract.mjs';
 
 const C = {
@@ -323,14 +324,33 @@ async function readCanonicalCrawlerReels() {
  * carries no person data. On any failure reelsListing is null and the page
  * renders without a listing.
  */
-export async function getServerSideProps({ res }) {
+export async function getServerSideProps({ res, query = {} }) {
+  if (query.id !== undefined) {
+    const id = Array.isArray(query.id) ? query.id[0] : query.id;
+    if (!REEL_ID_RE.test(String(id || ''))) return { notFound: true };
+    try {
+      const detail = await withDeadline(readPublicReelById({ id, category: 'for-you', includeVideoMetadata: true }), REELS_FEED_LISTING_TIMEOUT_MS, null);
+      if (!detail) throw new Error('Reel detail read timed out');
+      if (!detail.data) {
+        res.setHeader('Cache-Control', 'public, s-maxage=60');
+        return { notFound: true };
+      }
+      feedListingCacheHeaders(res);
+      return { props: { initialReel: detail.data, reelsListing: null } };
+    } catch (error) {
+      res.statusCode = 503;
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Retry-After', '120');
+      return { props: { reelsUnavailable: true, reelsListing: null } };
+    }
+  }
   feedListingCacheHeaders(res);
   const reelsListing = await readCanonicalCrawlerReels();
   return { props: { reelsListing } };
 }
 
-export default function ReelsPage({ reelsListing = null }) {
-  const [reels, setReels] = useState([]);
+export default function ReelsPage({ reelsListing = null, initialReel = null, reelsUnavailable = false }) {
+  const [reels, setReels] = useState(() => initialReel ? [initialReel] : []);
   // The feed client also performs eager cleanup at module load, but Pages
   // Router hydration can reuse a server-evaluated module graph. Repeat the
   // idempotent cleanup after the browser mounts so an old localStorage Reel
@@ -358,8 +378,8 @@ export default function ReelsPage({ reelsListing = null }) {
   const reelRealtimeFilterRef = useRef(null);
   if (!reelRealtimeFilterRef.current) reelRealtimeFilterRef.current = createReelRealtimeChangeFilter();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const [loading, setLoading] = useState(!initialReel);
+  const [loadError, setLoadError] = useState(reelsUnavailable ? 'unavailable' : null);
   const [followingReauthRequired, setFollowingReauthRequired] = useState(false);
   const loadErrorRef = useRef(null);
   loadErrorRef.current = loadError;
@@ -1256,6 +1276,12 @@ export default function ReelsPage({ reelsListing = null }) {
   }, [reels.length, router.query.id]);
 
   const currentReel = reels[currentIndex];
+  const watchMetadata = reelMetadata(initialReel && currentReel?.id === initialReel.id && currentReel.is_public === true ? {
+    ...currentReel,
+    source_published_at: initialReel.source_published_at,
+    source_thumbnail_url: initialReel.source_thumbnail_url,
+    source_duration: initialReel.source_duration,
+  } : null);
   const captionUploadRef = useRef(null);
   const enhancements = useReelsEnhancements({
     reels, currentIndex, setReels: setReels, ownerId: user?.id || null,
@@ -2746,6 +2772,7 @@ export default function ReelsPage({ reelsListing = null }) {
           title={`${routePresentation.title} - Short Video Content`}
           description={`Watch And Share Verified ${routePresentation.label} Video On Smarter.Poker Reels. Free To Watch With Source Attribution And Playable Media Checks.`}
           canonical="/hub/reels"
+          noindex={reelsUnavailable}
         />
         {reelsNavigationHeader}
         {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
@@ -2887,39 +2914,10 @@ export default function ReelsPage({ reelsListing = null }) {
 
   return (
     <>
+      <SEOHead title={watchMetadata.title} description={watchMetadata.description} canonical={watchMetadata.canonical} ogImage={watchMetadata.image || undefined} ogType={watchMetadata.schema ? 'video.other' : 'website'} />
       <Head>
-        <title>
-          {currentReel?.caption
-            ? `${currentReel.caption.slice(0, 60)} | Reels`
-            : 'Reels | Smarter Poker'}
-        </title>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
-        />
-        {/* Dynamic OpenGraph for shared reel links */}
-        <meta
-          property="og:title"
-          content={
-            currentReel?.caption ? currentReel.caption.slice(0, 70) : 'Reel On Smarter.Poker'
-          }
-        />
-        <meta
-          property="og:description"
-          content={`By ${currentSourceName}. Watch ${currentTopicLabel} Reels On Smarter.Poker`}
-        />
-        {videoId && (
-          <meta
-            property="og:image"
-            content={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-          />
-        )}
-        <meta property="og:type" content="video.other" />
-        <meta
-          property="og:url"
-          content={`https://smarter.poker${currentReel?.id ? buildReelPath(currentReel) : '/hub/reels'}`}
-        />
-        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {watchMetadata.schema ? <script key="reels-watch-video" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(watchMetadata.schema).replace(/</g, '\\u003c') }} /> : null}
       </Head>
 
       {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
@@ -2932,7 +2930,7 @@ export default function ReelsPage({ reelsListing = null }) {
 
       <main key="reels-viewer" className={`${styles.viewerShell} ${immersiveStyles.root}`} data-reels-experience="immersive">
         <section className={styles.liveConsole} data-reels-console aria-label={`${currentTopicLabel} Reels Viewer`}>
-          <h1 className="sp-reels-sr-only">Reels</h1>
+          <h1 className="sp-reels-sr-only">{currentReel?.caption || 'Reels'}</h1>
           <header data-reels-topbar>
             <ReelAction icon="back" onClick={() => router.push('/hub/social-media')}>Back To Feed</ReelAction>
             <ReelCaptionControl native={currentReel?.playback_type === 'native'} reel={currentReel} ownerId={user?.id || null} getAccessToken={getAccessToken} uploadCommandRef={captionUploadRef} videoRef={videoRef} requested={enhancements.captionRequested} onToggle={enhancements.toggleCaptions} state={{...enhancements.captionState, videoId: currentReel?.id}} />
