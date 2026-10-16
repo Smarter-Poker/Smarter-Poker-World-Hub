@@ -12,13 +12,14 @@ import { supabase } from '../../src/lib/supabase';
 import { isEmailVerificationCode } from '../../src/lib/signupExperience.mjs';
 import { Mail } from 'lucide-react';
 import { getAccessToken } from '../../src/lib/authUtils';
+import SignupWelcome from '../../src/components/auth/SignupWelcome';
 import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
 import {
   authSwitchHref,
-  claimInvite,
   readPendingInvite,
   rememberInvite,
   safeClubArenaPath,
+  resolveSignupClubPath,
 } from '../../src/lib/clubInvite';
 // [Phase 6.1.20] Password strength + HIBP breach-list check
 import {
@@ -175,6 +176,7 @@ export default function SignUpPage() {
   // Email verification code state
   const [verificationCode, setVerificationCode] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [signupClubPath, setSignupClubPath] = useState(null);
 
   // PHONE VERIFICATION MOVED OUT OF SIGNUP (2026-10-07, Dan). The number is
   // no longer collected here. A new player verifies it on /hub/verify-phone
@@ -689,8 +691,12 @@ export default function SignUpPage() {
         // Email confirmation required - show pending screen
         setStep('email_pending');
       } else {
-        // Email already confirmed or auto-confirmed - show success
+        // Auto-confirmed signups carry the same invitation as code confirmation.
+        const next = await resolveSignupClubPath(authData.session,
+          Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
+        setSignupClubPath(next);
         setStep('success');
+        if (next) window.location.replace(next);
       }
     } catch (err) {
       console.warn('Signup error:', err);
@@ -736,7 +742,7 @@ export default function SignUpPage() {
     setError('');
 
     if (!isEmailVerificationCode(verificationCode)) {
-      setError('Enter The Complete Verification Code From Your Email.');
+      setError('Enter The Six-Digit Verification Code From Your Email.');
       return;
     }
 
@@ -771,8 +777,12 @@ export default function SignUpPage() {
         }
       }
 
-      // Email verified successfully - show success
+      const next = await resolveSignupClubPath(data?.session,
+        Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
+      setSignupClubPath(next);
       setStep('success');
+      // Club Arena is a separate application; enter its real join route directly.
+      if (next) window.location.replace(next);
     } catch (err) {
       console.warn('Verification error:', err);
       setError(err.message || 'Invalid verification code. Please try again.');
@@ -1702,7 +1712,7 @@ export default function SignUpPage() {
 
                 <h2 style={styles.successTitle}>Verify Your Email</h2>
 
-                <p style={styles.emailPendingText}>Enter The Verification Code Sent To:</p>
+                <p style={styles.emailPendingText}>Enter The Six-Digit Verification Code Sent To:</p>
                 <p style={styles.emailHighlight}>{formData.email}</p>
 
                 {/* THE OTP STEP HAD NO ERROR SURFACE AT ALL (fixed 2026-08-25).
@@ -1730,11 +1740,11 @@ export default function SignUpPage() {
                       id="signup-email-code"
                       type="text"
                       inputMode="numeric"
-                      pattern="(?:[0-9]{6}|[0-9]{8})"
+                      pattern="[0-9]{6}"
                       aria-describedby="signup-code-help"
                       value={verificationCode}
                       onChange={(e) =>
-                        setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 8))
+                        setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))
                       }
                       placeholder="Enter Code"
                       style={{
@@ -1752,7 +1762,7 @@ export default function SignUpPage() {
                         borderRadius: 12,
                         boxShadow: 'inset 0 3px 8px #000, 0 1px 0 #657c90',
                       }}
-                      maxLength={8}
+                      maxLength={6}
                       autoComplete="one-time-code"
                       autoFocus
                     />
@@ -1796,69 +1806,20 @@ export default function SignUpPage() {
                         SUCCESS — ACCOUNT CREATED
                         ═══════════════════════════════════════════════════════════════ */}
             {step === 'success' && (
-              <div style={styles.successContainer}>
-                <div style={styles.successIcon}>🎉</div>
-
-                <h2 style={styles.successTitle}>Welcome To Smarter.Poker!</h2>
-
-                <div style={styles.playerNumberCard}>
-                  <span style={styles.playerNumberLabel}>Your Player Number</span>
-                  <span style={styles.playerNumber}>#{assignedPlayerNumber || '-'}</span>
-                  <span style={styles.playerNumberInfo}>
-                    Your Universal ID Across PokerIQ, Training & Club Arena
-                  </span>
-                </div>
-
-                <div style={styles.profileSummary}>
-                  <div style={styles.profileRow}>
-                    <span style={styles.profileLabel}>Alias</span>
-                    <span style={styles.profileValue}>{formData.pokerAlias}</span>
-                  </div>
-                  <div style={styles.profileRow}>
-                    <span style={styles.profileLabel}>Location</span>
-                    <span style={styles.profileValue}>
-                      {formData.city}, {formData.state}
-                    </span>
-                  </div>
-                  <div style={styles.profileRow}>
-                    <span style={styles.profileLabel}>Welcome Package</span>
-                    <span style={styles.profileValue}>VIP Card + 💎 500 (Verify Phone)</span>
-                  </div>
-                  <div style={styles.profileRow}>
-                    <span style={styles.profileLabel}>Skill Tier</span>
-                    <span style={styles.profileValue}>Newcomer</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={async () => {
-                    // Set flag so hub plays intro animation
-                    sessionStorage.setItem('just_authenticated', 'true');
-                    // Arrived on a club invite: attach this account to it now,
-                    // and after the phone step go straight to that club's join
-                    // page (Dan 2026-10-15).
-                    // The ?redirect= join page is the fallback even when the
-                    // claim fails, so the player still reaches the club.
-                    let next = safeClubArenaPath(
-                      Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
-                    );
-                    try {
-                      const claimed = await claimInvite(getAccessToken());
-                      next = safeClubArenaPath(claimed?.join_path) || next;
-                    } catch (_claimErr) {
-                      /* the club join page claims again from the stored code */
-                    }
-                    // A brand-new player's first screen is the welcome package:
-                    // verify a phone for the VIP card + 500 diamonds, or skip.
-                    router.push(
-                      `/hub/verify-phone?welcome=1${next ? `&next=${encodeURIComponent(next)}` : ''}`
-                    );
-                  }}
-                  style={styles.submitButton}
-                >
-                  Claim Welcome Package →
-                </button>
-              </div>
+              <SignupWelcome
+                playerNumber={assignedPlayerNumber}
+                alias={formData.pokerAlias}
+                city={formData.city}
+                state={formData.state}
+                onContinue={() => window.location.assign(signupClubPath || '/hub/club-arena')}
+                onVerifyPhone={async () => {
+                  const next = signupClubPath || await resolveSignupClubPath(
+                    { access_token: getAccessToken() },
+                    Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
+                  );
+                  router.push(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || '/hub/club-arena/')}`);
+                }}
+              />
             )}
 
             {step !== 'success' && step !== 'email_pending' && (

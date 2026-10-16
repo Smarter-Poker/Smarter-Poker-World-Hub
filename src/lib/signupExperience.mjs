@@ -1,7 +1,7 @@
-// Email OTP length is provider controlled. Accept current 8-digit and legacy
-// 6-digit tokens intact; Supabase remains the verification authority.
+// Production email OTP is configured to six digits, the provider minimum.
+// The owner requires a maximum of six; eight-digit tokens are never accepted.
 export function isEmailVerificationCode(code) {
-    return /^(?:\d{6}|\d{8})$/.test(code);
+    return /^\d{6}$/.test(code);
 }
 
 export const INSTALL_ACCOUNT_DELAY_MS = 180_000;
