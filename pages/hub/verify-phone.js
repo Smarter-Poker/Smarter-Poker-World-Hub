@@ -209,7 +209,7 @@ export default function VerifyPhonePage() {
         } finally {
             setBusy(false);
         }
-    }, [busy, code, digits, user?.id, isWelcome]);
+    }, [busy, code, digits, user?.id, isWelcome, nextPath]);
 
     const skip = useCallback(() => {
         if (busy) return;
