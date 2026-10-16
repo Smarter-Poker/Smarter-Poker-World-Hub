@@ -27,6 +27,10 @@ import {
   cacheRowIsServingEligible,
   withPersistedCacheReceipt,
 } from '../../../src/lib/training/cacheTruthPersistence.mjs';
+import {
+  DAILY_ELIGIBLE_SOURCE_CLASSIFICATIONS,
+  scanDailyCandidates,
+} from '../../../src/lib/training/dailyCandidateScan.mjs';
 
 const DAILY_GAME_ID = 'daily-challenge';
 const DAILY_LEVEL = 1;
@@ -101,23 +105,52 @@ function canonicalizeCandidate(row) {
     : null;
 }
 
-async function readCandidateRange(start, end) {
-  return runTrainingPersistenceQuery(
+const CANDIDATE_COLUMNS = 'question_data, question_id, game_id, engine_type, question_kind, level, canonical_policy, source_classification, quality_status, policy_version, policy_checksum';
+
+// The question_id at one position of the full ordered set the day's offset is
+// defined over (kind + quality status). Index-only, one row.
+async function readCandidateIdAt(position) {
+  const result = await runTrainingPersistenceQuery(
     () => getSupabase()
       .from('training_question_cache')
-      .select('question_data, question_id, game_id, engine_type, question_kind, level, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
+      .select('question_id')
       .in('question_kind', DAILY_ENGINE_TYPES)
       .in('quality_status', ['active', 'active_fallback'])
       .order('question_id', { ascending: true })
-      .range(start, end),
+      .range(position, position),
+    { label: 'DailyChallenge:candidate-start' },
+  );
+  const rows = Array.isArray(result.data) ? result.data : [];
+  return rows.length === 1 ? rows[0]?.question_id || null : null;
+}
+
+// One page of rows that can be eligible, in the same question_id order.
+async function readCandidatePage({ fromId, afterId, beforeId, limit }) {
+  const result = await runTrainingPersistenceQuery(
+    () => {
+      let query = getSupabase()
+        .from('training_question_cache')
+        .select(CANDIDATE_COLUMNS)
+        .in('question_kind', DAILY_ENGINE_TYPES)
+        .in('quality_status', ['active', 'active_fallback'])
+        .in('source_classification', DAILY_ELIGIBLE_SOURCE_CLASSIFICATIONS);
+      if (fromId) query = query.gte('question_id', fromId);
+      if (afterId) query = query.gt('question_id', afterId);
+      if (beforeId) query = query.lt('question_id', beforeId);
+      return query.order('question_id', { ascending: true }).limit(limit);
+    },
     { label: 'DailyChallenge:candidate-read' },
   );
+  return Array.isArray(result.data) ? result.data : [];
 }
 
 /**
  * Pick the first contract-valid row in a stable circular ordering seeded by
  * the Chicago product date. An invalid cache row can never make the daily
  * challenge leak, disappear, or silently fall back to an invented question.
+ * Rows whose classification can never pass the campaign contract are skipped
+ * in SQL (src/lib/training/dailyCandidateScan.mjs explains why the winner is
+ * unchanged).
  */
 async function selectDailyCanonicalQuestion(today) {
   const countResult = await runTrainingPersistenceQuery(
@@ -131,24 +164,14 @@ async function selectDailyCanonicalQuestion(today) {
   const count = Number(countResult.count || 0);
   if (!Number.isInteger(count) || count < 1) return null;
 
-  const initialOffset = dateHash(today) % count;
-  let scanned = 0;
-  while (scanned < count) {
-    const start = (initialOffset + scanned) % count;
-    const remainingBeforeWrap = count - start;
-    const take = Math.min(CANDIDATE_BATCH_SIZE, count - scanned, remainingBeforeWrap);
-    const result = await readCandidateRange(start, start + take - 1);
-    const rows = Array.isArray(result.data) ? result.data : [];
-    for (const row of rows) {
-      const candidate = canonicalizeCandidate(row);
-      if (candidate) return candidate;
-    }
-    // A short page means the cache changed during selection. Retrying would no
-    // longer be deterministic for this request, so fail closed.
-    if (rows.length !== take) return null;
-    scanned += take;
-  }
-  return null;
+  return scanDailyCandidates({
+    count,
+    offset: dateHash(today) % count,
+    pageSize: CANDIDATE_BATCH_SIZE,
+    readIdAt: readCandidateIdAt,
+    readPage: readCandidatePage,
+    canonicalize: canonicalizeCandidate,
+  });
 }
 
 function sealedDailyCandidate(seal, snapshot) {
