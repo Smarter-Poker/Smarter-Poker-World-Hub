@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     const isNumeric = /^\d+$/.test(String(id).trim());
     let query = getSupabase()
       .from('poker_venues')
-      .select('id, name, venue_type, city, state, address, phone, tables_count, about, website, logo_url');
+      .select('id, name, venue_type, city, state, address, phone, poker_tables, about, website, logo_url');
 
     if (isNumeric) {
       query = query.eq('id', parseInt(id, 10));
@@ -53,13 +53,14 @@ export default async function handler(req, res) {
     }
 
     const vid = String(data.id);
+    const tables = data.poker_tables != null ? data.poker_tables : null;
     const ogParams = new URLSearchParams({
       id: vid,
       name: data.name || '',
       city: data.city || '',
       state: data.state || '',
       type: data.venue_type || '',
-      tables: data.tables_count ? String(data.tables_count) : '',
+      tables: tables ? String(tables) : '',
     });
 
     const venue = {
@@ -70,7 +71,7 @@ export default async function handler(req, res) {
       state: data.state,
       address: data.address,
       phone: data.phone,
-      tablesCount: data.tables_count,
+      tablesCount: tables,
       description: data.about || null,
       website: data.website || null,
       url: `https://smarter.poker/hub/venues/${encodeURIComponent(vid)}`,

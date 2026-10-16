@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   try {
     let q = getSupabase()
       .from('poker_venues')
-      .select('id, name, venue_type, city, state, address, phone, tables_count, logo_url')
+      .select('id, name, venue_type, city, state, address, phone, poker_tables, logo_url')
       .order('name', { ascending: true })
       .limit(parsedLimit);
 
@@ -57,13 +57,14 @@ export default async function handler(req, res) {
 
     const venues = (data || []).map((v) => {
       const vid = String(v.id);
+      const tables = v.poker_tables != null ? v.poker_tables : null;
       const ogParams = new URLSearchParams({
         id: vid,
         name: v.name || '',
         city: v.city || '',
         state: v.state || '',
         type: v.venue_type || '',
-        tables: v.tables_count ? String(v.tables_count) : '',
+        tables: tables ? String(tables) : '',
       });
 
       return {
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
         state: v.state,
         address: v.address,
         phone: v.phone,
-        tablesCount: v.tables_count,
+        tablesCount: tables,
         url: `https://smarter.poker/hub/venues/${encodeURIComponent(vid)}`,
         ogImageUrl: `https://smarter.poker/api/og/venue-card?${ogParams.toString()}`,
       };

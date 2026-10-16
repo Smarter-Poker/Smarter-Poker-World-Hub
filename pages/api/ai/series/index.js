@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   try {
     let q = getSupabase()
       .from('tournament_series')
-      .select('id, name, venue_name, city, state, start_date, end_date, total_events, main_event_buyin, main_event_guaranteed, logo_url')
+      .select('id, name, venue_name, city, state, start_date, end_date, total_events, main_event_buyin, main_event_guaranteed')
       .order('id', { ascending: false })
       .limit(parsedLimit);
 
