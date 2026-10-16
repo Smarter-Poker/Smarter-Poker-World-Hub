@@ -105,6 +105,26 @@ test('PokerNews first-party OpenGraph returns the actual story image, never its 
   assert.equal(res.headers['cache-control'], 'private, no-store');
 });
 
+test('Upswing JSON, media and page fallback use server negotiation instead of the rejected browser identity', async () => {
+  const article = 'https://upswingpoker.com/how-to-respond-big-blind-small-blind-too-tight/';
+  const image = 'https://upswingpoker.com/wp-content/uploads/2026/09/1200x630-2.jpg';
+  for (const fallback of [false, true]) {
+    const calls = [];
+    const { read } = loadKnownPublisherReader(async (url, options) => {
+      calls.push(url);
+      assert.equal(options.headers['User-Agent'], undefined, 'Chrome impersonation produces a real publisher HTTP403');
+      assert.match(options.headers.Accept, /application\/json/);
+      assert.equal(options.redirect, 'error');
+      if (url.includes('/posts?')) return { ok: true, text: async () => JSON.stringify([{ link: article, featured_media: 793986 }]) };
+      if (url.includes('/media/')) return { ok: !fallback, text: async () => JSON.stringify({ source_url: image }) };
+      assert.equal(url, article);
+      return { ok: true, text: async () => `<meta property="og:image" content="${image}">` };
+    });
+    assert.equal((await read(article)).image, image);
+    assert.equal(calls.length, fallback ? 3 : 2);
+  }
+});
+
 test('Upswing first-party WordPress metadata resolves its featured article image', async () => {
   const calls = [];
   const { read } = loadKnownPublisherReader(async (url) => {
