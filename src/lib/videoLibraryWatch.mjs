@@ -154,6 +154,7 @@ export function buildVideoJsonLd(video, { channelName, description }) {
         uploadDate: video.publishedAt || video.scrapedAt || undefined,
         duration: isoDuration(seconds) || undefined,
         embedUrl: `https://www.youtube-nocookie.com/embed/${video.videoId}`,
+        contentUrl: `https://www.youtube.com/watch?v=${video.videoId}`,
         url,
         isFamilyFriendly: true,
         inLanguage: 'en',

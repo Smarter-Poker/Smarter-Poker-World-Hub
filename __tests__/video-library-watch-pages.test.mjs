@@ -65,6 +65,7 @@ test('Google gets a VideoObject and breadcrumbs for each page', () => {
     assert.equal(object['@type'], 'VideoObject');
     assert.equal(object.duration, 'PT18M42S');
     assert.equal(object.embedUrl, 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+    assert.equal(object.contentUrl, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
     assert.equal(object.url, 'https://smarter.poker/hub/video-library/watch/dQw4w9WgXcQ/huge-pot-vs-negreanu');
     assert.equal(object.interactionStatistic.userInteractionCount, 65000);
     assert.equal(crumbs['@type'], 'BreadcrumbList');
@@ -128,3 +129,28 @@ test('the watch page thumbnail fills the player with no black band', () => {
     assert.match(rule[1], /inset: 0;/);
     assert.match(rule[1], /object-fit: cover;/);
 });
+
+test('channel and player detail pages provide VideoObject ItemList structured data', async () => {
+    const { buildChannelJsonLd } = await import('../src/lib/videoLibraryChannels.mjs');
+    const { buildPlayerJsonLd } = await import('../src/lib/videoLibraryPlayers.mjs');
+
+    const channel = { id: 'HCL', name: 'Hustler Casino Live', description: 'Verified Videos', path: '/hub/video-library/channels/HCL', logo: '/hcl.webp', externalUrl: 'https://youtube.com/@Hustler' };
+    const videos = [{ videoId: 'abc12345678', title: 'Epic Hand', thumbnail: 'https://img.youtube.com/vi/abc12345678/hqdefault.jpg' }];
+
+    const [org, cBreadcrumbs, cItemList] = buildChannelJsonLd(channel, videos);
+    assert.equal(org['@type'], 'Organization');
+    assert.equal(org.name, 'Hustler Casino Live');
+    assert.equal(cBreadcrumbs['@type'], 'BreadcrumbList');
+    assert.equal(cItemList['@type'], 'ItemList');
+    assert.equal(cItemList.itemListElement[0].item['@type'], 'VideoObject');
+    assert.equal(cItemList.itemListElement[0].item.name, 'Epic Hand');
+
+    const player = { id: 'phil-ivey', name: 'Phil Ivey', path: '/hub/video-library/players/phil-ivey' };
+    const [person, pBreadcrumbs, pItemList] = buildPlayerJsonLd(player, videos);
+    assert.equal(person['@type'], 'Person');
+    assert.equal(person.name, 'Phil Ivey');
+    assert.equal(pBreadcrumbs['@type'], 'BreadcrumbList');
+    assert.equal(pItemList['@type'], 'ItemList');
+    assert.equal(pItemList.itemListElement[0].item['@type'], 'VideoObject');
+});
+

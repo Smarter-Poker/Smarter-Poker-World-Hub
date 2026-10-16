@@ -8,6 +8,7 @@ import LiveNow from '../../../../src/components/video-library/LiveNow';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { getVideoMetaLine } from '../../../../src/lib/videoLibraryCards';
 import { watchPath } from '../../../../src/lib/videoLibraryWatch.mjs';
+import { buildChannelJsonLd } from '../../../../src/lib/videoLibraryChannels.mjs';
 import VideoThumbnail from '../../../../src/components/video-library/VideoThumbnail';
 
 const UniversalHeader = dynamic(() => import('../../../../src/components/ui/UniversalHeader'), { ssr: false });
@@ -61,7 +62,7 @@ export default function VideoChannelPage({ initial, unavailable }) {
         finally { clearTimeout(deadline); if (requestRef.current === controller) { requestRef.current = null; setLoading(false); } }
     };
     if (unavailable || !channel) return <><SEOHead title="Channel Temporarily Unavailable" noindex /><div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}><div className="vl-empty-state"><h1>This Channel Could Not Load Right Now</h1><p>The Video Catalog Did Not Answer. Try Again In A Minute.</p><Link href="/hub/video-library" className="vl-pill-button">Browse The Video Library</Link></div></HubPageShell></div></>;
-    return <><SEOHead title={`${channel.name} | Video Library`} description={channel.description || `Watch Verified Videos From ${channel.name} On Smarter.Poker.`} canonical={`https://smarter.poker${channel.path}`} />
+    return <><SEOHead title={`${channel.name} | Video Library`} description={channel.description || `Watch Verified Videos From ${channel.name} On Smarter.Poker.`} canonical={`https://smarter.poker${channel.path}`} jsonLd={buildChannelJsonLd(channel, current?.data || [])} />
         <div className="video-library-page"><HubPageShell className="video-library" maxWidth={1760} header={header}>
             <article className="vl-channel-page" data-channel-id={channel.id}>
                 <nav className="vl-breadcrumbs" aria-label="Breadcrumb"><Link href="/hub">World Hub</Link><span aria-hidden="true">/</span><Link href="/hub/video-library">Video Library</Link><span aria-hidden="true">/</span><span aria-current="page">{channel.name}</span></nav>
