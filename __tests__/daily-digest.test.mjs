@@ -111,17 +111,34 @@ test('number guard accepts numbers from the data and rejects invented ones', () 
     assert.equal(summaryPassesGuard('', d).ok, false);
 });
 
+// These tests never reach a real AI provider. The Vercel build runs this file
+// with the production XAI_API_KEY in its environment, so a call that leaves
+// `grok` at its default would import and call the live Grok client from the
+// build (2026-10-16: dpl_G9uvjpYuYJfBTa1CCmyzrqTrNesT and
+// dpl_9RjcCpPmidQzcxWiqBw9JLQJSD9m failed exactly that way). Every call passes
+// a provider stub or `grok: null`, and the Grok cases below inject their own.
+const NO_GROK = { grok: null };
+
+test('every AI summary call in this file names its Grok provider', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const src = await readFile(new URL(import.meta.url), 'utf8');
+    const call = ['generateAiSummary', '(d, {'].join('');
+    const calls = src.split(call).slice(1).map((rest) => rest.slice(0, rest.indexOf('})')));
+    assert.ok(calls.length >= 6);
+    for (const args of calls) assert.match(args, /grok/i, `a call leaves grok at its live default: ${args.slice(0, 80)}`);
+});
+
 test('ai summary falls back when the model invents a number or is unavailable', async () => {
     const d = fixture();
     const fake = async () => ({ ok: true, json: async () => ({ content: [{ type: 'text', text: 'Rake rose 999,999 chips.' }] }) });
-    const r = await generateAiSummary(d, { apiKey: 'k', fetchImpl: fake });
+    const r = await generateAiSummary(d, { apiKey: 'k', fetchImpl: fake, ...NO_GROK });
     assert.equal(r.source, 'fallback');
     assert.match(r.reason, /unverified numbers/);
     assert.equal(r.text, fallbackSummary(d));
     const good = async () => ({ ok: true, json: async () => ({ content: [{ type: 'text', text: '3 real players signed up. Cash rake was 73,222.58 chips. 3 items need attention.' }] }) });
-    const r2 = await generateAiSummary(d, { apiKey: 'k', fetchImpl: good, model: 'test-model' });
+    const r2 = await generateAiSummary(d, { apiKey: 'k', fetchImpl: good, model: 'test-model', ...NO_GROK });
     assert.equal(r2.source, 'test-model');
-    const none = await generateAiSummary(d, { apiKey: '' });
+    const none = await generateAiSummary(d, { apiKey: '', ...NO_GROK });
     assert.equal(none.reason, 'no_api_key');
 });
 
@@ -158,7 +175,7 @@ test('ai fallback reason names the provider error, never the key', async () => {
     const bad = async () => ({ ok: false, status: 400, json: async () => ({ type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } }) });
     const warn = console.warn; console.warn = () => {};
     try {
-        const r = await generateAiSummary(d, { apiKey: 'sk-secret-should-not-appear', fetchImpl: bad, model: 'm1' });
+        const r = await generateAiSummary(d, { apiKey: 'sk-secret-should-not-appear', fetchImpl: bad, model: 'm1', ...NO_GROK });
         assert.equal(r.source, 'fallback');
         assert.match(r.reason, /^http_400 invalid_request_error: Your credit balance is too low/);
         assert.ok(!r.reason.includes('sk-secret'));
