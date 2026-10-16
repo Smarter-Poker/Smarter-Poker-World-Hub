@@ -3,8 +3,8 @@ import { buildHtml, buildSubject, buildText } from './render.mjs';
 import { generateAiSummary } from './aiSummary.mjs';
 import { providerSpend, viewUrlFor } from './delivery.mjs';
 
-export async function assembleDigest(sb, day, { withAi = true, withCosts = true } = {}) {
-    const { data: digest, error } = await sb.rpc('fn_sp_daily_digest', { p_day: day });
+export async function assembleDigest(sb, day, { withAi = true, withCosts = true, dispatch = true } = {}) {
+    const { data: digest, error } = await sb.rpc('fn_sp_daily_digest', { p_day: day, p_dispatch: dispatch });
     if (error) throw new Error(`fn_sp_daily_digest: ${error.message}`);
     const [costs, ai] = await Promise.all([
         withCosts ? providerSpend(day).catch(() => null) : null,

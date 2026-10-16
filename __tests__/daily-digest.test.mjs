@@ -152,3 +152,15 @@ test('long grouped attention titles end at a complete item', () => {
     assert.ok(!/befo and more$/.test(s));
     assert.equal(shortTitle('short'), 'short');
 });
+
+test('ai fallback reason names the provider error, never the key', async () => {
+    const d = fixture();
+    const bad = async () => ({ ok: false, status: 400, json: async () => ({ type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } }) });
+    const warn = console.warn; console.warn = () => {};
+    try {
+        const r = await generateAiSummary(d, { apiKey: 'sk-secret-should-not-appear', fetchImpl: bad, model: 'm1' });
+        assert.equal(r.source, 'fallback');
+        assert.match(r.reason, /^http_400 invalid_request_error: Your credit balance is too low/);
+        assert.ok(!r.reason.includes('sk-secret'));
+    } finally { console.warn = warn; }
+});
