@@ -31,6 +31,7 @@ import {
   reportAuthError,
   takeAuthErrorDetail,
 } from '../../src/lib/authErrors';
+import { authSwitchHref } from '../../src/lib/clubInvite';
 
 // A successful Supabase sign-in updates the auth store before React finishes
 // rendering this page. A Next.js client transition at that exact boundary can
@@ -147,6 +148,17 @@ export default function LoginPage() {
     if (r && typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) return r;
     return '/hub';
   }, [router.query.redirect]);
+
+  // /auth/callback with ?next= when this page was given somewhere to return
+  // to (a club invite join page, a protected page), so a magic link or OAuth
+  // sign-in lands there too. getRedirectUrl() only ever returns a same-origin
+  // relative path.
+  const callbackUrl = useCallback(() => {
+    const base = `${window.location.origin}/auth/callback`;
+    if (!router.query.redirect) return base;
+    const target = getRedirectUrl();
+    return target.includes('\\') ? base : `${base}?next=${encodeURIComponent(target)}`;
+  }, [getRedirectUrl, router.query.redirect]);
 
   // ── [2026-08-04] Server-side error visibility ────────────────────────────
   // Local-only errors were invisible after the tab closed and looked
@@ -356,7 +368,7 @@ export default function LoginPage() {
     } catch (_ssErr) {
       /* ignore */
     }
-    router.push('/auth/signup');
+    router.push(authSwitchHref('/auth/signup', router.query));
     setIsLoading(false);
   };
 
@@ -374,7 +386,7 @@ export default function LoginPage() {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email: safeEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: callbackUrl(),
         },
       });
 
@@ -431,7 +443,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl(),
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
           // ASK FACEBOOK FOR A NAME AND A PICTURE, NOT JUST AN ADDRESS.
           // Supabase's Facebook default is `email` alone, so the session came
@@ -1013,7 +1025,7 @@ export default function LoginPage() {
             if (safeEmail) {
               try { sessionStorage.setItem('signup_email_prefill', safeEmail); } catch (_ssErr) { /* ignore */ }
             }
-            router.push('/auth/signup');
+            router.push(authSwitchHref('/auth/signup', router.query));
           }}
           style={{
             position: 'absolute',

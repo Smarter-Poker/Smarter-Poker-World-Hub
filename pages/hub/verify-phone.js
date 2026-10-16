@@ -23,7 +23,7 @@ import { supabase } from '../../src/lib/supabase';
 import { useRequireAuth, authedFetch } from '../../src/lib/authUtils';
 import { busEmit } from '../../src/engine/EventBus';
 import { showDiamondToast } from '../../src/components/diamonds/DiamondToast';
-import { safeClubArenaPath } from '../../src/lib/clubInvite';
+import { fetchPendingJoinPath, safeClubArenaPath } from '../../src/lib/clubInvite';
 
 const RESEND_COOLDOWN_S = 60;
 const DISMISS_KEY = 'phone_prompt_dismissed_at';
@@ -41,8 +41,12 @@ export default function VerifyPhonePage() {
     // Arrived on a Share & Invite link (Dan 2026-10-15): once the phone step is
     // done, or skipped, the player goes straight to that club's join page. Only
     // a Club Arena path on this origin is honoured.
-    const nextPath = safeClubArenaPath(Array.isArray(router.query.next) ? router.query.next[0] : router.query.next);
-    const selfPath = `/hub/verify-phone${isWelcome ? '?welcome=1' : ''}${nextPath ? `${isWelcome ? '&' : '?'}next=${encodeURIComponent(nextPath)}` : ''}`;
+    const queryNext = safeClubArenaPath(Array.isArray(router.query.next) ? router.query.next[0] : router.query.next);
+    // Opened without ?next= (the hamburger's verify phone entry): the account's
+    // own pending invite, if any, is where the player continues to.
+    const [pendingNext, setPendingNext] = useState(null);
+    const nextPath = queryNext || pendingNext;
+    const selfPath = `/hub/verify-phone${isWelcome ? '?welcome=1' : ''}${queryNext ? `${isWelcome ? '&' : '?'}next=${encodeURIComponent(queryNext)}` : ''}`;
 
     // The repo's guard: resolves the session through every recovery layer
     // and only bounces to /auth/login when the player really is signed out.
@@ -80,6 +84,21 @@ export default function VerifyPhonePage() {
         })();
         return () => { cancelled = true; };
     }, [user?.id]);
+
+    // No ?next=: ask the database whether this account still owes a visit to
+    // an invited club's join page.
+    useEffect(() => {
+        if (!user?.id || queryNext) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const { data } = await supabase.auth.getSession();
+                const path = await fetchPendingJoinPath(data?.session?.access_token);
+                if (!cancelled && path) setPendingNext(path);
+            } catch (_e) { /* no pending invite: the page ends on /hub as before */ }
+        })();
+        return () => { cancelled = true; };
+    }, [user?.id, queryNext]);
 
     // useRequireAuth only resolves with a null user on its way to /auth/login,
     // so a missing user keeps the skeleton up instead of flashing the form.

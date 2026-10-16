@@ -40,6 +40,11 @@ import {
 
 // Email-link `type` values that Supabase produces.
 // https://supabase.com/docs/reference/javascript/auth-verifyotp
+// Claim statuses that still owe the player a visit to the club join page,
+// and the ones that settle the invite with nowhere left to go.
+const INVITE_ROUTE_STATUSES = ['signed_up', 'verified'];
+const INVITE_SETTLED_STATUSES = ['already_member', 'joined', 'blocked'];
+
 const EMAIL_VERIFY_TYPES = new Set([
     'signup',
     'invite',
@@ -372,6 +377,10 @@ export default function AuthCallback() {
                 // invite decides where the player goes next: the phone step,
                 // then that club's join page.
                 let inviteJoinPath = null;
+                // What the claim said, so the metadata fallback below never
+                // overrides a claim that already settled where this player goes.
+                let claimAttempted = false;
+                let claimed = null;
                 // Only a young account is routed by its signup invite: the
                 // metadata stays on the account, and a sign-in months later
                 // must go where it always went.
@@ -391,9 +400,13 @@ export default function AuthCallback() {
                     // Only clear the stored invite when it is the one claimed.
                     const claimedStored = !!pending && !!invite && pending.code === invite.code;
                     if (invite) {
-                        const claimed = await claimInvite(session.access_token, invite);
+                        claimAttempted = true;
+                        claimed = await claimInvite(session.access_token, invite);
                         if (claimed?.success) {
-                            if (youngAccount && claimed.status !== 'already_member') {
+                            // Only a fresh signup or a just-verified claim still
+                            // has a join page to visit; joined, already_member
+                            // and blocked do not.
+                            if (youngAccount && INVITE_ROUTE_STATUSES.includes(claimed.status)) {
                                 inviteJoinPath = safeClubArenaPath(claimed.join_path);
                             }
                             if (claimedStored) clearPendingInvite();
@@ -407,7 +420,14 @@ export default function AuthCallback() {
                 }
                 // An older /invite/<club>?ref=<n> link carries no code, only the
                 // way back to the club (kept in metadata at signup).
-                if (!inviteJoinPath && youngAccount) {
+                // Not when the claim already answered (joined, member, blocked)
+                // or refused the code as invalid or expired.
+                const claimSettled = !!claimed && (
+                    INVITE_SETTLED_STATUSES.includes(claimed.status) ||
+                    INVITE_SETTLED_STATUSES.includes(claimed.code) ||
+                    (claimed.success === false && ['invalid_code', 'expired'].includes(claimed.code))
+                );
+                if (!inviteJoinPath && youngAccount && (!claimAttempted || !claimSettled)) {
                     inviteJoinPath = safeClubArenaPath(user.user_metadata?.club_join_path) || null;
                 }
 
@@ -425,7 +445,7 @@ export default function AuthCallback() {
                 // Honour an explicit ?next=/path override if it's a same-origin path
                 let nextPath = null;
                 const rawNext = Array.isArray(router.query.next) ? router.query.next[0] : router.query.next;
-                if (typeof rawNext === 'string' && rawNext.startsWith('/') && !rawNext.startsWith('//')) {
+                if (typeof rawNext === 'string' && rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.includes('\\')) {
                     nextPath = rawNext;
                 }
 
@@ -435,9 +455,11 @@ export default function AuthCallback() {
                         : inviteJoinPath)
                     : null;
 
+                // A Club Commander sign-in returns to Commander even when the
+                // account also carries a club invite.
                 const dest = nextPath
-                    || inviteDest
                     || (isCommanderOrigin ? '/commander/dashboard' : null)
+                    || inviteDest
                     || (newPlayerNeedsPhone ? '/hub/verify-phone?welcome=1' : '/hub');
 
 

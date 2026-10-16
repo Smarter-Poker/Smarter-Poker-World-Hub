@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
     CLUB_INVITE_TTL_MS,
+    authSwitchHref,
+    fetchPendingJoinPath,
     inviteCookieValue,
     isInviteCode,
     isInviteFresh,
@@ -65,7 +67,8 @@ test('the /i/ page renders a preview card, sets the cookie and puts Create Accou
     assert.match(page, /getServerSideProps/);
     assert.match(page, /og:image/);
     assert.match(page, /Set-Cookie/);
-    assert.match(page, /countClick: !bot/);
+    assert.match(page, /const countClick = !bot && existing\?\.code !== code;/);
+    assert.match(page, /resolveInviteServer\(code, \{ countClick \}\)/);
     assert.ok(page.indexOf('Create Account') < page.indexOf('I Already Have An Account'));
 });
 
@@ -118,4 +121,74 @@ test('the share card only embeds a logo Satori can draw', () => {
     const s = read('pages/api/og/club-invite.js');
     assert.match(s, /embeddableLogo\(invite\?\.club\?\.logo_url\)/);
     assert.match(s, /image\\\/\(png\|jpe\?g\|gif\)/);
+});
+
+test('switching between signup and login keeps redirect and invite', () => {
+    assert.equal(authSwitchHref('/auth/login', {}), '/auth/login');
+    assert.equal(
+        authSwitchHref('/auth/login', { redirect: '/hub/club-arena/invite/x?ref=1&i=ABC2345', invite: 'ABC2345' }),
+        '/auth/login?redirect=%2Fhub%2Fclub-arena%2Finvite%2Fx%3Fref%3D1%26i%3DABC2345&invite=ABC2345'
+    );
+    assert.equal(authSwitchHref('/auth/signup', { redirect: ['/hub/a', '/hub/b'] }), '/auth/signup?redirect=%2Fhub%2Fa');
+    const signup = read('pages/auth/signup.js');
+    assert.doesNotMatch(signup, /router\.push\('\/auth\/login'\)/);
+    assert.equal(signup.split("router.push(authSwitchHref('/auth/login', router.query))").length - 1, 3);
+    const login = read('pages/auth/login.js');
+    assert.doesNotMatch(login, /router\.push\('\/auth\/signup'\)/);
+    assert.match(login, /router\.push\(authSwitchHref\('\/auth\/signup', router\.query\)\)/);
+});
+
+test('magic link and OAuth sign-in return through the callback to the redirect target', () => {
+    const login = read('pages/auth/login.js');
+    assert.match(login, /emailRedirectTo: callbackUrl\(\)/);
+    assert.match(login, /redirectTo: callbackUrl\(\)/);
+    assert.match(login, /\?next=\$\{encodeURIComponent\(target\)\}/);
+    assert.doesNotMatch(login, /redirectTo: `\$\{window\.location\.origin\}\/auth\/callback`/);
+    const cb = read('pages/auth/callback.js');
+    assert.match(cb, /rawNext\.startsWith\('\/'\) && !rawNext\.startsWith\('\/\/'\) && !rawNext\.includes\('\\\\'\)/);
+});
+
+test('the callback routes an invite only for a fresh claim, and Commander wins', () => {
+    const cb = read('pages/auth/callback.js');
+    assert.match(cb, /INVITE_ROUTE_STATUSES = \['signed_up', 'verified'\]/);
+    assert.match(cb, /INVITE_SETTLED_STATUSES = \['already_member', 'joined', 'blocked'\]/);
+    assert.match(cb, /youngAccount && INVITE_ROUTE_STATUSES\.includes\(claimed\.status\)/);
+    assert.match(cb, /claimed\.success === false && \['invalid_code', 'expired'\]\.includes\(claimed\.code\)/);
+    assert.match(cb, /!inviteJoinPath && youngAccount && \(!claimAttempted \|\| !claimSettled\)/);
+    const dest = cb.slice(cb.indexOf('const dest = nextPath'));
+    assert.ok(dest.indexOf("isCommanderOrigin ? '/commander/dashboard'") < dest.indexOf('|| inviteDest'));
+});
+
+test('fetchPendingJoinPath never throws and only returns a Club Arena path', async () => {
+    const realFetch = globalThis.fetch;
+    try {
+        globalThis.fetch = async () => { throw new Error('network down'); };
+        assert.equal(await fetchPendingJoinPath('token'), null);
+        globalThis.fetch = async () => ({ ok: false, status: 500, text: async () => 'boom' });
+        assert.equal(await fetchPendingJoinPath('token'), null);
+        globalThis.fetch = async () => ({ ok: true, json: async () => ({ pending: true, join_path: '/hub/club-arena/invite/x?ref=1&i=ABC2345' }) });
+        assert.equal(await fetchPendingJoinPath('token'), '/hub/club-arena/invite/x?ref=1&i=ABC2345');
+        globalThis.fetch = async () => ({ ok: true, json: async () => ({ pending: true, join_path: 'https://evil.example/' }) });
+        assert.equal(await fetchPendingJoinPath('token'), null);
+        globalThis.fetch = async () => ({ ok: true, json: async () => ({ pending: false, join_path: '/hub/club-arena/invite/x' }) });
+        assert.equal(await fetchPendingJoinPath('token'), null);
+        assert.equal(await fetchPendingJoinPath(null), null);
+    } finally {
+        globalThis.fetch = realFetch;
+    }
+});
+
+test('verify phone without ?next= continues to the account\'s pending invite', () => {
+    const s = read('pages/hub/verify-phone.js');
+    assert.match(s, /fetchPendingJoinPath\(data\?\.session\?\.access_token\)/);
+    assert.match(s, /const nextPath = queryNext \|\| pendingNext;/);
+});
+
+test('the hub forwards a pending invite once per browser session', () => {
+    const c = read('src/components/gates/PendingInviteForward.jsx');
+    assert.match(c, /'sp-pending-invite-forwarded'/);
+    assert.ok(c.indexOf('sessionStorage.setItem(PENDING_INVITE_FORWARDED_KEY') < c.indexOf('await fetchPendingJoinPath(token)'));
+    assert.match(c, /window\.location\.assign\(path\)/);
+    const hub = read('pages/hub/index.js');
+    assert.match(hub, /<PendingInviteForward enabled=\{phoneVerified !== null && !redirectingToWelcome\} \/>/);
 });

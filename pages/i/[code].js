@@ -37,9 +37,13 @@ export async function getServerSideProps({ params, req, res }) {
     if (!code) return { props: { invite: null, code: null } };
 
     const bot = isLinkPreviewBot(req.headers['user-agent']);
+    const existing = parseInviteCookieValue(readCookie(req.headers.cookie, CLUB_INVITE_COOKIE));
+    // One click per person: a preview crawler, or a browser already carrying
+    // this same code (a reload, a second tap), is not a new open.
+    const countClick = !bot && existing?.code !== code;
     let invite = null;
     try {
-        invite = await resolveInviteServer(code, { countClick: !bot });
+        invite = await resolveInviteServer(code, { countClick });
     } catch (err) {
         console.warn('[club-invite] resolve failed:', err?.message || err);
     }
@@ -49,16 +53,13 @@ export async function getServerSideProps({ params, req, res }) {
     }
 
     // First link wins: only set the cookie when there is no live one already.
-    if (!bot) {
-        const existing = parseInviteCookieValue(readCookie(req.headers.cookie, CLUB_INVITE_COOKIE));
-        if (!isInviteFresh(existing)) {
-            res.setHeader(
-                'Set-Cookie',
-                `${CLUB_INVITE_COOKIE}=${encodeURIComponent(inviteCookieValue(code, Date.now()))}; Max-Age=${Math.floor(
-                    CLUB_INVITE_TTL_MS / 1000
-                )}; Path=/; SameSite=Lax; Secure`
-            );
-        }
+    if (!bot && !isInviteFresh(existing)) {
+        res.setHeader(
+            'Set-Cookie',
+            `${CLUB_INVITE_COOKIE}=${encodeURIComponent(inviteCookieValue(code, Date.now()))}; Max-Age=${Math.floor(
+                CLUB_INVITE_TTL_MS / 1000
+            )}; Path=/; SameSite=Lax; Secure`
+        );
     }
     res.setHeader('Cache-Control', 'private, no-store');
 

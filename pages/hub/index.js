@@ -26,6 +26,7 @@ import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import WelcomePackageNudge from '../../src/components/hub/WelcomePackageNudge';
+import PendingInviteForward from '../../src/components/gates/PendingInviteForward';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { claimReward } from '../../src/lib/claimReward';
@@ -268,6 +269,9 @@ export default function HubPage() {
                 same corner and lifetime as DiamondToast, once per session. */}
             <HubErrorBoundary name="Welcome Package Nudge" fallback={<></>}>
                 <WelcomePackageNudge phoneVerified={redirectingToWelcome ? null : phoneVerified} />
+                {/* A pending club invite continues to its join page, once a
+                    session, but never on top of the welcome-screen redirect. */}
+                <PendingInviteForward enabled={phoneVerified !== null && !redirectingToWelcome} />
             </HubErrorBoundary>
 
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
