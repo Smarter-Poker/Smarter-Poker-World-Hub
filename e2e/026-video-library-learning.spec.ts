@@ -109,8 +109,15 @@ test.describe('Phase 7 Poker Learning', () => {
     test('standalone quiz cancels without resuming and resets when opening another video', async ({ page }) => {
         await fixtures(page);
         await page.goto(`/hub/video-library/watch/${VIDEO_ID}/daniel-negreanu-poker-decision`, { waitUntil: 'commit' });
-        await page.getByRole('button', { name: `Play ${TITLE}`, exact: true }).click();
+        // The canonical watch player is already crawlable in server HTML.
+        // Only the genuine isolated provider state below marks it PLAYING.
+        const iframe = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
+        await expect(iframe).toBeVisible();
+        const source = await iframe.getAttribute('src');
+        expect(new URL(source!).searchParams.get('autoplay')).toBe('0');
+        await expect(page.locator('.vl-play-facade')).toHaveCount(0);
         const frame = await provider(page);
+        expect(await commands(frame, 'playVideo')).toBe(0);
         await ready(frame);
         const quiz = page.getByRole('region', { name: 'What Would You Do?', exact: true });
         await expect(quiz.getByRole('checkbox', { name: 'Pause At Hand Markers' })).toBeVisible();

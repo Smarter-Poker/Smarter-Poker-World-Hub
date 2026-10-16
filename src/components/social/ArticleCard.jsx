@@ -23,6 +23,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { decodeHtmlEntities } from '../../lib/socialHelpers';
 import { newsImageUrl } from '../../lib/security/imageHosts.js';
+import { decodedPreviewIsUsable } from '../../lib/previewImageValidation.mjs';
 import {
     articlePreviewNeedsHydration,
     internalArticlePath,
@@ -457,6 +458,10 @@ export default function ArticleCard({
                         }}
                         loading="lazy"
                         decoding="async"
+                        onLoad={async (event) => {
+                            const usable = await decodedPreviewIsUsable(event.currentTarget);
+                            if (usable === false) setImageError({ url, suppliedImage: image, failed: metadata.image });
+                        }}
                         onError={() => setImageError({ url, suppliedImage: image, failed: metadata.image })}
                     />
                 ) : null}

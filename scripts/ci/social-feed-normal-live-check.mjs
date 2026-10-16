@@ -131,9 +131,11 @@ async function inspectArticle(page, id) {
     const deadline = Date.now() + 30_000;
     while (Date.now() < deadline) {
       const image = [...element.querySelectorAll('img')].find((candidate) => (
-        normalized(candidate.alt) === normalized(expectedPost.title) && candidate.naturalWidth >= 200
+        normalized(candidate.alt) === normalized(expectedPost.title)
+        && candidate.complete && candidate.naturalWidth >= 240 && candidate.naturalHeight >= 120
       ));
       if (image) {
+        try { await image.decode(); } catch { return null; }
         const authorLinks = [...element.querySelectorAll(`a[href="/hub/user/${CSS.escape(expectedPost.authorUsername)}"]`)];
         // The avatar and the visible display name both link to the same profile.
         // Certify the actual visible author words, not the avatar-only anchor.
@@ -149,6 +151,9 @@ async function inspectArticle(page, id) {
         const expectedBody = normalized(expectedPost.body).slice(0, 80);
         return {
           src: image.currentSrc || image.src,
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+          decoded: true,
           ordered: before(author) && before(body) && before(titleNode),
           authorMatches: normalized(author?.textContent) === normalized(expectedPost.authorName),
           bodyMatches: Boolean(expectedBody && bodyText.includes(expectedBody)),

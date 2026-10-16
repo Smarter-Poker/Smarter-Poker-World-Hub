@@ -138,6 +138,9 @@ jobs:
       # named here: this step is its reader (CLAUDE.md 10.86, rule 3). Pure
       # git and bash in a throwaway repo under $TMPDIR; no network, no
       # node_modules, so it sits above the install steps on purpose.
+      - name: Single field focus regression
+        run: node --test __tests__/single-field-focus.test.mjs
+
       - name: The ref guard tells the truth about origin
         run: node --test __tests__/ref-guard-tells-the-truth-about-origin.test.mjs
 
@@ -1487,6 +1490,7 @@ jobs:
             __tests__/first-paint-never-waits-for-javascript.law.test.mjs \
             __tests__/the-feeds-say-what-they-hold.law.test.mjs \
             __tests__/gsc-phase1-geo-meta-tags.test.mjs \
+            __tests__/indexing-webhook.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # Phase 9-12 Trivia contracts stay focused and run once in the existing

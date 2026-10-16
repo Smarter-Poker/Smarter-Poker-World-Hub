@@ -4,6 +4,7 @@ import {
   getIndexNowKey,
   submitToIndexNow,
   submitToGoogleIndexing,
+  INDEXNOW_ENDPOINTS,
   SITE_ORIGIN,
 } from '../src/lib/seo/indexingService.mjs';
 
@@ -12,6 +13,15 @@ test('getIndexNowKey correctly extracts key from public key file', () => {
   assert.ok(key, 'IndexNow key should exist in public/*.txt');
   assert.equal(key.length, 32, 'IndexNow key should be 32 characters hex');
   assert.match(key, /^[a-f0-9]{32}$/);
+});
+
+test('INDEXNOW_ENDPOINTS contains Bing, Yandex, Naver, and IndexNow', () => {
+  assert.ok(Array.isArray(INDEXNOW_ENDPOINTS));
+  assert.ok(INDEXNOW_ENDPOINTS.length >= 4);
+  assert.ok(INDEXNOW_ENDPOINTS.some((ep) => ep.includes('bing.com')));
+  assert.ok(INDEXNOW_ENDPOINTS.some((ep) => ep.includes('yandex.com')));
+  assert.ok(INDEXNOW_ENDPOINTS.some((ep) => ep.includes('naver.com')));
+  assert.ok(INDEXNOW_ENDPOINTS.some((ep) => ep.includes('api.indexnow.org')));
 });
 
 test('submitToIndexNow formats payload and performs dry run', async () => {

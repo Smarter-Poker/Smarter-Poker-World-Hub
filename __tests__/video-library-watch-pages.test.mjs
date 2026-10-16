@@ -99,12 +99,17 @@ test('the watch page renders on the server from the gated catalog and 404s anyth
     assert.match(WATCH_PAGE, /return \{ notFound: true \}/);
     // A catalog outage is a 503 that says "come back", never a cached 404.
     assert.match(WATCH_PAGE, /res\.statusCode = 503/);
-    // The head is not behind a client-only wrapper, and the YouTube player
-    // loads only when the viewer presses play.
+    // Both metadata and the visible non-autoplaying player are discoverable
+    // without a click; saved progress never rewrites the running iframe.
     assert.doesNotMatch(WATCH_PAGE, /PageTransition/);
     assert.match(WATCH_PAGE, /canonical=\{canonical\}/);
-    assert.match(WATCH_PAGE, /className="vl-play-facade"/);
-    assert.match(WATCH_PAGE, /\{playing \? \(\s*<iframe/);
+    assert.doesNotMatch(WATCH_PAGE, /className="vl-play-facade"|\{playing \? \(\s*<iframe/);
+    assert.match(WATCH_PAGE, /<iframe[\s\S]*?autoplay=0/);
+    assert.doesNotMatch(WATCH_PAGE, /resumeSnapshot|&start=/);
+    assert.match(WATCH_PAGE, /attemptPlayback=\{attemptPlayback\}/);
+    assert.match(WATCH_PAGE, /commandPlayer\('pauseVideo'\)/);
+    assert.match(WATCH_PAGE, /commandPlayer\('seekTo', \[tracking\.resumeSeconds, true\]\)/);
+    assert.match(WATCH_PAGE, /ogImage=\{videoThumbnailUrl\(video\)\}/);
 });
 
 test('the library links, shares and lists the watch pages', () => {
@@ -181,4 +186,40 @@ test('video metadata uses a factual catalog image and finite positive duration',
     assert.equal(isoDuration(Infinity), null);
     assert.equal(isoDuration(-1), null);
     assert.equal(isoDuration(NaN), null);
+});
+
+
+test('video schema and sitemap share the exact factual thumbnail URL', () => {
+    for (const thumbnail_url of [
+        'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
+        'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+        null,
+        'javascript:bad',
+        'https://i.ytimg.com.evil.example/vi/dQw4w9WgXcQ/hqdefault.jpg',
+    ]) {
+        const video = normaliseVideoRow({ ...ROW, thumbnail_url });
+        const [schema] = buildVideoJsonLd(video, { description: 'D' });
+        const sitemapThumbnail = videoSitemapEntry(video).match(/<video:thumbnail_loc>([^<]+)<\/video:thumbnail_loc>/)?.[1];
+        assert.equal(sitemapThumbnail, schema.thumbnailUrl[0], String(thumbnail_url));
+        assert.match(sitemapThumbnail, /^https:\/\/(?:i\.ytimg\.com|img\.youtube\.com)\//);
+    }
+});
+
+
+test('uploader URL uses the verified registered channel profile shown on the watch page', () => {
+    const channelHref = '/hub/video-library/channels/7a12825b-0559-4fc8-a69f-d88377434c08';
+    const [object] = buildVideoJsonLd(normaliseVideoRow(ROW), { channelName: 'Hustler Casino Live', channelHref, description: 'D' });
+    assert.equal(object.author.url, `https://smarter.poker${channelHref}`);
+    assert.match(WATCH_PAGE, /buildVideoJsonLd\(video, \{ channelName: channel.name, channelHref, description \}\)/);
+    assert.match(WATCH_PAGE, /channelHref = resolved\?\.channel\?\.path \|\| null/);
+});
+
+test('missing or unsafe uploader profiles never become invented author URLs', () => {
+    const video = normaliseVideoRow({ ...ROW, attribution_url: 'javascript:alert(1)' });
+    for (const channelHref of [undefined, null, '', '/hub/video-library/channels/HCL', 'https://evil.test/hub/video-library/channels/7a12825b-0559-4fc8-a69f-d88377434c08', '//evil.test/channel', 'javascript:alert(1)', '/hub/video-library/channels/7a12825b-0559-4fc8-a69f-d88377434c08?other=1']) {
+        const [object] = buildVideoJsonLd(video, { channelName: 'Hustler Casino Live', channelHref, description: 'D' });
+        assert.equal(object.author.url, undefined, String(channelHref));
+    }
+    const [object] = buildVideoJsonLd({ ...video, attributionUrl: 'https://www.youtube.com/@unverified' }, { channelName: 'Hustler Casino Live', description: 'D' });
+    assert.equal(object.author.url, undefined, 'raw attribution alone does not verify uploader identity');
 });
