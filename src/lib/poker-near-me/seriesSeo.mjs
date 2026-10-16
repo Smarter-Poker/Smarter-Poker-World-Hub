@@ -348,6 +348,27 @@ export function seriesSelfPath(v) {
   return `/hub/series/${v.id}`;
 }
 
+/**
+ * Dynamic OpenGraph share card image URL for a series.
+ * Generates an authoritative 1200x630 card via /api/og/series-card.
+ */
+export function seriesOgImage(v) {
+  if (!v || !v.id) return null;
+  const params = new URLSearchParams();
+  params.set('id', String(v.id));
+  if (v.name) params.set('name', String(v.name));
+  if (v.venueName) params.set('venue', String(v.venueName));
+  if (v.city) params.set('city', String(v.city));
+  if (v.state) params.set('state', String(v.state));
+  if (v.totalEvents) params.set('events', String(v.totalEvents));
+  if (v.mainEventBuyin) params.set('buyin', String(v.mainEventBuyin));
+  if (v.mainEventGuaranteed) params.set('guarantee', String(v.mainEventGuaranteed));
+  const range = formatRange(v.startDate, v.endDate);
+  if (range) params.set('dates', range);
+  if (v.logoUrl) params.set('logo', String(v.logoUrl));
+  return `https://smarter.poker/api/og/series-card?${params.toString()}`;
+}
+
 
 /**
  * A series is a real world event, and until now these 246 pages carried no
