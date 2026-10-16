@@ -91,7 +91,11 @@ test('competitive resources are keyed, cleared, aborted, and generation-bound ac
 
     assert.match(PAGE, /accountKey=\{userId \|\| null\}/);
     assert.match(LOBBY, /accountKey = null/);
-    assert.match(LOBBY, /key=\{`competitive-lobby:\$\{accountKey \|\| authState\}`\}/);
+    // Every account identity change remounts; the session check finishing
+    // without an account does not (it would discard the server-rendered art).
+    assert.match(LOBBY, /key=\{`competitive-lobby:\$\{accountKey \|\| 'no-account'\}`\}/);
+    assert.doesNotMatch(LOBBY, /key=\{`competitive-lobby:\$\{accountKey \|\| authState\}`\}/);
+    assert.match(BRIEFING, /\}, \[accountKey, authState, pvpEnabled, tournamentsEnabled\]\);/, 'the briefing still resets on every auth change');
     assert.match(LOBBY, /accountKey=\{accountKey\}/);
     assert.match(BRIEFING, /latestAccountKeyRef\.current = accountKey \|\| null/);
     assert.match(BRIEFING, /setScheduleResource\(tournamentsEnabled \? waitingResource\(\) : disabledResource\(\)\)/);

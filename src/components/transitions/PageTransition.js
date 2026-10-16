@@ -3,7 +3,21 @@
  * Smooth Framer Motion transitions for all pages with accessibility & mobile-first scaling
  */
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+
+// FIRST LOAD PAINTS, LATER NAVIGATIONS FADE (2026-10-16). The entrance
+// variant starts at opacity 0, so on a full page load every server-rendered
+// word and image stayed invisible until the JavaScript had downloaded, React
+// had hydrated and framer-motion had run the fade. On a phone that put the
+// page's Largest Contentful Paint behind hydration: Personal Assistant
+// 3.1-3.9s on its 2.5s budget, and Trivia's lobby art 3.1-3.6s on 3.5s.
+// The fade only means something when one page replaces another, so it is
+// kept for client-side navigations and skipped for the document's first
+// render. This flag is false on the server and on the first client render
+// (identical markup, no hydration mismatch) and becomes true once the first
+// page has mounted.
+let firstPageHasMounted = false;
 
 // Keep the first server and client frame identical. Reading the user's motion
 // preference during hydration previously changed the inline transform between
@@ -35,9 +49,16 @@ export default function PageTransition({ children, className = '', disableInitia
         );
     }
 
+    return <AnimatedPage className={className}>{children}</AnimatedPage>;
+}
+
+function AnimatedPage({ children, className }) {
+    // Fixed per mounted page: true only for pages mounted after the first one.
+    const [animateEntrance] = useState(() => firstPageHasMounted);
+    useEffect(() => { firstPageHasMounted = true; }, []);
     return (
         <motion.div
-            initial="initial"
+            initial={animateEntrance ? 'initial' : false}
             animate="animate"
             exit="exit"
             variants={pageVariants}

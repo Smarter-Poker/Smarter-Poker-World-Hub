@@ -135,3 +135,24 @@ test('the news lead story and its photo are in the server HTML, not behind JavaS
   assert.match(src, /<link key="news-lead-image" rel="preload" as="image" href=\{leadImageUrl\} fetchpriority="high" \/>/);
   assert.match(box, /const \{ imageUrl, fallbackUrl \} = newsBoxImage\(article\);/, 'the card and the preload share one URL function');
 });
+
+test('no page is served at opacity 0 on a full load; client navigations still fade', () => {
+  // ~40 hub pages use the animated PageTransition. On the first document
+  // render its entrance started at opacity 0, which hid the server HTML until
+  // hydration (Trivia lobby art LCP 3.1-3.6s on 3.5s, 2026-10-16).
+  const src = read('src/components/transitions/PageTransition.js');
+  assert.match(src, /let firstPageHasMounted = false;/);
+  assert.match(src, /const \[animateEntrance\] = useState\(\(\) => firstPageHasMounted\);/);
+  assert.match(src, /useEffect\(\(\) => \{ firstPageHasMounted = true; \}, \[\]\);/);
+  assert.match(src, /initial=\{animateEntrance \? 'initial' : false\}/);
+  assert.doesNotMatch(stripComments(src), /initial="initial"/, 'no unconditional entrance from opacity 0');
+  // The static path is unchanged.
+  assert.match(src, /if \(disableInitialAnimation\) \{[\s\S]*?<div className=\{className\}/);
+});
+
+test('the Trivia lobby keeps its server-rendered tournament art through the session check', () => {
+  const lobby = read('src/components/trivia/TriviaLobby.jsx');
+  const briefing = read('src/components/trivia/competitive/CompetitiveLobbyBriefing.jsx');
+  assert.match(lobby, /key=\{`competitive-lobby:\$\{accountKey \|\| 'no-account'\}`\}/);
+  assert.match(briefing, /art=\{TRIVIA_INTRO_ART_TOURNAMENTS\}[\s\S]*?priority\s*\/>/, 'the visible hero loads with the HTML');
+});
