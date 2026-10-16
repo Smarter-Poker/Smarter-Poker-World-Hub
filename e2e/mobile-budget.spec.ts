@@ -74,25 +74,41 @@ for (const route of ROUTES) {
       })());
     });
 
+    // A PAGE THAT HAS NOT PAINTED HAS NOT PASSED (2026-10-16). The observer
+    // used to be created 1.5s after `load` and read for 300ms. A route whose
+    // first paint came later than that reported LCP 0, and `lcp > 0` below
+    // then skipped the budget entirely: the slowest loads were the ones that
+    // passed. Locally, against the production build of main 3155bce, ten of
+    // the twelve roots measured 0 that way. Observe from navigation start and,
+    // when nothing has painted yet, wait for the first paint (bounded) instead
+    // of reading zero. Same browser, viewport and settle window otherwise.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __mobileBudgetLcp: number[]; __mobileBudgetLcpSupported: boolean };
+      w.__mobileBudgetLcp = [];
+      w.__mobileBudgetLcpSupported = false;
+      try {
+        if (!PerformanceObserver.supportedEntryTypes?.includes('largest-contentful-paint')) return;
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) w.__mobileBudgetLcp.push(e.startTime);
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+        w.__mobileBudgetLcpSupported = true;
+      } catch (_) {
+        // Unsupported is recorded, never read as an instant paint.
+      }
+    });
+
     await page.goto(route, { waitUntil: 'load', timeout: 90_000 });
     await page.waitForTimeout(1500);
+    await page.waitForFunction(() => {
+      const w = window as unknown as { __mobileBudgetLcp?: number[]; __mobileBudgetLcpSupported?: boolean };
+      return !w.__mobileBudgetLcpSupported || (w.__mobileBudgetLcp?.length ?? 0) > 0;
+    }, undefined, { timeout: 15_000 }).catch(() => undefined);
+    await page.waitForTimeout(300);
 
     const metrics = await page.evaluate(async () => {
-      const lcp: number = await new Promise((resolve) => {
-        let value = 0;
-        try {
-          const po = new PerformanceObserver((list) => {
-            for (const e of list.getEntries()) value = (e as PerformanceEntry).startTime;
-          });
-          po.observe({ type: 'largest-contentful-paint', buffered: true });
-          setTimeout(() => {
-            po.disconnect();
-            resolve(value);
-          }, 300);
-        } catch (_) {
-          resolve(0);
-        }
-      });
+      const w = window as unknown as { __mobileBudgetLcp?: number[]; __mobileBudgetLcpSupported?: boolean };
+      const lcpSupported = Boolean(w.__mobileBudgetLcpSupported);
+      const lcp: number = w.__mobileBudgetLcp?.length ? w.__mobileBudgetLcp[w.__mobileBudgetLcp.length - 1] : 0;
       const overflow = document.documentElement.scrollWidth - window.innerWidth;
       let smallText = 0;
       let tinyTargets = 0;
@@ -127,7 +143,7 @@ for (const route of ROUTES) {
         if (el.closest('[data-allow-small-target]')) continue;
         if (r.width < 44 || r.height < 44) tinyTargets += 1;
       }
-      return { lcp, overflow, smallText, tinyTargets };
+      return { lcp, lcpSupported, overflow, smallText, tinyTargets };
     });
 
     await Promise.all(scriptMeasurements);
@@ -142,9 +158,9 @@ for (const route of ROUTES) {
 
     expect(metrics.overflow, `${route} scrolls sideways by ${metrics.overflow}px`).toBeLessThanOrEqual(0);
     expect(jsKb, `${route} ships ${jsKb}KB of JS (budget ${budget.jsKb}KB)`).toBeLessThanOrEqual(budget.jsKb);
-    if (metrics.lcp > 0) {
-      expect(metrics.lcp, `${route} LCP ${Math.round(metrics.lcp)}ms (budget ${budget.lcpMs}ms)`).toBeLessThanOrEqual(budget.lcpMs);
-    }
+    expect(metrics.lcpSupported, `${route} ran in a browser without Largest Contentful Paint`).toBe(true);
+    expect(metrics.lcp, `${route} never reported a Largest Contentful Paint`).toBeGreaterThan(0);
+    expect(metrics.lcp, `${route} LCP ${Math.round(metrics.lcp)}ms (budget ${budget.lcpMs}ms)`).toBeLessThanOrEqual(budget.lcpMs);
     if (budget.converted) {
       expect(metrics.smallText, `${route} renders ${metrics.smallText} text nodes under 12px`).toBe(0);
       expect(metrics.tinyTargets, `${route} has ${metrics.tinyTargets} tap targets under 44px`).toBe(0);

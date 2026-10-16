@@ -45,8 +45,8 @@
 
 /* First-paint skeleton. The page used to swap the whole document for a
    centred "Initializing Jarvis" line until `mounted` flipped, so the largest
-   contentful paint was a 12px string. The shell, header and nav now paint
-   immediately and only the data blocks are placeholders. */
+   contentful paint was a 12px string. The shell, header, nav and hero now
+   paint immediately and only the data blocks below the hero are placeholders. */
 .skel {
   display: grid;
   gap: 15px;
@@ -59,7 +59,6 @@
   animation: pa-skel 1.35s ease-in-out infinite;
 }
 
-.skelHero { height: 430px; }
 .skelBar { height: 58px; }
 .skelCard { height: 150px; }
 

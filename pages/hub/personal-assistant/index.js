@@ -468,13 +468,19 @@ export default function PersonalAssistantPage() {
 
   /* The first paint used to be a black page with one centred 12px line until
      `mounted` flipped, so the largest contentful paint was that string and
-     nothing about the page was on screen. The shell, header and the five
-     section anchors now paint on the server; only the data blocks below are
-     placeholders, and they carry the same heights as the real content so
-     nothing jumps when it arrives. */
+     nothing about the page was on screen. The shell, header, the five section
+     anchors and the Jarvis hero now paint on the server; only the data blocks
+     below the hero are placeholders, and they carry the same heights as the
+     real content so nothing jumps when it arrives.
+
+     MOBILE LCP (2026-10-16). The hero is the page's largest element and holds
+     no browser-only data: its status badge and "Continue Last Session" button
+     start from the same not-loaded state on the server and on the first client
+     render. It sat behind `mounted`, so it could only appear after hydration
+     plus one more render, which put LCP at 3.1-3.9s on the 2.5s budget
+     (Global Footer E2E 38847919432). It renders on the server now. */
   const skeleton = (
     <div className={styles.skel} aria-hidden="true">
-      <div className={`${styles.skelBlock} ${styles.skelHero}`} />
       <div className={`${styles.skelBlock} ${styles.skelBar}`} />
       <div className={`${styles.skelBlock} ${styles.skelCard}`} />
       <div className={styles.skelRow}>
@@ -486,8 +492,11 @@ export default function PersonalAssistantPage() {
     </div>
   );
 
+  // disableInitialAnimation: the entrance variant starts at opacity 0, so the
+  // server-rendered hero stayed invisible until framer-motion hydrated and
+  // animated it in. Paint it on the first frame instead.
   return (
-    <PageTransition>
+    <PageTransition disableInitialAnimation>
       <SEOHead
         title="Personal Poker Assistant - Jarvis AI"
         description="Get Personalized Poker Coaching, Hand Analysis, And Strategy Advice From Jarvis, Your AI Poker Assistant."
@@ -532,8 +541,6 @@ export default function PersonalAssistantPage() {
             menu is open so a drag inside it cannot fire a reload underneath. */}
         <PullToRefresh onRefresh={retryAssistantData} disabled={showMenu}>
         <main className={styles.main} id="overview">
-          {!mounted ? skeleton : (
-          <>
           <section className={`${styles.frame} ${styles.hero}`} aria-labelledby="assistant-title">
             <div className={styles.heroInner}>
               <div className={styles.heroCopy}>
@@ -566,6 +573,8 @@ export default function PersonalAssistantPage() {
             </div>
           </section>
 
+          {!mounted ? skeleton : (
+          <>
           {dataSyncError && (
             <div className={styles.syncAlert} role="alert">
               <span className={styles.syncAlertIcon} aria-hidden="true"><AlertTriangle size={18} /></span>
