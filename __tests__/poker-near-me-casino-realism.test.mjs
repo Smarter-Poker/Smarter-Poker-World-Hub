@@ -504,7 +504,7 @@ test('sitemap publishes paginated series and tour detail route contracts', () =>
   const sitemap = read('pages/sitemap.xml.js');
   assert.match(sitemap, /tour-source-registry\.json/);
   assert.match(sitemap, /seriesRouteIdentity\.mjs/);
-  assert.match(sitemap, /addSeries\(toPokerSeriesRouteId\(row\.id\)\)/);
+  assert.match(sitemap, /addSeries\(toPokerSeriesRouteId\(row\.id\), row\)/);
   assert.match(sitemap, /async function buildPokerEventDetailUrls\(\)/);
   assert.match(sitemap, /`\/hub\/series\/\$\{id\}`/);
   assert.match(sitemap, /`\/hub\/tours\/\$\{encodeURIComponent\(code\)\}`/);

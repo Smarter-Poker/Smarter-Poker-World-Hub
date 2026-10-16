@@ -9,6 +9,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
+import { isEmailVerificationCode } from '../../src/lib/signupExperience.mjs';
+import { Mail } from 'lucide-react';
+import { getAccessToken } from '../../src/lib/authUtils';
 import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
 import {
   authSwitchHref,
@@ -732,12 +735,8 @@ export default function SignUpPage() {
     e.preventDefault();
     setError('');
 
-    // [2026-07-25] Supabase email OTP tokens are 6 digits. This screen
-    // previously said "4-Digit" with maxLength=4, which made it
-    // IMPOSSIBLE to type a valid code — the only working path was the
-    // email link. (The SMS phone OTP really is 4 digits — different flow.)
-    if (verificationCode.length < 6) {
-      setError('Please Enter The 6-Digit Verification Code');
+    if (!isEmailVerificationCode(verificationCode)) {
+      setError('Enter The Complete Verification Code From Your Email.');
       return;
     }
 
@@ -746,7 +745,7 @@ export default function SignUpPage() {
     try {
       // Verify the OTP code with Supabase
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         token: verificationCode,
         type: 'signup',
       });
@@ -1688,17 +1687,22 @@ export default function SignUpPage() {
         </>
       ) : (
         <>
-          <div style={styles.container}>
+          <style>{`
+            .signup-verification-page * { box-sizing: border-box; min-width: 0; }
+            .signup-verification-page input:focus-visible { outline: 2px solid #8bd7ff; outline-offset: 3px; }
+            .signup-verification-page button:focus-visible { outline: 2px solid #c3edff; outline-offset: 3px; }
+          `}</style>
+          <div className="signup-verification-page" style={styles.container}>
             {/* ═══════════════════════════════════════════════════════════════
                         EMAIL PENDING — ENTER VERIFICATION CODE
                         ═══════════════════════════════════════════════════════════════ */}
             {step === 'email_pending' && (
               <div style={styles.successContainer}>
-                <div style={styles.successIcon}>📧</div>
+                <div style={styles.verificationIcon} aria-hidden="true"><Mail size={36} strokeWidth={1.5} /></div>
 
                 <h2 style={styles.successTitle}>Verify Your Email</h2>
 
-                <p style={styles.emailPendingText}>We've Sent A 6-Digit Verification Code To:</p>
+                <p style={styles.emailPendingText}>Enter The Verification Code Sent To:</p>
                 <p style={styles.emailHighlight}>{formData.email}</p>
 
                 {/* THE OTP STEP HAD NO ERROR SURFACE AT ALL (fixed 2026-08-25).
@@ -1718,25 +1722,37 @@ export default function SignUpPage() {
                   </div>
                 )}
 
+                <p id="signup-code-help" style={styles.emailHint}>Use Every Digit In Your Latest Email. You Can Paste The Full Code.</p>
                 <form onSubmit={handleVerifyCode} style={styles.otpForm}>
                   <div style={styles.inputGroup}>
-                    <label style={styles.label}>Enter Verification Code</label>
+                    <label htmlFor="signup-email-code" style={styles.label}>Email Verification Code</label>
                     <input
+                      id="signup-email-code"
                       type="text"
                       inputMode="numeric"
+                      pattern="(?:[0-9]{6}|[0-9]{8})"
+                      aria-describedby="signup-code-help"
                       value={verificationCode}
                       onChange={(e) =>
-                        setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                        setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 8))
                       }
-                      placeholder="• • • • • •"
+                      placeholder="Enter Code"
                       style={{
                         ...styles.inputSingle,
                         textAlign: 'center',
-                        fontSize: '28px',
-                        fontFamily: 'Orbitron, monospace',
-                        letterSpacing: '12px',
+                        width: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
+                        fontSize: 'clamp(20px, 5vw, 28px)',
+                        fontFamily: 'Inter, sans-serif',
+                        fontVariantNumeric: 'tabular-nums',
+                        letterSpacing: verificationCode ? '0.18em' : '0.02em',
+                        background: 'linear-gradient(180deg, #02060b, #111f2c)',
+                        border: '1px solid #4b6c88',
+                        borderRadius: 12,
+                        boxShadow: 'inset 0 3px 8px #000, 0 1px 0 #657c90',
                       }}
-                      maxLength={6}
+                      maxLength={8}
                       autoComplete="one-time-code"
                       autoFocus
                     />
@@ -1746,9 +1762,9 @@ export default function SignUpPage() {
                     type="submit"
                     style={{
                       ...styles.submitButton,
-                      opacity: verifying || verificationCode.length < 6 ? 0.7 : 1,
+                      opacity: verifying || !isEmailVerificationCode(verificationCode) ? 0.7 : 1,
                     }}
-                    disabled={verifying || verificationCode.length < 6}
+                    disabled={verifying || !isEmailVerificationCode(verificationCode)}
                   >
                     {verifying ? 'Verifying...' : 'Verify Email'}
                   </button>
@@ -1827,8 +1843,7 @@ export default function SignUpPage() {
                       Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
                     );
                     try {
-                      const { data } = await supabase.auth.getSession();
-                      const claimed = await claimInvite(data?.session?.access_token);
+                      const claimed = await claimInvite(getAccessToken());
                       next = safeClubArenaPath(claimed?.join_path) || next;
                     } catch (_claimErr) {
                       /* the club join page claims again from the stored code */
@@ -1908,10 +1923,13 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#18191A',
+    background: 'radial-gradient(ellipse at 50% 0%, #17324b 0%, #03080e 55%, #010306 100%)',
+    width: '100%',
+    boxSizing: 'border-box',
+    minWidth: 0,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     position: 'relative',
-    padding: '40px 20px',
+    padding: 'max(32px, env(safe-area-inset-top)) 16px max(96px, env(safe-area-inset-bottom))',
   },
   bgGrid: {
     display: 'none',
@@ -2126,9 +2144,10 @@ const styles = {
   },
   submitButton: {
     padding: '14px',
-    background: '#1877F2',
-    border: 'none',
-    borderRadius: '6px',
+    background: 'linear-gradient(180deg, #38a4ff, #1465ce)',
+    border: '1px solid #70c8ff',
+    boxShadow: 'inset 0 1px 0 #c1e9ff, inset 0 -3px 0 #084288, 0 8px 20px #000',
+    borderRadius: '12px',
     color: '#FFFFFF',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: '15px',
@@ -2178,8 +2197,22 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '20px',
-    padding: '20px 0',
+    gap: '16px',
+    width: '100%',
+    maxWidth: 460,
+    minWidth: 0,
+    boxSizing: 'border-box',
+    padding: '28px clamp(18px, 5vw, 30px)',
+    borderRadius: 22,
+    border: '1px solid #586f83',
+    background: 'linear-gradient(145deg, #283b4c 0%, #0c1620 19%, #04090f 72%, #152536 100%)',
+    boxShadow: 'inset 0 1px 0 #93aabb, inset 0 -2px 0 #020508, 0 24px 64px #000',
+  },
+  verificationIcon: {
+    width: 76, height: 76, display: 'grid', placeItems: 'center',
+    borderRadius: 20, color: '#bceaff', border: '1px solid #6c95b3',
+    background: 'linear-gradient(145deg, #49677d, #112433 55%, #06101a)',
+    boxShadow: 'inset 0 1px 0 #c8e6f7, inset 0 -2px 0 #02070c, 0 12px 24px #000',
   },
   successIcon: {
     fontSize: '64px',
@@ -2230,11 +2263,15 @@ const styles = {
     flexDirection: 'column',
     gap: '8px',
     padding: '16px',
-    background: '#3A3B3C',
-    borderRadius: '8px',
-    border: '1px solid #3E4042',
+    background: 'linear-gradient(180deg, #182937, #0a121c)',
+    borderRadius: '12px',
+    border: '1px solid #3f586d',
+    boxShadow: 'inset 0 1px 0 #4b6376',
   },
   profileRow: {
+    gap: 12,
+    flexWrap: 'wrap',
+    overflowWrap: 'anywhere',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -2315,9 +2352,11 @@ const styles = {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: '16px',
     fontWeight: 600,
-    color: '#1877F2',
     textAlign: 'center',
-    marginBottom: '20px',
+    marginBottom: '4px',
+    maxWidth: '100%',
+    overflowWrap: 'anywhere',
+    color: '#8bd7ff',
   },
   emailInstructions: {
     padding: '16px',

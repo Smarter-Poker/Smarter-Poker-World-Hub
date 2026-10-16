@@ -173,7 +173,7 @@ test('every poker_series route producer uses the shared identity helper', () => 
   assert.doesNotMatch(seriesApi, /if \(seriesSource === 'static_bundle'\)/);
   assert.match(calendarApi, /series_id: toPokerSeriesRouteId\(s\.id\)/);
   assert.match(calendarApi, /source_event_id: s\.id/);
-  assert.match(sitemap, /addSeries\(toPokerSeriesRouteId\(row\.id\)\)/);
+  assert.match(sitemap, /addSeries\(toPokerSeriesRouteId\(row\.id\), row\)/);
   assert.match(sitemap, /select: SITEMAP_SERIES_EVIDENCE_COLUMNS/);
   assert.match(sitemap, /\.filter\(row => isServableSeriesParentEvidence\(row\)\)/);
   assert.match(seriesPage, /id: toPokerSeriesRouteId\(ps\.id\)/);

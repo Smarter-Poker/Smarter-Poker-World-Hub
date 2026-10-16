@@ -88,10 +88,10 @@ export async function getServerSideProps({ params, req, res }) {
 
 const C = {
     bg: '#04060b',
-    glass: 'rgba(10,14,22,0.92)',
+    glass: 'linear-gradient(155deg, #263541 0%, #0d151e 18%, #04080d 66%, #101c28 100%)',
     steel: 'linear-gradient(160deg,#5b6472 0%,#2a2f38 35%,#8a93a1 55%,#23272e 100%)',
     neon: '#2f8cff',
-    gold: '#f5c542',
+    accent: '#8bd7ff',
     text: '#e7ebf2',
     sub: '#9aa4b2',
 };
@@ -170,16 +170,15 @@ export default function ClubInviteLanding({ invite, code }) {
 
             <div style={styles.frame}>
                 <div style={styles.card}>
-                    <div style={styles.logo}>
-                        {club.logoUrl ? (
-                            <img src={club.logoUrl} alt="" style={styles.logoImg} />
-                        ) : (
-                            <span style={styles.logoLetter}>{(club.name[0] || 'S').toUpperCase()}</span>
-                        )}
-                    </div>
+                    {club.logoUrl ? (
+                        <div style={styles.logo}>
+                            <img src={club.logoUrl} alt={`${club.name} Logo`} style={styles.logoImg}
+                                onError={(event) => { event.currentTarget.parentElement.style.display = 'none'; }} />
+                        </div>
+                    ) : null}
 
                     <p style={styles.kicker}>
-                        <span style={{ color: C.gold }}>{inviter.alias}</span> Invited You To Join
+                        <span style={{ color: C.accent }}>{inviter.alias}</span> Invited You To Join
                     </p>
                     <h1 style={styles.title}>{club.name}</h1>
                     {club.description ? <p style={styles.desc}>{club.description}</p> : null}
@@ -236,12 +235,15 @@ const styles = {
         padding: 6,
         borderRadius: 22,
         background: C.steel,
-        boxShadow: `0 0 0 1px rgba(255,255,255,0.06), 0 0 28px rgba(47,140,255,0.35)`,
+        boxShadow: 'inset 0 1px 0 #afbdc8, 0 24px 64px #000, 0 0 30px rgba(47,140,255,0.18)',
     },
     card: {
         borderRadius: 17,
         background: C.glass,
-        padding: '28px 20px 22px',
+        padding: '32px 22px 26px',
+        boxShadow: 'inset 0 2px 2px #060a0f, inset 0 -1px 0 #384b5d',
+        minWidth: 0,
+        overflowWrap: 'anywhere',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -252,8 +254,8 @@ const styles = {
         height: 96,
         borderRadius: '50%',
         overflow: 'hidden',
-        border: `2px solid ${C.gold}`,
-        boxShadow: '0 0 18px rgba(245,197,66,0.35)',
+        border: `2px solid ${C.accent}`,
+        boxShadow: 'inset 0 1px 0 #d5e5ee, 0 10px 20px #000',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -261,7 +263,6 @@ const styles = {
         marginBottom: 16,
     },
     logoImg: { width: '100%', height: '100%', objectFit: 'cover' },
-    logoLetter: { fontSize: 40, fontWeight: 800, color: C.gold },
     kicker: { margin: 0, fontSize: 15, color: C.sub, fontWeight: 600 },
     title: { margin: '6px 0 4px', fontSize: 26, lineHeight: 1.2, fontWeight: 800, color: '#fff' },
     desc: { margin: '6px 0 0', fontSize: 14, color: C.sub, lineHeight: 1.45 },
@@ -269,8 +270,10 @@ const styles = {
     chip: {
         fontSize: 13,
         fontWeight: 700,
-        color: C.gold,
-        border: '1px solid rgba(245,197,66,0.5)',
+        color: C.accent,
+        border: '1px solid #455d73',
+        background: 'linear-gradient(180deg,#253747,#0a121c)',
+        boxShadow: 'inset 0 1px 0 #587087, 0 3px 7px #020406',
         borderRadius: 999,
         padding: '5px 12px',
     },
@@ -295,7 +298,7 @@ const styles = {
         fontWeight: 800,
         fontSize: 16,
         textDecoration: 'none',
-        boxShadow: '0 6px 18px rgba(47,140,255,0.35)',
+        boxShadow: 'inset 0 1px 0 #a9dcff, inset 0 -3px 0 #08489a, 0 8px 18px #02060d',
     },
     secondary: {
         display: 'block',

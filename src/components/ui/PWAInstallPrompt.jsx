@@ -39,10 +39,12 @@ import {
 } from '../../lib/pwaInstall';
 import { promptInteractionCss, promptPanel, promptPrimary, promptSecondary, promptEyebrow } from '../pwa/promptMaterials';
 import InstallAppSheet from '../pwa/InstallAppSheet';
+import { useRouter } from 'next/router';
+import { supabase } from '../../lib/supabase';
+import { installPromptDelay } from '../../lib/signupExperience.mjs';
 
 const DISMISS_UNTIL_KEY = 'sp_pwa_prompt_snooze_until';
 const SNOOZE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-const SHOW_DELAY_MS = 25_000; // let people actually land before selling them an app
 
 function safeGet(key) {
     try { return localStorage.getItem(key); } catch { return null; }
@@ -73,6 +75,8 @@ function snooze() {
 }
 
 export default function PWAInstallPrompt() {
+    const { pathname } = useRouter();
+    const [authUser, setAuthUser] = useState(null);
     const [show, setShow] = useState(false);
     const [sheetOpen, setSheetOpen] = useState(false);
     const mountedRef = useRef(true);
@@ -87,8 +91,26 @@ export default function PWAInstallPrompt() {
         };
     }, []);
 
+    useEffect(() => {
+        let active = true;
+        // INITIAL_SESSION supplies the hydrated session; subsequent events
+        // cover sign-in, refresh and sign-out without a competing session read.
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (active) setAuthUser(session?.user || null);
+        });
+        return () => { active = false; data?.subscription?.unsubscribe(); };
+    }, []);
+
     const evaluate = useCallback(() => {
         if (!mountedRef.current) return;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        const delay = installPromptDelay(authUser, pathname);
+        if (delay === null || delay > 0) {
+            setShow(false);
+            setSheetOpen(false);
+            if (delay !== null) timerRef.current = setTimeout(evaluate, delay);
+            return;
+        }
 
         // Already running as the app, or known installed on this device.
         if (isRunningAsApp()) {
@@ -111,17 +133,16 @@ export default function PWAInstallPrompt() {
         //   - Android / desktop Chrome / Edge once the event has landed
         //   - iOS at any point, because the path there is instructions
         if (isInstallable()) setShow(true);
-    }, []);
+    }, [authUser, pathname]);
 
     useEffect(() => {
         // Re-evaluate whenever install availability changes — this is what
         // makes Android work: beforeinstallprompt may land after mount.
         const unsub = subscribeInstallState(evaluate);
 
-        // And evaluate once after a delay, for iOS (no event will ever come)
-        // and for the case where the event fired before this component
-        // mounted, which the module-scope capture in pwaInstall.js retains.
-        timerRef.current = setTimeout(evaluate, SHOW_DELAY_MS);
+        // Both initial evaluation and availability events use the same
+        // account-age gate. The remaining delay survives route changes.
+        evaluate();
 
         return () => {
             unsub();
@@ -151,6 +172,8 @@ export default function PWAInstallPrompt() {
         }
     };
 
+    if (installPromptDelay(authUser, pathname) !== 0) return null;
+
     if (sheetOpen) {
         return (
             <InstallAppSheet
@@ -176,7 +199,7 @@ export default function PWAInstallPrompt() {
             <div className="sp-pwa-install-spade" style={S.spade} aria-hidden="true">♠</div>
             <div className="sp-pwa-install-copy" style={S.copy}>
                 <div style={promptEyebrow}>Smarter.Poker App</div>
-                <div className="sp-pwa-install-title" style={S.title}>Your Seat. Always Within Reach.</div>
+                <div className="sp-pwa-install-title" style={S.title}><span style={{ display: 'block' }}>Your Seat...</span><span style={{ display: 'block' }}>Always Within Reach.</span></div>
                 <div className="sp-pwa-install-sub" style={S.sub}>
                     {isIos() && !oneTap
                         ? 'Add To Your Home Screen For Seat Alerts And Messages.'
