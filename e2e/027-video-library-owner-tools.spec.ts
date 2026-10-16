@@ -45,14 +45,21 @@ test.describe('Phase 8 Video Library Owner Tools', () => {
         await expect(page.getByRole('heading', { name: 'Poker Video Library', exact: true })).toBeVisible();
         await expect(entry).toHaveCount(0);
         await geometry(page);
-        await page.goto('/hub/video-library/owner', { waitUntil: 'commit' });
-        const panel = page.locator('[data-video-library-owner-panel]');
+        // The browse router may still be canonicalizing its URL. Direct owner
+        // entry is a separate document now that its public nav link is removed.
+        const ownerPage = await page.context().newPage();
+        await page.close();
+        await fixtures(ownerPage);
+        await ownerPage.route('**/api/admin/video-operations**', route => { adminReads += 1; return route.fulfill({ status: 401, body: '{}' }); });
+        await ownerPage.goto('/hub/video-library/owner', { waitUntil: 'commit' });
+        const panel = ownerPage.locator('[data-video-library-owner-panel]');
         const signIn = panel.getByRole('link', { name: 'Sign In To Open The Control Panel', exact: true });
         await expect(signIn).toHaveAttribute('href', '/auth/login?redirect=%2Fhub%2Fvideo-library%2Fowner');
         expect((await signIn.boundingBox())?.height).toBeGreaterThanOrEqual(44);
         await expect(panel.getByRole('navigation', { name: 'Owner Tools' })).toHaveCount(0);
         expect(adminReads).toBe(0);
-        await geometry(page);
+        await geometry(ownerPage);
+        await ownerPage.close();
     });
     test('native owner snapshot renders truthful metrics, retries, refreshes and denies member access', async ({ page }) => {
         await fixtures(page); await authenticated(page);
