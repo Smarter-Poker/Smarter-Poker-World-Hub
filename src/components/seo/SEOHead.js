@@ -28,8 +28,25 @@ function usePathname() {
   }
 }
 
+import Head from 'next/head';
+
 export default function SEOHead(props) {
   const pathname = usePathname();
   const ogImage = props.ogImage || productOgImage(pathname);
-  return <SharedSEOHead {...props} ogImage={ogImage} />;
+  const { geoRegion, geoPlacename, geoPosition } = props;
+
+  return (
+    <SharedSEOHead {...props} ogImage={ogImage}>
+      {geoRegion && <meta key="geo-region" name="geo.region" content={geoRegion} />}
+      {geoPlacename && <meta key="geo-placename" name="geo.placename" content={geoPlacename} />}
+      {geoPosition && (
+        <>
+          <meta key="geo-position" name="geo.position" content={geoPosition} />
+          <meta key="icbm" name="ICBM" content={geoPosition.replace(';', ', ')} />
+        </>
+      )}
+      {props.children}
+    </SharedSEOHead>
+  );
 }
+

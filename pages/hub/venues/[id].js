@@ -163,6 +163,11 @@ function buildVenueSeo(venue, routeId, scheduleCount) {
     // first now and unmirrored values are dropped rather than published.
     image: toAbsoluteImageUrl(getVenueLogoUrl(venue))
       || toAbsoluteImageUrl(safeImageUrl(venue.cover_photo_url)),
+    geoRegion: venue.state ? `US-${String(venue.state).trim().toUpperCase()}` : null,
+    geoPlacename: [venue.city, venue.state].filter(Boolean).join(', ') || null,
+    geoPosition: (venue.latitude != null && venue.longitude != null && !isNaN(parseFloat(venue.latitude)) && !isNaN(parseFloat(venue.longitude)))
+      ? `${parseFloat(venue.latitude)};${parseFloat(venue.longitude)}`
+      : null,
   };
 }
 
@@ -1920,6 +1925,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         ogImage={seo.image || undefined}
         twitterCard="summary"
         noindex={!isIndexable}
+        geoRegion={seo.geoRegion}
+        geoPlacename={seo.geoPlacename}
+        geoPosition={seo.geoPosition}
       />
 
       {venueJsonLd && (

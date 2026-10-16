@@ -55,7 +55,12 @@ test.describe('Phase 8 Video Library Owner Tools', () => {
         const panel = ownerPage.locator('[data-video-library-owner-panel]');
         const signIn = panel.getByRole('link', { name: 'Sign In To Open The Control Panel', exact: true });
         await expect(signIn).toHaveAttribute('href', '/auth/login?redirect=%2Fhub%2Fvideo-library%2Fowner');
-        expect((await signIn.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+        // The link is server-rendered and visible from the first parse, so with
+        // `waitUntil: 'commit'` a single read can land before OwnerPanel's
+        // stylesheet (which owns its 44px) has applied. Until 2026-10-16 the
+        // whole app sat in a visibility:hidden wrapper until hydration, which
+        // kept this role locator from resolving that early. Same 44px floor.
+        await expect.poll(async () => (await signIn.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
         await expect(panel.getByRole('navigation', { name: 'Owner Tools' })).toHaveCount(0);
         expect(adminReads).toBe(0);
         await geometry(ownerPage);
