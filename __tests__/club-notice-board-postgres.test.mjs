@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import net from 'node:net';
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
+import { validateNoticeRequest } from '../src/lib/clubNoticeBoard.mjs';
 const {Client}=createRequire(import.meta.url)('pg');
 
 test('native board authorization, cursors, duplicate writes, CAS, audit and realtime contract', {timeout:60000}, async () => {
@@ -52,6 +53,21 @@ test('native board authorization, cursors, duplicate writes, CAS, audit and real
   const deleted=await rpc(admin,club,'delete',{id:entry.id,version:2});assert.equal(deleted.is_deleted,true);
   assert.equal((await rpc(player,club,'read')).rows.length,0);
   assert.equal((await db.query('SELECT count(*)::int n FROM club_notice_board_audit')).rows[0].n,3);
+  await db.query('BEGIN');
+  try {
+   for (const status of ['notice','pending_payout','paid']) {
+    const input={id:randomUUID(),content:'  Canonical Notice  ',status,is_pinned:true};
+    const payload=validateNoticeRequest('PUT',{clubId:club,payload:input}).payload;
+    const first=await rpc(admin,club,'create',payload);
+    assert.equal(first.content,'Canonical Notice');
+    assert.equal(first.is_pinned,status==='pending_payout');
+    assert.deepEqual(await rpc(admin,club,'create',validateNoticeRequest('PUT',{clubId:club,payload:input}).payload),first);
+    if(status==='paid') {
+     const reopened=await rpc(admin,club,'update',{id:input.id,version:1,status:'pending_payout',is_pinned:true});
+     assert.equal(reopened.status,'pending_payout');assert.equal(reopened.is_pinned,true);
+    }
+   }
+  } finally { await db.query('ROLLBACK'); }
   // Same timestamp across a page boundary must neither duplicate nor skip IDs.
   for(let n=0;n<110;n++) await rpc(admin,club,'create',{id:randomUUID(),content:`Entry ${n}`,status:'notice'});
   await db.query("UPDATE club_notice_board SET created_at='2026-10-15T12:00:00.123456Z' WHERE NOT is_deleted");

@@ -53,3 +53,13 @@ test('realtime timezone suffixes and microseconds preserve chronological UUID or
  assert.ok(compareNotices(a,b)<0);
  assert.ok(compareNotices({...a,created_at:'2026-10-15T07:00:00.123456-05:00'},{...a,id:'zz'})<0);
 });
+
+test('create retries use the same canonical text and pin state as persistence without mutating input', () => {
+ const payload={id,content:'  Club Notice  ',status:'notice',is_pinned:true};
+ const first=validateNoticeRequest('PUT',{clubId,payload});
+ assert.deepEqual(first.payload,{id,content:'Club Notice',status:'notice',is_pinned:false});
+ assert.deepEqual(payload,{id,content:'  Club Notice  ',status:'notice',is_pinned:true});
+ assert.deepEqual(validateNoticeRequest('PUT',{clubId,payload:{...payload}}).payload,first.payload);
+ const payout=validateNoticeRequest('PUT',{clubId,payload:{...payload,status:'pending_payout'}});
+ assert.equal(payout.payload.is_pinned,true);
+});

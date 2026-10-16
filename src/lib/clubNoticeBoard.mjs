@@ -31,7 +31,11 @@ export function validateNoticeRequest(method, body) {
         if (payload.status !== undefined && !['notice', 'pending_payout', 'paid'].includes(payload.status)) fail();
         if (payload.is_pinned !== undefined && typeof payload.is_pinned !== 'boolean') fail();
     }
-    return { clubId: body.clubId, action, payload };
+    // Match persistence normalization before an idempotent create retry.
+    const canonical = { ...payload };
+    if (typeof canonical.content === 'string') canonical.content = canonical.content.trim();
+    if (action === 'create' && canonical.status !== 'pending_payout') canonical.is_pinned = false;
+    return { clubId: body.clubId, action, payload: canonical };
 }
 // Compare instants without dropping Postgres microseconds or relying on a
 // particular timezone suffix from realtime versus the JSON API.

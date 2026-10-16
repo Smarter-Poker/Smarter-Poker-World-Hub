@@ -145,6 +145,14 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         } catch (failure) { if (s.alive) setError(failure.message); }
         finally { if (s.alive) { s.loading = false; setOlderLoading(false); if (s.refreshAfterLoad) { s.refreshAfterLoad = false; void hydrate(); } } }
     }
+    useEffect(() => {
+        if (!editing) return;
+        const entry = [...state.current.rows, ...state.current.pinRows].find(row => row.id === editing.id && row.is_deleted);
+        if (!entry) return;
+        setEditing(null); setDraft('');
+        setError('This Notice Was Removed. Your Edit Was Not Saved.');
+    }, [rows, pins, editing]);
+
     async function mutate(method, payload) {
         if (busy) return false;
         setBusy(true); setError('');
@@ -182,6 +190,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                 <button type="button" disabled={busy} style={button} onClick={() => void mutate('PATCH', { id: row.id, version: row.version, is_pinned: !row.is_pinned })}>{row.is_pinned ? 'Unpin' : 'Pin'}</button>
                 <button type="button" disabled={busy} style={button} onClick={() => { if (window.confirm('Confirm This Payout Has Already Been Paid? This Updates The Board Record Only.')) void mutate('PATCH', { id: row.id, version: row.version, status: 'paid' }); }}>Mark As Paid</button>
             </>}
+            {row.status === 'paid' && <button type="button" disabled={busy} style={button} onClick={() => { if (window.confirm('Reopen This Payout Request? This Updates The Board Record Only.')) void mutate('PATCH', { id: row.id, version: row.version, status: 'pending_payout', is_pinned: true }); }}>Reopen Payout</button>}
             <button type="button" disabled={busy} style={button} onClick={() => { if (window.confirm('Remove This Notice From The Board?')) void mutate('DELETE', { id: row.id, version: row.version }); }}>Delete</button>
         </div>}
     </article>;

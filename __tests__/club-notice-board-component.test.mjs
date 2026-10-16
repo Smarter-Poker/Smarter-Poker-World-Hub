@@ -7,16 +7,21 @@ import * as board from '../src/lib/clubNoticeBoard.mjs';
 const require=createRequire(import.meta.url),React=require('react'),{act,create}=require('react-test-renderer'),{transformSync}=require('esbuild');
 
 test('rendered board hydrates socket events, removes pins/tombstones and isolates an unmounted identity',async()=>{
- const handlers={},listeners={};let subscribed,allow=true,wait=false,pending;
+ const handlers={},listeners={},mutations=[];let subscribed,allow=true,wait=false,pending;
  const club={id:'10000000-0000-4000-8000-000000000001',name:'Fixture Club'};
  const row={id:'20000000-0000-4000-8000-000000000001',club_id:club.id,content:'Initial Payout',status:'pending_payout',is_pinned:true,version:1,created_at:'2026-10-15T10:00:00.123456Z'};
  let records=[row];
  const channel={on(type,filter,fn){handlers[type]=fn;return channel;},subscribe(fn){subscribed=fn;return channel;}};
  const supabase={channel:()=>channel,removeChannel:()=>Promise.resolve()};
- const context=vm.createContext({console,crypto:globalThis.crypto,window:{addEventListener:(k,fn)=>{listeners[k]=fn;},removeEventListener(){}},document:{visibilityState:'visible',addEventListener:(k,fn)=>{listeners[k]=fn;},removeEventListener(){}}});
+ const context=vm.createContext({console,crypto:globalThis.crypto,window:{confirm:()=>true,addEventListener:(k,fn)=>{listeners[k]=fn;},removeEventListener(){}},document:{visibilityState:'visible',addEventListener:(k,fn)=>{listeners[k]=fn;},removeEventListener(){}}});
  const synthetic=(values)=>new vm.SyntheticModule(Object.keys(values),function(){for(const[k,v]of Object.entries(values))this.setExport(k,v);},{context});
  const modules={react:synthetic({default:React,...React}),'../../lib/supabase':synthetic({supabase}),
- '../../lib/authUtils':synthetic({getAccessToken:()=>null,authedFetch:async()=>{
+ '../../lib/authUtils':synthetic({getAccessToken:()=>null,authedFetch:async(_url,options)=>{
+  if(options.method!=='POST') {
+   const payload=JSON.parse(options.body).payload;mutations.push({method:options.method,payload});
+   records=[{...records[0],...payload,version:records[0].version+1}];
+   return {status:200,ok:true,json:async()=>({success:true,entry:records[0]})};
+  }
   if(wait)await new Promise(resolve=>{pending=resolve;});
   return {status:allow?200:403,ok:allow,json:async()=>allow?{success:true,entries:records,pinned:records.filter(r=>r.is_pinned),canManage:true,hasMore:false,cursor:null}:{success:false,error:'Active Club Membership Required'}};
  }}),'../../lib/clubNoticeBoard.mjs':synthetic(board)};
@@ -28,8 +33,16 @@ test('rendered board hydrates socket events, removes pins/tombstones and isolate
  const text=()=>JSON.stringify(root.toJSON());
  assert.match(text(),/Initial Payout/);assert.match(text(),/Unpin/);
  await act(async()=>{handlers.postgres_changes({new:{...row,version:2,status:'paid',is_pinned:false}});});
- assert.doesNotMatch(text(),/Unpin/);assert.match(text(),/Marked Paid/);
- await act(async()=>{handlers.postgres_changes({new:{...row,version:3,is_deleted:true,is_pinned:false}});});
+ assert.doesNotMatch(text(),/Unpin/);assert.match(text(),/Marked Paid/);assert.match(text(),/Reopen Payout/,'paid annotation must be correctable by an admin');
+ records=[{...row,version:2,status:'paid',is_pinned:false}];
+ await act(async()=>{root.root.findAllByType('button').find(b=>b.props.children==='Reopen Payout').props.onClick();});
+ assert.deepEqual(mutations[0],{method:'PATCH',payload:{id:row.id,version:2,status:'pending_payout',is_pinned:true}});
+ assert.match(text(),/Unpin/);
+ await act(async()=>{root.root.findAllByType('button').find(b=>b.props.children==='Edit').props.onClick();});
+ assert.match(text(),/Editing Notice/);
+ await act(async()=>{handlers.postgres_changes({new:{...row,version:4,is_deleted:true,is_pinned:false}});});
+ assert.doesNotMatch(text(),/Editing Notice/,'a deleted notice cannot remain an active editor target');
+ assert.equal(root.root.findByType('textarea').props.value,'');
  assert.doesNotMatch(text(),/Initial Payout/);
  await act(async()=>{handlers.postgres_changes({new:{...row,version:2}});});
  assert.doesNotMatch(text(),/Initial Payout/,'delayed events cannot resurrect deleted rows');
