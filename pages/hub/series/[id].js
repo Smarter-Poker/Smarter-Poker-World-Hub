@@ -351,7 +351,7 @@ async function primarySeriesRouteId(series) {
   }
 }
 
-export async function getServerSideProps({ params, query, req, res }) {
+export async function getServerSideProps({ params, req, res }) {
   const requestedId = String(params?.id ?? '');
   const canonicalId = canonicalSeriesRouteId(requestedId);
   if (canonicalId && canonicalId !== requestedId) {
@@ -400,11 +400,11 @@ export async function getServerSideProps({ params, query, req, res }) {
 
     // LLM Raw Markdown Ingestion (Phase 3 of AEO)
     const acceptHeader = String(req?.headers?.accept || '');
+    const reqUrl = String(req?.url || '');
     const isMarkdownRequested =
       acceptHeader.includes('text/markdown') ||
-      query?.format === 'md' ||
-      String(query?.id || '').endsWith('.md') ||
-      req?.url?.includes('format=md');
+      reqUrl.includes('format=md') ||
+      reqUrl.includes('.md');
     if (isMarkdownRequested && isPublicSeries(seoSeries)) {
       const { renderSeriesMarkdown } = await import('../../../src/lib/seo/markdownIngestion.mjs');
       const mdContent = renderSeriesMarkdown(seoSeries, {
