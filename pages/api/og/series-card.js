@@ -316,7 +316,7 @@ export default async function handler(req) {
                 letterSpacing: 0.5,
               }}
             >
-              smarter.poker/hub/series/{id || ''}
+              SMARTER.POKER
             </div>
           </div>
         </div>
