@@ -91,7 +91,12 @@ export async function runPhase8Tracking({ page, client, admin, session, ownerId,
             assert.equal(await readRow(), null, 'Every candidate must have no existing dedicated-account history');
             await page.goto(`${base}${watchPath(video)}`, { waitUntil: 'domcontentloaded' });
             await page.locator('[data-watch-tracking="ready"]').waitFor({ timeout: 20000 });
-            await page.getByRole('button', { name: `Play ${video.title}`, exact: true }).click();
+            const discoverablePlayer = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
+            await expect(discoverablePlayer).toBeVisible();
+            const discoverableSource = new URL(await discoverablePlayer.getAttribute('src'));
+            assert.equal(discoverableSource.searchParams.get('autoplay'), '0');
+            assert(!discoverableSource.searchParams.has('start'));
+            assert.equal(await readRow(), null, 'Discovering the non-autoplaying iframe must not write watch credit');
             try { frame = await startProvider(); break; }
             catch (error) {
                 const observed = await diagnostics('provider-unavailable', error);
@@ -138,14 +143,29 @@ export async function runPhase8Tracking({ page, client, admin, session, ownerId,
         assert(stopped.watch_duration_seconds > 0 && stopped.watch_duration_seconds < 300);
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.locator('[data-watch-tracking="ready"]').waitFor();
-        await page.getByRole('button', { name: `Play ${video.title}`, exact: true }).click();
         const resumedIframe = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
+        await expect(resumedIframe).toBeVisible();
+        const resumedHandle = await resumedIframe.elementHandle();
         const resumeSource = await resumedIframe.getAttribute('src');
-        assert.equal(Number(new URL(resumeSource).searchParams.get('start')), Math.floor(stopped.progress_seconds));
-        await startProvider();
-        await expect.poll(position, { timeout: 20000 }).toBeGreaterThan(Math.floor(stopped.progress_seconds));
+        assert.equal(resumeSource, initialSource, 'Reload keeps the same non-autoplaying player address');
+        assert.equal(new URL(resumeSource).searchParams.get('autoplay'), '0');
+        assert(!new URL(resumeSource).searchParams.has('start'));
+        const resumePosition = Math.floor(stopped.progress_seconds);
+        // Wait for the actual provider's native poster before asking the
+        // app's visible resume control to seek/play the existing player.
+        const resumeFrame = page.frameLocator('iframe[src*="youtube-nocookie.com/embed/"]');
+        await expect(resumeFrame.locator('button.ytp-large-play-button')).toBeVisible({ timeout: 20000 });
+        const resumeButton = page.getByRole('button', { name: 'Resume Saved Position', exact: true });
+        await expect(resumeButton).toBeVisible();
+        await resumeButton.evaluate(element => element.scrollIntoView({ block: 'center' }));
+        await resumeButton.click();
+        await expect.poll(state, { timeout: 20000 }).toBe(1);
+        await expect.poll(position, { timeout: 5000 }).toBeGreaterThanOrEqual(resumePosition);
+        assert((await position()) < resumePosition + 10, 'The real provider must resume near the saved position');
+        assert.equal(await resumedIframe.getAttribute('src'), resumeSource, 'Resume commands must not reload the iframe');
+        assert(await resumedHandle.evaluate(element => element.isConnected && element === document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]')));
         if (evidence) await page.screenshot({ path: path.join(evidence, 'phase8-authenticated-watch-tracking.png'), fullPage: false });
-        report.cases.push({ name: 'Canonical real playback saves owned server-confirmed history, pause excludes time and reload resumes without heartbeat reload', status: 'passed', videoId: video.videoId, createdRowId, savedSeconds: stopped.watch_duration_seconds, savedPositionSeconds: stopped.progress_seconds, resumeStart: Number(new URL(resumeSource).searchParams.get('start')) });
+        report.cases.push({ name: 'Canonical real playback saves owned server-confirmed history, pause excludes time and reload resumes without heartbeat reload', status: 'passed', videoId: video.videoId, createdRowId, savedSeconds: stopped.watch_duration_seconds, savedPositionSeconds: stopped.progress_seconds, resumeStart: resumePosition });
     } catch (error) {
         await diagnostics('qualification-failure', error);
         throw error;

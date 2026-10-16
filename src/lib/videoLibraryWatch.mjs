@@ -154,15 +154,20 @@ export function videoPublicationDate(value) {
     return date.toISOString();
 }
 
+/** One factual image URL shared by watch-page metadata and the video sitemap. */
+export function videoThumbnailUrl(video) {
+    const image = String(video?.thumbnail || '');
+    return /^https:\/\/(?:i\.ytimg\.com|img\.youtube\.com)\//.test(image)
+        ? image : `https://i.ytimg.com/vi/${video?.videoId}/hqdefault.jpg`;
+}
+
 /** Only emit Google's video entity when its required publication fact exists. */
 export function buildVideoObject(video, { channelName, description } = {}) {
     const uploadDate = videoPublicationDate(video?.publishedAt);
     if (!uploadDate || !video?.title || !/^[A-Za-z0-9_-]{11}$/.test(video?.videoId || '')) return null;
     const seconds = durationSeconds(video.duration);
     const url = watchUrl(video);
-    const image = String(video.thumbnail || '');
-    const thumbnail = /^https:\/\/(?:i\.ytimg\.com|img\.youtube\.com)\//.test(image)
-        ? image : `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
+    const thumbnail = videoThumbnailUrl(video);
     const videoObject = {
         '@type': 'VideoObject',
         '@id': `${url}#video`,
@@ -209,7 +214,7 @@ export function videoSitemapEntry(video, channelName) {
         '  <url>',
         `    <loc>${xmlEscape(watchUrl(video))}</loc>`,
         '    <video:video>',
-        `      <video:thumbnail_loc>${xmlEscape(`https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`)}</video:thumbnail_loc>`,
+        `      <video:thumbnail_loc>${xmlEscape(videoThumbnailUrl(video))}</video:thumbnail_loc>`,
         `      <video:title>${xmlEscape(video.title)}</video:title>`,
         `      <video:description>${xmlEscape(buildWatchDescription(video, channelName))}</video:description>`,
         `      <video:player_loc>${xmlEscape(`https://www.youtube-nocookie.com/embed/${video.videoId}`)}</video:player_loc>`,
