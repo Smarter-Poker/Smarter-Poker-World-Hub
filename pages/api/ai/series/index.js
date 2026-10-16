@@ -1,4 +1,4 @@
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 /**
  * Public AI Agent Poker Tournament Series API
