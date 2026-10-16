@@ -440,6 +440,21 @@ export async function getServerSideProps({ params, req, res }) {
   if (venue) {
     const { assessVenueLocation } = await import('../../../src/lib/poker-near-me/venueIntegrityServer.js');
     venue = Object.assign({}, venue, { location_quality: assessVenueLocation(venue) });
+
+    // LLM Raw Markdown Ingestion (Phase 3 of AEO)
+    const acceptHeader = String(req?.headers?.accept || '');
+    const isMarkdownRequested = acceptHeader.includes('text/markdown') || req?.url?.includes('format=md');
+    if (isMarkdownRequested) {
+      const { renderVenueMarkdown } = await import('../../../src/lib/seo/markdownIngestion.mjs');
+      const mdContent = renderVenueMarkdown(venue, {
+        canonicalUrl: `https://smarter.poker/hub/venues/${encodeURIComponent(String(id))}`,
+      });
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.write(mdContent);
+      res.end();
+      return { props: {} };
+    }
   }
 
   return {

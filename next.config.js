@@ -1378,6 +1378,16 @@ const nextConfig = {
           source: '/c/:code',
           destination: '/api/c/:code',
         },
+        /* LLM RAW MARKDOWN INGESTION (AEO Phase 3). Allows AI agents and crawlers
+           to fetch clean Markdown representations via .md URL extensions. */
+        {
+          source: '/hub/venues/:id.md',
+          destination: '/hub/venues/:id?format=md',
+        },
+        {
+          source: '/hub/series/:id.md',
+          destination: '/hub/series/:id?format=md',
+        },
       ],
       fallback: [],
     };
