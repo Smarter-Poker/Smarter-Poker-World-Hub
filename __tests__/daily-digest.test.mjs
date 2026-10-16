@@ -164,3 +164,17 @@ test('ai fallback reason names the provider error, never the key', async () => {
         assert.ok(!r.reason.includes('sk-secret'));
     } finally { console.warn = warn; }
 });
+
+test('an out of credits AI provider becomes an attention item', async () => {
+    const { withProviderAttention } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const d = fixture();
+    const out = withProviderAttention(d, { source: 'fallback', reason: 'http_400 invalid_request_error: Your credit balance is too low to access the Anthropic API. (m1)' });
+    assert.equal(out.attention.length, d.attention.length + 1);
+    assert.equal(out.attention.at(-1).rule, 'ai_provider_unavailable');
+    assert.equal(out.attention_status.not_picked_up, d.attention_status.not_picked_up + 1);
+    assert.match(buildSubject(out), /^\[4 Need Attention\]/);
+    assert.ok(buildHtml(out).includes('out of credits'));
+    assert.equal(withProviderAttention(d, { source: 'fallback', reason: 'unverified numbers: 22' }), d, 'a guard rejection is not an owner action');
+    assert.equal(withProviderAttention(d, { source: 'claude-sonnet-5-5' }), d);
+    assert.equal(withProviderAttention(d, null), d);
+});
