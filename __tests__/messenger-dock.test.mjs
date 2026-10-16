@@ -1,9 +1,43 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { dockCapacity, dockLayout, dockNotificationLayout, restoreDock, updateDock, DOCK_MAX_CHATS } from '../src/components/messenger/dock/messengerDock.mjs';
+import { dockCapacity, dockLayout, dockNotificationLayout, dockHasSurface, dockPreviewLayout, isDockResolutionCurrent, updateDockPreviews, restoreDock, updateDock, DOCK_MAX_CHATS } from '../src/components/messenger/dock/messengerDock.mjs';
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const open = (rows,n,options={}) => updateDock(rows,{type:'open',conversation:{id:id(n),title:`Player ${n}`},...options});
+test('idle has no launcher; a new authorized notice is dismissible without opening or marking read',()=>{
+ const chats=[];let previews=[];
+ assert.equal(dockHasSurface(chats,previews),false);
+ previews=updateDockPreviews(previews,{type:'receive',conversation:{id:id(1),title:'Player 1',unreadCount:1,last_message_preview:'Hello'}});
+ assert.equal(dockHasSurface(chats,previews),true);assert.equal(chats.length,0);
+ previews=updateDockPreviews(previews,{type:'receive',conversation:{id:id(1),last_message_preview:'Latest',unreadCount:2}});
+ assert.equal(previews.length,1);assert.equal(previews[0].last_message_preview,'Latest');
+ const before=previews[0];previews=updateDockPreviews(previews,{type:'dismiss',id:id(1)});
+ assert.equal(dockHasSurface(chats,previews),false);assert.equal(before.unreadCount,2);
+ const opened=open(chats,1);assert.equal(dockHasSurface(opened,previews),true);
+ assert.equal(dockHasSurface(updateDock(opened,{type:'close',id:id(1)}),previews),false);
+});
+test('notice queue is bounded, actor-cleared, and cannot accept an invalid conversation',()=>{
+ let previews=[];for(let n=1;n<=8;n++)previews=updateDockPreviews(previews,{type:'receive',conversation:{id:id(n)}});
+ assert.equal(previews.length,3);assert.equal(previews.at(-1).id,id(8));
+ assert.equal(updateDockPreviews(previews,{type:'receive',conversation:{id:'not-authorized'}}),previews);
+ assert.deepEqual(updateDockPreviews(previews,{type:'clear'}),[]);
+ for(const [height,bottom,window] of [[568,76,false],[844,76,false],[900,140,true],[568,296,true]]){
+  const placement=dockPreviewLayout(height,bottom,window);assert.ok(placement.bottom>=bottom);assert.ok(placement.maxHeight>=60);assert.ok(placement.bottom+placement.maxHeight<=height-12);
+ }
+});
+test('incoming notice requires a click to open and X dismissal invalidates pending resolution',()=>{
+ const source=readFileSync(new URL('../src/components/messenger/dock/MessengerDock.jsx',import.meta.url),'utf8');
+ const incoming=source.slice(source.indexOf('if (incoming) {'),source.indexOf("previewAction({ type: 'dismiss', id });"));
+ assert.match(incoming,/previewAction\(\{ type: 'receive', conversation \}\)/);assert.doesNotMatch(incoming,/type: 'open'/);
+ assert.match(source,/aria-label=\{`Open Message From/);assert.match(source,/aria-label=\{`Dismiss Message From/);
+ assert.match(source,/!dockHasSurface\(chats, previews, inbox\)/);assert.match(source,/isDockResolutionCurrent\(incoming, resolution, resolutions.current.get\(id\)\)/);
+ assert.match(source,/interactions.current.set\(id, \(interactions.current.get\(id\) \|\| 0\) \+ 1\);\s+previewAction\(\{ type: 'dismiss', id \}\)/);
+});
+test('a new incoming notice cannot cancel the explicit click opening its conversation',()=>{
+ assert.equal(isDockResolutionCurrent(true,1,2),false);
+ assert.equal(isDockResolutionCurrent(true,2,2),true);
+ assert.equal(isDockResolutionCurrent(false,1,2),true);
+});
 test('new message opens once, keeps explicitly minimized thread minimized, and highlights unread',()=>{
  let rows=open([],1,{incoming:true}); rows=updateDock(rows,{type:'minimize',id:id(1)}); rows=open(rows,1,{incoming:true});
  assert.equal(rows.length,1);assert.equal(rows[0].minimized,true);assert.equal(rows[0].unread,true);
