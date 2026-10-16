@@ -28,7 +28,7 @@ import {
     resolveInviteServer,
     safeClubArenaPath,
 } from '../../src/lib/clubInvite';
-import { getAuthUser } from '../../src/lib/authUtils';
+import { getSessionToken } from '../../src/lib/authUtils';
 
 const ORIGIN = 'https://smarter.poker';
 
@@ -105,8 +105,9 @@ export default function ClubInviteLanding({ invite, code }) {
     useEffect(() => {
         if (!invite) return;
         rememberInvite(invite.code);
-        const user = getAuthUser();
-        if (user?.id) {
+        // A stored session token, not the cached header user: a signed-out
+        // visitor with a stale header cache must still see Create Account.
+        if (getSessionToken()) {
             setSignedIn(true);
             // Already a Smarter.Poker player: the club join page claims the
             // invite and admits them. replace() keeps Back sensible.

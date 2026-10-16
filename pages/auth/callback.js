@@ -381,17 +381,23 @@ export default function AuthCallback() {
                     const meta = user.user_metadata || {};
                     const metaCode = normalizeInviteCode(meta.club_invite_code);
                     const metaSeen = Date.parse(meta.club_invite_first_seen || '');
-                    const invite = metaCode
+                    // The signup invite (metadata) belongs to a young account
+                    // only; an older account claims what this browser holds now,
+                    // so a new invite it just opened is never shadowed.
+                    const pending = readPendingInvite();
+                    const invite = youngAccount && metaCode
                         ? { code: metaCode, firstSeen: Number.isFinite(metaSeen) ? metaSeen : Date.now() }
-                        : readPendingInvite();
+                        : pending;
+                    // Only clear the stored invite when it is the one claimed.
+                    const claimedStored = !!pending && !!invite && pending.code === invite.code;
                     if (invite) {
                         const claimed = await claimInvite(session.access_token, invite);
                         if (claimed?.success) {
                             if (youngAccount && claimed.status !== 'already_member') {
                                 inviteJoinPath = safeClubArenaPath(claimed.join_path);
                             }
-                            clearPendingInvite();
-                        } else if (claimed && ['self_referral', 'expired', 'invalid_code', 'club_unavailable'].includes(claimed.code)) {
+                            if (claimedStored) clearPendingInvite();
+                        } else if (claimedStored && claimed && ['self_referral', 'expired', 'invalid_code', 'club_unavailable'].includes(claimed.code)) {
                             clearPendingInvite();
                         }
                     }
