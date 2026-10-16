@@ -775,8 +775,8 @@
       "schedule": "*/5 * * * *"
     },
     {
-      "path": "/api/cron/daily-digest",
-      "schedule": "0,20,40 12,13 * * *"
+      "path": "/api/cron/daily-digest?day=2026-10-13",
+      "schedule": "*/5 * * * *"
     }
   ],
   "redirects": [
