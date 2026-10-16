@@ -283,3 +283,87 @@ test('generic publisher fallback rejects brand art without caching the missing i
   assert.equal(res.body.image, null);
   assert.equal(res.headers['cache-control'], 'private, no-store');
 });
+
+test('Poker.org primary VideoObject thumbnail resolves when the article has no OpenGraph image', async () => {
+  const url = 'https://www.poker.org/poker-videos/poker-strategy/how-to-stop-giving-away-tells-at-the-poker-table-aouiO9f50A5u/';
+  const image = 'https://img.youtube.com/vi/hLAPozcNWOA/maxresdefault.jpg';
+  const html = `<title>How to Stop Giving Away Tells at the Poker Table</title><script type="application/ld+json">${JSON.stringify({
+    '@context': 'https://schema.org', '@graph': [
+      { '@type': 'VideoObject', url: 'https://www.poker.org/related/', thumbnailUrl: 'https://img.youtube.com/vi/AAAAAAAAAAA/maxresdefault.jpg' },
+      { '@type': 'VideoObject', '@id': url + '#videoobject', url, contentUrl: 'https://www.youtube.com/v/hLAPozcNWOA', thumbnailUrl: image },
+    ],
+  })}</script>`;
+  const calls = [];
+  const { handler } = loadKnownPublisherReader(async (requested, options) => {
+    calls.push({ url: String(requested), redirect: options?.redirect });
+    return { ok: true, async text() { return html; } };
+  });
+  const res = response();
+  await handler({ method: 'GET', query: { url } }, res);
+  assert.equal(res.body.image, image);
+  assert.deepEqual(calls, [{ url, redirect: 'error' }]);
+});
+
+test('ESPN soccer match reports use the exact event OpenGraph image, not a story-id lookup', async () => {
+  const url = 'https://www.espn.com/soccer/report/_/gameId/401890784';
+  const image = 'https://s.secure.espncdn.com/stitcher/sports/soccer/fifa.friendly.w/events/401890784.png?templateId=espn.com.share.1';
+  const calls = [];
+  const { handler } = loadKnownPublisherReader(async (requested, options) => {
+    assert.equal(options?.headers?.['User-Agent'], undefined, 'do not reuse the challenged browser fingerprint');
+    calls.push({ url: String(requested), redirect: options?.redirect });
+    return { ok: true, async text() { return `<meta property="og:title" content="Swanson scores against Spain"><meta property="og:image" content="${image}">`; }, async json() { return {}; } };
+  });
+  const res = response();
+  await handler({ method: 'GET', query: { url } }, res);
+  assert.equal(res.body.image, image);
+  assert.deepEqual(calls, [{ url, redirect: 'error' }]);
+});
+
+test('Poker.org structured art rejects related videos, malformed JSON, logos and mismatched video identity', async () => {
+  const url = 'https://www.poker.org/poker-videos/poker-strategy/current/';
+  for (const node of [
+    { '@type': 'VideoObject', url: 'https://www.poker.org/related/', thumbnailUrl: 'https://img.youtube.com/vi/AAAAAAAAAAA/maxresdefault.jpg' },
+    { '@type': 'Organization', url, thumbnailUrl: 'https://media.poker.org/article.jpg' },
+    { '@type': 'VideoObject', url, thumbnailUrl: 'https://media.poker.org/logo.png' },
+    { '@type': 'VideoObject', url, thumbnailUrl: 'https://img.youtube.com/vi/AAAAAAAAAAA/maxresdefault.jpg', contentUrl: 'https://www.youtube.com/v/BBBBBBBBBBB' },
+    { '@type': 'VideoObject', url, thumbnailUrl: 'http://127.0.0.1/private.png' },
+    { '@type': 'VideoObject', url, thumbnailUrl: 'https://img.youtube.com:8443/vi/AAAAAAAAAAA/maxresdefault.jpg' },
+  ]) {
+    const calls = [];
+    const { handler } = loadKnownPublisherReader(async requested => { calls.push(String(requested)); return {
+      ok: true, async text() { return `<script type="application/ld+json">broken</script><script type="application/ld+json">${JSON.stringify(node)}</script>`; },
+    }; });
+    const res = response();
+    await handler({ method: 'GET', query: { url } }, res);
+    assert.equal(res.body.image, null, JSON.stringify(node));
+    assert.equal(res.headers['cache-control'], 'private, no-store');
+    assert.deepEqual(calls, [url], 'unusable known-publisher metadata cannot re-enter through unrelated generic art');
+  }
+});
+
+test('ESPN match report fallback refuses another event and brand images without caching a miss', async () => {
+  const url = 'https://www.espn.com/soccer/report/_/gameId/401890784';
+  for (const image of [
+    'https://s.secure.espncdn.com/stitcher/sports/soccer/fifa.friendly.w/events/401890785.png',
+    'https://a.espncdn.com/i/espn/espn_logos/espn_red.png',
+    'https://unrelated.example/story-photo.jpg',
+    'http://s.secure.espncdn.com/stitcher/events/401890784.png',
+    'https://s.secure.espncdn.com/stitcher/events/unknown.png',
+  ]) {
+    const calls = [];
+    const { handler } = loadKnownPublisherReader(async requested => {
+      calls.push(String(requested));
+      return { ok: true, async text() { return `<meta property="og:image" content="${image}">`; } };
+    });
+    const res = response();
+    await handler({ method: 'GET', query: { url } }, res);
+    assert.equal(res.body.image, null, image);
+    assert.equal(res.headers['cache-control'], 'private, no-store');
+    assert.deepEqual(calls, [url], 'a missed event image cannot be replaced with generic related art');
+  }
+});
+
+test('publisher image regression protection executes in the required safety gate', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/build-safety-gate.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /name: Article Preview Publisher Image Contracts\s+run: node --test __tests__\/link-preview-poker-news-images\.test\.mjs/);
+});
