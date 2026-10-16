@@ -441,8 +441,17 @@ export default function TriviaLobby({
         </div>
       ) : null}
 
+      {/* Keyed by account identity only. Every identity change (signed out to
+          an account, one account to another, an account to signed out) still
+          remounts, so no frame shows the previous account's state. The
+          session check finishing without an account (loading to signed-out)
+          is not an identity change: remounting there threw away the server-
+          rendered tournament art and re-downloaded it, which made it the
+          lobby's Largest Contentful Paint at 3.1-3.6s (2026-10-16). The
+          briefing's own effect still resets its resources on every
+          authState change. */}
       <CompetitiveLobbyBriefing
-        key={`competitive-lobby:${accountKey || authState}`}
+        key={`competitive-lobby:${accountKey || 'no-account'}`}
         authState={authState}
         accountKey={accountKey}
         modeAvailability={modeAvailability}

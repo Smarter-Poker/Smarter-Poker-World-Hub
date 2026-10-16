@@ -434,10 +434,18 @@ export default function CompetitiveLobbyBriefing({
                     pill={registrationLabel}
                     pillInk={registrationLabel === 'Registration Open' || registrationLabel.startsWith('Registered') ? 'green' : 'gold'}
                 >
+                    {/* MOBILE LCP (2026-10-16). On a phone this art is the
+                        largest thing in the first viewport, so it was the
+                        lobby's Largest Contentful Paint. As a deferred image it
+                        could only start after hydration and an
+                        IntersectionObserver callback: 3.3-3.9s on the 3.5s
+                        budget (Global Footer E2E 38960460754). It is the
+                        visible hero, so it loads with the HTML. */}
                     <ResponsiveModeArt
                         art={TRIVIA_INTRO_ART_TOURNAMENTS}
                         className={styles.featureArt}
                         sizes="(min-width: 701px) 560px, 100vw"
+                        priority
                     />
                     <div className={styles.featureCopy} aria-labelledby="competitive-tournament-title">
                         <div className={styles.countdownRail}>

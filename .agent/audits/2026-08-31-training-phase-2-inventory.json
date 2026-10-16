@@ -40238,10 +40238,18 @@
       "functions": [
         {
           "name": "PageTransition",
-          "line": 22,
+          "line": 36,
           "references": 1,
           "exported": true,
           "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "AnimatedPage",
+          "line": 55,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
           "namedFunctionExpression": false
         }
       ],
@@ -92274,7 +92282,7 @@
       {
         "file": "src/components/transitions/PageTransition.js",
         "name": "PageTransition",
-        "line": 22,
+        "line": 36,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -101387,7 +101395,7 @@
       {
         "file": "src/components/transitions/PageTransition.js",
         "name": "PageTransition",
-        "line": 22,
+        "line": 36,
         "references": 1,
         "exported": true,
         "defaultExport": true,
