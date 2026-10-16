@@ -2895,13 +2895,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     <tbody>
                       {Object.entries(groupedSchedules || {}).map(function ([day, schedules]) {
                         var isToday = scheduleGroupIsToday(day, schedules, scheduleToday);
-                        return schedules.map(function (s, sIdx) {
+                        return schedules.map(function (s, idx) {
                           var scheduleDate = formatScheduleOccurrenceDate(s.event_date);
                           return (
-                            <tr key={`${day}-${sIdx}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: isToday ? 'rgba(0, 212, 255, 0.04)' : 'transparent' }}>
+                            <tr key={`${day}-${idx}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: isToday ? 'rgba(0, 212, 255, 0.04)' : 'transparent' }}>
                               <th scope="row" style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '700', color: isToday ? '#00D4FF' : '#f8fafc' }}>
                                 {day}{isToday ? ' (Today)' : ''}
-                                {scheduleDate && <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#94a3b8' }}>{scheduleDate.label}</div>}
+                                {scheduleDate && <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#94a3b8' }}><time dateTime={scheduleDate.iso}>{scheduleDate.label}</time></div>}
                               </th>
                               <td style={{ padding: '10px 14px', color: '#ffffff', fontWeight: '600' }}>
                                 {formatTime(s.start_time) || 'TBD'}
