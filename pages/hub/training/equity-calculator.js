@@ -12,6 +12,7 @@
 // TRAIN-CSS-GRADIENT-ADOPT-8 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -746,15 +747,69 @@ export default function EquityCalculatorPage() {
     }
   }, [canCalculate, hands, numPlayers, boardCards]);
 
+  const pageUrl = 'https://smarter.poker/hub/training/equity-calculator';
+  const equityJsonLd = [
+    {
+      '@type': 'WebApplication',
+      '@id': `${pageUrl}#app`,
+      name: 'Poker Equity Calculator',
+      description: 'Free Texas Hold\'em and Omaha Monte Carlo equity calculator. Compare pre-flop and post-flop hand equities across multi-way pots.',
+      url: pageUrl,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'All',
+      browserRequirements: 'Requires JavaScript',
+      isAccessibleForFree: true,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${pageUrl}#faq`,
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'What Is Poker Equity?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Poker equity represents your expected share of the pot based on your mathematical probability of winning or tying at showdown.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How Does A Monte Carlo Equity Calculator Work?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'A Monte Carlo equity calculator simulates thousands of random unrevealed community board runouts to calculate exact win, tie, and loss frequencies.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How Many Players Can Be Compared Simultaneously?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'This tool supports comparing equities for up to 4 active players simultaneously pre-flop, on the flop, or on the turn.',
+          },
+        },
+      ],
+    },
+    {
+      '@type': 'SpeakableSpecification',
+      '@id': `${pageUrl}#speakable`,
+      cssSelector: ['.sp-equity-aeo-kernel', '.sp-equity-faq-section'],
+    },
+  ];
+
   return (
     <>
-      <Head>
-        <title>Equity Calculator | Smarter.Poker GTO Training</title>
-        <meta
-          name="description"
-          content="Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards."
-        />
-      </Head>
+      <SEOHead
+        title="Poker Equity Calculator - Free Hand vs Hand Odds - Smarter.Poker"
+        description="Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards."
+        canonical={pageUrl}
+        jsonLd={equityJsonLd}
+      />
 
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-equity"
@@ -1056,33 +1111,83 @@ export default function EquityCalculatorPage() {
 
           {/* About Section */}
           <div
+            className="sp-equity-aeo-kernel"
             style={{
               marginTop: 20,
-              padding: '14px 18px',
+              padding: '16px 20px',
+              background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 0.12), rgba(255,255,255,0.02))',
+              borderRadius: 12,
+              border: '1px solid rgba(168,85,247,0.3)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                color: 'var(--sp-accent-cyan)',
+                textTransform: 'uppercase',
+                letterSpacing: 1.2,
+                marginBottom: 8,
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+              }}
+            >
+              Direct Answer &bull; Poker Equity Overview
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+              The Poker Equity Calculator Computes Real-Time Hand-Versus-Hand Odds Using 5,000 Monte Carlo Iterations Across Any Community Board. Input 2 To 4 Hole-Card Matchups Pre-Flop, Flop, Or Turn To Instantaneously Calculate Mathematical Win, Tie, And Loss Probabilities.
+            </p>
+          </div>
+
+          {/* FAQ Accordion Section */}
+          <div
+            className="sp-equity-faq-section"
+            style={{
+              marginTop: 20,
+              padding: '16px 20px',
               background: 'rgba(255,255,255,0.02)',
-              borderRadius: 10,
+              borderRadius: 12,
               border: '1px solid rgba(255,255,255,0.06)',
             }}
           >
             <div
               style={{
                 fontSize: 12,
-                fontWeight: 700,
+                fontWeight: 800,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 6,
+                letterSpacing: 1.2,
+                marginBottom: 12,
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              About This Tool
+              Frequently Asked Questions
             </div>
-            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-              The Equity Calculator Uses Monte Carlo Simulation (5,000 Iterations) To Determine
-              Win/Tie Percentages For Each Hand. Enter Specific Hole Cards For Up To 4 Players And
-              Optionally Add Board Cards To See How Equity Changes On Different Textures. This Is A
-              Core Study Tool For Understanding Pre-Flop Hand Strength And Post-Flop Equity Shifts.
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
+                  What Is Poker Equity?
+                </summary>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
+                  Poker Equity Represents Your Expected Share Of The Pot Based On Your Mathematical Probability Of Winning Or Tying At Showdown.
+                </div>
+              </details>
+              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
+                  How Does A Monte Carlo Equity Calculator Work?
+                </summary>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
+                  A Monte Carlo Equity Calculator Simulates Thousands Of Random Unrevealed Community Board Runouts To Calculate Exact Win, Tie, And Loss Frequencies.
+                </div>
+              </details>
+              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
+                  How Many Players Can Be Compared Simultaneously?
+                </summary>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
+                  This Tool Supports Comparing Equities For Up To 4 Active Players Simultaneously Pre-Flop, On The Flop, Or On The Turn.
+                </div>
+              </details>
+            </div>
           </div>
         </div>
       </div>

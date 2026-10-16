@@ -35,6 +35,10 @@ import {
   toPokerSeriesRouteId,
   tournamentSeriesIdFromPointerUid,
 } from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
+import {
+  buildSeriesFactKernel,
+  buildSeriesPaaQuestions,
+} from '../../../src/lib/poker-near-me/venueAeo.mjs';
 import Link from 'next/link';
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
@@ -1046,6 +1050,23 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               </a>
             )}
           </div>
+
+          {/* AEO Fact Kernel */}
+          <div className="series-aeo-kernel" style={{
+            marginTop: '14px',
+            padding: '12px 14px',
+            background: 'rgba(0, 212, 255, 0.04)',
+            border: '1px solid rgba(0, 212, 255, 0.15)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            lineHeight: '1.5',
+            color: '#cbd5e1'
+          }}>
+            <strong style={{ color: '#00D4FF', display: 'block', marginBottom: '4px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Series Overview
+            </strong>
+            <p style={{ margin: 0 }}>{buildSeriesFactKernel(series, venueName, formatDateRange(series.start_date, series.end_date))}</p>
+          </div>
         </PokerNearMePanelShell>
 
         {/* Key Stats Grid */}
@@ -1099,6 +1120,37 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             </div>
           </dl>
         </PokerNearMePanelShell>
+
+        {/* Conversational People Also Ask (AEO FAQ Section) */}
+        {series && (
+          <PokerNearMePanelShell className="section-card series-paa-section" bodyClassName="section-card__body" aria-label="Frequently Asked Questions">
+            <h2 className="section-title">Frequently Asked Questions</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+              {buildSeriesPaaQuestions(series, venueName, formatDateRange(series.start_date, series.end_date)).map((item, qIdx) => (
+                <details key={qIdx} style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '8px',
+                  padding: '12px 14px',
+                  color: '#e2e8f0'
+                }}>
+                  <summary style={{
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    color: '#00D4FF',
+                    outline: 'none'
+                  }}>
+                    {item.question}
+                  </summary>
+                  <p style={{ margin: '8px 0 0', fontSize: '13px', lineHeight: '1.5', color: '#94a3b8' }}>
+                    {item.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </PokerNearMePanelShell>
+        )}
 
         {/* Venue Info */}
         <PokerNearMePanelShell className="section-card" bodyClassName="section-card__body">
