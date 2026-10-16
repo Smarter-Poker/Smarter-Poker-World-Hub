@@ -11,6 +11,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
 import {
+  authSwitchHref,
   claimInvite,
   readPendingInvite,
   rememberInvite,
@@ -1375,7 +1376,7 @@ export default function SignUpPage() {
               {/* Sign In Link — covers full "Already Have An Account? Sign In" row */}
               <button
                 type="button"
-                onClick={() => router.push('/auth/login')}
+                onClick={() => router.push(authSwitchHref('/auth/login', router.query))}
                 title="Sign In"
                 style={{
                   position: 'absolute',
@@ -1498,7 +1499,7 @@ export default function SignUpPage() {
             </div>
             <div style={phoneStyles.signin}>
               Already Have An Account?{' '}
-              <button type="button" onClick={() => router.push('/auth/login')} style={phoneStyles.signinLink}>Sign In</button>
+              <button type="button" onClick={() => router.push(authSwitchHref('/auth/login', router.query))} style={phoneStyles.signinLink}>Sign In</button>
             </div>
           </form>
         </div>
@@ -1851,7 +1852,7 @@ export default function SignUpPage() {
                   <span>Or</span>
                 </div>
 
-                <button onClick={() => router.push('/auth/login')} style={styles.signupLink}>
+                <button onClick={() => router.push(authSwitchHref('/auth/login', router.query))} style={styles.signupLink}>
                   Already Have An Account? <span style={styles.accentText}>Sign In</span>
                 </button>
               </>

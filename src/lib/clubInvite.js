@@ -220,6 +220,37 @@ export async function claimInvite(accessToken, invite) {
     return result || null;
 }
 
+/**
+ * The club join page this signed-in account still owes a visit to, or null.
+ * Asks fn_club_invite_pending (the account's own claim, server side), so it
+ * works on a device that never saw the /i/ link. Never throws.
+ */
+export async function fetchPendingJoinPath(accessToken) {
+    if (!accessToken) return null;
+    try {
+        const result = await rpc('fn_club_invite_pending', {}, accessToken);
+        return result?.pending ? safeClubArenaPath(result.join_path) : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Switching between /auth/signup and /auth/login keeps where the player was
+ * going (?redirect=) and the invite code (?invite=), so an invited player who
+ * picks the other form still lands on the club.
+ */
+export function authSwitchHref(path, query) {
+    const first = (v) => (Array.isArray(v) ? v[0] : v);
+    const params = new URLSearchParams();
+    const redirect = first(query?.redirect);
+    const invite = first(query?.invite);
+    if (typeof redirect === 'string' && redirect) params.set('redirect', redirect);
+    if (typeof invite === 'string' && invite) params.set('invite', invite);
+    const qs = params.toString();
+    return qs ? `${path}?${qs}` : path;
+}
+
 /** Crawlers that fetch a link to draw its preview are not people opening it. */
 export function isLinkPreviewBot(userAgent) {
     return /bot|crawl|spider|facebookexternalhit|whatsapp|telegram|slack|discord|twitter|linkedin|embedly|preview|skype|vkshare|pinterest|google-?structured|bingpreview|iMessage|Applebot/i.test(
