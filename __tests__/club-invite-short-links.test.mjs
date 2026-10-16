@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
     CLUB_INVITE_TTL_MS,
+    resolveSignupClubPath,
     authSwitchHref,
     fetchPendingJoinPath,
     isSafeRelativePath,
@@ -80,10 +81,10 @@ test('signup carries the invite into the account metadata', () => {
     assert.match(s, /club_invite_code: pendingInvite\.code/);
 });
 
-test('the auth callback claims the invite and routes through the phone step to the club', () => {
+test('the auth callback claims the invite and routes directly to the club', () => {
     const s = read('pages/auth/callback.js');
     assert.match(s, /claimInvite\(session\.access_token, invite\)/);
-    assert.match(s, /verify-phone\?welcome=1&next=\$\{encodeURIComponent\(inviteJoinPath\)\}/);
+    assert.match(s, /const inviteDest = inviteJoinPath;/);
 });
 
 test('phone verification (or skipping it) continues to the invited club', () => {
@@ -109,7 +110,7 @@ test('an older account claims the invite this browser holds, not its signup invi
 });
 
 test('signup keeps the ?redirect= join page when the claim fails', () => {
-    const s = read('pages/auth/signup.js');
+    const s = read('src/lib/clubInvite.js');
     assert.match(s, /next = safeClubArenaPath\(claimed\?\.join_path\) \|\| next;/);
 });
 
@@ -182,7 +183,7 @@ test('fetchPendingJoinPath never throws and only returns a Club Arena path', asy
 
 test('verify phone without ?next= continues to the account\'s pending invite', () => {
     const s = read('pages/hub/verify-phone.js');
-    assert.match(s, /fetchPendingJoinPath\(data\?\.session\?\.access_token\)/);
+    assert.match(s, /fetchPendingJoinPath\(getAccessToken\(\)\)/);
     assert.match(s, /const nextPath = queryNext \|\| pendingNext;/);
 });
 
@@ -228,4 +229,34 @@ test('lookupPendingJoinPath tells "could not ask" from "nothing pending"', async
     } finally {
         globalThis.fetch = real;
     }
+});
+
+
+test('confirmed signup uses the fresh response token and cross-device invite metadata', async () => {
+    const original = globalThis.fetch;
+    const calls = [];
+    globalThis.fetch = async (url, options) => {
+        calls.push({ url, options });
+        return { ok: true, json: async () => ({ join_path: '/hub/club-arena/invite/shark-club' }) };
+    };
+    try {
+        const path = await resolveSignupClubPath({ access_token: 'fresh-test-session', user: {
+            user_metadata: { club_invite_code: 'ABC2345', club_invite_first_seen: new Date().toISOString() },
+        } });
+        assert.equal(path, '/hub/club-arena/invite/shark-club');
+        assert.equal(calls[0].options.headers.Authorization, 'Bearer fresh-test-session');
+        assert.equal(JSON.parse(calls[0].options.body).p_code, 'ABC2345');
+    } finally { globalThis.fetch = original; }
+});
+
+test('signup recovers server pending destination and refuses unsafe metadata redirects', async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ pending: true, join_path: '/hub/club-arena/invite/shark-club' }) });
+    try {
+        assert.equal(await resolveSignupClubPath({ access_token: 'test', user: {} }), '/hub/club-arena/invite/shark-club');
+        assert.equal(await resolveSignupClubPath(null, '//evil.example'), null);
+        globalThis.fetch = async () => { throw new Error('offline'); };
+        assert.equal(await resolveSignupClubPath({ access_token: 'test', user: { user_metadata: { club_join_path: '//evil.example' } } }), null);
+        assert.equal(await resolveSignupClubPath({ access_token: 'test' }, '/hub/club-arena/invite/shark-club'), '/hub/club-arena/invite/shark-club');
+    } finally { globalThis.fetch = original; }
 });

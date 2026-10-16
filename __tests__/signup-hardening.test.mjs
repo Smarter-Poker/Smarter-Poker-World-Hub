@@ -249,6 +249,8 @@ test('the verification screen passes all eight digits to Auth and renders reject
             if (name === 'next/router') return { useRouter: () => ({ query: {} }) };
             if (name.endsWith('/SEOHead')) return { default: () => null };
             if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
+            if (name.endsWith('/clubInvite')) return { resolveSignupClubPath: async () => null };
+            if (name.endsWith('/SignupWelcome')) return { default: () => React.createElement('h2', null, 'Welcome To Smarter.Poker!') };
             if (name.endsWith('/supabase')) return { supabase: { auth: { verifyOtp: async payload => {
                 submitted.push(payload);
                 return reject ? { error: new Error('Invalid Verification Code') } : { data: {} };

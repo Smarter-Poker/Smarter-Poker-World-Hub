@@ -48,6 +48,7 @@ function isStaffRoute(pathname) {
 export default function GlobalNotificationPrompt() {
     const router = useRouter();
     const [userId, setUserId] = useState(null);
+    const [verifiedPhoneOwner, setVerifiedPhoneOwner] = useState(null);
 
     useEffect(() => {
         // Read from the auth cache first to avoid the Supabase locks AbortError.
@@ -61,6 +62,24 @@ export default function GlobalNotificationPrompt() {
         return () => subscription?.unsubscribe();
     }, []);
 
+    useEffect(() => {
+        let active = true;
+        let version = 0;
+        setVerifiedPhoneOwner(null);
+        const readPhone = async () => {
+            if (!userId) return;
+            const request = ++version;
+            try {
+                const { data, error } = await supabase.from('profiles')
+                    .select('phone_verified').eq('id', userId).maybeSingle();
+                if (active && request === version) setVerifiedPhoneOwner(!error && data?.phone_verified === true ? userId : null);
+            } catch { if (active && request === version) setVerifiedPhoneOwner(null); }
+        };
+        void readPhone();
+        window.addEventListener('profile-updated', readPhone);
+        return () => { active = false; window.removeEventListener('profile-updated', readPhone); };
+    }, [userId, router.pathname]);
+
     if (!userId) return null;
 
     // router.pathname is the matched route, so a dynamic segment cannot dodge
@@ -70,7 +89,7 @@ export default function GlobalNotificationPrompt() {
     return (
         <>
             <PushSubscriptionSync />
-            {!staff && <FirstRunNotificationPrompt userId={userId} />}
+            {!staff && verifiedPhoneOwner === userId && !/^\/(?:auth|i)(?:\/|$)/.test(router.pathname || '') && <FirstRunNotificationPrompt userId={userId} />}
         </>
     );
 }

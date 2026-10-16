@@ -20,7 +20,7 @@ import VerificationConsole from '../../src/components/gates/VerificationConsole'
 import { capture, FunnelEvents } from '../../src/lib/analytics';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
-import { useRequireAuth, authedFetch } from '../../src/lib/authUtils';
+import { useRequireAuth, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 import { busEmit } from '../../src/engine/EventBus';
 import { showDiamondToast } from '../../src/components/diamonds/DiamondToast';
 import { fetchPendingJoinPath, safeClubArenaPath } from '../../src/lib/clubInvite';
@@ -92,8 +92,7 @@ export default function VerifyPhonePage() {
         let cancelled = false;
         (async () => {
             try {
-                const { data } = await supabase.auth.getSession();
-                const path = await fetchPendingJoinPath(data?.session?.access_token);
+                const path = await fetchPendingJoinPath(getAccessToken());
                 if (!cancelled && path) setPendingNext(path);
             } catch (_e) { /* no pending invite: the page ends on /hub as before */ }
         })();
