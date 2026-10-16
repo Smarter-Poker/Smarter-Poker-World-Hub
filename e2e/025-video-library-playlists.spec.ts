@@ -44,9 +44,13 @@ test.describe('Phase 6 Playlist Browsing', () => {
     });
     await page.route('**/api/video-library/catalog**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: VIDEO, pagination: { hasMore: false } }) }));
     await page.route('**/api/vip/check-status**', route => route.fulfill({ contentType: 'application/json', body: '{"isVip":false}' }));
+    // Missing provider images must stay inside the thumbnail and never cover playback controls.
+    await page.route('https://i.ytimg.com/**', route => route.fulfill({ status: 404, body: '' }));
     await page.goto(PATH, { waitUntil: 'commit' });
     await expect(page.getByRole('heading', { name: NAME, exact: true })).toBeVisible();
     await expect(page.locator('.vl-playlist-video-row')).toHaveCount(3);
+    await expect(page.locator('.vl-playlist-thumb.vl-media-failed')).toHaveCount(3);
+    await expect(page.locator('.vl-playlist-video-link strong').first()).toBeVisible();
     await page.getByRole('button', { name: 'Move Video 2 Up', exact: true }).click();
     await expect(page.getByRole('status')).toHaveText('Playlist Order Saved.');
     expect(order).toEqual([IDS[1], IDS[0], IDS[2]]);

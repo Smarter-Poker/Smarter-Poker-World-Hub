@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { cleanVideoTitle } from '../../lib/videoLibraryCuration.mjs';
+import VideoThumbnail from './VideoThumbnail';
 import { channelPath } from '../../lib/videoLibraryChannels.mjs';
 
 export default function LiveNow({ channelId }) {
@@ -31,7 +32,7 @@ export default function LiveNow({ channelId }) {
         {visible.loading ? <p role="status">Checking Channel Live Status...</p> : visible.error ? <p role="alert">Live Status Is Temporarily Unavailable. Try Refreshing.</p> : <>
             {visible.data.length > 0 ? <div className="vl-live-grid">{visible.data.map(item => <article className="vl-live-card" key={item.videoId}>
                 <a href={item.watchUrl} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${cleanVideoTitle(item.title)} Live On YouTube`}>
-                    <img src={item.thumbnail} alt="" loading="lazy" /><span className="vl-live-badge">Live</span><h3>{cleanVideoTitle(item.title)}</h3><span>Watch Live On YouTube</span>
+                    <div className="vl-live-media"><VideoThumbnail video={{ videoId: item.videoId, thumbnail: item.thumbnail }} /><span className="vl-live-badge">Live</span></div><h3>{cleanVideoTitle(item.title)}</h3><span>Watch Live On YouTube</span>
                 </a><Link className="vl-channel-link" href={channelPath(item.channelId)}>{item.channelName}</Link>
             </article>)}</div> : <p>No Verified Live Streams Right Now.</p>}
             {visible.unavailableChannels > 0 && <p className="vl-live-note">Live Status Could Not Be Confirmed For Some Channels.</p>}

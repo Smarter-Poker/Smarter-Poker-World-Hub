@@ -8,6 +8,7 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager } from '../../src/hooks/useYouTubeErrorManager';
 import BrowseSearch from '../../src/components/video-library/BrowseSearch';
 import LiveNow from '../../src/components/video-library/LiveNow';
+import ThumbnailImage from '../../src/components/video-library/VideoThumbnail';
 import StudyStatus from '../../src/components/video-library/StudyStatus';
 import MemberClipUpload from '../../src/components/video-library/MemberClipUpload';
 import VideoQueue from '../../src/components/video-library/VideoQueue';
@@ -42,7 +43,6 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import VideoLibraryCommandRail from '../../src/components/video-library/VideoLibraryCommandRail';
 import VideoLearningLoop from '../../src/components/video-learning/VideoLearningLoop';
 import HubPageShell from '../../src/components/ui/HubPageShell';
-import PullToRefresh from '../../src/components/ui/PullToRefresh';
 import toast from '../../src/stores/toastStore';
 import { useLoadFailsafe } from '../../src/hooks/useLoadFailsafe';
 import { useHaptics } from '../../src/hooks/useHaptics';
@@ -60,8 +60,6 @@ import { watchPath } from '../../src/lib/videoLibraryWatch.mjs';
 import {
     THUMBNAIL_SIZES,
     dedupeVideos,
-    nextThumbnailFallback,
-    thumbnailCandidates,
 } from '../../src/lib/videoLibraryCuration.mjs';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
@@ -232,38 +230,9 @@ function containDialogFocus(event, container) {
     }
 }
 
-function recoverYouTubeThumbnail(event, candidates) {
-    const image = event.currentTarget;
-    // YouTube answers a missing size with a 120px grey placeholder (or a 404),
-    // so a tiny image counts as missing too.
-    if (event.type !== 'error' && image.naturalWidth > 120) return;
-    const next = nextThumbnailFallback(image.getAttribute('src'), candidates);
-    if (next) {
-        image.src = next;
-        return;
-    }
-    image.hidden = true;
-    image.parentElement?.classList.add('vl-media-failed');
-}
-
-/**
- * One thumbnail element for every card (Phase 1, 2026-10-12): 640px images on
- * cards, 320px on shelves, YouTube's original-aspect frame for Shorts, and a
- * fallback ladder so no card is left blank.
- */
+// All feed, live and related previews share the same quality and recovery rules.
 function VideoThumbnail({ video, size = THUMBNAIL_SIZES.card, priority = false, vertical = false }) {
-    const candidates = thumbnailCandidates(video.videoId, { size, vertical, catalogThumbnail: video?.thumbnail });
-    return (
-        <img
-            src={candidates[0]}
-            alt=""
-            loading={priority ? 'eager' : 'lazy'}
-            fetchpriority={priority ? 'high' : 'auto'}
-            decoding="async"
-            onLoad={event => recoverYouTubeThumbnail(event, candidates)}
-            onError={event => recoverYouTubeThumbnail(event, candidates)}
-        />
-    );
+    return <ThumbnailImage video={video} size={size} priority={priority} vertical={vertical} />;
 }
 
 function ChannelAvatar({ video, channel = getVideoChannel(video) }) {
@@ -737,9 +706,8 @@ export default function VideoLibraryPage() {
 
     // Attempt to unmute video after it starts playing
 
-    // Load user-owned state on sign-in and refresh it when the page regains focus.
-    // The relevant tables are intentionally not in the production Realtime
-    // publication, so focus refresh is the reliable cross-device sync point.
+    // Load on sign-in. Returning to a tab must preserve the viewer's place;
+    // cross-device changes are requested with the explicit Refresh Library action.
     useEffect(() => {
         let cancelled = false;
         let refreshInFlight = false;
@@ -839,11 +807,6 @@ export default function VideoLibraryPage() {
 
         refreshUserLibraryRef.current = refreshUserLibrary;
         void refreshUserLibrary();
-        const refreshOnVisible = () => {
-            if (document.visibilityState === 'visible') void refreshUserLibrary();
-        };
-        window.addEventListener('focus', refreshUserLibrary);
-        document.addEventListener('visibilitychange', refreshOnVisible);
         return () => {
             cancelled = true;
             refreshUserLibraryRef.current = null;
@@ -859,8 +822,6 @@ export default function VideoLibraryPage() {
                 }
                 setSelectedVideo(null);
             }
-            window.removeEventListener('focus', refreshUserLibrary);
-            document.removeEventListener('visibilitychange', refreshOnVisible);
         };
     }, [userId, setSelectedVideo, showActionNotice]);
 
@@ -1349,13 +1310,13 @@ export default function VideoLibraryPage() {
         }
     }, [userId, showActionNotice]);
 
-    const personalIdsForFilter = useMemo(() => {
-        if (libraryFilter === 'favorites') return [...favorites];
-        if (libraryFilter === 'watchlater') return [...watchLater];
-        if (libraryFilter === 'history') return [...watchedVideos];
-        if (libraryFilter === 'playlists') return [...playlistVideoIds];
-        return [];
-    }, [libraryFilter, favorites, watchLater, watchedVideos, playlistVideoIds]);
+    // Progress saves create new Sets. Only an actual change to the selected
+    // collection's membership may restart its catalog request.
+    const personalIdsKey = JSON.stringify((libraryFilter === 'favorites' ? [...favorites]
+        : libraryFilter === 'watchlater' ? [...watchLater]
+        : libraryFilter === 'history' ? [...watchedVideos]
+        : libraryFilter === 'playlists' ? [...playlistVideoIds] : []).sort());
+    const personalIdsForFilter = useMemo(() => JSON.parse(personalIdsKey), [personalIdsKey]);
 
     // Search and order are first-class URL state, just like source/type/library.
     // A small debounce keeps typing responsive and produces useful back-button
@@ -2043,7 +2004,9 @@ export default function VideoLibraryPage() {
         if (!requireOnline()) return;
         haptic('light');
         setCatalogRefreshFailed(false);
-        await fetchCatalogPage({ append: false });
+        // Sync completion updates the catalog through its existing effect.
+        if (refreshUserLibraryRef.current) await refreshUserLibraryRef.current({ force: true });
+        else await fetchCatalogPage({ append: false });
     }, [requireOnline, haptic, fetchCatalogPage]);
 
     return (
@@ -2091,15 +2054,13 @@ export default function VideoLibraryPage() {
                         </div>
                     )}
                 >
-                <PullToRefresh
-                    onRefresh={refreshLibrary}
-                    disabled={menuOpen || Boolean(selectedVideo) || showReelsModal || Boolean(showPlaylistModal)}
-                >
                 <div className="vl-yt" data-tutorial="main">
-                    <h1 className="vl-sr-only">{currentViewMeta.title}</h1>
-
                     {/* Search, then one row of chips: the YouTube phone layout. */}
                     <div className="vl-topbar">
+                        <div className="vl-library-heading">
+                            <h1>{currentViewMeta.title}</h1>
+                            <p>Poker Sessions, Strategy And Live Coverage.</p>
+                        </div>
                         <BrowseSearch
                             inputRef={searchInputRef}
                             value={searchQuery}
@@ -2143,7 +2104,7 @@ export default function VideoLibraryPage() {
                             {Object.values(browseFilters).some(value => value !== 'ALL') && ' Filtered Search Matches Published Titles And Channels.'}</p>
                     </section>
 
-                    <nav className="vl-learning-navigation" aria-label="Poker Learning"><Link href="/hub/video-library/players">Poker Players</Link><Link href="/hub/video-library/owner">Control Panel</Link></nav>
+                    <nav className="vl-learning-navigation" aria-label="Poker Learning"><Link href="/hub/video-library/players">Poker Players</Link><button type="button" className="vl-pill-button" disabled={catalogLoading || visibleLibrarySyncState === 'loading'} onClick={() => void refreshLibrary()}>Refresh Library</button></nav>
                     <MemberClipUpload />
                     {/* Channels: round avatars like YouTube subscriptions, laid out
                         in rows (no hidden sideways rail), the rest behind Show All. */}
@@ -2553,7 +2514,6 @@ export default function VideoLibraryPage() {
                     </div>
                 )}
                 </div>
-                </PullToRefresh>
                 </HubPageShell>
             </div>
 
