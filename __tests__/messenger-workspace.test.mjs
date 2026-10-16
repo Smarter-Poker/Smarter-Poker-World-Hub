@@ -266,3 +266,46 @@ test('invoice deep links select only the requested joined club and supported fol
  assert.equal(resolveMessengerClubEntry(clubs,{clubId:'club-a',conversation:'explicit-thread'}),null);
  assert.equal(resolveMessengerClubEntry(clubs,{forceIdentity:'page-a',folder:'unknown'}).folder,'messages');
 });
+
+function emptyThreadFixture({ context=null, request=false, sender=ids.user, existing=false, member=true }={}) {
+ const setup=fixture({member});const emptyId='40000000-0000-4000-8000-000000000001';
+ setup.tables.social_conversations.push({id:emptyId,group_name:'New Conversation',is_group:true,is_request:request,request_sender_id:sender});
+ setup.tables.social_conversation_participants.push({conversation_id:emptyId,user_id:ids.user,context_entity_id:context},{conversation_id:emptyId,user_id:ids.other,context_entity_id:null});
+ setup.tables.profiles=[{id:ids.other,username:'Other Player'}];
+ setup.tables.social_messages=existing?[{id:'deleted-message',conversation_id:emptyId,is_deleted:true}]:[];
+ return {...setup,emptyId};
+}
+test('a newly created empty authorized conversation resolves before its first message',async()=>{
+ const {db,emptyId}=emptyThreadFixture();const result=await getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:emptyId});
+ assert.equal(result.conversation.id,emptyId);assert.equal(result.conversation.title,'New Conversation');assert.equal(result.conversation.unreadCount,0);assert.equal(result.conversation.otherUser.id,ids.other);assert.equal(result.conversation.isAccounting,false);
+});
+test('empty resolution never resurrects a thread that has message rows, including deleted rows',async()=>{
+ const {db,emptyId}=emptyThreadFixture({existing:true});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:emptyId}),error=>error.status===404);
+});
+test('an incoming unaccepted empty message request cannot open a popup',async()=>{
+ const {db,emptyId}=emptyThreadFixture({request:true,sender:ids.other});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:emptyId}),error=>error.status===404);
+});
+test('empty club conversations still require current membership and correct context',async()=>{
+ const removed=emptyThreadFixture({context:ids.page,member:false});await assert.rejects(getMessengerWorkspace(removed.db,ids.user,{workspace:'resolve',conversationId:removed.emptyId}),error=>error.status===403);
+ const active=emptyThreadFixture({context:ids.page});const result=await getMessengerWorkspace(active.db,ids.user,{workspace:'resolve',conversationId:active.emptyId});assert.equal(result.clubId,ids.club);
+});
+test('a failed empty-thread proof stays unavailable instead of granting first-send access',async()=>{
+ const setup=emptyThreadFixture();const from=setup.db.from;setup.db.from=table=>{const query=from(table);if(table==='social_messages'){const select=query.select;query.select=columns=>columns==='id'?{eq(){return this;},limit(){return Promise.resolve({data:null,error:{code:'57014'}});}}:select(columns);}return query;};
+ await assert.rejects(getMessengerWorkspace(setup.db,ids.user,{workspace:'resolve',conversationId:setup.emptyId}),error=>error.status===503);
+});
+
+
+test('global dock reconnect includes authorized social, club and private invoice discussions',async()=>{
+ const {db}=fixture();const result=await getMessengerWorkspace(db,ids.user,{workspace:'dock'});
+ assert.deepEqual(new Set(result.conversations.map(c=>c.id)),new Set([ids.social,ids.chat,ids.invoice]));
+ assert.deepEqual(result.conversations.find(c=>c.id===ids.chat).dockWorkspace,{workspace:'club',clubId:ids.club,folder:'messages'});
+ assert.equal(result.conversations.find(c=>c.id===ids.invoice).dockWorkspace.folder,'invoices');
+});
+test('global dock never includes revoked club or hidden private documents',async()=>{
+ const revoked=fixture({member:false});assert.deepEqual((await getMessengerWorkspace(revoked.db,ids.user,{workspace:'dock'})).conversations.map(c=>c.id),[ids.social]);
+ const hidden=fixture();hidden.tables.accounting_conversations[0].recipient_visible=false;
+ assert.deepEqual(new Set((await getMessengerWorkspace(hidden.db,ids.user,{workspace:'dock'})).conversations.map(c=>c.id)),new Set([ids.social,ids.chat]));
+});
+test('global dock authority failure never returns a partial inbox or fabricated zero',async()=>{
+ await assert.rejects(getMessengerWorkspace(fixture({broken:'visibility'}).db,ids.user,{workspace:'dock'}),e=>e.status===503);
+});

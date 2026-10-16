@@ -104,6 +104,24 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
     const clubs = internal.clubs || await getMessengerClubs(db, userId);
     const workspace = request.workspace || 'social';
+    if (workspace === 'dock') {
+        // Global reconnect/inbox reads must cover each currently authorized
+        // workspace, including club discussions missed while offline.
+        const options = { clubs, countsOnly: true };
+        const workspaces = [await getMessengerWorkspace(db, userId, { workspace: 'social' }, options)];
+        for (let start = 0; start < clubs.length; start += 2) {
+            const batch = await Promise.all(clubs.slice(start, start + 2).flatMap(club =>
+                ['messages', 'invoices'].map(folder => getMessengerWorkspace(db, userId,
+                    { workspace: 'club', clubId: club.id, folder }, options))));
+            workspaces.push(...batch);
+        }
+        const combined = workspaces.flatMap(selected => selected.conversations.map(conversation => ({
+            ...conversation, dockWorkspace: { workspace: selected.workspace, clubId: selected.clubId, folder: selected.folder },
+        })));
+        return { success: true, clubs, workspace: 'dock', clubId: null, folder: 'messages',
+            conversations: [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]
+                .sort((a, b) => (Date.parse(b.last_message_at) || 0) - (Date.parse(a.last_message_at) || 0)) };
+    }
     if (!['social', 'club', 'resolve'].includes(workspace)) fail(400, 'Invalid Messenger Workspace');
     let club = null;
     let folder = request.folder || 'messages';
@@ -186,7 +204,31 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         messages: unreadCounts.messages,
         invoices: club ? countInvoiceAttention(selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices')) : 0,
     };
-    const conversation = resolvedId ? selected.find(c => c.id === resolvedId) : null;
+    let conversation = resolvedId ? selected.find(c => c.id === resolvedId) : null;
+    // The inbox RPC deliberately omits empty threads. A just-created, authorized
+    // conversation must still resolve so its first message can be sent/read.
+    // Never use this path to resurrect a hidden/deleted or invoice-only thread:
+    // prove there are no message rows at all, after the participation/context
+    // and active-club/private-accounting checks above have already succeeded.
+    if (resolvedId && !conversation && !accounting.has(resolvedId)) {
+        const existing = await rows(db.from('social_messages').select('id').eq('conversation_id', resolvedId).limit(1));
+        if (!existing.length) {
+            const metadata = await rows(db.from('social_conversations')
+                .select('id,is_group,group_name,is_request,request_sender_id').eq('id', resolvedId).limit(1));
+            const empty = metadata[0];
+            if (empty && (!empty.is_request || empty.request_sender_id === userId)) {
+                const others = await rows(db.from('social_conversation_participants').select('user_id')
+                    .eq('conversation_id', resolvedId).neq('user_id', userId).limit(1));
+                const profiles = others.length ? await rows(db.from('profiles').select('id,username,display_name,avatar_url')
+                    .eq('id', others[0].user_id).limit(1)) : [];
+                conversation = { id: resolvedId, title: empty.group_name || null, is_group: !!empty.is_group,
+                    last_message_at: null, last_message_preview: null, unreadCount: 0, last_read_at: null,
+                    isRequest: !!empty.is_request, requestSenderId: empty.request_sender_id,
+                    otherUser: profiles[0] || null, isAccounting: false, requiresAction: false, clubId: club?.id || null };
+                selected.push(conversation);
+            }
+        }
+    }
     if (resolvedId && !conversation) fail(404, 'Conversation Unavailable');
     let weeklySummary = null;
     if (club?.canManage && folder === 'invoices' && !internal.countsOnly) {
