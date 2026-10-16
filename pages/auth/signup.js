@@ -742,7 +742,7 @@ export default function SignUpPage() {
     setError('');
 
     if (!isEmailVerificationCode(verificationCode)) {
-      setError('Enter The Complete Verification Code From Your Email.');
+      setError('Enter The Six-Digit Verification Code From Your Email.');
       return;
     }
 
@@ -1712,7 +1712,7 @@ export default function SignUpPage() {
 
                 <h2 style={styles.successTitle}>Verify Your Email</h2>
 
-                <p style={styles.emailPendingText}>Enter The Verification Code Sent To:</p>
+                <p style={styles.emailPendingText}>Enter The Six-Digit Verification Code Sent To:</p>
                 <p style={styles.emailHighlight}>{formData.email}</p>
 
                 {/* THE OTP STEP HAD NO ERROR SURFACE AT ALL (fixed 2026-08-25).
@@ -1740,11 +1740,11 @@ export default function SignUpPage() {
                       id="signup-email-code"
                       type="text"
                       inputMode="numeric"
-                      pattern="(?:[0-9]{6}|[0-9]{8})"
+                      pattern="[0-9]{6}"
                       aria-describedby="signup-code-help"
                       value={verificationCode}
                       onChange={(e) =>
-                        setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 8))
+                        setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))
                       }
                       placeholder="Enter Code"
                       style={{
@@ -1762,7 +1762,7 @@ export default function SignUpPage() {
                         borderRadius: 12,
                         boxShadow: 'inset 0 3px 8px #000, 0 1px 0 #657c90',
                       }}
-                      maxLength={8}
+                      maxLength={6}
                       autoComplete="one-time-code"
                       autoFocus
                     />

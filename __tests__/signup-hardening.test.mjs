@@ -108,17 +108,18 @@ test('signup.js handleOAuthSignIn handles www → apex pre-flight', () => {
     );
 });
 
-// The live provider moved to eight digits; the UI must preserve the token.
+// Production provider and UI agree on exactly six digits.
 const { isEmailVerificationCode, installPromptDelay } = await import('../src/lib/signupExperience.mjs');
-test('email verification accepts current and legacy tokens without partial tokens', () => {
-    for (const code of ['12623502', '123456', '00000000']) assert.equal(isEmailVerificationCode(code), true);
-    for (const code of ['', '12345', '1234567', '123456789', '1234ab56']) assert.equal(isEmailVerificationCode(code), false);
+test('email verification allows exactly six digits and refuses eight', () => {
+    for (const code of ['123456', '000000']) assert.equal(isEmailVerificationCode(code), true);
+    for (const code of ['', '1234', '12345', '1234567', '12623502', '00000000', '123456789', '1234ab56']) assert.equal(isEmailVerificationCode(code), false);
     const signup = read('pages/auth/signup.js');
-    assert.match(signup, /slice\(0, 8\)/);
-    assert.match(signup, /maxLength=\{8\}/);
+    assert.match(signup, /slice\(0, 6\)/);
+    assert.match(signup, /maxLength=\{6\}/);
+    assert.match(signup, /pattern="\[0-9\]\{6\}"/);
     assert.match(signup, /token: verificationCode/);
     assert.match(signup, /isEmailVerificationCode\(verificationCode\)/);
-    assert.doesNotMatch(signup, /6-Digit Verification Code|slice\(0, 6\)/);
+    assert.doesNotMatch(signup, /slice\(0, 8\)|maxLength=\{8\}/);
 });
 
 test('install prompt waits three minutes after account creation, across routes and reloads', () => {
@@ -225,7 +226,7 @@ test('install availability events cannot bypass account-age gating in the mounte
     assert.equal(cancelled, 1);
 });
 
-test('the verification screen passes all eight digits to Auth and renders rejection then success', async () => {
+test('the verification screen passes the fresh six digits to Auth and renders rejection then success', async () => {
     const { createRequire } = await import('node:module');
     const { default: vm } = await import('node:vm');
     const require = createRequire(import.meta.url);
@@ -261,13 +262,13 @@ test('the verification screen passes all eight digits to Auth and renders reject
     let tree;
     await act(async () => { tree = create(React.createElement(module.exports.default)); });
     const input = () => tree.root.findByProps({ id: 'signup-email-code' });
-    assert.equal(input().props.maxLength, 8);
-    await act(async () => { input().props.onChange({ target: { value: '1262 3502' } }); });
-    assert.equal(input().props.value, '12623502');
+    assert.equal(input().props.maxLength, 6);
+    await act(async () => { input().props.onChange({ target: { value: '126 235' } }); });
+    assert.equal(input().props.value, '126235');
     assert.equal(tree.root.findByProps({ type: 'submit' }).props.disabled, false);
     const submit = () => tree.root.findByType('form').props.onSubmit({ preventDefault() {} });
     await act(async () => { await submit(); });
-    assert.equal(submitted[0].token, '12623502');
+    assert.equal(submitted[0].token, '126235');
     assert.equal(submitted[0].email, 'signup@example.invalid');
     assert.equal(tree.root.findByProps({ role: 'alert' }).children[0], 'Invalid Verification Code');
     reject = false;

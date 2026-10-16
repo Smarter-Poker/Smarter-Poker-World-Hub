@@ -5,7 +5,7 @@ export default function SignupWelcome({ playerNumber, alias, city, state, onCont
     return (
         <section className={styles.welcome} aria-labelledby="signup-welcome-title">
             <div className={styles.brand}>
-                <img src="/images/merch/neural-steel/print/brain-spade-metallic.png" alt="" width="110" height="118" />
+                <img src="/images/merch/neural-steel/print/brain-spade-metallic.webp" alt="" width="110" height="118" />
                 <span>Smarter<span className={styles.blue}>.Poker</span></span>
             </div>
             <div className={styles.verified}><Check size={14} aria-hidden="true" /> Email Verified</div>

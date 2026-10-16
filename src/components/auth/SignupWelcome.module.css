@@ -7,7 +7,7 @@
 .lead { margin:0 0 25px; color:#9fafbd; font-size:13px; line-height:1.5; }
 .credential { position:relative; isolation:isolate; overflow:hidden; padding:22px 22px 0; text-align:left; border:1px solid #8b9fab; border-radius:14px; background:repeating-linear-gradient(111deg,#ffffff05 0px,#ffffff05 1px,transparent 1px,transparent 4px),linear-gradient(140deg,#405260 0%,#0a121b 33%,#030609 62%,#203543 100%); box-shadow:inset 0 2px 1px #e4f6ff80,inset 0 -3px 2px #000,0 15px 24px #0009,0 0 0 4px #030609,0 0 0 5px #334956; }
 .credential::before { content:''; position:absolute; inset:12px; border:1px solid #ffffff0e; border-radius:7px; pointer-events:none; z-index:-1; }
-.credential::after { content:''; position:absolute; width:160px; height:180px; right:-35px; top:10px; background:url('/images/merch/neural-steel/print/brain-spade-metallic.png') center/contain no-repeat; opacity:.13; z-index:-1; transform:rotate(-12deg); }
+.credential::after { content:''; position:absolute; width:160px; height:180px; right:-35px; top:10px; background:url('/images/merch/neural-steel/print/brain-spade-metallic.webp') center/contain no-repeat; opacity:.13; z-index:-1; transform:rotate(-12deg); }
 .edge { position:absolute; height:3px; top:0; left:25%; right:25%; background:#94dcff; box-shadow:0 0 12px 3px #009dff; }
 .cardTop { display:flex; justify-content:space-between; gap:12px; font-size:11px; font-weight:700; color:#b8cbd7; }
 .status { display:flex; align-items:center; gap:6px; color:#b2e1ff; }
