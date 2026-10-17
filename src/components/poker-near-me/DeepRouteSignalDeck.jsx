@@ -133,6 +133,7 @@ export default function DeepRouteSignalDeck({
             alt=""
             loading={compact ? 'lazy' : 'eager'}
             fetchpriority={compact ? 'auto' : 'high'}
+            decoding="async"
             onError={() => {
               if (visual !== fallback) setVisual(fallback);
             }}

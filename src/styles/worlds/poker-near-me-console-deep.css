@@ -363,6 +363,8 @@ body.world-poker-near-me .pnm-location-index {
      art has and a row of type never runs the width of a wide screen. */
   width: min(100%, 1000px);
   margin: 20px auto 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
 }
 
 body.world-poker-near-me .pnm-location-index__heading {
