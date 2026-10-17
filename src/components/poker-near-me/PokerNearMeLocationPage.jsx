@@ -10,6 +10,7 @@ import PokerNearMeRecentRail from './PokerNearMeRecentRail';
 import { PokerNearMePanelShell } from './PokerNearMeConsole';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { buildLocationDirectorySchema, serializePokerJsonLd } from '../../lib/poker-near-me/structuredData';
+import { buildLocationFaqJsonLd, buildLocationPaaQuestions } from '../../lib/seo/locationAeo.mjs';
 import { venueMarkUrl } from './venueMarks';
 import {
   buildLiveCashGameIndex,
@@ -282,6 +283,18 @@ export default function PokerNearMeLocationPage({
     fetchedAt: sourceTimestamp,
   }), [canonical, cities, city, description, directoryCount, sourceTimestamp, stateCode, stateName, states, title, venues]);
 
+  const locationFaqJsonLd = useMemo(() => buildLocationFaqJsonLd({
+    stateName,
+    stateCode,
+    city,
+    venueCount: directoryCount,
+    topVenues: venues,
+    canonicalUrl: canonical,
+  }), [stateName, stateCode, city, directoryCount, venues, canonical]);
+
+  const geoRegion = stateCode ? `US-${String(stateCode).trim().toUpperCase()}` : null;
+  const geoPlacename = city && (stateName || stateCode) ? `${city}, ${stateName || stateCode}` : stateName || stateCode || null;
+
   return (
     <div className="pnm-location-listing" data-pnm-realism="machined-v2">
       <SEOHead
@@ -290,8 +303,15 @@ export default function PokerNearMeLocationPage({
         canonical={canonical}
         ogImage={`https://smarter.poker${hero.image}`}
         noindex={directoryCount === 0}
+        geoRegion={geoRegion}
+        geoPlacename={geoPlacename}
       />
-      <Head><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(structuredData) }} /></Head>
+      <Head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(structuredData) }} />
+        {locationFaqJsonLd && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(locationFaqJsonLd) }} />
+        )}
+      </Head>
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
       <PokerNearMeFamilyNav />
       <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
@@ -439,6 +459,25 @@ export default function PokerNearMeLocationPage({
                 meta: [venue.city, venue.state].filter(Boolean).join(', '),
               }))}
             />
+          </section>
+        )}
+
+        {/* Conversational Search & People Also Ask Enrichment */}
+        {locationFaqJsonLd?.mainEntity?.length > 0 && (
+          <section aria-labelledby="pnm-location-faq-heading">
+            <PokerNearMePanelShell as="header" className="pnm-location-listing__section-head">
+              <span>Local Search Intelligence</span>
+              <h2 id="pnm-location-faq-heading">Frequently Asked Questions: {placeLabel} Poker</h2>
+              <p>Key Facts, Poker Room Details, And Game Regulations For {placeLabel}.</p>
+            </PokerNearMePanelShell>
+            <div className="pnm-location-faq__list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+              {locationFaqJsonLd.mainEntity.map((item, idx) => (
+                <PokerNearMePanelShell key={idx} className="pnm-location-faq__item" style={{ padding: '16px 20px' }}>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', color: '#fff', fontWeight: 600 }}>{item.name}</h3>
+                  <p style={{ margin: 0, fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>{item.acceptedAnswer.text}</p>
+                </PokerNearMePanelShell>
+              ))}
+            </div>
           </section>
         )}
 
