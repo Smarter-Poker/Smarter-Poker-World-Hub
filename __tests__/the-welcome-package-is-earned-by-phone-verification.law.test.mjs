@@ -85,7 +85,7 @@ test('verify-otp is signed-in only, pays once, and honours the throwaway-inbox r
 test('the welcome screen exists, is a hub page with the global header, and is reachable from the menu', () => {
   assert.match(verifyPage, /useRequireAuth\(/, 'the page uses the repo auth guard');
   assert.match(verifyPage, /authedFetch\('\/api\/sms\/verify-otp'/, 'the page verifies through authedFetch (bearer token)');
-  assert.match(verifyPage, /\.select\('phone_verified'\)/, 'the page reads only phone_verified (profiles.phone is not browser-readable)');
+  assert.match(verifyPage, /\.select\('phone_verified, is_vip, vip_tier'\)/, 'onboarding reads verified and VIP status without the private phone column');
   assert.doesNotMatch(verifyPage, /select\('[^']*\bphone\b[^_']/, 'the page must not select profiles.phone');
   assert.match(appRoot, /'\/hub\/verify-phone',/, '/hub/verify-phone inherits the approved global header');
   assert.match(menus, /createMenuItem\.navigation\(\s*\n\s*'Verify Phone Number',\s*\n\s*'\/hub\/verify-phone'/, 'unverified players get the menu item');
@@ -93,4 +93,25 @@ test('the welcome screen exists, is a hub page with the global header, and is re
   assert.match(hubIndex, /phone_prompt_dismissed_at/, 'the hub honours a dismissed prompt');
   assert.match(avatarCtx, /data\.welcomePackage\?\.granted === true/, 'the "500 Diamonds + VIP" popup only fires once the package was granted');
   assert.doesNotMatch(appRoot, /<PhoneVerifyGate/, 'the retired 90-day popup gate stays retired');
+});
+
+import { shouldOfferPhoneWelcome } from '../src/lib/phoneWelcome.js';
+test('verified users and VIP card holders never receive phone onboarding', () => {
+  for (const profile of [null, {}, {phone_verified:true}, {phone_verified:false,is_vip:true}, {phone_verified:false,vip_tier:'monthly'}, {phone_verified:false,vip_tier:'lifetime'}]) {
+    assert.equal(shouldOfferPhoneWelcome(profile), false);
+  }
+  assert.equal(shouldOfferPhoneWelcome({phone_verified:false,is_vip:false,vip_tier:null}), true);
+});
+
+test('eligibility changes close the nudge and stale reads cannot restore it', () => {
+  const nudge = readFileSync(new URL('../src/components/hub/WelcomePackageNudge.jsx', import.meta.url), 'utf8');
+  const hub = readFileSync(new URL('../pages/hub/index.js', import.meta.url), 'utf8');
+  assert.match(nudge, /if \(!open \|\| eligible !== true \|\| !userId\) return null/);
+  assert.match(nudge, /\[eligible, userId\]/);
+  assert.match(hub, /request !== generation/);
+  assert.match(hub, /addEventListener\('profile-updated', checkPhoneWelcome\)/);
+  assert.match(hub, /shouldOfferPhoneWelcome\(profile\)/);
+  const social = read('src/components/gates/SocialProfileCompletionGate.jsx');
+  assert.match(social, /shouldOfferPhoneWelcome\(profile\) &&/);
+  assert.doesNotMatch(social, /profile\?\.phone_verified !== true &&/);
 });

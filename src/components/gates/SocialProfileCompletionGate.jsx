@@ -23,6 +23,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Gem } from 'lucide-react';
+import { shouldOfferPhoneWelcome } from '../../lib/phoneWelcome';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { busEmit } from '../../engine/EventBus';
@@ -306,7 +307,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                                     {submitting ? <span style={s.spinner} /> : 'Finish ✓'}
                                 </button>
                             </div>
-                            {profile?.phone_verified !== true && (
+                            {shouldOfferPhoneWelcome(profile) && (
                                 <div style={s.packageNote}>
                                     Next: Verify Your Phone Number From The Hub Menu To Claim Your Welcome Package, A 30-Day VIP Card And 500 Diamonds.
                                 </div>

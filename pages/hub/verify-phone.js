@@ -1,3 +1,4 @@
+import { shouldOfferPhoneWelcome } from '../../src/lib/phoneWelcome';
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — VERIFY PHONE / CLAIM WELCOME PACKAGE
    /hub/verify-phone
@@ -73,17 +74,21 @@ export default function VerifyPhonePage() {
                 // withheld on purpose); phone_verified is.
                 const { data: profile, error: readErr } = await supabase
                     .from('profiles')
-                    .select('phone_verified')
+                    .select('phone_verified, is_vip, vip_tier')
                     .eq('id', user.id)
                     .maybeSingle();
                 if (cancelled) return;
                 if (readErr) console.warn('[verify-phone] profile read failed:', readErr.message);
                 if (profile?.phone_verified === true) setAlreadyVerified(true);
+                if (!readErr && profile && isWelcome && !shouldOfferPhoneWelcome(profile)) {
+                    window.location.replace(queryNext || '/hub');
+                    return;
+                }
             } catch (_e) { /* show the form anyway */ }
             if (!cancelled) setProfileChecked(true);
         })();
         return () => { cancelled = true; };
-    }, [user?.id]);
+    }, [user?.id, isWelcome, queryNext]);
 
     // No ?next=: ask the database whether this account still owes a visit to
     // an invited club's join page.
