@@ -152,3 +152,9 @@ test('single-product UI binds the term, retains direct payment handlers and safe
     assert.match(read(file), /key=\{`\$\{props.vipProduct.gift\}:\$\{props.vipProduct.plan\}`\}/);
   }
 });
+
+
+test('VIP legal copy reflects gift returns instead of the generic all-final policy', () => {
+  const store = read('pages/hub/diamond-store.js');
+  assert.match(store, /activeTab === 'vip'[\s\S]*?Unredeemed VIP Gift Cards Can Be Returned To The Sender Through Gift History/);
+});

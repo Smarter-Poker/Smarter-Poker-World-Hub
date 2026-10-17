@@ -6169,8 +6169,12 @@ export default function DiamondStorePage({
 
               {/* Legal Note */}
               <p style={styles.legalNote}>
-                Diamonds Are Virtual Currency And Have No Real-World Cash Value. All Purchases Are
-                Final. See our{' '}
+                Diamonds Are Virtual Currency And Have No Real-World Cash Value.{' '}
+                {activeTab === 'vip'
+                  ? (!vipProduct || vipProduct.gift)
+                    ? 'Unredeemed VIP Gift Cards Can Be Returned To The Sender Through Gift History. See Our '
+                    : 'Your Membership And Payment Terms Are Shown Above. See Our '
+                  : 'All Purchases Are Final. See Our '}
                 <a href="/terms" style={styles.link}>
                   Terms Of Service
                 </a>{' '}
