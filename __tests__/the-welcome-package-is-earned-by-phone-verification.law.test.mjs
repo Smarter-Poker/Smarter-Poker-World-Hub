@@ -111,4 +111,7 @@ test('eligibility changes close the nudge and stale reads cannot restore it', ()
   assert.match(hub, /request !== generation/);
   assert.match(hub, /addEventListener\('profile-updated', checkPhoneWelcome\)/);
   assert.match(hub, /shouldOfferPhoneWelcome\(profile\)/);
+  const social = read('src/components/gates/SocialProfileCompletionGate.jsx');
+  assert.match(social, /shouldOfferPhoneWelcome\(profile\) &&/);
+  assert.doesNotMatch(social, /profile\?\.phone_verified !== true &&/);
 });
