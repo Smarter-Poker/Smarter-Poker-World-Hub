@@ -196,7 +196,7 @@ test('the hub forwards a pending invite once per browser session', () => {
     assert.match(c, /if \(sessionStorage\.getItem\(PENDING_INVITE_FORWARDED_KEY\)\) return undefined;/);
     assert.match(c, /window\.location\.assign\(path\)/);
     const hub = read('pages/hub/index.js');
-    assert.match(hub, /<PendingInviteForward enabled=\{phoneVerified !== null && !redirectingToWelcome\} \/>/);
+    assert.match(hub, /<PendingInviteForward enabled=\{phonePromptEligible !== null && !redirectingToWelcome\} \/>/);
 });
 
 test('a redirect target with a control character, space or backslash is refused', () => {
