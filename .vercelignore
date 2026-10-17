@@ -165,6 +165,7 @@ _legacy_sql/
 !/__tests__/printful-status.test.mjs
 !/__tests__/printful-webhook-setup.test.mjs
 !/__tests__/unfulfillable-merch-is-not-for-sale.test.mjs
+!/__tests__/merch-with-no-fulfilment-path-is-not-for-sale.test.mjs
 !/tests/shop-item-rules.test.mjs
 !/supabase/migrations/20260829130000_club_shop_atomic_purchase.sql
 /playwright/
