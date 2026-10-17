@@ -10,7 +10,7 @@ const migration = readFileSync(new URL('supabase/migrations/20261017002000_vip_f
 const fixture = `
 CREATE EXTENSION pgcrypto; CREATE SCHEMA extensions;
 CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN BYPASSRLS;
-CREATE TABLE profiles(id uuid PRIMARY KEY,is_vip boolean DEFAULT false,vip_tier text,vip_expires_at timestamptz,
+CREATE TABLE profiles(id uuid PRIMARY KEY,is_vip boolean DEFAULT false,vip_tier text,tier text,vip_expires_at timestamptz,
  diamonds integer DEFAULT 100000,diamond_balance integer DEFAULT 100000,diamond_multiplier numeric DEFAULT 2,updated_at timestamptz DEFAULT now());
 CREATE TABLE friendships(user_id uuid,friend_id uuid,status text);
 CREATE TABLE ca_money_rpc_registry(proname text PRIMARY KEY,status text,notes text);
@@ -72,6 +72,9 @@ test('VIP gift transactions: real PostgreSQL wallet, friendship, payments, redem
     assert.equal((await client.query('select count(*)::integer n from notifications')).rows[0].n,1);
     assert.equal((await send('same-request','yearly')).error,'request_conflict');
     assert.equal((await rpc('redeem_vip_gift_atomic',[ids[2],gift.id])).error,'gift_not_found');
+    await assert.rejects(rpc('redeem_vip_gift_atomic',[ids[1],gift.id]),/column reference "tier" is ambiguous/);
+    assert.equal((await client.query('select status from vip_gifts where id=$1',[gift.id])).rows[0].status,'available');
+    await client.query(readFileSync(new URL('supabase/migrations/20261017003200_vip_gift_redemption_binding.sql',root),'utf8'));
     const redeemed=await rpc('redeem_vip_gift_atomic',[ids[1],gift.id]); assert.equal(redeemed.tier,'monthly');
     const expiry=Date.parse(redeemed.expiresAt); assert.ok(expiry>Date.now()+29.99*86400000 && expiry<Date.now()+30.01*86400000, JSON.stringify(redeemed));
     assert.equal((await rpc('redeem_vip_gift_atomic',[ids[1],gift.id])).duplicate,true);
