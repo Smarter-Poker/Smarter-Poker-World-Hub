@@ -350,6 +350,62 @@ function storeStructuredData(activeTab, vipProduct) {
   if (vipProduct) return vipProductStructuredData(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift);
   if (activeTab === 'vip') return vipStructuredData(VIP_MEMBERSHIP);
   const meta = TAB_META[activeTab] || TAB_META.diamonds;
+
+  if (activeTab === 'diamonds') {
+    const products = DIAMOND_STOREFRONT_FALLBACK_PACKAGES.map((pkg) => {
+      const id = `https://smarter.poker/hub/diamond-store#diamond-package-${pkg.id}`;
+      const offerId = `https://smarter.poker/hub/diamond-store#diamond-offer-${pkg.id}`;
+      const totalDiamonds = pkg.diamonds + (pkg.bonus || 0);
+      const description = `Get ${totalDiamonds.toLocaleString()} Smarter.Poker Diamonds (${pkg.diamonds.toLocaleString()}${pkg.bonus ? ` plus ${pkg.bonus.toLocaleString()} bonus` : ''}) to unlock time banks, custom avatars, cosmetics, and club shop items.`;
+      return {
+        '@type': 'Product',
+        '@id': id,
+        name: `Smarter.Poker ${pkg.name} Diamond Package (${totalDiamonds.toLocaleString()} Diamonds)`,
+        description,
+        image: 'https://smarter.poker/images/store-v3/diamond-vault-hero.webp',
+        brand: {
+          '@type': 'Brand',
+          name: 'Smarter.Poker',
+        },
+        offers: {
+          '@type': 'Offer',
+          '@id': offerId,
+          name: `${pkg.name} Package`,
+          price: (pkg.priceCents / 100).toFixed(2),
+          priceCurrency: 'USD',
+          availability: 'https://schema.org/InStock',
+          url: 'https://smarter.poker/hub/diamond-store',
+          seller: {
+            '@type': 'Organization',
+            name: 'Smarter.Poker',
+            url: 'https://smarter.poker/',
+          },
+        },
+      };
+    });
+
+    return {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'CollectionPage',
+          '@id': 'https://smarter.poker/hub/diamond-store#page',
+          name: meta.title,
+          description: meta.description,
+          url: 'https://smarter.poker/hub/diamond-store',
+          image: `https://smarter.poker${TAB_SOCIAL_IMAGE.diamonds}`,
+          isPartOf: {
+            '@type': 'WebSite',
+            name: 'Smarter.Poker',
+            url: 'https://smarter.poker/',
+          },
+          hasPart: products.map((p) => ({ '@id': p['@id'] })),
+        },
+        ...products,
+      ],
+    };
+  }
+
   return {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',

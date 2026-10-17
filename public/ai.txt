@@ -1,0 +1,29 @@
+# ai.txt — Machine-Readable Permissions and Guidance for Artificial Intelligence Crawlers
+# https://smarter.poker/ai.txt
+# Standard specification for AI user-agents, retrieval systems, and reasoning engines.
+
+User-Agent: *
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /api/mcp
+Allow: /api/openapi.json
+Allow: /.well-known/ai-plugin.json
+Allow: /hub/venues/*.md
+Allow: /hub/series/*.md
+
+# Disallow authenticated private gameplay and account data
+Disallow: /api/poker/engine/
+Disallow: /api/account/
+Disallow: /auth/
+
+# Primary AI Knowledge Endpoints
+Model-Context-Protocol: https://smarter.poker/api/mcp
+LLM-Documentation: https://smarter.poker/llms.txt
+Full-Corpus: https://smarter.poker/llms-full.txt
+OpenAPI-Specification: https://smarter.poker/api/openapi.json
+OpenAI-Plugin: https://smarter.poker/.well-known/ai-plugin.json
+
+# Preferred content negotiation for AI crawlers:
+# Accept: text/markdown -> Returns token-efficient structured markdown without HTML boilerplate.
+# Raw markdown available directly by appending .md to venue and tournament series URLs.
