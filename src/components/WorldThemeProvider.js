@@ -48,8 +48,11 @@ const ROUTE_TO_WORLD = {
     '/hub/user': 'social-hub',
 };
 
-// Get world ID from pathname (handles dynamic routes)
-function getWorldFromPath(pathname) {
+// Get world ID from pathname (handles dynamic routes). Exported so the
+// server document can put the same world class on <body> in the HTML: a class
+// that only arrives after hydration restyles every world page late (fonts,
+// sizes, artwork), which moved Largest Contentful Paint to hydration time.
+export function getWorldFromPath(pathname) {
     // Check exact matches first
     if (ROUTE_TO_WORLD[pathname]) {
         return ROUTE_TO_WORLD[pathname];

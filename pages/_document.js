@@ -4,8 +4,22 @@
  */
 
 import Document, { Html, Head, Main, NextScript } from 'next/document';
+import { getWorldFromPath } from '../src/components/WorldThemeProvider';
 
 export default class MyDocument extends Document {
+    // WORLD CLASS IN THE SERVER HTML (2026-10-16). WorldThemeProvider adds
+    // `world-<id>` to <body> in an effect, so every `body.world-*` rule (the
+    // training hero size, world fonts, footer and header art) applied only
+    // after hydration, repainting each world page at that moment and pushing
+    // its Largest Contentful Paint there. Render the same class from the
+    // route's pathname here; the provider's effect then finds it already set
+    // and keeps owning it across client navigation.
+    static async getInitialProps(ctx) {
+        const initialProps = await Document.getInitialProps(ctx);
+        const worldId = getWorldFromPath(ctx.pathname || '');
+        return { ...initialProps, worldBodyClass: worldId ? `world-${worldId}` : undefined };
+    }
+
     render() {
         return (
             <Html lang="en">
@@ -205,7 +219,7 @@ export default class MyDocument extends Document {
                         `
                     }} />
                 </Head>
-                <body>
+                <body className={this.props.worldBodyClass}>
                     {/* ═══ NUCLEAR CSS FAILSAFE ═══════════════════════════════════
                          next/font/google wraps content in visibility:hidden during SSR.
                          Client JS is supposed to swap it to visible during hydration.
