@@ -1607,6 +1607,42 @@ test('saved collection resolves targets in bounded batches, never per saved row'
   assert.doesNotMatch(`${contextLoader}\n${resolver}`, /for \(const saved[^)]*\)[\s\S]*client\.from/);
 });
 
+test('bare Reel and post bookmarks resolve approved sports without relaxing explicit category or media gates', async () => {
+  const youtubeId = '-Vrl-Cup7oA';
+  const postId = 'aac1a0f3-972d-4d39-98df-41ad5e564180';
+  const reel = nativeRow({
+    id: '2d659d70-f77e-4c10-9c6d-c3b96e958eaa', source_post_id: postId,
+    video_url: `https://www.youtube.com/watch?v=${youtubeId}`,
+    original_youtube_url: `https://www.youtube.com/watch?v=${youtubeId}`,
+    youtube_video_id: youtubeId, source_type: 'youtube', origin_type: 'horse',
+    playback_type: 'youtube_embed', topic: 'sports', rights_status: 'embed_only',
+    canonical_asset_key: `youtube:${youtubeId}`, publication_key: null,
+  });
+  const asset = {
+    youtube_video_id: youtubeId, type: 'cash', availability_status: 'verified',
+    embeddable: true, availability_checked_at: new Date().toISOString(),
+  };
+  const post = { id: postId, author_id: reel.author_id, visibility: 'public', is_deleted: false, is_flagged: false, audience_mode: 'public' };
+  const client = createMemoryClient({ social_reels: [reel], social_posts: [post], profiles: [], video_library_videos: [asset], youtube_embed_failures: [] });
+  const { readFeed } = loadCollectionReaderHarness(client);
+  for (const id of [reel.id, postId]) {
+    const result = await readFeed({ client, id, limit: 1, includeProfiles: false });
+    assert.equal(result.detailStatus, 'found');
+    assert.equal(result.category, 'for-you');
+    assert.equal(result.data[0].canonical_asset_key, `youtube:${youtubeId}`);
+    assert.equal((await readFeed({ client, id, category: 'poker' })).detailStatus, 'unavailable');
+  }
+  assert.equal((await readFeed({ client })).category, 'poker');
+  assert.equal((await readFeed({ client })).data.length, 0);
+  for (const overrides of [{ is_public: false }, { is_deleted: true }, { rights_status: 'restricted' }, { media_status: 'processing' }]) {
+    const saved = { ...reel }; Object.assign(reel, overrides);
+    assert.equal((await readFeed({ client, id: reel.id })).detailStatus, 'unavailable');
+    Object.assign(reel, saved);
+  }
+  asset.availability_checked_at = '2020-01-01T00:00:00Z';
+  assert.equal((await readFeed({ client, id: reel.id })).detailStatus, 'unavailable');
+});
+
 test('public detail optionally exposes only eligible catalog video facts without changing feed shape', async () => {
   const youtubeId = 'dQw4w9WgXcQ';
   const checkedAt = new Date().toISOString();
