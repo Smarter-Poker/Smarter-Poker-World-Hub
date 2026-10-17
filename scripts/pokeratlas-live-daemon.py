@@ -211,6 +211,7 @@ WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this ma
 WATCHDOG_WARMUP_MINUTES = 5    # Grace period after boot before watchdog can kill (prevents boot-loop deaths)
 SLOW_CYCLE_THRESHOLD_MINUTES = 20  # Force reconnect if cycle is running >20min and <50% regions done
 CONNECT_TIMEOUT_SECONDS = 60   # Hard kill if connect() hangs longer than this (was 90)
+FETCH_TIMEOUT_SECONDS = 240  # One page, including a Cloudflare retry, or the process restarts
 MAX_CONSECUTIVE_CONNECT_FAILURES = 10  # After this many, force full venv reimport + session reset
 
 # Directories
@@ -1269,6 +1270,30 @@ class PokerAtlasSessionManager:
             return False
 
     def fetch_page(self, url, expected_slug=None, expected_name=None):
+        """Fetch one page on the persistent session, under a hard deadline.
+
+        THE FETCH CANNOT HANG THE DAEMON (2026-10-17). On 2026-10-15 at 22:34
+        UTC a cycle began on a session whose Playwright driver had already
+        closed ("Connection closed while reading from the driver"). The fetch
+        never returned: the process sat at 99% CPU for 46 hours, ignored its
+        stop signal, held the writer lock, and PokerAtlas published nothing.
+        The stale-data watchdog in main() only runs BETWEEN cycles, so it
+        never fired. A fetch now arms the same hard-kill timer connect() has
+        always had; the supervisor restarts the process cleanly.
+        """
+        deadline = threading.Timer(
+            FETCH_TIMEOUT_SECONDS,
+            _hard_kill_on_hang,
+            args=('fetch_page() hung for >{}s on {}'.format(FETCH_TIMEOUT_SECONDS, url),),
+        )
+        deadline.daemon = True
+        deadline.start()
+        try:
+            return self._fetch_page_unguarded(url, expected_slug, expected_name)
+        finally:
+            deadline.cancel()
+
+    def _fetch_page_unguarded(self, url, expected_slug=None, expected_name=None):
         """Fetch a page using the persistent session.
 
         Returns HTML string or None on failure.
@@ -1342,7 +1367,15 @@ class PokerAtlasSessionManager:
             self.consecutive_fetch_failures += 1
 
             # CRASH RECOVERY: Detect dead browser context OR persistent timeouts
-            if 'has been closed' in err_msg or 'Target page' in err_msg:
+            # "Connection closed while reading from the driver" is the same
+            # death in different words, and it was the one that wedged the
+            # next cycle (2026-10-15): the session was never marked dead.
+            if (
+                'has been closed' in err_msg
+                or 'Target page' in err_msg
+                or 'Connection closed' in err_msg
+                or 'driver' in err_msg.lower()
+            ):
                 log.warning(f'  🔴 Browser context dead — marking for reconnection')
                 self._session_dead = True
             elif ('Timeout' in err_msg or 'timed out' in err_msg.lower()) and self.consecutive_fetch_failures >= CIRCUIT_BREAKER_THRESHOLD:

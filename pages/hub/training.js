@@ -781,13 +781,16 @@ function GradeCard({ stats, loading, error, onRetry, signedIn }) {
     );
   }
 
-  const grade    = stats.current_grade || '-';
   const next     = stats.next_grade;
   const accuracy = stats.rolling_accuracy_pct;
   const hands    = stats.rolling_total;
   const delta    = stats.delta_correct_to_next;
-  const pct      = Math.max(0, Math.min(100, accuracy));
   const hasData  = hands > 0;
+  /* NO GRADE WITHOUT GRADED HANDS (2026-10-17). The letter is the rolling
+     30-day grade; with no hands in that window the stored letter (an "F" on
+     production) sat beside "No Graded Sessions Yet" and contradicted it. */
+  const grade    = hasData ? (stats.current_grade || '-') : '-';
+  const pct      = hasData ? Math.max(0, Math.min(100, Number(accuracy) || 0)) : 0;
 
   return (
     <div className="sp-grade-card" aria-label="Current GTO grade">

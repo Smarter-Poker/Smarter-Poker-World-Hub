@@ -332,18 +332,21 @@ function UserCard({
 // ═══════════════════════════════════════════════════════════════════════════
 // TAB BUTTON
 // ═══════════════════════════════════════════════════════════════════════════
+const LIST_PAGE = 60;
+
 function TabButton({ active, onClick, icon, label, count }) {
     return (
         <button
             onClick={onClick}
             style={{
-                padding: '12px 20px',
+                minHeight: 44,
+                padding: '0 12px',
                 borderRadius: 12,
                 border: 'none',
                 background: active ? C.gradient1 : 'transparent',
                 color: active ? 'white' : C.textSec,
                 fontWeight: 600,
-                fontSize: 14,
+                fontSize: 13,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -363,7 +366,7 @@ function TabButton({ active, onClick, icon, label, count }) {
                     fontSize: 11,
                     fontWeight: 700,
                 }}>
-                    {count}
+                    {count.toLocaleString()}
                 </span>
             )}
         </button>
@@ -378,6 +381,10 @@ function FriendsPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-friends-tab', 'discover'); // requests, friends, following, followers, discover
+    // A list of 1,118 people is drawn a page at a time (2026-10-17): the count
+    // is every row, the cards are the first LIST_PAGE plus Show More.
+    const [visibleCount, setVisibleCount] = useState(LIST_PAGE);
+    useEffect(() => { setVisibleCount(LIST_PAGE); }, [activeTab]);
 
     // Deep-link: ?tab=friends|followers|following|requests|discover overrides persisted tab
     const VALID_TABS = new Set(['friends', 'followers', 'following', 'requests', 'discover']);
@@ -964,6 +971,27 @@ function FriendsPage() {
         </div>
     );
 
+    const showMore = (list) =>
+        list.length > visibleCount ? (
+            <button
+                type="button"
+                onClick={() => setVisibleCount((n) => n + LIST_PAGE)}
+                style={{
+                    minHeight: 44,
+                    padding: '0 12px',
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 12,
+                    background: 'transparent',
+                    color: C.blue,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                }}
+            >
+                Show More ({(list.length - visibleCount).toLocaleString()} Left)
+            </button>
+        ) : null;
+
     const renderContent = () => {
         // If searching, show search results
         if (searchQuery.trim()) {
@@ -987,7 +1015,7 @@ function FriendsPage() {
                             alignItems: 'center',
                             gap: 8
                         }}>
-                            <span>🔎</span> Found {searchResults.length} {searchResults.length === 1 ? 'person' : 'people'}
+                            Found {searchResults.length.toLocaleString()} {searchResults.length === 1 ? 'Person' : 'People'}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {searchResults.map(person => (
@@ -1009,7 +1037,7 @@ function FriendsPage() {
                 );
             }
 
-            return <EmptyState icon="🔎" message={`No users found for "${searchQuery}"`} />;
+            return <EmptyState icon="" message={`No Players Found For "${searchQuery}"`} />;
         }
 
         switch (activeTab) {
@@ -1032,7 +1060,7 @@ function FriendsPage() {
             case 'friends':
                 return friends.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {friends.map(friend => (
+                        {friends.slice(0, visibleCount).map(friend => (
                             <UserCard
                                 key={friend.id}
                                 user={friend}
@@ -1045,15 +1073,16 @@ function FriendsPage() {
                                 onAddFriend={handleAddFriend}
                             />
                         ))}
+                        {showMore(friends)}
                     </div>
                 ) : (
-                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>} message="You haven't added any friends yet" />
+                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>} message="You Have Not Added Any Friends Yet" />
                 );
 
             case 'following':
                 return following.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {following.map(person => (
+                        {following.slice(0, visibleCount).map(person => (
                             <UserCard
                                 key={person.id}
                                 user={person}
@@ -1067,15 +1096,16 @@ function FriendsPage() {
                                 onAddFriend={handleAddFriend}
                             />
                         ))}
+                        {showMore(following)}
                     </div>
                 ) : (
-                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>} message="You're not following anyone yet" />
+                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>} message="You Are Not Following Anyone Yet" />
                 );
 
             case 'followers':
                 return followers.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {followers.map(person => (
+                        {followers.slice(0, visibleCount).map(person => (
                             <UserCard
                                 key={person.id}
                                 user={person}
@@ -1089,6 +1119,7 @@ function FriendsPage() {
                                 onAddFriend={handleAddFriend}
                             />
                         ))}
+                        {showMore(followers)}
                     </div>
                 ) : (
                     <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>} message="No Followers Yet" />
@@ -1098,7 +1129,7 @@ function FriendsPage() {
             default:
                 return suggestions.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {suggestions.map(person => (
+                        {suggestions.slice(0, visibleCount).map(person => (
                             <UserCard
                                 key={person.id}
                                 user={person}
@@ -1113,6 +1144,7 @@ function FriendsPage() {
                                 onAddFriend={handleAddFriend}
                             />
                         ))}
+                        {showMore(suggestions)}
                     </div>
                 ) : (
                     <EmptyState icon="" message="No Suggestions Available" />
@@ -1175,7 +1207,7 @@ function FriendsPage() {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                         <input
                             type="text"
-                            placeholder="Search For Friends By Name Or Username..."
+                            placeholder="Search Name Or Username"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{
@@ -1183,11 +1215,13 @@ function FriendsPage() {
                                 background: 'transparent',
                                 border: 'none',
                                 outline: 'none',
+                                minWidth: 0,
                                 color: C.text,
-                                fontSize: 15,
+                                fontSize: 16,
+                                textOverflow: 'ellipsis',
                             }}
                         />
-                        {isSearching && <span style={{ fontSize: 16 }}>⏳</span>}
+                        {isSearching && <span style={{ fontSize: 12, color: C.textSec, flexShrink: 0 }}>Searching</span>}
                         {searchQuery && !isSearching && (
                             <button
                                 onClick={() => setSearchQuery('')}
@@ -1227,9 +1261,10 @@ function FriendsPage() {
                 {/* Tabs */}
                 <div style={{
                     display: 'flex',
-                    gap: 8,
-                    padding: '16px',
-                    overflowX: 'auto',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '12px 8px',
                     background: C.bg,
                     borderBottom: `1px solid ${C.border}`,
                 }}>
@@ -1292,7 +1327,7 @@ function StatItem({ label, value, color }) {
                 color,
                 textShadow: `0 0 20px ${color}40`
             }}>
-                {value}
+                {typeof value === 'number' ? value.toLocaleString() : value}
             </div>
             <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{label}</div>
         </div>

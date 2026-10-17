@@ -3262,7 +3262,7 @@ export default function SocialPageDetail() {
                                     background: C.bg, borderRadius: 8, padding: '10px 12px',
                                     fontSize: 12, color: C.blue, wordBreak: 'break-all',
                                     border: `1px solid ${C.border}`, marginBottom: 8,
-                                }}>
+                                }} data-preserve-case="true">
                                     {`https://smarter.poker/hub/social-pages/${page.slug || page.id}`}
                                 </div>
                                 <button onClick={() => {

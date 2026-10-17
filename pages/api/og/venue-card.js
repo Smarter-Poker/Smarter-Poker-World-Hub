@@ -262,7 +262,13 @@ export default async function handler(req) {
                   fontWeight: 600,
                 }}
               >
-                ✓ Live Schedules & Cash Games
+                {/* A drawn tick, not the U+2713 glyph: the card's font has no
+                    check mark, so every render asked Google Fonts for one and
+                    logged "Failed to load dynamic font" (2026-10-17). */}
+                <svg width="16" height="16" viewBox="0 0 16 16" style={{ marginRight: 8 }}>
+                  <path d="M2 8.5 6 12.5 14 3.5" stroke="#4ADE80" strokeWidth="2.4" fill="none" />
+                </svg>
+                Live Schedules & Cash Games
               </div>
             </div>
 

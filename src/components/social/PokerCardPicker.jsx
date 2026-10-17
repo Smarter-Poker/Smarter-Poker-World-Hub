@@ -197,7 +197,7 @@ export default function PokerCardPicker({ accountId = null, initialMarkup = '', 
     }
   };
 
-  const usePreset = (preset) => {
+  const applyPreset = (preset) => {
     const cards = parsePokerCards(preset.markup);
     setHand(cards.hand);
     setBoard(cards.board);
@@ -526,7 +526,7 @@ export default function PokerCardPicker({ accountId = null, initialMarkup = '', 
                     <div key={preset.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: 7, borderRadius: 9, background: 'rgba(2,6,23,0.55)' }}>
                       <button
                         type="button"
-                        onClick={() => usePreset(preset)}
+                        onClick={() => applyPreset(preset)}
                         aria-label={`Use ${preset.name} preset`}
                         style={{ flex: '1 1 130px', minWidth: 0, minHeight: 44, padding: '8px 10px', border: '1px solid rgba(245,158,11,0.42)', borderRadius: 8, background: 'rgba(245,158,11,0.10)', color: '#fff', fontWeight: 800, textAlign: 'left', cursor: 'pointer' }}
                       >

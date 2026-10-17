@@ -116,18 +116,20 @@ test('the client reduce is deleted, not left beside its replacement', () => {
 test('the panel and the donut are built from the server breakdown', () => {
   assert.match(MODAL, /const \[flow, setFlow\] = useState\(null\);/);
   assert.match(MODAL, /if \(offset === 0\) setFlow\(data\.flow \?\? null\);/);
-  // Sources come from the RPC's own buckets, earned and spent merged.
-  assert.match(MODAL, /for \(const line of \[\.\.\.flow\.earned, \.\.\.flow\.spent\]\)/);
-  assert.match(
-    MODAL,
-    /sourceMap\[line\.label\] = \(sourceMap\[line\.label\] \|\| 0\) \+ line\.lifetime;/
-  );
+  // Sources are the RPC's EARNED buckets and spending its SPENT buckets,
+  // each side on its own (2026-10-17: merging them put Store Items and Gifts
+  // To Friends under "Top Sources" and made the donut neither total).
+  assert.match(MODAL, /const earnedSide = flow \? sideTotals\(flow\.earned\) : null;/);
+  assert.match(MODAL, /const spentSide = flow \? sideTotals\(flow\.spent\) : null;/);
+  assert.doesNotMatch(MODAL_CODE, /\[\.\.\.flow\.earned, \.\.\.flow\.spent\]/);
+  assert.match(MODAL, /map\[line\.label\] = \(map\[line\.label\] \|\| 0\) \+ line\.lifetime;/);
   // Gifts come from the RPC's own gift buckets.
   assert.match(MODAL, /giftLine\(flow\.spent, 'gifts_sent'\)/);
   assert.match(MODAL, /giftLine\(flow\.earned, 'gifts_received'\)/);
-  // The donut is derived from the SAME list as the bars, so the two pictures
-  // of one ledger cannot disagree.
-  assert.match(MODAL, /const donutData = topSources\s*\n?\s*\? topSources\.map/);
+  // The donut is EVERY earned bucket, so its slices add up to Total Earned,
+  // and the bars are the top five of that same side.
+  assert.match(MODAL, /const donutData = earnedSide\s*\n?\s*\? earnedSide\.map/);
+  assert.match(MODAL, /const topSources = earnedSide \? earnedSide\.slice\(0, 5\) : null;/);
   // The memo recomputes when the breakdown arrives.
   assert.match(MODAL, /\}, \[lifetime, flow\]\);/);
 });
@@ -135,7 +137,7 @@ test('the panel and the donut are built from the server breakdown', () => {
 test('"could not tell" is a distinct rendered state, not an empty chart', () => {
   // null (unreadable) and [] (an empty ledger) are different values, and only
   // the first one produces a message.
-  assert.match(MODAL, /const topSources = flow\s*\n?\s*\? Object\.entries\(sourceMap\)/);
+  assert.match(MODAL, /const topSources = earnedSide \? earnedSide\.slice\(0, 5\) : null;/);
   assert.match(MODAL, /:\s*null;/);
   assert.match(MODAL, /stats\.topSources === null \? \(/);
   assert.match(MODAL, /Breakdown Unavailable Right Now\. Pull Down To Refresh\./);

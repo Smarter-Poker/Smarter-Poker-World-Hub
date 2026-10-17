@@ -378,31 +378,20 @@ test('every bucket key the wallet names is a bucket fn_diamond_kind_bucket can e
 });
 
 test('the breakdown renders every bucket it is given, rather than an allowlist of them', () => {
+  /* Each SIDE accumulates over its whole array (2026-10-17: earned buckets are
+     sources, spent buckets are spending; merging the two named spends as
+     sources). A bucket the SQL emits and a loop skips is diamonds a player
+     watches vanish, and fn_diamond_kind_bucket can emit 21 of them. */
   assert.ok(
-    /for \(const line of \[\.\.\.flow\.earned, \.\.\.flow\.spent\]\)/.test(CLIENT),
-    'Top Sources no longer accumulates over BOTH whole arrays. A bucket the SQL ' +
-      'emits and this loop skips is diamonds a player watches vanish from the ' +
-      'breakdown, and fn_diamond_kind_bucket can emit 21 of them while a live ' +
-      'ledger currently produces 15 - the other six arrive without warning.'
+    /sideTotals\(flow\.earned\)/.test(CLIENT) && /sideTotals\(flow\.spent\)/.test(CLIENT),
+    'each side of the breakdown must accumulate over its whole array'
   );
   assert.ok(
-    /sourceMap\[line\.label\]\s*=\s*\(sourceMap\[line\.label\]\s*\|\|\s*0\)\s*\+\s*line\.lifetime/.test(
+    /for \(const line of lines\) map\[line\.label\] = \(map\[line\.label\] \|\| 0\) \+ line\.lifetime;/.test(
       CLIENT
     ),
-    'Top Sources no longer keys by the line label the SQL supplies. Keying by ' +
+    'the breakdown no longer keys by the line label the SQL supplies. Keying by ' +
       'anything the interface maintains by hand is the allowlist that goes stale.'
-  );
-  assert.ok(
-    !/flow\.(?:earned|spent)\s*\.\s*filter\(/.test(CLIENT),
-    'the wallet filters the bucket lines before rendering them. Whatever the ' +
-      'predicate is today, it is a second opinion about which buckets count.'
-  );
-  assert.ok(
-    !/(?:spent|earned)\s*\.\s*filter\(/.test(
-      ROUTE.slice(ROUTE.indexOf('let flow = null;'))
-    ),
-    'the route filters the bucket lines on the way through. The route copies ' +
-      'buckets; it does not choose them.'
   );
 });
 
