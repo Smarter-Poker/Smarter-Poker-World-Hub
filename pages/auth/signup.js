@@ -833,34 +833,32 @@ export default function SignUpPage() {
 
       console.log('Email verified:', data);
 
-      // Try to get player number if available
-      if (data.user) {
+      // Everything after the code is independent, so it runs at once: the
+      // player waited for each of these in turn before reaching Club Arena.
+      const fetchPlayerNumber = async () => {
+        if (!data?.user) return;
         try {
           const { data: profile } = await supabase
             .from('profiles')
             .select('player_number')
             .eq('id', data.user.id)
             .maybeSingle();
-
-          if (profile?.player_number) {
-            setAssignedPlayerNumber(profile.player_number);
-          }
+          if (profile?.player_number) setAssignedPlayerNumber(profile.player_number);
         } catch (err) {
           console.log('Could not fetch player number:', err);
         }
-      }
-
+      };
       // The six-digit code never visits /auth/callback, which is the only
       // place a pending promo or referral code used to be redeemed (2026-10-17).
-      if (data?.session?.access_token && data?.user?.id) {
-        await redeemPendingSignupCodes({
-          accessToken: data.session.access_token,
-          userId: data.user.id,
-        });
-      }
-
-      const next = await resolveSignupClubPath(data?.session,
-        Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
+      const redeemCodes = data?.session?.access_token && data?.user?.id
+        ? redeemPendingSignupCodes({ accessToken: data.session.access_token, userId: data.user.id })
+        : Promise.resolve();
+      const [, , next] = await Promise.all([
+        fetchPlayerNumber(),
+        redeemCodes,
+        resolveSignupClubPath(data?.session,
+          Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect),
+      ]);
       setSignupClubPath(next);
       setStep('success');
       // Club Arena is a separate application; enter its real join route directly.

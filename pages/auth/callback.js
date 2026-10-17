@@ -333,15 +333,15 @@ export default function AuthCallback() {
 
                 // ── 6.5 Redeem pending promo code / referral code ──
                 // One helper for both verification doors (link here, six-digit
-                // code in signup.js): src/lib/pendingSignupCodes.mjs.
-                try {
-                    if (session?.access_token) {
-                        await redeemPendingSignupCodes({
-                            accessToken: session.access_token,
-                            userId: user.id,
-                        });
-                    }
-                } catch (e) { /* non-blocking */ }
+                // code in signup.js): src/lib/pendingSignupCodes.mjs. Started
+                // now and awaited before routing, so it runs beside the invite
+                // claim instead of in front of it (it never throws).
+                const redeemDone = session?.access_token
+                    ? redeemPendingSignupCodes({
+                        accessToken: session.access_token,
+                        userId: user.id,
+                    }).catch(() => null)
+                    : Promise.resolve(null);
 
                 // ── 6.6 Claim the club invite this account came from ──
                 // Share & Invite (Dan 2026-10-15): the code rides in the
@@ -407,6 +407,8 @@ export default function AuthCallback() {
                 if (!inviteJoinPath && youngAccount && (!claimAttempted || !claimSettled)) {
                     inviteJoinPath = safeClubArenaPath(user.user_metadata?.club_join_path) || null;
                 }
+
+                await redeemDone;
 
                 // ── 7. Decide where to send the user ──
                 let isCommanderOrigin = false;
