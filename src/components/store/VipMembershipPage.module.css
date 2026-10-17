@@ -1,0 +1,132 @@
+/* VIP owns an opaque surface. No marketplace housing or transparent frame art. */
+.page {
+  --vip-blue: #45adff;
+  --vip-silver: #b5c4d0;
+  --vip-muted: #aabcc9;
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background: #000;
+  color: #edf6ff;
+}
+.content {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3.5vw, 40px) 40px !important;
+}
+.content *, .spendDialog * { box-sizing: border-box; }
+.content h1, .content h2, .content h3, .content p { margin: 0; }
+.content p { color: var(--vip-muted); line-height: 1.6; }
+.hero {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 360px;
+  isolation: isolate;
+  overflow: hidden;
+  border-bottom: 1px solid #263d50;
+  background: #000;
+}
+.heroCopy { position: relative; z-index: 1; width: 54%; padding: 44px 0; }
+.membershipLabel { color: #76c5ff; font-size: 14px; font-weight: 700; }
+.hero h1 { max-width: 540px; margin-top: 12px; font-size: clamp(32px, 4.6vw, 56px); line-height: 1.04; text-wrap: balance; }
+.hero p { max-width: 400px; margin-top: 18px; font-size: 15px; }
+.heroArtwork { position: absolute; z-index: 0; right: -7%; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: right center; mask-image: linear-gradient(90deg, transparent 20%, #000 55%); }
+.heroAction { margin-top: 24px; }
+/* Four physical layers: silver bevel, inset black seam, raised face, lower lip. */
+.action, .heroAction, .page :global([data-checkout-status]) :is(button, a) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 50px;
+  padding: 13px 20px;
+  border: 1px solid #8298aa;
+  background: linear-gradient(180deg, #394b5c, #0b141e 44%, #020508);
+  box-shadow: inset 0 1px 0 #d5e3ec, inset 0 0 0 3px #070b10, inset 0 0 0 4px #45586a, inset 0 -6px 10px #000, 0 4px 0 #1e2b38, 0 5px 0 #586e80, 0 9px 15px #000;
+  color: #edf6ff;
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 2px 1px #000;
+  cursor: pointer;
+  transition: transform .12s ease, filter .12s ease;
+}
+.action:hover:not(:disabled), .heroAction:hover { filter: brightness(1.2); }
+.action:active:not(:disabled), .heroAction:active { transform: translateY(3px); }
+.action:disabled { opacity: .5; cursor: not-allowed; }
+.primaryAction {
+  min-height: 58px;
+  border-color: #75c9ff;
+  background: linear-gradient(180deg, #185b91, #0b3156 48%, #061425);
+  box-shadow: inset 0 1px 0 #bee8ff, inset 0 0 0 3px #020b13, inset 0 0 0 4px #3988bf, inset 0 -6px 10px #0008, 0 4px 0 #0a2844, 0 5px 0 #387db0, 0 10px 18px #000;
+  font-size: 17px;
+}
+.memberStatus { display: flex; align-items: center; gap: 24px; margin-top: 28px; padding: 20px; border-left: 3px solid #45adff; background: #080e16; box-shadow: inset 0 1px #344756, inset 0 -1px #1b2a38; }
+.memberStatus > div { flex: 1; min-width: 0; }
+.memberStatus strong { display: block; color: #dceeff; font-size: 16px; }
+.memberStatus p { margin-top: 6px; font-size: 13px; }
+.memberStatus .action { flex-shrink: 0; }
+.purchase { padding-top: 36px; scroll-margin-top: 120px; }
+.sectionHeading { margin-bottom: 22px; }
+.sectionHeading h2, .faq h2 { color: #edf6ff; font-size: clamp(25px, 3vw, 34px); line-height: 1.15; }
+.sectionHeading p { margin-top: 9px; font-size: 14px; }
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.checkout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 30px; align-items: center; margin-top: 28px; padding: 24px; background: #080e16; border-top: 1px solid #344d61; border-bottom: 1px solid #26394a; }
+.selectedTerm { display: grid; gap: 8px; }
+.selectedTerm strong { font-size: 24px; color: #edf6ff; }
+.selectedTerm span { color: var(--vip-muted); font-size: 13px; line-height: 1.5; }
+.selectedTerm .savings { color: #78caff; }
+.paymentActions { display: grid; gap: 17px; }
+.paymentActions .paymentNote { text-align: center; font-size: 12px; line-height: 1.5; }
+.recovery { margin-top: 18px !important; font-size: 13px; }
+.tools { display: flex; gap: 14px; flex-wrap: wrap; padding-top: 22px; }
+.tools .action { flex: 1; }
+.benefits { margin-top: 52px; }
+.jumpNav { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0 30px; }
+.jumpNav .action { flex: 1; font-size: 13px; }
+.benefitGroup { margin-top: 26px; scroll-margin-top: 120px; }
+.benefitGroup summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 54px; padding: 14px 0; border-bottom: 1px solid #405a6e; cursor: pointer; font-size: 18px; list-style: none; }
+.benefitGroup summary span:last-child { display: flex; align-items: center; gap: 12px; color: #78caff; font-size: 13px; white-space: nowrap; }
+.benefitGroup summary span:last-child::after { content: '+'; font-size: 22px; }
+.benefitGroup[open] summary span:last-child::after { content: '−'; }
+.benefitGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
+.benefit { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 22px 0; border-bottom: 1px solid #1d2c3b; }
+.benefit h3 { color: #edf6ff; font-size: 17px; line-height: 1.3; }
+.benefit p { font-size: 13px; }
+.benefit > span { margin-top: auto; padding-top: 4px; color: #78caff; font-size: 13px; font-weight: 700; }
+.faq { margin-top: 48px; scroll-margin-top: 120px; }
+.faq h2 { margin-bottom: 20px; }
+.faq details { border-bottom: 1px solid #2c4053; }
+.faq summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 58px; padding: 16px 0; color: #dceeff; font-size: 16px; line-height: 1.4; cursor: pointer; list-style: none; }
+.faq summary::after { content: '+'; flex-shrink: 0; color: #78caff; font-size: 22px; }
+.faq details[open] summary::after { content: '−'; }
+.faq details p { max-width: 78ch; padding: 0 24px 20px 0; font-size: 14px; }
+.spendDialog { background: #080e16 !important; }
+.spendDialog button { min-height: 50px; border: 1px solid #8298aa !important; background: linear-gradient(#394b5c, #0b141e 44%, #020508) !important; box-shadow: inset 0 1px #d5e3ec, inset 0 0 0 3px #070b10, inset 0 0 0 4px #45586a, 0 4px #1e2b38, 0 5px #586e80 !important; color: #edf6ff !important; }
+.content ~ p { max-width: 78ch; margin-inline: auto; }
+@media (max-width: 640px) {
+  .hero { min-height: 0; display: flex; flex-direction: column-reverse; align-items: stretch; padding-bottom: 28px; }
+  .heroArtwork { position: relative; right: auto; width: 100%; height: 190px; object-position: right; object-fit: cover; mask-image: linear-gradient(#000 75%, transparent); }
+  .heroCopy { width: 100%; padding: 2px 0 0; }
+  .hero h1 { max-width: 360px; margin-top: 8px; font-size: 36px; }
+  .hero p { margin-top: 12px; font-size: 14px; }
+  .heroAction { margin-top: 20px; }
+  .memberStatus { align-items: stretch; flex-direction: column; gap: 16px; padding: 18px 16px 22px; }
+  .purchase { padding-top: 28px; }
+  .plans { grid-template-columns: 1fr; gap: 14px; }
+  .checkout { grid-template-columns: 1fr; gap: 20px; padding: 22px 14px; margin-top: 24px; }
+  .selectedTerm strong { font-size: 22px; }
+  .tools { flex-direction: column; gap: 15px; }
+  .benefits { margin-top: 40px; }
+  .jumpNav { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .benefitGrid { grid-template-columns: 1fr; }
+  .benefit { padding: 18px 0; }
+  .benefitGroup summary { font-size: 17px; }
+  .faq { margin-top: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .action, .heroAction { transition: none; }
+}

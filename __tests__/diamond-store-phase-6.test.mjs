@@ -71,19 +71,19 @@ test('checkout status is visible before the catalog and receives focus when it c
   assert.match(STATUS_PANEL, /tabIndex=\{-1\}/);
 });
 
-test('mobile purchase rails are labelled, focusable, and keyboard scrollable', () => {
+test('diamond rails scroll by keyboard and all VIP plans use native controls', () => {
   assert.match(SHOWCASE, /aria-label="Diamond Packages"/);
   assert.match(SHOWCASE, /tabIndex=\{0\}/);
   assert.match(SHOWCASE, /\['ArrowLeft', 'ArrowRight'\]/);
   assert.match(SHOWCASE, /scrollBy\(/);
   assert.match(STORE, /aria-label="VIP Membership Plans"/);
-  assert.match(STORE, /className=\{shellStyles\.planRail\}[\s\S]{0,180}tabIndex=\{0\}/);
+  assert.match(STORE, /className=\{vipStyles\.plans\} role="region" aria-label="VIP Membership Plans"/);
 });
 
 test('VIP headings no longer skip level two and store corners stay sharp without touching the header', () => {
   assert.match(
     STORE,
-    /<h2 style=\{styles\.benefitsTitle\}>[\s\S]{0,100}Everything Included With[\s\S]{0,100}<\/h2>/
+    /<h2 id="vip-benefits-title">[\s\S]{0,100}Everything Included With[\s\S]{0,100}<\/h2>/
   );
   assert.match(STORE, /lifetimeSelected \? 'Lifetime VIP' : 'VIP'/);
   assert.doesNotMatch(STORE, /<h3 style=\{styles\.benefitsTitle\}>/);

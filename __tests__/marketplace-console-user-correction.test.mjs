@@ -37,7 +37,7 @@ test('store image zones have no separate opaque background behind preserved artw
   const details = await read('src/components/store/MarketplaceDetailExperience.module.css');
   assert.match(details, /\.mediaDialog\s*\{[^}]*background-color:\s*#000/);
   const cards = await read('src/components/store/StoreCards.js');
-  assert.match(cards, /src="\/images\/vip-card\.webp"/);
+  assert.match(cards, /className=\{styles\.vipCardCrown\} aria-hidden="true"/);
 });
 
 const paths = {
@@ -185,7 +185,7 @@ test('the written contract requires in-place upgrades without cloned page layout
   assert.match(readme, /without making\s+every page a one-to-one clone/);
 });
 
-test('VIP choices retain the approved gold art with refined live text and no icon overlay', async () => {
+test('VIP choices use silver crown details with live text and selected plan semantics', async () => {
   const cards = await read(paths.cards);
   // VIPCard is the last export in the module now that the two unused card
   // components are gone, so this slices to the end rather than to a delimiter
@@ -194,7 +194,7 @@ test('VIP choices retain the approved gold art with refined live text and no ico
   assert.ok(vipStart >= 0, 'VIPCard must still be exported');
   const vipSource = cards.slice(vipStart);
 
-  assert.match(vipSource, /src="\/images\/vip-card\.webp"/);
+  assert.match(vipSource, /className=\{styles\.vipCardCrown\} aria-hidden="true"/);
   assert.match(vipSource, /className=\{styles\.vipPlanName\}/);
   assert.match(vipSource, /className=\{styles\.vipDiamondPrice\}/);
   assert.match(vipSource, /onClick=\{\(\) => onSelect\(plan\.id\)\}/);
@@ -445,7 +445,7 @@ test('Diamond package cards expose a readable commerce hierarchy without ornamen
     /const marketplaceCommerceFooter = \(\s*<MarketplaceCommerceNav active="store" variant="pageFooter" \/>\s*\);/
   );
   assert.match(page, /\{activeTab === 'diamonds' && marketplaceCommerceFooter\}/);
-  assert.match(page, /\{activeTab !== 'diamonds' && marketplaceCommerceFooter\}/);
+  assert.match(page, /\{activeTab !== 'diamonds' && activeTab !== 'vip' && marketplaceCommerceFooter\}/);
   assert.doesNotMatch(page, /variant=\{activeTab === 'diamonds' \? 'pageFooter' : 'default'\}/);
   assert.equal((page.match(/<MarketplaceCommerceNav\b/g) || []).length, 1);
   assert.equal((page.match(/<SmarterStoreShowcase\b/g) || []).length, 1);

@@ -184,7 +184,12 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       expect(response?.status()).toBeLessThan(400);
       await expect(page).toHaveTitle(route.title);
       await expect(page.getByRole('heading', { level: 1, name: route.heading })).toHaveCount(1);
-      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://smarter.poker${route.path}`);
+      const canonicals = page.locator('link[rel="canonical"]');
+      // _app and the page both emit this tag; every emitted value must agree.
+      await expect(canonicals.first()).toHaveAttribute('href', `https://smarter.poker${route.path}`);
+      for (const canonical of await canonicals.all()) {
+        await expect(canonical).toHaveAttribute('href', `https://smarter.poker${route.path}`);
+      }
       // _document carries a site-wide fallback OG title for pages that do not
       // provide one. Verify this route's exact tag instead of relying on DOM
       // order between the page head and that shared fallback.
@@ -204,10 +209,16 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       expect(widths.main).toBeLessThanOrEqual(widths.viewport);
 
       const storeNav = page.getByRole('navigation', { name: 'Store Sections' });
-      await expect(storeNav.getByRole('link')).toHaveCount(5);
-      await expect(storeNav.getByRole('link', { name: /Current Page/ })).toHaveAttribute('aria-current', 'page');
-      for (const link of await storeNav.getByRole('link').all()) {
-        await expect(link).not.toHaveAttribute('target');
+      if (route.path === '/hub/vip-membership') {
+        await expect(storeNav).toHaveCount(0);
+        await expect(page.getByRole('navigation', { name: 'Marketplace Commerce' })).toHaveCount(0);
+        await expect(page.getByRole('link', { name: 'View In Marketplace' })).toHaveCount(0);
+      } else {
+        await expect(storeNav.getByRole('link')).toHaveCount(5);
+        await expect(storeNav.getByRole('link', { name: /Current Page/ })).toHaveAttribute('aria-current', 'page');
+        for (const link of await storeNav.getByRole('link').all()) {
+          await expect(link).not.toHaveAttribute('target');
+        }
       }
       expect(consoleErrors).toEqual([]);
     });
@@ -533,28 +544,45 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(page).toHaveURL('/hub/merch-store/hoodie-neural');
   });
 
-  /* Lifetime Card settlement remains the explicit high-risk exclusion. This
-     test must fail if a Card control escapes the disabled capability gate;
-     accepting either state would not protect the current release contract. */
-  test('VIP lifetime remains Diamonds-only while card settlement is disabled', async ({
-    page,
-  }) => {
+  test('VIP selected terms expose current card and Diamond options', async ({ page }) => {
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /Select VIP Lifetime/ }).click();
-
-    const withCard = page.getByRole('button', { name: 'Buy VIP Lifetime With Card: $499.00 Once' });
-    const diamondsPrimary = page.getByRole('button', {
-      name: 'Lifetime VIP Is Bought With Diamonds: 49,900',
-    });
-    const diamondsAlternate = page.getByRole('button', {
-      name: /Pay With Diamonds Instead: 49,900/,
-    });
-
-    await expect(withCard).toHaveCount(0);
-    await expect(diamondsPrimary).toBeVisible();
-    await expect(diamondsAlternate).toHaveCount(0);
-
+    for (const [name, card, diamonds] of [
+      ['Monthly', 'Subscribe With Card: $19.99/Month', '1,999'],
+      ['Yearly', 'Subscribe With Card: $199.99/Year', '19,999'],
+      ['Lifetime', 'Buy VIP Lifetime With Card: $499.00 Once', '49,900'],
+    ]) {
+      await page.getByRole('button', { name: new RegExp(`Select VIP ${name}`) }).click();
+      await expect(page.getByRole('button', { name: card, exact: true })).toBeEnabled();
+      await expect(page.getByRole('button', { name: `Pay With Diamonds Instead: ${diamonds}`, exact: true })).toBeVisible();
+    }
     await expect(page.getByRole('link', { name: 'Compare Every VIP Plan' })).toHaveAttribute('href', '/hub/vip-membership/compare');
+  });
+
+  test('VIP guest checkout retains the selected yearly plan through sign-in', async ({ page }) => {
+    await page.goto('/hub/vip-membership?plan=vip-yearly', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: /Select VIP Yearly/ })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Subscribe With Card: $199.99/Year', exact: true }).click();
+    await expect(page).toHaveURL(/\/auth\/login\?redirect=%2Fhub%2Fvip-membership%3Fplan%3Dvip-yearly$/);
+  });
+
+  test('VIP mobile plans fit without a sideways rail', async ({ page }, testInfo) => {
+    for (const width of [320, 375, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
+      const plans = page.getByRole('region', { name: 'VIP Membership Plans' }).getByRole('button');
+      await expect(plans).toHaveCount(3);
+      const geometry = await plans.evaluateAll((elements) => elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, height: rect.height };
+      }));
+      for (const rect of geometry) {
+        expect(rect.left).toBeGreaterThanOrEqual(0);
+        expect(rect.right).toBeLessThanOrEqual(width);
+        expect(rect.height).toBeGreaterThanOrEqual(44);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+      if (width === 375) await page.screenshot({ path: testInfo.outputPath('vip-mobile.png'), fullPage: true });
+    }
   });
 
   test('reward details own a signed-in telemetry console without leaving the page', async ({ page }) => {
@@ -1178,7 +1206,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect.poll(() => packageRail.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
 
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('region', { name: 'VIP Membership Plans' })).toHaveAttribute('tabindex', '0');
+    await expect(page.getByRole('region', { name: 'VIP Membership Plans' }).getByRole('button')).toHaveCount(3);
     await expect(page.getByRole('heading', { level: 2, name: 'Everything Included With VIP' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Frequently Asked Questions' })).toBeVisible();
   });

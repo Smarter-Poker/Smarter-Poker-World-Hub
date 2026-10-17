@@ -43,7 +43,7 @@ test('the three plans are actually RENDERED, not merely imported', () => {
 
 test('the subscribe control exists and is wired to the handler', () => {
   assert.match(STORE, /onClick=\{handleVIPSubscribe\}/, 'no control calls handleVIPSubscribe');
-  assert.match(STORE, /subscribe-button\.webp/, 'the subscribe button artwork is not rendered');
+  assert.doesNotMatch(STORE, /src="\/images\/subscribe-button\.webp"/, 'static monthly-price artwork must not mislabel another selected plan');
   assert.match(
     STORE,
     /\{isProcessing \? 'Processing\.\.\.' : vipSubscribeLabel\}/,
@@ -154,4 +154,99 @@ test('the obsolete image maps are gone and store actions use native buttons', ()
   );
   assert.match(STORE, /<SmarterStoreShowcase[\s\S]*?onBuy=\{handleDirectCheckout\}/);
   assert.match(STORE, /<button[\s\S]*?onClick=\{handleVIPSubscribe\}/);
+});
+
+const VIP_STYLES = readFileSync(join(ROOT, 'src/components/store/VipMembershipPage.module.css'), 'utf8');
+const VIP_NAV = await import('../src/lib/store/vipNavigation.mjs');
+
+test('guest checkout preserves each selected plan through canonical sign-in', () => {
+  for (const plan of ['vip-monthly', 'vip-yearly', 'vip-lifetime']) {
+    const url = new URL(VIP_NAV.vipSignInHref(plan), 'https://smarter.poker');
+    assert.equal(url.pathname, '/auth/login');
+    assert.equal(url.searchParams.get('redirect'), `/hub/vip-membership?plan=${plan}`);
+  }
+  assert.equal(new URL(VIP_NAV.vipSignInHref('https://example.com'), 'https://smarter.poker').searchParams.get('redirect'), '/hub/vip-membership?plan=vip-monthly');
+  const cardEntry = STORE.slice(STORE.indexOf('const startStripeCheckout = async'), STORE.indexOf('// Merchandise checkout lives'));
+  assert.match(cardEntry, /router\.push\(vipSignInHref\(plan\.id\)\)/);
+  assert.match(STORE, /router\.push\(vipSignInHref\(selectedVIP\)\)/);
+});
+
+test('VIP owns its surface and excludes unrelated marketplace navigation', () => {
+  assert.match(STORE, /activeTab !== 'vip' && <SmarterStoreShowcase/);
+  assert.match(STORE, /activeTab !== 'diamonds' && activeTab !== 'vip' && marketplaceCommerceFooter/);
+  const vip = STORE.slice(STORE.indexOf("{activeTab === 'vip' && ("), STORE.indexOf('{/* MERCHANDISE TAB */}'));
+  assert.doesNotMatch(vip, /TAB_ROUTES\.merch|View In Marketplace|Store Sections|subscribe-button/);
+  assert.match(vip, /Your Lifetime Access Never Expires/);
+  assert.doesNotMatch(vip, /#FFD700|#FFF1A6|255,215,0/);
+  assert.match(VIP_STYLES, /\.page[\s\S]*?background: #000;/);
+  assert.match(VIP_STYLES, /@media \(max-width: 640px\)[\s\S]*?\.plans \{ grid-template-columns: 1fr;/);
+  assert.match(VIP_STYLES, /inset 0 0 0 3px[\s\S]*?inset 0 0 0 4px[\s\S]*?0 4px 0/);
+});
+
+// Exercise the page's real event handler with isolated provider boundaries.
+// The API/Stripe lifecycle has separate executable marketplace tests; these
+// checks protect the UI-to-request-to-navigation connection reshaped here.
+function checkoutHarness({ signedIn = true, responseOkay = true } = {}) {
+  const requests = [], destinations = [], messages = [];
+  const accountId = 'vip-checkout-fixture';
+  const processingRef = { current: false };
+  const dependencies = {
+    processingRef,
+    getAuthUser: () => signedIn ? { id: accountId } : null,
+    committedStoreAccountId: accountId,
+    activeStoreAccountRef: { current: accountId },
+    showStoreToast: (...args) => messages.push(args),
+    router: { push: (href) => destinations.push(href) },
+    vipSignInHref: VIP_NAV.vipSignInHref,
+    lifetimeCheckoutOfferConfirmation: () => ({ kind: 'lifetime-review' }),
+    subscriptionCheckoutOfferConfirmation: () => ({ kind: 'subscription-review' }),
+    vipCardAttemptRef: { current: 0 },
+    vipCardAbortRef: { current: null },
+    setStoreProcessing: (value) => { processingRef.current = value; },
+    getVerifiedCheckoutAuthorization: async () => ({ accessToken: 'isolated-test-token' }),
+    getOrCreateCommerceRequestId: () => 'fixed-protected-request',
+    captureStoreEvent: () => {},
+    boundedCommerceFetch: async (url, init) => {
+      requests.push({ url, ...init, body: JSON.parse(init.body) });
+      return { ok: responseOkay, status: responseOkay ? 200 : 503,
+        json: async () => responseOkay
+          ? { success: true }
+          : { success: false, error: { message: 'Checkout Is Temporarily Unavailable.' } } };
+    },
+    normalizeVerifiedCheckoutSession: () => ({ url: 'https://checkout.stripe.com/c/pay/isolated-fixture' }),
+    leaveForCheckout: (href) => { destinations.push(href); return true; },
+    checkoutRequestReplacementRequired: () => false,
+    replaceCommerceRequestId: () => { throw new Error('Must Preserve Protected Request'); },
+    console: { warn: () => {} },
+  };
+  const source = STORE.slice(STORE.indexOf('const startStripeCheckout = async'), STORE.indexOf('// Merchandise checkout lives'));
+  const handler = new Function(...Object.keys(dependencies), `${source}; return startStripeCheckout;`)(...Object.values(dependencies));
+  return { handler, requests, destinations, messages, processingRef };
+}
+
+test('each selected card plan reaches checkout with the correct server-owned plan and payment type', async () => {
+  for (const [id, oneTime] of [['vip-monthly', false], ['vip-yearly', false], ['vip-lifetime', true]]) {
+    const h = checkoutHarness();
+    await Promise.all([h.handler({ id, oneTime }), h.handler({ id, oneTime })]);
+    assert.equal(h.requests.length, 1, 'double-tap must create only one request');
+    assert.equal(h.requests[0].url, '/api/store/create-checkout-session');
+    assert.equal(h.requests[0].headers['X-Checkout-Request-ID'], 'fixed-protected-request');
+    assert.deepEqual(h.requests[0].body.items, [{ plan: id }]);
+    assert.equal(h.requests[0].body.type, oneTime ? 'vip_lifetime' : 'subscription');
+    assert.equal(h.destinations.length, 1);
+    assert.match(h.destinations[0], /^https:\/\/checkout\.stripe\.com\//);
+    assert.equal(h.processingRef.current, false);
+  }
+});
+
+test('guest and failed checkouts never navigate to a payment session', async () => {
+  const guest = checkoutHarness({ signedIn: false });
+  await guest.handler({ id: 'vip-yearly' });
+  assert.equal(guest.requests.length, 0);
+  assert.deepEqual(guest.destinations, [VIP_NAV.vipSignInHref('vip-yearly')]);
+  const failed = checkoutHarness({ responseOkay: false });
+  await failed.handler({ id: 'vip-monthly' });
+  assert.deepEqual(failed.destinations, []);
+  assert.deepEqual(failed.messages, [['error', 'Checkout Is Temporarily Unavailable.']]);
+  assert.equal(failed.processingRef.current, false);
 });

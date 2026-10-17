@@ -1,6 +1,6 @@
 import React from 'react';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
-import styles from './StoreCards.module.css';
+import styles from './VipMembershipCard.module.css';
 
 /* PackageCard and MerchCard used to live here. Neither was imported
    anywhere: VIPCard below is the only export this module has a consumer
@@ -28,15 +28,9 @@ export function VIPCard({ plan, isSelected, onSelect }) {
       aria-pressed={isSelected}
       aria-label={`Select ${marketplaceCopy(plan.name)}, $${(Number(plan.price) || 0).toFixed(2)} ${spokenTerm}`}
     >
-      <img
-        className={styles.vipCardArtwork}
-        src="/images/vip-card.webp"
-        alt=""
-        width={1024}
-        height={1024}
-        draggable={false}
-        loading="lazy"
-      />
+      <span className={styles.vipCardCrown} aria-hidden="true">
+        <svg viewBox="0 0 64 52" fill="none"><path d="M8 14L20 25L32 5L44 25L56 14L50 42H14L8 14Z" stroke="currentColor" strokeWidth="2"/><path d="M16 46H48M18 36H46" stroke="currentColor" strokeWidth="2"/><path d="M28 28L32 23L36 28L32 33L28 28Z" fill="#45adff"/></svg>
+      </span>
       <span className={styles.vipCardReadout}>
         <span className={styles.vipPlanName}>{marketplaceCopy(plan.name)}</span>
         <span className={styles.vipPriceRow}>
@@ -46,7 +40,9 @@ export function VIPCard({ plan, isSelected, onSelect }) {
         <span className={styles.vipDiamondPrice}>
           {Math.round((Number(plan.price) || 0) * 100).toLocaleString()} Diamonds
         </span>
+        <span className={styles.vipPlanDetail}>{lifetime ? 'Never Expires' : plan.interval === 'year' ? 'A Full Year Of VIP' : 'Flexible Monthly Access'}</span>
       </span>
+      <span className={styles.vipSelection} aria-hidden="true">{isSelected ? 'Selected' : 'Select Plan'}</span>
     </button>
   );
 }
