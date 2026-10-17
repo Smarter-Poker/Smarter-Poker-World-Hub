@@ -11,8 +11,8 @@
  * directly to external autonomous agents and reasoning engines (Claude Desktop,
  * Cursor, OpenAI, ChatGPT, Windsurf, custom agents).
  */
-import { handleMcpRpc, MCP_SERVER_INFO, MCP_TOOLS } from '../../src/lib/mcp/mcpServer.mjs';
-import { originFrom } from '../../src/lib/poker-near-me/seriesSeo.mjs';
+import { handleMcpRpc, MCP_SERVER_INFO, MCP_TOOLS } from '../../../src/lib/mcp/mcpServer.mjs';
+import { originFrom } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 
 export default async function handler(req, res) {
   // CORS Headers for AI Agent clients
