@@ -2253,3 +2253,14 @@
     .vl-source-name { flex: 1; width: auto; text-align: left; }
     .vl-member-clips p { flex-basis: 150px; }
 }
+
+/* PHONE CONTROL SIZES (2026-10-16). The site-wide phone rule in index.css sets
+   every button to 16px (it exists so iOS does not zoom into text inputs) and
+   its selector outranks this page's control rules, so on phones the library's
+   buttons grew past the links beside them: Refresh Library at 16px next to
+   Poker Players at 13px, and the rail chips at 16px against 14px on desktop.
+   Restate the desktop sizes at page scope. Inputs and selects keep 16px. */
+@media (max-width: 768px) {
+    html body .video-library-page .vl-filter-button { font-size: 14px; }
+    html body .video-library-page :is(.vl-pill-button, .vl-text-button, .vl-show-more, .vl-live-heading button) { font-size: 13px; }
+}

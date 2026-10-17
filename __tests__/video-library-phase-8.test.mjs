@@ -133,3 +133,10 @@ test('the phase-eight JavaScript surface has no undefined runtime identifiers', 
   }
   assert.deepEqual(failures, []);
 });
+
+test('library buttons keep their desktop sizes on phones', () => {
+  // The global phone rule (index.css) sets buttons to 16px with a selector
+  // that outranks the shared control rule; the page restates its sizes.
+  assert.match(CSS, /@media \(max-width: 768px\) \{\s*html body \.video-library-page \.vl-filter-button \{ font-size: 14px; \}/);
+  assert.match(CSS, /html body \.video-library-page :is\(\.vl-pill-button, \.vl-text-button, \.vl-show-more, \.vl-live-heading button\) \{ font-size: 13px; \}/);
+});
