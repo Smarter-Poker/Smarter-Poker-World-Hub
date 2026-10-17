@@ -36,3 +36,23 @@ stale data. House rule: watchdogs are not revived. The admin scraper-health
 list no longer shows it. `scripts/scraper-watchdog.py` stays in the repo (its
 tests still cover it) and the Vercel `/api/cron/scraper-watchdog` route is a
 separate scheduler, untouched.
+
+## Registering the Printful webhook without anyone seeing its keys
+
+The status route showed Printful had **no webhook registered at all**, so the
+`PRINTFUL_WEBHOOK_SECRET` in production signed nothing and there was no public
+key to fetch. Printful only issues a webhook's `secret_key`/`public_key` when it
+is registered, and the token that can register it lives only in production.
+
+`POST /api/horses/printful-webhook-setup` (`settings.write`, body
+`{ confirm: "register-printful-webhook", recipientPublicKeyPem }`) registers
+`https://smarter.poker/api/store/webhooks/printful` for `shipment_sent`,
+`shipment_returned`, `order_failed` and `order_canceled`, and returns both keys
+only as an envelope sealed to the caller's RSA (>= 3072-bit) public key
+(AES-256-GCM, data key wrapped with RSA-OAEP-SHA256). The holder of the private
+key opens it and writes both values into the host env; the plaintext never
+reaches a browser, a log or a chat. It never replaces a webhook: one at our URL
+is resealed from Printful's own record, one anywhere else is a 409. It never
+touches an order. `src/lib/store/printfulWebhookSetup.js`, pinned by
+`__tests__/printful-webhook-setup.test.mjs` (in `test:marketplace` and
+re-included in `.vercelignore`).
