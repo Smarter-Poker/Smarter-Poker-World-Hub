@@ -322,6 +322,14 @@ jobs:
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
 
+      - name: VIP Gift Friendship Payment And Redemption PostgreSQL 17
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+          VIP_GIFT_POSTGRES_ROOT: ${{ runner.temp }}/vip-gifts
+        run: |
+          mkdir -p "$VIP_GIFT_POSTGRES_ROOT"
+          node --test __tests__/vip-gifts-postgres.test.mjs
+
       - name: Club Notice Board Native Authorization And Pagination
         run: node --test __tests__/club-notice-board-postgres.test.mjs
 

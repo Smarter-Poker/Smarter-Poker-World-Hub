@@ -1,3 +1,4 @@
+import { settleVipGift, reverseVipGift, expireVipGift } from '../../../../src/lib/store/vipGiftStripe';
 /**
  * Stripe Webhook Handler for Diamond Store
  * POST /api/store/webhooks/stripe
@@ -377,6 +378,7 @@ export default async function handler(req, res) {
 
 async function handleCheckoutCompleted(session) {
     const { id, customer, metadata, mode } = session;
+    if (await settleVipGift(getSupabase(), session)) return;
 
 
     if (mode === 'payment') {
@@ -652,6 +654,7 @@ async function closeExpiredPendingRow({ table, id, sessionId, patch, label }) {
 }
 
 async function handleCheckoutExpired(session) {
+    if (await expireVipGift(getSupabase(), session)) return;
     const metadata = session?.metadata || {};
 
     if (metadata.type === 'diamonds' && metadata.purchase_id) {
@@ -1616,6 +1619,7 @@ async function applyLifetimeReversal(purchaseId, {
 }
 
 async function handleDispute(dispute, eventType) {
+    if (await reverseVipGift(getSupabase(), stripe, dispute, eventType)) return;
     const paymentIntent = typeof dispute?.payment_intent === 'string'
         ? dispute.payment_intent
         : dispute?.payment_intent?.id;
@@ -1708,6 +1712,7 @@ async function applyDiamondRefund(purchaseId, chargeAmount, cumulativeRefund) {
 }
 
 async function handleRefund(charge) {
+    if (await reverseVipGift(getSupabase(), stripe, charge, 'charge.refunded')) return;
     const { payment_intent, amount_refunded } = charge;
     const chargeAmount = Number(charge.amount);
     const cumulativeRefund = Number(amount_refunded);
