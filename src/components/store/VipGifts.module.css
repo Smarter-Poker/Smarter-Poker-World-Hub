@@ -23,3 +23,9 @@
 .gift details p { margin-bottom: 16px; }
 .message { margin-top: 22px !important; padding: 16px; background: #080e16; border-left: 3px solid #45adff; color: #dceeff !important; overflow-wrap: anywhere; }
 @media(max-width:740px) { .workspace { grid-template-columns: 1fr; } .history { margin-top: 18px; } .historyHeading { align-items: stretch; flex-direction: column; } }
+
+.publicTerms { list-style: none; padding: 0; margin: 24px 0; display: grid; gap: 16px; }
+.publicTerms li { display: grid; gap: 8px; padding: 16px 0; border-bottom: 1px solid #344d61; overflow-wrap: anywhere; }
+.publicTerms strong { color: #edf6ff; }
+.publicTerms span { color: #78caff; }
+.publicTerms small { color: #aabcc9; line-height: 1.6; }

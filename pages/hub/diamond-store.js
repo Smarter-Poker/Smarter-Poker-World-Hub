@@ -1,3 +1,4 @@
+import { vipStructuredData, vipMembershipTerms } from '../../src/lib/store/vipStructuredData.mjs';
 import VipGifts from '../../src/components/store/VipGifts';
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCKED PAGE: FUTURISTIC METAL DESIGN
@@ -346,6 +347,7 @@ const TAB_SOCIAL_IMAGE = {
 };
 
 function storeStructuredData(activeTab) {
+  if (activeTab === 'vip') return vipStructuredData(VIP_MEMBERSHIP);
   const meta = TAB_META[activeTab] || TAB_META.diamonds;
   return {
     '@context': 'https://schema.org',
@@ -3447,7 +3449,7 @@ export default function DiamondStorePage({
         <script
           key="store-structured-data"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(storeStructuredData(activeTab)) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(storeStructuredData(activeTab)).replace(/</g, '\\u003c') }}
         />
         <link
           rel="preload"
@@ -3567,6 +3569,7 @@ export default function DiamondStorePage({
                       <VIPCard plan={VIP_MEMBERSHIP.yearly} isSelected={selectedVIP === 'vip-yearly'} onSelect={setSelectedVIP} />
                       <VIPCard plan={VIP_MEMBERSHIP.lifetime} isSelected={selectedVIP === 'vip-lifetime'} onSelect={setSelectedVIP} />
                     </div>
+                    <p className={vipStyles.paymentNote}>{vipMembershipTerms('monthly')} {vipMembershipTerms('yearly')} {vipMembershipTerms('lifetime')}</p>
                     <div className={vipStyles.checkout}>
                       <div className={vipStyles.selectedTerm} aria-live="polite" aria-atomic="true">
                         <strong>{marketplaceCopy(selectedVIPPlan.name)}</strong>
