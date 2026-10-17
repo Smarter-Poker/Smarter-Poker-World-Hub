@@ -218,6 +218,21 @@ export const SOURCES = {
     title: 'Texas Card House Dallas Official Site',
     kind: 'maker',
   },
+  southpointSite: {
+    url: 'https://southpointcasino.com/casino/poker',
+    title: 'South Point Hotel And Casino Poker Room Official Site',
+    kind: 'maker',
+  },
+  liveCasinoMdSite: {
+    url: 'https://maryland.livecasinohotel.com/casino/poker-room',
+    title: 'Live! Casino And Hotel Maryland Poker Room Official Site',
+    kind: 'maker',
+  },
+  miamiJaiAlaiSite: {
+    url: 'https://casinomiami.com/',
+    title: 'Casino Miami Jai-Alai Official Site',
+    kind: 'maker',
+  },
   pokeratlasDirectory: {
     url: 'https://www.pokeratlas.com/poker-rooms/united-states',
     title: 'PokerAtlas United States Poker Room Directory',
@@ -714,6 +729,32 @@ export const PRODUCTS = {
       feeModel: fact('Rake-Free Model With Daily, Monthly Or Annual Access Pass Plus Hourly Seat Rental', 'tchDallasSite'),
       hours: fact('Open 24 Hours Daily On Weekends And Extended Weekday Hours', 'tchDallasSite'),
       amenities: fact('Player Lounge, High-Definition Sports Displays And Tableside Food Ordering', 'tchDallasSite'),
+    },
+  },
+  southPoint: {
+    name: 'South Point Hotel And Casino',
+    facts: {
+      location: fact('9777 South Las Vegas Boulevard, Las Vegas, Nevada', 'southpointSite'),
+      tables: fact('30 Dedicated Poker Tables', 'southpointSite'),
+      games: fact("No-Limit Hold'em, Omaha Hi-Lo And Mixed Games", 'southpointSite'),
+      stakes: fact('$1/$2, $2/$4, $3/$6 And Low-Stakes Omaha', 'southpointSite'),
+      tournaments: fact('Multiple Daily Guaranteed Tournaments Seven Days A Week', 'southpointSite'),
+      feeModel: fact('Traditional Pot Rake With High Hand And Bad Beat Jackpots', 'southpointSite'),
+      hours: fact('Open 24 Hours Daily', 'southpointSite'),
+      amenities: fact('Ten Minutes From Harry Reid Airport, Free Valet, Bowling Center And Equestrian Arena', 'southpointSite'),
+    },
+  },
+  liveMaryland: {
+    name: 'Live! Casino And Hotel Maryland',
+    facts: {
+      location: fact('7002 Arundel Mills Circle, Hanover, Maryland', 'liveCasinoMdSite'),
+      tables: fact('50 Dedicated Poker Tables', 'liveCasinoMdSite'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha And Big O", 'liveCasinoMdSite'),
+      stakes: fact('$1/$3, $2/$5, $5/$10 And High Roller Mixed Games', 'liveCasinoMdSite'),
+      tournaments: fact('Major Championship Series And Daily Tournaments', 'liveCasinoMdSite'),
+      feeModel: fact('Standard Mid-Atlantic Pot Rake', 'liveCasinoMdSite'),
+      hours: fact('Open 24 Hours Daily', 'liveCasinoMdSite'),
+      amenities: fact('Adjacent To BWI Thurgood Marshall Airport, Direct Mall Access And Luxury Hotel', 'liveCasinoMdSite'),
     },
   },
 };

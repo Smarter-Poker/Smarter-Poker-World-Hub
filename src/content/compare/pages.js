@@ -966,9 +966,62 @@ export const COMPARE_PAGES = [
         a: p('Texas Card Clubs Operate As Private Social Clubs Where The House Takes No Economic Benefit Or Rake From The Pots Directly, Relying On Membership Fees And Hourly Seat Rentals.', ['pokeratlasDirectory', 'tchDallasSite']),
       },
     ],
-    related: ['best-poker-rooms-in-las-vegas', 'bellagio-vs-aria-poker', 'commerce-casino-vs-the-bicycle-hotel-poker'],
+    related: ['best-poker-rooms-in-las-vegas', 'bellagio-vs-aria-poker', 'commerce-casino-vs-the-bicycle-hotel-poker', 'best-poker-rooms-near-major-airports'],
     productLinks: ['clubCommander'],
     glossary: ['Rake', 'Straddle', 'Bomb Pot', 'Waitlist'],
+  },
+
+  // 16 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'best-poker-rooms-near-major-airports',
+    kind: 'best-of',
+    title: 'Best Poker Rooms Near Major Airports',
+    h1: 'Best Poker Rooms Near Major Airports',
+    description:
+      'The Best Casino Poker Rooms Located Minutes From Major US Airports: South Point Near Harry Reid LAS And Maryland Live Near BWI Airport.',
+    summary: p(
+      'Traveling Poker Players Often Seek Convenient High-Action Poker Rooms Located Directly Near Major Hub Airports. Top Travel Destinations Include South Point Hotel And Casino Situated Ten Minutes South Of Harry Reid International Airport In Las Vegas, And Live! Casino And Hotel Maryland Located Five Minutes From Baltimore-Washington International Airport.',
+      ['southpointSite', 'liveCasinoMdSite', 'spHome']
+    ),
+    intro: p(
+      'Airport Accessibility Allows Traveling Poker Players To Play Cash Games Or Daily Tournaments On Layovers And Business Trips Without Lengthy Metro Transit.',
+      ['southpointSite', 'liveCasinoMdSite']
+    ),
+    table: {
+      caption: 'Top Airport-Adjacent Poker Rooms, ' + CHECKED_LABEL,
+      products: ['southPoint', 'liveMaryland'],
+      columns: VENUE_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Why Play Near Major Hubs',
+        bullets: [
+          p('Fast Airport Commute: Rooms Located Under Ten Minutes From Terminals Provide Seamless Travel Logistics.', ['southpointSite', 'liveCasinoMdSite']),
+          p('24-Hour Action: Continuous Cash Game Tables Accommodate Arriving Red-Eye Flights And Early Morning Layover Travelers.', ['southpointSite', 'liveCasinoMdSite']),
+          p('Full Resort Amenities: Integrated Luxury Hotels, Diverse Dining, And Free Parking Or Valet Options.', ['southpointSite', 'liveCasinoMdSite']),
+        ],
+      },
+      {
+        heading: 'Airport Cardroom Selection',
+        bullets: [
+          p('For Harry Reid International (LAS) Arrivals: South Point Offers 30 Tables Spreading Low-Stakes Hold\'em And Mixed Games Minutes South Of The Strip.', ['southpointSite']),
+          p('For BWI Airport (BWI) Arrivals: Live! Maryland Features A 50-Table Dedicated Two-Story Poker Arena Directly Adjacent To Arundel Mills.', ['liveCasinoMdSite']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Which Las Vegas Poker Room Is Closest To Harry Reid Airport?',
+        a: p('South Point Hotel And Casino Is Located Just Seven Miles South Of Harry Reid International Airport, Making It One Of The Quickest Accessible 30-Table Poker Rooms In The Valley.', ['southpointSite']),
+      },
+      {
+        q: 'Can You Play Poker Near BWI Airport?',
+        a: p('Yes, Live! Casino And Hotel Maryland Operates A Premier 50-Table Poker Room Located Approximately Five Minutes Driving Distance From BWI Thurgood Marshall Airport.', ['liveCasinoMdSite']),
+      },
+    ],
+    related: ['best-poker-rooms-in-las-vegas', 'best-poker-rooms-in-texas', 'bellagio-vs-aria-poker'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Waitlist', 'Comp'],
   },
 ];
 

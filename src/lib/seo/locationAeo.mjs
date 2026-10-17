@@ -7,6 +7,8 @@
  * Strict Title Case compliance is maintained across all questions and answers.
  */
 
+import { getStatePokerLegality } from '../poker-near-me/stateLegality.mjs';
+
 function clean(str) {
   return String(str || '').trim();
 }
@@ -43,11 +45,23 @@ export function buildLocationPaaQuestions({ stateName, stateCode, city, venueCou
     });
   } else if (stateName || stateCode) {
     const sName = clean(stateName || stateCode);
+    const legality = getStatePokerLegality(stateCode);
+
+    questions.push({
+      question: `Is Poker Legal In ${sName}?`,
+      answer: `${legality.summary} Status: ${legality.status}. Governing Framework: ${legality.statutes}. ${legality.keyTakeaway}`,
+    });
+
     questions.push({
       question: `How Many Poker Rooms Are In ${sName}?`,
       answer: count > 0
         ? `There ${count === 1 ? 'is 1 verified poker venue' : `are ${count} verified poker venues`} operating across ${sName}, including popular rooms like ${sampleList}. Browse complete directories by city on Smarter.Poker.`
         : `Licensed poker rooms, charity poker halls, and commercial casinos across ${sName} are tracked in the Smarter.Poker venue directory.`,
+    });
+
+    questions.push({
+      question: `Are Home Poker Games Legal In ${sName}?`,
+      answer: `${legality.socialHomeGames}. Consult local county and municipal statutes for additional recreational home game guidelines.`,
     });
 
     questions.push({

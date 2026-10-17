@@ -531,6 +531,16 @@ export default function PokerNearMeLocationPage({
                 Rake-Free Social Clubs In Austin, Dallas, And Houston: Membership Models And Hourly Seat Rentals.
               </p>
             </PokerNearMePanelShell>
+            <PokerNearMePanelShell style={{ padding: '20px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#fff' }}>
+                <Link href="/compare/best-poker-rooms-near-major-airports" style={{ color: '#60a5fa', textDecoration: 'none' }}>
+                  Best Poker Rooms Near Major Airports
+                </Link>
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
+                Top Airport Cardrooms Near Las Vegas (LAS) And Baltimore-Washington (BWI) For Traveling Players.
+              </p>
+            </PokerNearMePanelShell>
           </div>
         </section>
 
