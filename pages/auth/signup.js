@@ -10,6 +10,12 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { isEmailVerificationCode } from '../../src/lib/signupExperience.mjs';
+import {
+  PENDING_PROMO_KEY,
+  PENDING_REFERRAL_KEY,
+  RESEND_COOLDOWN_SECONDS,
+  redeemPendingSignupCodes,
+} from '../../src/lib/pendingSignupCodes.mjs';
 import { Mail } from 'lucide-react';
 import { getAccessToken } from '../../src/lib/authUtils';
 import SignupWelcome from '../../src/components/auth/SignupWelcome';
@@ -176,6 +182,11 @@ export default function SignUpPage() {
   // Email verification code state
   const [verificationCode, setVerificationCode] = useState('');
   const [verifying, setVerifying] = useState(false);
+  // A real resend (2026-10-17). The only way to get a fresh code used to be
+  // "Try Again", which threw the player back to the whole sign-up form.
+  const [resendIn, setResendIn] = useState(0);
+  const [resending, setResending] = useState(false);
+  const [resendNote, setResendNote] = useState('');
   const [signupClubPath, setSignupClubPath] = useState(null);
 
   // PHONE VERIFICATION MOVED OUT OF SIGNUP (2026-10-07, Dan). The number is
@@ -645,10 +656,10 @@ export default function SignUpPage() {
 
       // ── Save pending promo/referral for after email verification ──
       if (formData.promoCode && promoValid && !isReferralCode) {
-        localStorage.setItem('smarter-poker-pending-promo', formData.promoCode);
+        localStorage.setItem(PENDING_PROMO_KEY, formData.promoCode);
       }
       if (isReferralCode && referralValid && referralDetails) {
-        localStorage.setItem('smarter-poker-pending-referral', JSON.stringify(referralDetails));
+        localStorage.setItem(PENDING_REFERRAL_KEY, JSON.stringify(referralDetails));
       }
 
       // ── [Phase 5.1.2] PostHog activation-funnel: signup event ───────
@@ -735,6 +746,47 @@ export default function SignUpPage() {
   };
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Count down the resend cooldown once a code has been (re)sent.
+  useEffect(() => {
+    if (resendIn <= 0) return undefined;
+    const t = setTimeout(() => setResendIn((n) => Math.max(0, n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  // The first code goes out with signUp, so the cooldown starts on arrival here.
+  useEffect(() => {
+    if (step === 'email_pending') setResendIn(RESEND_COOLDOWN_SECONDS);
+  }, [step]);
+
+  const handleResendCode = async () => {
+    if (resending || resendIn > 0) return;
+    setResending(true);
+    setResendNote('');
+    setError('');
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email.trim().toLowerCase(),
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (resendError) throw resendError;
+      setVerificationCode('');
+      setResendNote('A New Code Is On Its Way. Use The Newest Email.');
+      setResendIn(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      const msg = String(err?.message || '').toLowerCase();
+      // Supabase answers a too-soon resend with a 429 "security purposes" message.
+      setError(
+        msg.includes('security') || msg.includes('rate') || err?.status === 429
+          ? 'Please Wait A Moment Before Requesting Another Code.'
+          : 'Could Not Send A New Code. Please Try Again.'
+      );
+      setResendIn(RESEND_COOLDOWN_SECONDS);
+    } finally {
+      setResending(false);
+    }
+  };
+
   // VERIFY: Submit email OTP verification code
   // ─────────────────────────────────────────────────────────────────────────
   const handleVerifyCode = async (e) => {
@@ -775,6 +827,15 @@ export default function SignUpPage() {
         } catch (err) {
           console.log('Could not fetch player number:', err);
         }
+      }
+
+      // The six-digit code never visits /auth/callback, which is the only
+      // place a pending promo or referral code used to be redeemed (2026-10-17).
+      if (data?.session?.access_token && data?.user?.id) {
+        await redeemPendingSignupCodes({
+          accessToken: data.session.access_token,
+          userId: data.user.id,
+        });
       }
 
       const next = await resolveSignupClubPath(data?.session,
@@ -1793,10 +1854,31 @@ export default function SignUpPage() {
                   </div>
                 </div>
 
+                {resendNote && (
+                  <p style={styles.emailHint} role="status">
+                    {resendNote}
+                  </p>
+                )}
                 <p style={styles.emailHint}>
-                  Didn't Receive It? Check Your Spam Folder Or{' '}
-                  <button onClick={() => setStep('info')} style={styles.resendLink}>
-                    Try Again
+                  Didn't Receive It? Check Your Spam Folder, Or{' '}
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    disabled={resending || resendIn > 0}
+                    style={{
+                      ...styles.resendLink,
+                      opacity: resending || resendIn > 0 ? 0.6 : 1,
+                    }}
+                  >
+                    {resending
+                      ? 'Sending...'
+                      : resendIn > 0
+                        ? `Resend Code In ${resendIn}s`
+                        : 'Resend Code'}
+                  </button>
+                  {' '}Or{' '}
+                  <button type="button" onClick={() => setStep('info')} style={styles.resendLink}>
+                    Change Email
                   </button>
                 </p>
               </div>

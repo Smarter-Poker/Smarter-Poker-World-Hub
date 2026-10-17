@@ -36,6 +36,7 @@ import {
     AUTH_ORIGINS,
     reportAuthError,
 } from '../../src/lib/authErrors';
+import { redeemPendingSignupCodes } from '../../src/lib/pendingSignupCodes.mjs';
 
 // Email-link `type` values that Supabase produces.
 // https://supabase.com/docs/reference/javascript/auth-verifyotp
@@ -331,40 +332,14 @@ export default function AuthCallback() {
                 }
 
                 // ── 6.5 Redeem pending promo code / referral code ──
+                // One helper for both verification doors (link here, six-digit
+                // code in signup.js): src/lib/pendingSignupCodes.mjs.
                 try {
-                    if (typeof window !== 'undefined' && session?.access_token) {
-                        const pendingPromo = window.localStorage.getItem('smarter-poker-pending-promo');
-                        if (pendingPromo) {
-                            fetch('/api/promo/redeem-promo-code', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${session.access_token}`
-                                },
-                                body: JSON.stringify({ code: pendingPromo, userId: user.id })
-                            }).then(res => {
-                                if (res.ok) window.localStorage.removeItem('smarter-poker-pending-promo');
-                            }).catch(e => console.warn('Promo redeem err:', e));
-                        }
-
-                        const pendingReferralStr = window.localStorage.getItem('smarter-poker-pending-referral');
-                        if (pendingReferralStr) {
-                            try {
-                                const refData = JSON.parse(pendingReferralStr);
-                                fetch('/api/rewards/referral', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${session.access_token}`
-                                    },
-                                    body: JSON.stringify({ referrerId: refData.referrerId, refereeId: user.id })
-                                }).then(res => {
-                                    if (res.ok) window.localStorage.removeItem('smarter-poker-pending-referral');
-                                }).catch(e => console.warn('Ref redeem err:', e));
-                            } catch (e) {
-                                window.localStorage.removeItem('smarter-poker-pending-referral');
-                            }
-                        }
+                    if (session?.access_token) {
+                        await redeemPendingSignupCodes({
+                            accessToken: session.access_token,
+                            userId: user.id,
+                        });
                     }
                 } catch (e) { /* non-blocking */ }
 
