@@ -30,7 +30,7 @@ test('announces active store navigation and complete package purchase names', ()
 test('makes VIP plan selection and checkout native keyboard controls', () => {
   assert.match(cards, /export function VIPCard[\s\S]*?<button/);
   assert.match(cards, /aria-pressed=\{isSelected\}/);
-  assert.match(cards, /src="\/images\/vip-card\.webp"/);
+  assert.match(cards, /className=\{styles\.vipCardCrown\} aria-hidden="true"/);
   assert.doesNotMatch(cards, /MarketplaceConsoleVipPlanCard|<Gem[^>]*vip/i);
   assert.doesNotMatch(
     cards,
@@ -38,7 +38,7 @@ test('makes VIP plan selection and checkout native keyboard controls', () => {
   );
   assert.match(
     page,
-    /<button\s+type="button"\s+disabled=\{[^}]*isProcessing[^}]*\}[\s\S]{0,200}?aria-busy=\{isProcessing\}/
+    /<button\s+type="button"\s+className=\{[^\n]+\}\s+disabled=\{[^}]*isProcessing[^}]*\}[\s\S]{0,200}?aria-busy=\{isProcessing\}/
   );
 });
 
@@ -99,7 +99,7 @@ test('gives merchandise cards useful structure and product-specific purchase nam
 test('adds a scoped metallic mobile shell without touching the global header', () => {
   assert.match(
     page,
-    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}[\s\S]{0,120}?data-title-case-strategy="css"\s*>/
+    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}[^`]*`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}[\s\S]{0,120}?data-title-case-strategy="css"\s*>/
   );
   assert.match(shell, /\.root[\s\S]*?:is\([\s\S]*?\):focus-visible\s*\{/);
   assert.match(shell, /\.planRail > button\s*\{[^}]*flex:\s*0 0 min\(82vw, 320px\)/s);

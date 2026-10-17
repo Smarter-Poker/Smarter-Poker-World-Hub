@@ -62,7 +62,7 @@ test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
 test('keeps every redesign rule outside the locked global header', () => {
   assert.match(
     page,
-    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}[\s\S]{0,120}?data-title-case-strategy="css"\s*>/
+    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}[^`]*`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}[\s\S]{0,120}?data-title-case-strategy="css"\s*>/
   );
   assert.doesNotMatch(page, /\.diamond-store-page button/);
   assert.doesNotMatch(page, /\.diamond-store-page a,/);
