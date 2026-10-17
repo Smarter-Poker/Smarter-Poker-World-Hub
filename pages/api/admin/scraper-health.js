@@ -87,7 +87,8 @@ const DAEMON_META = [
   { id: 'pokeratlas-tournaments',     label: 'PokerAtlas Tournaments',     type: 'tournament', interval: 'Interval'  },
   { id: 'charity-scraper',            label: 'Charity Scraper',            type: 'charity',    interval: '72 hours'  },
   { id: 'completeness-scraper',       label: 'Completeness Scraper',       type: 'tournament', interval: '6 hours'   },
-  { id: 'scraper-watchdog',           label: 'Scraper Watchdog',           type: 'monitor',    interval: '5 min'     },
+  // scraper-watchdog (the Mac launchd job) was retired 2026-10-17: see
+  // docs/changelog/2026-10-17-printful-status-and-the-retired-scraper-watchdog.md
   { id: 'memory-watchdog',            label: 'Memory Watchdog',            type: 'monitor',    interval: '5 min'     },
 ];
 
