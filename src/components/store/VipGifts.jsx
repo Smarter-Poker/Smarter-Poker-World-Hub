@@ -1,3 +1,4 @@
+import { VIP_TERMS, vipGiftTerms } from '../../lib/store/vipStructuredData.mjs';
 import { useEffect, useRef, useState } from 'react';
 import { VIP_MEMBERSHIP } from '../../data/diamondStoreData';
 import { getVerifiedCheckoutAuthorization } from '../../lib/store/checkoutAuthorization';
@@ -143,6 +144,14 @@ export default function VipGifts({ accountId }) {
       <h2 id="vip-gifts-title">Gift A VIP</h2>
       <p>Send A Friend A Monthly, Yearly, Or Lifetime VIP Gift Card. Pay Once With A Card Or Diamonds. They Choose When To Redeem.</p>
     </div>
+    <p>You Must Be Accepted Friends Before Sending A Gift.</p>
+    <ul role="list" className={styles.publicTerms} aria-label="VIP Gift Card Prices And Terms">
+      {Object.entries(VIP_TERMS).map(([key, term]) => <li key={key}>
+        <strong>{term.label} VIP Gift Card</strong>
+        <span>${Number(VIP_MEMBERSHIP[key].price).toFixed(2)} Or {Math.round(VIP_MEMBERSHIP[key].price * 100).toLocaleString('en-US')} Diamonds</span>
+        <small>{vipGiftTerms(key)}</small>
+      </li>)}
+    </ul>
     {!accountId ? <a className={`${theme.action} ${theme.primaryAction}`} href="/auth/login?redirect=%2Fhub%2Fvip-membership%23gifts">Sign In To Gift A VIP</a> : <>
       <button type="button" className={`${theme.action} ${theme.primaryAction}`} aria-expanded={open} aria-controls="vip-gift-workspace"
         onClick={() => { setOpen(!open); if (!open && !loaded) refresh(); }}>Gift A VIP / My Gift Cards</button>
