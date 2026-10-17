@@ -197,8 +197,37 @@ export const SOURCES = {
     kind: 'listing',
   },
 
+  // Venues and cardrooms
+  bellagioSite: {
+    url: 'https://www.bellagio.com/en/casino/poker.html',
+    title: 'Bellagio Poker Room Official Site',
+    kind: 'maker',
+  },
+  ariaSite: {
+    url: 'https://www.aria.com/en/casino/poker.html',
+    title: 'Aria Poker Room Official Site',
+    kind: 'maker',
+  },
+  bikeSite: {
+    url: 'https://www.thebike.com/',
+    title: 'The Bicycle Hotel And Casino Official Site',
+    kind: 'maker',
+  },
+  tchDallasSite: {
+    url: 'https://texascardhouse.com/dallas/',
+    title: 'Texas Card House Dallas Official Site',
+    kind: 'maker',
+  },
+  pokeratlasDirectory: {
+    url: 'https://www.pokeratlas.com/poker-rooms/united-states',
+    title: 'PokerAtlas United States Poker Room Directory',
+    kind: 'press',
+    published: '2026-08',
+  },
+
   // Smarter.Poker, read from the live site
   spHome: { url: 'https://smarter.poker/', title: 'Smarter.Poker Home Page', kind: 'own' },
+  spPokerNearMe: { url: 'https://smarter.poker/hub/poker-near-me/lobby', title: 'Poker Near Me Directory', kind: 'own' },
   spPokerArena: { url: 'https://smarter.poker/hub/club-arena', title: 'Poker Arena', kind: 'own' },
   spPokerArenaHelp: {
     url: 'https://smarter.poker/hub/club-arena/help',
@@ -605,6 +634,86 @@ export const PRODUCTS = {
       export: fact('Tab Separated Export For A Spreadsheet', 'pokerIncomeAppStore'),
       extras: fact('Cloud Backup And Restore At Pokerincome.com', 'pokerIncomeAppStore'),
       platforms: fact('Apple App Store (iPhone, iPad And Mac With Apple Silicon)', 'pokerIncomeAppStore'),
+    },
+  },
+
+  // ─── Live Poker Rooms And Cardrooms ──────────────────────────────────────
+  bellagio: {
+    name: 'Bellagio Poker Room',
+    facts: {
+      location: fact('3600 South Las Vegas Boulevard, Las Vegas, Nevada', 'bellagioSite'),
+      tables: fact('40 Dedicated Poker Tables', 'bellagioSite'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha And Mixed Games", 'bellagioSite'),
+      stakes: fact('$1/$3, $2/$5, $5/$10 And High-Stakes Mixed Rotations', 'bellagioSite'),
+      tournaments: fact('Daily Tournaments And Major Tournament Series Events', 'bellagioSite'),
+      feeModel: fact('Traditional Pot Rake With No Hourly Membership Fees', 'bellagioSite'),
+      hours: fact('Open 24 Hours Daily', 'bellagioSite'),
+      amenities: fact('Bobby\'s Room High-Stakes Area, Tableside Dining And Mobile Device Charging', 'bellagioSite'),
+    },
+  },
+  aria: {
+    name: 'Aria Poker Room',
+    facts: {
+      location: fact('3730 Las Vegas Boulevard, Las Vegas, Nevada', 'ariaSite'),
+      tables: fact('24 Poker Tables', 'ariaSite'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha And Mixed Games", 'ariaSite'),
+      stakes: fact('$1/$3, $2/$5, $5/$10, $10/$20 And Higher On Request', 'ariaSite'),
+      tournaments: fact('Daily No-Limit Hold\'em Tournaments And High Roller Series', 'ariaSite'),
+      feeModel: fact('Traditional Pot Rake With No Hourly Membership Fees', 'ariaSite'),
+      hours: fact('Open 24 Hours Daily', 'ariaSite'),
+      amenities: fact('Table I High-Stakes Area, Modern Lighting And In-Room Cashier', 'ariaSite'),
+    },
+  },
+  bike: {
+    name: 'The Bicycle Hotel And Casino',
+    facts: {
+      location: fact('888 Bicycle Casino Drive, Bell Gardens, California', 'bikeSite'),
+      tables: fact('185 Dedicated Poker Tables', 'bikeSite'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha, Mixed Games And Asian Card Games", 'bikeSite'),
+      stakes: fact('1/2, 2/3, 3/5, 5/5, 5/10 And High-Limit Action', 'bikeSite'),
+      tournaments: fact('Major Tournament Series Including Mega Millions And Card Player Poker Tour', 'bikeSite'),
+      feeModel: fact('California Table Collection Per Hand', 'bikeSite'),
+      hours: fact('Open 24 Hours Daily', 'bikeSite'),
+      amenities: fact('Live Streaming Studio, On-Site Luxury Hotel, Valet And Full Dining Service', 'bikeSite'),
+    },
+  },
+  commerce: {
+    name: 'Commerce Casino',
+    facts: {
+      location: fact('6131 Telegraph Road, Commerce, California', 'pokeratlasDirectory'),
+      tables: fact('Over 200 Dedicated Poker Tables', 'pokeratlasDirectory'),
+      games: fact("No-Limit Hold'em, Limit Hold'em, Omaha, Stud And Mixed Games", 'pokeratlasDirectory'),
+      stakes: fact('Low Stakes Up To World Class High-Limit Mixed Games', 'pokeratlasDirectory'),
+      tournaments: fact('Home Of The LA Poker Classic And Regular Major Championship Series', 'pokeratlasDirectory'),
+      feeModel: fact('California Hand Collection Drops', 'pokeratlasDirectory'),
+      hours: fact('Open 24 Hours Daily', 'pokeratlasDirectory'),
+      amenities: fact('Full Service Hotel, Spa, Crowne Plaza Amenities And Multiple Restaurants', 'pokeratlasDirectory'),
+    },
+  },
+  lodge: {
+    name: 'The Lodge Card Club',
+    facts: {
+      location: fact('1401 South IH 35, Round Rock / Austin, Texas', 'pokeratlasDirectory'),
+      tables: fact('Over 60 Dedicated Poker Tables', 'pokeratlasDirectory'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha, Big O And Mixed Games", 'pokeratlasDirectory'),
+      stakes: fact('$1/$2, $1/$3, $2/$5, $5/$10 And Livestream Matchup Games', 'pokeratlasDirectory'),
+      tournaments: fact('Weekly Guaranteed Tournaments And The Lodge Championship Series', 'pokeratlasDirectory'),
+      feeModel: fact('Rake-Free Private Social Club With Membership And Hourly Seat Rental', 'pokeratlasDirectory'),
+      hours: fact('Open 24 Hours Daily', 'pokeratlasDirectory'),
+      amenities: fact('Featured Livestream Table, Private Security, Full Bar And Food Delivery', 'pokeratlasDirectory'),
+    },
+  },
+  tchDallas: {
+    name: 'Texas Card House Dallas',
+    facts: {
+      location: fact('11834 Harry Hines Boulevard, Dallas, Texas', 'tchDallasSite'),
+      tables: fact('30 Dedicated Poker Tables', 'tchDallasSite'),
+      games: fact("Texas Hold'em, Pot-Limit Omaha And Mixed Games", 'tchDallasSite'),
+      stakes: fact('$1/$2, $2/$5 And Regular Bomb Pot Action', 'tchDallasSite'),
+      tournaments: fact('Daily Tournaments And Multi-Flight Main Event Series', 'tchDallasSite'),
+      feeModel: fact('Rake-Free Model With Daily, Monthly Or Annual Access Pass Plus Hourly Seat Rental', 'tchDallasSite'),
+      hours: fact('Open 24 Hours Daily On Weekends And Extended Weekday Hours', 'tchDallasSite'),
+      amenities: fact('Player Lounge, High-Definition Sports Displays And Tableside Food Ordering', 'tchDallasSite'),
     },
   },
 };
