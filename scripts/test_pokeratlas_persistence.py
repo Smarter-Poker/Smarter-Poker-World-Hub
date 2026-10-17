@@ -410,8 +410,11 @@ class PokerAtlasPersistenceTests(unittest.TestCase):
         self.assertEqual(recovered_fetch.call_args.args[0], requested)
         self.assertEqual(manager.tier2_failures, 0)
         recovered_session.start.assert_called_once_with()
-        timer.start.assert_called_once_with()
-        timer.cancel.assert_called_once_with()
+        # Three deadlines, each armed and each cancelled: the dead fetch, the
+        # reconnect, and the retried fetch (fetches carry their own hard-kill
+        # deadline since 2026-10-17).
+        self.assertEqual(timer.start.call_count, 3)
+        self.assertEqual(timer.cancel.call_count, 3)
         playwright_fallback.assert_not_called()
         urllib_fallback.assert_not_called()
 
@@ -964,6 +967,49 @@ class PokerAtlasPersistenceTests(unittest.TestCase):
 
         self.assertEqual(saved, 0)
         self.assertEqual(urlopen.call_count, 1)
+
+
+class FetchDeadlineTests(unittest.TestCase):
+    """2026-10-15: a fetch on a dead driver never returned for 46 hours."""
+
+    def test_a_hung_fetch_arms_the_hard_kill(self):
+        manager = daemon.PokerAtlasSessionManager()
+        armed = []
+
+        class _Timer:
+            def __init__(self, seconds, fn, args=()):
+                armed.append((seconds, fn, args))
+                self.daemon = False
+                self.cancelled = False
+
+            def start(self):
+                pass
+
+            def cancel(self):
+                self.cancelled = True
+
+        with mock.patch.object(daemon.threading, "Timer", _Timer), mock.patch.object(
+            manager, "_fetch_page_unguarded", return_value="<html></html>"
+        ):
+            self.assertEqual(manager.fetch_page("https://www.pokeratlas.com/x"), "<html></html>")
+        self.assertEqual(len(armed), 1)
+        seconds, fn, args = armed[0]
+        self.assertEqual(seconds, daemon.FETCH_TIMEOUT_SECONDS)
+        self.assertIs(fn, daemon._hard_kill_on_hang)
+        self.assertIn("fetch_page() hung", args[0])
+
+    def test_a_closed_driver_connection_marks_the_session_dead(self):
+        manager = daemon.PokerAtlasSessionManager()
+        manager.session = types.SimpleNamespace(
+            fetch=mock.Mock(
+                side_effect=RuntimeError(
+                    "BrowserContext.new_page: Connection closed while reading from the driver"
+                )
+            )
+        )
+        manager._session_dead = False
+        self.assertIsNone(manager._fetch_page_unguarded("https://www.pokeratlas.com/x"))
+        self.assertTrue(manager._session_dead)
 
 
 if __name__ == "__main__":

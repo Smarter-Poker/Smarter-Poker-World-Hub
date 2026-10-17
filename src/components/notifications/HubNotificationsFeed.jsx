@@ -70,6 +70,7 @@ import { getAccessToken } from '../../lib/authUtils';
 import { homeGameUrl } from '../../lib/home-games/urls';
 import { resolveNotificationRoute } from '../../lib/notificationRoute';
 import { groupNotificationsByDate } from '../../lib/notificationFeedGroups.mjs';
+import { notificationMessageText } from '../../lib/notificationMessageText.mjs';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -1047,7 +1048,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: 15, color: C.text, lineHeight: 1.4 }}>
                                                 <span style={{ fontWeight: 700 }}>{n.actor_name || n.title}</span>
-                                                {' '}{n.message}
+                                                {' '}{notificationMessageText(n)}
                                             </div>
                                             <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
                                                 {timeAgo(n.created_at)}

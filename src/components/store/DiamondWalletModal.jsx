@@ -563,6 +563,45 @@ function useAnimatedCounter(target, duration = 600) {
   return display;
 }
 
+/* One bar list for both sides of the Stats panel: the longest bar is the
+   side's biggest bucket, each bar a share of that one. */
+function StatsBars({ rows }) {
+  if (!rows.length) return null;
+  return rows.map(([name, amount], i) => (
+    <div key={name} className={styles.statsBarRow}>
+      <div className={styles.statsBarTrack}>
+        <div
+          className={styles.statsBarFill}
+          style={{
+            '--bar-width': `${(amount / rows[0][1]) * 100}%`,
+            '--bar-color': MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
+          }}
+        />
+      </div>
+      <span className={styles.statsBarLabel}>
+        {marketplaceCopy(name)}: {amount.toLocaleString()}
+      </span>
+    </div>
+  ));
+}
+
+/*
+ * MONTH ON MONTH, SAID HONESTLY (2026-10-17). "Up 0% Vs Last Month" was
+ * printed for 104,011 against 103,825: a real 0.18% rounded to a claim of no
+ * change, and a player with no prior month was shown nothing at all. A rate
+ * keeps one decimal and is rounded DOWN so it never overstates; no basis is
+ * said in words. This month is still running, so it is compared against the
+ * whole of last month and the line says so.
+ */
+function trendWords(change) {
+  if (change === null || change === undefined || !Number.isFinite(change)) {
+    return 'No Prior Month To Compare';
+  }
+  const tenths = Math.floor(Math.abs(change) * 10) / 10;
+  if (tenths === 0) return 'Level With All Of Last Month';
+  return `${change > 0 ? 'Up' : 'Down'} ${tenths.toFixed(1)}% Vs All Of Last Month`;
+}
+
 export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initialBalance }) {
   const [transactions, setTransactions] = useState([]);
   // ── PERF-4: Initialize balance from prop (header cache) or localStorage ──
@@ -1584,27 +1623,27 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const weekSpent = lifetime.weekSpent || 0;
 
     /*
-     * TOP SOURCES, OVER THE WHOLE LEDGER. Earned and spent buckets are
-     * merged by label because this list has always been sign-agnostic -
-     * `bySource` added Math.abs(amount) for every row - so merging keeps
-     * the panel's meaning while changing where the number comes from.
-     * `flow === null` is "could not tell", and the panel renders that
-     * state instead of an empty bar chart.
+     * SOURCES ARE CREDITS AND SPENDING IS DEBITS (2026-10-17). This list used
+     * to merge earned and spent buckets by label, so "Top Sources" named
+     * Store Items And Perks and Gifts To Friends - places diamonds WENT - and
+     * the donut built from it totalled 959,253 for a player who had earned
+     * 719,606 and spent 260,869: neither figure, because it was the top five
+     * of both sides added together. Each side now reads its own buckets over
+     * the whole ledger. `flow === null` is "could not tell".
      */
-    const sourceMap = {};
-    if (flow) {
-      for (const line of [...flow.earned, ...flow.spent]) {
-        sourceMap[line.label] = (sourceMap[line.label] || 0) + line.lifetime;
-      }
-    }
+    const sideTotals = (lines) => {
+      const map = {};
+      for (const line of lines) map[line.label] = (map[line.label] || 0) + line.lifetime;
+      return Object.entries(map)
+        .filter(([, amount]) => amount > 0)
+        .sort((a, b) => b[1] - a[1]);
+    };
+    const earnedSide = flow ? sideTotals(flow.earned) : null;
+    const spentSide = flow ? sideTotals(flow.spent) : null;
 
-    // Top 5 sources
-    const topSources = flow
-      ? Object.entries(sourceMap)
-          .filter(([, amount]) => amount > 0)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-      : null;
+    // Top 5 of each side for the bars.
+    const topSources = earnedSide ? earnedSide.slice(0, 5) : null;
+    const topSpending = spentSide ? spentSide.slice(0, 5) : null;
 
     /* P2-2: Transfer analytics, now over the whole ledger. The two gift
        buckets are the RPC's own, so a player who gifted before the window
@@ -1639,17 +1678,18 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       thisMonthSpent,
       lastMonthEarned,
       lastMonthSpent,
+      /* `null` = no prior month to compare against, which is not "Up 0%". */
       earnedChange:
-        lastMonthEarned > 0 ? ((thisMonthEarned - lastMonthEarned) / lastMonthEarned) * 100 : 0,
+        lastMonthEarned > 0 ? ((thisMonthEarned - lastMonthEarned) / lastMonthEarned) * 100 : null,
       spentChange:
-        lastMonthSpent > 0 ? ((thisMonthSpent - lastMonthSpent) / lastMonthSpent) * 100 : 0,
+        lastMonthSpent > 0 ? ((thisMonthSpent - lastMonthSpent) / lastMonthSpent) * 100 : null,
     };
 
-    /* R8-I6: Donut chart data. Drawn from the SAME whole-ledger figures as
-       the bars above it, so the two pictures of one ledger agree. `null`
+    /* R8-I6: Donut chart data: EVERY earned bucket, so the ring is the whole
+       of Total Earned and its slices add up to the figure above it. `null`
        when the breakdown could not be read: no donut, not an empty one. */
-    const donutData = topSources
-      ? topSources.map(([name, amount], i) => ({
+    const donutData = earnedSide
+      ? earnedSide.map(([name, amount], i) => ({
           label: name,
           value: amount,
           color: MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
@@ -1667,6 +1707,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       /* null = the whole-ledger breakdown could not be read. Distinct from
          an empty list, which means a ledger with nothing in it. */
       topSources,
+      topSpending,
       /* true when the windowed sections below the SQL ones are short. */
       windowed: lifetime.truncated === true,
       giftsSent,
@@ -2291,28 +2332,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   Breakdown Unavailable Right Now. Pull Down To Refresh.
                 </div>
               ) : (
-                stats.topSources.map(([name, amount], i) => (
-                  <div key={name} className={styles.statsBarRow}>
-                    <div className={styles.statsBarTrack}>
-                      <div
-                        className={styles.statsBarFill}
-                        style={{
-                          '--bar-width': `${(amount / stats.topSources[0][1]) * 100}%`,
-                          '--bar-color':
-                            MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
-                        }}
-                      />
-                    </div>
-                    <span className={styles.statsBarLabel}>
-                      {marketplaceCopy(name)}: {amount.toLocaleString()}
-                    </span>
+                <StatsBars rows={stats.topSources} />
+              )}
+              {stats.topSpending !== null && stats.topSpending.length > 0 && (
+                <>
+                  <div className={`${styles.statsHeading} ${styles.statsHeadingTight}`}>
+                    Top Spending
                   </div>
-                ))
+                  <StatsBars rows={stats.topSpending} />
+                </>
               )}
               {/* R8-I6: Donut Chart: Category Breakdown */}
               {stats.donutData?.length > 0 && (
                 <div className={styles.statsSub}>
-                  <div className={styles.statsHeading}>Category Breakdown</div>
+                  <div className={styles.statsHeading}>Where Your Diamonds Come From</div>
                   <DonutChart data={stats.donutData} />
                 </div>
               )}
@@ -2342,18 +2375,18 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       >
                         +{stats.monthlyTrend.thisMonthEarned.toLocaleString()}
                       </div>
-                      {stats.monthlyTrend.earnedChange !== 0 && (
-                        <div
-                          className={`${styles.statsTrend} ${
-                            stats.monthlyTrend.earnedChange >= 0
+                      <div
+                        className={`${styles.statsTrend} ${
+                          stats.monthlyTrend.earnedChange === null ||
+                          Math.floor(Math.abs(stats.monthlyTrend.earnedChange) * 10) === 0
+                            ? ''
+                            : stats.monthlyTrend.earnedChange >= 0
                               ? styles.statsTrendUp
                               : styles.statsTrendDown
-                          }`}
-                        >
-                          {stats.monthlyTrend.earnedChange >= 0 ? 'Up ' : 'Down '}
-                          {Math.abs(stats.monthlyTrend.earnedChange).toFixed(0)}% Vs Last Month
-                        </div>
-                      )}
+                        }`}
+                      >
+                        {trendWords(stats.monthlyTrend.earnedChange)}
+                      </div>
                     </div>
                     <div
                       className={`${styles.statsPlate} ${styles.statsPlateOut} ${styles.statsPlateSmall}`}
@@ -2366,18 +2399,18 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       >
                         -{stats.monthlyTrend.thisMonthSpent.toLocaleString()}
                       </div>
-                      {stats.monthlyTrend.spentChange !== 0 && (
-                        <div
-                          className={`${styles.statsTrend} ${
-                            stats.monthlyTrend.spentChange <= 0
+                      <div
+                        className={`${styles.statsTrend} ${
+                          stats.monthlyTrend.spentChange === null ||
+                          Math.floor(Math.abs(stats.monthlyTrend.spentChange) * 10) === 0
+                            ? ''
+                            : stats.monthlyTrend.spentChange <= 0
                               ? styles.statsTrendUp
                               : styles.statsTrendDown
-                          }`}
-                        >
-                          {stats.monthlyTrend.spentChange >= 0 ? 'Up ' : 'Down '}
-                          {Math.abs(stats.monthlyTrend.spentChange).toFixed(0)}% Vs Last Month
-                        </div>
-                      )}
+                        }`}
+                      >
+                        {trendWords(stats.monthlyTrend.spentChange)}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2654,7 +2687,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                           </span>
                           {tx.balance_after != null && (
                             <span className={styles.txAfter}>
-                              Bal: {tx.balance_after.toLocaleString()}
+                              Balance {tx.balance_after.toLocaleString()}
                             </span>
                           )}
                           <span className={styles.txWhen}>

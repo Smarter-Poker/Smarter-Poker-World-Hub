@@ -25,6 +25,22 @@ test('World copy normalization Title Cases visible words without damaging acrony
   assert.equal(normalizeWorldCopy('37.5% equity'), '37.5% Equity');
 });
 
+test('World copy normalization prints addresses, emails and handles exactly as written', () => {
+  assert.equal(
+    normalizeWorldCopy('https://smarter.poker/hub/social-pages/eba7d82a-94dd'),
+    'https://smarter.poker/hub/social-pages/eba7d82a-94dd'
+  );
+  assert.equal(
+    normalizeWorldCopy('share this page https://smarter.poker/hub/x today'),
+    'Share This Page https://smarter.poker/hub/x Today'
+  );
+  assert.equal(normalizeWorldCopy('visit smarter.poker/hub now'), 'Visit smarter.poker/hub Now');
+  assert.equal(normalizeWorldCopy('email support@smarter.poker'), 'Email support@smarter.poker');
+  assert.equal(normalizeWorldCopy('follow @david_santos here'), 'Follow @david_santos Here');
+  // Ordinary words with full stops are still words.
+  assert.equal(normalizeWorldCopy('done. next step'), 'Done. Next Step');
+});
+
 test('World copy normalization removes every banned long separator bar', () => {
   for (const fixture of [
     ['news — videos', 'News: Videos'],

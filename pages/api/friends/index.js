@@ -115,41 +115,66 @@ export default async function handler(req, res) {
         // ═══════════════════════════════════════════════════════════════════
         async function resolveFriendIds(friendIds, fields) {
           if (!friendIds.length) return [];
-          const chunkSize = 100;
+          const chunkSize = 150;
           const chunks = [];
           for (let i = 0; i < friendIds.length; i += chunkSize) {
             chunks.push(friendIds.slice(i, i + chunkSize));
           }
-          
-          let allData = [];
-          for (const chunk of chunks) {
-            const { data } = await getSupabase()
-              .from('profiles')
-              .select(fields)
-              .in('id', chunk);
-            if (data) allData = allData.concat(data);
+          // Chunks run a few at a time rather than one after another: a
+          // player with 1,118 friends used to wait on twelve sequential
+          // round trips per list, three lists per page load (5.2s measured
+          // 2026-10-17). An error is an error, never a shorter list.
+          const results = [];
+          const parallel = 6;
+          for (let i = 0; i < chunks.length; i += parallel) {
+            const batch = await Promise.all(
+              chunks.slice(i, i + parallel).map(async (chunk) => {
+                const { data, error } = await getSupabase()
+                  .from('profiles')
+                  .select(fields)
+                  .in('id', chunk);
+                if (error) throw error;
+                return data || [];
+              })
+            );
+            batch.forEach((rows) => results.push(...rows));
           }
-          return allData;
+          return results;
+        }
+
+        // EVERY ROW, NOT THE FIRST THOUSAND (2026-10-17). PostgREST caps a
+        // response at 1,000 rows whatever `.limit()` asks for, so a player
+        // with 1,118 friends and 1,121 followers was shown 1,003 and 1,000.
+        // Each relationship list is read page by page on a unique order.
+        const ROW_PAGE = 1000;
+        async function readAllRows(build) {
+          const rows = [];
+          for (let from = 0; from < 100000; from += ROW_PAGE) {
+            const { data, error } = await build().order('id', { ascending: true }).range(from, from + ROW_PAGE - 1);
+            if (error) throw error;
+            rows.push(...(data || []));
+            if (!data || data.length < ROW_PAGE) break;
+          }
+          return rows;
         }
 
         // Step 1: Get all accepted friendship rows (both directions)
-        const [sentResult, receivedResult] = await Promise.all([
-          getSupabase()
-            .from('friendships')
-            .select('friend_id, created_at')
-            .eq('user_id', userId)
-            .eq('status', 'accepted')
-            .limit(5000),
-          getSupabase()
-            .from('friendships')
-            .select('user_id, created_at')
-            .eq('friend_id', userId)
-            .eq('status', 'accepted')
-            .limit(5000),
+        const [sentRows, receivedRows] = await Promise.all([
+          readAllRows(() =>
+            getSupabase()
+              .from('friendships')
+              .select('friend_id, created_at')
+              .eq('user_id', userId)
+              .eq('status', 'accepted')
+          ),
+          readAllRows(() =>
+            getSupabase()
+              .from('friendships')
+              .select('user_id, created_at')
+              .eq('friend_id', userId)
+              .eq('status', 'accepted')
+          ),
         ]);
-
-        const sentRows = sentResult.data;
-        const receivedRows = receivedResult.data;
 
         // Deduplicate friend IDs
         const friendIdSet = new Set();
@@ -194,23 +219,21 @@ export default async function handler(req, res) {
             .eq('status', 'pending')
             .limit(100);
 
-          // 5. Following — also use two-query approach
-          const { data: followingRaw } = await getSupabase()
-            .from('social_follows')
-            .select('following_id')
-            .eq('follower_id', userId)
-            .limit(5000);
-          const followingIds = followingRaw ? followingRaw.map(f => f.following_id) : [];
-          const following = await resolveFriendIds(followingIds, fullFields);
-
-          // 6. Followers
-          const { data: followerRaw } = await getSupabase()
-            .from('social_follows')
-            .select('follower_id')
-            .eq('following_id', userId)
-            .limit(5000);
-          const followerIds = followerRaw ? followerRaw.map(f => f.follower_id) : [];
-          const followers = await resolveFriendIds(followerIds, fullFields);
+          // 5 and 6. Following and followers, every row, resolved together.
+          const [followingRaw, followerRaw] = await Promise.all([
+            readAllRows(() =>
+              getSupabase().from('social_follows').select('following_id').eq('follower_id', userId)
+            ),
+            readAllRows(() =>
+              getSupabase().from('social_follows').select('follower_id').eq('following_id', userId)
+            ),
+          ]);
+          const followingIds = followingRaw.map(f => f.following_id);
+          const followerIds = followerRaw.map(f => f.follower_id);
+          const [following, followers] = await Promise.all([
+            resolveFriendIds(followingIds, fullFields),
+            resolveFriendIds(followerIds, fullFields),
+          ]);
 
           // 7. Suggestions — exclude self, current friends, and pending outgoing
           const existingConnectionIds = [

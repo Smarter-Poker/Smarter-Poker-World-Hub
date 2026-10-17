@@ -3,6 +3,7 @@ import { MessageCircle, X, ExternalLink, Settings, Check } from './DockIcons';
 import { DOCK_STORAGE_PREFIX, dockId, dockName, dockLayout, dockNotificationLayout, dockHasSurface, dockPreviewLayout, isDockResolutionCurrent, restoreDock, updateDock, updateDockPreviews } from './messengerDock.mjs';
 import MessengerChat from './MessengerChat';
 import { createDockContinuityOwner } from './dockContinuityOwner.mjs';
+import { messengerPreviewText } from '../../../lib/messengerPreview.mjs';
 
 function Portrait({ conversation }) {
     const name = dockName(conversation);
@@ -269,7 +270,7 @@ export default function MessengerDock({ services }) {
                     {error && <div role="alert"><p>{error}</p><button type="button" onClick={() => refresh()}>Retry</button></div>}
                     {!loading && !error && !conversations.length && <p>No Conversations Yet</p>}
                     {conversations.map(conversation => <button type="button" className="dock-conversation" key={conversation.id} onClick={() => resolve(conversation.id)}>
-                        <Portrait conversation={conversation} /><span><strong>{dockName(conversation)}</strong><small>{conversation.last_message_preview || 'Open Conversation'}</small></span>
+                        <Portrait conversation={conversation} /><span><strong>{dockName(conversation)}</strong><small>{messengerPreviewText(conversation.last_message_preview, 60) || 'Open Conversation'}</small></span>
                         {conversation.unreadCount > 0 && <b className="dock-count">{conversation.unreadCount}</b>}
                     </button>)}
                 </div>

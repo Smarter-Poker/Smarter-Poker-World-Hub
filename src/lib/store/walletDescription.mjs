@@ -8,6 +8,21 @@ export function titleCaseWalletText(value) {
   return marketplaceCopy(String(value));
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const ISO_DATE = /\b(\d{4})-(\d{2})-(\d{2})\b/gu;
+
+/* "Net Settlement For 2026-10-14" is a database's date, not a player's
+   (2026-10-17). A calendar date written by the ledger is printed as
+   "Oct 14, 2026". It is a DATE, not an instant, so no time zone is applied. */
+function formatIsoDates(value) {
+  return value.replace(ISO_DATE, (match, y, m, d) => {
+    const month = MONTHS[Number(m) - 1];
+    const day = Number(d);
+    if (!month || day < 1 || day > 31) return match;
+    return `${month} ${day}, ${y}`;
+  });
+}
+
 function formatLargeNumbers(value) {
   return value.replace(/\b(\d{4,})\b/gu, (match) => {
     const number = Number.parseInt(match, 10);
@@ -29,13 +44,13 @@ export function formatWalletDescriptionParts(description) {
   const transfer = cleaned.match(TRANSFER_DESCRIPTION);
   if (transfer) {
     return {
-      copy: titleCaseWalletText(formatLargeNumbers(transfer[1])),
+      copy: titleCaseWalletText(formatLargeNumbers(formatIsoDates(transfer[1]))),
       identity: transfer[2],
     };
   }
 
   return {
-    copy: titleCaseWalletText(formatLargeNumbers(cleaned)),
+    copy: titleCaseWalletText(formatLargeNumbers(formatIsoDates(cleaned))),
     identity: null,
   };
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { defaultTheme } from './MessengerTheme';
 import { Avatar } from './Avatar';
+import { messengerPreviewText } from '../../lib/messengerPreview.mjs';
 
 function timeAgo(timestamp) {
     if (!timestamp) return '';
@@ -169,32 +170,7 @@ export function ConversationItem({
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                 }}>
-                    {(() => {
-                        let preview = lastMsg || '';
-
-                        if (preview.startsWith('[LIVE_INVITE]')) {
-                            return '🎥 Live Stream Invite';
-                        }
-
-                        if (preview.startsWith('[CALL_RECEIPT]')) {
-                            const rawReceipt = preview.replace('[CALL_RECEIPT]', '');
-                            try {
-                                const rd = JSON.parse(rawReceipt);
-                                const tp = rd.type === 'video' ? '📹' : '📞';
-                                const st = rd.status || 'completed';
-                                const dur = rd.duration || 0;
-                                const durStr = dur > 0 ? (dur >= 60 ? ` • ${Math.floor(dur / 60)}m ${dur % 60}s` : ` • ${dur}s`) : '';
-                                const callTypeName = rd.type === 'video' ? 'Video Call' : 'Voice Call';
-                                const statusLabel = st === 'completed' ? '' : st === 'missed' ? 'Missed ' : st === 'declined' ? 'Declined ' : 'Cancelled ';
-                                preview = `${tp} ${statusLabel}${callTypeName}${durStr}`;
-                            } catch (_) {
-                                preview = rawReceipt; 
-                            }
-                        }
-
-                        const displayText = preview.slice(0, 35) + (preview.length > 35 ? '...' : '');
-                        return displayText;
-                    })()}
+                    {messengerPreviewText(lastMsg || '')}
                     <span style={{ color: C.textSec }}> · {timeAgo(conversation.last_message_at)}</span>
                 </div>
             </div>

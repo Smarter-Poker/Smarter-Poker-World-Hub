@@ -797,6 +797,9 @@ import './video-operations-phase10.test.mjs';
 import './owner-only-hub-cards.test.mjs';
 // Dan 2026-10-15: Share & Invite short links credit the sender.
 import './club-invite-short-links.test.mjs';
+// 2026-10-17 sweep: conversation previews are plain text; digest figures carry separators.
+import './messenger-preview-is-plain-text.test.mjs';
+import './digest-figures-carry-separators.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
