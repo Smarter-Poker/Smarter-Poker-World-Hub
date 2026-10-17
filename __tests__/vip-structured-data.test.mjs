@@ -96,3 +96,14 @@ test('regressions execute in marketplace build checks and are included in Vercel
   assert.ok(JSON.parse(read('package.json')).scripts['test:marketplace'].includes('__tests__/vip-structured-data.test.mjs'));
   assert.ok(read('.vercelignore').includes('!/__tests__/vip-structured-data.test.mjs'));
 });
+
+test('Google merchant listings receive Brand objects and online-only availability for every option', () => {
+  // Google Rich Results Test 2026-10-16: Organization was valid Schema.org but
+  // produced "Invalid object type for field brand" in merchant listings.
+  for (const item of graph.filter(node => node['@type'] === 'Product')) {
+    assert.equal(item.brand['@type'], 'Brand', item.name);
+    assert.equal(item.brand.name, 'Smarter.Poker');
+    assert.equal(item.offers.availability, 'https://schema.org/OnlineOnly');
+    assert.equal(item.offers.seller['@id'], 'https://smarter.poker/#organization');
+  }
+});
