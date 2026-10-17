@@ -96,5 +96,21 @@ export async function redeemPendingSignupCodes({
     return outcome;
 }
 
+/**
+ * The referrer's player number carried inside a ?redirect= path, as a Club
+ * Arena invite link sends it (/hub/club-arena/invite/<club>?ref=1). Digits
+ * only; anything else is not a referral.
+ */
+export function refFromRedirect(redirect) {
+    const raw = Array.isArray(redirect) ? redirect[0] : redirect;
+    if (typeof raw !== 'string' || !raw) return null;
+    try {
+        const ref = new URL(raw, 'https://smarter.poker').searchParams.get('ref');
+        return ref && /^[0-9]{1,9}$/.test(ref) && Number(ref) > 0 ? String(Number(ref)) : null;
+    } catch {
+        return null;
+    }
+}
+
 /** Seconds a player waits between "Resend Code" taps (Supabase rate-limits resends). */
 export const RESEND_COOLDOWN_SECONDS = 60;

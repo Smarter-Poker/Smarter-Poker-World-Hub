@@ -15,6 +15,7 @@ import {
   PENDING_REFERRAL_KEY,
   RESEND_COOLDOWN_SECONDS,
   redeemPendingSignupCodes,
+  refFromRedirect,
 } from '../../src/lib/pendingSignupCodes.mjs';
 import { Mail } from 'lucide-react';
 import { getAccessToken } from '../../src/lib/authUtils';
@@ -216,7 +217,13 @@ export default function SignUpPage() {
       // A Share & Invite link (/i/<code>) sends the player here first. Keep
       // the code (first link wins) so it survives email confirmation.
       if (invite) rememberInvite(String(invite));
-      if (ref && !formData.promoCode) {
+      // A Club Arena invite (/invite/<club>?ref=<player number>) arrives with
+      // its ref inside ?redirect=, not at the top level. Read it there too,
+      // so the referral is shown and recorded (2026-10-17).
+      const nestedRef = !ref ? refFromRedirect(router.query.redirect) : null;
+      if (nestedRef && !formData.promoCode) {
+        setFormData((prev) => ({ ...prev, promoCode: nestedRef }));
+      } else if (ref && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: String(ref).toUpperCase() }));
       } else if (promo && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: String(promo).toUpperCase() }));
@@ -644,6 +651,12 @@ export default function SignUpPage() {
                 }
               : {}),
             ...(clubJoinPath ? { club_join_path: clubJoinPath } : {}),
+            // The referrer, by player number. The database records the
+            // referral and pays both players when this account's email is
+            // confirmed, on whatever device (fn_settle_signup_referral).
+            ...(isReferralCode && referralValid && referralDetails?.playerNumber
+              ? { referral_player_number: String(referralDetails.playerNumber) }
+              : {}),
           },
           // Enable email confirmation - redirect to /auth/callback after verification
           emailRedirectTo: `${window.location.origin}/auth/callback`,
