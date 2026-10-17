@@ -35,7 +35,10 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -434,6 +437,13 @@ def tour_page_identity(code: str, tour_name: str, requested_url: str,
             and re.search(r'<li\b[^>]*data-competition-type=[\"\']circuit[\"\']', page_html or '', re.I)
             and re.search(r'WSOP Circuit\s*-', page_html or '', re.I)):
         return True, 'source_owned_circuit_cards'
+    if (expected_code == 'mspt' and final_identity[0] == 'msptpoker.com'
+            and 'UPCOMING EVENTS' in (page_html or '') and 'MSPT' in (page_html or '')
+            and re.search(r'class=[\"\']event_schedule[\"\']', page_html or '', re.I)):
+        return True, 'source_owned_mspt_upcoming_events'
+    if (expected_code == 'lips' and final_identity[0] == 'lipstour.com'
+            and 'ladies international poker series' in label):
+        return True, 'source_owned_lips_schedule'
     if expected_code and expected_code in label_words:
         return True, "source_owned_tour_code"
 
@@ -465,7 +475,92 @@ def _iso(month_name: str, day: int, year):
     return f"{year}-{m:02d}-{day:02d}"
 
 
-def extract_stops(html: str, base_url: str, today: date = None, tour_code: str = None) -> list:
+WEEKDAYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+
+
+def weekday_certified_year(month_name: str, day: int, weekday: str, today: date = None):
+    """Return the one nearby year whose calendar puts the PUBLISHED weekday on
+    this month/day, or None.
+
+    Yearless schedule copy is never rolled forward into the current year: a
+    stale page would turn last season's dates into fake current rows. A source
+    that prints the weekday next to the date does certify its year, because the
+    weekday of a date moves by one or two days a year, so the previous, current
+    and next year can never share it.
+    """
+    month = MONTHS.get(str(month_name or "")[:3].lower())
+    wanted = WEEKDAYS.get(str(weekday or "")[:3].lower())
+    if not month or wanted is None:
+        return None
+    base = (today or datetime.now(timezone.utc).date()).year
+    years = []
+    for year in (base - 1, base, base + 1):
+        try:
+            if date(year, month, int(day)).weekday() == wanted:
+                years.append(year)
+        except ValueError:
+            continue
+    return years[0] if len(years) == 1 else None
+
+
+def _yearless_span(match, year: int):
+    """Dates for a DATE_RANGE match whose year was certified by the source."""
+    month1 = MONTHS.get(match["m1"][:3].lower())
+    month2 = MONTHS.get((match["m2"] or match["m1"])[:3].lower())
+    if not month1 or not month2:
+        return None
+    try:
+        start = date(year, month1, int(match["d1"]))
+        end = date(year + (1 if month2 < month1 else 0), month2, int(match["d2"]))
+    except ValueError:
+        return None
+    return (start, end) if end >= start else None
+
+
+PDF_TEXT_MAX_BYTES = 8 * 1024 * 1024
+
+
+def schedule_pdf_text(url: str) -> str:
+    """Text of a source-linked schedule PDF on the venue's own asset host.
+
+    Returns '' (and the caller fails closed) when the link is not an https PDF
+    on that host, the download fails, or pdftotext is unavailable.
+    """
+    try:
+        parsed = urllib.parse.urlsplit(url)
+    except ValueError:
+        return ""
+    if (parsed.scheme != "https" or parsed.hostname != "assets.contentstack.io"
+            or not parsed.path.lower().endswith(".pdf")):
+        return ""
+    exe = shutil.which("pdftotext") or next(
+        (path for path in ("/opt/homebrew/bin/pdftotext", "/usr/local/bin/pdftotext")
+         if os.path.exists(path)), None)
+    if not exe:
+        log("    [PDF] pdftotext is unavailable; the schedule year cannot be certified")
+        return ""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            data = response.read(PDF_TEXT_MAX_BYTES + 1)
+    except Exception as e:
+        log(f"    [PDF] download failed: {str(e)[:100]}")
+        return ""
+    if len(data) > PDF_TEXT_MAX_BYTES or not data.startswith(b"%PDF"):
+        return ""
+    with tempfile.NamedTemporaryFile(suffix=".pdf") as handle:
+        handle.write(data)
+        handle.flush()
+        try:
+            result = subprocess.run([exe, "-layout", handle.name, "-"],
+                                    capture_output=True, timeout=60, check=False)
+        except (OSError, subprocess.SubprocessError):
+            return ""
+    return result.stdout.decode("utf-8", "ignore") if result.returncode == 0 else ""
+
+
+def extract_stops(html: str, base_url: str, today: date = None, tour_code: str = None,
+                  default_year: int = None) -> list:
     """Generic stop extractor: date-range matches paired with the nearest
     preceding heading/link text. Conservative by design - a missed stop is
     recoverable on the next run, a garbage stop pollutes the calendar."""
@@ -474,6 +569,223 @@ def extract_stops(html: str, base_url: str, today: date = None, tour_code: str =
     html = re.sub(r'<!--.*?-->', ' ', html, flags=re.S)
     code = str(tour_code or '').upper()
     host = urllib.parse.urlparse(base_url).hostname
+    cutoff_day = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
+    if code == 'MSPT' and host in {'msptpoker.com', 'www.msptpoker.com'}:
+        # The home page's UPCOMING EVENTS list prints "Oct 13 - Oct 18" with no
+        # year. It is a chronological list of upcoming stops, so the first
+        # stop is in the current season and every month that goes backwards
+        # starts the next year. Any year the source does print in a stop name
+        # ("2027 Diamond Poker Championship") must agree, or nothing is used.
+        at = html.find('UPCOMING EVENTS')
+        if at < 0:
+            return []
+        section = html[at:]
+        rows = list(re.finditer(
+            r'<li\b[^>]*class=["\']date["\'][^>]*>\s*<div\b[^>]*class=["\']date_in["\'][^>]*>\s*'
+            r'<span>\s*([A-Za-z]{3})\.?\s+(\d{1,2})\s*</span>\s*<span\b[^>]*>\s*-\s*</span>\s*'
+            r'<span>\s*([A-Za-z]{3})\.?\s+(\d{1,2})\s*</span>', section, re.I))
+        stops, seen, year, previous_month = [], set(), None, None
+        for index, row in enumerate(rows):
+            segment = section[row.end():rows[index + 1].start() if index + 1 < len(rows) else row.end() + 6000]
+            venue_html = re.search(r'<h4\b[^>]*>(.*?)</h4>', segment, re.I | re.S)
+            name_html = re.search(r'<h6\b[^>]*>(.*?)</h6>', segment, re.I | re.S)
+            month1, month2 = MONTHS.get(row[1].lower()), MONTHS.get(row[3].lower())
+            if not venue_html or not name_html or not month1 or not month2:
+                return []  # The list changed shape; never guess around it.
+            if year is None:
+                year = (today or datetime.now(timezone.utc).date()).year
+                try:
+                    first_end = date(year + (1 if month2 < month1 else 0), month2, int(row[4]))
+                except ValueError:
+                    return []
+                if first_end < cutoff_day:
+                    year += 1
+            elif month1 < previous_month:
+                year += 1
+            previous_month = month1
+            try:
+                start = date(year, month1, int(row[2]))
+                end = date(year + (1 if month2 < month1 else 0), month2, int(row[4]))
+            except ValueError:
+                return []
+            name = re.split(r'\s+[–—]\s+', normalize_stop_name(name_html[1]), maxsplit=1)[0].strip()
+            printed_years = set(re.findall(r'\b(20\d{2})\b', name))
+            if printed_years and printed_years != {str(start.year)}:
+                return []  # The source contradicts the chronology; fail closed.
+            if re.search(r'\bTBD\b', name, re.I):
+                continue  # "Dates TBD" rows carry placeholder ranges, not dates.
+            if end < cutoff_day or not is_plausible_tour_stop_name(name) or (name.lower(), start) in seen:
+                continue
+            seen.add((name.lower(), start))
+            stop = {'stop_name': name, 'start': start.isoformat(), 'end': end.isoformat(),
+                    'source_scope': 'upcoming list chronology'}
+            venue_parts = re.split(r'\s+[–—]\s+', normalize_stop_name(venue_html[1]), maxsplit=1)
+            if venue_parts[0]:
+                stop['venue'] = venue_parts[0]
+            location = re.fullmatch(r'(.+),\s*([^,]+)', venue_parts[1]) if len(venue_parts) == 2 else None
+            state = US_STATE_NAME_TO_CODE.get(location[2].strip().upper()) if location else None
+            if state:
+                stop.update({'city': location[1].strip(), 'state': state})
+            stops.append(stop)
+        return stops
+    if code == 'LIPS' and host in {'lipstour.com', 'www.lipstour.com'}:
+        # EventPrime list items: "/ LIPS Tournament", title link, venue, and a
+        # "Fri, 16 Oct - 17 Oct" span. The printed weekday certifies the year.
+        stops, seen = [], set()
+        day_pattern = (r'(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+(\d{1,2})\s+([A-Za-z]{3,9})')
+        for item in re.split(r'<div\b[^>]*class=["\'][^"\']*\bep-event-list-item\b', html)[1:]:
+            head = re.search(
+                r'class=["\'][^"\']*\bep-box-title\b[^"\']*["\'][^>]*>\s*<div\b[^>]*>(.*?)</div>\s*'
+                r'<a\b[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>\s*</div>\s*<div\b[^>]*>(.*?)</div>',
+                item, re.I | re.S)
+            when = re.search(r'class=["\'][^"\']*\bep-event-list-view-action\b[^"\']*["\'][^>]*>(.*?)</div>',
+                             item, re.I | re.S)
+            if not head or not when or 'lips' not in normalize_stop_name(head[1]).lower():
+                continue
+            try:
+                link = urllib.parse.urlsplit(urllib.parse.urljoin(base_url, head[2]))
+            except ValueError:
+                continue
+            if link.scheme != 'https' or link.hostname not in {'lipstour.com', 'www.lipstour.com'}:
+                continue
+            span = re.fullmatch(day_pattern + r'(?:\s*-\s*(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+)?(\d{1,2})\s+([A-Za-z]{3,9}))?',
+                                normalize_stop_name(when[1]), re.I)
+            if not span:
+                continue
+            year = weekday_certified_year(span[3], int(span[2]), span[1], today)
+            month1 = MONTHS.get(span[3][:3].lower())
+            month2 = MONTHS.get((span[5] or span[3])[:3].lower())
+            if not year or not month1 or not month2:
+                continue
+            try:
+                start = date(year, month1, int(span[2]))
+                end = date(year + (1 if month2 < month1 else 0), month2, int(span[4] or span[2]))
+            except ValueError:
+                continue
+            name, venue = normalize_stop_name(head[3]), normalize_stop_name(head[4])
+            if re.search(r'\bonline\b', f'{name} {venue}', re.I):
+                continue  # Online events are not a physical tour stop.
+            if end < start or end < cutoff_day or not is_plausible_tour_stop_name(name) or (name.lower(), start) in seen:
+                continue
+            seen.add((name.lower(), start))
+            stop = {'stop_name': name, 'start': start.isoformat(), 'end': end.isoformat(),
+                    'source_scope': 'weekday-certified listing'}
+            if venue:
+                stop['venue'] = venue
+            stops.append(stop)
+        return stops
+    if code == 'BORGATA' and host == 'borgata.mgmresorts.com':
+        # "Borgata Poker Opens" showcase cards print "November 4 - 17" without
+        # a year. Each links its official schedule PDF, whose rows print the
+        # weekday ("WED NOV 4"); every weekday/date pair there must certify the
+        # same year, and that year must cover the card's first day.
+        stops, seen = [], set()
+        for item in re.split(r'data-testid=["\']showcase-item-\d+["\']', html)[1:]:
+            label = re.search(r'aria-label=["\']View details for ([^"\']+)["\'][^>]*href=["\']([^"\']+)["\']', item)
+            title = re.search(r'data-testid=["\']showcase-item-title["\'][^>]*>(.*?)</h3>', item, re.S)
+            subtitle = re.search(r'data-testid=["\']showcase-item-subtitle["\'][^>]*>(.*?)</p>', item, re.S)
+            if not label or not title or not subtitle:
+                continue
+            name, when = normalize_stop_name(title[1]), normalize_stop_name(subtitle[1])
+            span = DATE_RANGE.fullmatch(when)
+            if (normalize_stop_name(label[1]) != name or not span or span['y1'] or span['y2']
+                    or not is_plausible_tour_stop_name(name)):
+                continue
+            text = schedule_pdf_text(html_lib.unescape(label[2]))
+            pairs = re.findall(
+                r'\b(MON|TUE|TUES|WED|THU|THUR|THURS|FRI|SAT|SUN)\s+'
+                r'(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\s+(\d{1,2})\b', text)
+            years = {weekday_certified_year(month, int(day), weekday, today) for weekday, month, day in pairs}
+            first_day = any(month[:3].upper() == span['m1'][:3].upper() and int(day) == int(span['d1'])
+                            for _weekday, month, day in pairs)
+            if not pairs or not first_day or len(years) != 1 or None in years:
+                continue
+            dates = _yearless_span(span, years.pop())
+            if not dates or dates[1] < cutoff_day or (name.lower(), dates[0]) in seen:
+                continue
+            seen.add((name.lower(), dates[0]))
+            stops.append({'stop_name': name, 'start': dates[0].isoformat(), 'end': dates[1].isoformat(),
+                          'source_scope': 'weekday-certified schedule'})
+        return stops
+    if code == 'WYNN' and host in {'www.wynnlasvegas.com', 'wynnlasvegas.com'}:
+        # Series cards are "<h3>TITLE</h3>" then a rich-text "<h3>September
+        # 28–October 25</h3><p>…</p>". The range has no year; the card's own
+        # copy ("New for 2026") or the carousel label naming the series
+        # ("Wynn Fall Classic 2026") must state exactly one.
+        visible = re.sub(r'<(script|style|noscript)\b[^>]*>.*?</\1>', ' ', html, flags=re.I | re.S)
+        labels = [normalize_stop_name(value) for value in re.findall(
+            r'<div\b[^>]*aria-live=["\']polite["\'][^>]*>(.*?)</div>', visible, re.I | re.S)]
+        stops, seen = [], set()
+        for title, when, copy in re.findall(
+                r'<h3\b[^>]*>([^<>]{4,90})</h3>\s*<div\b[^>]*data-testid=["\']ml-rich-text["\'][^>]*>\s*'
+                r'<h3\b[^>]*>([^<>]{6,60})</h3>\s*<p\b[^>]*>(.*?)</p>', visible, re.I | re.S):
+            name, span = normalize_stop_name(title), DATE_RANGE.fullmatch(normalize_stop_name(when))
+            if not span or span['y1'] or span['y2'] or not is_plausible_tour_stop_name(name):
+                continue
+            years = set(re.findall(r'\b(20\d{2})\b', normalize_stop_name(copy)))
+            for label in labels:
+                named = re.fullmatch(re.escape(name) + r'\s+(20\d{2})', label, re.I)
+                if named:
+                    years.add(named[1])
+            if len(years) != 1:
+                continue
+            dates = _yearless_span(span, int(years.pop()))
+            if not dates or dates[1] < cutoff_day or (name.lower(), dates[0]) in seen:
+                continue
+            seen.add((name.lower(), dates[0]))
+            stops.append({'stop_name': name, 'start': dates[0].isoformat(), 'end': dates[1].isoformat(),
+                          'source_scope': 'source-stated series year'})
+        return stops
+    if code == 'AUPT' and host in {'anteupmagazine.com', 'www.anteupmagazine.com'}:
+        # The tour page is prose ("From October 16-25 …") under the visible
+        # statement "The 2026 Ante Up Poker Tour …". That statement, and only
+        # when it names one season, supplies the year for the generic pairing.
+        visible = normalize_stop_name(re.sub(r'<(script|style|noscript)\b[^>]*>.*?</\1>', ' ', html, flags=re.I | re.S))
+        seasons = set(re.findall(r'\bThe (20\d{2}) Ante Up Poker Tour\b', visible))
+        if len(seasons) != 1:
+            return []
+        return extract_stops(html, base_url, today, default_year=int(seasons.pop()))
+    if code == 'BPO' and host and (host == 'barpokeropen.com' or host.endswith('.barpokeropen.com')):
+        # The championship site's title names the season and the hero prints
+        # "ATLANTIC CITY<br>NEW JERSEY" over "November 13-16, 2026".
+        title = re.search(r'<title\b[^>]*>(.*?)</title>', html, re.I | re.S)
+        season = re.fullmatch(r'Bar Poker Open - (20\d{2}) (.{4,60}?Championship)',
+                              normalize_stop_name(title[1]) if title else '')
+        hero = re.search(r'<h1\b[^>]*>(.*?)</h1>\s*<p\b[^>]*>([^<>]{8,40})</p>', html, re.I | re.S)
+        if not season or not hero:
+            return []
+        span = DATE_RANGE.fullmatch(normalize_stop_name(hero[2]))
+        place = [normalize_stop_name(part) for part in re.split(r'<br\s*/?>', hero[1], flags=re.I)]
+        if not span or span['y2'] != season[1] or len(place) != 2:
+            return []
+        dates = _yearless_span(span, int(season[1]))
+        state = US_STATE_NAME_TO_CODE.get(place[1].upper())
+        if not dates or dates[1] < cutoff_day or not state:
+            return []
+        return [{'stop_name': f'Bar Poker Open {season[1]} {season[2]}', 'start': dates[0].isoformat(),
+                 'end': dates[1].isoformat(), 'city': place[0].title(), 'state': state,
+                 'source_scope': 'championship announcement'}]
+    if code == 'WTP' and host in {'www.worldtavernpoker.info', 'worldtavernpoker.info'}:
+        # "World Tavern Poker OPEN 2026" page: "… is coming this Oct 31-Nov 5,
+        # 2026 at The Orleans Casino in Las Vegas." The printed year must be
+        # the title's season.
+        title = re.search(r'<title\b[^>]*>(.*?)</title>', html, re.I | re.S)
+        season = re.search(r'\bWorld Tavern Poker (OPEN (20\d{2}))\b', normalize_stop_name(title[1]) if title else '')
+        visible = normalize_stop_name(re.sub(r'<(script|style|noscript)\b[^>]*>.*?</\1>', ' ', html, flags=re.I | re.S))
+        announced = re.search(
+            r'\bis coming this ([A-Za-z]{3,9}\.? \d{1,2}\s*-\s*(?:[A-Za-z]{3,9}\.? )?\d{1,2}, 20\d{2}) at '
+            r'(.{4,80}?) in ([A-Z][A-Za-z .]{2,40}?)\s*\.', visible)
+        if not season or not announced:
+            return []
+        span = DATE_RANGE.fullmatch(announced[1])
+        if not span or span['y2'] != season[2]:
+            return []
+        dates = _yearless_span(span, int(season[2]))
+        if not dates or dates[1] < cutoff_day:
+            return []
+        return [{'stop_name': f'World Tavern Poker {season[1]}', 'start': dates[0].isoformat(),
+                 'end': dates[1].isoformat(), 'venue': announced[2].strip(),
+                 'source_scope': 'announced festival span'}]
     if code in {'WPT', 'WPTPRIME'}:
         # The current combined schedule contains multiple tour families and
         # incidental international navigation. Only its dated USA table cards
@@ -757,7 +1069,8 @@ def extract_stops(html: str, base_url: str, today: date = None, tour_code: str =
         if re.search(r'\b(schedule|calendar)\b', heading, re.I)
         for year in re.findall(r'\b(20\d{2})\b', heading)
     }
-    anchor_year = next(iter(schedule_years)) if len(schedule_years) == 1 else None
+    anchor_year = (next(iter(schedule_years)) if len(schedule_years) == 1
+                   else default_year if not schedule_years else None)
     prev_end = 0
     for m in DATE_RANGE.finditer(scan_html):
         context_start = prev_end
@@ -838,6 +1151,16 @@ def build_stop_row(code: str, stop: dict, source_url: str,
         row['notes'] = f"Source-owned WPT USA calendar start from {source_url} on {scraped_at[:10]}; point date only, full festival duration and event pricing unqualified."
     if stop.get('source_scope') == 'dated schedule envelope':
         row['notes'] = f"Source-owned series summary from dated schedule rows at {source_url} on {scraped_at[:10]}; schedule date envelope, not an individual tournament or priced event."
+    if stop.get('source_scope') == 'upcoming list chronology':
+        row['notes'] = (f"Source-owned upcoming-stop list at {source_url} on {scraped_at[:10]}; the source prints "
+                        "no year, so years follow the list's chronology and agree with every year it prints; "
+                        "not an individual tournament or priced event.")
+    if stop.get('source_scope') in ('weekday-certified listing', 'weekday-certified schedule'):
+        row['notes'] = (f"Source-owned listing at {source_url} on {scraped_at[:10]}; the source prints no year, "
+                        "the year is the one its printed weekday allows; not an individual tournament or priced event.")
+    if stop.get('source_scope') == 'source-stated series year':
+        row['notes'] = (f"Source-owned series card at {source_url} on {scraped_at[:10]}; year as the source states it "
+                        "for this series; not an individual tournament or priced event.")
     if stop.get('source_scope') == 'announced festival span':
         publication = ('individual schedule published' if stop.get('schedule_published') is True
                        else 'individual schedule unpublished' if stop.get('schedule_published') is False
@@ -1052,20 +1375,16 @@ BUILTIN_TOURS = [
     ("WSOPC", "WSOP Circuit", "https://www.wsop.com/circuit/"),
     ("WSOP", "World Series of Poker", "https://www.wsop.com/tournaments/"),
     ("WPT", "World Poker Tour", "https://www.worldpokertour.com/event/schedule"),
-    ("MSPT", "Mid-States Poker Tour", "https://msptpoker.com/schedule/"),
+    ("MSPT", "Mid-States Poker Tour", "https://msptpoker.com/"),
     ("RGPS", "RunGood Poker Series", "https://www.rungood.com/blogs/tour-news-1/rungood-poker-series-announces-2026-fall-season-golden-expedition"),
-    ("CPPT", "Card Player Poker Tour", "https://www.cardplayerpokertour.com/schedule/"),
     ("PGT", "PokerGO Tour", "https://www.pgt.com/schedule"),
-    ("NAPT", "North American Poker Tour", "https://www.pokerstarslive.com/napt/schedule/"),
     ("GCPT", "Gulf Coast Poker Tour", "https://gulfcoastpoker.net/schedule/"),
-    ("FPN", "Free Poker Network", "https://freepokernet.com/schedule"),
-    ("LIPS", "Ladies International Poker Series", "https://www.lipspoker.org/schedule"),
+    ("LIPS", "Ladies International Poker Series", "https://lipstour.com/schedule/"),
     ("ROUGHRIDER", "Roughrider Poker Tour", "https://roughriderpokertour.com/schedule/"),
     ("PAT", "PokerAtlas Tour", "https://pokeratlastour.com/schedule"),
     ("SHRPO", "Seminole Hard Rock Poker Open", "https://www.seminolehardrockpokeropen.com/2026-rock-n-roll-poker-open-schedule/"),
     ("VENETIAN", "Venetian DeepStack", "https://www.venetianlasvegas.com/resort/casino/poker/deepstack-extravaganza-poker-tournament.html"),
-    ("BORGATA", "Borgata Poker Series", "https://www.theborgata.com/casino/poker/tournaments"),
-    ("LODGE", "Lodge Championship Series", "https://thelodgepokerclub.com/austin/lcs/"),
+    ("BORGATA", "Borgata Poker Series", "https://borgata.mgmresorts.com/en/casino/poker.html"),
     ("TCH", "Texas Card House Series", "https://trailblazer.texascardhouse.com/"),
 ]
 
@@ -1081,18 +1400,32 @@ def select_schedule_url(code: str, url: str) -> str:
 
 def load_tours() -> list:
     rows = sb_get("tour_source_registry",
-                  "?select=tour_code,tour_name,schedule_url,official_website&is_active=eq.true")
+                  "?select=tour_code,tour_name,schedule_url,official_website,scrape_method"
+                  "&is_active=eq.true")
     if rows is None:
         log("  [REGISTRY] tour_source_registry unreadable; refusing stale fallback sources")
         return []
     tours = []
     seen_codes = set()
+    manual = []
     for r in rows or []:
         url = r.get("schedule_url") or r.get("official_website")
         code = str(r.get("tour_code") or "").strip().upper()
+        if str(r.get("scrape_method") or "").strip().lower() == "manual":
+            # The tour stays listed, but its official site publishes no
+            # dated stop schedule this collector can certify (reason in the
+            # registry notes). Scraping it would only fail every run.
+            if code:
+                manual.append(code)
+            continue
         if code and url and code not in seen_codes:
             tours.append((code, r.get("tour_name") or code, select_schedule_url(code, url)))
             seen_codes.add(code)
+    if manual:
+        log(f"  [REGISTRY] {len(manual)} manual source(s) not scraped: {', '.join(sorted(manual))}")
+    if rows and not tours:
+        log("  [REGISTRY] every active registry source is manual; nothing to scrape")
+        return []
     if tours:
         # The database registry is authoritative. Mixing its current URLs with
         # the builtin fallback used to scrape duplicate tour families under
@@ -1256,6 +1589,20 @@ def main():
                     if blocked:
                         log(f"    {blocked} source identities have only unowned/unservable "
                             "history; preserving those records and failing closed")
+                    # A curated (manual_research) row with the same dates is the
+                    # same stop under an editorial name; an inferred copy would
+                    # only show the stop twice.
+                    curated_spans = {
+                        (str(row.get('stop_start_date') or row.get('start_date') or '')[:10],
+                         str(row.get('stop_end_date') or row.get('stop_start_date')
+                             or row.get('start_date') or '')[:10])
+                        for row in existing_rows if row.get('data_quality') == 'manual_research'
+                    }
+                    corroborated = [s for s in fresh if (s['start'], s['end']) in curated_spans]
+                    if corroborated:
+                        fresh = [s for s in fresh if (s['start'], s['end']) not in curated_spans]
+                        log(f"    {len(corroborated)} stop(s) already curated under the same dates; "
+                            "not duplicated")
                     rows = [
                         build_stop_row(code, s, effective_source_url, hhash, now_iso)
                         for s in fresh
