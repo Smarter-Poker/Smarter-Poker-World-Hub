@@ -890,6 +890,8 @@ function EasterEggWatcher() {
 const MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES = new Set([
   '/hub/diamond-store',
   '/hub/vip-membership',
+  '/hub/vip-membership/[plan]',
+  '/hub/vip-membership/gift/[plan]',
   '/hub/merch-store',
   '/hub/smarter-rewards',
   '/hub/club-shop',
@@ -953,7 +955,8 @@ export default function App({ Component, pageProps }) {
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
   const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
   const suppressWorldFooterOnMarketplaceStore =
-    MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(resolvedPath);
+    MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(resolvedPath) ||
+    MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(router.pathname);
   const bottomNavRouteConfig =
     isClubArenaRoute || suppressWorldFooterOnMarketplaceStore
       ? null

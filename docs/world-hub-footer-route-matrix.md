@@ -236,3 +236,5 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 - `/hub/vip-membership`, `/hub/merch-store`, `/hub/smarter-rewards` and `/hub/club-shop` render the same Marketplace store page with a different initial tab, so they own the same in-flow commerce footer. The fixed illustrated footer previously covered the VIP plan purchase buttons and the Marketplace commerce links on these routes because no clearance was reserved for it.
 - `/hub/my-clubs` is a server-side redirect to Social Pages Managed and does not render a footer document of its own.
 - Routes outside the 13 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.
+
+- Individual VIP membership `/hub/vip-membership/[plan]` and gift `/hub/vip-membership/gift/[plan]` pages own their purchase surface and exclude the fixed Marketplace artwork for the same purchase-control clearance reason. The two strictly allowlisted route patterns are declared in the app shell.

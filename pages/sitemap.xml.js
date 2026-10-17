@@ -105,6 +105,12 @@ const staticPages = [
   // Store tabs became real routes on 2026-08-25. VIP outranks the store front
   // page because it is the page that sells the subscription.
   { path: '/hub/vip-membership', priority: '0.9', changefreq: 'weekly' },
+  { path: '/hub/vip-membership/monthly', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/vip-membership/yearly', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/vip-membership/lifetime', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/vip-membership/gift/monthly', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/vip-membership/gift/yearly', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/vip-membership/gift/lifetime', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/merch-store', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/smarter-rewards', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/club-shop', priority: '0.5', changefreq: 'weekly' },

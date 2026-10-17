@@ -129,7 +129,7 @@ test('the diamond cost shown matches the server formula (100 per dollar)', () =>
 
 test('an existing member is told so before being invited to pay again', () => {
   assert.match(STORE, /You Are Already A VIP Member/, 'no already-VIP state is rendered');
-  assert.match(STORE, /\{isVip && \(/, 'isVip must gate that banner');
+  assert.match(STORE, /\{isVip && !vipProduct\?\.gift && \(/, 'isVip must gate that banner');
   assert.match(STORE, /vipExpiresAt/, 'the expiry must be shown, not just the boolean');
 });
 
@@ -167,8 +167,8 @@ test('guest checkout preserves each selected plan through canonical sign-in', ()
   }
   assert.equal(new URL(VIP_NAV.vipSignInHref('https://example.com'), 'https://smarter.poker').searchParams.get('redirect'), '/hub/vip-membership?plan=vip-monthly');
   const cardEntry = STORE.slice(STORE.indexOf('const startStripeCheckout = async'), STORE.indexOf('// Merchandise checkout lives'));
-  assert.match(cardEntry, /router\.push\(vipSignInHref\(plan\.id\)\)/);
-  assert.match(STORE, /router\.push\(vipSignInHref\(selectedVIP\)\)/);
+  assert.match(cardEntry, /router\.push\(vipSignInHref\(plan\.id, vipProduct \? vipProductPath\(vipProduct.plan, vipProduct.gift\) : null\)\)/);
+  assert.match(STORE, /router\.push\(vipSignInHref\(selectedVIP, vipProduct \? vipProductPath\(vipProduct.plan\) : null\)\)/);
 });
 
 test('VIP owns its surface and excludes unrelated marketplace navigation', () => {
@@ -186,7 +186,7 @@ test('VIP owns its surface and excludes unrelated marketplace navigation', () =>
 // Exercise the page's real event handler with isolated provider boundaries.
 // The API/Stripe lifecycle has separate executable marketplace tests; these
 // checks protect the UI-to-request-to-navigation connection reshaped here.
-function checkoutHarness({ signedIn = true, responseOkay = true } = {}) {
+function checkoutHarness({ signedIn = true, responseOkay = true, vipProduct = null } = {}) {
   const requests = [], destinations = [], messages = [];
   const accountId = 'vip-checkout-fixture';
   const processingRef = { current: false };
@@ -198,6 +198,8 @@ function checkoutHarness({ signedIn = true, responseOkay = true } = {}) {
     showStoreToast: (...args) => messages.push(args),
     router: { push: (href) => destinations.push(href) },
     vipSignInHref: VIP_NAV.vipSignInHref,
+    vipProduct,
+    vipProductPath: plan => `/hub/vip-membership/${plan}`,
     lifetimeCheckoutOfferConfirmation: () => ({ kind: 'lifetime-review' }),
     subscriptionCheckoutOfferConfirmation: () => ({ kind: 'subscription-review' }),
     vipCardAttemptRef: { current: 0 },
@@ -249,4 +251,14 @@ test('guest and failed checkouts never navigate to a payment session', async () 
   assert.deepEqual(failed.destinations, []);
   assert.deepEqual(failed.messages, [['error', 'Checkout Is Temporarily Unavailable.']]);
   assert.equal(failed.processingRef.current, false);
+});
+
+
+test('individual membership guest checkout returns to its exact canonical term', async () => {
+  for (const plan of ['monthly', 'yearly', 'lifetime']) {
+    const h = checkoutHarness({ signedIn: false, vipProduct: { plan, gift: false } });
+    await h.handler({ id: `vip-${plan}`, oneTime: plan === 'lifetime' });
+    assert.equal(h.requests.length, 0);
+    assert.deepEqual(h.destinations, [`/auth/login?redirect=${encodeURIComponent(`/hub/vip-membership/${plan}`)}`]);
+  }
 });
