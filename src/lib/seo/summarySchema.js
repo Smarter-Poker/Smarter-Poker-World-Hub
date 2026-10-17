@@ -19,9 +19,8 @@
  * actually produces rather than pattern matching the source.
  */
 
-// The extension is explicit so node can import this module directly: the law
-// reads what it produces rather than pattern matching the source.
-import { hubProductSchema, hubCollectionSchema } from './hubPageSchema.js';
+import { hubProductSchema, hubCollectionSchema, SITE, ORGANIZATION_ID, WEBSITE_ID } from './hubPageSchema.js';
+import { POKER_TRIVIA_QUIZ_QUESTIONS } from './quizStructuredData.mjs';
 
 const G = 'GameApplication';
 export const SCHEMA_ROUTES = {
@@ -82,5 +81,52 @@ export function summarySchema(page, entry) {
         trail,
         withBreadcrumb: route.breadcrumb !== false,
       });
+
+  if (page === 'trivia' || String(page).startsWith('trivia-')) {
+    const url = `${SITE}${route.path.startsWith('/') ? '' : '/'}${route.path}`;
+    const quizId = `${url}#quiz`;
+    nodes.push({
+      '@type': 'Quiz',
+      '@id': quizId,
+      name: `${entry.heading.replace(/^About (The )?/i, '')} Quiz | Smarter.Poker`,
+      description,
+      url,
+      inLanguage: 'en-US',
+      publisher: { '@id': ORGANIZATION_ID },
+      isPartOf: { '@id': WEBSITE_ID },
+      educationalLevel: 'Intermediate',
+      hasPart: POKER_TRIVIA_QUIZ_QUESTIONS.map((q, idx) => {
+        const questionId = `${quizId}-q${idx + 1}`;
+        const accepted = q.answers.find((a) => a.isCorrect);
+        const suggested = q.answers.filter((a) => !a.isCorrect);
+        return {
+          '@type': 'Question',
+          '@id': questionId,
+          name: q.question,
+          eduQuestionType: 'Multiple choice',
+          learningResourceType: 'Practice quiz',
+          text: q.question,
+          acceptedAnswer: accepted
+            ? {
+                '@type': 'Answer',
+                '@id': `${questionId}-ans-correct`,
+                text: accepted.text,
+                comment: {
+                  '@type': 'Comment',
+                  text: q.explanation || 'Correct GTO / poker strategy answer.',
+                },
+              }
+            : undefined,
+          suggestedAnswer: suggested.map((ans, sIdx) => ({
+            '@type': 'Answer',
+            '@id': `${questionId}-ans-${sIdx + 1}`,
+            text: ans.text,
+          })),
+        };
+      }),
+    });
+  }
+
   return { '@context': 'https://schema.org', '@graph': nodes };
 }
+

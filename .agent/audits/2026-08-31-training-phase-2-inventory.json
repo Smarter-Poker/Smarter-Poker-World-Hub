@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 347,
+    "dependencyFiles": 348,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 347,
@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 159,
     "markerCandidates": 335,
-    "possibleUnwiredFunctions": 381,
+    "possibleUnwiredFunctions": 382,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 275,
     "routeStateUnassignedGaps": 0,
@@ -6544,6 +6544,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -9398,6 +9399,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -10099,6 +10101,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -10356,6 +10359,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -15411,6 +15415,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -17556,6 +17561,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -49214,9 +49220,63 @@
       "markers": []
     },
     {
-      "file": "src/lib/seo/summarySchema.js",
+      "file": "src/lib/seo/quizStructuredData.mjs",
       "imports": [
         "src/lib/seo/hubPageSchema.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "buildQuizSchema",
+          "line": 69,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "buildQuizSchema"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/seo/summarySchema.js",
+      "imports": [
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/quizStructuredData.mjs"
       ],
       "links": [
         "/hub/training",
@@ -49261,7 +49321,7 @@
       "functions": [
         {
           "name": "summarySchema",
-          "line": 69,
+          "line": 68,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62623,8 +62683,16 @@
       "to": "src/lib/idbCacheStore.js"
     },
     {
+      "from": "src/lib/seo/quizStructuredData.mjs",
+      "to": "src/lib/seo/hubPageSchema.js"
+    },
+    {
       "from": "src/lib/seo/summarySchema.js",
       "to": "src/lib/seo/hubPageSchema.js"
+    },
+    {
+      "from": "src/lib/seo/summarySchema.js",
+      "to": "src/lib/seo/quizStructuredData.mjs"
     },
     {
       "from": "src/lib/serverAuth.js",
@@ -73138,6 +73206,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -74670,6 +74739,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -75199,6 +75269,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -75523,6 +75594,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -78633,6 +78705,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -80558,6 +80631,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -81225,6 +81299,7 @@
       "reachableFiles": [
         "src/components/seo/HubPageSummary.js",
         "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js"
       ],
       "apiReferences": [],
@@ -84909,9 +84984,21 @@
       "tests": []
     },
     {
+      "file": "src/lib/seo/quizStructuredData.mjs",
+      "reachableFiles": [
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/quizStructuredData.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/seo/summarySchema.js",
       "reachableFiles": [
         "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js"
       ],
       "apiReferences": [],
@@ -93297,9 +93384,24 @@
         ]
       },
       {
+        "file": "src/lib/seo/quizStructuredData.mjs",
+        "name": "buildQuizSchema",
+        "line": 69,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "test-or-audit-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
+        "externalReferenceFiles": [
+          "__tests__/gsc-series2-phase6.test.mjs"
+        ]
+      },
+      {
         "file": "src/lib/seo/summarySchema.js",
         "name": "summarySchema",
-        "line": 69,
+        "line": 68,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93308,6 +93410,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series2-phase6.test.mjs",
           "__tests__/the-summary-carries-the-schema.law.test.mjs",
           "src/components/seo/HubPageSummary.js"
         ]
@@ -102398,9 +102501,24 @@
         ]
       },
       {
+        "file": "src/lib/seo/quizStructuredData.mjs",
+        "name": "buildQuizSchema",
+        "line": 69,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "test-or-audit-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
+        "externalReferenceFiles": [
+          "__tests__/gsc-series2-phase6.test.mjs"
+        ]
+      },
+      {
         "file": "src/lib/seo/summarySchema.js",
         "name": "summarySchema",
-        "line": 69,
+        "line": 68,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102409,6 +102527,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series2-phase6.test.mjs",
           "__tests__/the-summary-carries-the-schema.law.test.mjs",
           "src/components/seo/HubPageSummary.js"
         ]
