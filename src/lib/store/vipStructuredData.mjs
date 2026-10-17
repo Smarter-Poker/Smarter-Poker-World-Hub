@@ -42,6 +42,7 @@ export function vipStructuredData(catalog) {
         '@type': 'Offer', ...ref(`${id}-card-offer`), name: `${name} With Card`,
         url: gift ? `${VIP_URL}#gifts` : `${VIP_URL}?plan=${entry.id}#vip-plans`,
         price: (amount / 100).toFixed(2), priceCurrency: 'USD',
+        availability: 'https://schema.org/OnlineOnly',
         description, seller: { '@id': ORGANIZATION_ID }, itemOffered: ref(id),
         priceSpecification: {
           '@type': recurring ? 'UnitPriceSpecification' : 'PriceSpecification',
@@ -56,7 +57,7 @@ export function vipStructuredData(catalog) {
       products.push({
         '@type': 'Product', ...ref(id), name,
         url: offer.url, image: 'https://smarter.poker/images/store-v3/vip-hero.webp',
-        description, brand: { '@id': ORGANIZATION_ID },
+        description, brand: { '@type': 'Brand', name: 'Smarter.Poker' },
         category: gift ? 'Digital VIP Gift Card' : 'VIP Membership',
         ...(cardReady ? { offers: offer } : {}),
         ...(diamondReady ? { additionalProperty: {
