@@ -28,3 +28,14 @@ before and after).
 
 A row comes back on sale when it has a real provider: a Printful product with
 its `sync_variant_id` mapped, or another integrated supplier.
+
+## The reservation tests keep running
+
+CHECK 10 (`scripts/check-economy-invariants.mjs`) needs at least seven
+`test_merch_reservation()` results. That function took its fixture from the
+first ACTIVE plain item with finite stock. With every such item off sale, it
+returned one `fixtures_available = false` row, and CHECK 10 failed on every PR.
+Migration `20261017131129` (applied 13:11 UTC) falls back to an off-sale item.
+It sets `is_active = true` only inside each probe, and that probe's
+`rollback_probe` exception undoes it. Production after a run: all 7 tests pass,
+2 items active, `card-protector-black` still off sale with stock 100.
