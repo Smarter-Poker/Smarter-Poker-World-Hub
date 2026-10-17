@@ -2048,12 +2048,16 @@ export async function readPokerReelsFeed(options = {}) {
     const limit = clampLimit(options.limit);
     const sort = normaliseSort(options.sort);
     const scope = normaliseScope(options.scope);
-    const category = normaliseCategory(options.category, scope);
+    const id = String(options.id || '').trim();
+    // A bare bookmark identifies an asset, not the Poker rail. Match the
+    // viewer's category-neutral direct-link default; explicit rails, Following
+    // authorization and the Poker-only Learning contract remain unchanged.
+    const detailCategory = id && scope !== 'following' && sort !== 'learning' ? 'for-you' : undefined;
+    const category = normaliseCategory(options.category || detailCategory, scope);
     if (sort === 'learning' && (category !== 'poker' || scope === 'following')) {
         throw new ReelsFeedInputError('Learning sort requires the public Poker category');
     }
     const cursor = parseCursor(options.cursor, sort);
-    const id = String(options.id || '').trim();
     const viewerId = String(options.viewerId || '').trim();
     if (scope === 'following' && !UUID_RE.test(viewerId)) {
         throw new ReelsFeedInputError('Authentication required for the Following feed');
