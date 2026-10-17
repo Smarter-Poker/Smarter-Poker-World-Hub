@@ -8,7 +8,7 @@
  * Renders nothing.
  */
 import { useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { getAccessToken } from '../../lib/authUtils';
 import { lookupPendingJoinPath } from '../../lib/clubInvite';
 
 export const PENDING_INVITE_FORWARDED_KEY = 'sp-pending-invite-forwarded';
@@ -24,8 +24,10 @@ export default function PendingInviteForward({ enabled = true }) {
         let cancelled = false;
         (async () => {
             try {
-                const { data } = await supabase.auth.getSession();
-                const token = data?.session?.access_token;
+                // Stored session token, read without a GoTrue round-trip (the
+                // repo's auth rule). An expired token makes the lookup answer
+                // "could not ask", so the forward simply tries again next visit.
+                const token = getAccessToken();
                 if (!token || cancelled) return;
                 const path = await lookupPendingJoinPath(token);
                 if (path === undefined || cancelled) return; // could not ask: try next visit
