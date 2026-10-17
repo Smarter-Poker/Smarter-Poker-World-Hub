@@ -26,6 +26,7 @@ https://smarter.poker/about is the page that states it.
 - Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
 - Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue and series routes, e.g. https://smarter.poker/hub/venues/1832.md)
+- Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Supports JSON-RPC 2.0 via POST, SSE via GET /api/mcp?transport=sse)
 - Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
 
