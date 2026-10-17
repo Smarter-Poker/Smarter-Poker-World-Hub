@@ -346,7 +346,10 @@ async function runMarketplaceReadiness({
         })
       : { reachable: false, reason: 'missing_configuration', latencyMs: null },
     printfulConfigured
-      ? fetchHealth('https://api.printful.com/store', {
+      // Probe the endpoint fulfillment actually uses (orders scope). GET
+      // /store rejected the production token while catalog reads with the
+      // same token succeed, so it was not measuring fulfillment.
+      ? fetchHealth('https://api.printful.com/orders?limit=1', {
           fetchImpl,
           timeoutMs,
           headers: {

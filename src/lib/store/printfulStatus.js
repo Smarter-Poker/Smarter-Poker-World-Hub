@@ -115,6 +115,19 @@ async function readPrintfulStatus({
     result.errors.push(`Webhook configuration read failed (${hook.status})`);
   }
 
+  // What this token can reach: the store-info endpoint the readiness probe
+  // used to call, and the orders endpoint fulfillment actually uses. Status
+  // codes only; an order list's body never leaves this function.
+  result.probes = {};
+  for (const path of ['/store', '/orders?limit=1']) {
+    const probe = await printfulGet(path, ctx);
+    result.probes[path] = {
+      ok: probe.ok,
+      status: probe.status,
+      reason: probe.ok ? null : clean(probe.payload?.error?.message ?? probe.payload?.result, 160),
+    };
+  }
+
   for (let offset = 0; offset < MAX_SYNC_PRODUCTS; offset += 100) {
     const page = await printfulGet(`/store/products?limit=100&offset=${offset}`, ctx);
     if (!page.ok) {
