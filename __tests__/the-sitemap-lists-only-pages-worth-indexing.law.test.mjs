@@ -24,6 +24,7 @@
  * Reads source files; runs in the Build Safety Gate with no install.
  */
 import test from 'node:test';
+import { vipProductPath } from '../src/lib/store/vipStructuredData.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -31,6 +32,15 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+// Resolve only the six SSR-allowlisted VIP routes to their actual page owner.
+const pageCandidates = (route) => {
+  const vip = /^\/hub\/vip-membership\/(gift\/)?(monthly|yearly|lifetime)$/.exec(route);
+  if (vip && vipProductPath(vip[2], !!vip[1]) === route) {
+    return [`pages/hub/vip-membership/${vip[1] || ''}[plan].js`];
+  }
+  return route === '/' ? ['pages/index.js']
+    : [`pages${route}.js`, `pages${route}/index.js`, `pages${route}.jsx`, `pages${route}/index.jsx`];
+};
 const sitemapPaths = () =>
   [...read('pages/sitemap.xml.js').matchAll(/\{ path: '([^']+)'/g)].map((m) => m[1]);
 
@@ -76,8 +86,7 @@ test('no route the sitemap lists is only a redirect', () => {
   // mount (AEO phase 3, 2026-09-18).
   const offenders = [];
   for (const route of sitemapPaths()) {
-    const candidates =
-      route === '/' ? ['pages/index.js'] : [`pages${route}.js`, `pages${route}/index.js`];
+    const candidates = pageCandidates(route);
     const file = candidates.find((f) => fs.existsSync(path.join(ROOT, f)));
     if (!file) continue;
     const src = read(file);
@@ -99,8 +108,7 @@ test('the sitemap never offers a page that tells crawlers not to index it', () =
   // a different URL (AEO phase 3, 2026-09-18).
   const offenders = [];
   for (const route of sitemapPaths()) {
-    const candidates =
-      route === '/' ? ['pages/index.js'] : [`pages${route}.js`, `pages${route}/index.js`];
+    const candidates = pageCandidates(route);
     const file = candidates.find((f) => fs.existsSync(path.join(ROOT, f)));
     if (!file) continue;
     const src = read(file);
@@ -124,8 +132,7 @@ test('no admin console is advertised in the public sitemap', () => {
   // or ships a password form fails here, whether or not anyone named it.
   const offenders = [];
   for (const route of sitemapPaths()) {
-    const candidates =
-      route === '/' ? ['pages/index.js'] : [`pages${route}.js`, `pages${route}/index.js`];
+    const candidates = pageCandidates(route);
     const file = candidates.find((f) => fs.existsSync(path.join(ROOT, f)));
     if (!file) continue;
     const src = read(file);
@@ -151,10 +158,7 @@ test('every route the sitemap promises is a route that exists', () => {
   // A sitemap entry with no page behind it is a 404 the site asked for.
   const missing = [];
   for (const route of sitemapPaths()) {
-    const candidates =
-      route === '/'
-        ? ['pages/index.js']
-        : [`pages${route}.js`, `pages${route}/index.js`, `pages${route}.jsx`, `pages${route}/index.jsx`];
+    const candidates = pageCandidates(route);
     if (!candidates.some((file) => fs.existsSync(path.join(ROOT, file)))) missing.push(route);
   }
   assert.deepEqual(missing, [], `the sitemap lists routes with no page:\n${missing.join('\n')}`);
@@ -179,5 +183,16 @@ test('the routes that carry the products are still there', () => {
     '/hub/trivia',
   ]) {
     assert.ok(listed.has(route), `the sitemap must still list ${route}`);
+  }
+});
+
+
+test('VIP sitemap resolution accepts real product terms and refuses unknown dynamic terms', () => {
+  for (const gift of [false, true]) for (const plan of ['monthly', 'yearly', 'lifetime']) {
+    const route = vipProductPath(plan, gift);
+    assert.deepEqual(pageCandidates(route), [`pages/hub/vip-membership/${gift ? 'gift/' : ''}[plan].js`]);
+  }
+  for (const route of ['/hub/vip-membership/daily', '/hub/vip-membership/gift/daily']) {
+    assert.equal(pageCandidates(route).some(file => file.includes('[plan]')), false);
   }
 });
