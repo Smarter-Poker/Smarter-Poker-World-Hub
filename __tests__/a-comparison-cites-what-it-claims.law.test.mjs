@@ -74,6 +74,10 @@ const EXPECTED_SLUGS = [
   'club-commander-vs-bravo-poker-live',
   'best-gto-poker-trainers',
   'best-poker-bankroll-trackers',
+  'bellagio-vs-aria-poker',
+  'commerce-casino-vs-the-bicycle-hotel-poker',
+  'best-poker-rooms-in-las-vegas',
+  'best-poker-rooms-in-texas',
 ];
 
 /** Other names a product goes by in running copy. */
@@ -82,6 +86,12 @@ const ALIASES = {
   suprema: ['Suprema Poker'],
   pokerstarsHomeGames: ['PokerStars Home Games'],
   tablecaptain: ['TableCaptain'],
+  bellagio: ['Bellagio'],
+  aria: ['Aria'],
+  bike: ['The Bike', 'The Bicycle Hotel'],
+  commerce: ['Commerce'],
+  lodge: ['The Lodge', 'The Lodge Card Club'],
+  tchDallas: ['Texas Card House', 'Texas Card House Dallas'],
 };
 
 const allFacts = () =>
@@ -89,11 +99,11 @@ const allFacts = () =>
     Object.entries(product.facts).map(([key, value]) => ({ productId, key, value }))
   );
 
-test('there are eleven comparison pages, each with a unique slug, and no sweepstakes page', () => {
+test('there are fifteen comparison pages, each with a unique slug, and no sweepstakes page', () => {
   assert.deepEqual(
     COMPARE_PAGES.map((page) => page.slug),
     EXPECTED_SLUGS,
-    'the eleven pages of section 3.3, in order'
+    'the fifteen pages of comparisons, in order'
   );
   assert.equal(new Set(COMPARE_PAGES.map((page) => page.slug)).size, COMPARE_PAGES.length, 'slugs are unique');
   for (const page of COMPARE_PAGES) assert.match(page.slug, /^[a-z0-9]+(?:-[a-z0-9]+)*$/, `${page.slug} is a clean slug`);
