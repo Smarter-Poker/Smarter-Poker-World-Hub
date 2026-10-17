@@ -1455,6 +1455,7 @@ jobs:
             __tests__/gsc-series2-phase1.test.mjs \
             __tests__/gsc-series2-phase2.test.mjs \
             __tests__/gsc-series2-phase3.test.mjs \
+            __tests__/gsc-series2-phase4.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             __tests__/every-title-fits-a-result-and-every-page-says-what-it-is.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
