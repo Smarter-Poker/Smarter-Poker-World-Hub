@@ -149,7 +149,7 @@ test('strict readiness proves the exact Phase 7 schema marker and live provider 
   assert.equal(result.dependencies.supabase.schemaMarker, MARKETPLACE_PHASE7_SCHEMA_MARKER);
   assert.equal(result.dependencies.supabase.schemaMarkerReady, true);
   assert.deepEqual(requested.map((request) => request.url).sort(), [
-    'https://api.printful.com/store',
+    'https://api.printful.com/orders?limit=1',
     'https://api.stripe.com/v1/balance',
   ]);
   const serialized = JSON.stringify(result);

@@ -79,6 +79,8 @@ test('reports the webhook without ever returning its secret, and maps sync varia
     'read only'
   );
   assert.equal(calls[0].init.headers['X-PF-Store-Id'], '123');
+  assert.deepEqual(Object.keys(out.probes), ['/store', '/orders?limit=1']);
+  assert.equal(JSON.stringify(out.probes).includes('tkn-zq9x'), false);
 });
 
 test('without a token it says so and calls nothing', async () => {
