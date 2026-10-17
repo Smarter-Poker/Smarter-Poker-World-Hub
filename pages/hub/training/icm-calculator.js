@@ -13,12 +13,45 @@
 // TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback } from 'react';
 import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import VerifiedToolGateway from '../../../src/components/training/VerifiedToolGateway';
+
+const ICM_CALCULATOR_SCHEMA = hubProductSchema({
+  path: '/hub/training/icm-calculator',
+  name: 'Smarter.Poker Tournament ICM Calculator',
+  description: 'Free Tournament ICM Equity Calculator. Convert Chip Stacks To Real Dollar Values Using The Malmuth-Harville Model For Final Table And Bubble Decisions.',
+  applicationCategory: 'GameApplication',
+  applicationSubCategory: 'Poker',
+  trail: [['Hub', '/hub'], ['GTO Training', '/hub/training'], ['ICM Calculator', '/hub/training/icm-calculator']],
+  faqs: [
+    {
+      question: 'What is ICM in tournament poker?',
+      answer:
+        'ICM (Independent Chip Model) is a mathematical model that translates tournament chip stacks into their actual expected dollar equity based on the remaining prize pool distribution.',
+    },
+    {
+      question: 'Why do chip values decrease as stacks grow larger in tournaments?',
+      answer:
+        'Because tournament payout structures award fixed prizes to top finishes rather than exchanging chips directly for cash. Your first chip is worth the most (qualifying for min-cashes), while chips that exceed first-place prize equity have diminishing marginal dollar value.',
+    },
+    {
+      question: 'How does ICM affect calling ranges on the bubble?',
+      answer:
+        'ICM creates risk asymmetry where losing chips hurts significantly more than gaining the same number of chips helps. This forces players to tighten calling ranges drastically against all-in bets near pay jumps and bubbles.',
+    },
+    {
+      question: 'Which algorithm does this ICM calculator use?',
+      answer:
+        'This calculator runs the canonical Malmuth-Harville multi-place probability model to calculate exact finish-distribution odds for every seat at final tables up to 9 players.',
+    },
+  ],
+});
 
 // TRAIN-CSS-MOTION-ADOPT-4 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -207,11 +240,18 @@ export default function ICMCalculatorPage() {
 
   return (
     <>
+      <SEOHead
+        title="Tournament ICM Calculator"
+        description="Free Tournament ICM Calculator. Convert Chip Stacks To Real Dollar Values Using The Malmuth-Harville Model For Final Table And Bubble Decisions."
+        canonical="https://smarter.poker/hub/training/icm-calculator"
+      />
       <Head>
-        <title>ICM Calculator | Smarter.Poker GTO Training</title>
-        <meta
-          name="description"
-          content="Tournament ICM equity calculator. Convert chip stacks to dollar equity using the Malmuth-Harville model."
+        <script
+          key="icm-calculator-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(ICM_CALCULATOR_SCHEMA).replace(/</g, '\\u003c'),
+          }}
         />
       </Head>
 

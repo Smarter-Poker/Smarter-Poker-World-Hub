@@ -58,6 +58,11 @@ const PREFLOP_SCHEMA = hubProductSchema({
       answer:
         'Shallow stacks (15-25bb) favor high-card equity and push/fold decisions, while deep stacks (100bb+) increase the implied odds value of suited connectors, pocket pairs, and suited aces.',
     },
+    {
+      question: 'What is a push/fold chart in tournament poker?',
+      answer:
+        'A push/fold chart provides mathematically solved Nash equilibrium ranges for whether to go all-in or fold preflop when your stack depth falls below 15 big blinds, eliminating postflop disadvantage.',
+    },
   ],
 });
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';

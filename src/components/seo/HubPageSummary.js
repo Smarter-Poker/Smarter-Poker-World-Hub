@@ -145,6 +145,17 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track What The Practice Changes In Real Sessions.' },
     ],
   },
+  'poker-tools': {
+    heading: 'About The Smarter Poker Odds Calculator',
+    lead:
+      'The Smarter Poker Odds Calculator Computes Real-Time Hand Equity For Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud And Razz. Run Exact Multiway Monte Carlo Simulations Against Up To Six Opponents, Analyze Flop, Turn And River Textures, Factor Dead Cards, And Test Critical Tournament Scenarios With Zero Account Sign-Up Or Fees.',
+    links: [
+      { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Master Position-Based Opening And Push-Fold Ranges.' },
+      { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Solver-Grade Training Scenarios With Live Feedback.' },
+      { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Real Sessions, Hourly Win Rates And Variance.' },
+      { name: 'Poker Strategy Lessons', href: '/learn', text: 'Step-By-Step Guides On Pot Odds, Implied Odds And Expected Value.' },
+    ],
+  },
   'poker-near-me': {
     heading: 'About Poker Near Me',
     lead:
