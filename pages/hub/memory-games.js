@@ -105,9 +105,12 @@ import { useHaptics } from '../../src/hooks/useHaptics';
 import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
 import { TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
-const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), {
-  ssr: false,
-});
+// Server-rendered (2026-10-16). Loaded with ssr:false, the wrapper kept the
+// whole lab out of the server HTML: a phone painted only the summary and the
+// written-out ranges, then hydration inserted ~4,400px of lab above them and
+// moved everything down (mobile CLS 1.05). With disableInitialAnimation the
+// wrapper is a plain div, identical on the server and the client.
+import PageTransition from '../../src/components/transitions/PageTransition';
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), {
   ssr: false,
 });

@@ -1538,27 +1538,6 @@ function NewsHub() {
                         )}
                     </AnimatePresence>
 
-                    {/* Skeleton Loading State — additive, never exclusive with the layout:
-                        the SWR key carries the debounced search term, so `loading` flips back
-                        to true on every new search. Unmounting the layout there would destroy
-                        the search input (and the filters/sidebar) mid-typing.
-                        `!hasLoadedNews` scopes it to the FIRST page: with offset pagination
-                        `loading` also flips on every infinite-scroll page, and the skeleton
-                        must not reappear above an already-populated feed. */}
-                    {loading && !hasLoadedNews && (
-                        <div className="skeleton-grid" aria-hidden="true">
-                            {[...Array(6)].map((_, i) => (
-                                <div key={i} className="skeleton-card">
-                                    <div className="skeleton-image shimmer" />
-                                    <div className="skeleton-content">
-                                        <div className="skeleton-line shimmer" style={{ width: '85%' }} />
-                                        <div className="skeleton-line shimmer" style={{ width: '60%' }} />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
                     {/* Main Layout */}
                     <div className="layout">
                         {/* Left Column - News Boxes */}
@@ -1834,7 +1813,25 @@ function NewsHub() {
                                 <>
                                     {/* News Grid - source-specific intelligence boxes */}
                                     <section className="news-section">
-                                        {feedFilter === 'bookmarks' && topArticles.length === 0 && remainingStories.length === 0 ? (
+                                        {loading && !hasLoadedNews ? (
+                                            // First-load skeleton, in the place the stories will
+                                            // occupy. It used to sit ABOVE the whole layout, so
+                                            // removing it when the feed arrived moved the masthead,
+                                            // tabs and search up by the skeleton's height (mobile
+                                            // CLS 0.82). `!hasLoadedNews` keeps it to the first
+                                            // page: searches and further pages keep the feed.
+                                            <div className="skeleton-grid" aria-hidden="true">
+                                                {[...Array(6)].map((_, i) => (
+                                                    <div key={i} className="skeleton-card">
+                                                        <div className="skeleton-image shimmer" />
+                                                        <div className="skeleton-content">
+                                                            <div className="skeleton-line shimmer" style={{ width: '85%' }} />
+                                                            <div className="skeleton-line shimmer" style={{ width: '60%' }} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : feedFilter === 'bookmarks' && topArticles.length === 0 && remainingStories.length === 0 ? (
                                             <div className="no-results">
                                                 <BookmarkCheck size={48} />
                                                 <p>No Bookmarked Articles Yet</p>
