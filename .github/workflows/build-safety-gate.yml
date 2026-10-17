@@ -1346,6 +1346,7 @@ jobs:
             __tests__/gdpr-financial-refusal.test.mjs \
             tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \
+            __tests__/a-signup-code-is-never-dropped.law.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
             __tests__/retired-error-provider.test.mjs \
             __tests__/notification-feed-recovery.test.mjs \
