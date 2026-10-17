@@ -40,7 +40,7 @@ export function vipStructuredData(catalog) {
       const recurring = !gift && term.days !== null;
       const offer = {
         '@type': 'Offer', ...ref(`${id}-card-offer`), name: `${name} With Card`,
-        url: gift ? `${VIP_URL}#gifts` : `${VIP_URL}?plan=${entry.id}#vip-plans`,
+        url: `https://smarter.poker${vipProductPath(plan, gift)}`,
         price: (amount / 100).toFixed(2), priceCurrency: 'USD',
         availability: 'https://schema.org/OnlineOnly',
         description, seller: { '@id': ORGANIZATION_ID }, itemOffered: ref(id),
@@ -83,5 +83,38 @@ export function vipStructuredData(catalog) {
     },
     breadcrumbSchema([['Hub', '/hub'], ['VIP Membership', '/hub/vip-membership']]),
     ...catalogs, ...products,
+  ] };
+}
+
+/** Canonical routes and SSR props share a strict allowlist, never a query price. */
+export function vipProductPath(plan, gift = false) {
+  if (typeof plan !== 'string' || !Object.hasOwn(VIP_TERMS, plan)) return null;
+  return `/hub/vip-membership/${gift ? 'gift/' : ''}${plan}`;
+}
+
+export function vipProductPageProps({ params, res }, gift = false) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  if (typeof params?.plan !== 'string' || !vipProductPath(params.plan, gift)) return { notFound: true };
+  return { props: { vipProduct: { plan: params.plan, gift } } };
+}
+
+export function vipProductStructuredData(catalog, plan, gift = false) {
+  const path = vipProductPath(plan, gift);
+  if (!path) return null;
+  const graph = vipStructuredData(catalog)['@graph'];
+  const product = graph.find(item => item['@id'] === `${VIP_URL}#${gift ? 'gift' : 'membership'}-${plan}`);
+  if (!product) return null;
+  const url = `https://smarter.poker${path}`;
+  const id = `${url}#product`;
+  const item = { ...product, '@id': id, url, mainEntityOfPage: { '@id': `${url}#page` },
+    ...(product.offers ? { offers: { ...product.offers, '@id': `${url}#card-offer`, url, itemOffered: { '@id': id } } } : {}) };
+  const breadcrumb = breadcrumbSchema([['Hub', '/hub'], ['VIP Membership', '/hub/vip-membership'],
+    [`${VIP_TERMS[plan].label} VIP${gift ? ' Gift Card' : ''}`, path]]);
+  return { '@context': 'https://schema.org', '@graph': [
+    ...graph.filter(node => ['Organization', 'WebSite'].includes(node['@type'])),
+    { '@type': 'WebPage', '@id': `${url}#page`, url, name: `${item.name} | Smarter.Poker`,
+      description: item.description, inLanguage: 'en-US', isPartOf: { '@id': WEBSITE_ID },
+      mainEntity: { '@id': id }, breadcrumb: { '@id': breadcrumb['@id'] } },
+    breadcrumb, item,
   ] };
 }

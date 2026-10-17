@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { vipStructuredData, VIP_URL, vipGiftTerms, vipMembershipTerms } from '../src/lib/store/vipStructuredData.mjs';
+import { vipStructuredData, vipProductStructuredData, vipProductPath, vipProductPageProps, VIP_URL, vipGiftTerms, vipMembershipTerms } from '../src/lib/store/vipStructuredData.mjs';
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 // Execute the actual catalog declaration, not a second hand-written price table.
 const catalog = vm.runInNewContext(`(${read('src/data/diamondStoreData.js').match(/export const VIP_MEMBERSHIP = (\{[\s\S]*?\n\});/)[1]})`);
@@ -83,7 +83,7 @@ test('server page owns the graph, escapes script text, and public terms are not 
   const store = read('pages/hub/diamond-store.js');
   assert.match(store, /activeTab === 'vip'\) return vipStructuredData\(VIP_MEMBERSHIP\)/);
   const serialize = store.split('\n').find(line => line.includes('__html: JSON.stringify(storeStructuredData')).split('__html: ')[1].split(' }}')[0];
-  const value = vm.runInNewContext(serialize, { storeStructuredData: () => ({ description: '</script><script>alert(1)</script>' }), activeTab: 'vip' });
+  const value = vm.runInNewContext(serialize, { storeStructuredData: () => ({ description: '</script><script>alert(1)</script>' }), activeTab: 'vip', vipProduct: null });
   assert.equal(value.includes('<'), false);
   assert.equal(JSON.parse(value).description, '</script><script>alert(1)</script>');
   const gifts = read('src/components/store/VipGifts.jsx');
@@ -106,4 +106,55 @@ test('Google merchant listings receive Brand objects and online-only availabilit
     assert.equal(item.offers.availability, 'https://schema.org/OnlineOnly');
     assert.equal(item.offers.seller['@id'], 'https://smarter.poker/#organization');
   }
+});
+
+
+test('six strict product routes each publish exactly one canonical Product and one priced Offer', () => {
+  const seen = new Set();
+  for (const gift of [false, true]) for (const plan of Object.keys(catalog)) {
+    const path = vipProductPath(plan, gift);
+    assert.equal(seen.has(path), false); seen.add(path);
+    const graph = vipProductStructuredData(catalog, plan, gift)['@graph'];
+    assert.equal(graph.filter(n => n['@type'] === 'Product').length, 1);
+    assert.equal(graph.some(n => n['@type'] === 'OfferCatalog'), false);
+    const item = graph.find(n => n['@type'] === 'Product');
+    const page = graph.find(n => n['@type'] === 'WebPage');
+    assert.equal(item.url, `https://smarter.poker${path}`);
+    assert.equal(page.url, item.url);
+    assert.equal(page.mainEntity['@id'], item['@id']);
+    assert.equal(item.offers.url, item.url);
+    assert.equal(item.offers.price, Number(catalog[plan].price).toFixed(2));
+    assert.equal(item.additionalProperty.value, Math.round(catalog[plan].price * 100));
+    assert.equal(item.description.includes(gift ? vipGiftTerms(plan) : vipMembershipTerms(plan)), true);
+    const result = vipProductPageProps({ params: { plan }, res: { setHeader() {} }, query: { plan: 'vip-lifetime' } }, gift);
+    assert.deepEqual(result.props.vipProduct, { plan, gift });
+    for (const file of ['pages/sitemap.xml.js', 'src/lib/seo/sitemapBuilders.mjs']) assert.ok(read(file).includes(`path: '${path}'`));
+  }
+  for (const plan of ['daily', 'toString', '__proto__', '', undefined, ['monthly']]) {
+    assert.deepEqual(vipProductPageProps({ params: { plan }, res: { setHeader() {} } }), { notFound: true });
+  }
+});
+
+test('single-product UI binds the term, retains direct payment handlers and safe gift recovery', () => {
+  const store = read('pages/hub/diamond-store.js');
+  assert.match(store, /activeTab !== 'vip' \|\| vipProduct/);
+  assert.match(store, /useState\(vipProduct \? `vip-\$\{vipProduct.plan\}`/);
+  assert.match(store, /onClick=\{handleVIPSubscribe\}/);
+  assert.match(store, /openVipDiamondReview\(selectedVIPPlan/);
+  assert.match(store, /productPlan=\{vipProduct\?\.plan\}/);
+  const gifts = read('src/components/store/VipGifts.jsx');
+  assert.match(gifts, /productPlan && saved.plan !== productPlan/);
+  assert.match(gifts, /productPlan && gift.plan !== productPlan/);
+  assert.match(gifts, /productPlan && plan !== productPlan/);
+  assert.match(gifts, /disabled=\{busy \|\| !!pending \|\| !!productPlan\}/);
+  for (const file of ['pages/hub/vip-membership/[plan].js', 'pages/hub/vip-membership/gift/[plan].js']) {
+    assert.match(read(file), /vipProductPageProps\(context, (true|false)\)/);
+    assert.match(read(file), /key=\{`\$\{props.vipProduct.gift\}:\$\{props.vipProduct.plan\}`\}/);
+  }
+});
+
+
+test('VIP legal copy reflects gift returns instead of the generic all-final policy', () => {
+  const store = read('pages/hub/diamond-store.js');
+  assert.match(store, /activeTab === 'vip'[\s\S]*?Unredeemed VIP Gift Cards Can Be Returned To The Sender Through Gift History/);
 });

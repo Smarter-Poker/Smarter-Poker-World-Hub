@@ -455,7 +455,7 @@ test('Diamond package cards expose a readable commerce hierarchy without ornamen
   // Marketplace commerce link, with no clearance on body or main.
   assert.match(
     app,
-    /const suppressWorldFooterOnMarketplaceStore =\s*MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES\.has\(resolvedPath\);/
+    /const suppressWorldFooterOnMarketplaceStore =\s*MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES\.has\(resolvedPath\) \|\|\s*MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES\.has\(router\.pathname\);/
   );
   for (const route of [
     '/hub/diamond-store',

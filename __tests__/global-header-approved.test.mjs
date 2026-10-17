@@ -248,7 +248,7 @@ test('mobile unread badges keep the notification bell visible and the number rea
   assert.match(header, /font-size: clamp\(7px, 1vw, 10px\)/);
 });
 
-test('all 273 Hub page modules own the shared header or inherit the app-root fallback', () => {
+test('all 275 Hub page modules own the shared header or inherit the app-root fallback', () => {
   const files = walk(join(root, 'pages/hub'));
   const filesByRoute = new Map(files.map((file) => [pageRoute(file), file]));
   const fallbackBlock = appRoot.match(
@@ -272,9 +272,9 @@ test('all 273 Hub page modules own the shared header or inherit the app-root fal
     .filter((route) => moduleOwnsHeader(filesByRoute.get(route)))
     .sort();
 
-  // Phase 4 intent landing pages adds /hub/tournaments/this-weekend with its own UniversalHeader.
+  // Individual membership and gift product modules inherit the shared store header.
   // Preserve the complete route inventory and the same uncovered/duplicate assertions.
-  assert.equal(files.length, 273);
+  assert.equal(files.length, 275);
   assert.deepEqual(uncovered, []);
   assert.deepEqual(duplicateHeaders, []);
   assert.match(appRoot, /!trainingPageOwnsHeader && <UniversalHeader/);

@@ -156,7 +156,7 @@ const routeSet = (rel, identifier) => {
     const opening = new RegExp(`${identifier}\\s*=\\s*new Set\\(\\[`).exec(source);
     assert.ok(opening, `${rel} no longer declares ${identifier} as a Set literal`);
     const start = opening.index + opening[0].length;
-    const end = source.indexOf(']', start);
+    const end = source.indexOf('\n]', start);
     assert.ok(end > start, `${rel} declares ${identifier} without a closing bracket`);
     return source.slice(start, end)
         .split(',')

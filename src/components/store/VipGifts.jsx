@@ -1,4 +1,4 @@
-import { VIP_TERMS, vipGiftTerms } from '../../lib/store/vipStructuredData.mjs';
+import { VIP_TERMS, vipGiftTerms, vipProductPath } from '../../lib/store/vipStructuredData.mjs';
 import { useEffect, useRef, useState } from 'react';
 import { VIP_MEMBERSHIP } from '../../data/diamondStoreData';
 import { getVerifiedCheckoutAuthorization } from '../../lib/store/checkoutAuthorization';
@@ -12,14 +12,15 @@ const price = (n) => `$${(n / 100).toFixed(2)}`;
 const statusNames = { pending: 'Awaiting Card Payment', available: 'Ready To Redeem', redeemed: 'Redeemed',
   refunded: 'Returned', disputed: 'Payment Disputed', return_pending: 'Return Processing', expired: 'Checkout Expired. No Gift Sent' };
 
-export default function VipGifts({ accountId }) {
+export default function VipGifts({ accountId, productPlan = null }) {
   const [open, setOpen] = useState(false);
   const [friends, setFriends] = useState([]);
   const [gifts, setGifts] = useState([]);
   const [cursor, setCursor] = useState(null);
   const [people, setPeople] = useState([]);
   const [recipient, setRecipient] = useState('');
-  const [plan, setPlan] = useState('monthly');
+  const [plan, setPlan] = useState(productPlan || 'monthly');
+  const [otherPending, setOtherPending] = useState(false);
   const [method, setMethod] = useState('card');
   const [review, setReview] = useState(null);
   const [pending, setPending] = useState(null);
@@ -64,7 +65,11 @@ export default function VipGifts({ accountId }) {
       if (saved && sameGiftOffer(saved.offerConfirmation,
         vipGiftOffer(accountId, saved.recipientId, saved.plan, saved.method, VIP_MEMBERSHIP))) {
         const completed = history.gifts.some(g => g.requestId === saved.requestId && g.status !== 'pending');
-        if (completed) savePending(null);
+        if (completed) { savePending(null); setOtherPending(false); }
+        else if (productPlan && saved.plan !== productPlan) {
+          setOtherPending(true);
+          setMessage('You Have An Unfinished Gift For Another Term. Open All VIP Options To Resume It Before Starting This Gift.');
+        }
         else { setPending(saved); setReview(saved); setRecipient(saved.recipientId); setPlan(saved.plan); setMethod(saved.method); }
       }
     } catch (error) { if (current()) setMessage(error.name === 'AbortError' ? 'Loading Timed Out. Please Refresh Your Gifts.' : error.message); }
@@ -82,6 +87,9 @@ export default function VipGifts({ accountId }) {
     finally { lock.current = false; if (mounted.current) setBusy(false); }
   }
   function resume(gift) {
+    if (productPlan && gift.plan !== productPlan) {
+      setMessage('Open All VIP Options To Resume This Gift With Its Original Terms.'); return;
+    }
     const offer = vipGiftOffer(accountId, gift.recipientId, gift.plan, gift.method, VIP_MEMBERSHIP);
     if (!offer || offer.amount !== gift.amount || !gift.requestId) {
       setMessage('This Saved Gift Needs Its Original Purchase Terms. Refresh Gifts To Check Its Status.'); return;
@@ -91,7 +99,7 @@ export default function VipGifts({ accountId }) {
     savePending(payload); setReview(payload); setRecipient(gift.recipientId); setPlan(gift.plan); setMethod(gift.method);
   }
   async function purchase() {
-    if (lock.current || !review) return;
+    if (lock.current || !review || otherPending || (productPlan && plan !== productPlan)) return;
     lock.current = true; setBusy(true); setMessage('');
     let payload = pending;
     try {
@@ -141,24 +149,26 @@ export default function VipGifts({ accountId }) {
   return <section id="gifts" className={styles.section} aria-labelledby="vip-gifts-title">
     <div className={theme.sectionHeading}>
       <span className={theme.membershipLabel}>Give Them An Edge</span>
-      <h2 id="vip-gifts-title">Gift A VIP</h2>
-      <p>Send A Friend A Monthly, Yearly, Or Lifetime VIP Gift Card. Pay Once With A Card Or Diamonds. They Choose When To Redeem.</p>
+      <h2 id="vip-gifts-title">{productPlan ? `${names[productPlan]} VIP Gift Card` : 'Gift A VIP'}</h2>
+      <p>{productPlan ? vipGiftTerms(productPlan) : 'Send A Friend A Monthly, Yearly, Or Lifetime VIP Gift Card. Pay Once With A Card Or Diamonds. They Choose When To Redeem.'}</p>
     </div>
     <p>You Must Be Accepted Friends Before Sending A Gift.</p>
     <ul role="list" className={styles.publicTerms} aria-label="VIP Gift Card Prices And Terms">
-      {Object.entries(VIP_TERMS).map(([key, term]) => <li key={key}>
+      {Object.entries(VIP_TERMS).filter(([key]) => !productPlan || key === productPlan).map(([key, term]) => <li key={key}>
         <strong>{term.label} VIP Gift Card</strong>
         <span>${Number(VIP_MEMBERSHIP[key].price).toFixed(2)} Or {Math.round(VIP_MEMBERSHIP[key].price * 100).toLocaleString('en-US')} Diamonds</span>
         <small>{vipGiftTerms(key)}</small>
+        {!productPlan && <a className={theme.action} href={vipProductPath(key, true)}>View {term.label} Gift Card</a>}
       </li>)}
     </ul>
-    {!accountId ? <a className={`${theme.action} ${theme.primaryAction}`} href="/auth/login?redirect=%2Fhub%2Fvip-membership%23gifts">Sign In To Gift A VIP</a> : <>
+    {!accountId ? <a className={`${theme.action} ${theme.primaryAction}`} href={productPlan ? `/auth/login?redirect=${encodeURIComponent(vipProductPath(productPlan, true) + '#gifts')}` : '/auth/login?redirect=%2Fhub%2Fvip-membership%23gifts'}>Sign In To Gift A VIP</a> : <>
       <button type="button" className={`${theme.action} ${theme.primaryAction}`} aria-expanded={open} aria-controls="vip-gift-workspace"
         onClick={() => { setOpen(!open); if (!open && !loaded) refresh(); }}>Gift A VIP / My Gift Cards</button>
       {open && <div id="vip-gift-workspace" className={styles.workspace}>
         <div className={styles.form}>
           <h3>Send A VIP Gift Card</h3>
-          <p>You Must Be Accepted Friends Before Sending A Gift. Monthly And Yearly Cards Never Renew Automatically.</p>
+          <p>You Must Be Accepted Friends Before Sending A Gift. Gift Cards Never Renew Automatically.</p>
+          {productPlan && <a className={theme.action} href="/hub/vip-membership#gifts">All VIP Options / Gift History</a>}
           {!loaded ? <p>{busy ? 'Loading Your Friends And Gifts...' : 'Your Friends Could Not Be Loaded.'}</p> : <>
             {!friends.length && !pending ? <p>No Accepted Friends Yet. <a href="/hub/friends">Add A Friend</a> Before Sending A Gift.</p> : <>
               <label htmlFor="vip-gift-friend">Choose A Friend</label>
@@ -168,8 +178,8 @@ export default function VipGifts({ accountId }) {
                 {friends.map(f => <option key={f.id} value={f.id}>{f.display_name || f.username || 'Friend'}</option>)}
               </select>
               <label htmlFor="vip-gift-plan">Gift Membership</label>
-              <select id="vip-gift-plan" value={plan} disabled={busy || !!pending} onChange={e => { setPlan(e.target.value); setReview(null); }}>
-                {Object.keys(names).map(key => <option key={key} value={key}>{names[key]} VIP</option>)}
+              <select id="vip-gift-plan" value={plan} disabled={busy || !!pending || !!productPlan} onChange={e => { setPlan(e.target.value); setReview(null); }}>
+                {Object.keys(names).filter(key => !productPlan || key === productPlan).map(key => <option key={key} value={key}>{names[key]} VIP</option>)}
               </select>
               <label htmlFor="vip-gift-payment">Payment Method</label>
               <select id="vip-gift-payment" value={method} disabled={busy || !!pending} onChange={e => { setMethod(e.target.value); setReview(null); }}>
@@ -182,7 +192,7 @@ export default function VipGifts({ accountId }) {
               </div>
               <p className={styles.price}>{method === 'card' ? price(Math.round(VIP_MEMBERSHIP[plan].price * 100))
                 : `${Math.round(VIP_MEMBERSHIP[plan].price * 100).toLocaleString('en-US')} Diamonds`} <span>One-Time Gift</span></p>
-              {!review ? <button type="button" className={theme.action} disabled={!recipient || busy}
+              {!review ? <button type="button" className={theme.action} disabled={!recipient || busy || otherPending}
                 onClick={() => setReview(vipGiftOffer(accountId, recipient, plan, method, VIP_MEMBERSHIP))}>Review Gift</button>
                 : <div className={styles.review}>
                   <h4>Review Your Gift</h4><p>{names[plan]} VIP For {personName(recipient)}. {method === 'card'

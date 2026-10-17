@@ -82,6 +82,8 @@ const PAGE_OWNED_FOOTER_ROUTES = new Set([
   '/hub/diamond-store',
   '/hub/marketplace',
   '/hub/vip-membership',
+  '/hub/vip-membership/[plan]',
+  '/hub/vip-membership/gift/[plan]',
   '/hub/merch-store',
   '/hub/smarter-rewards',
   '/hub/club-shop',

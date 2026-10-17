@@ -1,4 +1,4 @@
-import { vipStructuredData, vipMembershipTerms } from '../../src/lib/store/vipStructuredData.mjs';
+import { vipStructuredData, vipMembershipTerms, vipProductStructuredData, vipProductPath, VIP_TERMS } from '../../src/lib/store/vipStructuredData.mjs';
 import VipGifts from '../../src/components/store/VipGifts';
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCKED PAGE: FUTURISTIC METAL DESIGN
@@ -346,7 +346,8 @@ const TAB_SOCIAL_IMAGE = {
   'club-shop': '/images/store-v3/club-shop-hero.webp',
 };
 
-function storeStructuredData(activeTab) {
+function storeStructuredData(activeTab, vipProduct) {
+  if (vipProduct) return vipProductStructuredData(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift);
   if (activeTab === 'vip') return vipStructuredData(VIP_MEMBERSHIP);
   const meta = TAB_META[activeTab] || TAB_META.diamonds;
   return {
@@ -605,6 +606,7 @@ function MerchStoreLoadingText() {
 
 export default function DiamondStorePage({
   initialTab,
+  vipProduct = null,
   initialDiamondPackages = DIAMOND_STOREFRONT_FALLBACK_PACKAGES,
   initialDiamondCatalogSource = 'fallback',
 }) {
@@ -654,7 +656,7 @@ export default function DiamondStorePage({
     requestAnimationFrame(() => document.getElementById(`rewards-tab-${nextTab}`)?.focus());
   };
 
-  const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
+  const [selectedVIP, setSelectedVIP] = useState(vipProduct ? `vip-${vipProduct.plan}` : 'vip-monthly');
   const [isProcessing, setIsProcessing] = useState(false);
   const [busyPackageId, setBusyPackageId] = useState(null);
   const [diamondPackages, setDiamondPackages] = useState(
@@ -692,14 +694,14 @@ export default function DiamondStorePage({
   const reconciledCheckoutSessionsRef = useRef(new Set());
 
   useEffect(() => {
-    if (!router.isReady || activeTab !== 'vip') return;
+    if (!router.isReady || activeTab !== 'vip' || vipProduct) return;
     const requestedPlan = Array.isArray(router.query.plan)
       ? router.query.plan[0]
       : router.query.plan;
     if (['vip-monthly', 'vip-yearly', 'vip-lifetime'].includes(requestedPlan)) {
       setSelectedVIP(requestedPlan);
     }
-  }, [activeTab, router.isReady, router.query.plan]);
+  }, [activeTab, router.isReady, router.query.plan, vipProduct]);
 
   const [user, setUser] = useState(null);
   const [authResolved, setAuthResolved] = useState(false);
@@ -1074,7 +1076,7 @@ export default function DiamondStorePage({
       const cleanPath =
         activeTab === 'club-shop'
           ? clubShopAddress(routeClubId, clubShopSubTabRef.current)
-          : TAB_ROUTES[activeTab];
+          : vipProduct ? vipProductPath(vipProduct.plan, vipProduct.gift) : TAB_ROUTES[activeTab];
       window.history.replaceState(
         { ...window.history.state, as: cleanPath, url: cleanPath },
         '',
@@ -2044,7 +2046,7 @@ export default function DiamondStorePage({
       authUser.id !== committedStoreAccountId ||
       activeStoreAccountRef.current !== authUser.id
     ) {
-      router.push(vipSignInHref(plan.id));
+      router.push(vipSignInHref(plan.id, vipProduct ? vipProductPath(vipProduct.plan, vipProduct.gift) : null));
       return;
     }
     const expectedAccountId = authUser.id;
@@ -3391,6 +3393,11 @@ export default function DiamondStorePage({
     (vipTier === 'lifetime' && (vipCardReady || !selectedVipHasExactRecovery));
   const clubShopBuyArt = clubShopBuyTarget ? resolveClubShopProductArt(clubShopBuyTarget) : null;
 
+  const productSchema = vipProduct ? vipProductStructuredData(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift) : null;
+  const pageMeta = productSchema ? productSchema['@graph'].find(item => item['@type'] === 'WebPage') : (TAB_META[activeTab] || TAB_META.diamonds);
+  const pageTitle = productSchema ? pageMeta.name : pageMeta.title;
+  const pagePath = vipProduct ? vipProductPath(vipProduct.plan, vipProduct.gift) : TAB_ROUTES[activeTab];
+
   // One Marketplace commerce footer per route, declared once and placed once.
   // Page 1 keeps its accepted position directly under the Diamond showcase.
   // The four sibling tab routes render the same element after their content so
@@ -3403,53 +3410,56 @@ export default function DiamondStorePage({
   return (
     <>
       <Head>
-        <title>{TAB_META[activeTab]?.title || TAB_META.diamonds.title}</title>
+        <title>{pageTitle}</title>
         <meta
           name="description"
-          content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+          content={pageMeta.description}
         />
-        <link rel="canonical" href={`https://smarter.poker${TAB_ROUTES[activeTab]}`} />
+        <link rel="canonical" key="canonical" href={`https://smarter.poker${pagePath}`} />
         <meta
-          key="store-og-title"
+          key="og-title"
           property="og:title"
-          content={TAB_META[activeTab]?.title || TAB_META.diamonds.title}
+          content={pageTitle}
         />
         <meta
-          key="store-og-description"
+          key="og-description"
           property="og:description"
-          content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+          content={pageMeta.description}
         />
-        <meta key="store-og-type" property="og:type" content="website" />
+        <meta key="og-type" property="og:type" content="website" />
         <meta
-          key="store-og-url"
+          key="og-url"
           property="og:url"
-          content={`https://smarter.poker${TAB_ROUTES[activeTab]}`}
+          content={`https://smarter.poker${pagePath}`}
         />
         <meta
-          key="store-og-image"
+          key="og-image"
           property="og:image"
           content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
         />
-        <meta key="store-twitter-card" name="twitter:card" content="summary_large_image" />
+        {activeTab === 'vip' && <meta key="og-image-width" property="og:image:width" content="883" />}
+        {activeTab === 'vip' && <meta key="og-image-height" property="og:image:height" content="439" />}
+        {activeTab === 'vip' && <meta key="og-image-type" property="og:image:type" content="image/webp" />}
+        <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
         <meta
-          key="store-twitter-title"
+          key="twitter-title"
           name="twitter:title"
-          content={TAB_META[activeTab]?.title || TAB_META.diamonds.title}
+          content={pageTitle}
         />
         <meta
-          key="store-twitter-description"
+          key="twitter-description"
           name="twitter:description"
-          content={TAB_META[activeTab]?.description || TAB_META.diamonds.description}
+          content={pageMeta.description}
         />
         <meta
-          key="store-twitter-image"
+          key="twitter-image"
           name="twitter:image"
           content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
         />
         <script
           key="store-structured-data"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(storeStructuredData(activeTab)).replace(/</g, '\\u003c') }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(storeStructuredData(activeTab, vipProduct)).replace(/</g, '\\u003c') }}
         />
         <link
           rel="preload"
@@ -3537,15 +3547,20 @@ export default function DiamondStorePage({
                   <section className={vipStyles.hero} aria-labelledby="vip-page-title">
                     <div className={vipStyles.heroCopy}>
                       <span className={vipStyles.membershipLabel}>Smarter.Poker VIP</span>
-                      <h1 id="vip-page-title">Your Edge, Compounded.</h1>
+                      <h1 id="vip-page-title">{vipProduct ? `VIP ${VIP_TERMS[vipProduct.plan].label}${vipProduct.gift ? ' Gift Card' : ' Membership'}` : 'Your Edge, Compounded.'}</h1>
                       <p>Premium Training. More Table Features. One Membership Across Smarter.Poker And Club Arena.</p>
-                      <a href="#vip-plans" className={vipStyles.heroAction}>Explore VIP Plans</a>
-                      <a href="#gifts" className={vipStyles.heroAction}>Gift A VIP</a>
+                      {vipProduct ? <>
+                        <a href={vipProduct.gift ? '#gifts' : '#vip-plans'} className={vipStyles.heroAction}>{vipProduct.gift ? 'Send This VIP Gift' : 'Get This Membership'}</a>
+                        <Link href="/hub/vip-membership" className={vipStyles.heroAction}>All VIP Options</Link>
+                      </> : <>
+                        <a href="#vip-plans" className={vipStyles.heroAction}>Explore VIP Plans</a>
+                        <a href="#gifts" className={vipStyles.heroAction}>Gift A VIP</a>
+                      </>}
                     </div>
                     <img src="/images/store-v3/vip-hero.webp" width={883} height={439} alt="" fetchPriority="high" className={vipStyles.heroArtwork} />
                   </section>
 
-                  {isVip && (
+                  {isVip && !vipProduct?.gift && (
                     <section className={vipStyles.memberStatus} aria-label="Your VIP Membership">
                       <div>
                         <strong>You Are Already A VIP Member{vipTier ? `: ${marketplaceCopy(vipTier)}` : ''}</strong>
@@ -3559,17 +3574,22 @@ export default function DiamondStorePage({
                     </section>
                   )}
 
-                  <section id="vip-plans" className={vipStyles.purchase} aria-labelledby="vip-plan-title">
+                  {!vipProduct?.gift && <section id="vip-plans" className={vipStyles.purchase} aria-labelledby="vip-plan-title">
                     <div className={vipStyles.sectionHeading}>
-                      <h2 id="vip-plan-title">Choose Your VIP Membership</h2>
-                      <p>Monthly Flexibility, A Year Of Access, Or Lifetime Membership.</p>
+                      <h2 id="vip-plan-title">{vipProduct ? `${VIP_TERMS[vipProduct.plan].label} VIP: $${Number(VIP_MEMBERSHIP[vipProduct.plan].price).toFixed(2)}` : 'Choose Your VIP Membership'}</h2>
+                      <p>{vipProduct ? vipMembershipTerms(vipProduct.plan) : 'Monthly Flexibility, A Year Of Access, Or Lifetime Membership.'}</p>
                     </div>
+                    {!vipProduct && <>
                     <div className={vipStyles.plans} role="region" aria-label="VIP Membership Plans">
                       <VIPCard plan={VIP_MEMBERSHIP.monthly} isSelected={selectedVIP === 'vip-monthly'} onSelect={setSelectedVIP} />
                       <VIPCard plan={VIP_MEMBERSHIP.yearly} isSelected={selectedVIP === 'vip-yearly'} onSelect={setSelectedVIP} />
                       <VIPCard plan={VIP_MEMBERSHIP.lifetime} isSelected={selectedVIP === 'vip-lifetime'} onSelect={setSelectedVIP} />
                     </div>
                     <p className={vipStyles.paymentNote}>{vipMembershipTerms('monthly')} {vipMembershipTerms('yearly')} {vipMembershipTerms('lifetime')}</p>
+                    <nav className={vipStyles.tools} aria-label="Individual VIP Membership Pages">
+                      {Object.entries(VIP_TERMS).map(([plan, term]) => <Link key={plan} href={vipProductPath(plan)} className={vipStyles.action}>{term.label} VIP Details</Link>)}
+                    </nav>
+                    </>}
                     <div className={vipStyles.checkout}>
                       <div className={vipStyles.selectedTerm} aria-live="polite" aria-atomic="true">
                         <strong>{marketplaceCopy(selectedVIPPlan.name)}</strong>
@@ -3598,7 +3618,7 @@ export default function DiamondStorePage({
                                 disabled={isProcessing || !canOpenDiamondReview}
                                 onClick={() => {
                                   if (!getAuthUser()?.id) {
-                                    router.push(vipSignInHref(selectedVIP));
+                                    router.push(vipSignInHref(selectedVIP, vipProduct ? vipProductPath(vipProduct.plan) : null));
                                     return;
                                   }
                                   openVipDiamondReview(selectedVIPPlan, {
@@ -3629,8 +3649,9 @@ export default function DiamondStorePage({
                       <Link href="/hub/vip-membership/compare" className={vipStyles.action}>Compare Every VIP Plan</Link>
                       <Link href="/hub/vip-membership/manage" className={vipStyles.action}>Open VIP Command Center</Link>
                     </nav>
-                  </section>
-                  <VipGifts key={committedStoreAccountId || 'guest'} accountId={committedStoreAccountId} />
+                  </section>}
+                  {(!vipProduct || vipProduct.gift) && <VipGifts key={`${committedStoreAccountId || 'guest'}:${vipProduct?.plan || 'all'}`} accountId={committedStoreAccountId} productPlan={vipProduct?.plan} />}
+
                   {pendingSpend && (
                     <div
                       onClick={() => !isProcessing && setPendingSpend(null)}
@@ -3785,7 +3806,7 @@ export default function DiamondStorePage({
                   </section>
                   <section id="vip-faq" className={vipStyles.faq} aria-labelledby="vip-faq-title">
                     <h2 id="vip-faq-title">Frequently Asked Questions</h2>
-                    {VIP_FAQ.map((faq) => (
+                    {(vipProduct ? [{ q: 'What Are The Payment And Access Terms?', a: pageMeta.description }, { q: 'What Does This VIP Include?', a: 'The Premium Platform And Club Arena Benefits Listed Above. Sign In To Review Your Existing Membership Or Choose An Accepted Friend For A Gift.' }] : VIP_FAQ).map((faq) => (
                       <details key={faq.q}><summary>{faq.q}</summary><p>{faq.a}</p></details>
                     ))}
                   </section>
@@ -6148,8 +6169,12 @@ export default function DiamondStorePage({
 
               {/* Legal Note */}
               <p style={styles.legalNote}>
-                Diamonds Are Virtual Currency And Have No Real-World Cash Value. All Purchases Are
-                Final. See our{' '}
+                Diamonds Are Virtual Currency And Have No Real-World Cash Value.{' '}
+                {activeTab === 'vip'
+                  ? (!vipProduct || vipProduct.gift)
+                    ? 'Unredeemed VIP Gift Cards Can Be Returned To The Sender Through Gift History. See Our '
+                    : 'Your Membership And Payment Terms Are Shown Above. See Our '
+                  : 'All Purchases Are Final. See Our '}
                 <a href="/terms" style={styles.link}>
                   Terms Of Service
                 </a>{' '}
