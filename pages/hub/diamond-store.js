@@ -3417,39 +3417,42 @@ export default function DiamondStorePage({
         />
         <link rel="canonical" key="canonical" href={`https://smarter.poker${pagePath}`} />
         <meta
-          key="store-og-title"
+          key="og-title"
           property="og:title"
           content={pageTitle}
         />
         <meta
-          key="store-og-description"
+          key="og-description"
           property="og:description"
           content={pageMeta.description}
         />
-        <meta key="store-og-type" property="og:type" content="website" />
+        <meta key="og-type" property="og:type" content="website" />
         <meta
-          key="store-og-url"
+          key="og-url"
           property="og:url"
           content={`https://smarter.poker${pagePath}`}
         />
         <meta
-          key="store-og-image"
+          key="og-image"
           property="og:image"
           content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
         />
-        <meta key="store-twitter-card" name="twitter:card" content="summary_large_image" />
+        {activeTab === 'vip' && <meta key="og-image-width" property="og:image:width" content="883" />}
+        {activeTab === 'vip' && <meta key="og-image-height" property="og:image:height" content="439" />}
+        {activeTab === 'vip' && <meta key="og-image-type" property="og:image:type" content="image/webp" />}
+        <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
         <meta
-          key="store-twitter-title"
+          key="twitter-title"
           name="twitter:title"
           content={pageTitle}
         />
         <meta
-          key="store-twitter-description"
+          key="twitter-description"
           name="twitter:description"
           content={pageMeta.description}
         />
         <meta
-          key="store-twitter-image"
+          key="twitter-image"
           name="twitter:image"
           content={`https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`}
         />
