@@ -922,5 +922,183 @@ class TourSourceContractTests(unittest.TestCase):
         self.assertGreater(heartbeats[-1]["errors"], 0)
 
 
+class OfficialSourceParserTests(unittest.TestCase):
+    """Yearless official schedules are used only when the source certifies the year."""
+
+    TODAY = date(2026, 10, 17)
+
+    @staticmethod
+    def mspt_page(rows):
+        cells = ''.join(
+            f'<li class="date"><div class="date_in"><span>{a}</span><span class="xdash">-</span> '
+            f'<span>{b}</span></div></li><li class="schedule_event clearfix"><div class="schedule_cnt">'
+            f'<h4>{venue} <span><span class="dash">– </span>{place}</span></h4>'
+            f'<h6>{name} <span class="dash">– </span><strong>$300,000 Guarantee</strong></h6></div></li>'
+            for a, b, venue, place, name in rows)
+        return (f'<title></title><div class="event_list"><a>UPCOMING EVENTS </a></div>'
+                f'<div class="event_schedule"><ul>{cells}</ul></div><p>MSPT Championship</p>')
+
+    def test_mspt_years_follow_the_upcoming_list_and_agree_with_printed_years(self):
+        page = self.mspt_page([
+            ('Oct 13', 'Oct 18', 'FireKeepers Casino', 'Battle Creek, Michigan', 'Main Event 329 - SPADE POKER CHAMPIONSHIP'),
+            ('Dec 28', 'Jan 3', 'Running Aces', 'Columbus, Minnesota', 'Winter Classic'),
+            ('Feb 2', 'Feb 7', 'Talking Stick Resort', 'Scottsdale, Arizona', '2027 Diamond Poker Championship'),
+            ('Jun 1', 'Jul 18', 'The Venetian', 'Las Vegas, Nevada', '2027 Heart Poker Championship - Dates TBD'),
+        ])
+        stops = scraper.extract_stops(page, 'https://msptpoker.com/', self.TODAY, tour_code='MSPT')
+        self.assertEqual([(s['stop_name'], s['start'], s['end']) for s in stops], [
+            ('Main Event 329 - SPADE POKER CHAMPIONSHIP', '2026-10-13', '2026-10-18'),
+            ('Winter Classic', '2026-12-28', '2027-01-03'),
+            ('2027 Diamond Poker Championship', '2027-02-02', '2027-02-07'),
+        ])
+        self.assertEqual((stops[0]['venue'], stops[0]['city'], stops[0]['state']), ('FireKeepers Casino', 'Battle Creek', 'MI'))
+        self.assertTrue(scraper.tour_page_identity('MSPT', 'Mid-States Poker Tour', 'https://msptpoker.com/', 'https://msptpoker.com/', page)[0])
+        self.assertFalse(scraper.tour_page_identity('MSPT', 'Mid-States Poker Tour', 'https://foreign.test/', 'https://foreign.test/', page)[0])
+
+    def test_mspt_printed_year_that_contradicts_the_chronology_fails_closed(self):
+        page = self.mspt_page([
+            ('Oct 13', 'Oct 18', 'FireKeepers Casino', 'Battle Creek, Michigan', 'Spade Championship'),
+            ('Feb 2', 'Feb 7', 'Talking Stick Resort', 'Scottsdale, Arizona', '2026 Diamond Poker Championship'),
+        ])
+        self.assertEqual(scraper.extract_stops(page, 'https://msptpoker.com/', self.TODAY, tour_code='MSPT'), [])
+
+    def test_weekday_certifies_exactly_one_nearby_year(self):
+        self.assertEqual(scraper.weekday_certified_year('Nov', 4, 'WED', self.TODAY), 2026)
+        self.assertEqual(scraper.weekday_certified_year('November', 4, 'Tuesday', self.TODAY), 2025)
+        self.assertIsNone(scraper.weekday_certified_year('Nov', 4, 'FRI', self.TODAY))
+        self.assertIsNone(scraper.weekday_certified_year('Nov', 4, 'someday', self.TODAY))
+
+    @staticmethod
+    def lips_item(when, name='WPFLW - Palace Poker', venue='Palace Poker', kind='/ LIPS Tournament'):
+        return (f'<div class="ep-event-list-item ep-border"><div class="ep-box-title"><div class="ep-text-small">{kind} </div>'
+                f'<a class="ep-fs-5" href="https://lipstour.com/events/?event=1"> {name} </a></div>'
+                f'<div class="ep-mb-2">{venue} </div><div class="ep-box-list-desc">Details</div>'
+                f'<div class="ep-event-list-view-action"><span class="ep-fw-bold">{when}</span></div></div>')
+
+    def test_lips_listing_year_comes_from_the_printed_weekday(self):
+        page = ('<title>SCHEDULE – Ladies International Poker Series</title>'
+                + self.lips_item('Fri, 16 Oct <span> - 18 Oct</span>')
+                + self.lips_item('Thu, 16 Oct', name='Last Year Event', venue='Old Room')
+                + self.lips_item('Fri, 16 Oct', name='WPFLW - Bluffers ONLINE', venue='LIPS ONLINE')
+                + self.lips_item('Sat, 17 Oct', name='Cash Game Night', kind='/ Social'))
+        url = 'https://lipstour.com/schedule/'
+        stops = scraper.extract_stops(page, url, self.TODAY, tour_code='LIPS')
+        self.assertEqual([(s['stop_name'], s['start'], s['end'], s['venue']) for s in stops],
+                         [('WPFLW - Palace Poker', '2026-10-16', '2026-10-18', 'Palace Poker')])
+        self.assertEqual(scraper.tour_page_identity('LIPS', 'LIPS Tour (Ladies International Poker Series)', url, url, page),
+                         (True, 'source_owned_lips_schedule'))
+
+    BORGATA = ('<div data-testid="showcase-item-0"><a aria-label="View details for Fall Poker Open" '
+               'href="https://assets.contentstack.io/v3/assets/x/y/fall-open.pdf">img</a>'
+               '<h3 data-testid="showcase-item-title">Fall Poker Open</h3>'
+               '<p data-testid="showcase-item-subtitle">November 4 - 17</p></div>')
+
+    def test_borgata_year_is_certified_by_every_weekday_in_its_schedule_pdf(self):
+        url = 'https://borgata.mgmresorts.com/en/casino/poker.html'
+        with mock.patch.object(scraper, 'schedule_pdf_text', return_value='1 WED NOV 4 11:15 AM\n SUN NOV 8 12:00 PM') as pdf:
+            stops = scraper.extract_stops(self.BORGATA, url, self.TODAY, tour_code='BORGATA')
+        pdf.assert_called_once_with('https://assets.contentstack.io/v3/assets/x/y/fall-open.pdf')
+        self.assertEqual([(s['stop_name'], s['start'], s['end']) for s in stops], [('Fall Poker Open', '2026-11-04', '2026-11-17')])
+        for text in ('', 'WED NOV 4\nTUE NOV 8', 'SUN NOV 8'):
+            with mock.patch.object(scraper, 'schedule_pdf_text', return_value=text):
+                self.assertEqual(scraper.extract_stops(self.BORGATA, url, self.TODAY, tour_code='BORGATA'), [], text)
+        self.assertEqual(scraper.schedule_pdf_text('https://foreign.test/fall-open.pdf'), '')
+        self.assertEqual(scraper.schedule_pdf_text('http://assets.contentstack.io/fall-open.pdf'), '')
+
+    def test_wynn_series_year_must_be_stated_by_the_source(self):
+        card = ('<h3>WYNN FALL CLASSIC</h3><div data-testid="ml-rich-text"><h3 id="r">September 28–October 25</h3>'
+                '<p>{copy}</p></div>')
+        url = 'https://www.wynnlasvegas.com/casino/poker'
+        labelled = '<div aria-live="polite">Wynn Fall Classic 2026</div>' + card.format(copy='Four weeks of poker.')
+        stops = scraper.extract_stops(labelled, url, self.TODAY, tour_code='WYNN')
+        self.assertEqual([(s['stop_name'], s['start'], s['end']) for s in stops], [('WYNN FALL CLASSIC', '2026-09-28', '2026-10-25')])
+        self.assertEqual(len(scraper.extract_stops(card.format(copy='New for 2026, more events.'), url, self.TODAY, tour_code='WYNN')), 1)
+        self.assertEqual(scraper.extract_stops(card.format(copy='Four weeks of poker.'), url, self.TODAY, tour_code='WYNN'), [])
+        self.assertEqual(scraper.extract_stops(card.format(copy='Since 2025, now 2026.'), url, self.TODAY, tour_code='WYNN'), [])
+
+    def test_ante_up_season_statement_supplies_the_only_year(self):
+        body = ('<p>The 2026 Ante Up Poker Tour is rolling.</p><p>We head to <strong>Sycuan Casino Resort</strong> '
+                'in San Diego.</p><p>From <strong>October 16-25</strong>, we partner with the SoCal Classic.</p>')
+        url = 'https://anteupmagazine.com/where-to-play/tour/'
+        stops = scraper.extract_stops(body, url, self.TODAY, tour_code='AUPT')
+        self.assertEqual([(s['stop_name'], s['start'], s['end']) for s in stops], [('Sycuan Casino Resort', '2026-10-16', '2026-10-25')])
+        self.assertEqual(scraper.extract_stops(body.replace('The 2026', 'The tour'), url, self.TODAY, tour_code='AUPT'), [])
+        self.assertEqual(scraper.extract_stops(body + '<p>The 2027 Ante Up Poker Tour</p>', url, self.TODAY, tour_code='AUPT'), [])
+
+    def test_bar_poker_open_championship_and_wtp_open_need_matching_years(self):
+        bpo = ('<title>Bar Poker Open - 2026 Atlantic City Championship</title><h1>ATLANTIC CITY<br>NEW JERSEY</h1>'
+               '<p class="x">November 13-16, {year}</p>')
+        url = 'https://atlantic-city.barpokeropen.com/?tab=theOpen'
+        stops = scraper.extract_stops(bpo.format(year=2026), url, self.TODAY, tour_code='BPO')
+        self.assertEqual([(s['stop_name'], s['start'], s['end'], s['city'], s['state']) for s in stops],
+                         [('Bar Poker Open 2026 Atlantic City Championship', '2026-11-13', '2026-11-16', 'Atlantic City', 'NJ')])
+        self.assertEqual(scraper.extract_stops(bpo.format(year=2025), url, self.TODAY, tour_code='BPO'), [])
+        wtp = ('<title>World Tavern Poker OPEN 2026 | WTP Info Website</title><p>OPEN is coming this '
+               '<b>{when}</b> at <b>The Orleans Casino in Las Vegas</b>. Join us.</p>')
+        url = 'https://www.worldtavernpoker.info/open-2026'
+        stops = scraper.extract_stops(wtp.format(when='Oct 31-Nov 5, 2026'), url, self.TODAY, tour_code='WTP')
+        self.assertEqual([(s['stop_name'], s['start'], s['end'], s['venue']) for s in stops],
+                         [('World Tavern Poker OPEN 2026', '2026-10-31', '2026-11-05', 'The Orleans Casino')])
+        self.assertEqual(scraper.extract_stops(wtp.format(when='Oct 31-Nov 5, 2025'), url, self.TODAY, tour_code='WTP'), [])
+
+    def test_manual_registry_sources_stay_listed_but_are_not_scraped(self):
+        rows = [{'tour_code': 'MSPT', 'tour_name': 'Mid-States Poker Tour', 'schedule_url': 'https://msptpoker.com/', 'scrape_method': 'puppeteer'},
+                {'tour_code': 'TPO', 'tour_name': 'Texas Poker Open', 'schedule_url': 'https://tpo.test/', 'scrape_method': 'manual'}]
+        with mock.patch.object(scraper, 'sb_get', return_value=rows) as read:
+            self.assertEqual(scraper.load_tours(), [('MSPT', 'Mid-States Poker Tour', 'https://msptpoker.com/')])
+        self.assertIn('scrape_method', read.call_args[0][1])
+        with mock.patch.object(scraper, 'sb_get', return_value=rows[1:]):
+            self.assertEqual(scraper.load_tours(), [])
+
+    def test_curated_row_with_the_same_dates_is_not_duplicated(self):
+        session = mock.Mock()
+        source = 'https://msptpoker.com/'
+        curated = {'id': '00000000-0000-0000-0000-000000000009', 'stop_name': 'MSPT Spade Poker Championship (Main Event #328)',
+                   'stop_start_date': '2099-10-13', 'stop_end_date': '2099-10-18', 'start_date': '2099-10-13',
+                   'data_quality': 'manual_research', 'scrape_script': None, 'source_url': source}
+        stops = [{'stop_name': 'Main Event 329 - SPADE POKER CHAMPIONSHIP', 'start': '2099-10-13', 'end': '2099-10-18'},
+                 {'stop_name': 'Main Event 330 - MSPT Festival', 'start': '2099-10-28', 'end': '2099-11-01'}]
+        with mock.patch.object(sys, 'argv', ['tour_stealth_scraper.py']), \
+             mock.patch.object(scraper, 'SUPABASE_KEY', 'offline-key'), \
+             mock.patch.object(scraper, 'load_tours', return_value=[('MSPT', 'Mid-States Poker Tour', source)]), \
+             mock.patch.object(scraper, 'create_session', return_value=session), \
+             mock.patch.object(scraper, 'fetch_page', return_value=('poker schedule ' * 100, 'a' * 64, session, source)), \
+             mock.patch.object(scraper, 'tour_page_identity', return_value=(True, 'source_owned')), \
+             mock.patch.object(scraper, 'extract_stops', return_value=stops), \
+             mock.patch.object(scraper, 'sb_get', return_value=[curated]), \
+             mock.patch.object(scraper, 'sb_insert', side_effect=lambda _table, rows: len(rows)) as insert, \
+             mock.patch.object(scraper, 'update_tour_registry', return_value=True), \
+             mock.patch.object(scraper, 'write_heartbeat'), \
+             mock.patch.object(scraper.time, 'sleep'):
+            scraper.main()
+        self.assertEqual([row['stop_name'] for row in insert.call_args[0][1]], ['Main Event 330 - MSPT Festival'])
+
+
+class TourSourceRegistryMigrationTests(unittest.TestCase):
+    """The registry repair pauses only unschedulable sources and keeps every tour listed."""
+
+    def migration(self):
+        import glob, os
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'supabase', 'migrations')
+        paths = glob.glob(os.path.join(root, '*_every_active_tour_source_is_parsed_or_manual.sql'))
+        self.assertEqual(len(paths), 1, paths)
+        with open(paths[0], encoding='utf-8') as handle:
+            return handle.read()
+
+    def test_manual_sources_keep_their_listing_and_their_stop_rows(self):
+        sql = self.migration()
+        code = '\n'.join(line for line in sql.splitlines() if not line.strip().startswith('--'))
+        for tour in ('NAPT', 'CPPT', 'LODGE', 'TPO', 'FPN'):
+            self.assertRegex(code, r"\('%s', '(?:defunct|manual)', 'Collector paused 2026-10-17: " % tour)
+        self.assertIn("SET scrape_method = 'manual'", code)
+        self.assertNotRegex(code, r'(?i)\bis_active\s*=\s*false|\bdelete\b|tour_stop_events')
+        self.assertIn('expected 5 sources marked manual', code)
+        self.assertIn('expected 4 schedule URLs corrected', code)
+        self.assertIn('a target source stopped being listed', code)
+        for url in ('https://msptpoker.com/', 'https://borgata.mgmresorts.com/en/casino/poker.html',
+                    'https://barpokeropen.com/championship', 'https://www.worldtavernpoker.info/open-2026'):
+            self.assertIn(f"'{url}'", code)
+
+
 if __name__ == "__main__":
     unittest.main()
