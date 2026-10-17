@@ -33,6 +33,7 @@
 .hero p { max-width: 400px; margin-top: 18px; font-size: 15px; }
 .heroArtwork { position: absolute; z-index: 0; right: -7%; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: right center; mask-image: linear-gradient(90deg, transparent 20%, #000 55%); }
 .heroAction { margin-top: 24px; }
+.heroAction + .heroAction { margin-left: 14px; }
 /* Four physical layers: silver bevel, inset black seam, raised face, lower lip. */
 .action, .heroAction, .page :global([data-checkout-status]) :is(button, a) {
   position: relative;

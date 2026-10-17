@@ -105,6 +105,7 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-9.test.mjs
 !/__tests__/store-tab-routes.test.mjs
 !/__tests__/vip-purchase-wiring.test.mjs
+!/__tests__/vip-gifts.test.mjs
 !/__tests__/diamond-store-phase-2.test.mjs
 !/__tests__/diamond-store-phase-3.test.mjs
 !/__tests__/diamond-store-phase-4.test.mjs

@@ -1,3 +1,4 @@
+import VipGifts from '../../src/components/store/VipGifts';
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCKED PAGE: FUTURISTIC METAL DESIGN
    ═══════════════════════════════════════════════════════════════════════════
@@ -3537,6 +3538,7 @@ export default function DiamondStorePage({
                       <h1 id="vip-page-title">Your Edge, Compounded.</h1>
                       <p>Premium Training. More Table Features. One Membership Across Smarter.Poker And Club Arena.</p>
                       <a href="#vip-plans" className={vipStyles.heroAction}>Explore VIP Plans</a>
+                      <a href="#gifts" className={vipStyles.heroAction}>Gift A VIP</a>
                     </div>
                     <img src="/images/store-v3/vip-hero.webp" width={883} height={439} alt="" fetchPriority="high" className={vipStyles.heroArtwork} />
                   </section>
@@ -3625,6 +3627,7 @@ export default function DiamondStorePage({
                       <Link href="/hub/vip-membership/manage" className={vipStyles.action}>Open VIP Command Center</Link>
                     </nav>
                   </section>
+                  <VipGifts key={committedStoreAccountId || 'guest'} accountId={committedStoreAccountId} />
                   {pendingSpend && (
                     <div
                       onClick={() => !isProcessing && setPendingSpend(null)}
