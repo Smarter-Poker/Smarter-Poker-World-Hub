@@ -14,7 +14,9 @@ import {
   PENDING_PROMO_KEY,
   PENDING_REFERRAL_KEY,
   RESEND_COOLDOWN_SECONDS,
+  isReferralInput,
   redeemPendingSignupCodes,
+  referralMetadata,
   refFromRedirect,
 } from '../../src/lib/pendingSignupCodes.mjs';
 import { Mail } from 'lucide-react';
@@ -335,27 +337,31 @@ export default function SignUpPage() {
     setReferralValid(null);
     setReferralDetails(null);
 
-    if (!formData.promoCode || formData.promoCode.length < 3) {
+    // A player number can be one digit (kingfish is player 1); only a promo
+    // code needs three characters before it is worth checking.
+    if (!formData.promoCode || (formData.promoCode.length < 3 && !isReferralInput(formData.promoCode))) {
       setIsReferralCode(false);
       return;
     }
 
-    // Determine if this looks like a referral code (all digits) or promo code
-    const isNumeric = /^\d+$/.test(formData.promoCode);
-    setIsReferralCode(isNumeric);
+    // A referral is a player number (all digits) or a Referral Crew code
+    // (SP-56737B: always carries a dash, which no promo code does).
+    const isReferral = isReferralInput(formData.promoCode);
+    setIsReferralCode(isReferral);
 
     const timeout = setTimeout(async () => {
       setPromoChecking(true);
       setPromoError('');
       try {
-        if (isNumeric) {
+        if (isReferral) {
           // Validate as referral code (player number)
           const res = await fetch('/api/promo/validate-referral-code', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: formData.promoCode }),
           });
-          if (!res.ok) throw new Error(`Request failed (${res.status})`);
+          // A 4xx carries the reason ("No player found...", "expired"): show it.
+          if (res.status >= 500) throw new Error(`Request failed (${res.status})`);
           const data = await res.json();
           if (res.ok && data.valid) {
             setReferralValid(true);
@@ -374,7 +380,8 @@ export default function SignUpPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: formData.promoCode }),
           });
-          if (!res.ok) throw new Error(`Request failed (${res.status})`);
+          // A 4xx carries the reason ("No player found...", "expired"): show it.
+          if (res.status >= 500) throw new Error(`Request failed (${res.status})`);
           const data = await res.json();
           if (res.ok && data.valid) {
             setPromoValid(true);
@@ -654,9 +661,10 @@ export default function SignUpPage() {
             // The referrer, by player number. The database records the
             // referral and pays both players when this account's email is
             // confirmed, on whatever device (fn_settle_signup_referral).
-            ...(isReferralCode && referralValid && referralDetails?.playerNumber
-              ? { referral_player_number: String(referralDetails.playerNumber) }
-              : {}),
+            // Written whether or not the debounced check has answered yet, so
+            // a fast tap on Create Account cannot drop it; the database
+            // resolves it and ignores anything that names nobody.
+            ...referralMetadata(formData.promoCode, referralDetails),
           },
           // Enable email confirmation - redirect to /auth/callback after verification
           emailRedirectTo: `${window.location.origin}/auth/callback`,

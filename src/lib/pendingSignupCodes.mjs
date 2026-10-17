@@ -112,5 +112,45 @@ export function refFromRedirect(redirect) {
     }
 }
 
+const PLAYER_NUMBER = /^[0-9]{1,9}$/;
+const CREW_CODE = /^[A-Z0-9]{1,16}-[A-Z0-9]{1,16}$/;
+
+/**
+ * Is this sign-up code a referral rather than a promo code? A referral is a
+ * player number (digits) or a Referral Crew code (SP-56737B, always with a
+ * dash). No promo code contains a dash or is all digits.
+ */
+export function isReferralInput(code) {
+    const c = String(code || '').trim().toUpperCase();
+    return (PLAYER_NUMBER.test(c) && Number(c) > 0) || CREW_CODE.test(c);
+}
+
+/**
+ * The referral fields written into the new account's sign-up record. The
+ * database (fn_signup_referrer) resolves them when the email is confirmed, so
+ * they are written from what the player entered, not from whether the
+ * debounced check has answered yet.
+ */
+export function referralMetadata(code, details) {
+    const c = String(code || '').trim().toUpperCase();
+    if (!isReferralInput(c)) return {};
+    if (PLAYER_NUMBER.test(c)) return { referral_player_number: String(Number(c)) };
+    const number = details?.playerNumber;
+    return {
+        referral_code: c,
+        ...(number && PLAYER_NUMBER.test(String(number)) ? { referral_player_number: String(Number(number)) } : {}),
+    };
+}
+
+/**
+ * The sign-up link that keeps a shared referral. `ref` is whatever the shared
+ * link carried; anything that is not a referral is dropped rather than passed on.
+ */
+export function signupHrefFor(ref) {
+    const raw = Array.isArray(ref) ? ref[0] : ref;
+    if (!isReferralInput(raw)) return '/auth/signup';
+    return `/auth/signup?ref=${encodeURIComponent(String(raw).trim().toUpperCase())}`;
+}
+
 /** Seconds a player waits between "Resend Code" taps (Supabase rate-limits resends). */
 export const RESEND_COOLDOWN_SECONDS = 60;

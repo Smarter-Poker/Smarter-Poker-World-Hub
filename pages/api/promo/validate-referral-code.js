@@ -1,4 +1,4 @@
-// Validate a referral code (player number) — returns referrer info
+// Validate a referral code (player number or Referral Crew code) - returns referrer info
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
@@ -26,17 +26,23 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Referral code is required' });
       }
 
-      const playerNumber = parseInt(code, 10);
-      if (isNaN(playerNumber) || playerNumber <= 0) {
+      // A referral is a player number (digits) or a Referral Crew code
+      // (SP-56737B), which the Referral Crew card has shared since launch.
+      const raw = String(code).trim().toUpperCase();
+      const isNumber = /^[0-9]{1,9}$/.test(raw) && Number(raw) > 0;
+      const isCrewCode = /^[A-Z0-9]{1,16}-[A-Z0-9]{1,16}$/.test(raw);
+      if (!isNumber && !isCrewCode) {
           return res.status(400).json({ valid: false, error: 'Invalid referral code' });
       }
 
       try {
-          const { data, error } = await getSupabase()
+          const query = getSupabase()
               .from('profiles')
-              .select('id, display_name, username, player_number')
-              .eq('player_number', playerNumber)
-              .maybeSingle();
+              .select('id, display_name, username, player_number');
+          const { data, error } = await (isNumber
+              ? query.eq('player_number', String(Number(raw)))
+              : query.eq('referral_code', raw)
+          ).maybeSingle();
 
           if (error || !data) {
               return res.status(404).json({ valid: false, error: 'No player found with that referral code' });

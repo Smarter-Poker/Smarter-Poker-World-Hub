@@ -21,7 +21,8 @@ account and five login days. As a result no referral was ever recorded or paid.
 
 ## Fix
 
-Migration `20261017180200_a_referral_is_recorded_and_paid_when_the_new_player_confirms.sql`:
+Migration `20261017223126_a_referral_is_recorded_and_paid_when_the_new_player_confirms.sql`.
+It lives in the Club Arena repo, Smarter-Poker-Club-Arena #7326. The database is shared, and it is applied through Apply Merged Migration because the cloud session's direct `apply_migration` calls returned `cancelled`.
 
 - `fn_settle_signup_referral` reads the referrer from the account's own
   sign-up record. It records the referral and pays 500 to the referrer and 100
@@ -29,8 +30,30 @@ Migration `20261017180200_a_referral_is_recorded_and_paid_when_the_new_player_co
   endpoint always used, so no second door can pay twice.
 - Triggers on `auth.users` run it when an email is confirmed. They run inside
   a savepoint, so a referral can never block a sign-up.
-- The sign-up page writes `referral_player_number` and reads `ref=` from the
-  invite redirect. The endpoint is a second live door to the same function.
+- The sign-up page writes `referral_player_number` (or `referral_code`) from
+  what was entered, without waiting for the debounced check. It reads `ref=`
+  from the invite redirect. The endpoint is a second live door to the same
+  function.
+
+## Other referral defects fixed in the same pass
+
+- Every Referral Crew share link pointed at `smarter.poker/?ref=<code>`. The
+  homepage dropped `ref`, and the sign-up form would have treated
+  `SP-56737B` as a promo code. 2,311 accounts hold such a code, so no shared
+  link ever credited anyone. The homepage now carries `ref` into every Sign Up
+  door, the form and validator accept crew codes, the database resolves
+  `referral_code`, and share links use `/auth/signup?ref=<player number>`.
+- The sign-up form skipped validation for codes under three characters, so
+  player numbers 1 to 99 (kingfish is 1) never showed "Referral Code
+  Accepted".
+- The form threw on any non-2xx answer, so "No player found" and "expired"
+  were never shown to the player.
+- `/api/social/referral` counted only the legacy `referral_bonus` type, quoted
+  100 per referral, and paid its own 100/50 with hand-written reversal
+  entries. It now counts both types, quotes the catalog, and settles "apply"
+  through `fn_settle_signup_referral`.
+- `ViralGrowthModule` embedded `referee:referee_id(...)`, which points at
+  `auth.users`, so its referral list never loaded. It now reads the API.
 
 ## Settlement
 
