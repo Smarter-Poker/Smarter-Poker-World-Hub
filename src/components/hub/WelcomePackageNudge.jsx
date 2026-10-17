@@ -27,25 +27,26 @@ const SNOOZE_KEY = 'sp_welcome_nudge_snoozed_until';
 const SNOOZE_MS = 24 * 60 * 60 * 1000;
 const VISIBLE_MS = 8000;
 
-export default function WelcomePackageNudge({ phoneVerified }) {
+export default function WelcomePackageNudge({ eligible, userId }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
-        if (phoneVerified !== false) return undefined;
+        setOpen(false);
+        if (eligible !== true || !userId) return undefined;
         try {
-            if (sessionStorage.getItem(SESSION_KEY) === '1') return undefined;
-            const until = Number(localStorage.getItem(SNOOZE_KEY) || 0);
+            if (sessionStorage.getItem(`${SESSION_KEY}:${userId}`) === '1') return undefined;
+            const until = Number(localStorage.getItem(`${SNOOZE_KEY}:${userId}`) || 0);
             if (until > Date.now()) return undefined;
         } catch (_e) { /* storage unavailable: show once, never persist */ }
 
         const show = setTimeout(() => {
             setOpen(true);
-            try { sessionStorage.setItem(SESSION_KEY, '1'); } catch (_e) { /* ignore */ }
+            try { sessionStorage.setItem(`${SESSION_KEY}:${userId}`, '1'); } catch (_e) { /* ignore */ }
             try { capture('welcome_nudge_shown', { surface: 'hub' }); } catch (_e) { /* best-effort */ }
         }, 2500);
         return () => clearTimeout(show);
-    }, [phoneVerified]);
+    }, [eligible, userId]);
 
     useEffect(() => {
         if (!open) return undefined;
@@ -53,11 +54,11 @@ export default function WelcomePackageNudge({ phoneVerified }) {
         return () => clearTimeout(hide);
     }, [open]);
 
-    if (!open) return null;
+    if (!open || eligible !== true || !userId) return null;
 
     const dismiss = () => {
         setOpen(false);
-        try { localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS)); } catch (_e) { /* ignore */ }
+        try { localStorage.setItem(`${SNOOZE_KEY}:${userId}`, String(Date.now() + SNOOZE_MS)); } catch (_e) { /* ignore */ }
         try { capture('welcome_nudge_dismissed', { surface: 'hub' }); } catch (_e) { /* best-effort */ }
     };
 

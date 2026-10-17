@@ -85,7 +85,7 @@ test('verify-otp is signed-in only, pays once, and honours the throwaway-inbox r
 test('the welcome screen exists, is a hub page with the global header, and is reachable from the menu', () => {
   assert.match(verifyPage, /useRequireAuth\(/, 'the page uses the repo auth guard');
   assert.match(verifyPage, /authedFetch\('\/api\/sms\/verify-otp'/, 'the page verifies through authedFetch (bearer token)');
-  assert.match(verifyPage, /\.select\('phone_verified'\)/, 'the page reads only phone_verified (profiles.phone is not browser-readable)');
+  assert.match(verifyPage, /\.select\('phone_verified, is_vip, vip_tier'\)/, 'onboarding reads verified and VIP status without the private phone column');
   assert.doesNotMatch(verifyPage, /select\('[^']*\bphone\b[^_']/, 'the page must not select profiles.phone');
   assert.match(appRoot, /'\/hub\/verify-phone',/, '/hub/verify-phone inherits the approved global header');
   assert.match(menus, /createMenuItem\.navigation\(\s*\n\s*'Verify Phone Number',\s*\n\s*'\/hub\/verify-phone'/, 'unverified players get the menu item');

@@ -1,3 +1,4 @@
+import { shouldOfferPhoneWelcome } from '../../src/lib/phoneWelcome';
 /* ═══════════════════════════════════════════════════════════════════════════
    MASTER HUB NODE — Re-exports WorldHub for /hub route
    Empire Hub Synchronization Protocol | Next.js Unified
@@ -99,7 +100,7 @@ export default function HubPage() {
     const [user, setUser] = useState(null);
     const [cardCustomizerOpen, setCardCustomizerOpen] = useState(false);
     // null = unknown yet, true/false once the profile row has been read.
-    const [phoneVerified, setPhoneVerified] = useState(null);
+    const [phonePromptEligible, setPhonePromptEligible] = useState(null);
     // True while the hub is handing a player to the welcome screen, so the
     // transient nudge never spends its once-per-session showing on the way out.
     const [redirectingToWelcome, setRedirectingToWelcome] = useState(false);
@@ -112,17 +113,21 @@ export default function HubPage() {
         const authUser = getAuthUser();
         if (!authUser?.id) return undefined;
         let cancelled = false;
-        (async () => {
+        let generation = 0;
+        const checkPhoneWelcome = async () => {
+            const request = ++generation;
+            setPhonePromptEligible(null);
             try {
-                const { data: profile } = await supabase
+                const { data: profile, error } = await supabase
                     .from('profiles')
-                    .select('phone_verified')
+                    .select('phone_verified, is_vip, vip_tier')
                     .eq('id', authUser.id)
                     .maybeSingle();
-                if (cancelled || !profile) return;
-                const verified = profile.phone_verified === true;
-                setPhoneVerified(verified);
-                if (verified) return;
+                if (error) throw error;
+                if (cancelled || request !== generation || !profile) return;
+                const eligible = shouldOfferPhoneWelcome(profile);
+                setPhonePromptEligible(eligible);
+                if (!eligible) return;
                 const dismissed = !!authUser.user_metadata?.phone_prompt_dismissed_at;
                 let skippedThisSession = false;
                 try { skippedThisSession = sessionStorage.getItem('phone_prompt_skipped') === '1'; } catch (_e) { /* ignore */ }
@@ -136,9 +141,16 @@ export default function HubPage() {
                     router.replace('/hub/verify-phone?welcome=1');
                 }
             } catch (_e) { /* never block the hub on this */ }
-        })();
-        return () => { cancelled = true; };
-    }, [router]);
+        };
+        void checkPhoneWelcome();
+        window.addEventListener('profile-updated', checkPhoneWelcome);
+        window.addEventListener('phone-verified', checkPhoneWelcome);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('profile-updated', checkPhoneWelcome);
+            window.removeEventListener('phone-verified', checkPhoneWelcome);
+        };
+    }, [router, user?.id]);
 
     // Special unlocked card IDs for this user (for the customizer panel)
     const [unlockedSpecialIds, setUnlockedSpecialIds] = useState([]);
@@ -196,7 +208,7 @@ export default function HubPage() {
         return () => window.removeEventListener('hub-open-customizer', handleOpenCustomizer);
     }, []);
 
-    const menuConfig = getMenuConfig('hub-home', user, { phoneUnverified: phoneVerified === false }, handlers);
+    const menuConfig = getMenuConfig('hub-home', user, { phoneUnverified: phonePromptEligible === true }, handlers);
 
     return (
         <>
@@ -268,10 +280,10 @@ export default function HubPage() {
             {/* Transient reminder for a player who skipped the welcome screen:
                 same corner and lifetime as DiamondToast, once per session. */}
             <HubErrorBoundary name="Welcome Package Nudge" fallback={<></>}>
-                <WelcomePackageNudge phoneVerified={redirectingToWelcome ? null : phoneVerified} />
+                <WelcomePackageNudge eligible={!redirectingToWelcome && phonePromptEligible === true} userId={user?.id} />
                 {/* A pending club invite continues to its join page, once a
                     session, but never on top of the welcome-screen redirect. */}
-                <PendingInviteForward enabled={phoneVerified !== null && !redirectingToWelcome} />
+                <PendingInviteForward enabled={phonePromptEligible !== null && !redirectingToWelcome} />
             </HubErrorBoundary>
 
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
