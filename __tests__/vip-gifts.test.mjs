@@ -12,10 +12,10 @@ const session={id:'cs_gift',url:'https://checkout.stripe.com/c/pay/cs_gift',mode
  metadata:{type:'vip_gift',gift_id:gift.id,sender_id:sender,recipient_id:recipient,plan:'monthly'},payment_intent:'pi_gift',payment_status:'paid'};
 const source=readFileSync(new URL('../pages/api/store/vip-gifts.js',import.meta.url),'utf8');
 async function harness({user={id:sender,email_confirmed_at:'confirmed'},rpcResult={success:true,gift},runtime=true,record=gift,checkout=session}={}) {
- const calls={rpc:[],creates:[],refunds:[],queries:[]};
+ const calls={rpc:[],creates:[],refunds:[],queries:[],filters:[]};
  const db={rpc:async(name,args)=>{calls.rpc.push({name,args});return{data:typeof rpcResult==='function'?rpcResult(name,args):rpcResult,error:null}},from(table){
    calls.queries.push(table);
-   const q={select(){return q},eq(){return q},or(){return q},order(){return q},limit(){return q},is(){return q},update(){return q},in(){return q},
+   const q={select(){return q},eq(){return q},or(filter){calls.filters.push(filter);return q},order(){return q},limit(){return q},is(){return q},update(){return q},in(){return q},
      maybeSingle:async()=>({data:table==='profiles'?{stripe_customer_id:null}:record,error:null}),
      then(resolve){resolve({data:table==='vip_gifts'?[gift]:[],error:null})}}; return q;
  }};
@@ -109,4 +109,9 @@ test('Expiry/failure webhooks never erase paid or redeemed gifts',async()=>{
  assert.equal(await expireVipGift(db,session),true);assert.equal(updates.length,0);
  assert.equal(await expireVipGift(db,{...session,payment_status:'unpaid'}),true);assert.equal(updates[0].status,'expired');
  assert.ok(filters.some(([k,v])=>k==='status'&&v==='pending'));assert.ok(filters.some(([k,v])=>k==='recipient_id'&&v===recipient));
+});
+
+test('Recipients see delivered cards; unpaid sender drafts remain private',async()=>{
+ const h=await harness();const response=await h.request(undefined,'GET');assert.equal(response.statusCode,200);
+ assert.equal(h.calls.filters[0],`sender_id.eq.${sender},and(recipient_id.eq.${sender},delivered_at.not.is.null)`);
 });

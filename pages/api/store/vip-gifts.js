@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     if (error || !user?.id) return res.status(401).json({ success: false, error: 'Please Sign In To View Or Send VIP Gifts.' });
     if (req.method === 'GET') {
       let query = database().from('vip_gifts').select('*')
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`);
+        .or(`sender_id.eq.${user.id},and(recipient_id.eq.${user.id},delivered_at.not.is.null)`);
       if (req.query?.before || req.query?.beforeId) {
         const before = typeof req.query.before === 'string' ? req.query.before : '';
         const beforeId = typeof req.query.beforeId === 'string' ? req.query.beforeId : '';
