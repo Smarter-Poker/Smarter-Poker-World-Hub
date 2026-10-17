@@ -1370,7 +1370,7 @@ body.world-poker-near-me .pnm-location-listing__section-head > .pnc-panel__body 
 body.world-poker-near-me .pnm-location-listing__section-head > .pnc-panel__body h2 { margin: 0; color: var(--pnm-white); font: 400 clamp(24px, 3vw, 38px)/1 var(--font-rajdhani, sans-serif); letter-spacing: 0.025em; text-transform: uppercase; }
 body.world-poker-near-me .pnm-location-listing__section-head > .pnc-panel__body p { margin: 0; color: var(--pnm-muted); font-size: 13px; line-height: 1.55; }
 body.world-poker-near-me .pnm-location-listing__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-body.world-poker-near-me .pnm-location-card { min-width: 0; overflow: hidden; border: 1px solid rgba(151, 174, 194, 0.2); border-radius: 3px; background: #090f16; }
+body.world-poker-near-me .pnm-location-card { min-width: 0; overflow: hidden; border: 1px solid rgba(151, 174, 194, 0.2); border-radius: 3px; background: #090f16; content-visibility: auto; contain-intrinsic-size: auto 320px; }
 body.world-poker-near-me .pnm-location-card > a { display: block; color: inherit; text-decoration: none; }
 body.world-poker-near-me .pnm-location-card__media { position: relative; aspect-ratio: 16 / 8.5; overflow: hidden; background: #05080c; }
 body.world-poker-near-me .pnm-location-card__media img { width: 100%; height: 100%; object-fit: cover; filter: saturate(0.78) contrast(1.05); transition: transform 220ms ease; }

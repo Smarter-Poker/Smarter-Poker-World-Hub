@@ -1503,6 +1503,7 @@ jobs:
             __tests__/markdown-ingestion.test.mjs \
             __tests__/mcp-server.test.mjs \
             __tests__/location-aeo.test.mjs \
+            __tests__/cwv-performance-hardening.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # Phase 9-12 Trivia contracts stay focused and run once in the existing

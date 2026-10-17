@@ -116,6 +116,7 @@ function VenueCard({ venue }) {
               src={image}
               alt=""
               loading="lazy"
+              decoding="async"
               onError={() => setImage('')}
               onLoad={(event) => {
                 const { naturalWidth, naturalHeight } = event.currentTarget;
@@ -132,6 +133,7 @@ function VenueCard({ venue }) {
               src={mark}
               alt=""
               loading="lazy"
+              decoding="async"
               width="54"
               height="54"
               onError={() => setMark('')}
