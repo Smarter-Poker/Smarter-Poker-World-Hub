@@ -282,7 +282,7 @@ export default function PokerToolsPage() {
     return (
         <>
             <SEOHead
-                title="Poker Odds Calculator: Instant Equity For Six Games | Smarter.Poker"
+                title="Poker Odds Calculator: Six Games"
                 description="Free Poker Odds Calculator For Texas Hold'em, Omaha, PLO5, PLO6, Stud, And Razz. Calculate Real-Time Multiway Equity And Test Scenarios With Zero Account Setup."
                 canonical="https://smarter.poker/hub/poker-tools"
             />

@@ -241,7 +241,7 @@ export default function ICMCalculatorPage() {
   return (
     <>
       <SEOHead
-        title="Tournament ICM Calculator: Dollar Equity & Bubble Math | Smarter.Poker"
+        title="Tournament ICM Calculator"
         description="Free Tournament ICM Calculator. Convert Chip Stacks To Real Dollar Values Using The Malmuth-Harville Model For Final Table And Bubble Decisions."
         canonical="https://smarter.poker/hub/training/icm-calculator"
       />
