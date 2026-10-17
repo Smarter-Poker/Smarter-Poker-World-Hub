@@ -60,7 +60,7 @@ const PREFLOP_SCHEMA = hubProductSchema({
     },
   ],
 });
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -105,12 +105,9 @@ import { useHaptics } from '../../src/hooks/useHaptics';
 import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
 import { TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
-// Server-rendered (2026-10-16). Loaded with ssr:false, the wrapper kept the
-// whole lab out of the server HTML: a phone painted only the summary and the
-// written-out ranges, then hydration inserted ~4,400px of lab above them and
-// moved everything down (mobile CLS 1.05). With disableInitialAnimation the
-// wrapper is a plain div, identical on the server and the client.
-import PageTransition from '../../src/components/transitions/PageTransition';
+const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), {
+  ssr: false,
+});
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), {
   ssr: false,
 });
@@ -441,6 +438,16 @@ const LEADERBOARD_COLUMNS = [
   },
 ];
 
+// Signals, in the same commit, that the client-only lab has mounted. It only
+// ever renders inside the ssr:false PageTransition, so the layout effect never
+// runs on the server.
+function LabMounted({ onMount }) {
+  useLayoutEffect(() => {
+    onMount();
+  }, [onMount]);
+  return null;
+}
+
 // First-paint skeleton that mirrors the menu: hero, daily card, seven mode
 // cards, the level list. One class (.preflop-skel) and one keyframe in
 // src/styles/worlds/memory-games.css.
@@ -660,6 +667,14 @@ export default function MemoryGamesPage() {
   // RPC: public.rpc_memory_dashboard(uuid). Renders grade chip + per-level
   // mastery + daily-challenge state in one round-trip (replaces 5+ fetches).
   const [memoryDashboard, setMemoryDashboard] = useState(null);
+  // HOLD THE LAB'S PLACE (2026-10-16). The lab is client-only, so the server
+  // HTML held only the summary and the written-out ranges, and a phone painted
+  // them at the top; hydration then inserted ~4,400px of lab above them and
+  // moved the whole screen (mobile CLS 1.05). A viewport-tall spacer keeps
+  // that copy below the fold until the lab mounts and replaces it in the same
+  // commit. The server-rendered words and their order are unchanged.
+  const [labMounted, setLabMounted] = useState(false);
+  const markLabMounted = useCallback(() => setLabMounted(true), []);
   const [memoryDashboardLoading, setMemoryDashboardLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const isInitialLoad = useInitialLoadRef();
@@ -1908,6 +1923,7 @@ export default function MemoryGamesPage() {
       </Head>
 
     <PageTransition disableInitialAnimation>
+      <LabMounted onMount={markLabMounted} />
 
       <HubPageShell
         className="preflop"
@@ -3360,6 +3376,7 @@ export default function MemoryGamesPage() {
     {/* Outside <PageTransition> for the same reason the head is, and
         AFTER it so the app still opens at the top of the page: this is the
         only body copy a crawler that runs no JavaScript ever sees here. */}
+    {!labMounted && <div aria-hidden="true" style={{ minHeight: '100dvh' }} />}
     <HubPageSummary page="preflop-charts" as="h1" />
     {/* The charts themselves, in words, for the reader and the engine that
         never run the lab above (AEO phase 3, 2026-09-19). */}
