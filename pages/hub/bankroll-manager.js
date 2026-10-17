@@ -40,6 +40,16 @@ const BANKROLL_SCHEMA = hubProductSchema({
       answer:
         'Risk of ruin is the mathematical probability that you will lose your entire poker bankroll before reaching your financial target. The bankroll manager calculates your win rate and standard deviation to estimate safe stakes.',
     },
+    {
+      question: 'What is the Kelly Criterion in poker bankroll management?',
+      answer:
+        'The Kelly Criterion calculates the mathematically optimal percentage of your bankroll to risk based on your edge and variance. Fractional Kelly (such as half-Kelly or quarter-Kelly) is standard for poker players to prevent severe drawdowns while maximizing long-term bankroll growth.',
+    },
+    {
+      question: 'How do bankroll requirements differ between cash games and tournaments?',
+      answer:
+        'Cash games require 20 to 50 buy-ins because variance is lower and you can leave a table whenever needed. Multi-table tournaments (MTTs) require 100 to 200 buy-ins due to massive field sizes and steep payout distributions where 85% of entrants finish outside the money.',
+    },
   ],
 });
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
