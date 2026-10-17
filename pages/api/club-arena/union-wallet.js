@@ -627,7 +627,11 @@ export default async function handler(req, res) {
             .select('rake_wallet, chip_balance, updated_at')
             .eq('union_id', unionId)
             .maybeSingle(),
-          supabaseAdmin.rpc('fn_union_rake_ledger_summary', { p_union_id: unionId }),
+          // Checkpoint + tail + the wallet in ONE statement (Club Arena
+          // migration 20261017040354): the wallet and the ledger are read in
+          // the same snapshot, so a hand raked between two requests can no
+          // longer read as drift.
+          supabaseAdmin.rpc('fn_union_rake_ledger_reconciliation', { p_union_id: unionId }),
           supabaseAdmin.rpc('fn_union_rake_by_day', { p_union_id: unionId, p_days: days }),
           supabaseAdmin.rpc('fn_union_rake_by_club', { p_union_id: unionId, p_days: days }),
           supabaseAdmin
@@ -639,8 +643,14 @@ export default async function handler(req, res) {
             .limit(50),
         ]);
 
-        const balance = Number(walletRow.data?.rake_wallet || 0);
         const led = (ledger.data && ledger.data[0]) || null;
+        // The balance comes from the same snapshot as the ledger when the
+        // reconciliation answered; the separate wallet row is only the
+        // fallback for a union with no checkpoint row yet.
+        const balance =
+          led && led.wallet_balance != null
+            ? Number(led.wallet_balance)
+            : Number(walletRow.data?.rake_wallet || 0);
         const ledgerNet = led ? Number(led.net || 0) : null;
 
         return res.json({
@@ -661,7 +671,12 @@ export default async function handler(req, res) {
             : null,
           // Positive means the wallet holds more than the ledger accounts for.
           // Rounded to cents so float noise is not reported as a discrepancy.
-          drift: ledgerNet === null ? null : Math.round((balance - ledgerNet) * 100) / 100,
+          drift:
+            led && led.drift != null
+              ? Number(led.drift)
+              : ledgerNet === null
+                ? null
+                : Math.round((balance - ledgerNet) * 100) / 100,
           byDay: byDay.data || [],
           byClub: byClub.data || [],
           transactions: recent.data || [],
