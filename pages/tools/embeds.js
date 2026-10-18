@@ -70,7 +70,7 @@ export default function WebmasterEmbedPortal() {
   return (
     <>
       <SEOHead
-        title="Webmaster Poker Widgets - Free Embeds & Odds Calculators"
+        title="Free Poker Widgets & Embeds"
         description="Free embeddable poker widgets for webmasters and bloggers. Embed real-time odds calculators, tournament ICM solvers, and GTO preflop charts with simple HTML iframe snippets."
         canonical="https://smarter.poker/tools/embeds"
       >
