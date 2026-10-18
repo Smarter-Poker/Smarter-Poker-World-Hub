@@ -234,6 +234,8 @@ test('the verification screen passes the fresh six digits to Auth and renders re
     const React = require('react');
     const { create, act } = require('react-test-renderer');
     const submitted = [];
+    const redirects = [];
+    const invitedClub = '/hub/club-arena/invite/shark-club?ref=1&i=ZG9YGMZ';
     let reject = true;
     const module = { exports: {} };
     const compiled = ts.transpileModule(read('pages/auth/signup.js'), {
@@ -242,6 +244,7 @@ test('the verification screen passes the fresh six digits to Auth and renders re
     }).outputText;
     vm.runInNewContext(compiled, {
         module, exports: module.exports, console: { log() {}, warn() {} },
+        window: { location: { replace: path => redirects.push(path) } },
         require: name => {
             if (name === 'react') return { ...React, useEffect: () => {}, useState: initial => React.useState(
                 initial === 'info' ? 'email_pending' : initial?.firstName === '' ? { ...initial, email: ' Signup@Example.Invalid ', pokerAlias: 'Test Player' } : initial
@@ -250,7 +253,7 @@ test('the verification screen passes the fresh six digits to Auth and renders re
             if (name === 'next/router') return { useRouter: () => ({ query: {} }) };
             if (name.endsWith('/SEOHead') || name.endsWith('/ExistingAccountDialog') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
             if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
-            if (name.endsWith('/clubInvite')) return { resolveSignupClubPath: async () => null };
+            if (name.endsWith('/clubInvite')) return { resolveSignupClubPath: async () => invitedClub };
             if (name.endsWith('/SignupWelcome')) return { default: () => React.createElement('h2', null, 'Welcome To Smarter.Poker!') };
             if (name.endsWith('/supabase')) return { supabase: { auth: { verifyOtp: async payload => {
                 submitted.push(payload);
@@ -275,6 +278,11 @@ test('the verification screen passes the fresh six digits to Auth and renders re
     await act(async () => { await submit(); });
     assert.equal(tree.root.findAllByProps({ id: 'signup-email-code' }).length, 0);
     assert.ok(JSON.stringify(tree.toJSON()).includes('Welcome To Smarter.Poker!'));
+    assert.equal(redirects.length, 1);
+    const destination = new URL(redirects[0], 'https://example.invalid');
+    assert.equal(destination.pathname, '/hub/verify-phone', 'a referral must not skip the phone welcome offer');
+    assert.equal(destination.searchParams.get('welcome'), '1');
+    assert.equal(destination.searchParams.get('next'), invitedClub);
     await act(async () => { tree.unmount(); });
 });
 
