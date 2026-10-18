@@ -199,6 +199,7 @@ export default function PokerNearMeLocationPage({
   stateName,
   city,
   venues = [],
+  nearbyVenues = [],
   resultCount,
   states = [],
   unplacedVenues = [],
@@ -463,6 +464,21 @@ export default function PokerNearMeLocationPage({
             />
           </section>
         )}
+
+        {/* Nearby Regional Venues (Thin Content & Soft-404 Defense) */}
+        {nearbyVenues.length > 0 && (
+          <section aria-labelledby="pnm-nearby-venues-heading">
+            <PokerNearMePanelShell as="header" className="pnm-location-listing__section-head">
+              <span>Regional Coverage</span>
+              <h2 id="pnm-nearby-venues-heading">Nearby Poker Rooms In {stateName || stateCode}</h2>
+              <p>Explore Highly Active Cardrooms And Gaming Venues Across {stateName || stateCode} Within Easy Driving Distance.</p>
+            </PokerNearMePanelShell>
+            <div className="pnm-location-listing__grid">
+              {nearbyVenues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
+            </div>
+          </section>
+        )}
+
 
         {/* Conversational Search & People Also Ask Enrichment */}
         {locationFaqJsonLd?.mainEntity?.length > 0 && (
