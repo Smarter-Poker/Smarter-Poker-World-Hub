@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
-import UniversalHeader from '../../src/components/UniversalHeader';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 
 const WIDGETS = [
