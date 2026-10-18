@@ -163,7 +163,8 @@ test('the callback routes an invite only for a fresh claim, and Commander wins',
     assert.match(cb, /youngAccount && INVITE_ROUTE_STATUSES\.includes\(claimed\.status\)/);
     assert.match(cb, /claimed\.success === false && !!claimed\.code/);
     assert.match(cb, /!inviteJoinPath && youngAccount && \(!claimAttempted \|\| !claimSettled\)/);
-    const dest = cb.slice(cb.indexOf('const dest = nextPath'));
+    const dest = cb.slice(cb.indexOf('const destination = nextPath'));
+    assert.ok(dest.includes('const destination = nextPath'));
     assert.ok(dest.indexOf("isCommanderOrigin ? '/commander/dashboard'") < dest.indexOf('|| inviteDest'));
 });
 

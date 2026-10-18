@@ -431,10 +431,13 @@ export default function AuthCallback() {
 
                 // A Club Commander sign-in returns to Commander even when the
                 // account also carries a club invite.
-                const dest = nextPath
+                const destination = nextPath
                     || (isCommanderOrigin ? '/commander/dashboard' : null)
                     || inviteDest
-                    || (newPlayerNeedsPhone ? '/hub/verify-phone?welcome=1' : '/hub');
+                    || '/hub';
+                const dest = newPlayerNeedsPhone && !isCommanderOrigin
+                    ? `/hub/verify-phone?welcome=1${safeClubArenaPath(destination) ? `&next=${encodeURIComponent(destination)}` : ''}`
+                    : destination;
 
 
 

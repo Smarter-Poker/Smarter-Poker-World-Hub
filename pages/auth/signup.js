@@ -719,7 +719,7 @@ export default function SignUpPage() {
           Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
         setSignupClubPath(next);
         setStep('success');
-        if (next) window.location.replace(next);
+        if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
       }
     } catch (err) {
       console.warn('Signup error:', err);
@@ -832,8 +832,9 @@ export default function SignUpPage() {
         Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
       setSignupClubPath(next);
       setStep('success');
-      // Club Arena is a separate application; enter its real join route directly.
-      if (next) window.location.replace(next);
+      // Offer the earned welcome package before entering the invited club.
+      // Verification and Skip For Now both preserve this club destination.
+      if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
     } catch (err) {
       console.warn('Verification error:', err);
       setError(err.message || 'Invalid verification code. Please try again.');

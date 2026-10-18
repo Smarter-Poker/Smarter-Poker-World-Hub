@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
@@ -35,6 +36,32 @@ const hubIndex = read('pages/hub/index.js');
 const menus = read('src/config/hamburgerMenus.js');
 const appRoot = read('pages/_app.js');
 const avatarCtx = read('src/contexts/AvatarContext.jsx');
+
+test('callback phone onboarding precedes a club invite and preserves verified and Commander destinations', () => {
+  const callback = read('pages/auth/callback.js');
+  const block = callback.slice(callback.indexOf('const destination = nextPath'), callback.indexOf('try {\n                    if (typeof window', callback.indexOf('const destination = nextPath')));
+  assert.ok(block.includes('const dest ='), 'callback must select onboarding after its destination');
+  const club = '/hub/club-arena/invite/shark-club?ref=1&i=ZG9YGMZ';
+  for (const [needsPhone, commander, explicitNext, invite, expected] of [
+    [true, false, null, club, `/hub/verify-phone?welcome=1&next=${encodeURIComponent(club)}`],
+    [true, false, club, null, `/hub/verify-phone?welcome=1&next=${encodeURIComponent(club)}`],
+    [true, false, null, null, '/hub/verify-phone?welcome=1'],
+    [false, false, null, club, club],
+    [false, false, null, null, '/hub'],
+    [true, true, null, club, '/commander/dashboard'],
+  ]) {
+    const result = vm.runInNewContext(`${block}\ndest`, {
+      nextPath: explicitNext, inviteDest: invite, newPlayerNeedsPhone: needsPhone,
+      isCommanderOrigin: commander, encodeURIComponent,
+      safeClubArenaPath: path => path?.startsWith('/hub/club-arena/') ? path : null,
+    });
+    assert.equal(result, expected);
+  }
+  const signup = read('pages/auth/signup.js');
+  assert.equal((signup.match(/if \(next\) window\.location\.replace\(`\/hub\/verify-phone\?welcome=1&next=\$\{encodeURIComponent\(next\)\}`\)/g) || []).length, 2,
+    'both auto-confirmed signup and email-code confirmation offer phone verification before the club');
+  assert.match(signup, /If You Do Not See The Code In Your Inbox, Check Your Spam Or Junk Folder\./);
+});
 
 test('the signup form collects no phone number and sends none in metadata', () => {
   assert.doesNotMatch(signup, /\/api\/sms\/(send|verify)-otp/, 'signup must not verify a phone');

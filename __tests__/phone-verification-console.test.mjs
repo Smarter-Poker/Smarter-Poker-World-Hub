@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 import ts from 'typescript';
+import './pending-phone-verification.test.mjs';
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL('../src/components/gates/VerificationConsole.jsx', import.meta.url), 'utf8');
 const compiled = ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
