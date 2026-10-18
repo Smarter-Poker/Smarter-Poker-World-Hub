@@ -1,4 +1,5 @@
 const SITE_ORIGIN = 'https://smarter.poker';
+import { resolveTournamentWikidataLinks } from '../seo/wikidataRegistry.mjs';
 
 function absoluteUrl(value) {
   const url = String(value || '');
@@ -230,6 +231,7 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
         : canonical;
 
     const startDate = formatIsoTournamentStartDate(tournament);
+    const sameAsLinks = resolveTournamentWikidataLinks(tournament);
 
     return {
       '@type': 'ListItem',
@@ -238,6 +240,7 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
         '@type': 'SportsEvent',
         name: tournament.tournament_name || 'Daily poker tournament',
         url: venueUrl,
+        ...(sameAsLinks.length > 0 ? { sameAs: sameAsLinks } : {}),
         startDate: startDate || undefined,
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
         eventStatus: 'https://schema.org/EventScheduled',
