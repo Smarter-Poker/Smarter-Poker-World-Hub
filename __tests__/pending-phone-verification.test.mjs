@@ -88,7 +88,7 @@ test('successful verification shows one confirmation for exactly two seconds the
     const compiled = ts.transpileModule(readFileSync(new URL('../pages/hub/verify-phone.js', import.meta.url),'utf8'), {
         compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS},
     }).outputText;
-    for (const destination of [null, '/hub/club-arena/invite/shark-club?ref=1']) {
+    for (const [destination, verified] of [[null,false], ['/hub/club-arena/invite/shark-club?ref=1',false], [null,true], ['/hub/club-arena/invite/shark-club?ref=1',true]]) {
         const timers = new Map(), navigations = []; let serial = 0;
         const router = {query:destination ? {next:destination} : {},replace:path=>navigations.push(path)};
         const mod = {exports:{}};
@@ -103,7 +103,7 @@ test('successful verification shows one confirmation for exactly two seconds the
                 if(name.endsWith('/VerificationConsole'))return {default:props=>React.createElement('div',{id:'console',...props})};
                 if(name.endsWith('/SEOHead'))return {default:()=>null};
                 if(name.endsWith('/authUtils'))return {useRequireAuth:()=>({user:{id:'test-player'},checking:false}),getAccessToken:()=>'',authedFetch:async()=>({ok:true,status:200,json:async()=>({success:true,vipGranted:true,vipDays:30,welcomeDiamonds:500,diamondsAwarded:25})})};
-                if(name.endsWith('/supabase'))return {supabase:{from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{phone_verified:false}})})})})}};
+                if(name.endsWith('/supabase'))return {supabase:{from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{phone_verified:verified}})})})})}};
                 if(name.endsWith('/clubInvite'))return {safeClubArenaPath:path=>path||null,fetchPendingJoinPath:async()=>null};
                 if(name.endsWith('/phoneWelcome'))return {shouldOfferPhoneWelcome:()=>true};
                 if(name.endsWith('/pendingPhoneVerification.mjs'))return {readPendingPhoneVerification:()=>null,clearPendingPhoneVerification:()=>{}};
@@ -113,6 +113,11 @@ test('successful verification shows one confirmation for exactly two seconds the
         });
         let tree;
         await act(async()=>{tree=create(React.createElement(mod.exports.default));});
+        if (verified) {
+            assert.deepEqual(navigations,[destination||'/hub'],'an already verified account continues without another success form');
+            await act(async()=>tree.unmount());
+            continue;
+        }
         const props=()=>tree.root.findByProps({id:'console'}).props;
         await act(async()=>props().onPhoneChange({target:{value:'2025550123'}}));
         await act(async()=>props().onCodeChange({target:{value:'1234'}}));

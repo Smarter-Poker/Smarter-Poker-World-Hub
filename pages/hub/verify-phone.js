@@ -124,9 +124,9 @@ export default function VerifyPhonePage() {
     // so a missing user keeps the skeleton up instead of flashing the form.
     const checking = authChecking || !user?.id || !profileChecked;
 
-    // Already verified and on their way to an invited club: nothing to do here.
+    // A completed account continues immediately without another verification form.
     useEffect(() => {
-        if (!checking && alreadyVerified && nextPath) window.location.replace(nextPath);
+        if (!checking && alreadyVerified) window.location.replace(nextPath || '/hub');
     }, [checking, alreadyVerified, nextPath]);
 
     // Funnel: how many players reach this screen, and from where.
