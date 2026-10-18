@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 78,
     "realtimeFiles": 6,
-    "tests": 160,
+    "tests": 161,
     "markerCandidates": 335,
     "possibleUnwiredFunctions": 382,
     "routeStateCells": 752,
@@ -9804,6 +9804,7 @@
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9816,6 +9817,7 @@
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9831,6 +9833,7 @@
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9844,6 +9847,7 @@
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9857,6 +9861,7 @@
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9870,6 +9875,7 @@
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9880,6 +9886,7 @@
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -9894,6 +9901,7 @@
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9902,6 +9910,7 @@
       "existingTests": [
         "__tests__/gsc-series2-phase2.test.mjs",
         "__tests__/gsc-series3-phase2.test.mjs",
+        "__tests__/gsc-series3-phase3.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
@@ -27773,7 +27782,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 276,
+          "line": 281,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -27783,7 +27792,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 339,
+          "line": 344,
           "handler": "() => loadPreset(p)",
           "destination": null,
           "type": null,
@@ -27793,7 +27802,7 @@
         {
           "element": "button",
           "name": "-",
-          "line": 391,
+          "line": 396,
           "handler": "removePlayer",
           "destination": null,
           "type": null,
@@ -27803,7 +27812,7 @@
         {
           "element": "button",
           "name": "+",
-          "line": 410,
+          "line": 415,
           "handler": "addPlayer",
           "destination": null,
           "type": null,
@@ -27813,7 +27822,7 @@
         {
           "element": "button",
           "name": "-",
-          "line": 504,
+          "line": 509,
           "handler": "removePrize",
           "destination": null,
           "type": null,
@@ -27823,7 +27832,7 @@
         {
           "element": "button",
           "name": "+",
-          "line": 523,
+          "line": 528,
           "handler": "addPrize",
           "destination": null,
           "type": null,
@@ -27833,7 +27842,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 955,
+          "line": 960,
           "handler": "() => setIcmView(tab.key)",
           "destination": null,
           "type": null,
@@ -63055,6 +63064,7 @@
     "__tests__/global-header-approved.test.mjs",
     "__tests__/gsc-series2-phase2.test.mjs",
     "__tests__/gsc-series3-phase2.test.mjs",
+    "__tests__/gsc-series3-phase3.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
@@ -65075,11 +65085,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:276:1",
+      "id": "pages/hub/training/icm-calculator.js:281:1",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "← Training",
-      "line": 276,
+      "line": 281,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -65088,11 +65098,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:339:2",
+      "id": "pages/hub/training/icm-calculator.js:344:2",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 339,
+      "line": 344,
       "handler": "() => loadPreset(p)",
       "destination": null,
       "type": null,
@@ -65101,11 +65111,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:391:3",
+      "id": "pages/hub/training/icm-calculator.js:396:3",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "-",
-      "line": 391,
+      "line": 396,
       "handler": "removePlayer",
       "destination": null,
       "type": null,
@@ -65114,11 +65124,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:410:4",
+      "id": "pages/hub/training/icm-calculator.js:415:4",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "+",
-      "line": 410,
+      "line": 415,
       "handler": "addPlayer",
       "destination": null,
       "type": null,
@@ -65127,11 +65137,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:504:5",
+      "id": "pages/hub/training/icm-calculator.js:509:5",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "-",
-      "line": 504,
+      "line": 509,
       "handler": "removePrize",
       "destination": null,
       "type": null,
@@ -65140,11 +65150,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:523:6",
+      "id": "pages/hub/training/icm-calculator.js:528:6",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "+",
-      "line": 523,
+      "line": 528,
       "handler": "addPrize",
       "destination": null,
       "type": null,
@@ -65153,11 +65163,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:955:7",
+      "id": "pages/hub/training/icm-calculator.js:960:7",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 955,
+      "line": 960,
       "handler": "() => setIcmView(tab.key)",
       "destination": null,
       "type": null,
@@ -75187,6 +75197,7 @@
       "realtime": [],
       "tests": [
         "__tests__/gsc-series2-phase2.test.mjs",
+        "__tests__/gsc-series3-phase3.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
       ]
     },
@@ -90820,7 +90831,9 @@
         "disposition": "route-entrypoint",
         "review": "accepted",
         "rationale": "Next.js page default export is invoked by the router.",
-        "externalReferenceFiles": []
+        "externalReferenceFiles": [
+          "pages/tools/icm-calculator.js"
+        ]
       },
       {
         "file": "pages/hub/training/icm-final-table.js",
@@ -99939,7 +99952,9 @@
         "disposition": "route-entrypoint",
         "review": "accepted",
         "rationale": "Next.js page default export is invoked by the router.",
-        "externalReferenceFiles": []
+        "externalReferenceFiles": [
+          "pages/tools/icm-calculator.js"
+        ]
       },
       {
         "file": "pages/hub/training/icm-final-table.js",

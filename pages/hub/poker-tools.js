@@ -112,9 +112,10 @@ function CardSlot({ card, active, onPick, onRemove, label }) {
     );
 }
 
-export default function PokerToolsPage() {
+export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/poker-tools' } = {}) {
     const router = useRouter();
     const isEmbedMode = router.query?.embed === 'true';
+    const effectiveCanonical = router.pathname === '/tools/poker-odds-calculator' ? 'https://smarter.poker/tools/poker-odds-calculator' : canonical;
     const [game, setGame] = useState('nlhe');
     const [hands, setHands] = useState([[], []]);
     const [board, setBoard] = useState([]);
@@ -289,14 +290,18 @@ export default function PokerToolsPage() {
             <SEOHead
                 title="Poker Odds Calculator: Six Games"
                 description="Free Poker Odds Calculator For Texas Hold'em, Omaha, PLO5, PLO6, Stud, And Razz. Calculate Real-Time Multiway Equity And Test Scenarios With Zero Account Setup."
-                canonical="https://smarter.poker/hub/poker-tools"
+                canonical={effectiveCanonical}
             />
             <Head>
                 <script
                     key="poker-tools-schema"
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{
-                        __html: JSON.stringify(ODDS_CALCULATOR_SCHEMA).replace(/</g, '\\u003c'),
+                        __html: JSON.stringify({
+                            ...ODDS_CALCULATOR_SCHEMA,
+                            '@id': `${effectiveCanonical}#app`,
+                            url: effectiveCanonical,
+                        }).replace(/</g, '\\u003c'),
                     }}
                 />
             </Head>

@@ -81,6 +81,8 @@ export const STATIC_PAGES = [
   { path: '/hub/poker-tools', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/training/icm-calculator', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/training/equity-calculator', priority: '0.8', changefreq: 'weekly' },
+  { path: '/tools/poker-odds-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/icm-calculator', priority: '0.9', changefreq: 'weekly' },
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
