@@ -74,6 +74,7 @@ test('the /i/ page renders a preview card, sets the cookie and puts Create Accou
     assert.match(page, /resolveInviteServer\(code, \{ countClick \}\)/);
     assert.ok(page.includes('>Sign Up</a>'));
     assert.ok(page.includes('>Sign In</a>'));
+    assert.match(page, /const loginHref = signupHref\.replace\('\/auth\/signup\?', '\/auth\/login\?'\)/);
     assert.ok(page.indexOf('>Sign Up</a>') < page.indexOf('>Sign In</a>'));
 });
 
