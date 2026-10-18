@@ -28,3 +28,11 @@
 
 .stateFooter { position: absolute; top: 72%; left: 20%; width: 60%; height: 12.5%; background: #020b12; display: flex; flex-direction: column; justify-content: center; gap: 1cqw; text-align: center; }
 .stateFooter > button { color: #00d4ff; background: transparent; border: 0; font-size: 2.7cqw; text-decoration: underline; cursor: pointer; min-height: 24px; }
+
+.confirmationPage { min-height: calc(100dvh - 120px); display: grid; place-items: center; padding: 24px 16px; background: #000; box-sizing: border-box; }
+.confirmationToast { box-sizing: border-box; width: min(420px, 100%); padding: 28px 24px; text-align: center; color: #edf5ff; font-family: 'Inter', sans-serif; background: linear-gradient(145deg, #1c2732, #050a10 25%, #070e17 75%, #263645); border: 1px solid #567087; border-top: 2px solid #49bcff; border-radius: 10px; box-shadow: inset 0 0 0 3px #080d14, 0 0 24px #008cff26; }
+.confirmationToast h1 { margin: 16px 0 8px; font-size: 24px; font-weight: 700; }
+.confirmationToast p { margin: 8px 0; font-size: 14px; line-height: 1.5; }
+.confirmationMark { display: inline-block; width: 28px; height: 14px; border-left: 3px solid #49bcff; border-bottom: 3px solid #49bcff; transform: rotate(-45deg); }
+.confirmationRewards { display: grid; gap: 4px; padding: 12px 0; color: #e3d1a0; }
+.confirmationDestination { color: #8ea5bd; font-size: 12px; }

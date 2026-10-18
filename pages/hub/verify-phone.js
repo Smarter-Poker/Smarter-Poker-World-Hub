@@ -24,7 +24,6 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { useRequireAuth, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 import { busEmit } from '../../src/engine/EventBus';
-import { showDiamondToast } from '../../src/components/diamonds/DiamondToast';
 import { fetchPendingJoinPath, safeClubArenaPath } from '../../src/lib/clubInvite';
 
 const RESEND_COOLDOWN_S = 60;
@@ -125,9 +124,9 @@ export default function VerifyPhonePage() {
     // so a missing user keeps the skeleton up instead of flashing the form.
     const checking = authChecking || !user?.id || !profileChecked;
 
-    // Already verified and on their way to an invited club: nothing to do here.
+    // A completed account continues immediately without another verification form.
     useEffect(() => {
-        if (!checking && alreadyVerified && nextPath) window.location.replace(nextPath);
+        if (!checking && alreadyVerified) window.location.replace(nextPath || '/hub');
     }, [checking, alreadyVerified, nextPath]);
 
     // Funnel: how many players reach this screen, and from where.
@@ -196,8 +195,6 @@ export default function VerifyPhonePage() {
             clearPendingPhoneVerification(phoneChallengeStorage(), user.id);
             setResult(data);
             setStage('done');
-            // Invited player: the welcome package toast plays, then the club.
-            if (nextPath) setTimeout(() => window.location.replace(nextPath), 1800);
             try {
                 capture(FunnelEvents.PHONE_VERIFIED, {
                     welcome: isWelcome,
@@ -215,11 +212,9 @@ export default function VerifyPhonePage() {
                     window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
                 }
                 if (welcome > 0) {
-                    showDiamondToast(welcome, 'Welcome Package');
                     busEmit.diamondsEarned(welcome, 'Welcome Package');
                 }
                 if (bonus > 0) {
-                    showDiamondToast(bonus, 'Phone Verified');
                     busEmit.diamondsEarned(bonus, 'Phone Verified');
                 }
                 window.dispatchEvent(new Event('profile-updated'));
@@ -260,6 +255,14 @@ export default function VerifyPhonePage() {
         if (nextPath) window.location.replace(nextPath);
         else router.replace('/hub');
     }, [router, nextPath]);
+
+    // The confirmed server result is shown once, then every player continues.
+    // Cancel navigation if this page unmounts before the two-second toast ends.
+    useEffect(() => {
+        if (stage !== 'done') return undefined;
+        const timer = setTimeout(goHub, 2000);
+        return () => clearTimeout(timer);
+    }, [stage, goHub]);
 
     const vipDays = result?.vipDays || (result?.vipGranted ? 30 : 0);
     const welcomeDiamonds = Number(result?.welcomeDiamonds || 0);

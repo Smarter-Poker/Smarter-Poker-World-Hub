@@ -79,3 +79,58 @@ test('mounted verification page restores the code field after reload without sen
     assert.equal(props().stage,'phone','explicit Skip clears pending verification');
     await act(async()=>tree.unmount());
 });
+
+
+test('successful verification shows one confirmation for exactly two seconds then opens the hub or invited club', async () => {
+    const require = createRequire(import.meta.url);
+    const React = require('react'), ts = require('typescript');
+    const { create, act } = require('react-test-renderer');
+    const compiled = ts.transpileModule(readFileSync(new URL('../pages/hub/verify-phone.js', import.meta.url),'utf8'), {
+        compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS},
+    }).outputText;
+    for (const [destination, verified] of [[null,false], ['/hub/club-arena/invite/shark-club?ref=1',false], [null,true], ['/hub/club-arena/invite/shark-club?ref=1',true]]) {
+        const timers = new Map(), navigations = []; let serial = 0;
+        const router = {query:destination ? {next:destination} : {},replace:path=>navigations.push(path)};
+        const mod = {exports:{}};
+        vm.runInNewContext(compiled, {
+            exports:mod.exports,module:mod,console,sessionStorage:{getItem:()=>null,removeItem:()=>{},setItem:()=>{}},
+            localStorage:{setItem:()=>{}},Event:class {},CustomEvent:class {},
+            setTimeout:(fn,ms)=>{const id=++serial;timers.set(id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id),
+            window:{location:{replace:path=>navigations.push(path)},dispatchEvent:()=>{}},
+            require:name=>{
+                if(name==='react'||name==='react/jsx-runtime')return require(name);
+                if(name==='next/router')return {useRouter:()=>router};
+                if(name.endsWith('/VerificationConsole'))return {default:props=>React.createElement('div',{id:'console',...props})};
+                if(name.endsWith('/SEOHead'))return {default:()=>null};
+                if(name.endsWith('/authUtils'))return {useRequireAuth:()=>({user:{id:'test-player'},checking:false}),getAccessToken:()=>'',authedFetch:async()=>({ok:true,status:200,json:async()=>({success:true,vipGranted:true,vipDays:30,welcomeDiamonds:500,diamondsAwarded:25})})};
+                if(name.endsWith('/supabase'))return {supabase:{from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{phone_verified:verified}})})})})}};
+                if(name.endsWith('/clubInvite'))return {safeClubArenaPath:path=>path||null,fetchPendingJoinPath:async()=>null};
+                if(name.endsWith('/phoneWelcome'))return {shouldOfferPhoneWelcome:()=>true};
+                if(name.endsWith('/pendingPhoneVerification.mjs'))return {readPendingPhoneVerification:()=>null,clearPendingPhoneVerification:()=>{}};
+                if(name.endsWith('/EventBus'))return {busEmit:{diamondsEarned:()=>{}}};
+                return {};
+            },
+        });
+        let tree;
+        await act(async()=>{tree=create(React.createElement(mod.exports.default));});
+        if (verified) {
+            assert.deepEqual(navigations,[destination||'/hub'],'an already verified account continues without another success form');
+            await act(async()=>tree.unmount());
+            continue;
+        }
+        const props=()=>tree.root.findByProps({id:'console'}).props;
+        await act(async()=>props().onPhoneChange({target:{value:'2025550123'}}));
+        await act(async()=>props().onCodeChange({target:{value:'1234'}}));
+        await act(async()=>props().verifyCode());
+        assert.equal(props().stage,'done');
+        assert.equal(props().welcomeDiamonds,500);
+        assert.equal(props().bonusDiamonds,25);
+        assert.deepEqual(navigations,[],'success must remain visible before its timer fires');
+        const confirmation=[...timers.values()].filter(t=>t.ms===2000);
+        assert.equal(confirmation.length,1,'one two-second timer for both destinations');
+        await act(async()=>confirmation[0].fn());
+        assert.deepEqual(navigations,[destination||'/hub']);
+        await act(async()=>tree.unmount());
+        assert.equal(timers.size,0,'unmount cancels navigation');
+    }
+});
