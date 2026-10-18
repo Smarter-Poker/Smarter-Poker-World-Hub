@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 78,
     "realtimeFiles": 6,
-    "tests": 159,
+    "tests": 160,
     "markerCandidates": 335,
     "possibleUnwiredFunctions": 382,
     "routeStateCells": 752,
@@ -7900,6 +7900,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7910,6 +7911,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7923,6 +7925,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7934,6 +7937,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7945,6 +7949,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7956,6 +7961,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7964,6 +7970,7 @@
           "evidence": [],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
           "followUpPhase": 15
@@ -7976,12 +7983,14 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
       },
       "existingTests": [
         "__tests__/gsc-series2-phase2.test.mjs",
+        "__tests__/gsc-series3-phase2.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": [
@@ -9794,6 +9803,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9805,6 +9815,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9819,6 +9830,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9831,6 +9843,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9843,6 +9856,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9855,6 +9869,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9864,6 +9879,7 @@
           "evidence": [],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -9877,6 +9893,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9884,6 +9901,7 @@
       },
       "existingTests": [
         "__tests__/gsc-series2-phase2.test.mjs",
+        "__tests__/gsc-series3-phase2.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
@@ -63036,6 +63054,7 @@
     "__tests__/every-lesson-answers-first.law.test.mjs",
     "__tests__/global-header-approved.test.mjs",
     "__tests__/gsc-series2-phase2.test.mjs",
+    "__tests__/gsc-series3-phase2.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
