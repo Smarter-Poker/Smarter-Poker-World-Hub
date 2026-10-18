@@ -93374,6 +93374,7 @@
           "pages/hub/training.js",
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
+          "pages/tools/preflop-ranges/index.js",
           "src/lib/seo/summarySchema.js"
         ]
       },
@@ -102495,6 +102496,7 @@
           "pages/hub/training.js",
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
+          "pages/tools/preflop-ranges/index.js",
           "src/lib/seo/summarySchema.js"
         ]
       },
