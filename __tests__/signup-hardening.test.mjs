@@ -248,7 +248,7 @@ test('the verification screen passes the fresh six digits to Auth and renders re
             ) };
             if (name === 'react/jsx-runtime' || name === 'lucide-react') return require(name);
             if (name === 'next/router') return { useRouter: () => ({ query: {} }) };
-            if (name.endsWith('/SEOHead')) return { default: () => null };
+            if (name.endsWith('/SEOHead') || name.endsWith('/ExistingAccountDialog') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
             if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
             if (name.endsWith('/clubInvite')) return { resolveSignupClubPath: async () => null };
             if (name.endsWith('/SignupWelcome')) return { default: () => React.createElement('h2', null, 'Welcome To Smarter.Poker!') };
@@ -276,4 +276,72 @@ test('the verification screen passes the fresh six digits to Auth and renders re
     assert.equal(tree.root.findAllByProps({ id: 'signup-email-code' }).length, 0);
     assert.ok(JSON.stringify(tree.toJSON()).includes('Welcome To Smarter.Poker!'));
     await act(async () => { tree.unmount(); });
+});
+
+test('Auth duplicate responses are recovered without treating unrelated database errors as an existing account', async () => {
+    const { isExistingSignup } = await import('../src/lib/signupOutcome.mjs');
+    for (const code of ['user_already_exists', 'email_exists', 'identity_already_exists']) assert.equal(isExistingSignup(null, { code }), true);
+    assert.equal(isExistingSignup(null, { message: 'User already registered' }), true);
+    assert.equal(isExistingSignup({ user: { identities: [] }, session: null }, null), true);
+    assert.equal(isExistingSignup({ user: { identities: [{ provider: 'email' }] }, session: null }, null), false);
+    assert.equal(isExistingSignup({ user: { identities: [] }, session: { access_token: 'local-test' } }, null), false);
+    for (const error of [{ message: 'duplicate key value violates player_number constraint' }, { code: 'over_email_send_rate_limit' }, { message: 'Network Error' }]) assert.equal(isExistingSignup(null, error), false);
+});
+
+test('signup shows existing-account recovery for both Auth response shapes, keeps new signups on OTP, and preserves referral when signing in', async () => {
+    const { createRequire } = await import('node:module');
+    const { default: vm } = await import('node:vm');
+    const { isExistingSignup } = await import('../src/lib/signupOutcome.mjs');
+    const { isEmailVerificationCode } = await import('../src/lib/signupExperience.mjs');
+    const { authSwitchHref } = await import('../src/lib/clubInvite.js');
+    const require = createRequire(import.meta.url), ts = require('typescript'), React = require('react');
+    const { create, act } = require('react-test-renderer');
+    for (const result of [
+        { data: { user: { identities: [] }, session: null }, error: null },
+        { data: { user: null, session: null }, error: { code: 'user_already_exists', message: 'User already registered' } },
+        { data: { user: { id: 'local-new-user', identities: [{ provider: 'email' }] }, session: null }, error: null },
+    ]) {
+        const mod = { exports: {} }, routes = [], stored = new Map(), writes = [];
+        vm.runInNewContext(ts.transpileModule(read('pages/auth/signup.js'), {
+            compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+        }).outputText, {
+            module: mod, exports: mod.exports, console: { log() {}, warn() {} },
+            window: { location: { origin: 'https://example.invalid' } },
+            sessionStorage: { setItem: (k, v) => stored.set(k, v) },
+            localStorage: { setItem: (...args) => writes.push(args) },
+            require: name => {
+                if (name === 'react') return { ...React, useEffect: () => {}, useState: initial => React.useState(initial?.firstName === '' ? {
+                    ...initial, firstName: 'Signup', lastName: 'Test', email: 'PLAYER@example.invalid', password: 'Local-Only-Test-Password', pokerAlias: 'SignupTest', birthMonth: '01', birthDay: '01', birthYear: '1990',
+                } : initial) };
+                if (name === 'react/jsx-runtime' || name === 'lucide-react') return require(name);
+                if (name === 'next/router') return { useRouter: () => ({ query: { ref: '1253', invite: 'ABC2345', redirect: '/hub/club-arena/invite/shark-club' }, push: href => routes.push(href) }) };
+                if (name.endsWith('/ExistingAccountDialog')) return { default: ({ open, onSignIn, onClose }) => open ? React.createElement('div', { role: 'alertdialog' }, React.createElement('h2', null, 'You Already Have An Account'), React.createElement('button', { onClick: onSignIn }, 'Sign In'), React.createElement('button', { onClick: onClose }, 'Use A Different Email')) : null };
+                if (name.endsWith('/SEOHead') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
+                if (name.endsWith('/signupOutcome.mjs')) return { isExistingSignup };
+                if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
+                if (name.endsWith('/clubInvite')) return { authSwitchHref, readPendingInvite: () => null, safeClubArenaPath: () => null };
+                if (name.endsWith('/passwordStrength')) return { validatePassword: async () => ({ ok: true }) };
+                if (name.endsWith('/supabase')) return { supabase: { auth: { signUp: async () => result } } };
+                return {};
+            },
+        });
+        let tree;
+        await act(async () => { tree = create(React.createElement(mod.exports.default)); });
+        await act(async () => { tree.root.findAllByProps({ type: 'checkbox' })[0].props.onChange({ target: { checked: true } }); });
+        await act(async () => { await tree.root.findAllByType('form')[0].props.onSubmit({ preventDefault() {} }); });
+        const duplicate = isExistingSignup(result.data, result.error);
+        assert.equal(tree.root.findAllByProps({ role: 'alertdialog' }).length, duplicate ? 1 : 0);
+        assert.equal(tree.root.findAllByProps({ id: 'signup-email-code' }).length, duplicate ? 0 : 1);
+        if (duplicate) {
+            assert.equal(writes.length, 0, 'duplicate response must not save a new signup redemption');
+            const dialog = tree.root.findByProps({ role: 'alertdialog' });
+            await act(async () => { dialog.findAllByType('button')[0].props.onClick(); });
+            assert.equal(stored.get('login_email_prefill'), 'player@example.invalid');
+            assert.match(routes[0], /\/auth\/login\?redirect=/);
+            assert.match(routes[0], /invite=ABC2345&ref=1253/);
+            await act(async () => { dialog.findAllByType('button')[1].props.onClick(); });
+            assert.equal(tree.root.findAllByProps({ role: 'alertdialog' }).length, 0);
+        }
+        await act(async () => { tree.unmount(); });
+    }
 });

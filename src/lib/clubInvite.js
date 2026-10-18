@@ -273,6 +273,10 @@ export function authSwitchHref(path, query) {
     const invite = first(query?.invite);
     if (typeof redirect === 'string' && redirect) params.set('redirect', redirect);
     if (typeof invite === 'string' && invite) params.set('invite', invite);
+    for (const key of ['ref', 'promo']) {
+        const value = first(query?.[key]);
+        if (typeof value === 'string' && value) params.set(key, value);
+    }
     const qs = params.toString();
     return qs ? `${path}?${qs}` : path;
 }

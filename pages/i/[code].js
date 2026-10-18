@@ -204,8 +204,8 @@ export default function ClubInviteLanding({ invite, code }) {
                                 <li>Verify Your Phone Number</li>
                                 <li>Join {club.name} With One Tap</li>
                             </ol>
-                            <a href={signupHref} style={styles.primary}>Create Account</a>
-                            <a href={loginHref} style={styles.secondary}>I Already Have An Account</a>
+                            <a href={signupHref} style={styles.primary}>Sign Up</a>
+                            <a href={loginHref} style={styles.secondary}>Sign In</a>
                             {inviter.playerNumber ? (
                                 <p style={styles.fine}>Referral Number {inviter.playerNumber} Is Saved For You.</p>
                             ) : null}
