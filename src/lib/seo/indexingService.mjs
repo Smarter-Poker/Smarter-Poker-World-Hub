@@ -164,3 +164,38 @@ export async function submitToGoogleIndexing(url, { type = 'URL_UPDATED', token 
     };
   }
 }
+
+/**
+ * High-level helper for tournament and event updates
+ * Submits dynamic event and tournament routes to IndexNow and Google Indexing
+ */
+export async function notifyEventIndexing({ seriesId = null, venueId = null, eventType = null, dryRun = false } = {}) {
+  const urls = [];
+  if (seriesId) {
+    urls.push(`/hub/series/${seriesId}`);
+  }
+  if (venueId) {
+    urls.push(`/hub/venues/${venueId}`);
+  }
+  if (eventType === 'daily' || eventType === 'all') {
+    urls.push('/hub/daily-tournaments');
+  }
+  if (eventType === 'weekend' || eventType === 'all') {
+    urls.push('/hub/tournaments/this-weekend');
+  }
+  if (eventType === 'calendar' || eventType === 'all') {
+    urls.push('/hub/events-calendar');
+  }
+
+  const indexNowResult = await submitToIndexNow(urls, { dryRun });
+  const googleResults = [];
+  for (const u of urls) {
+    googleResults.push(await submitToGoogleIndexing(u, { type: 'URL_UPDATED', dryRun }));
+  }
+
+  return {
+    urls,
+    indexNow: indexNowResult,
+    google: googleResults,
+  };
+}
