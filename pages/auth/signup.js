@@ -771,7 +771,7 @@ export default function SignUpPage() {
       });
       if (resendError) throw resendError;
       setVerificationCode('');
-      setResendNote('A New Code Is On Its Way. Use The Newest Email.');
+      setResendNote('A New Code Is On Its Way. If You Do Not See It In Your Inbox, Check Your Spam Or Junk Folder. Use The Newest Email.');
       setResendIn(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       const msg = String(err?.message || '').toLowerCase();
@@ -1775,6 +1775,7 @@ export default function SignUpPage() {
 
                 <p style={styles.emailPendingText}>Enter The Six-Digit Verification Code Sent To:</p>
                 <p style={styles.emailHighlight}>{formData.email}</p>
+                <p style={styles.emailHint}>If You Do Not See The Code In Your Inbox, Check Your Spam Or Junk Folder.</p>
 
                 {/* THE OTP STEP HAD NO ERROR SURFACE AT ALL (fixed 2026-08-25).
                     handleVerifyCode runs only here and sets errors for an
