@@ -373,12 +373,47 @@ function storeStructuredData(activeTab, vipProduct) {
           name: `${pkg.name} Package`,
           price: (pkg.priceCents / 100).toFixed(2),
           priceCurrency: 'USD',
+          priceValidUntil: '2027-12-31',
+          itemCondition: 'https://schema.org/NewCondition',
           availability: 'https://schema.org/InStock',
           url: 'https://smarter.poker/hub/diamond-store',
           seller: {
             '@type': 'Organization',
             name: 'Smarter.Poker',
             url: 'https://smarter.poker/',
+          },
+          hasMerchantReturnPolicy: {
+            '@type': 'MerchantReturnPolicy',
+            applicableCountry: 'US',
+            returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+            merchantReturnDays: 0,
+          },
+          shippingDetails: {
+            '@type': 'OfferShippingDetails',
+            shippingRate: {
+              '@type': 'MonetaryAmount',
+              value: '0.00',
+              currency: 'USD',
+            },
+            shippingDestination: {
+              '@type': 'DefinedRegion',
+              addressCountry: 'US',
+            },
+            deliveryTime: {
+              '@type': 'ShippingDeliveryTime',
+              handlingTime: {
+                '@type': 'QuantitativeValue',
+                minValue: 0,
+                maxValue: 0,
+                unitCode: 'DAY',
+              },
+              transitTime: {
+                '@type': 'QuantitativeValue',
+                minValue: 0,
+                maxValue: 0,
+                unitCode: 'DAY',
+              },
+            },
           },
         },
       };
