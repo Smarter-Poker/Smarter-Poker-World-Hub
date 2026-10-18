@@ -235,7 +235,7 @@ jobs:
           __tests__/credit-change-accounting-display.test.mjs
 
       - name: Phone Verification Artwork And Welcome Guards
-        run: node --test __tests__/phone-verification-console.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs
+        run: node --test __tests__/phone-verification-console.test.mjs __tests__/pending-phone-verification.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs
 
       - name: Fabricated Test Sessions Stay Off Live Realtime
         run: node --test __tests__/a-fabricated-session-never-reaches-live-realtime.law.test.mjs
