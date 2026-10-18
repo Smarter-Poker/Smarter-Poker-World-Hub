@@ -49147,7 +49147,7 @@
         },
         {
           "name": "hubCollectionSchema",
-          "line": 131,
+          "line": 135,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -93330,6 +93330,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/bankroll-manager.js",
           "pages/hub/home-games.js",
@@ -93347,7 +93348,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 131,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93356,6 +93357,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series3-phase1.test.mjs",
           "pages/hub/events-calendar.js",
           "pages/hub/home-games/near-me.js",
           "pages/hub/index.js",
@@ -102447,6 +102449,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/bankroll-manager.js",
           "pages/hub/home-games.js",
@@ -102464,7 +102467,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 131,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102473,6 +102476,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series3-phase1.test.mjs",
           "pages/hub/events-calendar.js",
           "pages/hub/home-games/near-me.js",
           "pages/hub/index.js",
