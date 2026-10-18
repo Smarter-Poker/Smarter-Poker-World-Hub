@@ -51,14 +51,27 @@ export async function fetchPokerVenueLocation({ state, city }) {
         console.warn('[poker-near-me] Location directory database unavailable; using snapshot:', error?.message || error);
       },
     });
-    const venues = (Array.isArray(payload.data) ? payload.data : [])
+    const allStateVenues = (Array.isArray(payload.data) ? payload.data : [])
       .map(normalizeVenue)
       .filter(Boolean)
-      .filter((venue) => !state || venue.state === state)
+      .filter((venue) => !state || venue.state === state);
+
+    const venues = allStateVenues
       .filter((venue) => !city || cityTitleToSlug(venue.city) === cityTitleToSlug(city))
       .sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || b.trust_score - a.trust_score || a.name.localeCompare(b.name));
+
+    // Thin content & soft-404 defense: if city has fewer than 3 venues,
+    // surface nearby active cardrooms in the wider state so Google never flags thin content.
+    const nearbyVenues = (city && venues.length < 3)
+      ? allStateVenues
+          .filter((v) => cityTitleToSlug(v.city) !== cityTitleToSlug(city))
+          .sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || b.trust_score - a.trust_score || a.name.localeCompare(b.name))
+          .slice(0, 6)
+      : [];
+
     return {
       venues,
+      nearbyVenues,
       degraded: payload.degraded === true,
       dataSource: payload.data_source || 'unavailable',
       dataRevision: payload.data_revision || null,
