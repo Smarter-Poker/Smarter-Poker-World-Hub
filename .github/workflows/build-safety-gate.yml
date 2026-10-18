@@ -322,6 +322,9 @@ jobs:
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
 
+      - name: Signup Player Number And Downstream PostgreSQL Regression
+        run: node --test __tests__/signup-player-number-postgres.test.mjs
+
       - name: VIP Gift Friendship Payment And Redemption PostgreSQL 17
         env:
           PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
