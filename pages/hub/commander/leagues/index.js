@@ -6,6 +6,7 @@
  */
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
+import { PUBLIC_LEAGUES_URL } from '../../../../src/lib/commanderPublicReads';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../../src/components/seo/HubPageSummary';
@@ -114,7 +115,9 @@ export default function LeaguesPage() {
   const { data: swrData, isLoading: loading, mutate: refreshLeagues } = useSWR('/api/commander/leagues', async () => {
     const token = getAccessToken();
     const [allRes, myRes] = await Promise.all([
-      fetch('/api/commander/leagues').catch(() => null),
+      // Public league list (no auth). /api/commander/leagues is staff-only
+      // and answered 401 to every player.
+      fetch(PUBLIC_LEAGUES_URL).catch(() => null),
       token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
         : Promise.resolve(null)
     ]);

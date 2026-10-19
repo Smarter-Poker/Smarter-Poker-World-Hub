@@ -108,12 +108,25 @@ test('BOTH verification doors redeem through the helper', () => {
     const signup = read('pages/auth/signup.js');
     const callback = read('pages/auth/callback.js');
     const verify = signup.slice(signup.indexOf('const handleVerifyCode'), signup.indexOf('const handleVerifyCode') + 4000);
-    assert.match(verify, /await redeemPendingSignupCodes\(/, 'the six-digit code path must redeem');
+    // Redeemed and AWAITED before leaving: directly, or inside the Promise.all
+    // that runs it beside the other post-verify reads (2026-10-17).
+    assert.match(verify, /redeemPendingSignupCodes\(/, 'the six-digit code path must redeem');
+    const awaitedAlone = /await redeemPendingSignupCodes\(/.test(verify);
+    const awaitedTogether = /const redeemCodes = [\s\S]*?redeemPendingSignupCodes\([\s\S]*?await Promise\.all\(\[[\s\S]*?redeemCodes,/.test(verify);
+    assert.ok(awaitedAlone || awaitedTogether, 'the redemption must be awaited, not fired and forgotten');
     assert.ok(
         verify.indexOf('redeemPendingSignupCodes') < verify.indexOf('window.location.replace'),
         'redeem before leaving for Club Arena'
     );
-    assert.match(callback, /await redeemPendingSignupCodes\(/, 'the email-link path must redeem');
+    assert.match(callback, /redeemPendingSignupCodes\(/, 'the email-link path must redeem');
+    // Awaited before routing, directly or through the promise started beside the invite claim.
+    assert.ok(
+        /await redeemPendingSignupCodes\(/.test(callback) ||
+            (/const redeemDone = [\s\S]*?redeemPendingSignupCodes\(/.test(callback) &&
+                callback.indexOf('await redeemDone;') > -1 &&
+                callback.indexOf('await redeemDone;') < callback.indexOf('7. Decide where to send the user')),
+        'the email-link redemption must finish before the player is routed'
+    );
     // No second, drifting copy of the redemption logic.
     assert.doesNotMatch(callback, /\/api\/rewards\/referral/);
     assert.doesNotMatch(signup, /localStorage\.setItem\('smarter-poker-pending-/);
