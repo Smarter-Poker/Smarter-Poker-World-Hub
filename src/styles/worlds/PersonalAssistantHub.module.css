@@ -895,7 +895,9 @@
 .playingCard { width: 44px; height: 60px; }
 .boardCard { width: 34px; height: 46px; font-size: 12px; }
 .playingCard i,
-.boardCard i { margin-top: -8px; font-size: 0.82em; font-style: normal; }
+/* The suit sits a step under its rank, but never under the 12px floor: at
+   phone width the 14px card made 0.82em render 11.5px. */
+.boardCard i { margin-top: -8px; font-size: max(12px, 0.82em); font-style: normal; }
 .redCard { color: #cf2741; }
 
 .dailyCopy h3 {
