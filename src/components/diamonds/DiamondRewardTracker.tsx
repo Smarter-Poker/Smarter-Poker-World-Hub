@@ -120,7 +120,7 @@ function formatAmount(r: CatalogReward): string {
 /** The honest limit line. Nothing on this screen is uncapped. */
 function formatNote(r: CatalogReward): string {
     if (r.key === 'referral_qualified') {
-        return `${fmt(REFERRAL.referrer)} 💎 to you + ${fmt(REFERRAL.referee)} 💎 to your friend - released only after they verify email AND phone AND log in on 5 separate days. Max ${REFERRAL.maxQualifiedPerMonth} qualified referrals per month.`;
+        return `${fmt(REFERRAL.referrer)} 💎 to you + ${fmt(REFERRAL.referee)} 💎 to your friend - paid as soon as they confirm their email.`;
     }
     const limit = r.lifetime
         ? 'Once, ever'
@@ -353,8 +353,7 @@ export function DiamondRewardTracker({
                             </div>
                             <div style={styles.rule}>
                                 👥 Referrals: <strong>{fmt(REFERRAL.referrer)} 💎 To You + {fmt(REFERRAL.referee)} 💎 To Your Friend</strong>,
-                                Released After They Verify Email AND Phone AND Log In On 5 Separate Days.
-                                Max {REFERRAL.maxQualifiedPerMonth} Qualified Per Month.
+                                Paid As Soon As They Confirm Their Email.
                             </div>
                             <div style={styles.rule}>
                                 🥚 Hidden Achievements: <strong>Up To {fmt(EASTER_EGG_MONTHLY_CAP)} 💎/Month</strong> On

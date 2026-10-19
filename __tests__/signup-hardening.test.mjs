@@ -302,6 +302,8 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
     const { isExistingSignup } = await import('../src/lib/signupOutcome.mjs');
     const { isEmailVerificationCode } = await import('../src/lib/signupExperience.mjs');
     const { authSwitchHref } = await import('../src/lib/clubInvite.js');
+    const pendingSignupCodes = await import('../src/lib/pendingSignupCodes.mjs');
+    const authErrors = await import('../src/lib/authErrors.js');
     const require = createRequire(import.meta.url), ts = require('typescript'), React = require('react');
     const { create, act } = require('react-test-renderer');
     for (const result of [
@@ -309,7 +311,7 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
         { data: { user: null, session: null }, error: { code: 'user_already_exists', message: 'User already registered' } },
         { data: { user: { id: 'local-new-user', identities: [{ provider: 'email' }] }, session: null }, error: null },
     ]) {
-        const mod = { exports: {} }, routes = [], stored = new Map(), writes = [];
+        const mod = { exports: {} }, routes = [], stored = new Map(), writes = [], reported = [];
         vm.runInNewContext(ts.transpileModule(read('pages/auth/signup.js'), {
             compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
         }).outputText, {
@@ -329,6 +331,8 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
                 if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
                 if (name.endsWith('/clubInvite')) return { authSwitchHref, readPendingInvite: () => null, safeClubArenaPath: () => null };
                 if (name.endsWith('/passwordStrength')) return { validatePassword: async () => ({ ok: true }) };
+                if (name.endsWith('/pendingSignupCodes.mjs')) return pendingSignupCodes;
+                if (name.endsWith('/authErrors')) return { ...authErrors, reportAuthError: (...args) => reported.push(args) };
                 if (name.endsWith('/supabase')) return { supabase: { auth: { signUp: async () => result } } };
                 return {};
             },
@@ -338,6 +342,7 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
         await act(async () => { tree.root.findAllByProps({ type: 'checkbox' })[0].props.onChange({ target: { checked: true } }); });
         await act(async () => { await tree.root.findAllByType('form')[0].props.onSubmit({ preventDefault() {} }); });
         const duplicate = isExistingSignup(result.data, result.error);
+        assert.deepEqual(reported, [], 'a signup submit must not report an auth error');
         assert.equal(tree.root.findAllByProps({ role: 'alertdialog' }).length, duplicate ? 1 : 0);
         assert.equal(tree.root.findAllByProps({ id: 'signup-email-code' }).length, duplicate ? 0 : 1);
         if (duplicate) {

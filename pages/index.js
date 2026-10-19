@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 import LandingProductSummary from '../src/components/landing/LandingProductSummary';
+import { signupHrefFor } from '../src/lib/pendingSignupCodes.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HAPTIC FEEDBACK
@@ -145,6 +146,10 @@ function ArtworkSlice({ spot, image, width, height, onActivate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const router = useRouter();
+  // A shared referral link (smarter.poker/?ref=SP-56737B or ?ref=42) must
+  // survive the click on Sign Up, or the friend who shared it is never
+  // credited (2026-10-17: every Referral Crew link pointed here and dropped it).
+  const signupHref = signupHrefFor(router.query.ref);
   const [overlay, setOverlay] = useState(null); // { image, overlayKey }
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [overlayLoaded, setOverlayLoaded] = useState(false);
@@ -160,7 +165,7 @@ export default function LandingPage() {
   const handleHotspotClick = (spot) => {
     triggerHaptic();
     if (spot.action === 'navigate') {
-      router.push(spot.href);
+      router.push(spot.href === '/auth/signup' ? signupHref : spot.href);
     } else if (spot.action === 'overlay') {
       setOverlayLoaded(false);
       setOverlay({ image: spot.image, overlayKey: spot.overlayKey,
@@ -173,7 +178,7 @@ export default function LandingPage() {
     if (spot.action === 'close') {
       setOverlay(null);
     } else if (spot.action === 'signup') {
-      router.push('/auth/signup');
+      router.push(signupHref);
     }
   };
 
@@ -196,7 +201,7 @@ export default function LandingPage() {
               push. A crawler follows an href; it cannot click a button. Same
               look, same destinations, now keyboard- and crawler-reachable. */}
           <div style={styles.navLinks}>
-            <Link href="/auth/signup" style={styles.navButton}>
+            <Link href={signupHref} style={styles.navButton}>
               Sign Up
             </Link>
             <Link href="/auth/login" style={styles.navButtonPrimary}>
