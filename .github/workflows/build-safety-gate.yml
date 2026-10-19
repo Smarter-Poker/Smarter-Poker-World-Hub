@@ -134,6 +134,9 @@ jobs:
       - name: Atomic horse publication profile-lock contention
         run: node scripts/ci/test-horse-publication-profile-lock.mjs
 
+      - name: Atomic actual-own-hand publication qualification
+        run: node scripts/ci/test-grounded-hand-publication.mjs
+
       # The ref guard is the only thing that fires before `git reset --hard`
       # lands, and until 2026-09-21 it printed "They are NOT on origin" about
       # commits it had never compared against a single origin ref. A guard
