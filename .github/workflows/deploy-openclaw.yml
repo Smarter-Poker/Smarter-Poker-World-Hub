@@ -86,8 +86,13 @@ jobs:
     environment: Production
     timeout-minutes: 120
     steps:
+      # Runs 39288113520 and 39291782006 waited for runners while main
+      # advanced. Resolve protected main at worker admission, then keep that
+      # exact identity through packaging, promotion and post-promotion work.
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
 
       - name: Require the exact merged main revision
         run: |
@@ -95,6 +100,7 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           git fetch --no-tags --depth=1 origin main
           test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
+          echo "OPENCLAW_RELEASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
@@ -495,8 +501,8 @@ jobs:
           test -z "$(find "$local_stage" -type f \( -name '*.pyc' -o -name '*.pyo' \) -print -quit)"
           (cd "$local_stage" && find . -type f ! -name release-manifest.sha256 -print0 \
             | LC_ALL=C sort -z | xargs -0 sha256sum > release-manifest.sha256)
-          archive="$RUNNER_TEMP/openclaw-${GITHUB_SHA}.tgz"
-          upload="openclaw-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tgz"
+          archive="$RUNNER_TEMP/openclaw-${OPENCLAW_RELEASE_SHA}.tgz"
+          upload="openclaw-${OPENCLAW_RELEASE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tgz"
           tar -czf "$archive" -C "$local_stage" .
           manifest_hash="$(sha256sum "$local_stage/release-manifest.sha256" | awk '{print $1}')"
           archive_hash="$(sha256sum "$archive" | awk '{print $1}')"
@@ -509,7 +515,7 @@ jobs:
           lock_hash="$(sha256sum scripts/openclaw-requirements.lock | awk '{print $1}')"
           scp "$archive" "$SSH_USER@$HOST:$upload"
           ssh "$SSH_USER@$HOST" 'bash -s' -- \
-            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$OPENCLAW_RELEASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
             "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash" "$lock_hash" "$manifest_hash" <<'EOSSH'
           set -euo pipefail
           release_sha="$1"
@@ -656,7 +662,7 @@ jobs:
           publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
           scp scripts/openclaw.service "$SSH_USER@$HOST:$unit_upload"
           ssh "$SSH_USER@$HOST" 'bash -s' -- \
-            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$OPENCLAW_RELEASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
             "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash" <<'EOSSH'
           set -euo pipefail
           release_sha="$1"
@@ -863,7 +869,7 @@ jobs:
             -o ServerAliveCountMax=20 \
             -o TCPKeepAlive=yes \
             "$SSH_USER@$HOST" 'bash -s' -- \
-            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$OPENCLAW_RELEASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
             "$SOURCE_REGISTRY_MAX_SOURCES" <<'EOSSH'
           set -euo pipefail
           release_sha="$1"
@@ -971,7 +977,7 @@ jobs:
             -o ServerAliveCountMax=60 \
             -o TCPKeepAlive=yes \
             "$SSH_USER@$HOST" 'bash -s' -- \
-            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$OPENCLAW_RELEASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
             "$PUBLISHER_BACKFILL_BATCHES" <<'EOSSH'
           set -euo pipefail
           release_sha="$1"
