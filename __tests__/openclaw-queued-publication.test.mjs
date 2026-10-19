@@ -9,6 +9,10 @@ const workflow=readFileSync(new URL('../.github/workflows/deploy-openclaw.yml',i
 const deploy=workflow.slice(workflow.indexOf('\n  deploy:\n')).split('\n  native-reels:\n')[0];
 const checkout=deploy.slice(deploy.indexOf('- name: Checkout'),deploy.indexOf('- name: Require the exact merged main revision'));
 const guard=deploy.match(/- name: Require the exact merged main revision\n        run: \|\n([\s\S]*?)(?=\n      - name:)/)?.[1].replace(/^          /gm,'');
+test('the required safety check executes the queued-publication regression',()=>{
+ const safety=readFileSync(new URL('../.github/workflows/build-safety-gate.yml',import.meta.url),'utf8');
+ assert.match(safety,/run: node --test __tests__\/openclaw\*\.test\.mjs/);
+});
 function fixture(run){
  const root=mkdtempSync(join(tmpdir(),'openclaw-queued-publication-'));
  const repository=join(root,'source'),remote=join(root,'remote.git'),worker=join(root,'worker'),receipt=join(root,'receipt');
