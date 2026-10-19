@@ -4,10 +4,11 @@ export async function executeClubWelcomeRequest(body, rpc) {
     let name = 'fn_my_club_welcome_messages';
     let args = {};
     if (body.action === 'save') {
+        if (body.messageKind !== undefined && !['downline', 'club_owner'].includes(body.messageKind)) throw Object.assign(new Error('Invalid Welcome Message Type'), { status: 400 });
         if (!UUID.test(body.clubId || '') || !UUID.test(body.requestId || '') || typeof body.content !== 'string' || body.content.length > 2000 || typeof body.enabled !== 'boolean' || !Number.isSafeInteger(body.revision) || body.revision < 0 || (body.enabled && !body.content.trim())) {
             throw Object.assign(new Error('Enter A Welcome Message Of Up To 2000 Characters'), { status: 400 });
         }
-        name = 'fn_save_club_welcome_message';
+        name = body.messageKind === 'club_owner' ? 'fn_save_club_owner_welcome_message' : 'fn_save_club_welcome_message';
         args = { p_club_id: body.clubId, p_content: body.content, p_enabled: body.enabled, p_expected_revision: body.revision, p_request_id: body.requestId };
     }
     // There is deliberately no user-id argument. PostgREST uses the caller's

@@ -709,6 +709,13 @@ const nextConfig = {
       ),
     });
 
+    // Opt-in compression keeps private SSD qualification builds bounded.
+    // Vercel and development retain Next's existing filesystem-cache settings.
+    if (!dev && !process.env.VERCEL && process.env.SMARTER_COMPRESS_LOCAL_BUILD_CACHE === '1'
+      && config.cache && typeof config.cache === 'object' && config.cache.type === 'filesystem') {
+      config.cache.compression = 'gzip';
+    }
+
     if (dev) {
       // Prevent CPU/RAM burnout by explicitly ignoring core dependencies from the HMR watcher.
       config.watchOptions = {

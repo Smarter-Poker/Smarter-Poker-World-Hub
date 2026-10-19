@@ -323,3 +323,15 @@ test('dock inbox refresh retains authoritative relationship labels without chang
  const result=await getMessengerWorkspace(db,ids.user,{workspace:'dock'});
  assert.equal(result.conversations.find(row=>row.id===ids.social).relationshipTags[0].label,'Your Agent In First Club');assert.equal(labels,1);
 });
+test('a promoted staff member sees their empty native Notice Board group without a synthetic post',async()=>{
+ const {db,tables}=fixture();
+ const group='00000000-0000-4000-8000-000000000990';
+ tables.club_messenger_staff_notice_groups=[{club_id:ids.club,conversation_id:group}];
+ tables.social_conversations.push({id:group,is_request:false,group_name:'First Club - Notice Board'});
+ tables.social_conversation_participants.push({conversation_id:group,user_id:ids.user,context_entity_id:null});
+ const result=await getMessengerWorkspace(db,ids.user,{workspace:'social'});
+ assert.equal(result.conversations.find(c=>c.id===group)?.title,'First Club - Notice Board');
+ tables.social_conversation_participants=tables.social_conversation_participants.filter(p=>p.conversation_id!==group);
+ const revoked=await getMessengerWorkspace(db,ids.user,{workspace:'social'});
+ assert.ok(!revoked.conversations.some(c=>c.id===group));
+});

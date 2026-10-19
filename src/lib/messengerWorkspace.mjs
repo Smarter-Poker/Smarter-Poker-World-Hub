@@ -156,7 +156,15 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         p_user_id: userId, p_context_entity_id: contextId,
     });
     if (error || !Array.isArray(data)) fail(503, 'Messenger Is Temporarily Unavailable');
-    const unique = [...new Map(data.map(c => [c.conversation_id || c.id, c])).values()];
+    // Staff groups have no synthetic opening post. Include authorized empty
+    // groups so promotion enrollment is visible before anybody sends a message.
+    const managed = !contextId && clubs.length ? await rows(db.from('club_messenger_staff_notice_groups')
+        .select('club_id,conversation_id').in('club_id', clubs.map(c => c.id))) : [];
+    const participation = managed.length ? await rows(db.from('social_conversation_participants')
+        .select('conversation_id').eq('user_id', userId).in('conversation_id', managed.map(g => g.conversation_id))) : [];
+    const emptyGroups = managed.filter(g => participation.some(p => p.conversation_id === g.conversation_id))
+        .map(g => ({ conversation_id: g.conversation_id, is_group: true, unread_count: 0 }));
+    const unique = [...new Map([...emptyGroups, ...data].map(c => [c.conversation_id || c.id, c])).values()];
     const ids = unique.map(c => c.conversation_id || c.id);
     const [meta, accounting] = await Promise.all([
         byIds(db, 'social_conversations', 'id,is_request,request_sender_id,last_message_preview,group_name', 'id', ids),
