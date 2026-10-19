@@ -131,6 +131,9 @@ jobs:
           node docs/agent-policy/agent-policy.mjs check
           node --test docs/agent-policy/agent-policy.test.mjs
 
+      - name: Atomic horse publication profile-lock contention
+        run: node scripts/ci/test-horse-publication-profile-lock.mjs
+
       # The ref guard is the only thing that fires before `git reset --hard`
       # lands, and until 2026-09-21 it printed "They are NOT on origin" about
       # commits it had never compared against a single origin ref. A guard
