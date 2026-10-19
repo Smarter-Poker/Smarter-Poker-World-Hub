@@ -98,6 +98,62 @@ export function vipProductPageProps({ params, res }, gift = false) {
   return { props: { vipProduct: { plan: params.plan, gift } } };
 }
 
+/** Public search copy shares the same catalog and access terms as checkout. */
+export function vipProductContent(catalog, plan, gift = false) {
+  if (!vipProductPath(plan, gift)) return null;
+  const entry = catalog[plan];
+  const cents = Math.round(Number(entry?.price) * 100);
+  if (!Number.isSafeInteger(cents) || cents <= 0) return null;
+  const term = VIP_TERMS[plan];
+  const price = `$${(cents / 100).toFixed(2)}`;
+  const diamonds = cents.toLocaleString('en-US');
+  const heading = `${term.label} VIP ${gift ? 'Gift Card' : 'Membership'}`;
+  const terms = gift ? vipGiftTerms(plan) : vipMembershipTerms(plan);
+  const descriptions = gift ? {
+    monthly: `Gift 30 Days Of Smarter.Poker VIP For ${price} Or ${diamonds} Diamonds. Send To An Accepted Friend. Access Starts On Redemption, With No Automatic Renewal.`,
+    yearly: `Give An Accepted Friend 365 Days Of Smarter.Poker VIP For ${price} Or ${diamonds} Diamonds. One-Time Gift; Access Starts On Redemption, With No Auto-Renewal.`,
+    lifetime: `Give Lifetime Smarter.Poker VIP To An Accepted Friend For ${price} Or ${diamonds} Diamonds. One Payment, No Expiry. Your Friend Chooses When To Redeem.`,
+  } : {
+    monthly: `Monthly Poker VIP: ${price}/Month By Card Or ${diamonds} Diamonds For 30 Days. Get Premium Training And Club Arena Features. Card Renews Monthly; Cancel Anytime.`,
+    yearly: `Yearly Poker VIP: ${price}/Year By Card Or ${diamonds} Diamonds For 365 Days. Premium Training And Club Arena Benefits. Card Renews Yearly; Cancel Anytime.`,
+    lifetime: `Lifetime Poker VIP For ${price} Or ${diamonds} Diamonds. One Payment, No Expiry Or Renewal. Unlock Premium Training And Lifetime Club Arena Benefits.`,
+  };
+  const introductions = gift ? {
+    monthly: 'Give A Friend A Month To Explore Premium Poker Training And VIP Table Features. Their 30 Days Start When They Redeem The Gift.',
+    yearly: 'Give An Accepted Friend A Full 365 Days Of Premium Training And Club Arena Benefits. Pay Once; They Choose When To Start.',
+    lifetime: 'Give An Accepted Friend VIP Access That Never Expires. This Gift Unlocks Lifetime Membership After They Redeem It, Without Recurring Billing.',
+  } : {
+    monthly: 'Choose Flexible Monthly Access To Premium Poker Training And Club Arena Features, With Card Or Diamonds.',
+    yearly: 'Choose A Year Of Premium Poker Training And Club Arena Benefits With One Annual Card Payment Or A 365-Day Diamond Term.',
+    lifetime: 'Make One Payment For VIP Access With No Expiry. Lifetime Membership Covers Premium Poker Training And Club Arena Benefits On The Same Account.',
+  };
+  const summaries = gift ? {
+    monthly: 'A Monthly Gift Is A Shorter VIP Term For A Friend Who Wants To Try The Premium Tools. The Recipient Chooses When To Redeem, And Is Never Enrolled In A Subscription.',
+    yearly: 'A Yearly Gift Gives Your Friend A 365-Day VIP Term Without Recurring Charges. It Includes The Same Platform And Club Arena Benefits As Yearly Membership.',
+    lifetime: 'A Lifetime Gift Grants Membership With No Expiry After Redemption. Your Friend Receives The Lifetime Benefits Listed Below, And No Future Renewal Payment Is Required.',
+  } : {
+    monthly: 'Monthly VIP Suits Players Who Want A Shorter Commitment. Card Billing Renews Each Month Until You Cancel. A Diamond Purchase Is A One-Time 30-Day Term That Extends Existing Access.',
+    yearly: 'Yearly VIP Suits Players Planning A Longer Period Of Training And Table Access. Card Billing Renews Each Year Until You Cancel. A Diamond Purchase Adds A One-Time 365-Day Term.',
+    lifetime: 'Lifetime VIP Suits Players Who Want Ongoing Access Without Renewals. The Included Training Tools And Lifetime Table Benefits Stay Unlocked For The Membership, With No Expiry Date.',
+  };
+  return {
+    title: `${gift ? `${term.label} VIP Gift Card For Poker Players` : `${term.label} Poker VIP Membership`} | Smarter.Poker`,
+    heading, description: descriptions[plan], intro: introductions[plan],
+    sectionHeading: gift ? `How The ${term.label} VIP Gift Works` : `Choosing ${term.label} VIP`,
+    summary: summaries[plan], terms,
+    faqs: [
+      { q: gift ? 'When Does My Friend\'s VIP Access Start?' : 'What Are The Payment And Access Terms?', a: terms },
+      gift
+        ? { q: 'Who Can Receive This VIP Gift?', a: 'You Must Be Accepted Friends With The Recipient Before Sending. Choose Your Friend And Review The Gift Before Continuing To Card Checkout Or Confirming A Diamond Payment.' }
+        : { q: plan === 'lifetime' ? 'Does Lifetime VIP Renew Or Expire?' : `Does ${term.label} VIP Renew Automatically?`, a: plan === 'lifetime' ? 'No. Lifetime VIP Is One Payment With Card Or Diamonds And Has No Expiry Or Automatic Renewal.' : `Card Purchases Renew Every ${term.unitText} Until You Cancel. Diamond Purchases Are One-Time ${term.days}-Day Terms. Cancel Card Renewal In The VIP Command Center; Paid Access Continues Through The End Of Your Period.` },
+      { q: gift ? 'Can An Unredeemed VIP Gift Be Returned?' : 'What Does This Membership Include?', a: gift ? 'An Available, Unredeemed Gift Can Be Returned To The Sender Through Gift History Using The Original Payment Method. A Redeemed Gift Cannot Be Returned Through That Action.' : 'The Premium Training, Platform Tools And Club Arena Features Listed On This Page. Tournament Buy-Ins And Entry Fees Remain Separate And Are Charged Normally.' },
+    ],
+    relatedLinks: [false, true].flatMap(isGift => Object.entries(VIP_TERMS).map(([key, value]) => ({
+      href: vipProductPath(key, isGift), label: `${value.label} VIP ${isGift ? 'Gift Card' : 'Membership'}`,
+    }))).filter(link => link.href !== vipProductPath(plan, gift)),
+  };
+}
+
 export function vipProductStructuredData(catalog, plan, gift = false) {
   const path = vipProductPath(plan, gift);
   if (!path) return null;
@@ -105,6 +161,7 @@ export function vipProductStructuredData(catalog, plan, gift = false) {
   const product = graph.find(item => item['@id'] === `${VIP_URL}#${gift ? 'gift' : 'membership'}-${plan}`);
   if (!product) return null;
   const url = `https://smarter.poker${path}`;
+  const content = vipProductContent(catalog, plan, gift);
   const id = `${url}#product`;
   const item = { ...product, '@id': id, url, mainEntityOfPage: { '@id': `${url}#page` },
     ...(product.offers ? { offers: { ...product.offers, '@id': `${url}#card-offer`, url, itemOffered: { '@id': id } } } : {}) };
@@ -112,8 +169,8 @@ export function vipProductStructuredData(catalog, plan, gift = false) {
     [`${VIP_TERMS[plan].label} VIP${gift ? ' Gift Card' : ''}`, path]]);
   return { '@context': 'https://schema.org', '@graph': [
     ...graph.filter(node => ['Organization', 'WebSite'].includes(node['@type'])),
-    { '@type': 'WebPage', '@id': `${url}#page`, url, name: `${item.name} | Smarter.Poker`,
-      description: item.description, inLanguage: 'en-US', isPartOf: { '@id': WEBSITE_ID },
+    { '@type': 'WebPage', '@id': `${url}#page`, url, name: content.title,
+      description: content.description, inLanguage: 'en-US', isPartOf: { '@id': WEBSITE_ID },
       mainEntity: { '@id': id }, breadcrumb: { '@id': breadcrumb['@id'] } },
     breadcrumb, item,
   ] };
