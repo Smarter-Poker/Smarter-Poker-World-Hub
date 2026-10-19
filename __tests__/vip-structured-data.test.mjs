@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { vipStructuredData, vipProductStructuredData, vipProductPath, vipProductPageProps, VIP_URL, vipGiftTerms, vipMembershipTerms } from '../src/lib/store/vipStructuredData.mjs';
+import { vipStructuredData, vipProductStructuredData, vipProductContent, vipProductPath, vipProductPageProps, VIP_URL, vipGiftTerms, vipMembershipTerms } from '../src/lib/store/vipStructuredData.mjs';
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 // Execute the actual catalog declaration, not a second hand-written price table.
 const catalog = vm.runInNewContext(`(${read('src/data/diamondStoreData.js').match(/export const VIP_MEMBERSHIP = (\{[\s\S]*?\n\});/)[1]})`);
@@ -157,4 +157,55 @@ test('single-product UI binds the term, retains direct payment handlers and safe
 test('VIP legal copy reflects gift returns instead of the generic all-final policy', () => {
   const store = read('pages/hub/diamond-store.js');
   assert.match(store, /activeTab === 'vip'[\s\S]*?Unredeemed VIP Gift Cards Can Be Returned To The Sender Through Gift History/);
+});
+
+test('organic search copy distinguishes all six offers while preserving authoritative terms', () => {
+  const titles = new Set(), descriptions = new Set(), intros = new Set();
+  for (const gift of [false, true]) for (const plan of Object.keys(catalog)) {
+    const copy = vipProductContent(catalog, plan, gift);
+    titles.add(copy.title); descriptions.add(copy.description); intros.add(copy.intro);
+    assert.ok(copy.title.length < 70);
+    assert.ok(copy.description.length < 200);
+    assert.ok(copy.description.includes(`$${Number(catalog[plan].price).toFixed(2)}`));
+    assert.ok(copy.description.includes(Math.round(catalog[plan].price * 100).toLocaleString('en-US')));
+    assert.equal(copy.terms, gift ? vipGiftTerms(plan) : vipMembershipTerms(plan));
+    assert.equal(copy.faqs[0].a, copy.terms);
+    assert.equal(copy.faqs.length, 3);
+    const nodes = vipProductStructuredData(catalog, plan, gift)['@graph'];
+    const page = nodes.find(n => n['@type'] === 'WebPage');
+    assert.equal(page.name, copy.title);
+    assert.equal(page.description, copy.description);
+    assert.equal(nodes.find(n => n['@type'] === 'Product').description, product(plan, gift).description);
+    if (gift) assert.match(copy.description, /Accepted Friend/);
+  }
+  assert.equal(titles.size, 6); assert.equal(descriptions.size, 6); assert.equal(intros.size, 6);
+  const changed = structuredClone(catalog); changed.monthly.price = 23.45;
+  for (const gift of [false, true]) {
+    const copy = vipProductContent(changed, 'monthly', gift);
+    assert.ok(copy.description.includes('$23.45'));
+    assert.ok(copy.description.includes('2,345'));
+    assert.equal(copy.description.includes('$19.99'), false);
+  }
+  assert.equal(vipProductContent(catalog, 'daily'), null);
+});
+
+test('related offer links cover the other five canonical pages without overriding selected checkout', () => {
+  for (const gift of [false, true]) for (const plan of Object.keys(catalog)) {
+    const current = vipProductPath(plan, gift);
+    const links = vipProductContent(catalog, plan, gift).relatedLinks;
+    assert.equal(links.length, 5);
+    assert.equal(new Set(links.map(link => link.href)).size, 5);
+    for (const link of links) {
+      assert.notEqual(link.href, current);
+      assert.match(link.href, /^\/hub\/vip-membership\/(gift\/)?(monthly|yearly|lifetime)$/);
+      assert.match(link.label, /VIP (Membership|Gift Card)$/);
+    }
+  }
+  const store = read('pages/hub/diamond-store.js');
+  assert.match(store, /vipProductCopy\.heading/);
+  assert.match(store, /vipProductCopy\.intro/);
+  assert.match(store, /vipProductCopy\.faqs/);
+  assert.match(store, /vipProductCopy\.relatedLinks\.map/);
+  assert.match(store, /href="\/hub\/training"/);
+  assert.match(store, /href="\/hub\/club-arena\/"/);
 });

@@ -1,4 +1,4 @@
-import { vipStructuredData, vipMembershipTerms, vipProductStructuredData, vipProductPath, VIP_TERMS } from '../../src/lib/store/vipStructuredData.mjs';
+import { vipStructuredData, vipMembershipTerms, vipProductStructuredData, vipProductContent, vipProductPath, VIP_TERMS } from '../../src/lib/store/vipStructuredData.mjs';
 import VipGifts from '../../src/components/store/VipGifts';
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCKED PAGE: FUTURISTIC METAL DESIGN
@@ -3485,6 +3485,7 @@ export default function DiamondStorePage({
   const clubShopBuyArt = clubShopBuyTarget ? resolveClubShopProductArt(clubShopBuyTarget) : null;
 
   const productSchema = vipProduct ? vipProductStructuredData(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift) : null;
+  const vipProductCopy = vipProduct ? vipProductContent(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift) : null;
   const pageMeta = productSchema ? productSchema['@graph'].find(item => item['@type'] === 'WebPage') : (TAB_META[activeTab] || TAB_META.diamonds);
   const pageTitle = productSchema ? pageMeta.name : pageMeta.title;
   const pagePath = vipProduct ? vipProductPath(vipProduct.plan, vipProduct.gift) : TAB_ROUTES[activeTab];
@@ -3638,8 +3639,8 @@ export default function DiamondStorePage({
                   <section className={vipStyles.hero} aria-labelledby="vip-page-title">
                     <div className={vipStyles.heroCopy}>
                       <span className={vipStyles.membershipLabel}>Smarter.Poker VIP</span>
-                      <h1 id="vip-page-title">{vipProduct ? `VIP ${VIP_TERMS[vipProduct.plan].label}${vipProduct.gift ? ' Gift Card' : ' Membership'}` : 'Your Edge, Compounded.'}</h1>
-                      <p>Premium Training. More Table Features. One Membership Across Smarter.Poker And Club Arena.</p>
+                      <h1 id="vip-page-title">{vipProductCopy ? vipProductCopy.heading : 'Your Edge, Compounded.'}</h1>
+                      <p>{vipProductCopy ? vipProductCopy.intro : 'Premium Training. More Table Features. One Membership Across Smarter.Poker And Club Arena.'}</p>
                       {vipProduct ? <>
                         <a href={vipProduct.gift ? '#gifts' : '#vip-plans'} className={vipStyles.heroAction}>{vipProduct.gift ? 'Send This VIP Gift' : 'Get This Membership'}</a>
                         <Link href="/hub/vip-membership" className={vipStyles.heroAction}>All VIP Options</Link>
@@ -3897,10 +3898,19 @@ export default function DiamondStorePage({
                   </section>
                   <section id="vip-faq" className={vipStyles.faq} aria-labelledby="vip-faq-title">
                     <h2 id="vip-faq-title">Frequently Asked Questions</h2>
-                    {(vipProduct ? [{ q: 'What Are The Payment And Access Terms?', a: pageMeta.description }, { q: 'What Does This VIP Include?', a: 'The Premium Platform And Club Arena Benefits Listed Above. Sign In To Review Your Existing Membership Or Choose An Accepted Friend For A Gift.' }] : VIP_FAQ).map((faq) => (
+                    {(vipProductCopy ? vipProductCopy.faqs : VIP_FAQ).map((faq) => (
                       <details key={faq.q}><summary>{faq.q}</summary><p>{faq.a}</p></details>
                     ))}
                   </section>
+                  {vipProductCopy && <section className={vipStyles.productGuide} aria-labelledby="vip-guide-title">
+                    <h2 id="vip-guide-title">{vipProductCopy.sectionHeading}</h2>
+                    <p>{vipProductCopy.summary}</p>
+                    <p>Explore The Included <Link href="/hub/training">Poker Training Tools</Link> And <Link href="/hub/club-arena/">Club Arena</Link> Features, Or <Link href="/hub/vip-membership/compare">Compare VIP Membership Benefits</Link> Before Choosing A Term.</p>
+                    <h3>Other VIP Memberships And Gifts</h3>
+                    <nav className={vipStyles.relatedOptions} aria-label="Related VIP Memberships And Gifts">
+                      {vipProductCopy.relatedLinks.map(link => <Link key={link.href} href={link.href} className={vipStyles.action}>{link.label}</Link>)}
+                    </nav>
+                  </section>}
                 </>
               )}
 
