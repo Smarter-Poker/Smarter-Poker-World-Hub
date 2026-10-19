@@ -201,6 +201,17 @@ const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
 const expectedClubFooterHeight = (viewportWidth: number) =>
   Math.min(132, Math.max(44, viewportWidth * 0.12326));
 
+// The Poker Arena's own dock (served from Club Arena at /hub/club-arena) has
+// had a separate phone composition since Club Arena #7390 (Dan 2026-10-17: "ON
+// MOBILE THE HEADERS AND FOOTERS ARE TOO SMALL"). Its club-engine.css sets
+// `clamp(44px, 15.53vw, 132px)` at max-width 600px (the 1481x230 phone frame)
+// and keeps the 12.326vw token above it. The World Hub's own footers above
+// still use 12.326vw at every width, so only the arena probe reads this.
+const expectedArenaDockHeight = (viewportWidth: number) =>
+  viewportWidth <= 600
+    ? Math.min(132, Math.max(44, viewportWidth * 0.1553))
+    : expectedClubFooterHeight(viewportWidth);
+
 const expectedArtworkStage = (
   viewportWidth: number,
   world: (typeof footerRegistry.worlds)[number]
@@ -925,7 +936,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     expect(viewport).not.toBeNull();
     expect(box).not.toBeNull();
     expect(Math.abs(box!.y + box!.height - viewport!.height)).toBeLessThan(4);
-    expect(Math.abs(box!.height - expectedClubFooterHeight(viewport!.width))).toBeLessThanOrEqual(
+    expect(Math.abs(box!.height - expectedArenaDockHeight(viewport!.width))).toBeLessThanOrEqual(
       1
     );
     await probePage.close();
