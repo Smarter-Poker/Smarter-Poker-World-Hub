@@ -32,7 +32,7 @@ try:
  refused("SET request.jwt.claim.sub='00000000-0000-4000-8000-000000000002'; SET ROLE authenticated; SELECT fn_save_club_welcome_message('00000000-0000-4000-8000-000000000100','Stale',true,0,gen_random_uuid());",'Changed In Another Window')
  refused(migration,'already installed')
  ok("CREATE TABLE ca_declared_money_triggers(table_name text,trigger_name text,note text,PRIMARY KEY(table_name,trigger_name)); ALTER TABLE social_conversations ADD COLUMN group_name text; ALTER TABLE social_messages ADD COLUMN is_deleted boolean DEFAULT false;")
- sequence=(root/'supabase/migrations/20261019154026_club_messenger_welcome_sequence_and_staff_notice_groups.sql').read_text()
+ sequence=(root/'supabase/migrations/20261019161708_club_messenger_welcome_sequence_and_staff_notice_groups.sql').read_text()
  ok(sequence)
  ok((root/'scripts/ci/fixtures/club-messenger-welcome-sequence-cases.sql').read_text())
  refused("SET ROLE authenticated; SELECT fn_dispatch_club_owner_welcomes(1);",'permission denied')
