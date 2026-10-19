@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import supabase from '../../src/lib/supabase';
+import { authedFetch } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus } from '../../src/engine/EventBus';
 import useVIP from '../../src/hooks/useVIP';
@@ -53,6 +54,7 @@ function HandHistoryPageBody() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [cropFile, setCropFile] = useState(null);
   const [reviewData, setReviewData] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const userIdRef = useRef(null);
   const fileInputRef = useRef(null);
   const { isVip } = useVIP();
@@ -119,58 +121,64 @@ function HandHistoryPageBody() {
     setUploadingImage(false);
   };
 
+  // 2026-10-19: the save used to insert into public.hand_history from the
+  // browser and ignore the result. authenticated has no INSERT there (and that
+  // table is the engine's dealt-hand record), so every save failed while this
+  // page said "Hand saved successfully!" - after the player had paid for the
+  // scan. The save now goes through /api/poker/saved-hands, which writes the
+  // caller's own row in hand_histories, and the page only reports success when
+  // the server stored it.
   const handleReviewSave = async (formData) => {
+    const heroCards = parseCards(formData.hero_cards);
+    const boardCards = parseCards(formData.board);
+    const sbStr = formData.stakes?.split('/')[0]?.replace(/[^0-9]/g, '');
+    const bbStr = formData.stakes?.split('/')[1]?.replace(/[^0-9]/g, '');
+    const smallBlind = sbStr ? parseInt(sbStr, 10) : 0;
+    const bigBlind = bbStr ? parseInt(bbStr, 10) : 0;
+    let pot = parseInt(String(formData.pot_size || '0').replace(/[^0-9]/g, ''), 10);
+    if (isNaN(pot)) pot = 0;
+    let heroNet = parseInt(String(formData.amount || '0').replace(/[^0-9-]/g, ''), 10);
+    if (isNaN(heroNet)) heroNet = 0;
+    const result = formData.result === 'Won' ? 'Won' : 'Lost';
+    if (result === 'Lost' && heroNet > 0) heroNet = -heroNet; // fix sign
+
+    let res;
+    let body = null;
     try {
-      const heroCards = parseCards(formData.hero_cards);
-      const boardCards = parseCards(formData.board);
-      const sbStr = formData.stakes?.split('/')[0]?.replace(/[^0-9]/g, '');
-      const bbStr = formData.stakes?.split('/')[1]?.replace(/[^0-9]/g, '');
-      const sb = sbStr ? parseInt(sbStr, 10) : 0;
-      const bb = bbStr ? parseInt(bbStr, 10) : 0;
-      const pot = parseInt((formData.pot_size || '0').replace(/[^0-9]/g, ''), 10);
-      let heroNet = parseInt((formData.amount || '0').replace(/[^0-9-]/g, ''), 10);
-      if (isNaN(heroNet)) heroNet = 0;
-      if (formData.result === 'Lost' && heroNet > 0) heroNet = -heroNet; // fix sign
-
-      const hand_data = {
-        players: [
-          { id: userIdRef.current, seatIndex: 1, holeCards: heroCards, netResult: heroNet, showedCards: heroCards.length > 0 }
-        ],
-        winners: formData.result === 'Won' ? [{ hand: 'Winning Hand', amount: pot }] : [],
-        communityCards: boardCards,
-        streets: {
-          flop: { cards: boardCards.slice(0, 3), actions: [] },
-          turn: { cards: boardCards.slice(3, 4), actions: [] },
-          river: { cards: boardCards.slice(4, 5), actions: [] }
-        }
-      };
-
-      const sbClient = getSupabase();
-      await sbClient.from('hand_history').insert({
-        user_id: userIdRef.current,
-        player_ids: [userIdRef.current],
-        table_id: 'AI-Scan',
-        club_id: null,
-        variant: formData.game_type || 'NLH',
-        small_blind: sb,
-        big_blind: bb,
-        pot_total: pot,
-        winner_ids: formData.result === 'Won' ? [userIdRef.current] : null,
-        hand_data,
-        completed_at: new Date().toISOString()
+      res = await authedFetch('/api/poker/saved-hands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          heroCards,
+          boardCards,
+          smallBlind,
+          bigBlind,
+          pot,
+          heroNet,
+          result,
+          variant: formData.game_type || 'NLH',
+        }),
       });
-
-      alert('Hand saved successfully!');
-      eventBus.emit('DATA_MUTATED', 'hand_history_updated'); // Trigger real-time sync across connected tabs
-      setReviewData(null);
-      fetchHands();
+      body = await res.json().catch(() => null);
     } catch (err) {
-      console.warn(err);
-      alert('Failed to save hand');
+      console.warn('[hand-history] save request failed:', err?.message || err);
+      alert('Could Not Save This Hand. Check Your Connection And Try Again.');
+      return;
     }
+    if (!res.ok || !body?.success) {
+      alert(body?.error ? `Could Not Save This Hand: ${body.error}` : `Could Not Save This Hand (Error ${res.status}).`);
+      return; // keep the review open so nothing typed is lost
+    }
+
+    alert('Hand Saved.');
+    eventBus.emit('DATA_MUTATED', 'hand_history_updated'); // Trigger real-time sync across connected tabs
+    setReviewData(null);
+    fetchHands();
   };
 
-  // Fetch hand histories — query via player_ids contains
+  // Fetch the caller's saved hands through the server (hand_histories RLS
+  // admits club admins only, and the old direct read of hand_history named
+  // columns that table does not have, so it always came back empty).
   const fetchHands = useCallback(async () => {
     const sb = getSupabase();
     if (!sb) return;
@@ -181,19 +189,19 @@ function HandHistoryPageBody() {
         if (!user) { setLoading(false); return; }
         userIdRef.current = user.id;
       }
-      let query = sb.from('hand_history')
-        .select('id,table_id,club_id,hand_number,variant,small_blind,big_blind,player_ids,hand_data,pot_total,winner_ids,started_at,completed_at,created_at')
-        .contains('player_ids', [userIdRef.current])
-        .order('created_at', { ascending: false })
-        .limit(allowed ? 1000 : 50);
-
-      if (filterTable !== 'all') {
-        query = query.eq('table_id', filterTable);
+      const res = await authedFetch(`/api/poker/saved-hands?limit=${allowed ? 1000 : 50}`);
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        setLoadError(body?.error || 'Could Not Load Your Saved Hands');
+      } else {
+        const list = Array.isArray(body.hands) ? body.hands : [];
+        setHands(filterTable === 'all' ? list : list.filter(h => h.table_id === filterTable));
+        setLoadError(null);
       }
-
-      const { data } = await query;
-      setHands(data || []);
-    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+    } catch (_) {
+      console.warn('[hand-history] load failed:', _?.message || _);
+      setLoadError('Could Not Load Your Saved Hands');
+    }
     setLoading(false);
   }, [filterTable, allowed]);
 
@@ -305,9 +313,15 @@ function HandHistoryPageBody() {
           <div style={{ color: T.textSec, textAlign: 'center', padding: 40 }}>Loading Hand Histories...</div>
         )}
 
-        {!loading && hands.length === 0 && (
+        {!loading && loadError && (
+          <div role="alert" style={{ color: T.red, textAlign: 'center', padding: 16 }}>
+            {loadError}
+          </div>
+        )}
+
+        {!loading && !loadError && hands.length === 0 && (
           <div style={{ color: T.textDim, textAlign: 'center', padding: 40 }}>
-            No Hands Recorded Yet. Play Some Hands To See Your History Here!
+            No Saved Hands Yet. Scan A Hand Screenshot To Save It Here.
           </div>
         )}
 

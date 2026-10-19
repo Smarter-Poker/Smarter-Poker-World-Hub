@@ -6,16 +6,14 @@
  * This component is NOT meant to be the authority on what a spin is worth.
  * Pass `prizeId` (and optionally `prizeAmount`) from a server-resolved spin
  * and the wheel simply animates to that segment and reports it back. The
- * built-in weighted roll is a development/offline fallback only, and the
- * payload it reports is flagged `serverResolved: false` so callers can refuse
- * to credit it. See CROSS-FILE REQUEST in the fixer report: a
- * SECURITY DEFINER RPC (one spin per perfect game, weighted roll + atomic
- * credit, returns the prize id) still needs to be added on the DB side.
+ * server (POST /api/trivia/prize-wheel-spin -> fn_trivia_prize_wheel_spin)
+ * rolls, applies the streak multiplier and credits the prize in one
+ * transaction. There is no client-side roll (removed 2026-10-19): without a
+ * known server prize id the wheel does not spin.
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { busEmit } from '../../engine/EventBus';
-import { supabase } from '../../lib/supabase';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import styles from './PrizeWheel.module.css';
@@ -47,19 +45,6 @@ const INK_BY_PRIZE_COLOR = Object.freeze({
     '#c8ffd2': 'green',
     '#f02849': 'red',
 });
-
-// Weighted random selection (fallback only - see trust model above)
-function selectPrize() {
-    const totalWeight = PRIZES.reduce((sum, p) => sum + p.weight, 0);
-    let random = Math.random() * totalWeight;
-
-    for (const prize of PRIZES) {
-        random -= prize.weight;
-        if (random <= 0) return prize;
-    }
-
-    return PRIZES[0];
-}
 
 function prefersReducedMotion() {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
@@ -104,14 +89,21 @@ export default function PrizeWheel({
         // One spin, ever. Re-spinning was previously possible by closing and
         // re-opening the wheel on the same perfect score.
         if (isSpinning || hasSpunRef.current || result) return;
+
+        // Only a server-rolled prize is ever shown. Without one there is no
+        // local roll to fall back to: it could never be credited, so showing
+        // it would announce a prize the player did not win.
+        const serverPrize = prizeId ? PRIZES.find(p => p.id === prizeId) : null;
+        if (!serverPrize) {
+            setClaimError('The Prize Wheel Is Unavailable For This Run.');
+            return;
+        }
         hasSpunRef.current = true;
 
         setIsSpinning(true);
 
-        // Prefer a server-resolved prize; fall back to the local roll.
-        const serverPrize = prizeId ? PRIZES.find(p => p.id === prizeId) : null;
-        const prize = serverPrize || selectPrize();
-        const serverResolved = !!serverPrize;
+        const prize = serverPrize;
+        const serverResolved = true;
         const prizeIndex = PRIZES.findIndex(p => p.id === prize.id);
 
         // Landing math is only valid when the wheel is rotated by WHOLE
@@ -194,38 +186,22 @@ export default function PrizeWheel({
             // fn_trivia_prize_wheel_spin in the same transaction as the roll.
             // Granting it again here doubled every shield/ticket award.
             // The client RPC remains only for the legacy local-roll fallback.
-            if (result.reward.type !== 'diamonds' && result.reward.serverResolved !== true) {
-                let _persistFailed = false;
-                try {
-                    const { data: grant, error: rpcErr } = await supabase.rpc('fn_trivia_grant_item', {
-                        p_item_type: result.reward.type,
-                        p_amount: Math.max(1, Math.floor(Number(result.reward.amount) || 1)),
-                    });
-                    if (rpcErr) {
-                        console.warn('[PrizeWheel] fn_trivia_grant_item failed:', rpcErr.message);
-                        _persistFailed = true;
-                    } else if (grant && grant.success === false) {
-                        console.warn('[PrizeWheel] fn_trivia_grant_item rejected:', grant.error);
-                        _persistFailed = true;
-                    }
-                } catch (e) {
-                    console.warn('[PrizeWheel] Failed to persist item:', e);
-                    _persistFailed = true;
+            // 2026-10-19: the server roll is the only authority. A
+            // server-resolved prize (diamonds or an item) was credited by
+            // fn_trivia_prize_wheel_spin in the same transaction as the roll,
+            // so there is nothing left to write here. The old local-roll
+            // fallback granted items through fn_trivia_grant_item from the
+            // browser; authenticated cannot execute it (by design - a client
+            // must not name its own prize), so it always failed with "Could
+            // Not Save Your Prize". A result the server did not roll is never
+            // credited and never reported as won.
+            if (result.reward.serverResolved !== true) {
+                claimingRef.current = false;
+                if (isMountedRef.current) {
+                    setClaimError('This Spin Could Not Be Verified. Please Try Again Later.');
                 }
-                // If persist failed, mark the reward so caller can decide what
-                // to show. Caller (TriviaLobby/etc.) can detect persistFailed
-                // and show a "we'll retry" message instead of the success toast.
-                // claimingRef MUST be released here, otherwise the CLAIM
-                // button stays permanently inert after one transient network
-                // failure - the opposite of the retry the copy promises.
-                if (_persistFailed) {
-                    claimingRef.current = false;
-                    if (isMountedRef.current) {
-                        setClaimError('Could Not Save Your Prize. Tap Claim To Retry.');
-                    }
-                    onComplete({ ...result.reward, persistFailed: true });
-                    return;
-                }
+                onComplete({ ...result.reward, persistFailed: true });
+                return;
             }
 
             onComplete(result.reward);
