@@ -134,9 +134,6 @@ jobs:
       - name: Atomic horse publication profile-lock contention
         run: node scripts/ci/test-horse-publication-profile-lock.mjs
 
-      - name: Atomic actual-own-hand publication qualification
-        run: node scripts/ci/test-grounded-hand-publication.mjs
-
       # The ref guard is the only thing that fires before `git reset --hard`
       # lands, and until 2026-09-21 it printed "They are NOT on origin" about
       # commits it had never compared against a single origin ref. A guard
@@ -333,6 +330,11 @@ jobs:
           echo "PHASE6_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
+
+      - name: Atomic actual-own-hand publication qualification
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+        run: node scripts/ci/test-grounded-hand-publication.mjs
 
       - name: Signup Player Number And Downstream PostgreSQL Regression
         run: node --test __tests__/signup-player-number-postgres.test.mjs

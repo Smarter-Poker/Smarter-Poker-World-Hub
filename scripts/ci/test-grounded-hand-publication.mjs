@@ -6,6 +6,14 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, sta
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
+// The required hosted job must provision its exact server before this verifier.
+// Ubuntu's stock PG16 cannot satisfy the production PG17 contract.
+const workflow=readFileSync(join(root,'.github/workflows/build-safety-gate.yml'),'utf8');
+const installAt=workflow.indexOf('name: Install PostgreSQL 17 For Training Authority On Linux Runners');
+const resolveAt=workflow.indexOf('name: Resolve Exact PostgreSQL 17 Training Test Binaries');
+const ownAt=workflow.indexOf('name: Atomic actual-own-hand publication qualification');
+assert(installAt>=0&&resolveAt>installAt&&ownAt>resolveAt,'Required own-hand qualification must follow exact PG17 provisioning');
+assert.match(workflow.slice(ownAt,workflow.indexOf('\n      - name:',ownAt+1)),/PG17_BINDIR: \$\{\{ env\.PHASE6_POSTGRES_BIN \}\}/);
 const mac=process.platform==='darwin',work=mac?'/Volumes/SmarterWork/agent-work':process.env.RUNNER_TEMP;
 assert(work,'Configured private runner scratch required');
 const archives=mac?'/Volumes/SmarterArchives/agent-evidence':work;
