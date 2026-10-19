@@ -69,6 +69,39 @@ export function faqSchema(items, path) {
 }
 
 /**
+ * Google Images Licensable ImageObject schema node.
+ * Unlocks the "Licensable" badge in Google Images SERPs by declaring
+ * contentUrl, license, acquireLicensePage, creditText, copyrightNotice, and creator.
+ */
+export function licensableImageSchema({
+  url,
+  contentUrl = `${SITE}/images/og-card.jpg`,
+  caption = 'Smarter.Poker Visual Asset',
+  acquireLicensePage = `${SITE}/hub/training`,
+} = {}) {
+  const pageUrl = url ? (url.startsWith('http') ? url : absolute(url)) : SITE;
+  const fullContentUrl = contentUrl.startsWith('http') ? contentUrl : absolute(contentUrl);
+  return {
+    '@type': 'ImageObject',
+    '@id': `${pageUrl}#primaryimage`,
+    url: fullContentUrl,
+    contentUrl: fullContentUrl,
+    caption,
+    license: `${SITE}/terms`,
+    acquireLicensePage: acquireLicensePage.startsWith('http')
+      ? acquireLicensePage
+      : absolute(acquireLicensePage),
+    creditText: 'Smarter.Poker',
+    copyrightNotice: 'Copyright Smarter Software Inc.',
+    creator: {
+      '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
+      name: 'Smarter.Poker',
+    },
+  };
+}
+
+/**
  * A hub page that IS a product: the trainer, the bankroll manager, the home
  * games directory. Ships the page, the application it hosts and the trail.
  */
@@ -84,8 +117,15 @@ export function hubProductSchema({
   // one more than the page has.
   withBreadcrumb = true,
   faqs = null,
+  image = `${SITE}/images/og-card.jpg`,
 }) {
   const url = absolute(path);
+  const imageNode = licensableImageSchema({
+    url,
+    contentUrl: image,
+    caption: `${name} - Smarter.Poker`,
+    acquireLicensePage: url,
+  });
   const nodes = [
     {
       '@type': 'WebPage',
@@ -96,6 +136,7 @@ export function hubProductSchema({
       isPartOf: { '@id': WEBSITE_ID },
       inLanguage: 'en-US',
       about: { '@id': `${url}#app` },
+      primaryImageOfPage: { '@id': `${url}#primaryimage` },
       speakable: {
         '@type': 'SpeakableSpecification',
         cssSelector: ['h1', 'p'],
@@ -116,6 +157,7 @@ export function hubProductSchema({
       publisher: { '@id': ORGANIZATION_ID },
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     },
+    imageNode,
     ...(withBreadcrumb ? [breadcrumbSchema(trail)] : []),
   ];
 
@@ -132,8 +174,14 @@ export function hubProductSchema({
  * own. CollectionPage is the honest type: claiming SoftwareApplication for
  * a menu would be a claim the page does not support.
  */
-export function hubCollectionSchema({ path, name, description, trail }) {
+export function hubCollectionSchema({ path, name, description, trail, image = `${SITE}/images/og-card.jpg` }) {
   const url = absolute(path);
+  const imageNode = licensableImageSchema({
+    url,
+    contentUrl: image,
+    caption: `${name} - Smarter.Poker`,
+    acquireLicensePage: url,
+  });
   return [
     {
       '@type': 'CollectionPage',
@@ -144,12 +192,14 @@ export function hubCollectionSchema({ path, name, description, trail }) {
       isPartOf: { '@id': WEBSITE_ID },
       inLanguage: 'en-US',
       about: { '@id': ORGANIZATION_ID },
+      primaryImageOfPage: { '@id': `${url}#primaryimage` },
       speakable: {
         '@type': 'SpeakableSpecification',
         cssSelector: ['h1', 'p'],
       },
       breadcrumb: { '@id': `${url}#breadcrumb` },
     },
+    imageNode,
     breadcrumbSchema(trail),
   ];
 }

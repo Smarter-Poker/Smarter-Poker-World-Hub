@@ -296,11 +296,12 @@ async function main() {
       fail(`${sm}: HTTP ${r.status}`);
       continue;
     }
-    if (!/<urlset/.test(r.text)) fail(`${sm}: not a urlset`);
+    const isSitemapIndex = /<sitemapindex/.test(r.text);
+    if (!/<urlset/.test(r.text) && !isSitemapIndex) fail(`${sm}: not a urlset or sitemapindex`);
     const locs = parseSitemapLocs(r.text);
     if (locs.length === 0) fail(`${sm}: names no URLs`);
-    notes.push(`${sm}: ${locs.length} URLs`);
-    allLocs.push(...locs);
+    notes.push(`${sm}: ${locs.length} ${isSitemapIndex ? 'sitemaps' : 'URLs'}`);
+    if (!isSitemapIndex) allLocs.push(...locs);
   }
 
   const home = await checkPage(`${BASE}/`, { expectGraph: true });

@@ -616,6 +616,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
       r.status === 'fulfilled' ? r.value : { ok: false }
     );
     if (!seriesRes || (seriesRes.ok === false && !seriesRes.status)) throw new Error('Network timeout');
+    if (seriesRes.status === 410) throw new Error('Series removed (410 Gone)');
     if (seriesRes.status === 404) throw new Error('Series not found');
     if (!seriesRes.ok) throw new Error('API unavailable');
     const safeJson = async (r) => {
@@ -635,9 +636,9 @@ export default function SeriesDetailPage({ seoSeries = null }) {
       activities: aj.success ? (Array.isArray(aj.activities || aj.data) ? (aj.activities || aj.data) : []) : []
     };
   }, {
-    // BUG FIX: don't retry 404s (series not found) — stops hammering the API
+    // BUG FIX: don't retry 404s or 410s (series not found / gone) — stops hammering the API
     onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
-      if (error.message && error.message.includes('not found')) return; // no retry on 404
+      if (error.message && (error.message.includes('not found') || error.message.includes('410') || error.message.includes('removed'))) return;
       if (retryCount >= 3) return; // max 3 retries for actual network errors
       setTimeout(() => revalidate({ retryCount }), Math.min(1000 * 2 ** retryCount, 30000));
     },

@@ -597,7 +597,9 @@ function sitemapLastmodLine(lastmod) {
   return `    <lastmod>${new Date(time).toISOString()}</lastmod>\n`;
 }
 
-export async function getServerSideProps({ res }) {
+import { sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
+
+export async function getServerSideProps({ req, res }) {
   const [homeGameUrls, pokerVenueUrls, pokerEventDetailUrls] = await Promise.all([
     buildHomeGameUrls(),
     buildPokerVenueUrls(),
@@ -629,8 +631,7 @@ export async function getServerSideProps({ res }) {
 
   res.setHeader('Content-Type', 'text/xml');
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
-  res.write(sitemap);
-  res.end();
+  sendSitemapXmlResponse(req, res, sitemap);
 
   return { props: {} };
 }

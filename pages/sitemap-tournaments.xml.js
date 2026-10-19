@@ -10,9 +10,10 @@
 import {
   buildPokerEventDetailUrls,
   generateSitemapXml,
+  sendSitemapXmlResponse,
 } from '../src/lib/seo/sitemapBuilders.mjs';
 
-export async function getServerSideProps({ res }) {
+export async function getServerSideProps({ req, res }) {
   const pokerEventDetailUrls = await buildPokerEventDetailUrls();
 
   const sitemap = generateSitemapXml([
@@ -21,8 +22,7 @@ export async function getServerSideProps({ res }) {
 
   res.setHeader('Content-Type', 'text/xml');
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
-  res.write(sitemap);
-  res.end();
+  sendSitemapXmlResponse(req, res, sitemap);
 
   return { props: {} };
 }
