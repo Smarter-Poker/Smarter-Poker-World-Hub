@@ -72,7 +72,10 @@ test('the /i/ page renders a preview card, sets the cookie and puts Create Accou
     assert.match(page, /Set-Cookie/);
     assert.match(page, /const countClick = !bot && existing\?\.code !== code;/);
     assert.match(page, /resolveInviteServer\(code, \{ countClick \}\)/);
-    assert.ok(page.indexOf('Create Account') < page.indexOf('I Already Have An Account'));
+    assert.ok(page.includes('>Sign Up</a>'));
+    assert.ok(page.includes('>Sign In</a>'));
+    assert.match(page, /const loginHref = signupHref\.replace\('\/auth\/signup\?', '\/auth\/login\?'\)/);
+    assert.ok(page.indexOf('>Sign Up</a>') < page.indexOf('>Sign In</a>'));
 });
 
 test('signup carries the invite into the account metadata', () => {
@@ -133,9 +136,11 @@ test('switching between signup and login keeps redirect and invite', () => {
         '/auth/login?redirect=%2Fhub%2Fclub-arena%2Finvite%2Fx%3Fref%3D1%26i%3DABC2345&invite=ABC2345'
     );
     assert.equal(authSwitchHref('/auth/signup', { redirect: ['/hub/a', '/hub/b'] }), '/auth/signup?redirect=%2Fhub%2Fa');
+    assert.equal(authSwitchHref('/auth/login', { ref: '1253', promo: 'WELCOME', invite: 'ABC2345' }), '/auth/login?invite=ABC2345&ref=1253&promo=WELCOME');
+    assert.equal(authSwitchHref('/auth/signup', { ref: ['1253', 'other'] }), '/auth/signup?ref=1253');
     const signup = read('pages/auth/signup.js');
     assert.doesNotMatch(signup, /router\.push\('\/auth\/login'\)/);
-    assert.equal(signup.split("router.push(authSwitchHref('/auth/login', router.query))").length - 1, 3);
+    assert.equal(signup.split("router.push(authSwitchHref('/auth/login', router.query))").length - 1, 4);
     const login = read('pages/auth/login.js');
     assert.doesNotMatch(login, /router\.push\('\/auth\/signup'\)/);
     assert.match(login, /router\.push\(authSwitchHref\('\/auth\/signup', router\.query\)\)/);
@@ -158,7 +163,8 @@ test('the callback routes an invite only for a fresh claim, and Commander wins',
     assert.match(cb, /youngAccount && INVITE_ROUTE_STATUSES\.includes\(claimed\.status\)/);
     assert.match(cb, /claimed\.success === false && !!claimed\.code/);
     assert.match(cb, /!inviteJoinPath && youngAccount && \(!claimAttempted \|\| !claimSettled\)/);
-    const dest = cb.slice(cb.indexOf('const dest = nextPath'));
+    const dest = cb.slice(cb.indexOf('const destination = nextPath'));
+    assert.ok(dest.includes('const destination = nextPath'));
     assert.ok(dest.indexOf("isCommanderOrigin ? '/commander/dashboard'") < dest.indexOf('|| inviteDest'));
 });
 

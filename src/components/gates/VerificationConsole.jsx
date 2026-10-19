@@ -7,6 +7,20 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
     phone, digits, code, codeRef, cooldown, formatPhone, onPhoneChange, onCodeChange,
     sendCode, verifyCode, skip, goHub, changePhone, doneLead, vipDays, welcomeDiamonds,
     bonusDiamonds, packageStatus, continueLabel }) {
+    if (stage === 'done' && !alreadyVerified) return <main className={styles.confirmationPage}>
+        <section className={styles.confirmationToast} role="status" aria-live="polite" aria-atomic="true">
+            <span className={styles.confirmationMark} aria-hidden="true" />
+            <h1>Phone Verified</h1>
+            <p>{doneLead}</p>
+            {(vipDays > 0 || welcomeDiamonds > 0 || bonusDiamonds > 0) && <p className={styles.confirmationRewards}>
+                {vipDays > 0 && <span>{vipDays}-Day VIP Activated</span>}
+                {welcomeDiamonds > 0 && <span>{welcomeDiamonds} Welcome Diamonds Added</span>}
+                {bonusDiamonds > 0 && <span>{bonusDiamonds} Verification Diamonds Added</span>}
+            </p>}
+            <span className={styles.confirmationDestination}>{continueLabel ? 'Opening Your Club...' : 'Opening The Hub...'}</span>
+        </section>
+    </main>;
+
     // A player who arrived on a club invite continues to that club, not the Hub.
     const doneLabel = continueLabel || 'Enter The Hub';
     const doneShort = continueLabel || 'Go To The Hub';

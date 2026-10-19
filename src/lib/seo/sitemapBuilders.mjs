@@ -77,7 +77,14 @@ export const STATIC_PAGES = [
   { path: '/hub/smarter-rewards', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/club-shop', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/bankroll-manager', priority: '0.8', changefreq: 'weekly' },
-  { path: '/hub/preflop-charts', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/preflop-charts', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/poker-tools', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/training/icm-calculator', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/training/equity-calculator', priority: '0.8', changefreq: 'weekly' },
+  { path: '/tools/poker-odds-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/icm-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
@@ -176,6 +183,22 @@ ${sitemapLastmodLine(url.lastmod)}    <changefreq>${url.changefreq}</changefreq>
   )
   .join('\n')}
 </urlset>`;
+}
+
+export function generateSitemapIndexXml(sitemaps) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+              http://www.sitemaps.org/schemas/sitemap/0.9/siteindex.xsd">
+${sitemaps
+  .map(
+    (s) => `  <sitemap>
+    <loc>${s.loc.startsWith('http') ? s.loc : `${SITE_URL}${s.loc}`}</loc>
+${sitemapLastmodLine(s.lastmod)}  </sitemap>`
+  )
+  .join('\n')}
+</sitemapindex>`;
 }
 
 export async function fetchAllSitemapRows({ supabase, table, select, orderBy, applyFilters }) {

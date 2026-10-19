@@ -1,3 +1,4 @@
+import AuthEntryChoices from '../../src/components/auth/AuthEntryChoices';
 /* ═══════════════════════════════════════════════════════════════════════════
    ACCESS NODE — CANONICAL SIGN-IN PAGE
    URL: /auth/login  (this is the ONLY sign-in page)
@@ -169,6 +170,10 @@ export default function LoginPage() {
 
   // Load remembered email on mount
   useEffect(() => {
+    try {
+      const prefill = sessionStorage.getItem('login_email_prefill');
+      if (prefill) { setEmail(prefill); sessionStorage.removeItem('login_email_prefill'); return; }
+    } catch { /* storage may be unavailable */ }
     const savedEmail = localStorage.getItem('smarter-poker-remembered-email');
     const wasRemembered = localStorage.getItem('smarter-poker-remember-me') === 'true';
     if (savedEmail && wasRemembered) {
@@ -465,6 +470,7 @@ export default function LoginPage() {
 
   return (
     <>
+      <AuthEntryChoices current="login" query={router.query} />
       <Head>
         <title>Sign In | Smarter.Poker</title>
         <meta name="description" content="Sign In To Continue To Smarter.Poker." />

@@ -235,7 +235,7 @@ jobs:
           __tests__/credit-change-accounting-display.test.mjs
 
       - name: Phone Verification Artwork And Welcome Guards
-        run: node --test __tests__/phone-verification-console.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs
+        run: node --test __tests__/phone-verification-console.test.mjs __tests__/pending-phone-verification.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs
 
       - name: Fabricated Test Sessions Stay Off Live Realtime
         run: node --test __tests__/a-fabricated-session-never-reaches-live-realtime.law.test.mjs
@@ -321,6 +321,9 @@ jobs:
           echo "PHASE6_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
+
+      - name: Signup Player Number And Downstream PostgreSQL Regression
+        run: node --test __tests__/signup-player-number-postgres.test.mjs
 
       - name: VIP Gift Friendship Payment And Redemption PostgreSQL 17
         env:
@@ -1455,6 +1458,18 @@ jobs:
             __tests__/indexnow-submit.test.mjs \
             __tests__/gsc-series2-phase1.test.mjs \
             __tests__/gsc-series2-phase2.test.mjs \
+            __tests__/gsc-series2-phase3.test.mjs \
+            __tests__/gsc-series2-phase4.test.mjs \
+            __tests__/gsc-series2-phase5.test.mjs \
+            __tests__/gsc-series2-phase6.test.mjs \
+            __tests__/gsc-series3-phase1.test.mjs \
+            __tests__/gsc-series3-phase2.test.mjs \
+            __tests__/gsc-series3-phase3.test.mjs \
+            __tests__/gsc-series3-phase4.test.mjs \
+            __tests__/gsc-series3-phase5.test.mjs \
+            __tests__/gsc-series3-phase6.test.mjs \
+            __tests__/gsc-series3-phase7.test.mjs \
+            __tests__/gsc-series3-phase8.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             __tests__/every-title-fits-a-result-and-every-page-says-what-it-is.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \

@@ -23,6 +23,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
@@ -33,7 +34,7 @@ import { getWorldMenuById, getWorldMenuStyleVariables } from '../../src/config/w
 import useModalHistory from '../../src/hooks/useModalHistory';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
 import {
-    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2, Layers,
+    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2, Layers, Code, Check,
 } from 'lucide-react';
 
 const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
@@ -111,7 +112,10 @@ function CardSlot({ card, active, onPick, onRemove, label }) {
     );
 }
 
-export default function PokerToolsPage() {
+export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/poker-tools' } = {}) {
+    const router = useRouter();
+    const isEmbedMode = router.query?.embed === 'true';
+    const effectiveCanonical = router.pathname === '/tools/poker-odds-calculator' ? 'https://smarter.poker/tools/poker-odds-calculator' : canonical;
     const [game, setGame] = useState('nlhe');
     const [hands, setHands] = useState([[], []]);
     const [board, setBoard] = useState([]);
@@ -121,6 +125,8 @@ export default function PokerToolsPage() {
     const [selectedSlot, setSelectedSlot] = useState({ type: 'hand', playerIdx: 0 });
     const [showMenu, setShowMenu] = useState(false);
     const [showPresets, setShowPresets] = useState(false);
+    const [showEmbedModal, setShowEmbedModal] = useState(false);
+    const [hasCopiedEmbed, setHasCopiedEmbed] = useState(false);
 
     const config = GAME_CONFIGS[game];
 
@@ -284,14 +290,18 @@ export default function PokerToolsPage() {
             <SEOHead
                 title="Poker Odds Calculator: Six Games"
                 description="Free Poker Odds Calculator For Texas Hold'em, Omaha, PLO5, PLO6, Stud, And Razz. Calculate Real-Time Multiway Equity And Test Scenarios With Zero Account Setup."
-                canonical="https://smarter.poker/hub/poker-tools"
+                canonical={effectiveCanonical}
             />
             <Head>
                 <script
                     key="poker-tools-schema"
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{
-                        __html: JSON.stringify(ODDS_CALCULATOR_SCHEMA).replace(/</g, '\\u003c'),
+                        __html: JSON.stringify({
+                            ...ODDS_CALCULATOR_SCHEMA,
+                            '@id': `${effectiveCanonical}#app`,
+                            url: effectiveCanonical,
+                        }).replace(/</g, '\\u003c'),
                     }}
                 />
             </Head>
@@ -299,21 +309,29 @@ export default function PokerToolsPage() {
             <div className="odds-page" style={THEME_VARS}>
                 <main className="odds-main">
                     {/* ─── TITLE ROW ─── */}
-                    <div className="odds-titlebar">
-                        <Link href="/hub" aria-label="Back To World Hub" className="odds-back">
-                            <ArrowLeft size={18} aria-hidden />
-                            <span>Hub</span>
-                        </Link>
-                        <div className="odds-titlebar__text">
-                            <h1 className="odds-title">Poker Odds Calculator</h1>
-                            <p className="odds-subtitle">Instant Equity For Six Poker Games</p>
+                    {!isEmbedMode && (
+                        <div className="odds-titlebar">
+                            <Link href="/hub" aria-label="Back To World Hub" className="odds-back">
+                                <ArrowLeft size={18} aria-hidden />
+                                <span>Hub</span>
+                            </Link>
+                            <div className="odds-titlebar__text">
+                                <h1 className="odds-title">Poker Odds Calculator</h1>
+                                <p className="odds-subtitle">Instant Equity For Six Poker Games</p>
+                            </div>
+                            <button type="button" onClick={() => setShowEmbedModal(true)}
+                                aria-label="Embed Poker Odds Calculator On Your Website"
+                                title="Embed Widget"
+                                className="odds-icon-btn">
+                                <Code size={19} aria-hidden />
+                            </button>
+                            <button type="button" onClick={() => setShowMenu(!showMenu)}
+                                aria-label="Open Settings Menu" aria-expanded={showMenu}
+                                className="odds-icon-btn">
+                                <SlidersHorizontal size={20} aria-hidden />
+                            </button>
                         </div>
-                        <button type="button" onClick={() => setShowMenu(!showMenu)}
-                            aria-label="Open Settings Menu" aria-expanded={showMenu}
-                            className="odds-icon-btn">
-                            <SlidersHorizontal size={20} aria-hidden />
-                        </button>
-                    </div>
+                    )}
 
                     {/* ─── GAME SELECTOR ─── */}
                     <div className="odds-games" role="group" aria-label="Game">
@@ -512,8 +530,89 @@ export default function PokerToolsPage() {
                         ))}
                     </section>
 
-                    <HubPageSummary surface="poker-tools" />
+                    {!isEmbedMode ? (
+                        <HubPageSummary surface="poker-tools" />
+                    ) : (
+                        <div className="odds-embed-credit">
+                            <p className="odds-embed-credit__text">
+                                Powered By{' '}
+                                <a
+                                    href="https://smarter.poker/hub/poker-tools"
+                                    target="_blank"
+                                    rel="noopener"
+                                    className="odds-embed-credit__link"
+                                >
+                                    Smarter.Poker Free Poker Odds Calculator
+                                </a>
+                            </p>
+                        </div>
+                    )}
                 </main>
+
+                {/* ─── WEBMASTER EMBED MODAL ─── */}
+                {showEmbedModal && (
+                    <div className="odds-sheet" onClick={() => setShowEmbedModal(false)}>
+                        <div
+                            className="odds-sheet__panel odds-sheet__panel--embed"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Embed Poker Tools On Your Website"
+                            style={{
+                                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+                                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+                                paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
+                            }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="odds-sheet__head">
+                                <span className="odds-sheet__title">Embed Widget Code</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEmbedModal(false)}
+                                    aria-label="Close Embed Dialog"
+                                    className="odds-icon-btn"
+                                    style={{ minWidth: 44, minHeight: 44 }}
+                                >
+                                    <X size={18} aria-hidden />
+                                </button>
+                            </div>
+                            <p className="odds-sheet__desc">
+                                Add This Interactive Multiway Poker Odds Calculator To Your Website Or Blog. Free For Webmasters With Attribution.
+                            </p>
+                            <div className="odds-embed-box">
+                                <textarea
+                                    readOnly
+                                    value={`<iframe src="https://smarter.poker/hub/poker-tools?embed=true" width="100%" height="780" frameborder="0" style="border:0;border-radius:12px;overflow:hidden;" title="Smarter.Poker Odds Calculator"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="https://smarter.poker/hub/poker-tools" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">Smarter.Poker Free Poker Odds Calculator</a></p>`}
+                                    className="odds-embed-textarea"
+                                    aria-label="HTML Embed Code"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const code = `<iframe src="https://smarter.poker/hub/poker-tools?embed=true" width="100%" height="780" frameborder="0" style="border:0;border-radius:12px;overflow:hidden;" title="Smarter.Poker Odds Calculator"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="https://smarter.poker/hub/poker-tools" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">Smarter.Poker Free Poker Odds Calculator</a></p>`;
+                                        if (navigator?.clipboard?.writeText) {
+                                            navigator.clipboard.writeText(code);
+                                            setHasCopiedEmbed(true);
+                                            setTimeout(() => setHasCopiedEmbed(false), 2500);
+                                        }
+                                    }}
+                                    className="odds-btn odds-btn--primary"
+                                    style={{ width: '100%', marginTop: 10 }}
+                                >
+                                    {hasCopiedEmbed ? (
+                                        <>
+                                            <Check size={16} aria-hidden /> Copied Embed Code
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Code size={16} aria-hidden /> Copy Embed HTML Code
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* ─── CALCULATOR SETTINGS SHEET ─── */}
                 {showMenu && (
@@ -733,10 +832,35 @@ const ODDS_CSS = `
 .odds-page .odds-sheet__head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 16px; }
 .odds-page .odds-sheet__title { font-size: 16px; font-weight: 800; }
 .odds-page .odds-sheet__label { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--world-muted, #94AFCC); }
-.odds-page .odds-sheet__link {
-    display: flex; align-items: center; gap: 6px; min-height: 44px; color: var(--world-text, #F0F7FF);
-    font-size: 14px; text-decoration: none; border-bottom: 1px solid rgba(61, 103, 154, 0.5);
+.odds-page .odds-sheet__desc {
+    margin: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--world-muted, #94AFCC);
 }
+.odds-page .odds-sheet__panel--embed {
+    width: min(540px, 94vw);
+}
+.odds-page .odds-embed-box {
+    display: flex; flex-direction: column; gap: 8px; margin-top: 10px;
+}
+.odds-page .odds-embed-textarea {
+    width: 100%; height: 140px; padding: 10px; border-radius: 6px;
+    border: 1px solid var(--world-border, #3D679A); background: var(--world-canvas, #020812);
+    color: var(--world-text, #F0F7FF); font-family: monospace; font-size: 12px; line-height: 1.4;
+    resize: none;
+}
+.odds-page .odds-embed-credit {
+    padding: 16px; text-align: center; border-top: 1px solid var(--world-border, #3D679A);
+    margin-top: 16px;
+}
+.odds-page .odds-embed-credit__text {
+    margin: 0; font-size: 13px; color: var(--world-muted, #94AFCC);
+}
+.odds-page .odds-embed-credit__link {
+    color: var(--world-accent, #4E9CFF); text-decoration: none; font-weight: 700;
+}
+.odds-page .odds-embed-credit__link:hover {
+    text-decoration: underline;
+}
+
 
 @media (min-width: 769px) {
     .odds-page .odds-main { gap: 14px; padding-top: 16px; }

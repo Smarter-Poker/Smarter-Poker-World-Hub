@@ -69,6 +69,23 @@ export default async function handler(req, res) {
       rawUrls.push(`/hub/venues/${encodeURIComponent(String(body.venue_id))}`);
     }
 
+    // Direct event and tournament schedule triggers
+    if (body.event_type) {
+      const et = String(body.event_type).toLowerCase();
+      if (et === 'daily' || et === 'daily-tournaments') {
+        rawUrls.push('/hub/daily-tournaments');
+      } else if (et === 'weekend' || et === 'this-weekend') {
+        rawUrls.push('/hub/tournaments/this-weekend');
+      } else if (et === 'calendar' || et === 'events-calendar') {
+        rawUrls.push('/hub/events-calendar');
+      }
+    }
+
+    if (body.tournament_updated) {
+      rawUrls.push('/hub/daily-tournaments');
+      rawUrls.push('/hub/tournaments/this-weekend');
+    }
+
     // Deduplicate and normalize
     const targetUrls = rawUrls
       .filter(Boolean)
@@ -77,7 +94,7 @@ export default async function handler(req, res) {
 
     if (targetUrls.length === 0) {
       return res.status(400).json({
-        error: 'No valid URLs, series_id, or venue_id provided for indexing submission',
+        error: 'No valid URLs, series_id, venue_id, or event_type provided for indexing submission',
       });
     }
 

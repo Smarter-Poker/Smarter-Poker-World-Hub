@@ -1,4 +1,5 @@
 const SITE_ORIGIN = 'https://smarter.poker';
+import { resolveTournamentWikidataLinks } from '../seo/wikidataRegistry.mjs';
 
 function absoluteUrl(value) {
   const url = String(value || '');
@@ -193,6 +194,25 @@ export function buildSeriesDirectorySchema(series = [], totalCount = 0) {
   });
 }
 
+function formatIsoTournamentStartDate(tournament) {
+  const dateStr = tournament.event_date ? String(tournament.event_date).slice(0, 10) : null;
+  if (!dateStr || dateStr === '1970-01-01' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return undefined;
+  }
+  const timeRaw = tournament.start_time ? String(tournament.start_time).trim() : '';
+  const match = /^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?\s*([AP]M)?$/i.exec(timeRaw);
+  if (match) {
+    let hour = parseInt(match[1], 10);
+    const minute = match[2];
+    const period = (match[3] || '').toUpperCase();
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    const hh = String(hour).padStart(2, '0');
+    return `${dateStr}T${hh}:${minute}:00`;
+  }
+  return `${dateStr}T12:00:00`;
+}
+
 export function buildDailyTournamentSchema(tournaments = [], generatedAt, options = {}) {
   const canonical = options.canonical || `${SITE_ORIGIN}/hub/daily-tournaments`;
   const pageName = options.pageName || 'Daily Poker Tournaments';
@@ -209,6 +229,10 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
       : tournament.venue_id
         ? `${SITE_ORIGIN}/hub/venues/${encodeURIComponent(String(tournament.venue_id))}`
         : canonical;
+
+    const startDate = formatIsoTournamentStartDate(tournament);
+    const sameAsLinks = resolveTournamentWikidataLinks(tournament);
+
     return {
       '@type': 'ListItem',
       position: index + 1,
@@ -216,6 +240,9 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
         '@type': 'SportsEvent',
         name: tournament.tournament_name || 'Daily poker tournament',
         url: venueUrl,
+        ...(sameAsLinks.length > 0 ? { sameAs: sameAsLinks } : {}),
+        startDate: startDate || undefined,
+        eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
         eventStatus: 'https://schema.org/EventScheduled',
         sport: 'Poker',
         location: tournament.venue_name ? {
@@ -232,6 +259,7 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
           '@type': 'Offer',
           price: Number(tournament.buy_in) || 0,
           priceCurrency: 'USD',
+          availability: 'https://schema.org/InStock',
           url: venueUrl,
         } : undefined,
       },

@@ -79,7 +79,7 @@ function formatMoney(amount) {
   return `$${amount.toLocaleString()}`;
 }
 
-export default function TournamentsThisWeekendPage() {
+export default function TournamentsThisWeekendPage({ initialTournaments = [] }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuConfig = useMemo(() => getMenuConfig('hub'), []);
@@ -98,7 +98,7 @@ export default function TournamentsThisWeekendPage() {
   const { data: satData, isLoading: satLoading } = useSWR('/api/poker/daily-tournaments?day=Saturday', fetcher);
   const { data: sunData, isLoading: sunLoading } = useSWR('/api/poker/daily-tournaments?day=Sunday', fetcher);
 
-  const isLoading = friLoading || satLoading || sunLoading;
+  const isLoading = (friLoading || satLoading || sunLoading) && initialTournaments.length === 0;
 
   // Aggregate tournaments across the full weekend
   const allWeekendTournaments = useMemo(() => {
@@ -112,8 +112,11 @@ export default function TournamentsThisWeekendPage() {
     if (sunData?.tournaments) {
       sunData.tournaments.forEach(t => list.push({ ...t, weekendDay: 'Sunday', weekendDate: weekendInfo.sunday }));
     }
+    if (list.length === 0 && initialTournaments && initialTournaments.length > 0) {
+      return initialTournaments;
+    }
     return list;
-  }, [friData, satData, sunData, weekendInfo]);
+  }, [friData, satData, sunData, weekendInfo, initialTournaments]);
 
   // Filtered view
   const filteredTournaments = useMemo(() => {
@@ -607,6 +610,8 @@ function WeekendTournamentCard({ tournament }) {
         <div className="card-pills">
           <span className="pill game-type">{t.game_type || 'NLH'}</span>
           {t.guaranteed > 0 && <span className="pill gtd">{formatMoney(t.guaranteed)} GTD</span>}
+          <span className="pill weekend-badge">Live This Weekend</span>
+          {t.open_status?.open === true && <span className="pill open-now-badge">Open Now</span>}
         </div>
       </div>
 
@@ -698,6 +703,15 @@ function WeekendTournamentCard({ tournament }) {
         .pill.gtd {
           background: rgba(245, 158, 11, 0.2);
           color: #fbbf24;
+        }
+        .pill.weekend-badge {
+          background: rgba(168, 85, 247, 0.2);
+          color: #c084fc;
+        }
+        .pill.open-now-badge {
+          background: rgba(34, 197, 94, 0.2);
+          color: #4ade80;
+          font-weight: 700;
         }
         .card-footer {
           margin-top: auto;

@@ -139,7 +139,7 @@ export default function ClubInviteLanding({ invite, code }) {
         `/auth/signup?invite=${encodeURIComponent(invite.code)}` +
         (inviter.playerNumber ? `&ref=${encodeURIComponent(inviter.playerNumber)}` : '') +
         `&redirect=${encodeURIComponent(invite.joinPath)}`;
-    const loginHref = `/auth/login?redirect=${encodeURIComponent(invite.joinPath)}`;
+    const loginHref = signupHref.replace('/auth/signup?', '/auth/login?');
     const pageUrl = `${ORIGIN}/i/${code}`;
     const ogImage = `${ORIGIN}/api/og/club-invite?code=${encodeURIComponent(code)}`;
     const headline = `${inviter.alias} Invited You To ${club.name}`;
@@ -204,8 +204,8 @@ export default function ClubInviteLanding({ invite, code }) {
                                 <li>Verify Your Phone Number</li>
                                 <li>Join {club.name} With One Tap</li>
                             </ol>
-                            <a href={signupHref} style={styles.primary}>Create Account</a>
-                            <a href={loginHref} style={styles.secondary}>I Already Have An Account</a>
+                            <a href={signupHref} style={styles.primary}>Sign Up</a>
+                            <a href={loginHref} style={styles.secondary}>Sign In</a>
                             {inviter.playerNumber ? (
                                 <p style={styles.fine}>Referral Number {inviter.playerNumber} Is Saved For You.</p>
                             ) : null}

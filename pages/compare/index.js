@@ -26,7 +26,7 @@ export async function getStaticProps() {
 }
 
 const INDEX_LEAD =
-  'Side By Side Comparisons Of Poker Club Apps, Apps For Playing With Friends, Poker Room Management Software, GTO Trainers And Bankroll Trackers, Including The Smarter.Poker Products In Each Category. Every Fact Comes From A Store Listing, Maker Site Or Trade Press Article Linked On The Page, And Anything No Source Publishes Is Marked Not Published.';
+  'Side By Side Comparisons Of Live Poker Rooms, Poker Club Apps, Apps For Playing With Friends, Poker Room Management Software, GTO Trainers And Bankroll Trackers, Including The Smarter.Poker Products In Each Category. Every Fact Comes From A Store Listing, Maker Site Or Trade Press Article Linked On The Page, And Anything No Source Publishes Is Marked Not Published.';
 
 const INDEX_METHOD =
   'We Do Not Use Star Ratings, Review Counts, Download Counts Or Rankings From Other Sites. Each Page Lists Where The Other Products Do More Than Ours, And We Check Every Source Again Each Quarter.';
@@ -35,8 +35,8 @@ export default function CompareIndex() {
   return (
     <>
       <SEOHead
-        title="Poker App And Software Comparisons"
-        description="Honest Comparisons Of Poker Club Apps, Poker Room Management Software, GTO Trainers And Bankroll Trackers, With Every Fact Sourced And Dated."
+        title="Poker Room And Software Comparisons"
+        description="Honest Comparisons Of Live Poker Rooms, Club Apps, Room Management Software, GTO Trainers And Bankroll Trackers, With Every Fact Sourced And Dated."
         canonical={COMPARE_BASE}
         jsonLd={[schemas.organization, ...compareIndexJsonLd()]}
       />

@@ -199,6 +199,7 @@ export default function PokerNearMeLocationPage({
   stateName,
   city,
   venues = [],
+  nearbyVenues = [],
   resultCount,
   states = [],
   unplacedVenues = [],
@@ -464,6 +465,21 @@ export default function PokerNearMeLocationPage({
           </section>
         )}
 
+        {/* Nearby Regional Venues (Thin Content & Soft-404 Defense) */}
+        {nearbyVenues.length > 0 && (
+          <section aria-labelledby="pnm-nearby-venues-heading">
+            <PokerNearMePanelShell as="header" className="pnm-location-listing__section-head">
+              <span>Regional Coverage</span>
+              <h2 id="pnm-nearby-venues-heading">Nearby Poker Rooms In {stateName || stateCode}</h2>
+              <p>Explore Highly Active Cardrooms And Gaming Venues Across {stateName || stateCode} Within Easy Driving Distance.</p>
+            </PokerNearMePanelShell>
+            <div className="pnm-location-listing__grid">
+              {nearbyVenues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
+            </div>
+          </section>
+        )}
+
+
         {/* Conversational Search & People Also Ask Enrichment */}
         {locationFaqJsonLd?.mainEntity?.length > 0 && (
           <section aria-labelledby="pnm-location-faq-heading">
@@ -482,6 +498,67 @@ export default function PokerNearMeLocationPage({
             </div>
           </section>
         )}
+
+        {/* Side-By-Side Room Comparisons & Versus Analysis */}
+        <section aria-labelledby="pnm-location-compare-heading">
+          <PokerNearMePanelShell as="header" className="pnm-location-listing__section-head">
+            <span>High-Intent Comparisons</span>
+            <h2 id="pnm-location-compare-heading">Side-By-Side Room Comparisons</h2>
+            <p>Compare Major Cardrooms And Regional Hubs Side By Side Across Stakes, Tables, And Amenities.</p>
+          </PokerNearMePanelShell>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
+            <PokerNearMePanelShell style={{ padding: '20px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#fff' }}>
+                <Link href="/compare/bellagio-vs-aria-poker" style={{ color: '#60a5fa', textDecoration: 'none' }}>
+                  Bellagio Vs Aria Poker Room
+                </Link>
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
+                Compare Las Vegas Strip Heavyweights On Tables, Bobby\'S Room, High Roller Tournaments And Amenities.
+              </p>
+            </PokerNearMePanelShell>
+            <PokerNearMePanelShell style={{ padding: '20px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#fff' }}>
+                <Link href="/compare/commerce-casino-vs-the-bicycle-hotel-poker" style={{ color: '#60a5fa', textDecoration: 'none' }}>
+                  Commerce Casino Vs The Bicycle Hotel Poker
+                </Link>
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
+                Los Angeles Cardroom Giants Analyzed By Table Count, Collection Structure, And Livestreaming.
+              </p>
+            </PokerNearMePanelShell>
+            <PokerNearMePanelShell style={{ padding: '20px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#fff' }}>
+                <Link href="/compare/best-poker-rooms-in-las-vegas" style={{ color: '#60a5fa', textDecoration: 'none' }}>
+                  Best Poker Rooms In Las Vegas
+                </Link>
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
+                Nevada Cash Game Action, Comps, Daily Tournaments And Room Selections Across The Strip.
+              </p>
+            </PokerNearMePanelShell>
+            <PokerNearMePanelShell style={{ padding: '20px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#fff' }}>
+                <Link href="/compare/best-poker-rooms-in-texas" style={{ color: '#60a5fa', textDecoration: 'none' }}>
+                  Best Poker Rooms In Texas
+                </Link>
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
+                Rake-Free Social Clubs In Austin, Dallas, And Houston: Membership Models And Hourly Seat Rentals.
+              </p>
+            </PokerNearMePanelShell>
+            <PokerNearMePanelShell style={{ padding: '20px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#fff' }}>
+                <Link href="/compare/best-poker-rooms-near-major-airports" style={{ color: '#60a5fa', textDecoration: 'none' }}>
+                  Best Poker Rooms Near Major Airports
+                </Link>
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
+                Top Airport Cardrooms Near Las Vegas (LAS) And Baltimore-Washington (BWI) For Traveling Players.
+              </p>
+            </PokerNearMePanelShell>
+          </div>
+        </section>
 
         {directoryCount === 0 && (
           <section className="pnm-empty-state" aria-labelledby="pnm-empty-title">

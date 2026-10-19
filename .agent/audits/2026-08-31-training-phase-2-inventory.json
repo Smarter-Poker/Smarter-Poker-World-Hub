@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 347,
+    "dependencyFiles": 348,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 347,
     "dialogs": 12,
     "persistenceFiles": 78,
     "realtimeFiles": 6,
-    "tests": 159,
+    "tests": 161,
     "markerCandidates": 335,
-    "possibleUnwiredFunctions": 381,
+    "possibleUnwiredFunctions": 382,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 275,
     "routeStateUnassignedGaps": 0,
@@ -6544,6 +6544,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -7899,6 +7900,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7909,6 +7911,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7922,6 +7925,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7933,6 +7937,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7944,6 +7949,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7955,6 +7961,7 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7963,6 +7970,7 @@
           "evidence": [],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
           "followUpPhase": 15
@@ -7975,12 +7983,14 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
       },
       "existingTests": [
         "__tests__/gsc-series2-phase2.test.mjs",
+        "__tests__/gsc-series3-phase2.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": [
@@ -9398,6 +9408,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -9792,6 +9803,8 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9803,6 +9816,8 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9817,6 +9832,8 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9829,6 +9846,8 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9841,6 +9860,8 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9853,6 +9874,8 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9862,6 +9885,8 @@
           "evidence": [],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -9875,6 +9900,8 @@
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
+            "__tests__/gsc-series3-phase2.test.mjs",
+            "__tests__/gsc-series3-phase3.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -9882,6 +9909,8 @@
       },
       "existingTests": [
         "__tests__/gsc-series2-phase2.test.mjs",
+        "__tests__/gsc-series3-phase2.test.mjs",
+        "__tests__/gsc-series3-phase3.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
@@ -10099,6 +10128,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -10356,6 +10386,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -15411,6 +15442,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -17556,6 +17588,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -27749,7 +27782,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 276,
+          "line": 281,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -27759,7 +27792,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 339,
+          "line": 344,
           "handler": "() => loadPreset(p)",
           "destination": null,
           "type": null,
@@ -27769,7 +27802,7 @@
         {
           "element": "button",
           "name": "-",
-          "line": 391,
+          "line": 396,
           "handler": "removePlayer",
           "destination": null,
           "type": null,
@@ -27779,7 +27812,7 @@
         {
           "element": "button",
           "name": "+",
-          "line": 410,
+          "line": 415,
           "handler": "addPlayer",
           "destination": null,
           "type": null,
@@ -27789,7 +27822,7 @@
         {
           "element": "button",
           "name": "-",
-          "line": 504,
+          "line": 509,
           "handler": "removePrize",
           "destination": null,
           "type": null,
@@ -27799,7 +27832,7 @@
         {
           "element": "button",
           "name": "+",
-          "line": 523,
+          "line": 528,
           "handler": "addPrize",
           "destination": null,
           "type": null,
@@ -27809,7 +27842,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 955,
+          "line": 960,
           "handler": "() => setIcmView(tab.key)",
           "destination": null,
           "type": null,
@@ -49141,7 +49174,7 @@
         },
         {
           "name": "hubCollectionSchema",
-          "line": 131,
+          "line": 135,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49214,9 +49247,63 @@
       "markers": []
     },
     {
-      "file": "src/lib/seo/summarySchema.js",
+      "file": "src/lib/seo/quizStructuredData.mjs",
       "imports": [
         "src/lib/seo/hubPageSchema.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "buildQuizSchema",
+          "line": 69,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "buildQuizSchema"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/seo/summarySchema.js",
+      "imports": [
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/quizStructuredData.mjs"
       ],
       "links": [
         "/hub/training",
@@ -49261,7 +49348,7 @@
       "functions": [
         {
           "name": "summarySchema",
-          "line": 69,
+          "line": 68,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62623,8 +62710,16 @@
       "to": "src/lib/idbCacheStore.js"
     },
     {
+      "from": "src/lib/seo/quizStructuredData.mjs",
+      "to": "src/lib/seo/hubPageSchema.js"
+    },
+    {
       "from": "src/lib/seo/summarySchema.js",
       "to": "src/lib/seo/hubPageSchema.js"
+    },
+    {
+      "from": "src/lib/seo/summarySchema.js",
+      "to": "src/lib/seo/quizStructuredData.mjs"
     },
     {
       "from": "src/lib/serverAuth.js",
@@ -62968,6 +63063,8 @@
     "__tests__/every-lesson-answers-first.law.test.mjs",
     "__tests__/global-header-approved.test.mjs",
     "__tests__/gsc-series2-phase2.test.mjs",
+    "__tests__/gsc-series3-phase2.test.mjs",
+    "__tests__/gsc-series3-phase3.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
@@ -64988,11 +65085,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:276:1",
+      "id": "pages/hub/training/icm-calculator.js:281:1",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "← Training",
-      "line": 276,
+      "line": 281,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -65001,11 +65098,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:339:2",
+      "id": "pages/hub/training/icm-calculator.js:344:2",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 339,
+      "line": 344,
       "handler": "() => loadPreset(p)",
       "destination": null,
       "type": null,
@@ -65014,11 +65111,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:391:3",
+      "id": "pages/hub/training/icm-calculator.js:396:3",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "-",
-      "line": 391,
+      "line": 396,
       "handler": "removePlayer",
       "destination": null,
       "type": null,
@@ -65027,11 +65124,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:410:4",
+      "id": "pages/hub/training/icm-calculator.js:415:4",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "+",
-      "line": 410,
+      "line": 415,
       "handler": "addPlayer",
       "destination": null,
       "type": null,
@@ -65040,11 +65137,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:504:5",
+      "id": "pages/hub/training/icm-calculator.js:509:5",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "-",
-      "line": 504,
+      "line": 509,
       "handler": "removePrize",
       "destination": null,
       "type": null,
@@ -65053,11 +65150,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:523:6",
+      "id": "pages/hub/training/icm-calculator.js:528:6",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "+",
-      "line": 523,
+      "line": 528,
       "handler": "addPrize",
       "destination": null,
       "type": null,
@@ -65066,11 +65163,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:955:7",
+      "id": "pages/hub/training/icm-calculator.js:960:7",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 955,
+      "line": 960,
       "handler": "() => setIcmView(tab.key)",
       "destination": null,
       "type": null,
@@ -73138,6 +73235,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -74670,6 +74768,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -75098,6 +75197,7 @@
       "realtime": [],
       "tests": [
         "__tests__/gsc-series2-phase2.test.mjs",
+        "__tests__/gsc-series3-phase3.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
       ]
     },
@@ -75199,6 +75299,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -75523,6 +75624,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -78633,6 +78735,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -80558,6 +80661,7 @@
         "src/lib/ownProfile.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -81225,6 +81329,7 @@
       "reachableFiles": [
         "src/components/seo/HubPageSummary.js",
         "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js"
       ],
       "apiReferences": [],
@@ -84909,9 +85014,21 @@
       "tests": []
     },
     {
+      "file": "src/lib/seo/quizStructuredData.mjs",
+      "reachableFiles": [
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/quizStructuredData.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/seo/summarySchema.js",
       "reachableFiles": [
         "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/summarySchema.js"
       ],
       "apiReferences": [],
@@ -90714,7 +90831,9 @@
         "disposition": "route-entrypoint",
         "review": "accepted",
         "rationale": "Next.js page default export is invoked by the router.",
-        "externalReferenceFiles": []
+        "externalReferenceFiles": [
+          "pages/tools/icm-calculator.js"
+        ]
       },
       {
         "file": "pages/hub/training/icm-final-table.js",
@@ -93243,6 +93362,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/bankroll-manager.js",
           "pages/hub/home-games.js",
@@ -93254,13 +93374,14 @@
           "pages/hub/training.js",
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
+          "pages/tools/preflop-ranges/index.js",
           "src/lib/seo/summarySchema.js"
         ]
       },
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 131,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93269,6 +93390,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series3-phase1.test.mjs",
           "pages/hub/events-calendar.js",
           "pages/hub/home-games/near-me.js",
           "pages/hub/index.js",
@@ -93297,9 +93419,24 @@
         ]
       },
       {
+        "file": "src/lib/seo/quizStructuredData.mjs",
+        "name": "buildQuizSchema",
+        "line": 69,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "test-or-audit-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
+        "externalReferenceFiles": [
+          "__tests__/gsc-series2-phase6.test.mjs"
+        ]
+      },
+      {
         "file": "src/lib/seo/summarySchema.js",
         "name": "summarySchema",
-        "line": 69,
+        "line": 68,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93308,6 +93445,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series2-phase6.test.mjs",
           "__tests__/the-summary-carries-the-schema.law.test.mjs",
           "src/components/seo/HubPageSummary.js"
         ]
@@ -99815,7 +99953,9 @@
         "disposition": "route-entrypoint",
         "review": "accepted",
         "rationale": "Next.js page default export is invoked by the router.",
-        "externalReferenceFiles": []
+        "externalReferenceFiles": [
+          "pages/tools/icm-calculator.js"
+        ]
       },
       {
         "file": "pages/hub/training/icm-final-table.js",
@@ -102344,6 +102484,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/bankroll-manager.js",
           "pages/hub/home-games.js",
@@ -102355,13 +102496,14 @@
           "pages/hub/training.js",
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
+          "pages/tools/preflop-ranges/index.js",
           "src/lib/seo/summarySchema.js"
         ]
       },
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 131,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102370,6 +102512,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series3-phase1.test.mjs",
           "pages/hub/events-calendar.js",
           "pages/hub/home-games/near-me.js",
           "pages/hub/index.js",
@@ -102398,9 +102541,24 @@
         ]
       },
       {
+        "file": "src/lib/seo/quizStructuredData.mjs",
+        "name": "buildQuizSchema",
+        "line": 69,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "test-or-audit-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
+        "externalReferenceFiles": [
+          "__tests__/gsc-series2-phase6.test.mjs"
+        ]
+      },
+      {
         "file": "src/lib/seo/summarySchema.js",
         "name": "summarySchema",
-        "line": 69,
+        "line": 68,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102409,6 +102567,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/gsc-series2-phase6.test.mjs",
           "__tests__/the-summary-carries-the-schema.law.test.mjs",
           "src/components/seo/HubPageSummary.js"
         ]

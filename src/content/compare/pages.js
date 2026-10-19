@@ -116,6 +116,28 @@ const BANKROLL_COLUMNS = [
   { key: 'platforms', label: 'Platforms' },
 ];
 
+const VENUE_COLUMNS = [
+  { key: 'location', label: 'Location' },
+  { key: 'tables', label: 'Poker Tables' },
+  { key: 'games', label: 'Games Spread' },
+  { key: 'stakes', label: 'Popular Stakes' },
+  { key: 'tournaments', label: 'Tournaments' },
+  { key: 'feeModel', label: 'Rake Or Fee Model' },
+  { key: 'hours', label: 'Operating Hours' },
+  { key: 'amenities', label: 'Amenities' },
+];
+
+const VENUE_VERSUS_COLUMNS = [
+  { key: 'location', label: 'Location' },
+  { key: 'tables', label: 'Tables' },
+  { key: 'games', label: 'Games' },
+  { key: 'stakes', label: 'Stakes' },
+  { key: 'tournaments', label: 'Tournaments' },
+  { key: 'feeModel', label: 'Fee Model' },
+  { key: 'hours', label: 'Hours' },
+  { key: 'amenities', label: 'Amenities' },
+];
+
 // ─── The pages ─────────────────────────────────────────────────────────────
 //
 // A paragraph or bullet is { text, sources }. `sources` lists the SOURCES
@@ -739,6 +761,268 @@ export const COMPARE_PAGES = [
     productLinks: ['bankrollManager'],
     glossary: ['Variance', 'VPIP', 'ICM'],
   },
+
+  // 12 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'bellagio-vs-aria-poker',
+    kind: 'versus',
+    title: 'Bellagio Vs Aria Poker Room',
+    h1: 'Bellagio Vs Aria Poker Room',
+    description:
+      'Bellagio And Aria Poker Rooms Side By Side: Tables, Cash Stakes, Tournaments, High Stakes Action, Rake Structure And Room Amenities In Las Vegas.',
+    summary: p(
+      'Bellagio And Aria Are Two Of The Most Renowned Poker Rooms On The Las Vegas Strip. Bellagio Offers 40 Dedicated Tables Known For Historic Mixed Games And Bobby\'s Room, While Aria Features 24 Modern Tables Home To Table I And High Roller Tournaments. Both Rooms Operate 24 Hours Daily Under Standard Pot Rake Rules.',
+      ['bellagioSite', 'ariaSite', 'spHome']
+    ),
+    intro: p(
+      'Comparing The Two Premier MGM Resorts Poker Destinations On The Las Vegas Boulevard. Data Taken Directly From Official Casino Sources And Verified Player Room Listings.',
+      ['bellagioSite', 'ariaSite']
+    ),
+    table: {
+      caption: 'Bellagio And Aria Poker Rooms, ' + CHECKED_LABEL,
+      products: ['bellagio', 'aria'],
+      columns: VENUE_VERSUS_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Bellagio Stands Out',
+        bullets: [
+          p('Bellagio Has 40 Tables Compared To 24 At Aria, Giving It Greater Seating Capacity During Peak Hours.', ['bellagioSite', 'ariaSite']),
+          p('Bellagio Is The Traditional Home Of The World Poker Tour Five Diamond World Poker Classic And Bobby\'s Room High-Stakes Mixed Games.', ['bellagioSite']),
+        ],
+      },
+      {
+        heading: 'Where Aria Stands Out',
+        bullets: [
+          p('Aria Is Renowned For Modern Aesthetics, Elite High Roller Poker Series And The High-Stakes Action In Table I.', ['ariaSite']),
+          p('Aria Features Daily No-Limit Hold\'em Tournaments Geared Toward Fast High-Stakes Action.', ['ariaSite']),
+        ],
+      },
+      {
+        heading: 'Room Management And Discovery',
+        paragraphs: [
+          p('Both Rooms Utilize Modern Digital Waitlists. Smarter.Poker Poker Near Me Helps Players Track Live Poker Room Tables And Schedules Nationwide.', ['spPokerNearMe', 'spHome']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Which Room Has More Poker Tables?',
+        a: p('Bellagio Has 40 Dedicated Poker Tables While Aria Features 24 Poker Tables.', ['bellagioSite', 'ariaSite']),
+      },
+      {
+        q: 'Are Both Poker Rooms Open 24 Hours?',
+        a: p('Yes, Both Bellagio And Aria Poker Rooms Operate 24 Hours Daily.', ['bellagioSite', 'ariaSite']),
+      },
+    ],
+    related: ['best-poker-rooms-in-las-vegas', 'commerce-casino-vs-the-bicycle-hotel-poker', 'best-poker-rooms-in-texas'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Straddle', 'Waitlist', 'Must-Move Table'],
+  },
+
+  // 13 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'commerce-casino-vs-the-bicycle-hotel-poker',
+    kind: 'versus',
+    title: 'Commerce Casino Vs The Bicycle Hotel Poker',
+    h1: 'Commerce Casino Vs The Bicycle Hotel Poker',
+    description:
+      'Commerce Casino And The Bicycle Hotel Side By Side: Table Counts, Cash Game Selection, Collection Rake, Livestreams And Amenities In Los Angeles.',
+    summary: p(
+      'Commerce Casino And The Bicycle Hotel And Casino Are The Two Titan Cardrooms Of The Los Angeles Poker Market. Commerce Operates Over 200 Tables And Hosts The LA Poker Classic, While The Bike Features 185 Tables And Its Famous Live Streaming Studio. Both Use The California Per-Hand Table Collection Fee Structure.',
+      ['pokeratlasDirectory', 'bikeSite', 'spHome']
+    ),
+    intro: p(
+      'Los Angeles Cardrooms Operate Without Slot Machines Or House-Banked Games Under California Gaming Rules. Here Is How The Two Largest Cardrooms In The World Compare Side By Side.',
+      ['pokeratlasDirectory', 'bikeSite']
+    ),
+    table: {
+      caption: 'Commerce Casino And The Bicycle Hotel, ' + CHECKED_LABEL,
+      products: ['commerce', 'bike'],
+      columns: VENUE_VERSUS_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Commerce Casino Leads',
+        bullets: [
+          p('Commerce Operates Over 200 Tables, Making It The Largest Poker Room In The World By Total Dedicated Tables.', ['pokeratlasDirectory']),
+          p('Commerce Hosts The Renowned LA Poker Classic And Legendary High-Stakes Mixed Game Action.', ['pokeratlasDirectory']),
+        ],
+      },
+      {
+        heading: 'Where The Bicycle Hotel Leads',
+        bullets: [
+          p('The Bike Features A Dedicated Live At The Bike Streaming Studio Broadcast Worldwide.', ['bikeSite']),
+          p('The Bike Features A Modern Four-Star Luxury Hotel And Elevated Hospitality On Property.', ['bikeSite']),
+        ],
+      },
+      {
+        heading: 'The California Collection Model',
+        paragraphs: [
+          p('Unlike Nevada Casinos That Take A Percentage Pot Rake, California Rooms Take A Flat Per-Hand Player Collection Based On The Table Limit.', ['bikeSite', 'pokeratlasDirectory']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Which Room Is Larger Between Commerce And The Bike?',
+        a: p('Commerce Casino Is Slightly Larger With Over 200 Tables Compared To 185 Tables At The Bicycle Hotel And Casino.', ['pokeratlasDirectory', 'bikeSite']),
+      },
+    ],
+    related: ['bellagio-vs-aria-poker', 'best-poker-rooms-in-las-vegas', 'best-poker-rooms-in-texas'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Straddle', 'Waitlist', 'Bomb Pot'],
+  },
+
+  // 14 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'best-poker-rooms-in-las-vegas',
+    kind: 'best-of',
+    title: 'Best Poker Rooms In Las Vegas',
+    h1: 'Best Poker Rooms In Las Vegas',
+    description:
+      'The Best Poker Rooms On The Las Vegas Strip And Beyond: Bellagio And Aria Compared On Stakes, Tables, Tournaments, High-Stakes Action And Amenities.',
+    summary: p(
+      'Las Vegas Remains The Global Capital Of Live Poker. The Premier Rooms On The Strip Include Bellagio With 40 Dedicated Tables And Historic Mixed Game Heritage, And Aria With 24 High-Tech Tables And Elite High Roller Tournaments. Both Rooms Run Around The Clock With 24 Hour Cash Game Action Under Standard Nevada Rake Rules.',
+      ['bellagioSite', 'ariaSite', 'spHome']
+    ),
+    intro: p(
+      'Whether You Seek Everyday Cash Action Or World Championship Stakes, Here Is How The Top Las Vegas Strip Poker Venues Compare Across Key Player Considerations.',
+      ['bellagioSite', 'ariaSite']
+    ),
+    table: {
+      caption: 'Top Las Vegas Poker Rooms Compared, ' + CHECKED_LABEL,
+      products: ['bellagio', 'aria'],
+      columns: VENUE_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Choosing The Right Room For Your Game',
+        bullets: [
+          p('For Deep-Stacked Mixed Games And High Seating Availability: Bellagio Features 40 Tables And A Broad Variety Of Games.', ['bellagioSite']),
+          p('For Sleek Atmosphere And High Roller Tournaments: Aria Offers Cutting-Edge Facilities And Daily Tournaments.', ['ariaSite']),
+          p('For Comprehensive Live Discovery: Check Real-Time Room Signals Across Nevada On Smarter.Poker Poker Near Me.', ['spPokerNearMe']),
+        ],
+      },
+      {
+        heading: 'Rake And Comps In Nevada',
+        paragraphs: [
+          p('Nevada Poker Rooms Charge A Traditional Pot Rake Capped Per Hand, And Reward Play With Casino Comps Redeemable For Dining And Resort Amenities.', ['bellagioSite', 'ariaSite']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'What Is The Standard Poker Rake In Las Vegas?',
+        a: p('Most Strip Rooms Take A Percentage Pot Rake Capped At A Set Maximum Per Hand, In Contrast To California Flat Collection Or Texas Seat Rental.', ['bellagioSite', 'ariaSite']),
+      },
+    ],
+    related: ['bellagio-vs-aria-poker', 'commerce-casino-vs-the-bicycle-hotel-poker', 'best-poker-rooms-in-texas'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Waitlist', 'Comp', 'Straddle'],
+  },
+
+  // 15 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'best-poker-rooms-in-texas',
+    kind: 'best-of',
+    title: 'Best Poker Rooms In Texas',
+    h1: 'Best Poker Rooms In Texas',
+    description:
+      'The Best Poker Card Clubs In Texas: The Lodge Card Club And Texas Card House Compared On Tables, Rake-Free Models, Memberships And Amenities.',
+    summary: p(
+      'The Texas Poker Boom Has Created Some Of The Largest Card Clubs In The Country. Top Venues Include The Lodge Card Club In Greater Austin With Over 60 Tables And Streamed High-Stakes Action, And Texas Card House Dallas With 30 Tables. Both Operate As Rake-Free Private Social Clubs Using Membership And Hourly Seat Rentals.',
+      ['pokeratlasDirectory', 'tchDallasSite', 'spHome']
+    ),
+    intro: p(
+      'Texas Cardrooms Operate Under A Distinct Legal Framework That Prohibits Traditional Casino Pot Rake. Clubs Charge Membership Dues And Hourly Seat Rental In Place Of Hand Drops.',
+      ['pokeratlasDirectory', 'tchDallasSite']
+    ),
+    table: {
+      caption: 'Top Texas Card Clubs Compared, ' + CHECKED_LABEL,
+      products: ['lodge', 'tchDallas'],
+      columns: VENUE_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'The Texas Social Club Model',
+        bullets: [
+          p('No Pot Rake: 100% Of The Chips Bet In Every Pot Go To The Winning Player Without House Hand Deductions.', ['pokeratlasDirectory', 'tchDallasSite']),
+          p('Membership And Seat Rental: Players Pay Daily, Monthly Or Annual Club Dues Plus An Hourly Seat Fee.', ['pokeratlasDirectory', 'tchDallasSite']),
+          p('Massive Action: The Absence Of Pot Rake Encourages Deep-Stack Play And Large Multistraddle Pots.', ['pokeratlasDirectory', 'tchDallasSite']),
+        ],
+      },
+      {
+        heading: 'Which Texas Room To Choose',
+        bullets: [
+          p('For High-Stakes Livestreams And Austin Area Action: The Lodge Card Club Features Over 60 Tables.', ['pokeratlasDirectory']),
+          p('For North Texas Tournament Series: Texas Card House Dallas Offers 30 Tables And Robust Daily Events.', ['tchDallasSite']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How Does Poker Work Legally In Texas?',
+        a: p('Texas Card Clubs Operate As Private Social Clubs Where The House Takes No Economic Benefit Or Rake From The Pots Directly, Relying On Membership Fees And Hourly Seat Rentals.', ['pokeratlasDirectory', 'tchDallasSite']),
+      },
+    ],
+    related: ['best-poker-rooms-in-las-vegas', 'bellagio-vs-aria-poker', 'commerce-casino-vs-the-bicycle-hotel-poker', 'best-poker-rooms-near-major-airports'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Straddle', 'Bomb Pot', 'Waitlist'],
+  },
+
+  // 16 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'best-poker-rooms-near-major-airports',
+    kind: 'best-of',
+    title: 'Best Poker Rooms Near Major Airports',
+    h1: 'Best Poker Rooms Near Major Airports',
+    description:
+      'The Best Casino Poker Rooms Located Minutes From Major US Airports: South Point Near Harry Reid LAS And Maryland Live Near BWI Airport.',
+    summary: p(
+      'Traveling Poker Players Often Seek Convenient High-Action Poker Rooms Located Directly Near Major Hub Airports. Top Travel Destinations Include South Point Hotel And Casino Situated Ten Minutes South Of Harry Reid International Airport In Las Vegas, And Live! Casino And Hotel Maryland Located Five Minutes From Baltimore-Washington International Airport.',
+      ['southpointSite', 'liveCasinoMdSite', 'spHome']
+    ),
+    intro: p(
+      'Airport Accessibility Allows Traveling Poker Players To Play Cash Games Or Daily Tournaments On Layovers And Business Trips Without Lengthy Metro Transit.',
+      ['southpointSite', 'liveCasinoMdSite']
+    ),
+    table: {
+      caption: 'Top Airport-Adjacent Poker Rooms, ' + CHECKED_LABEL,
+      products: ['southPoint', 'liveMaryland'],
+      columns: VENUE_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Why Play Near Major Hubs',
+        bullets: [
+          p('Fast Airport Commute: Rooms Located Under Ten Minutes From Terminals Provide Seamless Travel Logistics.', ['southpointSite', 'liveCasinoMdSite']),
+          p('24-Hour Action: Continuous Cash Game Tables Accommodate Arriving Red-Eye Flights And Early Morning Layover Travelers.', ['southpointSite', 'liveCasinoMdSite']),
+          p('Full Resort Amenities: Integrated Luxury Hotels, Diverse Dining, And Free Parking Or Valet Options.', ['southpointSite', 'liveCasinoMdSite']),
+        ],
+      },
+      {
+        heading: 'Airport Cardroom Selection',
+        bullets: [
+          p('For Harry Reid International (LAS) Arrivals: South Point Offers 30 Tables Spreading Low-Stakes Hold\'em And Mixed Games Minutes South Of The Strip.', ['southpointSite']),
+          p('For BWI Airport (BWI) Arrivals: Live! Maryland Features A 50-Table Dedicated Two-Story Poker Arena Directly Adjacent To Arundel Mills.', ['liveCasinoMdSite']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Which Las Vegas Poker Room Is Closest To Harry Reid Airport?',
+        a: p('South Point Hotel And Casino Is Located Just Seven Miles South Of Harry Reid International Airport, Making It One Of The Quickest Accessible 30-Table Poker Rooms In The Valley.', ['southpointSite']),
+      },
+      {
+        q: 'Can You Play Poker Near BWI Airport?',
+        a: p('Yes, Live! Casino And Hotel Maryland Operates A Premier 50-Table Poker Room Located Approximately Five Minutes Driving Distance From BWI Thurgood Marshall Airport.', ['liveCasinoMdSite']),
+      },
+    ],
+    related: ['best-poker-rooms-in-las-vegas', 'best-poker-rooms-in-texas', 'bellagio-vs-aria-poker'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Waitlist', 'Comp'],
+  },
 ];
 
 /**
@@ -826,7 +1110,7 @@ export function productUrl(productId) {
 
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 export const WEBSITE_ID = `${SITE_URL}/#website`;
-export const COMPARE_INDEX_TITLE = 'Poker App And Software Comparisons';
+export const COMPARE_INDEX_TITLE = 'Poker Room And Software Comparisons';
 
 function breadcrumb(items) {
   return {
@@ -862,6 +1146,20 @@ export function compareJsonLd(page) {
       { name: page.h1, path: comparePath(page.slug) },
     ]),
   ];
+  if (Array.isArray(page.faq) && page.faq.length > 0) {
+    nodes.push({
+      '@type': 'FAQPage',
+      '@id': `${url}#faq`,
+      mainEntity: page.faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.a.text,
+        },
+      })),
+    });
+  }
   if (page.kind === 'best-of' && page.table) {
     nodes.push({
       '@type': 'ItemList',

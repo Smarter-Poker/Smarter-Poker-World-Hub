@@ -39,8 +39,10 @@ test('code stage uses code input, verification and cooldown controls', () => {
 test('completion and busy account checks prevent further code submission', () => {
   const done = fixture({ stage: 'done' });
   assert.equal(done.find(n => n?.type === 'input'), undefined);
-  done.find(n => n?.type === 'form').props.onSubmit({ preventDefault() {} });
-  assert.deepEqual(done.calls, ['hub']);
+  assert.equal(done.find(n => n?.type === 'form'), undefined);
+  assert.equal(done.find(n => n?.type === 'button'), undefined);
+  assert.ok(done.find(n => n?.props?.role === 'status'));
+  assert.deepEqual(done.calls, []);
   const checking = fixture({ checking: true });
   checking.find(n => n?.type === 'form').props.onSubmit({ preventDefault() {} });
   assert.deepEqual(checking.calls, []);
@@ -59,4 +61,15 @@ test('an already verified account does not claim unobserved VIP or diamond grant
  const f = fixture({ alreadyVerified: true, vipDays: 0, welcomeDiamonds: 0 });
  assert.equal(f.find(n => n?.props?.role === 'status'), undefined);
  assert.equal(f.find(n => n?.type === 'input'), undefined);
+});
+
+test('confirmation toast reports only actual grants and preserves a partial package message', () => {
+  const text = f => f.all.map(n => typeof n === 'string' || typeof n === 'number' ? n : '').join(' ').replace(/\s+/g, ' ');
+  const granted = fixture({stage:'done', bonusDiamonds:25, doneLead:'Your Phone Number Is Verified.', continueLabel:'Continue To The Club'});
+  assert.match(text(granted), /500 Welcome Diamonds Added/);
+  assert.match(text(granted), /25 Verification Diamonds Added/);
+  assert.match(text(granted), /Opening Your Club/);
+  const partial = fixture({stage:'done', vipDays:0, welcomeDiamonds:0, bonusDiamonds:0, doneLead:'Your Welcome Diamonds Are Pending.'});
+  assert.match(text(partial), /Your Welcome Diamonds Are Pending/);
+  assert.doesNotMatch(text(partial), /VIP Activated|Diamonds Added/);
 });

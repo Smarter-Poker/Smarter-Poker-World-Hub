@@ -159,6 +159,48 @@ export const WIKIDATA_ENTITIES = {
     wikipedia: 'https://en.wikipedia.org/wiki/Mandalay_Bay',
     wikidata: 'https://www.wikidata.org/wiki/Q1368043',
   },
+  'choctaw-durant': {
+    qid: 'Q5103498',
+    name: 'Choctaw Casino & Resort Durant',
+    wikipedia: 'https://en.wikipedia.org/wiki/Choctaw_Casino_%26_Resort_Durant',
+    wikidata: 'https://www.wikidata.org/wiki/Q5103498',
+  },
+  'maryland-live': {
+    qid: 'Q6551980',
+    name: 'Live! Casino & Hotel Maryland',
+    wikipedia: 'https://en.wikipedia.org/wiki/Live!_Casino_%26_Hotel_Maryland',
+    wikidata: 'https://www.wikidata.org/wiki/Q6551980',
+  },
+  'thunder-valley': {
+    qid: 'Q7799015',
+    name: 'Thunder Valley Casino Resort',
+    wikipedia: 'https://en.wikipedia.org/wiki/Thunder_Valley_Casino_Resort',
+    wikidata: 'https://www.wikidata.org/wiki/Q7799015',
+  },
+  'horseshoe-hammond': {
+    qid: 'Q5906016',
+    name: 'Horseshoe Hammond',
+    wikipedia: 'https://en.wikipedia.org/wiki/Horseshoe_Hammond',
+    wikidata: 'https://www.wikidata.org/wiki/Q5906016',
+  },
+  'bestbet-jacksonville': {
+    qid: 'Q4897092',
+    name: 'Bestbet Jacksonville',
+    wikipedia: 'https://en.wikipedia.org/wiki/Bestbet_Jacksonville',
+    wikidata: 'https://www.wikidata.org/wiki/Q4897092',
+  },
+  'kings-resort': {
+    qid: 'Q45856417',
+    name: 'King\'s Resort Rozvadov',
+    wikipedia: 'https://en.wikipedia.org/wiki/King%27s_Resort',
+    wikidata: 'https://www.wikidata.org/wiki/Q45856417',
+  },
+  'south-point': {
+    qid: 'Q7568285',
+    name: 'South Point Hotel, Casino & Spa',
+    wikipedia: 'https://en.wikipedia.org/wiki/South_Point_Hotel,_Casino_%26_Spa',
+    wikidata: 'https://www.wikidata.org/wiki/Q7568285',
+  },
 
   // Game Variants & Disciplines
   'texas-holdem': {
@@ -290,6 +332,14 @@ export function resolveVenueWikidataLinks(venue) {
     ['caesars palace', 'caesars-palace'],
     ['mgm grand', 'mgm-grand'],
     ['mandalay bay', 'mandalay-bay'],
+    ['choctaw', 'choctaw-durant'],
+    ['live! casino', 'maryland-live'],
+    ['maryland live', 'maryland-live'],
+    ['thunder valley', 'thunder-valley'],
+    ['horseshoe hammond', 'horseshoe-hammond'],
+    ['bestbet', 'bestbet-jacksonville'],
+    ['king\'s resort', 'kings-resort'],
+    ['south point', 'south-point'],
   ];
 
   for (const [needle, key] of candidates) {
@@ -330,3 +380,29 @@ export function resolveSeriesWikidataLinks(series) {
 
   return links;
 }
+
+/**
+ * Resolves Wikidata and Wikipedia links for a tournament game type or venue
+ */
+export function resolveTournamentWikidataLinks(tournament) {
+  if (!tournament) return [];
+  const links = [];
+  const name = String(tournament.tournament_name || tournament.name || '').toLowerCase();
+  const game = String(tournament.game_type || '').toLowerCase();
+
+  if (game.includes('omaha') || name.includes('omaha') || name.includes('plo')) {
+    links.push(WIKIDATA_ENTITIES['omaha-holdem'].wikidata, WIKIDATA_ENTITIES['omaha-holdem'].wikipedia);
+  } else if (game.includes('holdem') || game.includes("hold'em") || name.includes('nlh') || name.includes('holdem') || name.includes("hold'em")) {
+    links.push(WIKIDATA_ENTITIES['texas-holdem'].wikidata, WIKIDATA_ENTITIES['texas-holdem'].wikipedia);
+  }
+
+  // Also check venue name if provided on tournament row
+  if (tournament.venue_name) {
+    const venueLinks = resolveVenueWikidataLinks({ name: tournament.venue_name });
+    links.push(...venueLinks);
+  }
+
+  // Deduplicate
+  return links.filter((l, idx, arr) => arr.indexOf(l) === idx);
+}
+

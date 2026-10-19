@@ -6,6 +6,9 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
+import ExistingAccountDialog from '../../src/components/auth/ExistingAccountDialog';
+import AuthEntryChoices from '../../src/components/auth/AuthEntryChoices';
+import { isExistingSignup } from '../../src/lib/signupOutcome.mjs';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
@@ -191,6 +194,11 @@ export default function SignUpPage() {
   const [resending, setResending] = useState(false);
   const [resendNote, setResendNote] = useState('');
   const [signupClubPath, setSignupClubPath] = useState(null);
+  const [existingAccount, setExistingAccount] = useState(false);
+  const signInToExistingAccount = () => {
+    try { sessionStorage.setItem('login_email_prefill', formData.email.trim().toLowerCase()); } catch { /* storage may be unavailable */ }
+    router.push(authSwitchHref('/auth/login', router.query));
+  };
 
   // PHONE VERIFICATION MOVED OUT OF SIGNUP (2026-10-07, Dan). The number is
   // no longer collected here. A new player verifies it on /hub/verify-phone
@@ -671,6 +679,10 @@ export default function SignUpPage() {
         },
       });
 
+      if (isExistingSignup(authData, signUpError)) {
+        setExistingAccount(true);
+        return;
+      }
       if (signUpError) throw signUpError;
 
       console.log('Auth user created:', authData);
@@ -728,36 +740,14 @@ export default function SignUpPage() {
           Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
         setSignupClubPath(next);
         setStep('success');
-        if (next) window.location.replace(next);
+        if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
       }
     } catch (err) {
       console.warn('Signup error:', err);
-      // ── [Phase 6.1.19] Account enumeration defense ──────────────────
-      // If Supabase returned "User already registered" (or any variant
-      // that would leak whether the email maps to a real account), we
-      // normalise the UX to look identical to a successful signup that
-      // requires email confirmation. The legitimate owner of that
-      // address will get a confirmation/password-reset email from
-      // Supabase anyway (or can use the magic-link path on /auth/login);
-      // an attacker gets the same UI either way, with no enumeration
-      // signal. All other errors (validation, rate limit, network)
-      // continue to display a generic failure.
-      const msg = (err?.message || '').toLowerCase();
-      const looksLikeEnumeration =
-        msg.includes('already registered') ||
-        msg.includes('user already') ||
-        msg.includes('email already') ||
-        msg.includes('duplicate key') ||
-        msg.includes('identity already exists');
-      if (looksLikeEnumeration) {
-        setStep('email_pending');
+      // Only Auth's explicit duplicate result opens recovery; no email lookup.
+      if (isExistingSignup(null, err)) {
+        setExistingAccount(true);
       } else {
-        // Parity with login.js (2026-08-25): this page had no server-side
-        // capture at all, so a signup that failed for a real reason showed the
-        // user a generic sentence and left no record anywhere. The enumeration
-        // branch above is deliberately NOT reported - it is a normal outcome
-        // dressed up as one, and logging it would recreate the very signal the
-        // branch exists to suppress.
         reportAuthError('signup_form_submit', err);
         setError('Failed to create account. Please check your details and try again.');
       }
@@ -792,7 +782,7 @@ export default function SignUpPage() {
       });
       if (resendError) throw resendError;
       setVerificationCode('');
-      setResendNote('A New Code Is On Its Way. Use The Newest Email.');
+      setResendNote('A New Code Is On Its Way. If You Do Not See It In Your Inbox, Check Your Spam Or Junk Folder. Use The Newest Email.');
       setResendIn(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       const msg = String(err?.message || '').toLowerCase();
@@ -861,8 +851,9 @@ export default function SignUpPage() {
       ]);
       setSignupClubPath(next);
       setStep('success');
-      // Club Arena is a separate application; enter its real join route directly.
-      if (next) window.location.replace(next);
+      // Offer the earned welcome package before entering the invited club.
+      // Verification and Skip For Now both preserve this club destination.
+      if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
     } catch (err) {
       console.warn('Verification error:', err);
       setError(err.message || 'Invalid verification code. Please try again.');
@@ -1081,8 +1072,10 @@ export default function SignUpPage() {
         canonical="/auth/signup"
       />
 
+      <ExistingAccountDialog open={existingAccount} onClose={() => setExistingAccount(false)} onSignIn={signInToExistingAccount} />
       {step === 'info' ? (
         <>
+        <AuthEntryChoices current="signup" query={router.query} />
         {/* PHONE-FIRST LAYOUT (2026-10-08, Dan). Below 600px the painted
             card's form window is ~164px wide and every field is cramped
             inside a scroll box. On phones the artwork's top (logo, Create
@@ -1794,6 +1787,7 @@ export default function SignUpPage() {
 
                 <p style={styles.emailPendingText}>Enter The Six-Digit Verification Code Sent To:</p>
                 <p style={styles.emailHighlight}>{formData.email}</p>
+                <p style={styles.emailHint}>If You Do Not See The Code In Your Inbox, Check Your Spam Or Junk Folder.</p>
 
                 {/* THE OTP STEP HAD NO ERROR SURFACE AT ALL (fixed 2026-08-25).
                     handleVerifyCode runs only here and sets errors for an
@@ -1812,6 +1806,7 @@ export default function SignUpPage() {
                   </div>
                 )}
 
+                <p style={styles.emailHint}>Already Have An Account?{' '}<button type="button" onClick={signInToExistingAccount} style={styles.resendLink}>Sign In</button></p>
                 <p id="signup-code-help" style={styles.emailHint}>Use Every Digit In Your Latest Email. You Can Paste The Full Code.</p>
                 <form onSubmit={handleVerifyCode} style={styles.otpForm}>
                   <div style={styles.inputGroup}>

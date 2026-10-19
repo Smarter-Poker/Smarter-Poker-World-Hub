@@ -148,8 +148,9 @@ const RISK_PREMIUM = {
 // PAGE COMPONENT
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-export default function ICMCalculatorPage() {
+export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/hub/training/icm-calculator' } = {}) {
   const router = useRouter();
+  const effectiveCanonical = router.pathname === '/tools/icm-calculator' ? 'https://smarter.poker/tools/icm-calculator' : canonical;
   useTrainingBus('icm-calculator');
   const [stacks, setStacks] = useState([25000, 20000, 15000, 10000]);
   const [prizes, setPrizes] = useState([40, 30, 20, 10]);
@@ -243,14 +244,18 @@ export default function ICMCalculatorPage() {
       <SEOHead
         title="Tournament ICM Calculator"
         description="Free Tournament ICM Calculator. Convert Chip Stacks To Real Dollar Values Using The Malmuth-Harville Model For Final Table And Bubble Decisions."
-        canonical="https://smarter.poker/hub/training/icm-calculator"
+        canonical={effectiveCanonical}
       />
       <Head>
         <script
           key="icm-calculator-schema"
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(ICM_CALCULATOR_SCHEMA).replace(/</g, '\\u003c'),
+            __html: JSON.stringify({
+              ...ICM_CALCULATOR_SCHEMA,
+              '@id': `${effectiveCanonical}#app`,
+              url: effectiveCanonical,
+            }).replace(/</g, '\\u003c'),
           }}
         />
       </Head>

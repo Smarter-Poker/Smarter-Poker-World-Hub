@@ -96,6 +96,10 @@ export function hubProductSchema({
       isPartOf: { '@id': WEBSITE_ID },
       inLanguage: 'en-US',
       about: { '@id': `${url}#app` },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'p'],
+      },
       ...(withBreadcrumb ? { breadcrumb: { '@id': `${url}#breadcrumb` } } : {}),
     },
     {
@@ -140,6 +144,10 @@ export function hubCollectionSchema({ path, name, description, trail }) {
       isPartOf: { '@id': WEBSITE_ID },
       inLanguage: 'en-US',
       about: { '@id': ORGANIZATION_ID },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'p'],
+      },
       breadcrumb: { '@id': `${url}#breadcrumb` },
     },
     breadcrumbSchema(trail),
