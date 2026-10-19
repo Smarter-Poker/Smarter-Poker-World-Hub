@@ -120,7 +120,7 @@ BEGIN
  IF EXISTS(SELECT 1 FROM public.horse_phrase_ledger WHERE phrase_norm=p_frame_key AND used_at>=now()-interval '3 hours') THEN
   RETURN QUERY SELECT NULL::uuid,false,'frame_used'::text; RETURN; END IF;
  INSERT INTO public.social_posts(author_id,content,content_type,media_urls,visibility,audience_mode,topic,topics,origin_type,metadata)
- VALUES(p_author_id,p_content,'text','[]'::jsonb,'public','public','poker',ARRAY['poker','grounded_hand'],'horse',
+ VALUES(p_author_id,p_content,'text','[]'::jsonb,'public','public','poker',ARRAY['poker','hand'],'horse',
  jsonb_build_object('scheduler','fleet','clip_type','poker','grounded',true,'grounded_type','hand',
  'hand_review_id',p_review_id::text,'hand_id',v_review.hand_id,'phrase_norm',p_phrase_norm,'semantic_key',p_semantic_key,
  'frame_key',p_frame_key,'publication_key',p_publication_key,'publication_contract','horse_grounded_hand_v1','publication_input_hash',v_hash)) RETURNING id INTO v_post;

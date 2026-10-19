@@ -63,6 +63,7 @@ try{
  if(existsSync(path))sql('install-exact-maintained-migration',readFileSync(path,'utf8'));
  const first=sql('complete-atomic-publication',service(call()));assert.match(first,/\|true\|published$/);
  sql('all-four-effects-once',counts,{expected:'1:3:1:1'});
+ sql('public-hands-tab-predicate',"SELECT count(*) FROM social_posts WHERE topics @> ARRAY['hand'] AND topic='poker'",{expected:'1'});
  sql('replay-identical-no-effects',service(call()),{expected:first.replace('|true|published','|false|already_published')});sql('reward-not-duplicated',counts,{expected:'1:3:1:1'});
  sql('wrong-replay-conflicts',service(call(1,{text:'Different claim',phrase:'different claim'})),{expected:'|false|duplicate_slot'});
  sql('later-slot-cadence',service(call(1,{slot:'2026-10-19T19'})),{expected:'|false|posted_recently'});
