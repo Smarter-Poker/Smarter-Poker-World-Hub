@@ -13,6 +13,7 @@ import { Trophy, Clock, DollarSign, Medal, Star, Calendar } from 'lucide-react';
 import LeaderboardDisplay from '../../../../src/components/commander/leaderboards/LeaderboardDisplay';
 import { supabase } from '../../../../src/lib/supabase';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import { publicLeaderboardsUrl, publicPromotionsUrl, normalizePublicPromotion } from '../../../../src/lib/commanderPublicReads';
 
 /* Inline LeaderboardRow replaced by shared LeaderboardDisplay component */
 
@@ -74,27 +75,22 @@ export default function LeaderboardPage() {
   const { data: swrData, isLoading: loading, mutate: refreshLeaderboard } = useSWR(swrKey, async () => {
     const safeJson = async (res) => (res && res.ok && typeof res.json === 'function') ? res.json().catch(() => ({})) : {};
     const [listRes, promosRes, venueRes] = await Promise.all([
-      fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`).catch(() => ({ ok: false })),
-      fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`).catch(() => ({ ok: false })),
+      // 2026-10-19: public routes. The staff listings (/leaderboards,
+      // /leaderboards/:id, /promotions) answered 401 to every player.
+      fetch(publicLeaderboardsUrl(venueId)).catch(() => ({ ok: false })),
+      fetch(publicPromotionsUrl(venueId)).catch(() => ({ ok: false })),
       fetch(`/api/commander/venues/${venueId}`).catch(() => ({ ok: false }))
     ]);
     if (!listRes.ok) throw new Error(`Request failed (${listRes.status || 'network'})`);
     const [ls, pr, vn] = await Promise.all([safeJson(listRes), safeJson(promosRes), safeJson(venueRes)]);
-    const boards = ls.leaderboards || ls.data?.leaderboards || [];
+    const boards = ls.data?.leaderboards || ls.leaderboards || [];
     const board = boards.find(b => b.status === 'active') || boards[0] || null;
-
-    let entries = [];
-    if (board?.id) {
-      const detailRes = await fetch(`/api/commander/leaderboards/${board.id}`).catch(() => ({ ok: false }));
-      if (detailRes.ok) {
-        const detail = await detailRes.json().catch(() => ({}));
-        entries = Array.isArray(detail.entries) ? detail.entries : [];
-      }
-    }
+    // leaderboards/active returns each board with its top entries already.
+    const entries = Array.isArray(board?.entries) ? board.entries : [];
 
     return {
       leaderboard: entries,
-      promotions: pr.success ? (pr.data?.promotions || []) : [],
+      promotions: pr.success ? (pr.data?.promotions || []).map(normalizePublicPromotion).filter(Boolean) : [],
       venue: vn.success || vn.venue ? (vn.venue || vn.data?.venue) : null,
       leaderboardsList: boards
     };

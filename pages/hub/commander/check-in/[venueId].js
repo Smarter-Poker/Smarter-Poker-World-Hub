@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
 import { getFreshAccessToken } from '../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import { publicPromotionsUrl, publicVenueGamesUrl, normalizePublicPromotion, normalizePublicGame } from '../../../../src/lib/commanderPublicReads';
 import {
   CheckCircle,
   MapPin,
@@ -54,8 +55,11 @@ export default function PlayerCheckInPage() {
     try {
       const [venueRes, gamesRes, promosRes] = await Promise.all([
         fetch(`/api/commander/venues/${venueId}`).catch(() => ({ ok: false })),
-        fetch(`/api/commander/games/venue/${venueId}`).catch(() => ({ ok: false })),
-        fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`).catch(() => ({ ok: false }))
+        // 2026-10-19: public routes. games/venue and the promotions listing
+        // are staff-only and answered 401 to every player, which failed the
+        // whole page with "Unable to load venue information".
+        fetch(publicVenueGamesUrl(venueId)).catch(() => ({ ok: false })),
+        fetch(publicPromotionsUrl(venueId)).catch(() => ({ ok: false }))
       ]);
 
       if (!venueRes.ok) throw new Error(`Request failed (${venueRes.status})`);
@@ -69,10 +73,10 @@ export default function PlayerCheckInPage() {
         setVenue(venueData.venue || venueData.data?.venue);
       }
       if (gamesData.success) {
-        setGames(gamesData.data?.games || []);
+        setGames((gamesData.data?.games || []).map(normalizePublicGame).filter(Boolean));
       }
       if (promosData.success) {
-        setPromotions(promosData.data?.promotions || []);
+        setPromotions((promosData.data?.promotions || []).map(normalizePublicPromotion).filter(Boolean));
       }
     } catch (err) {
       console.warn('Fetch failed:', err);

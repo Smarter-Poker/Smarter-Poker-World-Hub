@@ -14,10 +14,10 @@ const JARVIS_KNOWLEDGE = {
             { name: 'Trivia', orbNumber: 7, route: '/hub/trivia', status: 'LIVE' },
             { name: 'Video Library', orbNumber: 8, route: '/hub/video-library', status: 'LIVE' },
             { name: 'Poker Near Me', orbNumber: 9, route: '/hub/poker-near-me/lobby', status: 'LIVE' },
-            { name: 'AI Assistant', orbNumber: 10, route: '/hub/assistant', status: 'LIVE' },
+            { name: 'AI Assistant', orbNumber: 10, route: '/hub/personal-assistant', status: 'LIVE' },
             { name: 'Bankroll Tracker', orbNumber: 11, route: '/hub/bankroll', status: 'LIVE' },
             { name: 'Diamond Store', orbNumber: 12, route: '/hub/diamond-store', status: 'LIVE' },
-            { name: 'Arcade', orbNumber: 13, route: '/hub/arcade', status: 'LIVE' }
+            { name: 'Arcade', orbNumber: 13, route: '/hub/trivia/arcade', status: 'LIVE' }
         ]
     }
 };
