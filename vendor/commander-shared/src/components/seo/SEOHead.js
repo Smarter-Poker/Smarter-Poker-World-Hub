@@ -86,6 +86,7 @@ export default function SEOHead({
                 <>
                     <link key="hreflang-en-us" rel="alternate" hrefLang="en-US" href={fullCanonical} />
                     <link key="hreflang-x-default" rel="alternate" hrefLang="x-default" href={fullCanonical} />
+                    <link key="rss-feed" rel="alternate" type="application/rss+xml" title="Smarter.Poker Strategy &amp; Tools RSS Feed" href={`${SITE_URL}/feed.xml`} />
                 </>
             )}
 

@@ -34,8 +34,61 @@ import { getWorldMenuById, getWorldMenuStyleVariables } from '../../src/config/w
 import useModalHistory from '../../src/hooks/useModalHistory';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
 import {
-    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2, Layers, Code, Check,
+    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2, Layers, Code, Check, Share2,
 } from 'lucide-react';
+
+const SUIT_SHORT_TO_NAME = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+const SUIT_NAME_TO_SHORT = { spades: 's', hearts: 'h', diamonds: 'd', clubs: 'c' };
+
+export function parseCardListFromParam(raw) {
+    if (!raw || typeof raw !== 'string') return [];
+    const tokens = raw.split(',').map(t => t.trim()).filter(Boolean);
+    const out = [];
+    for (const tok of tokens) {
+        const m = tok.match(/^(10|[2-9TJQKA])([shdc])$/i);
+        if (!m) continue;
+        const rawRank = m[1].toUpperCase();
+        const rank = rawRank === 'T' ? '10' : rawRank;
+        const suit = SUIT_SHORT_TO_NAME[m[2].toLowerCase()];
+        const card = makeCard(rank, suit);
+        if (card) out.push(card);
+    }
+    return out;
+}
+
+export function buildCardListParam(cards = []) {
+    if (!Array.isArray(cards) || cards.length === 0) return '';
+    return cards
+        .map(c => {
+            if (!c || !c.rank || !c.suit) return '';
+            const r = c.rank === '10' ? '10' : String(c.rank).toUpperCase();
+            const s = SUIT_NAME_TO_SHORT[c.suit] || '';
+            return r && s ? `${r}${s}` : '';
+        })
+        .filter(Boolean)
+        .join(',');
+}
+
+export function buildOddsSpotSummary({ game = 'nlhe', hands = [], board = [], results = null, url = 'https://smarter.poker/hub/poker-tools' } = {}) {
+    const cfgName = GAME_CONFIGS[game]?.name || 'No-Limit Hold\'em';
+    const seatLines = hands
+        .map((h, i) => {
+            if (!Array.isArray(h) || h.length === 0) return null;
+            const cardsStr = h.map(c => `${c.rank}${SUIT_SYMBOLS[c.suit] || ''}`).join(' ');
+            const eq = results?.[i] ? `${results[i].equity.toFixed(1)}%` : '--';
+            return `${i === 0 ? 'Hero' : `Villain ${i}`} [${cardsStr}]: ${eq}`;
+        })
+        .filter(Boolean);
+    const boardStr = Array.isArray(board) && board.length > 0
+        ? `Board: ${board.map(c => `${c.rank}${SUIT_SYMBOLS[c.suit] || ''}`).join(' ')}`
+        : 'Board: Preflop';
+    return [
+        `Smarter.Poker ${cfgName} Equity Spot`,
+        boardStr,
+        ...seatLines,
+        `Run This Spot Free: ${url}`,
+    ].join('\n');
+}
 
 const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     path: '/hub/poker-tools',
@@ -127,8 +180,87 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
     const [showPresets, setShowPresets] = useState(false);
     const [showEmbedModal, setShowEmbedModal] = useState(false);
     const [hasCopiedEmbed, setHasCopiedEmbed] = useState(false);
+    const [hasCopiedShareUrl, setHasCopiedShareUrl] = useState(false);
+    const [hasCopiedSpotSummary, setHasCopiedSpotSummary] = useState(false);
 
     const config = GAME_CONFIGS[game];
+
+    /* Hydrate initial matchup from URL query parameters (?game=nlhe&h0=As,Ks&h1=Qh,Qd&board=10s,9s,2c) */
+    useEffect(() => {
+        if (!router.isReady) return;
+        const q = router.query || {};
+        const qGame = typeof q.game === 'string' && GAME_CONFIGS[q.game] ? q.game : null;
+        const handKeys = Object.keys(q)
+            .filter(k => /^h\d+$/.test(k))
+            .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+        if (!qGame && handKeys.length === 0 && !q.board) return;
+
+        const targetGame = qGame || game;
+        if (qGame && qGame !== game) setGame(qGame);
+        const holeLimit = GAME_CONFIGS[targetGame]?.holeCards || 2;
+        const seen = new Set();
+        const dedup = (cards, maxLen) => {
+            const list = [];
+            for (const c of cards) {
+                if (!c || seen.has(c.id)) continue;
+                seen.add(c.id);
+                list.push(c);
+                if (list.length >= maxLen) break;
+            }
+            return list;
+        };
+
+        if (handKeys.length > 0) {
+            const parsedHands = handKeys.map(k => dedup(parseCardListFromParam(String(q[k] || '')), holeLimit));
+            while (parsedHands.length < 2) parsedHands.push([]);
+            setHands(parsedHands);
+        }
+        if (typeof q.board === 'string') {
+            setBoard(dedup(parseCardListFromParam(q.board), 5));
+        }
+        if (typeof q.dead === 'string') {
+            setDeadCards(dedup(parseCardListFromParam(q.dead), 12));
+        }
+    }, [router.isReady]);
+
+    const shareHandPermalink = useCallback(() => {
+        const params = new URLSearchParams();
+        params.set('game', game);
+        hands.forEach((h, idx) => {
+            const serialized = buildCardListParam(h);
+            if (serialized) params.set(`h${idx}`, serialized);
+        });
+        const boardParam = buildCardListParam(board);
+        if (boardParam) params.set('board', boardParam);
+        const deadParam = buildCardListParam(deadCards);
+        if (deadParam) params.set('dead', deadParam);
+        const shareUrl = `${effectiveCanonical}?${params.toString()}`;
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(shareUrl);
+            setHasCopiedShareUrl(true);
+            setTimeout(() => setHasCopiedShareUrl(false), 2500);
+        }
+        return shareUrl;
+    }, [game, hands, board, deadCards, effectiveCanonical]);
+
+    const copySpotSummary = useCallback(() => {
+        const params = new URLSearchParams();
+        params.set('game', game);
+        hands.forEach((h, idx) => {
+            const serialized = buildCardListParam(h);
+            if (serialized) params.set(`h${idx}`, serialized);
+        });
+        const boardParam = buildCardListParam(board);
+        if (boardParam) params.set('board', boardParam);
+        const shareUrl = `${effectiveCanonical}?${params.toString()}`;
+        const summary = buildOddsSpotSummary({ game, hands, board, results, url: shareUrl });
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(summary);
+            setHasCopiedSpotSummary(true);
+            setTimeout(() => setHasCopiedSpotSummary(false), 2500);
+        }
+        return summary;
+    }, [game, hands, board, results, effectiveCanonical]);
 
     const usedCardIds = useMemo(() => {
         const ids = new Set();
@@ -291,6 +423,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                 title="Poker Odds Calculator: Six Games"
                 description="Free Poker Odds Calculator For Texas Hold'em, Omaha, PLO5, PLO6, Stud, And Razz. Calculate Real-Time Multiway Equity And Test Scenarios With Zero Account Setup."
                 canonical={effectiveCanonical}
+                ogImage="/api/og/tool-card?tool=odds&title=Poker+Odds+Calculator&subtitle=Multiway+Equity+For+Holdem+PLO4+PLO5+PLO6+Stud+And+Razz&statLabel=ITERATIONS&statValue=10,000+RUNS"
             />
             <Head>
                 <script
@@ -439,6 +572,18 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                 Presets
                             </button>
                         )}
+                        <button type="button" onClick={shareHandPermalink}
+                            aria-label="Copy Shareable Hand Permalink"
+                            className="odds-btn">
+                            {hasCopiedShareUrl ? <Check size={15} aria-hidden /> : <Share2 size={15} aria-hidden />}
+                            {hasCopiedShareUrl ? 'Link Copied' : 'Share Hand'}
+                        </button>
+                        <button type="button" onClick={copySpotSummary}
+                            aria-label="Copy Spot Summary For Discord Or X"
+                            className="odds-btn">
+                            {hasCopiedSpotSummary ? <Check size={15} aria-hidden /> : <Share2 size={15} aria-hidden />}
+                            {hasCopiedSpotSummary ? 'Spot Copied' : 'Copy Spot Summary'}
+                        </button>
                         {validCount >= 2 && !results && (
                             <button type="button" onClick={runCalculation} disabled={calculating}
                                 aria-label={calculating ? 'Calculating Equity' : 'Run Equity Calculation'}
@@ -531,7 +676,25 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                     </section>
 
                     {!isEmbedMode ? (
-                        <HubPageSummary surface="poker-tools" />
+                        <>
+                            <section className="odds-panel" aria-label="Next Steps In Smarter.Poker" style={{ padding: '14px 16px' }}>
+                                <div className="odds-panel__head" style={{ marginBottom: 8 }}>
+                                    <span className="odds-seat-name odds-seat-name--static">Train And Track Your Game</span>
+                                </div>
+                                <div className="odds-actions">
+                                    <Link href="/hub/training" className="odds-btn odds-btn--primary" style={{ textDecoration: 'none' }}>
+                                        Practice Spots Like This In The Free GTO Trainer
+                                    </Link>
+                                    <Link href="/tools/preflop-ranges" className="odds-btn" style={{ textDecoration: 'none' }}>
+                                        Explore 13x13 GTO Preflop Range Matrix
+                                    </Link>
+                                    <Link href="/hub/bankroll-manager" className="odds-btn" style={{ textDecoration: 'none' }}>
+                                        Track Sessions In Bankroll Manager
+                                    </Link>
+                                </div>
+                            </section>
+                            <HubPageSummary surface="poker-tools" />
+                        </>
                     ) : (
                         <div className="odds-embed-credit">
                             <p className="odds-embed-credit__text">

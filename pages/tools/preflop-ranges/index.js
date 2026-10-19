@@ -28,10 +28,24 @@ const POSITIONS = [
 export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
   const [activePos, setActivePos] = useState(initialPosition);
   const [selectedHand, setSelectedHand] = useState(null);
+  const [hasCopiedRangeSpot, setHasCopiedRangeSpot] = useState(false);
 
   const posData = POSITIONS.find((p) => p.id === activePos) || POSITIONS[0];
   const rfiMap = RFI[activePos] || {};
   const stats = useMemo(() => describeRange(rfiMap, 'raise'), [rfiMap]);
+
+  const copyRangeSpotSummary = () => {
+    const handDetail = selectedData
+      ? ` | Selected Hand: ${selectedData.hand} (${selectedData.action})`
+      : '';
+    const text = `Smarter.Poker 100BB 6-Max GTO ${posData.abbrev} Range: ${stats.percent}% Open (${stats.reach}% Combos Touched)${handDetail} - https://smarter.poker/tools/preflop-ranges/${posData.abbrev.toLowerCase()}`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setHasCopiedRangeSpot(true);
+      setTimeout(() => setHasCopiedRangeSpot(false), 2500);
+    }
+    return text;
+  };
 
   // Construct 13x13 grid
   const matrixGrid = useMemo(() => {
@@ -109,6 +123,7 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
         title={pageTitle}
         description={pageDesc}
         canonical={canonicalUrl}
+        ogImage={`/api/og/tool-card?tool=ranges&title=${encodeURIComponent(pageTitle)}&subtitle=${encodeURIComponent(`100BB 6-Max Opening Matrix (${stats.percent}% Open Frequency)`)}&statLabel=OPENING+FREQUENCY&statValue=${encodeURIComponent(`${stats.percent}%`)}`}
       />
       <Head>
         <script
@@ -116,6 +131,15 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(schema).replace(/</g, '\\u003c'),
+          }}
+        />
+        <style
+          key="preflop-matrix-print-styles"
+          dangerouslySetInnerHTML={{
+            __html: `@media print {
+              body { background: #FFFFFF !important; color: #000000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+              .no-print { display: none !important; }
+            }`,
           }}
         />
       </Head>
@@ -136,9 +160,49 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
             <span>GTO Preflop Ranges</span>
           </div>
 
-          <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 8px 0', color: '#FFFFFF' }}>
-            GTO Preflop Range Matrix: {posData.name} ({posData.abbrev})
-          </h1>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
+              GTO Preflop Range Matrix: {posData.name} ({posData.abbrev})
+            </h1>
+            <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button
+                type="button"
+                onClick={copyRangeSpotSummary}
+                aria-label="Copy Range Spot Summary"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  border: '1px solid rgba(57,233,165,0.4)',
+                  background: 'rgba(57,233,165,0.12)',
+                  color: '#39E9A5',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {hasCopiedRangeSpot ? 'Spot Copied' : 'Copy Spot Summary'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (typeof window !== 'undefined' && typeof window.print === 'function') window.print(); }}
+                aria-label="Print Or Save PDF Preflop Chart"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  border: '1px solid rgba(88,166,255,0.4)',
+                  background: 'rgba(88,166,255,0.12)',
+                  color: '#58A6FF',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Print / Save PDF Chart
+              </button>
+            </div>
+          </div>
           <p style={{ fontSize: 15, color: '#8B949E', margin: '0 0 20px 0', lineHeight: 1.5 }}>
             {posData.desc} 6-Max No Limit Hold&apos;Em At 100 Big Blinds Depth.
           </p>
@@ -341,6 +405,66 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
             <p style={{ margin: '0 0 16px 0', color: '#8B949E', fontSize: 14 }}>
               {stats.mixed.map((m) => `${m.hand} (${m.frequency}%)`).join(', ')}
             </p>
+          </div>
+
+          {/* Conversion Micro-CTA Panel */}
+          <div className="no-print" style={{
+            background: '#161B22',
+            border: '1px solid rgba(88,166,255,0.28)',
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 24,
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+          }}>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px 0', color: '#FFFFFF' }}>
+                Train And Track Your Preflop Game
+              </h2>
+              <p style={{ fontSize: 14, color: '#8B949E', margin: 0 }}>
+                Drill These Exact 100BB Ranges Or Run Multiway Equity Simulations With Zero Account Setup.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <Link href="/hub/training" style={{
+                padding: '9px 16px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                background: '#1F6FEB',
+                color: '#FFFFFF',
+                textDecoration: 'none',
+              }}>
+                Practice Spots Like This In The Free GTO Trainer
+              </Link>
+              <Link href="/tools/poker-odds-calculator" style={{
+                padding: '9px 16px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                border: '1px solid rgba(255,255,255,0.16)',
+                background: 'rgba(255,255,255,0.04)',
+                color: '#E6EDF3',
+                textDecoration: 'none',
+              }}>
+                Open Poker Odds Calculator
+              </Link>
+              <Link href="/hub/bankroll-manager" style={{
+                padding: '9px 16px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                border: '1px solid rgba(255,255,255,0.16)',
+                background: 'rgba(255,255,255,0.04)',
+                color: '#E6EDF3',
+                textDecoration: 'none',
+              }}>
+                Track Sessions In Bankroll Manager
+              </Link>
+            </div>
           </div>
 
           {/* Frequently Asked Questions */}

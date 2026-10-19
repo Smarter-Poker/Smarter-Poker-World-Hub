@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 78,
     "realtimeFiles": 6,
-    "tests": 162,
+    "tests": 164,
     "markerCandidates": 335,
     "possibleUnwiredFunctions": 382,
     "routeStateCells": 752,
@@ -49123,7 +49123,9 @@
     {
       "file": "src/lib/seo/hubPageSchema.js",
       "imports": [],
-      "links": [],
+      "links": [
+        "/hub/training"
+      ],
       "apiReferences": [],
       "apiReferencePrefixes": [],
       "ctas": [],
@@ -49191,8 +49193,24 @@
         },
         {
           "name": "hubCollectionSchema",
-          "line": 177,
+          "line": 189,
           "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "datasetSchema",
+          "line": 243,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "courseSchema",
+          "line": 287,
+          "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -49200,7 +49218,7 @@
         {
           "name": "absolute",
           "line": 30,
-          "references": 9,
+          "references": 11,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -63083,6 +63101,8 @@
     "__tests__/gsc-series3-phase2.test.mjs",
     "__tests__/gsc-series3-phase3.test.mjs",
     "__tests__/gsc-series4-phase3.test.mjs",
+    "__tests__/gsc-series5-phase3.test.mjs",
+    "__tests__/gsc-series5-phase7.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
@@ -85021,7 +85041,8 @@
       "realtime": [],
       "tests": [
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
-        "__tests__/gsc-series4-phase3.test.mjs"
+        "__tests__/gsc-series4-phase3.test.mjs",
+        "__tests__/gsc-series5-phase3.test.mjs"
       ]
     },
     {
@@ -86393,6 +86414,7 @@
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/gsc-series5-phase7.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
@@ -93403,7 +93425,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 177,
+        "line": 189,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102527,7 +102549,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 177,
+        "line": 189,
         "references": 1,
         "exported": true,
         "defaultExport": false,

@@ -23,11 +23,12 @@ export function WatchDescription({ text }) {
     </section>;
 }
 
-export default function WatchPlaybackTools({ iframeRef, active = true, attemptPlayback = true, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange, onMarkersChange }) {
+export default function WatchPlaybackTools({ iframeRef, active = true, attemptPlayback = true, initialSeekSeconds = 0, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange, onMarkersChange }) {
     const [position, setPosition] = useState(0);
     const [duration, setDuration] = useState(catalogDuration);
     const knownDurationRef = useRef(catalogDuration);
     const [ready, setReady] = useState(false);
+    const initialSeekDoneRef = useRef(false);
     const [markers, setMarkers] = useState([]);
     useEffect(() => { onMarkersChange?.(markers); }, [markers, onMarkersChange]);
     const [countdown, setCountdown] = useState(null);
@@ -37,6 +38,15 @@ export default function WatchPlaybackTools({ iframeRef, active = true, attemptPl
     const nextRef = useRef(onNext);
     nextRef.current = onNext;
     const command = (func, args = []) => iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), PLAYER_ORIGIN);
+    useEffect(() => {
+        if (!ready || initialSeekDoneRef.current || !(initialSeekSeconds > 0)) return;
+        const target = boundedPosition(initialSeekSeconds, duration);
+        if (target !== null && target > 0) {
+            initialSeekDoneRef.current = true;
+            command('seekTo', [target, true]);
+            setPosition(target);
+        }
+    }, [ready, initialSeekSeconds, duration]);
     // Loading a player is the only place that requests playback. Changing
     // Autoplay Next must never resume a video the viewer has paused.
     useEffect(() => {

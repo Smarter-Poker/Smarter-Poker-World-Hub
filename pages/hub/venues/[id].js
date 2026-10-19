@@ -2226,6 +2226,14 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               breadcrumbs={[
                 { label: 'Hub', href: '/hub' },
                 { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
+                ...(venue.state ? [{
+                  label: String(venue.state).trim().toUpperCase(),
+                  href: `/hub/poker-near-me/in/${encodeURIComponent(String(venue.state).trim().toLowerCase())}`,
+                }] : []),
+                ...(venue.state && venue.city ? [{
+                  label: String(venue.city).trim(),
+                  href: `/hub/poker-near-me/in/${encodeURIComponent(String(venue.state).trim().toLowerCase())}/${encodeURIComponent(String(venue.city).trim().toLowerCase().replace(/\s+/g, '-'))}`,
+                }] : []),
                 { label: venue.name },
               ]}
               status={bravoLiveTables?.data_mode === 'live'

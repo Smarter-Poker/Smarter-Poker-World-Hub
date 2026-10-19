@@ -92,6 +92,40 @@ export default class MyDocument extends Document {
                     {/* Theme color for mobile browsers */}
                     <meta name="theme-color" content="#0a0a15" />
 
+                    {/* Speculation Rules API: prefetches public SEO & tool routes on hover/pointerdown
+                        (eagerness: moderate) for near-0ms LCP/INP in Chrome CrUX Core Web Vitals. */}
+                    <script
+                        type="speculationrules"
+                        dangerouslySetInnerHTML={{
+                            __html: JSON.stringify({
+                                prefetch: [
+                                    {
+                                        source: 'document',
+                                        where: {
+                                            and: [
+                                                {
+                                                    or: [
+                                                        { href_matches: '/tools/*' },
+                                                        { href_matches: '/learn/*' },
+                                                        { href_matches: '/glossary/*' },
+                                                        { href_matches: '/compare/*' },
+                                                        { href_matches: '/hub/poker-near-me/*' },
+                                                        { href_matches: '/hub/training*' },
+                                                    ],
+                                                },
+                                                { not: { href_matches: '/api/*' } },
+                                                { not: { href_matches: '/auth/*' } },
+                                                { not: { href_matches: '/admin/*' } },
+                                                { not: { href_matches: '/*\\?*' } },
+                                            ],
+                                        },
+                                        eagerness: 'moderate',
+                                    },
+                                ],
+                            }),
+                        }}
+                    />
+
                     {/* OpenCV removed from _document.js — load lazily in the specific component that needs it (Toke Tracker). See: pages/hub/bankroll-manager.js or wherever the receipt scanner lives. */}
 
                     {/* ═══ THE APP REOPENS WHERE YOU LEFT IT (Dan 2026-09-13) ═══════

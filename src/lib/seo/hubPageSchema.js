@@ -118,6 +118,7 @@ export function hubProductSchema({
   withBreadcrumb = true,
   faqs = null,
   image = `${SITE}/images/og-card.jpg`,
+  course = null,
 }) {
   const url = absolute(path);
   const imageNode = licensableImageSchema({
@@ -166,6 +167,17 @@ export function hubProductSchema({
     if (faqNode) nodes.push(faqNode);
   }
 
+  if (course || path === '/hub/training') {
+    nodes.push(
+      courseSchema({
+        path,
+        name: course?.name || name,
+        description: course?.description || description,
+        ...(typeof course === 'object' ? course : {}),
+      })
+    );
+  }
+
   return nodes;
 }
 
@@ -174,7 +186,14 @@ export function hubProductSchema({
  * own. CollectionPage is the honest type: claiming SoftwareApplication for
  * a menu would be a claim the page does not support.
  */
-export function hubCollectionSchema({ path, name, description, trail, image = `${SITE}/images/og-card.jpg` }) {
+export function hubCollectionSchema({
+  path,
+  name,
+  description,
+  trail,
+  image = `${SITE}/images/og-card.jpg`,
+  dataset = null,
+}) {
   const url = absolute(path);
   const imageNode = licensableImageSchema({
     url,
@@ -182,7 +201,7 @@ export function hubCollectionSchema({ path, name, description, trail, image = `$
     caption: `${name} - Smarter.Poker`,
     acquireLicensePage: url,
   });
-  return [
+  const nodes = [
     {
       '@type': 'CollectionPage',
       '@id': `${url}#page`,
@@ -202,4 +221,104 @@ export function hubCollectionSchema({ path, name, description, trail, image = `$
     imageNode,
     breadcrumbSchema(trail),
   ];
+
+  if (dataset || path === '/hub/events-calendar') {
+    nodes.push(
+      datasetSchema({
+        path,
+        name: dataset?.name || name,
+        description: dataset?.description || description,
+        ...(typeof dataset === 'object' ? dataset : {}),
+      })
+    );
+  }
+
+  return nodes;
 }
+
+/**
+ * Schema.org Dataset node for live poker venue and tournament directory hubs.
+ * Unlocks Google Search Console's Datasets Rich Result enhancement report.
+ */
+export function datasetSchema({
+  path,
+  name,
+  description,
+  keywords = ['Live Poker Rooms', 'Poker Tournaments', 'Poker Series', 'United States Poker Directory'],
+  variableMeasured = ['Live Poker Venues', 'Cash Game Stakes', 'Daily Tournament Schedules', 'Series Guarantees'],
+  temporalCoverage = '2026',
+  spatialCoverage = 'United States',
+} = {}) {
+  const url = absolute(path);
+  return {
+    '@type': 'Dataset',
+    '@id': `${url}#dataset`,
+    name,
+    description,
+    url,
+    sameAs: url,
+    isAccessibleForFree: true,
+    inLanguage: 'en-US',
+    license: `${SITE}/terms`,
+    keywords,
+    variableMeasured,
+    temporalCoverage,
+    spatialCoverage: {
+      '@type': 'Place',
+      name: spatialCoverage,
+    },
+    creator: {
+      '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
+      name: 'Smarter.Poker',
+    },
+    publisher: {
+      '@id': ORGANIZATION_ID,
+    },
+    isPartOf: {
+      '@id': WEBSITE_ID,
+    },
+  };
+}
+
+/**
+ * Schema.org Course & CourseInstance node for GTO Poker Training curriculum pages.
+ */
+export function courseSchema({
+  path = '/hub/training',
+  name = 'Smarter.Poker Free GTO Poker Training Curriculum',
+  description = 'Interactive Game Theory Optimal Poker Training Covering Preflop Ranges, ICM Pressure, Postflop Play, And Bankroll Strategy.',
+  educationalLevel = 'Beginner To Advanced',
+  teaches = ['Preflop Opening Ranges', 'Pot Odds & Equity', 'ICM Tournament Strategy', 'Postflop Continuation Betting'],
+} = {}) {
+  const url = absolute(path);
+  return {
+    '@type': 'Course',
+    '@id': `${url}#course`,
+    name,
+    description,
+    url,
+    inLanguage: 'en-US',
+    isAccessibleForFree: true,
+    educationalLevel,
+    teaches,
+    provider: {
+      '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
+      name: 'Smarter.Poker',
+      sameAs: SITE,
+    },
+    offers: {
+      '@type': 'Offer',
+      category: 'Free',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    hasCourseInstance: {
+      '@type': 'CourseInstance',
+      courseMode: 'Online',
+      courseWorkload: 'PT10H',
+    },
+  };
+}
+

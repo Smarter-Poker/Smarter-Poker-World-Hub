@@ -30,6 +30,7 @@ import {
   relatedGlossaryTerms,
   glossaryTermPath,
 } from '../../src/content/glossary/terms';
+import { LESSONS, lessonPath } from '../../src/content/learn/lessons';
 
 /** Whole sentences of the definition, up to about a search snippet. */
 function metaDescription(definition) {
@@ -53,16 +54,22 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   const term = getGlossaryTerm(params?.term);
   if (!term) return { notFound: true };
+  const lessons = LESSONS.filter((l) => Array.isArray(l.glossary) && l.glossary.includes(term.slug)).map((l) => ({
+    slug: l.slug,
+    title: l.title,
+    category: l.category,
+  }));
   return {
     props: {
       term,
       related: relatedGlossaryTerms(term).map((r) => ({ slug: r.slug, term: r.term })),
       products: CATEGORY_PRODUCTS[term.category] || [],
+      lessons,
     },
   };
 }
 
-export default function GlossaryTermPage({ term, related, products }) {
+export default function GlossaryTermPage({ term, related, products, lessons = [] }) {
   const path = glossaryTermPath(term.slug);
   const url = `https://smarter.poker${path}`;
   // "What Is Poker Union In Poker?" says poker twice; a term that already
@@ -87,6 +94,19 @@ export default function GlossaryTermPage({ term, related, products }) {
         '@id': GLOSSARY_SET_ID,
         name: 'Smarter.Poker Poker Glossary',
         url: GLOSSARY_URL,
+      },
+    },
+    {
+      '@type': 'WebPage',
+      '@id': `${url}#page`,
+      url,
+      name: title,
+      description: metaDescription(term.definition),
+      inLanguage: 'en-US',
+      mainEntity: { '@id': `${url}#term` },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'article p:first-of-type'],
       },
     },
     {
@@ -141,6 +161,22 @@ export default function GlossaryTermPage({ term, related, products }) {
                     <Link href={glossaryTermPath(r.slug)} style={styles.chip}>
                       {r.term}
                     </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {lessons.length > 0 && (
+            <>
+              <h2 style={styles.h2}>Strategy Lessons</h2>
+              <ul style={styles.list}>
+                {lessons.map((l) => (
+                  <li key={l.slug} style={styles.item}>
+                    <Link href={lessonPath(l.slug)} style={styles.link}>
+                      {l.title}
+                    </Link>
+                    <span style={styles.itemText}>Category: {l.category}</span>
                   </li>
                 ))}
               </ul>
