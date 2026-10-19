@@ -5,7 +5,7 @@
  *      renders 1200x630 Satori ImageResponse with display:flex on all elements
  *   2. Interactive Calculator Share Permalinks (parseCardListFromParam,
  *      buildCardListParam, URL query hydration, and Share Hand button) in
- *      pages/hub/poker-tools.js
+ *      src/lib/poker/oddsPermalink.js and pages/hub/poker-tools.js
  *   3. Printable / Save PDF Chart button and @media print stylesheet in
  *      pages/tools/preflop-ranges/index.js
  */
@@ -13,6 +13,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  parseCardListFromParam,
+  buildCardListParam,
+} from '../src/lib/poker/oddsPermalink.js';
 
 const ROOT = process.cwd();
 
@@ -27,11 +31,21 @@ test('pages/api/og/tool-card.js exists and uses @vercel/og ImageResponse with 12
   assert.ok(!src.includes('\u2014'), 'tool-card.js must not contain literal em dashes');
 });
 
-test('pages/hub/poker-tools.js exports parseCardListFromParam and buildCardListParam and wires Share Hand permalink', () => {
+test('parseCardListFromParam and buildCardListParam round-trip card tokens and poker-tools.js wires Share Hand', () => {
+  const parsed = parseCardListFromParam('As,10h,Qd,2c,Ts');
+  assert.equal(parsed.length, 5);
+  assert.equal(parsed[0].rank, 'A');
+  assert.equal(parsed[0].suit, 'spades');
+  assert.equal(parsed[1].rank, '10');
+  assert.equal(parsed[1].suit, 'hearts');
+  assert.equal(parsed[4].rank, '10');
+  assert.equal(parsed[4].suit, 'spades');
+  assert.equal(buildCardListParam(parsed), 'As,10h,Qd,2c,10s');
+
   const filePath = path.join(ROOT, 'pages/hub/poker-tools.js');
   const src = fs.readFileSync(filePath, 'utf8');
-  assert.match(src, /export\s+function\s+parseCardListFromParam\s*\(/);
-  assert.match(src, /export\s+function\s+buildCardListParam\s*\(/);
+  assert.match(src, /parseCardListFromParam/);
+  assert.match(src, /buildCardListParam/);
   assert.match(src, /shareHandPermalink/);
   assert.match(src, /Share Hand/);
   assert.match(src, /ogImage="\/api\/og\/tool-card\?tool=odds/);
