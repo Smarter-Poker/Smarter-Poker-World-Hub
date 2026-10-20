@@ -44,6 +44,14 @@ if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/tes
   python3 "$ROOT/scripts/ci/test-reviewed-legacy-table-access.py" || FAIL=1
 fi
 
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-mention-notification-trigger.py | grep -qE 'mention_notification_trigger_authorization|test-mention-notification-trigger'; then
+  python3 "$ROOT/scripts/ci/test-mention-notification-trigger.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-reviewed-invoker-access.py scripts/ci/reviewed-invoker-access.json scripts/ci/reviewed-invoker-function-fixtures.json | grep -qE 'explicit_reachable_invoker_and_view_access|test-reviewed-invoker-access|reviewed-invoker-'; then
+  python3 "$ROOT/scripts/ci/test-reviewed-invoker-access.py" || FAIL=1
+fi
+
 # ── The pull request for this branch may already be MERGED (2026-09-06) ─────
 # Autopilot squash-merges the instant the required checks pass, so a push made
 # afterwards lands on a CLOSED pull request, changes nothing and exits 0. That

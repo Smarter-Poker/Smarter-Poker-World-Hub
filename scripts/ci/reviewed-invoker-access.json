@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "scope": "Incremental actual caller and invoker dependency corrections. Prior explicit 83-table migration supplies existing prerequisite rights. No full historical reset certificate.",
+  "relations": [
+    {
+      "table": "audit_logs",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "DELETE",
+        "SELECT"
+      ],
+      "evidence": "hub/pages/api/club-arena/delete-club.js:176"
+    },
+    {
+      "table": "bus_event_log",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT",
+        "UPDATE"
+      ],
+      "evidence": "Actual fn_delete_user_gdpr; hub/pages/api/account/delete-gdpr.js"
+    },
+    {
+      "table": "club_chat",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "UPDATE"
+      ],
+      "evidence": "Actual fn_delete_user_gdpr"
+    },
+    {
+      "table": "club_transactions",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "DELETE",
+        "SELECT"
+      ],
+      "evidence": "hub/pages/api/club-arena/delete-club.js:176"
+    },
+    {
+      "table": "commander_home_group_follows",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "commander/pages/api/home-games/events/index.js:199 -> enabled fn_notify_home_game_created follower loop"
+    },
+    {
+      "table": "commander_home_groups",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT",
+        "UPDATE"
+      ],
+      "evidence": "home_game_vouches enabled fn_sync_home_game_vouch_count and group-conversation trigger"
+    },
+    {
+      "table": "commander_home_post_comments",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT",
+        "UPDATE"
+      ],
+      "evidence": "hub/pages/api/home-games/reports.js:40 -> fn_home_auto_hide_on_report_threshold"
+    },
+    {
+      "table": "conversations",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "evidence": "commander/pages/api/home-games/groups/index.js:205 -> fn_create_home_group_conversation; member subscribe trigger"
+    },
+    {
+      "table": "data_audit_log",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "INSERT"
+      ],
+      "evidence": "venue_daily_tournaments enabled auto_audit_log trigger; UUID default needs no sequence privilege"
+    },
+    {
+      "table": "mentions",
+      "kind": "r",
+      "role": "authenticated",
+      "operations": [
+        "INSERT"
+      ],
+      "evidence": "hub/pages/hub/social-media/index.js:5922; notification trigger repair is separate and required"
+    },
+    {
+      "table": "messages",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "hub/pages/api/admin/security-audit.js:162"
+    },
+    {
+      "table": "messenger_participants",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "DELETE",
+        "INSERT",
+        "SELECT"
+      ],
+      "evidence": "commander home member subscribe triggers fn_add_member_to_group_conversation/fn_remove_member_from_group_conversation"
+    },
+    {
+      "table": "poker_goals",
+      "kind": "r",
+      "role": "authenticated",
+      "operations": [
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "evidence": "hub/src/world/components/Jarvis/GoalTracker.tsx:54,102"
+    },
+    {
+      "table": "poker_series",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "security_invoker unified_events_calendar underlying relation"
+    },
+    {
+      "table": "poker_venues",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "security_invoker unified_events_calendar underlying relation"
+    },
+    {
+      "table": "sandbox_coach_accuracy",
+      "kind": "v",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "hub/pages/api/sandbox/_routes/coach-accuracy.js:54;session-stats.js:59"
+    },
+    {
+      "table": "sandbox_coach_results",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "security_invoker sandbox_coach_accuracy underlying relation"
+    },
+    {
+      "table": "social_post_comments",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT",
+        "UPDATE"
+      ],
+      "evidence": "Actual fn_delete_user_gdpr"
+    },
+    {
+      "table": "table_chat",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "UPDATE"
+      ],
+      "evidence": "Actual fn_delete_user_gdpr"
+    },
+    {
+      "table": "unified_events_calendar",
+      "kind": "v",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "hub/pages/api/news/events.js:110"
+    },
+    {
+      "table": "union_leave_requests",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "DELETE"
+      ],
+      "evidence": "hub/pages/api/club-arena/delete-club.js:176"
+    },
+    {
+      "table": "video_library_health",
+      "kind": "v",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "hub/pages/api/cron/yt-pipeline-recovery.js:386"
+    },
+    {
+      "table": "video_library_videos",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "SELECT"
+      ],
+      "evidence": "security_invoker video_library_health underlying relation"
+    },
+    {
+      "table": "video_playlist_items",
+      "kind": "r",
+      "role": "authenticated",
+      "operations": [
+        "INSERT",
+        "UPDATE"
+      ],
+      "evidence": "hub/supabase/migrations/20261013182000_video_playlist_reorder.sql;20261013191500_video_playlist_conflict_response.sql"
+    },
+    {
+      "table": "video_playlists",
+      "kind": "r",
+      "role": "authenticated",
+      "operations": [
+        "UPDATE"
+      ],
+      "evidence": "Actual SECURITY INVOKER playlist RPC parent SELECT FOR UPDATE"
+    },
+    {
+      "table": "wallets",
+      "kind": "r",
+      "role": "service_role",
+      "operations": [
+        "INSERT",
+        "UPDATE"
+      ],
+      "evidence": "Actual atomic_credit_wallet_and_log no-club fallback; guard_wallet_balance_write permits exact function stack"
+    }
+  ]
+}
