@@ -32,6 +32,11 @@ test('agent chip flow never includes an unrelated transaction counterparty',()=>
  assert.ok(source.includes('playerIds.includes(tx.from_user_id)'));
  assert.ok(!source.includes("eq('agent_id', agentRow.id)"));
 });
+test('platform moderation reads profile role while club authority reads membership activity',()=>{
+ const source=readFileSync(new URL('../pages/api/club-arena/anti-cheat.js',import.meta.url),'utf8');
+ assert.match(source,/from\('profiles'\)\s*\.select\('role'\)/);
+ assert.match(source,/from\('club_members'\)\s*\.select\('role, status, is_active'\)/);
+});
 
 test('actual session and analytics handlers deny every agent before private service-role reads',async()=>{
  const vm=await import('node:vm');

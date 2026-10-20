@@ -140,15 +140,15 @@ try {
       // did not personally belong to, which is all of them.
       const { data: callerProfile } = await getSupabase()
         .from('profiles')
-        .select('role, status, is_active')
+        .select('role')
         .eq('id', userId)
         .maybeSingle();
       // Platform staff here is whoever holds moderation.write, resolved the
       // way the console resolves it (re-verification M-3): the legacy profile
       // roles carry it until enforce_named_roles is on, a granted compliance or
       // operations operator carries it through the grant, and a narrowed
-      // legacy account does not. Club owners, admins and super agents are
-      // authorised through club_members below exactly as before.
+      // legacy account does not. Active club owners, co-owners and admins are
+      // authorized through club_members below.
       const platformGate = await operatorHoldsPermission(
         getSupabase(),
         { userId, profileRole: callerProfile?.role || null },
