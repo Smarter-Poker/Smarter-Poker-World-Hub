@@ -1,3 +1,4 @@
+import { isClubStaffMembership } from '../../../src/lib/club-arena/clubDataAuthorization.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/club-arena/anti-cheat | ORB-7 AUDITED
@@ -139,7 +140,7 @@ try {
       // did not personally belong to, which is all of them.
       const { data: callerProfile } = await getSupabase()
         .from('profiles')
-        .select('role')
+        .select('role, status, is_active')
         .eq('id', userId)
         .maybeSingle();
       // Platform staff here is whoever holds moderation.write, resolved the
@@ -178,12 +179,12 @@ try {
       if (!isPlatformAdmin) {
         const { data: membership } = await getSupabase()
           .from('club_members')
-          .select('role')
+          .select('role, status, is_active')
           .eq('club_id', clubId)
           .eq('user_id', userId)
           .maybeSingle();
 
-        if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+        if (!isClubStaffMembership(membership)) {
           return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
         }
         // This caller acted on their club membership, so that is the role the

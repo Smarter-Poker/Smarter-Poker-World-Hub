@@ -1,3 +1,4 @@
+import { isClubStaffMembership } from '../../../src/lib/club-arena/clubDataAuthorization.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/table-chips
@@ -123,11 +124,11 @@ export default async function handler(req, res) {
     if (callerUserId && callerUserId !== userId) {
       const { data: callerMember } = await getSupabase()
         .from('club_members')
-        .select('role')
+        .select('role, status, is_active')
         .eq('club_id', clubId)
         .eq('user_id', callerUserId)
         .maybeSingle();
-      if (!callerMember || !['owner', 'admin', 'super_agent'].includes(callerMember.role)) {
+      if (!isClubStaffMembership(callerMember)) {
         return res.status(403).json({ success: false, error: 'Cannot operate on another user\'s chips' });
       }
     }

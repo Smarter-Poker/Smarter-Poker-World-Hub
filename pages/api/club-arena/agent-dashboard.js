@@ -1,3 +1,4 @@
+import { isActiveClubMembership, isClubStaffMembership, loadAgentDataScope } from '../../../src/lib/club-arena/clubDataAuthorization.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * GET /api/club-arena/agent-dashboard
@@ -47,19 +48,21 @@ export default async function handler(req, res) {
       // 1. Get caller's membership
       const { data: callerMember } = await getSupabase()
         .from('club_members')
-        .select('user_id, role, chip_balance, credit_limit, credit_used, nickname, tier')
+        .select('user_id, role, status, is_active, chip_balance, credit_limit, credit_used, nickname, tier')
         .eq('club_id', clubId)
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (!callerMember) return res.status(404).json({ success: false, error: 'Not a member of this club' });
+      if (!isActiveClubMembership(callerMember)) return res.status(404).json({ success: false, error: 'Not a member of this club' });
 
-      const isOwnerAdmin = ['owner', 'admin'].includes(callerMember.role);
+      const isOwnerAdmin = isClubStaffMembership(callerMember);
       const isAgent = ['agent', 'sub_agent', 'super_agent'].includes(callerMember.role);
 
       if (!isOwnerAdmin && !isAgent) {
         return res.status(403).json({ success: false, error: 'Agent, owner, or admin role required' });
       }
+
+      const scopedIds = isAgent ? await loadAgentDataScope(getSupabase(), clubId, user.id) : null;
 
       // 2. Get agent record(s)
       let agentFilter = isOwnerAdmin
@@ -86,7 +89,7 @@ export default async function handler(req, res) {
             .limit(100);
 
       if (isAgent) {
-        playersQuery = playersQuery.eq('agent_id', user.id)
+        playersQuery = playersQuery.in('user_id', scopedIds)
             .limit(200);
       }
 
@@ -129,7 +132,7 @@ export default async function handler(req, res) {
             .limit(200);
 
       if (isAgent) {
-        cashoutQuery = cashoutQuery.eq('agent_id', user.id)
+        cashoutQuery = cashoutQuery.eq('agent_id', user.id).in('player_id', scopedIds)
             .limit(200);
       }
 
