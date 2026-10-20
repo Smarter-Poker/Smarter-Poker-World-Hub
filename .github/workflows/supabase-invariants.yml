@@ -83,10 +83,23 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: New tables declare explicit access without Supabase defaults
+        env:
+          TABLE_ACCESS_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node --test __tests__/explicit-table-access.test.mjs
+          node scripts/ci/check-explicit-table-access.mjs
+
+      - name: Verify crash-log access on isolated PostgreSQL without default grants
+        run: |
+          PG_BIN="$(pg_config --bindir)" python3 scripts/ci/test-explicit-crash-log-access.py
 
       # Added 2026-08-26 after a severity-1 outage that nothing could have
       # caught. 44 tables carried a SELECT policy calling
