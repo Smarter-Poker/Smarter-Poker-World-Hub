@@ -58,17 +58,12 @@
         "SELECT",
         "UPDATE"
       ],
-      "evidence": "home_game_vouches enabled fn_sync_home_game_vouch_count and group-conversation trigger"
-    },
-    {
-      "table": "commander_home_post_comments",
-      "kind": "r",
-      "role": "service_role",
-      "operations": [
-        "SELECT",
-        "UPDATE"
-      ],
-      "evidence": "hub/pages/api/home-games/reports.js:40 -> fn_home_auto_hide_on_report_threshold"
+      "evidence": "home_game_vouches enabled fn_sync_home_game_vouch_count and group-conversation trigger",
+      "additionalRights": {
+        "authenticated": [
+          "SELECT"
+        ]
+      }
     },
     {
       "table": "conversations",

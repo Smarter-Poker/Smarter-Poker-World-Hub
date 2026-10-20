@@ -6,7 +6,7 @@
 -- Views retain security_invoker=true and need existing underlying permissions.
 -- No browser notification INSERT is granted; mention notification authorization
 -- is a separate qualified trigger repair. No blanket browser read is added.
--- Twenty-four existing relations already hold these rights in the saved catalog.
+-- Twenty-three existing relations already hold these rights in the saved catalog.
 -- audit_logs/club_transactions are absent there: their historical declarations
 -- receive conditional reset-only access, never recreation or production data.
 -- Rollback: a NEW migration may remove only a right proved absent beforehand;
@@ -24,7 +24,6 @@ BEGIN
   ('club_transactions','r'),
   ('commander_home_group_follows','r'),
   ('commander_home_groups','r'),
-  ('commander_home_post_comments','r'),
   ('conversations','r'),
   ('data_audit_log','r'),
   ('mentions','r'),
@@ -69,7 +68,6 @@ GRANT UPDATE ON TABLE public.club_chat TO service_role;
 DO $optional$ BEGIN IF to_regclass('public.club_transactions') IS NOT NULL THEN GRANT DELETE,SELECT ON TABLE public.club_transactions TO service_role; END IF; END $optional$;
 GRANT SELECT ON TABLE public.commander_home_group_follows TO service_role;
 GRANT SELECT,UPDATE ON TABLE public.commander_home_groups TO service_role;
-GRANT SELECT,UPDATE ON TABLE public.commander_home_post_comments TO service_role;
 GRANT INSERT,SELECT,UPDATE ON TABLE public.conversations TO service_role;
 GRANT INSERT ON TABLE public.data_audit_log TO service_role;
 GRANT INSERT ON TABLE public.mentions TO authenticated;
@@ -89,6 +87,7 @@ GRANT SELECT ON TABLE public.video_library_videos TO service_role;
 GRANT INSERT,UPDATE ON TABLE public.video_playlist_items TO authenticated;
 GRANT UPDATE ON TABLE public.video_playlists TO authenticated;
 GRANT INSERT,UPDATE ON TABLE public.wallets TO service_role;
+GRANT SELECT ON TABLE public.commander_home_groups TO authenticated;
 DO $post$
 DECLARE r record; op text;
 BEGIN
@@ -99,7 +98,6 @@ BEGIN
   ('club_transactions','service_role',ARRAY['DELETE','SELECT']),
   ('commander_home_group_follows','service_role',ARRAY['SELECT']),
   ('commander_home_groups','service_role',ARRAY['SELECT','UPDATE']),
-  ('commander_home_post_comments','service_role',ARRAY['SELECT','UPDATE']),
   ('conversations','service_role',ARRAY['INSERT','SELECT','UPDATE']),
   ('data_audit_log','service_role',ARRAY['INSERT']),
   ('mentions','authenticated',ARRAY['INSERT']),
@@ -118,7 +116,8 @@ BEGIN
   ('video_library_videos','service_role',ARRAY['SELECT']),
   ('video_playlist_items','authenticated',ARRAY['INSERT','UPDATE']),
   ('video_playlists','authenticated',ARRAY['UPDATE']),
-  ('wallets','service_role',ARRAY['INSERT','UPDATE'])
+  ('wallets','service_role',ARRAY['INSERT','UPDATE']),
+  ('commander_home_groups','authenticated',ARRAY['SELECT'])
  ) AS expected(tbl,role_name,operations) LOOP
   IF r.tbl IN ('audit_logs','club_transactions') AND to_regclass('public.'||r.tbl) IS NULL THEN CONTINUE; END IF;
   FOREACH op IN ARRAY r.operations LOOP

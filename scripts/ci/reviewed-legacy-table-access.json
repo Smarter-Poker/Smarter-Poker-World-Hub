@@ -15,7 +15,8 @@
       "operations": [
         "USAGE"
       ],
-      "evidence": "Hub20260325_venue_scraping_infrastructure.sql bigserial; BaseScraper.recordScrapeRun INSERT"
+      "evidence": "Original Hub20260325_venue_scraping_infrastructure.sql bigserial; actual BaseScraper.recordScrapeRun service INSERT. Current production preflight independently proves UUID DEFAULT gen_random_uuid(), which requires no sequence grant.",
+      "condition": "Only when scraper_runs.id retains the exact reviewed original bigint nextval/public.scraper_runs_id_seq serial shape. No sequence exists or is granted for current UUID gen_random_uuid() shape."
     }
   ],
   "tables": [

@@ -80,6 +80,9 @@ try:
  for x in m['relations']:
   for op in x['operations']:
    assert sql(f"SELECT has_table_privilege('{x['role']}','{x['table']}','{op}');")=='t';checks+=1
+  for extra_role,extra_ops in x.get('additionalRights',{}).items():
+   for op in extra_ops:
+    assert sql(f"SELECT has_table_privilege('{extra_role}','{x['table']}','{op}');")=='t';checks+=1
   if x['role']=='service_role':
    for role in ['anon','authenticated']:assert sql(f"SELECT has_table_privilege('{role}','{x['table']}','INSERT');")=='f',x['table']
  sql(fn['fn_notify_home_game_created'])
