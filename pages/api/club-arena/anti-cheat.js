@@ -172,10 +172,8 @@ try {
         requestId: requestIdOf(req),
       };
 
-      // Verify caller is club owner / admin / super_agent.
-      // Round 72: dropped 'manager' (0 rows in production), added
-      // 'super_agent' (the de-facto admin role used elsewhere - waitlist,
-      // club-analytics, lobby-ordering all gate on this trio).
+      // Club authority requires active owner, co-owner or admin membership.
+      // Agent ranks have no club-wide private moderation/report authority.
       if (!isPlatformAdmin) {
         const { data: membership } = await getSupabase()
           .from('club_members')

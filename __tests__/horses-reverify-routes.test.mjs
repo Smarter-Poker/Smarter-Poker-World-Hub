@@ -273,7 +273,8 @@ test('contract: the five outside routes gate on the resolved permission, not the
   assert.match(cashout, /typeof platformGate\?\.ok !== 'boolean' \|\| platformGate\.degraded === true/);
   assert.match(cashout, /from\('union_admins'\)/);
   const cheat = source('pages/api/club-arena/anti-cheat.js');
-  assert.match(cheat, /\['owner', 'admin', 'super_agent'\]\.includes\(membership\.role\)/);
+  assert.match(cheat, /!isClubStaffMembership\(membership\)/);
+  assert.match(cheat, /from\('club_members'\)\s*\.select\('role, status, is_active'\)/);
   const union = source('pages/api/club-arena/union-application.js');
   assert.match(union, /data\?\.role === 'union_lead'/);
   assert.match(union, /const platformAdmin = await isPlatformAdmin\(user\.id, actorRole\);/);
