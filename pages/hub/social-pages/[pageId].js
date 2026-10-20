@@ -1006,7 +1006,7 @@ function SocialPageHead({ page }) {
     );
 }
 
-export default function SocialPageDetail({ seoPage = null }) {
+export default function SocialPageDetail({ seoPage = null } = {}) {
     // State hooks BEFORE useRouter — prevents SWC minifier TDZ collision
     // (SWC was naming both the function and its first let binding 'k')
     const [page, setPage] = useState(null);
