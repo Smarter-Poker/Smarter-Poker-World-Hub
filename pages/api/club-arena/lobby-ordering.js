@@ -1,3 +1,4 @@
+import { isClubStaffMembership } from '../../../src/lib/club-arena/clubDataAuthorization.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Lobby Ordering API — Drag-and-drop table ordering for lobby display
@@ -9,7 +10,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *   - save:   Save new table ordering (array of table IDs)
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
@@ -65,12 +66,12 @@ export default async function handler(req, res) {
               // Admin only
               const { data: membership } = await getSupabase()
                   .from('club_members')
-                  .select('role')
+                  .select('role, status, is_active')
                   .eq('club_id', clubId)
                   .eq('user_id', user.id)
                   .maybeSingle();
 
-              if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+              if (!isClubStaffMembership(membership)) {
                   return res.status(403).json({ error: 'Admin access required' });
               }
 
