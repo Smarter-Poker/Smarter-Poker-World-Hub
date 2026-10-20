@@ -1,7 +1,7 @@
 /**
  * Social Media Slug Redirect
  * Handles: /hub/social-media/[slug] → /hub/social-pages/[slug]
- * Allows users to use the shorter smarter.poker/hub/social-media/CLUBJAQK format
+ * Allows users to use the shorter smarter.poker/hub/social-media/the-felt-society format
  */
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';

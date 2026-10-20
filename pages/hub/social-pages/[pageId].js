@@ -987,7 +987,26 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     );
 }
 
-export default function SocialPageDetail() {
+function SocialPageHead({ page }) {
+    if (!page) return null;
+    return (
+        <SEOHead
+            title={page.name}
+            description={page.description || `Follow ${page.name} on Smarter.Poker`}
+            ogImage={page.avatar_url || page.cover_url}
+            canonical={`/hub/social-pages/${page.slug || page.id}`}
+            jsonLd={{
+                '@type': 'Organization',
+                name: page.name,
+                description: page.description || `${page.name} on Smarter.Poker`,
+                url: `https://smarter.poker/hub/social-pages/${page.slug || page.id}`,
+                ...(page.avatar_url ? { logo: page.avatar_url } : {}),
+            }}
+        />
+    );
+}
+
+export default function SocialPageDetail({ seoPage = null }) {
     // State hooks BEFORE useRouter — prevents SWC minifier TDZ collision
     // (SWC was naming both the function and its first let binding 'k')
     const [page, setPage] = useState(null);
@@ -1804,6 +1823,7 @@ export default function SocialPageDetail() {
     if (loading) {
         return (
             <>
+                <SocialPageHead page={seoPage} />
                 <UniversalHeader pageDepth={2} />
                 {/* Outer shell keeps the 100vw clamp; the readable 700px cap lives on
                     the inner column. Two maxWidth keys in one literal meant the 700
@@ -1848,19 +1868,7 @@ export default function SocialPageDetail() {
 
     return (
         <>
-            <SEOHead
-                title={page.name}
-                description={page.description || `Follow ${page.name} on Smarter.Poker`}
-                ogImage={page.avatar_url || page.cover_url}
-                canonical={`/hub/social-pages/${page.slug || page.id}`}
-                jsonLd={{
-                    '@type': 'Organization',
-                    name: page.name,
-                    description: page.description || `${page.name} on Smarter.Poker`,
-                    url: `https://smarter.poker/hub/social-pages/${page.slug || page.id}`,
-                    ...(page.avatar_url ? { logo: page.avatar_url } : {}),
-                }}
-            />
+            <SocialPageHead page={page} />
             <UniversalHeader pageDepth={2} />
 
             <div style={{
@@ -3877,8 +3885,8 @@ export default function SocialPageDetail() {
 //  redirect to the canonical /hub/home-games/{slug} URL. One group, one URL.
 //
 //  Other page types (venue, group, community, brand, club) render normally —
-//  this getServerSideProps returns empty props and the existing client-side
-//  page loader takes over as before.
+//  public identity metadata is server-rendered while the existing client-side
+//  page loader continues to own the interactive page.
 //
 //  Keep this export minimal and defensive: any DB error, any missing slug,
 //  anything unexpected → fall through to normal rendering so we never break
@@ -3923,7 +3931,7 @@ export async function getServerSideProps({ params }) {
         // 308-redirect to the canonical unified URL.
         const { data, error } = await sb
             .from('social_pages')
-            .select('page_type, slug')
+            .select('id, page_type, slug, is_public, name, description, avatar_url, cover_url')
             .eq(IS_UUID.test(pageId) ? 'id' : 'slug', pageId)
             .maybeSingle();
 
@@ -3936,6 +3944,15 @@ export async function getServerSideProps({ params }) {
                     permanent: true, // 308 — search engines collapse the two URLs
                 },
             };
+        }
+        // Only public identity fields enter server HTML; private page content,
+        // membership and owner data remain in the authenticated client loader.
+        if (data.is_public === true && data.name) {
+            if (IS_UUID.test(pageId) && data.slug) {
+                return { redirect: { destination: `/hub/social-pages/${data.slug}`, permanent: true } };
+            }
+            const { id, slug, name, description, avatar_url, cover_url } = data;
+            return { props: { seoPage: { id, slug, name, description, avatar_url, cover_url } } };
         }
     } catch {
         // Swallow errors silently. This function is a progressive enhancement;
