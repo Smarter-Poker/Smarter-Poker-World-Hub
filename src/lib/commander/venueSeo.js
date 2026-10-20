@@ -49,6 +49,7 @@ export function toSeoVenue(v) {
   return {
     id: Number(v.id),
     name: s(v.name),
+    logo_url: s(v.logo_url) || s(v.profile_photo_url) || s(v.cover_photo_url),
     city: s(v.city),
     state: s(v.state),
     address: s(v.address),

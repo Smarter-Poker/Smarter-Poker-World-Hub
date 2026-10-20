@@ -1,7 +1,7 @@
 /**
  * Check Slug Availability API
  *
- * GET /api/social/pages/check-slug?slug=CLUBJAQK&page_id=<optional>
+ * GET /api/social/pages/check-slug?slug=the-felt-society&page_id=<optional>
  *
  * Returns: { available: boolean, formatted: string, error?: string }
  */
