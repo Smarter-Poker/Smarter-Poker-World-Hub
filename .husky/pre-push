@@ -60,6 +60,10 @@ if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/tes
   python3 "$ROOT/scripts/ci/test-premium-self-issuance-access.py" || FAIL=1
 fi
 
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-home-report-moderation-trigger.py | grep -qE 'home_report_moderation_trigger_authorization|test-home-report-moderation-trigger'; then
+  python3 "$ROOT/scripts/ci/test-home-report-moderation-trigger.py" || FAIL=1
+fi
+
 # ── The pull request for this branch may already be MERGED (2026-09-06) ─────
 # Autopilot squash-merges the instant the required checks pass, so a push made
 # afterwards lands on a CLOSED pull request, changes nothing and exits 0. That
