@@ -1239,6 +1239,10 @@ const nextConfig = {
   // Club Arena pages are served directly from this deployment (no external proxy)
   async redirects() {
     return [
+      // Retired Club JAQK page IDs still occur in previously shared posts.
+      // Keep those backlinks on the same club's current social identity.
+      { source: '/hub/social-pages/005cddc8-ecd9-4cd9-aca1-b809609d1239/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
+      { source: '/hub/social-media/005cddc8-ecd9-4cd9-aca1-b809609d1239/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
       // DUPLICATE HOST (2026-09-17, discoverability phase 1). The bare Vercel
       // production alias served the whole site with a 200 and no noindex, a
       // full copy of smarter.poker for any crawler that found it. Preview
