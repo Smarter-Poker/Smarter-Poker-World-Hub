@@ -33,3 +33,8 @@ test('every created table needs its own boundary', () => {
 test('executable table DDL inside DO bodies is checked', () => {
   assert.equal(auditMigration('DO $body$ BEGIN CREATE TABLE public.dynamic(id int); END $body$;').length, 5);
 });
+
+test('an uncalled stored function cannot supply a table boundary', () => {
+  assert.equal(auditMigration(`CREATE TABLE public.example(id int);
+CREATE FUNCTION later() RETURNS void LANGUAGE sql AS $$ ${boundary} $$;`).length, 5);
+});

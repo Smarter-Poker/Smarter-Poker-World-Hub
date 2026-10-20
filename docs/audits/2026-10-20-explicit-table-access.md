@@ -24,7 +24,7 @@ compatibility transition. No production records are used.
 The existing required policy-function-grants CI job and normal pre-push hook
 now also check changed migrations for explicit table access boundaries.
 Static public CREATE TABLE statements, including executable statements inside
-DO/function bodies, require RLS plus explicit revocation from PUBLIC, anon,
+anonymous DO bodies, require RLS plus explicit revocation from PUBLIC, anon,
 authenticated and service_role before any narrowly scoped grants. RPC-only
 tables may remain fully revoked. This declaration check does not infer correct
 business permissions, interpret arbitrary dynamically constructed SQL, or

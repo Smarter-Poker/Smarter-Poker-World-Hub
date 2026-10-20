@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
 // Keep identifiers and SQL syntax, masking comments, strings and function/DO
-// bodies recursively. Executable table DDL in a DO/function body is audited too.
+// bodies. Anonymous DO declarations are checked; uncalled stored functions
+// cannot supply permissions for a top-level table.
 export function sqlSyntax(sql) {
   let out = '', i = 0;
   while (i < sql.length) {
@@ -32,7 +33,9 @@ export function sqlSyntax(sql) {
     } else if (sql[i] === '$' && /^\$(?:[a-z_][\w]*)?\$/i.test(rest)) {
       const tag = rest.match(/^\$(?:[a-z_][\w]*)?\$/i)[0];
       const end = sql.indexOf(tag, i + tag.length);
-      out += ' ' + sqlSyntax(sql.slice(i + tag.length, end < 0 ? sql.length : end)) + ' ';
+      const prefix = out.slice(out.lastIndexOf(';') + 1);
+      const body = sql.slice(i + tag.length, end < 0 ? sql.length : end);
+      out += /^\s*DO\b/i.test(prefix) ? ' ' + sqlSyntax(body) + ' ' : ' ';
       i = end < 0 ? sql.length : end + tag.length;
     } else { out += sql[i++]; }
   }
