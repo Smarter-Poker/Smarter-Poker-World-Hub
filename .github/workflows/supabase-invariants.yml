@@ -97,10 +97,32 @@ jobs:
           node --test __tests__/explicit-table-access.test.mjs
           node scripts/ci/check-explicit-table-access.mjs
 
+      - name: Install PostgreSQL 17 from the signed PGDG source only
+        run: |
+          set -euo pipefail
+          pg_sources="$(mktemp -d "$RUNNER_TEMP/ca-postgres-apt.XXXXXX")"
+          chmod 755 "$pg_sources"
+          test -f /etc/apt/sources.list.d/ubuntu.sources
+          cp /etc/apt/sources.list.d/ubuntu.sources "$pg_sources/ubuntu.sources"
+          pg_apt=(-o "Dir::Etc::sourcelist=/dev/null" -o "Dir::Etc::sourceparts=$pg_sources")
+          sudo apt-get "${pg_apt[@]}" update
+          sudo apt-get "${pg_apt[@]}" install -y --no-install-recommends postgresql-common curl ca-certificates
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error --location \
+            --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          codename="$(. /etc/os-release && printf '%s' "$VERSION_CODENAME")"
+          printf 'Types: deb\nURIs: https://apt.postgresql.org/pub/repos/apt\nSuites: %s-pgdg\nComponents: main\nSigned-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc\n' \
+            "$codename" > "$pg_sources/pgdg.sources"
+          sudo apt-get "${pg_apt[@]}" update
+          printf 'create_main_cluster = false\n' | sudo tee /etc/postgresql-common/createcluster.conf >/dev/null
+          sudo apt-get "${pg_apt[@]}" install -y --no-install-recommends postgresql-17
       - name: Verify crash-log access on isolated PostgreSQL without default grants
         run: |
-          PG_BIN="$(pg_config --bindir)" python3 scripts/ci/test-explicit-crash-log-access.py
-          PG_BIN="$(pg_config --bindir)" python3 scripts/ci/test-explicit-direct-caller-access.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-explicit-crash-log-access.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-explicit-direct-caller-access.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-pokeriq-browser-structural-privileges.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-reviewed-legacy-table-access.py
 
       # Added 2026-08-26 after a severity-1 outage that nothing could have
       # caught. 44 tables carried a SELECT policy calling

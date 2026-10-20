@@ -6,6 +6,9 @@
 -- provisioned/reset databases after October 30. No player or game data changes.
 -- Rollback: revoke these two grants only on a database that lacked them before
 -- this migration. Never revoke existing production service permissions.
+-- Admission accepts zero policies or the exact historical insert-only browser
+-- policy, which is inert because both table and column DML are denied. Keep
+-- that policy unchanged; refuse any other policy or browser ACL drift.
 BEGIN;
 SET LOCAL lock_timeout = '2s';
 SET LOCAL statement_timeout = '15s';
@@ -16,11 +19,19 @@ BEGIN
     RAISE EXCEPTION 'Client crash-log table and sequence must already exist';
   END IF;
   IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.client_crash_log'::regclass)
-     OR EXISTS (SELECT 1 FROM pg_policy WHERE polrelid='public.client_crash_log'::regclass) THEN
-    RAISE EXCEPTION 'Client crash log must remain service-only with RLS and no browser policy';
+     OR EXISTS (
+       SELECT 1 FROM pg_policy p WHERE p.polrelid='public.client_crash_log'::regclass
+         AND (p.polname='client_crash_log_insert_only' AND p.polcmd='a' AND p.polpermissive
+           AND cardinality(p.polroles)=2
+           AND p.polroles @> ARRAY['anon'::regrole::oid,'authenticated'::regrole::oid]
+           AND p.polqual IS NULL AND pg_get_expr(p.polwithcheck,p.polrelid)='true') IS NOT TRUE
+     ) THEN
+    RAISE EXCEPTION 'Client crash log must remain service-only with RLS and only its known inert policy';
   END IF;
   IF has_table_privilege('anon','public.client_crash_log','SELECT,INSERT,UPDATE,DELETE')
-     OR has_table_privilege('authenticated','public.client_crash_log','SELECT,INSERT,UPDATE,DELETE') THEN
+     OR has_table_privilege('authenticated','public.client_crash_log','SELECT,INSERT,UPDATE,DELETE')
+     OR has_any_column_privilege('anon','public.client_crash_log','SELECT,INSERT,UPDATE')
+     OR has_any_column_privilege('authenticated','public.client_crash_log','SELECT,INSERT,UPDATE') THEN
     RAISE EXCEPTION 'Unexpected browser access on client crash log; do not widen it';
   END IF;
 END $pre$;

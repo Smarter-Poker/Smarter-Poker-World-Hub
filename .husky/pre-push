@@ -36,6 +36,14 @@ if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/tes
   python3 "$ROOT/scripts/ci/test-explicit-direct-caller-access.py" || FAIL=1
 fi
 
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-pokeriq-browser-structural-privileges.py | grep -qE 'browser_roles_have_no_table_maintenance_rights|test-pokeriq-browser-structural-privileges'; then
+  python3 "$ROOT/scripts/ci/test-pokeriq-browser-structural-privileges.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-reviewed-legacy-table-access.py scripts/ci/reviewed-legacy-table-access.json | grep -qE 'explicit_reviewed_legacy_caller_access|test-reviewed-legacy-table-access|reviewed-legacy-table-access.json'; then
+  python3 "$ROOT/scripts/ci/test-reviewed-legacy-table-access.py" || FAIL=1
+fi
+
 # ── The pull request for this branch may already be MERGED (2026-09-06) ─────
 # Autopilot squash-merges the instant the required checks pass, so a push made
 # afterwards lands on a CLOSED pull request, changes nothing and exits 0. That

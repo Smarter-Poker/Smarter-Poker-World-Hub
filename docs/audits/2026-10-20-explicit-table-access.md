@@ -47,3 +47,7 @@ review, Workers/Commander/PepNation provisioning paths, isolated fresh/reset
 qualification and production readback of any qualified installation. No global
 ALTER DEFAULT PRIVILEGES, blanket GRANT, financial write or engine replacement
 is part of this correction.
+
+The follow-up declares83 additional caller-reviewed tables (111 role/table pairs) plus only scraper_runs_id_seq USAGE. Evidence includes actual client factory bindings, embedded SELECT and Realtime reads; comment-only and uncalled denied paths do not authorize grants. The native permission transition checks1992 role/operation boundaries and preserves current ACLs/RLS. This uses inert ACL fixtures and representative row policies, not a full historical business-schema restore.
+
+Browser structural rights and postgres/public structural defaults are revoked separately while preserving DML,392 column ACLs, all service rights, owners and policies. Existing supabase_admin-owned defaults remain outside that narrowing; new-table declaration revokes still apply regardless of creator. Production preflight found the exact old crash-log INSERT policy with no browser grants. Its narrowly admitted shape remains unchanged; any other policy or browser table/column access refuses installation. The2 crash-log grants remain unchanged and qualification covers both old policy shapes.
