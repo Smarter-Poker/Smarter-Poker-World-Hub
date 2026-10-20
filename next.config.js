@@ -1241,10 +1241,8 @@ const nextConfig = {
     return [
       // Retired Club JAQK page IDs still occur in previously shared posts.
       // Keep those backlinks on the same club's current social identity.
-      { source: '/hub/social-pages/club-jaqk/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
-      { source: '/hub/social-pages/clubjaqk/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
-      { source: '/hub/social-media/club-jaqk/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
-      { source: '/hub/social-media/clubjaqk/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
+      { source: '/hub/social-pages/:legacy([cC][lL][uU][bB]-?[jJ][aA][qQ][kK])/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
+      { source: '/hub/social-media/:legacy([cC][lL][uU][bB]-?[jJ][aA][qQ][kK])/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
       { source: '/hub/social-pages/005cddc8-ecd9-4cd9-aca1-b809609d1239/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
       { source: '/hub/social-media/005cddc8-ecd9-4cd9-aca1-b809609d1239/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
       // DUPLICATE HOST (2026-09-17, discoverability phase 1). The bare Vercel

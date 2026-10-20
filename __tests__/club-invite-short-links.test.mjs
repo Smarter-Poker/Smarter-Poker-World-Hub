@@ -25,6 +25,21 @@ import {
     safeClubArenaPath,
 } from '../src/lib/clubInvite.js';
 
+test('invite preview metadata replaces the application defaults through shared Head keys', () => {
+    const app = readFileSync(new URL('../pages/_app.js', import.meta.url), 'utf8');
+    const invite = readFileSync(new URL('../pages/i/[code].js', import.meta.url), 'utf8');
+    for (const property of ['og:type', 'og:site_name', 'og:url', 'og:title', 'og:description', 'og:image', 'og:image:width', 'og:image:height', 'og:image:type', 'twitter:card', 'twitter:title', 'twitter:description', 'twitter:image']) {
+        const findTag = source => [...source.matchAll(/<meta\b[^>]*>/g)].map(match => match[0])
+            .find(tag => tag.includes(`property="${property}"`) || tag.includes(`name="${property}"`));
+        const defaultKey = findTag(app)?.match(/key="([^"]+)"/)?.[1];
+        const overrideKey = findTag(invite)?.match(/key="([^"]+)"/)?.[1];
+        assert.ok(defaultKey, `Application default key for ${property}`);
+        assert.equal(overrideKey, defaultKey, `Invite must replace the default ${property}`);
+    }
+    assert.match(invite, /property="og:image:type" content="image\/png"/);
+    assert.match(invite, /<link key="canonical" rel="canonical" href=\{pageUrl\}/);
+});
+
 test('invite codes use the database alphabet: 7 chars, no I, O, 0 or 1', () => {
     assert.equal(isInviteCode('ABC2345'), true);
     assert.equal(normalizeInviteCode(' abc2345 '), 'ABC2345');

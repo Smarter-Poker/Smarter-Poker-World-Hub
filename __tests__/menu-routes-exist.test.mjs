@@ -40,11 +40,32 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 
 const REPO_ROOT = path.resolve(new URL('.', import.meta.url).pathname, '..');
 const PAGES_DIR = path.join(REPO_ROOT, 'pages');
 const PUBLIC_DIR = path.join(REPO_ROOT, 'public');
 const MENU_CONFIG = path.join(REPO_ROOT, 'src/config/hamburgerMenus.js');
+
+test('legacy club social backlinks redirect across casing without matching the new page', async () => {
+    const config = fs.readFileSync(path.join(REPO_ROOT, 'next.config.js'), 'utf8');
+    const start = config.indexOf('async redirects()');
+    const end = config.indexOf('async rewrites()', start);
+    const method = config.slice(start, end).replace(/,\s*$/, '');
+    const routes = await Function(`return ({${method}})`)().redirects();
+    const { pathToRegexp } = createRequire(import.meta.url)('next/dist/compiled/path-to-regexp');
+    const aliases = routes.filter(route => route.destination === '/hub/social-pages/the-felt-society/:path*')
+        .map(route => ({ ...route, matcher: pathToRegexp(route.source, [], { sensitive: true }) }));
+    for (const section of ['social-pages', 'social-media']) {
+        for (const legacy of ['club-jaqk', 'CLUB-JAQK', 'Club-Jaqk', 'clubjaqk', 'CLUBJAQK', 'ClubJAQK', 'cLuBjAqK']) {
+            for (const suffix of ['', '/manage', '/manage/settings']) {
+                const oldPath = `/hub/${section}/${legacy}${suffix}`;
+                assert.ok(aliases.some(route => route.permanent && route.matcher.test(oldPath)), oldPath);
+            }
+        }
+    }
+    assert.ok(aliases.every(route => !route.matcher.test('/hub/social-pages/the-felt-society')));
+});
 
 const PAGE_EXTS = ['.js', '.jsx', '.ts', '.tsx'];
 
