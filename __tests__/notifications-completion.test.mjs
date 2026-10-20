@@ -56,7 +56,7 @@ async function apiFixture(file = 'pages/api/notifications/feed.js') {
     } };
     const context = vm.createContext({ process: { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture-not-a-credential' } }, console: { warn() {} } });
     const module = new vm.SourceTextModule(file.endsWith('/feed.js') ? feedSource : readFileSync(file, 'utf8'), { context });
-    const exports = { createClient: () => db, getServerUserWithFallback: async () => ({ user: { id: 'fixture' } }), reportApiError() {}, resolveNotificationRoute: () => '/fixture',
+    const exports = { createClient: () => db, getServerUserWithFallback: async () => ({ user: { id: 'fixture' } }), reportApiError() {}, enrichOperationalResolution: async (_db, rows) => rows, resolveNotificationRoute: () => '/fixture',
         applyRateLimit: () => true, LIMITS: { read: {} }, getMessengerUnreadSummary: async () => ({ total: 0, social: 0, clubs: {} }) };
     await module.link(() => new vm.SyntheticModule(Object.keys(exports), function () {
         for (const [key, value] of Object.entries(exports)) this.setExport(key, value);
@@ -195,4 +195,74 @@ test('the actual feed client appends pages once, uses no-store, and ignores supe
     done(requests[3], [{ id: 'new', read: true }], null); await fresh;
     done(requests[2], [{ id: 'stale', read: false }], null); await stale;
     assert.deepEqual(notificationsRef.current.map(n => n.id), ['new']);
+});
+
+// Exercise the real server resolver, including the retained screenshot shapes.
+const { enrichOperationalResolution } = await import('../src/lib/notifications/operationalResolution.mjs');
+const owner = '47965354-0e56-43ef-931c-ddaab82af765';
+function resolutionFixture() {
+    const incidentId = uuid(999);
+    const alert = { fingerprint: 'episode', startsAt: '2026-10-19T13:56:31.364Z' };
+    const state = { calls: [], failed: null, tables: {
+        operational_alert_events: [
+            { id: 1, alertname: 'Money Incident', source: 'owner-operational-notifications', payload: { original_notification: { user_id: owner, data: { incident_id: incidentId } } } },
+            { id: 2, source: 'alertmanager', alertname: 'EngineDown', payload: { alert } },
+            { id: 3, source: 'alertmanager', alertname: 'EngineDown', status: 'resolved', payload: { alert: { ...alert, startsAt: '2026-10-20T00:00:00Z', endsAt: '2026-10-20T00:01:00Z' } } },
+            { id: 4, source: 'alertmanager', alertname: 'EngineDown', status: 'resolved', payload: { alert: { ...alert, endsAt: '2026-10-19T13:57:01.364Z' } } },
+        ], ca_drift_incidents: [{ id: incidentId, status: 'resolved', resolved_at: '2026-10-19T23:23:00Z' }],
+    } };
+    const contains = (object, part) => Object.entries(part).every(([key, value]) => value && typeof value === 'object' ? contains(object?.[key], value) : object?.[key] === value);
+    const db = { from(table) {
+        const call = { table, filters: [], limit: null }; state.calls.push(call);
+        const q = { select() { return q; }, eq(key, value) { call.filters.push(row => row[key] === value); return q; },
+            in(key, values) { call.filters.push(row => values.includes(row[key])); return q; },
+            contains(key, value) { call.filters.push(row => contains(row[key], value)); return q; }, limit(value) { call.limit = value; return q; },
+            then(resolve, reject) { return Promise.resolve(state.failed === table ? { error: new Error('Read Refused') } :
+                { data: state.tables[table].filter(row => call.filters.every(filter => filter(row))).slice(0, call.limit) }).then(resolve, reject); } };
+        return q;
+    } };
+    const rows = [1, 2].map((id) => ({ id: uuid(id), user_id: owner, type: 'system', message: 'Original Incident Message', read: false,
+        data: { source: 'owner-real-alert', inbox_id: id, alert: id === 1 ? 'Money Incident' : 'EngineDown' } }));
+    return { state, db, rows };
+}
+test('retained original alerts resolve from money authority and the exact engine episode while preserving history/read state', async () => {
+    const { state, db, rows } = resolutionFixture();
+    const result = await enrichOperationalResolution(db, rows, owner);
+    assert.deepEqual(result.map(row => row.operationalResolution), [
+        { status: 'resolved', resolvedAt: '2026-10-19T23:23:00Z' },
+        { status: 'resolved', resolvedAt: '2026-10-19T13:57:01.364Z' },
+    ]);
+    assert.ok(result.every(row => row.message === 'Original Incident Message' && row.read === false));
+    assert.ok(rows.every(row => row.operationalResolution === undefined));
+    assert.ok(state.calls.every(call => call.limit > 0 && call.limit <= rows.length));
+    assert.match(component, /data-alert-status=\{n.operationalResolution.status\}/);
+    assert.match(feedSource, /await enrichOperationalResolution\(supabase, enrichedRows, userId\)/);
+});
+test('another engine episode cannot resolve this original and absent money authority stays unknown', async () => {
+    const { state, db, rows } = resolutionFixture();
+    state.tables.operational_alert_events = state.tables.operational_alert_events.filter(row => row.id !== 4);
+    state.tables.ca_drift_incidents = [];
+    assert.deepEqual((await enrichOperationalResolution(db, rows, owner)).map(row => row.operationalResolution.status), ['unknown', 'unknown']);
+});
+test('resolution authority is restricted to authenticated owner rows and validated original inbox ids', async () => {
+    const { state, db, rows } = resolutionFixture();
+    assert.equal(await enrichOperationalResolution(db, rows, uuid(42)), rows);
+    assert.equal(state.calls.length, 0);
+    const invalid = rows.map(row => ({ ...row, data: { ...row.data, inbox_id: '1),or(id.gt.0' } }));
+    assert.equal(await enrichOperationalResolution(db, invalid, owner), invalid);
+    assert.equal(state.calls.length, 0);
+    rows[0].user_id = uuid(42);
+    const result = await enrichOperationalResolution(db, rows, owner);
+    assert.equal(result[0].operationalResolution, undefined);
+});
+test('refused incident authority preserves original alerts with explicit unavailable status', async () => {
+    const { state, db, rows } = resolutionFixture();
+    state.failed = 'ca_drift_incidents';
+    const result = await enrichOperationalResolution(db, rows, owner);
+    assert.equal(result.length, rows.length);
+    assert.equal(result[0].operationalResolution.status, 'unknown');
+    assert.equal(result[0].message, rows[0].message);
+    assert.equal(result[1].operationalResolution.status, 'resolved');
+    state.failed = 'operational_alert_events';
+    assert.ok((await enrichOperationalResolution(db, rows, owner)).every(row => row.operationalResolution.status === 'unknown'));
 });
