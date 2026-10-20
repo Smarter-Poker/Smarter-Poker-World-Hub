@@ -26,6 +26,12 @@ node "$ROOT/docs/agent-policy/agent-policy.mjs" check || exit 1
 node --test "$ROOT/docs/agent-policy/agent-policy.test.mjs" || exit 1
 FAIL=0
 
+node --test "$ROOT/__tests__/explicit-table-access.test.mjs" || FAIL=1
+node "$ROOT/scripts/ci/check-explicit-table-access.mjs" || FAIL=1
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-explicit-crash-log-access.py | grep -qE 'explicit_service_crash_log_access|test-explicit-crash-log-access'; then
+  python3 "$ROOT/scripts/ci/test-explicit-crash-log-access.py" || FAIL=1
+fi
+
 # ── The pull request for this branch may already be MERGED (2026-09-06) ─────
 # Autopilot squash-merges the instant the required checks pass, so a push made
 # afterwards lands on a CLOSED pull request, changes nothing and exits 0. That
