@@ -14,6 +14,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { enrichOperationalResolution } from '../../../src/lib/notifications/operationalResolution.mjs';
 import { resolveNotificationRoute } from '../../../src/lib/notificationRoute';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -338,7 +339,7 @@ export default async function handler(req, res) {
         }
 
         // ── Phase 5: Apply actor profile enrichment to combined list ──
-        const enriched = combined.map(n => {
+        const enrichedRows = combined.map(n => {
             // Poker/page notifications carry no actor profile, but they still
             // need a destination — they were previously handed to the client
             // with no `link` at all and relied on each renderer guessing.
@@ -432,6 +433,8 @@ export default async function handler(req, res) {
             return { ...row, link: resolveNotificationRoute(row) };
 
         });
+
+        const enriched = await enrichOperationalResolution(supabase, enrichedRows, userId);
 
         // BUG-FIX: notifications table uses is_read as canonical; read is an alias
         // that may not be populated on all rows. Check both to avoid under-counting.

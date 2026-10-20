@@ -57,7 +57,7 @@ async function fixture(file = 'pages/api/notifications/feed.js') {
     createClient: () => client,
     getServerUserWithFallback: async () => ({ user: state.userId ? { id: state.userId } : null }),
     reportApiError() {},
-    resolveNotificationRoute: () => '/hub/poker-near-me',
+    enrichOperationalResolution: async (_db, rows) => rows, resolveNotificationRoute: () => '/hub/poker-near-me',
     applyRateLimit: () => true,
     LIMITS: { write: {} },
     getMessengerUnreadSummary: async () => ({ total: 0, social: 0, clubs: {} }),
