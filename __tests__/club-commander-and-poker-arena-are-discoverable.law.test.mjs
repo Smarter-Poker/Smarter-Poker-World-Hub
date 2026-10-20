@@ -253,3 +253,39 @@ test('every page under /hub/commander shares the Club Commander card unless it n
   assert.equal(mod.productOgImage('/hub/venues/[id]'), undefined);
   assert.equal(mod.productOgImage(undefined), undefined);
 });
+
+test('public social identity reaches crawlers without exposing private page data', async () => {
+  const source = read('pages/hub/social-pages/[pageId].js');
+  const body = source.slice(source.indexOf('export async function getServerSideProps(')).replace('export async function', 'async function');
+  const run = async (data, error = null, pageId = 'the-felt-society') => {
+    const query = { select() { return this; }, eq() { return this; }, async maybeSingle() { return { data, error }; } };
+    const get = new Function('_spgssGetSupabase', `${body}; return getServerSideProps;`)(() => ({ from: () => query }));
+    return get({ params: { pageId } });
+  };
+  const publicPage = { id: '1170f414-0c80-43ea-bf06-ce3ec3680b81', slug: 'the-felt-society', name: 'The Felt Society', description: 'A poker club', avatar_url: 'https://example.com/logo.png', cover_url: null, page_type: 'club', is_public: true, owner_id: 'private-owner', secret: 'private' };
+  const result = await run(publicPage);
+  assert.equal(result.props.seoPage.name, publicPage.name);
+  assert.equal(result.props.seoPage.avatar_url, publicPage.avatar_url);
+  assert.deepEqual(Object.keys(result.props.seoPage).sort(), ['id', 'slug', 'name', 'description', 'avatar_url', 'cover_url'].sort());
+  assert.deepEqual(await run({ ...publicPage, is_public: false }), { props: {} });
+  assert.deepEqual(await run(null), { props: {} });
+  assert.deepEqual(await run(publicPage, { message: 'unavailable' }), { props: {} });
+  assert.equal((await run({ ...publicPage, page_type: 'home_game' })).redirect.destination, '/hub/home-games/the-felt-society');
+  assert.equal((await run(publicPage, null, publicPage.id)).redirect.destination, '/hub/social-pages/the-felt-society');
+  assert.match(source.slice(source.indexOf('    if (loading) {')), /<SocialPageHead page=\{seoPage\} \/>/);
+  assert.match(source, /<SocialPageHead page=\{page\} \/>/);
+});
+
+test('the venue image survives Commander normalization and image metadata describes the actual PNG', async () => {
+  const source = read('src/lib/commander/venueSeo.js');
+  const venueModule = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+  const image = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/club-logos/the-felt-society/logo-20261020.png';
+  assert.equal(venueModule.toSeoVenue({ id: 1996, name: 'The Felt Society', logo_url: image }).logo_url, image);
+  assert.match(read('pages/hub/commander/venues/[id].js'), /ogImage=\{venue.logo_url\}/);
+  const { shareImageMetadata } = await import('../src/lib/seo/shareImageMetadata.mjs');
+  assert.deepEqual(shareImageMetadata(image), { type: 'image/png', width: 1025, height: 1031 });
+  assert.deepEqual(shareImageMetadata('https://example.com/card.jpg'), { type: 'image/jpeg' });
+  assert.deepEqual(shareImageMetadata(null), { type: null });
+  const wrapper = read('src/components/seo/SEOHead.js');
+  for (const key of ['og-image-type', 'og-image-width', 'og-image-height']) assert.ok(wrapper.includes(`key="${key}"`));
+});

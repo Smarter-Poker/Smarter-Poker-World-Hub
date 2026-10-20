@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 348,
+    "dependencyFiles": 349,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 347,
@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 161,
     "markerCandidates": 335,
-    "possibleUnwiredFunctions": 382,
+    "possibleUnwiredFunctions": 383,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 275,
     "routeStateUnassignedGaps": 0,
@@ -4634,6 +4634,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -5786,7 +5787,8 @@
         "pages/hub/training/bankroll-coach.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -5910,6 +5912,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -6104,7 +6107,8 @@
         "pages/hub/training/bluff-catcher.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -6180,7 +6184,8 @@
         "pages/hub/training/bounty-trainer.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -6302,6 +6307,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -6545,6 +6551,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -6847,6 +6854,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -7150,6 +7158,7 @@
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -7887,6 +7896,7 @@
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -8008,7 +8018,8 @@
       "reachableFiles": [
         "pages/hub/training/ev-heatmap.js",
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -8084,7 +8095,8 @@
         "pages/hub/training/ev-trainer.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -8642,7 +8654,8 @@
         "pages/hub/training/frequency-locking.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -8721,7 +8734,8 @@
         "src/content/glossary/terms.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -9175,7 +9189,8 @@
         "pages/hub/training/gto-scorecard.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -9250,7 +9265,8 @@
       "reachableFiles": [
         "pages/hub/training/gto-vs-exploitative.js",
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -9409,6 +9425,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -9790,6 +9807,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -9930,7 +9948,8 @@
         "pages/hub/training/icm-final-table.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -10129,6 +10148,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -10387,6 +10407,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -11112,7 +11133,8 @@
         "pages/hub/training/mixed-strategy-lab.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -11450,7 +11472,8 @@
       "reachableFiles": [
         "pages/hub/training/multiway-postflop.js",
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -11735,7 +11758,8 @@
       "reachableFiles": [
         "pages/hub/training/nodelocking.js",
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -11811,7 +11835,8 @@
         "pages/hub/training/performance-heatmap.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -11887,7 +11912,8 @@
         "pages/hub/training/play-mode.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -12037,6 +12063,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -12297,7 +12324,8 @@
         "pages/hub/training/player-profiles.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -12491,7 +12519,8 @@
         "pages/hub/training/pot-geometry.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -12567,7 +12596,8 @@
         "pages/hub/training/preflop-advisor.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -12850,6 +12880,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -14107,7 +14138,8 @@
         "pages/hub/training/range-advisor.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -14298,7 +14330,8 @@
         "pages/hub/training/range-explorer.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -15443,6 +15476,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -15784,7 +15818,8 @@
         "pages/hub/training/spr-trainer.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -15896,6 +15931,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -16699,6 +16735,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -16875,7 +16912,8 @@
         "pages/hub/training/three-way-postflop.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -17339,6 +17377,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -17589,6 +17628,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -18115,7 +18155,8 @@
         "pages/hub/training/villain-range.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "states": {
         "loading": {
@@ -36337,7 +36378,8 @@
     {
       "file": "src/components/seo/SEOHead.js",
       "imports": [
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "links": [],
       "apiReferences": [],
@@ -36383,7 +36425,7 @@
         },
         {
           "name": "SEOHead",
-          "line": 33,
+          "line": 34,
           "references": 4,
           "exported": true,
           "defaultExport": true,
@@ -49300,6 +49342,57 @@
       "markers": []
     },
     {
+      "file": "src/lib/seo/shareImageMetadata.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "shareImageMetadata",
+          "line": 3,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "shareImageMetadata"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/seo/summarySchema.js",
       "imports": [
         "src/lib/seo/hubPageSchema.js",
@@ -61894,6 +61987,10 @@
       "to": "src/lib/seo/productOgImage.js"
     },
     {
+      "from": "src/components/seo/SEOHead.js",
+      "to": "src/lib/seo/shareImageMetadata.mjs"
+    },
+    {
       "from": "src/components/store/DiamondWalletModal.jsx",
       "to": "src/components/diamonds/CapHitPopup.jsx"
     },
@@ -71702,6 +71799,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -72510,7 +72608,8 @@
         "pages/hub/training/bankroll-coach.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -72555,6 +72654,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -72837,7 +72937,8 @@
         "pages/hub/training/bluff-catcher.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -72850,7 +72951,8 @@
         "pages/hub/training/bounty-trainer.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -72903,6 +73005,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -73236,6 +73339,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -73555,6 +73659,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -73870,6 +73975,7 @@
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -74131,6 +74237,7 @@
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -74172,7 +74279,8 @@
       "reachableFiles": [
         "pages/hub/training/ev-heatmap.js",
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74185,7 +74293,8 @@
         "pages/hub/training/ev-trainer.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74573,7 +74682,8 @@
         "pages/hub/training/frequency-locking.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74589,7 +74699,8 @@
         "src/content/glossary/terms.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -74724,7 +74835,8 @@
         "pages/hub/training/gto-scorecard.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74736,7 +74848,8 @@
       "reachableFiles": [
         "pages/hub/training/gto-vs-exploitative.js",
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74769,6 +74882,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -75161,6 +75275,7 @@
         "src/lib/authUtils.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -75207,7 +75322,8 @@
         "pages/hub/training/icm-final-table.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -75300,6 +75416,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -75625,6 +75742,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -76344,7 +76462,8 @@
         "pages/hub/training/mixed-strategy-lab.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -76563,7 +76682,8 @@
       "reachableFiles": [
         "pages/hub/training/multiway-postflop.js",
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -76646,7 +76766,8 @@
       "reachableFiles": [
         "pages/hub/training/nodelocking.js",
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -76659,7 +76780,8 @@
         "pages/hub/training/performance-heatmap.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -76672,7 +76794,8 @@
         "pages/hub/training/play-mode.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -76726,6 +76849,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -77029,7 +77153,8 @@
         "pages/hub/training/player-profiles.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -77089,7 +77214,8 @@
         "pages/hub/training/pot-geometry.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -77102,7 +77228,8 @@
         "pages/hub/training/preflop-advisor.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -77295,6 +77422,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -78191,7 +78319,8 @@
         "pages/hub/training/range-advisor.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -78263,7 +78392,8 @@
         "pages/hub/training/range-explorer.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -78736,6 +78866,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -78862,7 +78993,8 @@
         "pages/hub/training/spr-trainer.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -78911,6 +79043,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -79648,6 +79781,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -79928,7 +80062,8 @@
         "pages/hub/training/three-way-postflop.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -80338,6 +80473,7 @@
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
@@ -80662,6 +80798,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -81062,7 +81199,8 @@
         "pages/hub/training/villain-range.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -81343,7 +81481,8 @@
       "file": "src/components/seo/SEOHead.js",
       "reachableFiles": [
         "src/components/seo/SEOHead.js",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -81489,7 +81628,8 @@
       "reachableFiles": [
         "src/components/seo/SEOHead.js",
         "src/components/training/CanonicalTrainingRedirect.jsx",
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -85018,6 +85158,16 @@
       "reachableFiles": [
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/quizStructuredData.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/lib/seo/shareImageMetadata.mjs",
+      "reachableFiles": [
+        "src/lib/seo/shareImageMetadata.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -93431,6 +93581,21 @@
         "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
         "externalReferenceFiles": [
           "__tests__/gsc-series2-phase6.test.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/seo/shareImageMetadata.mjs",
+        "name": "shareImageMetadata",
+        "line": 3,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SEOHead.js"
         ]
       },
       {
@@ -102553,6 +102718,21 @@
         "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
         "externalReferenceFiles": [
           "__tests__/gsc-series2-phase6.test.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/seo/shareImageMetadata.mjs",
+        "name": "shareImageMetadata",
+        "line": 3,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SEOHead.js"
         ]
       },
       {

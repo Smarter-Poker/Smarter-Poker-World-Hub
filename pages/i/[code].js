@@ -4,7 +4,7 @@
  * One short code per player per club, so the person who sends the link is the
  * person credited. This page:
  *   - is server-rendered, so iMessage, WhatsApp, Discord, Telegram and the rest
- *     draw a preview card ("KingFish Invited You To Club JAQK", the club's
+ *     draw a preview card ("KingFish Invited You To The Felt Society", the club's
  *     logo, members and players playing) instead of a bare URL;
  *   - sets the first-party attribution cookie on the response (30 days, first
  *     link wins) and mirrors it to localStorage on the client;
