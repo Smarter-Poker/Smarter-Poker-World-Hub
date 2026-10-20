@@ -191,7 +191,7 @@ COMMIT;
 --  OR EXISTS(SELECT 1 FROM jsonb_array_elements(p_brief->'concepts') x WHERE jsonb_typeof(x)<>'string' OR length(x::text)>160)
 --  OR split_part(p_frame_key,':',3) IS DISTINCT FROM p_brief->'concepts'->>0 THEN
 --   RAISE EXCEPTION 'invalid hand brief concepts' USING ERRCODE='22023'; END IF;
--- 
+--
 --  -- Same namespace as maintained video/news publishers: no cross-mode race.
 --  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('publish-horse-video-author:'||p_author_id::text,0));
 --  FOR v_lock IN SELECT DISTINCT k FROM unnest(ARRAY[
