@@ -100,6 +100,7 @@ jobs:
       - name: Verify crash-log access on isolated PostgreSQL without default grants
         run: |
           PG_BIN="$(pg_config --bindir)" python3 scripts/ci/test-explicit-crash-log-access.py
+          PG_BIN="$(pg_config --bindir)" python3 scripts/ci/test-explicit-direct-caller-access.py
 
       # Added 2026-08-26 after a severity-1 outage that nothing could have
       # caught. 44 tables carried a SELECT policy calling
