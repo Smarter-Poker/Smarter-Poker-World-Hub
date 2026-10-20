@@ -1054,7 +1054,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                                                 {timeAgo(n.created_at)}
                                             </div>
 
-                                            {n.operationalResolution && (
+                                            {n.operationalResolution && n.operationalResolution.status !== 'resolved' && (
                                                 <div data-alert-status={n.operationalResolution.status}
                                                     style={{ fontSize: 12, marginTop: 4, color: n.operationalResolution.status === 'resolved' ? C.green : C.textSec }}>
                                                     {n.operationalResolution.status === 'resolved' ? 'Resolved' : n.operationalResolution.status === 'open' ? 'Open' : 'Status Unavailable'}

@@ -50,6 +50,14 @@ export async function enrichOperationalResolution(supabase, rows, userId) {
             statusById.set(event.id, { status: 'unknown' });
         }
     }));
-    return rows.map(row => originals.includes(row)
-        ? { ...row, operationalResolution: statusById.get(row.data.inbox_id) || { status: 'unknown' } } : row);
+    return rows.map(row => {
+        if (!originals.includes(row)) return row;
+        const operationalResolution = statusById.get(row.data.inbox_id) || { status: 'unknown' };
+        if (operationalResolution.status !== 'resolved') return { ...row, operationalResolution };
+        // Shared feed consumers already display actor_name/title verbatim. Mark
+        // the current display, keeping stored original text and messages intact.
+        const resolvedTitle = value => typeof value === 'string' && value
+            ? value.replace(/ \(Resolved\)$/, '') + ' (Resolved)' : value;
+        return { ...row, title: resolvedTitle(row.title), actor_name: resolvedTitle(row.actor_name), operationalResolution };
+    });
 }

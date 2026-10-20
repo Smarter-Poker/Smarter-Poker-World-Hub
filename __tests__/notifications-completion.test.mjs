@@ -221,7 +221,7 @@ function resolutionFixture() {
                 { data: state.tables[table].filter(row => call.filters.every(filter => filter(row))).slice(0, call.limit) }).then(resolve, reject); } };
         return q;
     } };
-    const rows = [1, 2].map((id) => ({ id: uuid(id), user_id: owner, type: 'system', message: 'Original Incident Message', read: false,
+    const rows = [1, 2].map((id) => ({ id: uuid(id), user_id: owner, type: 'system', title: 'Original Alert', actor_name: 'Original Alert', message: 'Original Incident Message', read: false,
         data: { source: 'owner-real-alert', inbox_id: id, alert: id === 1 ? 'Money Incident' : 'EngineDown' } }));
     return { state, db, rows };
 }
@@ -233,7 +233,10 @@ test('retained original alerts resolve from money authority and the exact engine
         { status: 'resolved', resolvedAt: '2026-10-19T13:57:01.364Z' },
     ]);
     assert.ok(result.every(row => row.message === 'Original Incident Message' && row.read === false));
-    assert.ok(rows.every(row => row.operationalResolution === undefined));
+    assert.ok(rows.every(row => row.operationalResolution === undefined && row.title === 'Original Alert'));
+    assert.ok(result.every(row => row.title === 'Original Alert (Resolved)' && row.actor_name === row.title));
+    const repeat = await enrichOperationalResolution(db, result, owner);
+    assert.ok(repeat.every(row => row.title === 'Original Alert (Resolved)'));
     assert.ok(state.calls.every(call => call.limit > 0 && call.limit <= rows.length));
     assert.match(component, /data-alert-status=\{n.operationalResolution.status\}/);
     assert.match(feedSource, /await enrichOperationalResolution\(supabase, enrichedRows, userId\)/);
