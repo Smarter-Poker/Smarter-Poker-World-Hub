@@ -6615,7 +6615,7 @@
     },
     {
       "id": 1996,
-      "name": "Club JAQK",
+      "name": "The Felt Society",
       "slug": null,
       "pokeratlas_slug": null,
       "venue_type": "poker_club",
@@ -6630,9 +6630,9 @@
       "lng": null,
       "phone": "(502) 999-5496",
       "website": null,
-      "profile_photo_url": null,
-      "cover_photo_url": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1996.jpg",
+      "profile_photo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/club-logos/the-felt-society/logo-20261020.png",
+      "cover_photo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/club-logos/the-felt-society/logo-20261020.png",
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/club-logos/the-felt-society/logo-20261020.png",
       "tagline": null,
       "about": null,
       "games_offered": [

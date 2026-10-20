@@ -9110,7 +9110,7 @@
     },
     {
       "id": 1996,
-      "name": "Club JAQK",
+      "name": "The Felt Society",
       "venue_type": "poker_club",
       "city": "Louisville",
       "state": "KY",
@@ -9153,8 +9153,8 @@
       "tournament_settings": {},
       "staff_pin_required": true,
       "primary_contact_id": null,
-      "cover_photo_url": null,
-      "profile_photo_url": null,
+      "cover_photo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/club-logos/the-felt-society/logo-20261020.png",
+      "profile_photo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/club-logos/the-felt-society/logo-20261020.png",
       "tagline": null,
       "about": null,
       "follower_count": 0,
@@ -9180,7 +9180,7 @@
       "scrape_timestamp": "2026-04-07T04:50:39.614444+00:00",
       "scrape_confidence": "medium",
       "scrape_batch_id": "1c14ece8-5255-49f2-91d9-ee3f32c15194",
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1996.jpg",
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/club-logos/the-felt-society/logo-20261020.png",
       "schedule_scrape_url": null,
       "schedule_last_scraped_at": null,
       "location_quality": {
