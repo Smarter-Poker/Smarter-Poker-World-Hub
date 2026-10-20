@@ -115,6 +115,15 @@ try:
     def aclstate():return sql("SELECT relname,relacl FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind IN ('r','S') ORDER BY 1;")
     before=aclstate();policies=sql(metadata);sql(migration)
     assert before==aclstate() and policies==sql(metadata),'Existing live ACL/RLS fixture changed'
+    # The live catalog uses UUID while the original source used bigserial.
+    # Admit those exact independent shapes without inventing a sequence live.
+    sql('ALTER TABLE scraper_runs DROP COLUMN id; ALTER TABLE scraper_runs ADD COLUMN id uuid DEFAULT gen_random_uuid();')
+    before=aclstate();sql(migration)
+    assert before==aclstate() and sql("SELECT to_regclass('public.scraper_runs_id_seq') IS NULL;")=='t'
+    sql("SET ROLE service_role; INSERT INTO scraper_runs(payload) VALUES('live-uuid-after');")
+    sql('ALTER TABLE scraper_runs ALTER COLUMN id DROP DEFAULT;')
+    denied(migration,'Expected reviewed UUID or historical bigserial scraper_runs.id')
+    sql('ALTER TABLE scraper_runs ALTER COLUMN id SET DEFAULT gen_random_uuid();')
     sql('REVOKE INSERT ON arena_sessions FROM authenticated; ALTER TABLE w2g_forms DISABLE ROW LEVEL SECURITY;')
     denied(migration,'Expected postgres-owned public.w2g_forms base table with RLS')
     assert sql("SELECT has_table_privilege('authenticated','arena_sessions','INSERT');")=='f','Drift refusal was not atomic'

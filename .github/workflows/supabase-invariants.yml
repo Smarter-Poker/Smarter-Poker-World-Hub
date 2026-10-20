@@ -123,6 +123,11 @@ jobs:
           PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-explicit-direct-caller-access.py
           PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-pokeriq-browser-structural-privileges.py
           PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-reviewed-legacy-table-access.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-mention-notification-trigger.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-reviewed-invoker-access.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-reviewed-baseline-caller-access.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-premium-self-issuance-access.py
+          PG_BIN=/usr/lib/postgresql/17/bin python3 scripts/ci/test-home-report-moderation-trigger.py
 
       # Added 2026-08-26 after a severity-1 outage that nothing could have
       # caught. 44 tables carried a SELECT policy calling

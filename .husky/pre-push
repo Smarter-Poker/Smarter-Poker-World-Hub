@@ -44,6 +44,26 @@ if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/tes
   python3 "$ROOT/scripts/ci/test-reviewed-legacy-table-access.py" || FAIL=1
 fi
 
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-mention-notification-trigger.py | grep -qE 'mention_notification_trigger_authorization|test-mention-notification-trigger'; then
+  python3 "$ROOT/scripts/ci/test-mention-notification-trigger.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-reviewed-invoker-access.py scripts/ci/reviewed-invoker-access.json scripts/ci/reviewed-invoker-function-fixtures.json | grep -qE 'explicit_reachable_invoker_and_view_access|test-reviewed-invoker-access|reviewed-invoker-'; then
+  python3 "$ROOT/scripts/ci/test-reviewed-invoker-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-reviewed-baseline-caller-access.py scripts/ci/reviewed-baseline-caller-access.json | grep -qE 'explicit_legacy_baseline_caller_access|test-reviewed-baseline-caller-access|reviewed-baseline-caller-access.json'; then
+  python3 "$ROOT/scripts/ci/test-reviewed-baseline-caller-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-premium-self-issuance-access.py tests/fixtures/premium-private-debit-20261020.sql | grep -qE 'premium_access_refuses_browser_self_issuance|test-premium-self-issuance-access|premium-private-debit'; then
+  python3 "$ROOT/scripts/ci/test-premium-self-issuance-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-home-report-moderation-trigger.py | grep -qE 'home_report_moderation_trigger_authorization|test-home-report-moderation-trigger'; then
+  python3 "$ROOT/scripts/ci/test-home-report-moderation-trigger.py" || FAIL=1
+fi
+
 # ── The pull request for this branch may already be MERGED (2026-09-06) ─────
 # Autopilot squash-merges the instant the required checks pass, so a push made
 # afterwards lands on a CLOSED pull request, changes nothing and exits 0. That

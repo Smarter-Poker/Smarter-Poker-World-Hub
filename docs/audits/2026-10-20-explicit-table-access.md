@@ -1,4 +1,4 @@
-# Supabase table-access readiness: first qualified correction
+# Supabase explicit access audit and qualified corrections
 
 Supabase removes automatic new-public-table grants from existing projects on
 October 30, 2026. Existing tables retain their grants. GRANT and RLS are
@@ -33,7 +33,7 @@ separate native qualification and remain part of the wider audit.
 
 ## Audit boundary
 
-This is the first qualified correction, not certification of every table or
+This audit does not certify a complete historical schema restore or
 fresh database reset. Read-only production inventory found 1,642 public base
 tables with RLS in PokerIQ-Production and 180 in PepNationLab. Source discovery
 covers World Hub and Club Arena; Commander shares PokerIQ. Many historical
@@ -51,3 +51,17 @@ is part of this correction.
 The follow-up declares83 additional caller-reviewed tables (111 role/table pairs) plus only scraper_runs_id_seq USAGE. Evidence includes actual client factory bindings, embedded SELECT and Realtime reads; comment-only and uncalled denied paths do not authorize grants. The native permission transition checks1992 role/operation boundaries and preserves current ACLs/RLS. This uses inert ACL fixtures and representative row policies, not a full historical business-schema restore.
 
 Browser structural rights and postgres/public structural defaults are revoked separately while preserving DML,392 column ACLs, all service rights, owners and policies. Existing supabase_admin-owned defaults remain outside that narrowing; new-table declaration revokes still apply regardless of creator. Production preflight found the exact old crash-log INSERT policy with no browser grants. Its narrowly admitted shape remains unchanged; any other policy or browser table/column access refuses installation. The2 crash-log grants remain unchanged and qualification covers both old policy shapes.
+
+The forward declaration checker also covers public VIEW and MATERIALIZED VIEW creation/replacement, requiring explicit role boundaries without a table-RLS requirement. Ten Node declaration cases now pass. View ownership/security options and underlying permissions still need caller-specific review; this static check does not certify them.
+
+The follow-up declares25 relations/39 incremental operations reached through actual invoker RPCs, enabled triggers, filtered deletes and service security-invoker views. Two absent historical tables receive conditional grants only if their reviewed shape exists; they are never recreated. Eight exact installed function fixtures reproduce missing rights before and working paths after. The mention notification trigger is repaired separately: its narrow definer validates the original SQL role, authenticated actor and canonical trigger context without browser notification INSERT or direct function EXECUTE. Fourteen native cases cover original PUBLIC defaults, existing private ACLs, forged actors and metadata drift.
+
+The83-table batch has not installed yet: live preflight refused the historical serial assumption for scraper_runs.id, which is now UUID with gen_random_uuid(). Its unapplied admission now accepts only that exact live UUID shape or the original postgres-owned bigserial shape. Sequence USAGE is conditional on the serial form, with both variants and unknown-default refusal tested. No sequence is invented in production.
+
+Full catalog accounting covers1,642 base tables,92 views/materialized views and165 sequences. The reached invoker graph closes2,010 role/function contexts with zero unresolved function bodies. Existing live ACLs are transition evidence, never the source of desired grants. Missing historical CREATE lineage and25 source-format/parser failures remain explicit limits: native ACL fixtures and representative RLS do not certify every business schema or full historical reset.
+
+A further baseline caller matrix declares only independently traced operations for147 legacy caller tables, excluding an uncalled helper and unsafe browser issuance/ledger fallbacks. Browser premium entitlement INSERT is revoked separately because the old own-user policy allowed unpaid arbitrary expiry; the old browser paid helper already fails its private debit EXECUTE boundary. This correction preserves money functions, pricing, existing entitlements, own reads and service/owner issuance. It does not claim to restore that preexisting paid helper.
+
+Actual bearer factories override filename heuristics: home-game report reads use an authenticated client. No browser moderation writes are granted to make an invoker trigger succeed. The final incremental batch removes the unsupported service comment-update decision and explicitly declares the authenticated group read.
+
+The home-report moderation trigger also restores its originally declared definer boundary. Its exact historical business body was running as invoker and could not read the moderation queue for a normal reporter. The correction validates the canonical trigger, actor, pending state and original target guard; it preserves threshold, audit and notification behavior without browser moderation rights. Twelve native cases cover all three content branches, invalid/duplicate/onboarding guards, forged reporters, both exact old invoker/definer states, metadata preservation and replay refusal.
