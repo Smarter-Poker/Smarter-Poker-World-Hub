@@ -116,10 +116,15 @@ BEGIN
       RAISE EXCEPTION 'Column ACL on public.% requires a separate per-column review',t;
     END IF;
   END LOOP;
-  IF pg_get_serial_sequence('public.scraper_runs','id') IS DISTINCT FROM 'public.scraper_runs_id_seq'
-     OR NOT EXISTS (SELECT 1 FROM pg_class WHERE oid='public.scraper_runs_id_seq'::regclass
-                     AND relkind='S' AND pg_get_userbyid(relowner)='postgres') THEN
-    RAISE EXCEPTION 'Expected existing postgres-owned scraper_runs.id serial sequence';
+  IF NOT EXISTS (SELECT 1 FROM pg_attribute a JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+    WHERE a.attrelid='public.scraper_runs'::regclass AND a.attname='id' AND a.attnum>0 AND NOT a.attisdropped
+      AND ((a.atttypid='uuid'::regtype AND a.attidentity='' AND pg_get_expr(d.adbin,d.adrelid)='gen_random_uuid()'
+        AND pg_get_serial_sequence('public.scraper_runs','id') IS NULL)
+       OR (a.atttypid='bigint'::regtype AND a.attidentity=''
+        AND pg_get_serial_sequence('public.scraper_runs','id')='public.scraper_runs_id_seq'
+        AND EXISTS (SELECT 1 FROM pg_class WHERE oid=to_regclass('public.scraper_runs_id_seq')
+          AND relkind='S' AND pg_get_userbyid(relowner)='postgres')))) THEN
+    RAISE EXCEPTION 'Expected reviewed UUID or historical bigserial scraper_runs.id';
   END IF;
 END $pre$;
 GRANT INSERT, SELECT ON TABLE public.anti_farming_ips TO service_role;
@@ -233,7 +238,11 @@ GRANT DELETE, INSERT, SELECT ON TABLE public.w2g_forms TO authenticated;
 GRANT SELECT ON TABLE public.w2g_forms TO service_role;
 GRANT SELECT ON TABLE public.wallets TO service_role;
 GRANT SELECT ON TABLE public.training_user_achievements TO authenticated;
-GRANT USAGE ON SEQUENCE public.scraper_runs_id_seq TO service_role;
+DO $sequence$ BEGIN
+  IF pg_get_serial_sequence('public.scraper_runs','id')='public.scraper_runs_id_seq' THEN
+    GRANT USAGE ON SEQUENCE public.scraper_runs_id_seq TO service_role;
+  END IF;
+END $sequence$;
 DO $post$
 DECLARE r record; op text;
 BEGIN
@@ -356,7 +365,8 @@ BEGIN
       END IF;
     END LOOP;
   END LOOP;
-  IF NOT has_sequence_privilege('service_role','public.scraper_runs_id_seq','USAGE') THEN
+  IF pg_get_serial_sequence('public.scraper_runs','id')='public.scraper_runs_id_seq'
+     AND NOT has_sequence_privilege('service_role',to_regclass('public.scraper_runs_id_seq'),'USAGE') THEN
     RAISE EXCEPTION 'Service scraper-run insert sequence privilege missing';
   END IF;
 END $post$;
