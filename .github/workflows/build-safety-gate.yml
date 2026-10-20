@@ -334,6 +334,11 @@ jobs:
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
 
+      - name: Atomic actual-own-hand publication qualification
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+        run: node scripts/ci/test-grounded-hand-publication.mjs
+
       - name: Signup Player Number And Downstream PostgreSQL Regression
         run: node --test __tests__/signup-player-number-postgres.test.mjs
 
