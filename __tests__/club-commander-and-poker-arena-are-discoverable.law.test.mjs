@@ -289,3 +289,32 @@ test('the venue image survives Commander normalization and image metadata descri
   const wrapper = read('src/components/seo/SEOHead.js');
   for (const key of ['og-image-type', 'og-image-width', 'og-image-height']) assert.ok(wrapper.includes(`key="${key}"`));
 });
+
+test('Kings supplied square logo uses an absolute crawler URL and true dimensions', async () => {
+  const { absoluteShareImage, shareImageMetadata } = await import('../src/lib/seo/shareImageMetadata.mjs');
+  const path = '/hub/club-arena/images/kings-club-logo.png';
+  assert.equal(absoluteShareImage(path), `https://smarter.poker${path}`);
+  assert.equal(absoluteShareImage('https://example.com/logo.png'), 'https://example.com/logo.png');
+  assert.deepEqual(shareImageMetadata(path), { type: 'image/png', width: 1254, height: 1254 });
+  const page = read('pages/hub/social-pages/[pageId].js');
+  assert.match(page, /ogImage=\{absoluteShareImage\(page.avatar_url \|\| page.cover_url\)\}/);
+  assert.match(page, /logo: absoluteShareImage\(page.avatar_url\)/);
+});
+test('legacy social share URLs redirect server-side to the identity owner', () => {
+  const source = read('pages/hub/social-media/[slug].js');
+  const body = source.slice(source.indexOf('export function getServerSideProps')).replace('export function', 'function');
+  const get = new Function(`${body}; return getServerSideProps;`)();
+  const id = 'eba7d82a-94dd-43b8-840d-1d547961174a';
+  assert.deepEqual(get({ params: { slug: id } }), { redirect: { destination: `/hub/social-pages/${id}`, permanent: true } });
+  assert.deepEqual(get({ params: {} }), { notFound: true });
+});
+test('only exact public brand roots rewrite to brand previews before the private fallback', () => {
+  const config = read('next.config.js');
+  const catchAll = config.indexOf("source: '/hub/club-arena/:path*'");
+  for (const route of ['clubs', 'invite']) {
+    const source = `/hub/club-arena/${route}/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)`;
+    assert.ok(config.indexOf(`source: '${source}'`) < catchAll);
+    assert.ok(config.includes(`destination: 'https://ca-static.smarter.poker/${route}/kings-club/index.html'`));
+    assert.ok(!source.includes('*'));
+  }
+});
