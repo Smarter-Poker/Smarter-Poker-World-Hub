@@ -1365,12 +1365,27 @@ const nextConfig = {
         // Brand-only previews preserve private-route noindex and expose no member data.
         // These files are published by Club Arena before enabling these exact aliases.
         {
-          source: '/hub/club-arena/clubs/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)',
+          source: '/hub/club-arena/clubs/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)/:path*',
           destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
         },
         {
-          source: '/hub/club-arena/invite/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)',
+          source: '/hub/club-arena/invite/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)/:path*',
           destination: 'https://ca-static.smarter.poker/invite/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'club', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'clubId', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'club_id', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
         },
         { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
         { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },

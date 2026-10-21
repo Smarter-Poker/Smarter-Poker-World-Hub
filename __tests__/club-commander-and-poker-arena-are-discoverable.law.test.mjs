@@ -308,13 +308,29 @@ test('legacy social share URLs redirect server-side to the identity owner', () =
   assert.deepEqual(get({ params: { slug: id } }), { redirect: { destination: `/hub/social-pages/${id}`, permanent: true } });
   assert.deepEqual(get({ params: {} }), { notFound: true });
 });
-test('only exact public brand roots rewrite to brand previews before the private fallback', () => {
+test('only known club aliases use noindex brand previews before the private fallback', () => {
   const config = read('next.config.js');
   const catchAll = config.indexOf("source: '/hub/club-arena/:path*'");
   for (const route of ['clubs', 'invite']) {
-    const source = `/hub/club-arena/${route}/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)`;
-    assert.ok(config.indexOf(`source: '${source}'`) < catchAll);
+    const source = `/hub/club-arena/${route}/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)/:path*`;
+    const position = config.indexOf(`source: '${source}'`);
+    assert.ok(position > -1 && position < catchAll);
     assert.ok(config.includes(`destination: 'https://ca-static.smarter.poker/${route}/kings-club/index.html'`));
-    assert.ok(!source.includes('*'));
+    assert.ok(source.endsWith('/:path*'));
+  }
+});
+
+test('stats and marketplace previews require an exact Kings identity query', () => {
+  const config = read('next.config.js');
+  const blocks = [...config.matchAll(/source: '\/hub\/club-arena\/:page\(stats\|marketplace\)',\s*has: \[(.*?)\],\s*destination: '(.*?)'/gs)];
+  assert.equal(blocks.length, 3);
+  for (const key of ['club', 'clubId', 'club_id']) {
+    const block = blocks.find((match) => match[1].includes(`key: '${key}'`));
+    assert.ok(block, key);
+    assert.equal(block[2], 'https://ca-static.smarter.poker/clubs/kings-club/index.html');
+    const value = block[1].match(/value: '(.*?)'/)[1];
+    const match = new RegExp(`^${value}$`);
+    for (const id of ['kings-club', 'shark-club', '25450', 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4']) assert.ok(match.test(id));
+    for (const id of ['other-club', '254500', 'prefix-kings-club', '']) assert.equal(match.test(id), false);
   }
 });
