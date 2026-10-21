@@ -18,7 +18,7 @@ async function apiFixture(file = 'pages/api/notifications/feed.js') {
         const call = { table, filters: [], orders: [], ors: [], limit: null };
         state.calls.push(call);
         const q = {
-            select(_columns, options) { call.count = options?.count; return q; }, eq(key, value) { call.filters.push(row => row[key] === value); return q; },
+            select(_columns, options) { call.count = options?.count; return q; }, eq(key, value) { const path = key.split(/->>?/); call.filters.push(row => path.reduce((v, k) => v?.[k], row) === value); return q; },
             not(key, _operator, value) { call.filters.push(row => row[key] !== value); return q; },
             in(key, values) { call.filters.push(row => values.includes(row[key])); return q; },
             lt(key, value) { call.filters.push(row => row[key] < value); return q; },
@@ -214,7 +214,7 @@ function resolutionFixture() {
     const contains = (object, part) => Object.entries(part).every(([key, value]) => value && typeof value === 'object' ? contains(object?.[key], value) : object?.[key] === value);
     const db = { from(table) {
         const call = { table, filters: [], limit: null }; state.calls.push(call);
-        const q = { select() { return q; }, eq(key, value) { call.filters.push(row => row[key] === value); return q; },
+        const q = { select() { return q; }, eq(key, value) { const path = key.split(/->>?/); call.filters.push(row => path.reduce((v, k) => v?.[k], row) === value); return q; },
             in(key, values) { call.filters.push(row => values.includes(row[key])); return q; },
             contains(key, value) { call.filters.push(row => contains(row[key], value)); return q; }, limit(value) { call.limit = value; return q; },
             then(resolve, reject) { return Promise.resolve(state.failed === table ? { error: new Error('Read Refused') } :
