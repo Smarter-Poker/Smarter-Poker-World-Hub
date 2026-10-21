@@ -36,10 +36,14 @@ export async function enrichOperationalResolution(supabase, rows, userId) {
             typeof alert.startsAt === 'string' && Number.isFinite(Date.parse(alert.startsAt))) {
             // Fingerprint alone identifies a series, not this particular outage.
             // Match its start as well so a later recovery cannot close an older episode.
+            // Text equality on both keys selects exactly what jsonb containment did, and
+            // is answered by operational_alert_events_alertmanager_recovery_idx
+            // (club-arena 20261021224043): 0.1 ms instead of a 185 ms payload scan.
             const recovery = checked(await supabase.from('operational_alert_events')
                 .select('id,payload').eq('source', 'alertmanager').eq('status', 'resolved')
                 .eq('alertname', event.alertname)
-                .contains('payload', { alert: { fingerprint: alert.fingerprint, startsAt: alert.startsAt } })
+                .eq('payload->alert->>fingerprint', alert.fingerprint)
+                .eq('payload->alert->>startsAt', alert.startsAt)
                 .limit(1))[0];
             const endsAt = recovery?.payload?.alert?.endsAt;
             statusById.set(event.id, endsAt && Date.parse(endsAt) >= Date.parse(alert.startsAt)
