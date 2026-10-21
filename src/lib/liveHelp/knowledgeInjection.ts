@@ -142,7 +142,7 @@ ${JARVIS_KNOWLEDGE.worldHub.orbs.map(orb =>
             case 'diamond_arena':
                 knowledgeSections.push(`
 ## DIAMOND ARENA
-- **What It Is**: The diamonds-only club inside Poker Arena, beside Shark Club and any chip clubs the player has joined
+- **What It Is**: The diamonds-only club inside Poker Arena, beside Kings Club and any chip clubs the player has joined
 - **Access**: Orb #2 from Hub, then select Diamond Arena at /hub/club-arena. It has no route of its own
 - **Membership**: Every platform user is automatically a member. Chip clubs require joining
 - **Currency**: Played with Diamonds instead of chips. No unions, no agents, no chip conversion
