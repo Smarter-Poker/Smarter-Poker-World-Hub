@@ -49379,8 +49379,16 @@
       },
       "functions": [
         {
+          "name": "absoluteShareImage",
+          "line": 1,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "shareImageMetadata",
-          "line": 3,
+          "line": 8,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -93586,7 +93594,7 @@
       {
         "file": "src/lib/seo/shareImageMetadata.mjs",
         "name": "shareImageMetadata",
-        "line": 3,
+        "line": 8,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102723,7 +102731,7 @@
       {
         "file": "src/lib/seo/shareImageMetadata.mjs",
         "name": "shareImageMetadata",
-        "line": 3,
+        "line": 8,
         "references": 1,
         "exported": true,
         "defaultExport": false,
