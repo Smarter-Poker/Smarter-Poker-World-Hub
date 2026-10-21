@@ -4,6 +4,7 @@
  */
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { absoluteShareImage } from '../../../src/lib/seo/shareImageMetadata.mjs';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import { useRouter } from 'next/router';
@@ -993,14 +994,15 @@ function SocialPageHead({ page }) {
         <SEOHead
             title={page.name}
             description={page.description || `Follow ${page.name} on Smarter.Poker`}
-            ogImage={page.avatar_url || page.cover_url}
+            ogImage={absoluteShareImage(page.avatar_url || page.cover_url)}
+            twitterCard={absoluteShareImage(page.avatar_url || page.cover_url) === 'https://smarter.poker/hub/club-arena/images/kings-club-logo.png' ? 'summary' : 'summary_large_image'}
             canonical={`/hub/social-pages/${page.slug || page.id}`}
             jsonLd={{
                 '@type': 'Organization',
                 name: page.name,
                 description: page.description || `${page.name} on Smarter.Poker`,
                 url: `https://smarter.poker/hub/social-pages/${page.slug || page.id}`,
-                ...(page.avatar_url ? { logo: page.avatar_url } : {}),
+                ...(page.avatar_url ? { logo: absoluteShareImage(page.avatar_url) } : {}),
             }}
         />
     );
