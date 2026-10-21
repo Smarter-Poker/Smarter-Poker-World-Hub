@@ -299,6 +299,12 @@ test('Kings supplied square logo uses an absolute crawler URL and true dimension
   const page = read('pages/hub/social-pages/[pageId].js');
   assert.match(page, /ogImage=\{absoluteShareImage\(page.avatar_url \|\| page.cover_url\)\}/);
   assert.match(page, /logo: absoluteShareImage\(page.avatar_url\)/);
+  const cardExpression = page.match(/twitterCard=\{([^\n]+)\}/)?.[1];
+  assert.ok(cardExpression);
+  const card = new Function('page', 'absoluteShareImage', `return ${cardExpression}`);
+  assert.equal(card({ avatar_url: path }, absoluteShareImage), 'summary');
+  assert.equal(card({ avatar_url: `https://smarter.poker${path}` }, absoluteShareImage), 'summary');
+  assert.equal(card({ avatar_url: '/images/another-club.png' }, absoluteShareImage), 'summary_large_image');
 });
 test('legacy social share URLs redirect server-side to the identity owner', () => {
   const source = read('pages/hub/social-media/[slug].js');

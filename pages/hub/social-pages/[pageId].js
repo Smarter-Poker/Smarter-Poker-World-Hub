@@ -995,6 +995,7 @@ function SocialPageHead({ page }) {
             title={page.name}
             description={page.description || `Follow ${page.name} on Smarter.Poker`}
             ogImage={absoluteShareImage(page.avatar_url || page.cover_url)}
+            twitterCard={absoluteShareImage(page.avatar_url || page.cover_url) === 'https://smarter.poker/hub/club-arena/images/kings-club-logo.png' ? 'summary' : 'summary_large_image'}
             canonical={`/hub/social-pages/${page.slug || page.id}`}
             jsonLd={{
                 '@type': 'Organization',

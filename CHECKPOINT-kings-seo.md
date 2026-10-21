@@ -6,3 +6,5 @@ Implementation: exact club/invite regex aliases before catchall; public social i
 
 Parent coordinated safe brand-only noscript shell preserving private-route noindex and original SPA URL/auth. Extended known aliases to nested paths and exact Kings-keyed stats/marketplace query shortcuts; other club metadata unchanged. Candidate requalification needed.
 Hosted safety39677528796 failed2026-10-21T21:23:57Z only training-surface inventory stale from new shared metadata function. Maintained generator refreshed after including existing e2e sparse inputs. Reviewed exact14line diff: added helper record and shifted line references only; all349deps/161tests/counts unchanged. Dedicated inventory regression passes; no Training behavior edits. Failure log hub-safety-failure.log archived. Candidate correction uses normal hooks and same PR.
+
+Parent requested Kings social square crest Twitter summary card specifically; exact image identity conditional keeps every other social card unchanged. Existing logo regression now evaluates both rooted/absolute Kings images and another-club boundary.
