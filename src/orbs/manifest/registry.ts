@@ -21,7 +21,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Poker Arena',
     gradient: ['#ffb347', '#cc7722'],
     imageUrl: '/cards/poker-arena.webp?v=frame2',
-    description: 'SHARK CLUB, DIAMOND ARENA AND YOUR JOINED CLUBS',
+    description: 'KINGS CLUB, DIAMOND ARENA AND YOUR JOINED CLUBS',
   },
   {
     id: 'bankroll-manager',
