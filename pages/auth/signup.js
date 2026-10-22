@@ -1410,8 +1410,8 @@ export default function SignUpPage() {
                   /* United States / Outside The US: buttons, not inputs, so the
                      16px iOS-zoom floor does not apply; keep each label on one line. */
                   .auth-input-styled.auth-country-choice {
-                    font-size: 13px !important;
-                    padding: 0 4px !important;
+                    font-size: 12px !important;
+                    padding: 0 3px !important;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
