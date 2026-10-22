@@ -3793,10 +3793,14 @@ export default function UserProfilePage() {
     profile.username && profile.display_name && profile.display_name !== profile.username
       ? profile.username
       : null; // Only show alias badge when a distinct display_name is shown
+  // US players show "City, ST"; everyone else shows their country. Signup
+  // stores the full name ("United States"); older rows may say US or USA.
+  const isUsCountry = ['US', 'USA', 'UNITED STATES'].includes(String(profile.country || '').trim().toUpperCase());
+  const profileCountry = isUsCountry ? null : profile.country;
   const locationParts = [
     profile.city,
     profile.state,
-    profile.country === 'US' ? null : profile.country,
+    profileCountry,
   ].filter(Boolean);
 
   return (
@@ -5056,7 +5060,7 @@ export default function UserProfilePage() {
             const fields = [
               { label: 'Profile Photo', done: !!profile.avatar_url },
               { label: 'Bio', done: !!profile.bio },
-              { label: 'Location', done: !!(profile.city || profile.state) },
+              { label: 'Location', done: !!(profile.city || profile.state || profileCountry) },
               { label: 'Cover Photo', done: !!profile.cover_photo_url },
               { label: 'Display Name', done: !!profile.full_name },
             ];
@@ -5331,6 +5335,7 @@ export default function UserProfilePage() {
                         <strong>
                           {profile.city}
                           {profile.state ? `, ${profile.state}` : ''}
+                          {profileCountry ? `, ${profileCountry}` : ''}
                         </strong>
                       </span>
                     </div>
