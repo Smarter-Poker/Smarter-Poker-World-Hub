@@ -749,9 +749,32 @@ export default function SignUpPage() {
         // Email confirmation required - show pending screen
         setStep('email_pending');
       } else {
-        // Auto-confirmed signups carry the same invitation as code confirmation.
-        const next = await resolveSignupClubPath(authData.session,
-          Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
+        // Auto-confirmed signups (email confirmation off, Dan 2026-10-22) get
+        // everything code confirmation gives: promo/referral codes redeemed,
+        // player number shown, and the same invitation path.
+        const session = authData.session;
+        const fetchPlayerNumber = async () => {
+          if (!authData?.user) return;
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('player_number')
+              .eq('id', authData.user.id)
+              .maybeSingle();
+            if (profile?.player_number) setAssignedPlayerNumber(profile.player_number);
+          } catch (err) {
+            console.log('Could not fetch player number:', err);
+          }
+        };
+        const redeemCodes = session?.access_token && authData?.user?.id
+          ? redeemPendingSignupCodes({ accessToken: session.access_token, userId: authData.user.id })
+          : Promise.resolve();
+        const [, , next] = await Promise.all([
+          fetchPlayerNumber(),
+          redeemCodes,
+          resolveSignupClubPath(session,
+            Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect),
+        ]);
         setSignupClubPath(next);
         setStep('success');
         if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
