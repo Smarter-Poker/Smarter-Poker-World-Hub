@@ -278,7 +278,7 @@ export default async function handler(req, res) {
                       otherIds.map((recipientId) =>
                           notifyNewMessage(
                               getSupabase(), recipientId, senderName, preview, conversationId,
-                              senderProfile?.avatar_url || null
+                              senderProfile?.avatar_url || null, userId
                           )
                       )
                   );

@@ -270,6 +270,7 @@ jobs:
           __tests__/zombie-endpoint-retirement.test.mjs
           __tests__/push-worker-delivery-receipt.test.mjs
           __tests__/push-enrollment-nudge.test.mjs
+          __tests__/message-notification-sender.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
