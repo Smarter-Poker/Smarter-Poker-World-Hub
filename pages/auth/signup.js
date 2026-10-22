@@ -988,7 +988,7 @@ export default function SignUpPage() {
                           type="button"
                           role="radio"
                           aria-checked={active}
-                          className="auth-input-styled auth-country-choice"
+                          className={`auth-input-styled auth-country-choice${active ? ' is-active' : ''}`}
                           onClick={() =>
                             setFormData({
                               ...formData,
@@ -1002,9 +1002,6 @@ export default function SignUpPage() {
                             minWidth: 0,
                             cursor: 'pointer',
                             fontWeight: active ? 700 : 500,
-                            border: active ? '1px solid #00d4ff' : undefined,
-                            boxShadow: active ? '0 0 0 1px #00d4ff inset' : undefined,
-                            color: active ? '#00d4ff' : undefined,
                           }}
                         >
                           {opt.label}
@@ -1410,11 +1407,17 @@ export default function SignUpPage() {
                   /* United States / Outside The US: buttons, not inputs, so the
                      16px iOS-zoom floor does not apply; keep each label on one line. */
                   .auth-input-styled.auth-country-choice {
-                    font-size: 13px !important;
-                    padding: 0 4px !important;
+                    font-size: 12px !important;
+                    padding: 0 3px !important;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
+                  }
+                  .auth-input-styled.auth-country-choice.is-active {
+                    border-color: #00d4ff !important;
+                    background: rgba(0, 212, 255, 0.16) !important;
+                    color: #00d4ff !important;
+                    box-shadow: 0 0 0 1px #00d4ff inset;
                   }
                   option {
                     background: #0b0e14;
@@ -1583,6 +1586,7 @@ export default function SignUpPage() {
             .sp-signup-phone .auth-label-hint { font-size: 12px !important; }
             .sp-signup-phone .auth-field-row select.auth-input-styled { min-width: 0; padding: 0 8px !important; }
             .sp-signup-phone .auth-input-styled.auth-country-choice { font-size: 15px !important; padding: 0 6px !important; white-space: nowrap; }
+            .sp-signup-phone .auth-input-styled.auth-country-choice.is-active { border-color: #00d4ff !important; background: rgba(0, 212, 255, 0.16) !important; color: #00d4ff !important; box-shadow: 0 0 0 1px #00d4ff inset; }
           ` }} />
 
           {/* Art header: the top 34% of the painted card (logo, Create Account,
