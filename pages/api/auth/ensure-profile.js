@@ -474,6 +474,7 @@ export default async function handler(req, res) {
                   phone_verified: phoneVerified,
                   city: metadata?.city || null,
                   state: metadata?.state || null,
+                  country: metadata?.country || null,
                   birthday: metadata?.birthday || null,
                   birth_year: metadata?.birth_year || null,
                   social_profile_completed: socialProfileCompleted,

@@ -321,7 +321,7 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
             localStorage: { setItem: (...args) => writes.push(args) },
             require: name => {
                 if (name === 'react') return { ...React, useEffect: () => {}, useState: initial => React.useState(initial?.firstName === '' ? {
-                    ...initial, firstName: 'Signup', lastName: 'Test', email: 'PLAYER@example.invalid', password: 'Local-Only-Test-Password', pokerAlias: 'SignupTest', birthMonth: '01', birthDay: '01', birthYear: '1990',
+                    ...initial, firstName: 'Signup', lastName: 'Test', email: 'PLAYER@example.invalid', password: 'Local-Only-Test-Password', pokerAlias: 'SignupTest', birthMonth: '01', birthDay: '01', birthYear: '1990', city: 'Chicago', state: 'IL',
                 } : initial) };
                 if (name === 'react/jsx-runtime' || name === 'lucide-react') return require(name);
                 if (name === 'next/router') return { useRouter: () => ({ query: { ref: '1253', invite: 'ABC2345', redirect: '/hub/club-arena/invite/shark-club' }, push: href => routes.push(href) }) };
