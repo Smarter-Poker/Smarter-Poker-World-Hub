@@ -7,11 +7,20 @@ Historical applied SQL remains immutable; this is a fresh empty-schema route,
 not a production replay or a replacement for restoring financial data backups.
 
 The shared baseline fingerprints this repository's historical migration bytes.
-Any new migration requires a refreshed qualified baseline rather than silently
-admitting unexecuted SQL. Full qualification requires the pinned real Supabase
+New migration source requires a refreshed baseline or an exact, independently
+qualified schema transition; hashes alone never admit unexecuted SQL. Full qualification requires the pinned real Supabase
 PostgreSQL runtime and independent source-catalog comparison.
 
 The directly triggered `Shared PokerIQ schema lineage` workflow checks this
 candidate against the pinned canonical baseline. Club Arena's full native
 rebuild workflow proves that exact canonical source using the real pinned
 provider runtime; Hub's lineage check does not claim a second full restore.
+
+The currently submitted canonical candidate is
+`e88d0a24ff02c7f6ec9716359b0abdbe037c1334`. Full pinned-image qualification is
+pending in Arena run `39854610773`; this Hub submission does not claim a pass.
+Both pull requests remain subject to that actual result and their required
+checks before protected merge. The schema-only snapshot records historical
+source/ledger differences without replaying financial history. Its one exact
+pending migration is applied only in the isolated qualification database after
+independent baseline equality, followed by full catalog comparison.
