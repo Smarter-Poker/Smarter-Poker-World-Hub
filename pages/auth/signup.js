@@ -988,7 +988,7 @@ export default function SignUpPage() {
                           type="button"
                           role="radio"
                           aria-checked={active}
-                          className="auth-input-styled"
+                          className="auth-input-styled auth-country-choice"
                           onClick={() =>
                             setFormData({
                               ...formData,
@@ -999,6 +999,7 @@ export default function SignUpPage() {
                           }
                           style={{
                             flex: 1,
+                            minWidth: 0,
                             cursor: 'pointer',
                             fontWeight: active ? 700 : 500,
                             border: active ? '1px solid #00d4ff' : undefined,
@@ -1406,6 +1407,15 @@ export default function SignUpPage() {
                     appearance: auto !important;
                     cursor: pointer;
                   }
+                  /* United States / Outside The US: buttons, not inputs, so the
+                     16px iOS-zoom floor does not apply; keep each label on one line. */
+                  .auth-input-styled.auth-country-choice {
+                    font-size: 13px !important;
+                    padding: 0 4px !important;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  }
                   option {
                     background: #0b0e14;
                     color: #fff;
@@ -1572,6 +1582,7 @@ export default function SignUpPage() {
             .sp-signup-phone input[type="checkbox"]:focus-visible { outline: 2px solid #00c6ff; outline-offset: 2px; }
             .sp-signup-phone .auth-label-hint { font-size: 12px !important; }
             .sp-signup-phone .auth-field-row select.auth-input-styled { min-width: 0; padding: 0 8px !important; }
+            .sp-signup-phone .auth-input-styled.auth-country-choice { font-size: 15px !important; padding: 0 6px !important; white-space: nowrap; }
           ` }} />
 
           {/* Art header: the top 34% of the painted card (logo, Create Account,
