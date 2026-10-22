@@ -22,9 +22,9 @@ test('Dan still sees them on both of his accounts', () => {
     for (const id of DAN_IDS) assert.deepEqual(getOwnerOnlyHiddenCardIds(id), []);
 });
 
-test('carousel, quick-launch footer and customizer all apply the rule', () => {
+test('carousel and customizer apply the rule without a quick-launch footer', () => {
     const hub = readFileSync(new URL('../src/world/WorldHub.tsx', import.meta.url), 'utf8');
-    assert.match(hub, /getFooterCards\(effectiveHiddenIds\)/);
+    assert.doesNotMatch(hub, /getFooterCards|footerCards|<FooterCard/);
     assert.match(hub, /orbs\.filter\(o => !effectiveHiddenIds\.includes\(o\.id\)/);
     const panel = readFileSync(new URL('../src/world/components/CardCustomizerPanel.tsx', import.meta.url), 'utf8');
     assert.match(panel, /ownerOnlyHidden\.includes\(orb\.id\)\) return false/);

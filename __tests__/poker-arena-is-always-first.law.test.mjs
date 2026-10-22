@@ -51,7 +51,7 @@ test('a list without Poker Arena (visit history, an old hidden preference) gets 
   assert.equal(out[0], ARENA);
 });
 
-test('the quick-launch row stays six cards, keeps Toke Tracker, and leads with Poker Arena', () => {
+test('bounded card lists keep Toke Tracker and lead with Poker Arena', () => {
   // A reader whose history is all other cards: last visited trivia, Toke Tracker injected first.
   const footer = ['toke-tracker', 'trivia', 'news', 'training', 'marketplace', 'video-library'].map(card);
   const out = pinPokerArenaFirst(footer, { arena: ARENA, limit: 6, keepIds: ['toke-tracker'] });
@@ -59,7 +59,7 @@ test('the quick-launch row stays six cards, keeps Toke Tracker, and leads with P
   assert.equal(out[0].id, 'club-arena');
   assert.ok(ids(out).includes('toke-tracker'));
   assert.deepEqual(ids(out), ['club-arena', 'toke-tracker', 'trivia', 'news', 'training', 'marketplace']);
-  // Mobile renders the first five: Poker Arena is still the first of those.
+  // A five-card subset still keeps Poker Arena first.
   assert.equal(out.slice(0, 5)[0].id, 'club-arena');
 });
 
@@ -75,12 +75,9 @@ test('the World Hub pins Poker Arena at the final step of every card list it ren
   // Carousel: the memo returns the pinned list.
   const carousel = hub.slice(hub.indexOf('const carouselOrbs = useMemo'), hub.indexOf('}, [hasCommanderAccount, effectiveHiddenIds]);'));
   assert.match(carousel, /return pinPokerArenaFirst\(visible, \{ arena: POKER_ARENA_ORB \}\);\s*$/);
-  // Quick-launch row (desktop six, mobile first five): the memo returns the pinned list.
-  const footer = hub.slice(hub.indexOf('const footerCards = useMemo'), hub.indexOf('}, [effectiveHiddenIds]);'));
-  assert.match(footer, /return pinPokerArenaFirst\(visible, \{ arena: POKER_ARENA_ORB, limit: 6, keepIds: \['toke-tracker'\] \}\);\s*$/);
-  // Both rows render footerCards in order; the carousel opens on card zero, not a remembered index.
-  assert.match(hub, /footerCards\.map\(\(orb, index\)/);
-  assert.match(hub, /footerCards\.slice\(0, 5\)\.map\(\(orb, index\)/);
+  // The footer row was removed by the owner's October 22 cleanup request.
+  assert.doesNotMatch(hub, /footerCards|<FooterCard/);
+  // The remaining carousel opens on card zero, not a remembered index.
   assert.match(hub, /orbs=\{carouselOrbs\}/);
   assert.match(hub, /initialIndex=\{0\}/);
   assert.doesNotMatch(hub, /initialIndex=\{getLastCarouselIndex\(\)\}/);
