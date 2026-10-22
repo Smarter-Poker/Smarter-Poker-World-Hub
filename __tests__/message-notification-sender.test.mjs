@@ -24,10 +24,12 @@ test('notifyNewMessage takes the sender id and records it as the actor', () => {
     assert.match(helper, /actorId:\s*senderId \|\| undefined/);
 });
 
-test('message notification data carries the sender id and avatar for live readers', () => {
+test('message notification data carries the sender id, and no photo copy', () => {
     assert.match(helper, /conversationId,/);
     assert.match(helper, /senderId \? \{ senderId \} : \{\}/);
-    assert.match(helper, /senderAvatarUrl \? \{ senderAvatarUrl \} : \{\}/);
+    // The photo is the actor's profile, joined by the feed; a copy in data
+    // would go stale when the sender changes their picture.
+    assert.doesNotMatch(helper, /senderAvatarUrl \? \{ senderAvatarUrl \}/);
 });
 
 test('send-message passes the authenticated sender to notifyNewMessage', () => {
