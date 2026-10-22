@@ -52,6 +52,7 @@ import {
   reportAuthError,
   takeAuthErrorDetail,
 } from '../../src/lib/authErrors';
+import { US_COUNTRY, NON_US_COUNTRIES } from '../../src/lib/countries';
 
 // US States for dropdown
 const US_STATES = [
@@ -155,6 +156,10 @@ export default function SignUpPage() {
     birthYear: '',
     city: '',
     state: '',
+    // Everyone defaults to the US. "Outside The US" reveals the country
+    // dropdown, which replaces the State dropdown (2026-10-22, Dan).
+    outsideUs: false,
+    country: '',
     pokerAlias: '',
     promoCode: '',
   });
@@ -577,6 +582,13 @@ export default function SignUpPage() {
       return;
     }
 
+    // Location: a US player needs a state; a player outside the US needs a country.
+    if (formData.outsideUs ? !formData.country : !formData.state) {
+      setError(formData.outsideUs ? 'Please Select Your Country' : 'Please Select Your State');
+      setLoading(false);
+      return;
+    }
+
     // Birthdate validation - must be 18+ (using dropdown values)
     if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
       setError('Please Select Your Complete Birth Date');
@@ -651,7 +663,8 @@ export default function SignUpPage() {
             last_name: cleanLastName,
             poker_alias: formData.pokerAlias,
             city: formData.city,
-            state: formData.state,
+            state: formData.outsideUs ? null : formData.state,
+            country: formData.outsideUs ? formData.country : US_COUNTRY,
             birth_year: parseInt(formData.birthYear),
             birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
             // Phone is verified AFTER first login on /hub/verify-phone
@@ -706,7 +719,8 @@ export default function SignUpPage() {
           identify(authData.user.id, {
             email: formData.email,
             signup_source: isReferralCode ? 'referral' : formData.promoCode ? 'promo' : 'organic',
-            state: formData.state,
+            state: formData.outsideUs ? null : formData.state,
+            country: formData.outsideUs ? formData.country : US_COUNTRY,
           });
           // [2026-05-03] Deferred — fired only after profile provision.
           // capture(FunnelEvents.SIGNUP, …) — see end of try{} block below.
@@ -959,9 +973,49 @@ export default function SignUpPage() {
                   </div>
                 </div>
 
-                {/* City & State */}
+                {/* Country: United States by default; "Outside The US" reveals the country dropdown */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Where Do You Live?</label>
+                  <div className="auth-field-row" role="radiogroup" aria-label="Where Do You Live?">
+                    {[
+                      { outside: false, label: 'United States' },
+                      { outside: true, label: 'Outside The US' },
+                    ].map((opt) => {
+                      const active = formData.outsideUs === opt.outside;
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          className="auth-input-styled"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              outsideUs: opt.outside,
+                              state: opt.outside ? '' : formData.state,
+                              country: opt.outside ? formData.country : '',
+                            })
+                          }
+                          style={{
+                            flex: 1,
+                            cursor: 'pointer',
+                            fontWeight: active ? 700 : 500,
+                            border: active ? '1px solid #00d4ff' : undefined,
+                            boxShadow: active ? '0 0 0 1px #00d4ff inset' : undefined,
+                            color: active ? '#00d4ff' : undefined,
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* City & State (US) or City & Country (outside the US) */}
                 <div className="auth-field-row">
-                  <div className="auth-field-group" style={{ flex: 2 }}>
+                  <div className="auth-field-group" style={{ flex: formData.outsideUs ? 1 : 2 }}>
                     <label className="auth-label">City</label>
                     <input
                       type="text"
@@ -972,20 +1026,37 @@ export default function SignUpPage() {
                       required
                     />
                   </div>
-                  <div className="auth-field-group" style={{ flex: 1 }}>
-                    <label className="auth-label">State</label>
-                    <select
-                      className="auth-input-styled"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      required
-                    >
-                      <option value="" disabled>Select</option>
-                      {usStates.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {formData.outsideUs ? (
+                    <div className="auth-field-group" style={{ flex: 1 }}>
+                      <label className="auth-label">Select Your Country</label>
+                      <select
+                        className="auth-input-styled"
+                        value={formData.country}
+                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        required
+                      >
+                        <option value="" disabled>Select</option>
+                        {NON_US_COUNTRIES.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="auth-field-group" style={{ flex: 1 }}>
+                      <label className="auth-label">State</label>
+                      <select
+                        className="auth-input-styled"
+                        value={formData.state}
+                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                        required
+                      >
+                        <option value="" disabled>Select</option>
+                        {usStates.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Poker Alias */}
@@ -1863,7 +1934,7 @@ export default function SignUpPage() {
                   <div style={styles.profileRow}>
                     <span style={styles.profileLabel}>Location</span>
                     <span style={styles.profileValue}>
-                      {formData.city}, {formData.state}
+                      {formData.city}, {formData.outsideUs ? formData.country : formData.state}
                     </span>
                   </div>
                 </div>
@@ -1906,7 +1977,7 @@ export default function SignUpPage() {
                 playerNumber={assignedPlayerNumber}
                 alias={formData.pokerAlias}
                 city={formData.city}
-                state={formData.state}
+                state={formData.outsideUs ? formData.country : formData.state}
                 onContinue={() => window.location.assign(signupClubPath || '/hub/club-arena')}
                 onVerifyPhone={async () => {
                   const next = signupClubPath || await resolveSignupClubPath(
