@@ -9,6 +9,7 @@ import { getAuthUser } from '../lib/authUtils';
 import { listenBroadcast, broadcastSync, BROADCAST_TAB_ID } from '../lib/broadcastSync';
 import { getHeaderStats, invalidateHeaderStats } from '../lib/headerStats';
 import toast from '../stores/toastStore';
+import { requestPushNudge } from '../lib/push/enrollment-nudge.mjs';
 
 
 const UnreadContext = createContext({
@@ -115,6 +116,13 @@ export function UnreadProvider({ children }) {
                         filter: `user_id=eq.${userId}`,
                     }, (payload) => {
                         scheduleNotifRefresh();
+                        // A received message is the moment an alert is most
+                        // obviously useful. The shared policy decides whether
+                        // an ask may actually appear (never when push is on,
+                        // turned off, blocked, or asked within the last day).
+                        if (payload.new && payload.new.type === 'new_message') {
+                            requestPushNudge('message_received');
+                        }
                         if (payload.new && payload.new.type === 'live_invite') {
                             const data = payload.new.data || {};
                             const content = data.content || '';
