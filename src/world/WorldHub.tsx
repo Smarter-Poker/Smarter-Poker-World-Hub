@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
-   HUB VANGUARD — POKERBROS WORLD HUB (6 FOOTER CARDS)
-   Profile with reactive glow + 6 most visited cards at bottom
+   HUB VANGUARD — POKERBROS WORLD HUB
+   Main card carousel with a clean, uncluttered footer
    
    v19.1 — Baked-in Assets Standard (no duplicate labels)
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -12,11 +12,10 @@ import { Canvas } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { CarouselEngine } from './carousel/CarouselEngine';
-import { getFooterCards, recordCardVisit, triggerHaptic, setLastCarouselIndex, getHiddenCardIds, hydrateHiddenCardIds } from '../state/userPreferences';
+import { recordCardVisit, triggerHaptic, setLastCarouselIndex, getHiddenCardIds, hydrateHiddenCardIds } from '../state/userPreferences';
 import { getAuthUser } from '../lib/authUtils';
 import { getOwnerOnlyHiddenCardIds } from '../config/ownerOnlyHubCards';
 import { useWorldStore } from '../state/worldStore';
-import type { OrbConfig } from '../orbs/manifest/registry';
 import { COMMANDER_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS, POKER_ARENA_ORB } from '../orbs/manifest/registry';
 import { pinPokerArenaFirst } from '../orbs/manifest/hubCardOrder';
 import { NeuronLights } from './components/NeuronLights';
@@ -52,11 +51,6 @@ import { SearchOverlay } from './components/GlobalSearch';
 import { useLiveHelp } from './components/Geeves';
 import NewUserWelcomeModal from '../components/gates/NewUserWelcomeModal';
 import { useAvatar } from '../contexts/AvatarContext';
-/* The bottom nav's own height, so the mobile footer strip below can reserve it
-   instead of guessing (it guessed 20px and lost every card's label). */
-
-
-
 // ─────────────────────────────────────────────────────────────────────────────
 // 🎮 LOADING FALLBACK
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,107 +64,6 @@ function LoadingFallback() {
         </Float>
     );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 🃏 FOOTER CARD - STANDING HOLOGRAPHIC CARDS
-// 6 cards with 3D perspective, holographic edges, and subtle animations
-// Color palette: Cyan, Blue, Green, White (no purple/pink)
-// ─────────────────────────────────────────────────────────────────────────────
-interface FooterCardProps {
-    orb: OrbConfig;
-    index: number;
-    onSelect: (id: string) => void;
-    isIntroComplete: boolean;
-    isMobile?: boolean;
-}
-
-
-
-function FooterCard({ orb, index, onSelect, isIntroComplete, isMobile }: FooterCardProps) {
-    const [hasAnimatedIn, setHasAnimatedIn] = useState(false);
-
-    // Intro animation only - no continuous floating (footer cards are static)
-    useEffect(() => {
-        if (isIntroComplete && !hasAnimatedIn) {
-            const delay = 200 + index * 80; // Faster: 200ms base + 80ms stagger
-            const timer = setTimeout(() => setHasAnimatedIn(true), delay);
-            return () => clearTimeout(timer);
-        }
-    }, [isIntroComplete, index, hasAnimatedIn]);
-
-
-
-    return (
-        <div
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                cursor: 'pointer',
-                transform: hasAnimatedIn
-                    ? `translateY(0px) scale(1)`
-                    : `translateY(150px) scale(0.5)`,
-                opacity: hasAnimatedIn ? 1 : 0,
-                flex: 1,
-                width: '100%',
-                maxWidth: isMobile ? '100%' : `clamp(140px, 17vw, 186px)`,  // clamp only on desktop
-                transition: hasAnimatedIn ? 'none' : 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
-                transformStyle: 'preserve-3d',
-            }}
-            onClick={() => onSelect(orb.id)}
-            title={orb.label}
-            onMouseEnter={(e) => {
-                e.currentTarget.style.transform = `translateY(-8px) scale(1.1)`;
-            }}
-            onMouseLeave={(e) => {
-                e.currentTarget.style.transform = `translateY(0px) scale(1)`;
-            }}
-        >
-            {/* Card Container */}
-            <div
-                style={{
-                    position: 'relative',
-                    width: '100%',
-                    maxWidth: 186,
-                }}
-            >
-
-                <div
-                    style={{
-                        position: 'relative',
-                        width: '100%',
-                        aspectRatio: '2 / 3',
-                        background: 'transparent',
-                    }}
-                >
-                    {/* Card image - Static for footer cards (full image, no cropping) */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            width: '100%',
-                            height: '100%',
-                            backgroundImage: orb.imageUrl
-                                ? `url('${orb.imageUrl}')`
-                                : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                            backgroundSize: orb.scale ? `${orb.scale[0] * 100}% ${orb.scale[1] * 100}%` : '100% 100%',
-                            backgroundPosition: 'center',
-                        }}
-                    />
-
-                    {/* WHITE BORDERS REMOVED — Clean card look per user request */}
-                </div>
-            </div>
-
-            {/* CARD TITLE REMOVED — Clean card look per user request */}
-        </div>
-    );
-}
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔔 HUD ICON (Messages, Notifications - same size as profile orb)
@@ -358,23 +251,6 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         [hiddenCardIds, ownerOnlyHiddenIds]
     );
 
-    // Get the 6 footer cards (most visited or defaults) — reactive to hiddenCardIds
-    // Also ensures TOKE_TRACKER_ORB is always available for quick-launch
-    const footerCards = useMemo(() => {
-        const cards = getFooterCards(effectiveHiddenIds);
-        // Inject TOKE_TRACKER_ORB at front if not already in the personalized list
-        const hasInList = cards.some(c => c.id === 'toke-tracker');
-        const base = hasInList ? cards : [TOKE_TRACKER_ORB, ...cards.slice(0, 5)];
-        // Filter any cards the user has hidden — PINNED cards can never be filtered out
-        const visible = effectiveHiddenIds.length > 0
-            ? base.filter(c => !effectiveHiddenIds.includes(c.id) || PINNED_ORB_IDS.includes(c.id))
-            : base;
-        // FINAL ORDER (Dan, 2026-10-11): Poker Arena is ALWAYS the first card,
-        // whatever the visit history or saved preferences put first. Applied
-        // last so nothing above can re-sort it; still six cards, Toke Tracker kept.
-        return pinPokerArenaFirst(visible, { arena: POKER_ARENA_ORB, limit: 6, keepIds: ['toke-tracker'] });
-    }, [effectiveHiddenIds]);
-
     // ═══════════════════════════════════════════════════════════════════════
     // UI STATE
     // ═══════════════════════════════════════════════════════════════════════
@@ -434,7 +310,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
     // 🔴 BUS LISTENER — Real-time card visibility sync from CardCustomizerPanel
     // Fires whenever user toggles or resets cards in the customizer panel
-    // Updates carousel + footer cards instantly without page reload
+    // Updates carousel cards instantly without page reload
     useEffect(() => {
         const handleCardsHiddenChanged = (e: Event) => {
             const detail = (e as CustomEvent<{ hiddenIds: string[] }>).detail;
@@ -592,70 +468,6 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         console.log('Logo clicked - Returning to World Hub home');
         exitOrb();
         router.push('/hub');
-    };
-
-    // Handle footer card click → Navigate to that world page
-    const handleCardSelect = (cardId: string) => {
-        console.log(`Footer card clicked: ${cardId}`);
-        triggerHaptic('medium');
-        recordCardVisit(cardId);
-        selectOrb(cardId as any);
-
-        // Commander card → Club Commander management software (standalone app)
-                if (cardId === 'club-commander') {
-            const authStr = localStorage.getItem('smarter-poker-auth');
-            if (authStr) {
-                try {
-                    const auth = JSON.parse(authStr);
-                    if (auth?.session?.access_token) {
-                        fetch('/api/auth/commander-sso', {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${auth.session.access_token}` }
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.url) {
-                                window.location.href = data.url;
-                            } else {
-                                window.location.href = 'https://commander.smarter.poker/commander/login';
-                            }
-                        })
-                        .catch(() => {
-                            window.location.href = 'https://commander.smarter.poker/commander/login';
-                        });
-                        return;
-                    }
-                } catch (err) {}
-            }
-            window.location.href = 'https://commander.smarter.poker/commander/login';
-            return;
-        }
-
-        // Employee Portal removed — Work Schedule merged into Toke Tracker
-
-        // Toke Tracker card routes to dedicated hub page with 4 icon cards
-        if (cardId === 'toke-tracker') {
-            router.push('/hub/toke-tracker');
-            return;
-        }
-
-        // Poker Near Me routes to the 12-icon lobby, not the tab-based page
-        if (cardId === 'poker-near-me') {
-            router.push('/hub/poker-near-me/lobby');
-            return;
-        }
-
-        // Club Arena is a standalone Vite SPA — MUST use full page navigation.
-        // Next.js router.push loads the HTML but type="module" scripts don't
-        // re-execute, leaving React unmounted (black screen bug).
-        if (cardId === 'club-arena') {
-            window.location.href = '/hub/club-arena';
-            return;
-        }
-
-        const targetRoute = `/hub/${cardId}`;
-
-        router.push(targetRoute);
     };
 
     // Handle main carousel card click → Navigate to that world page
@@ -992,72 +804,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                         <StreakPopup />
                     </HubErrorBoundary>
 
-                    {/* 6 MOST VISITED CARDS AT BOTTOM */}
-                    {!isMobile && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                bottom: 120,
-                                left: 32,
-                                right: 32,
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-end',
-                                gap: 16,
-                                overflow: 'visible',
-                                paddingBottom: 40,
-                            }}
-                        >
-                            {/* Desktop footer cards — each isolated so one bad card never crashes the row */}
-                            {footerCards.map((orb, index) => (
-                                <HubErrorBoundary key={orb.id} name={`FooterCard-${orb.id}`} fallback={<div style={{ width: 80, height: 120 }} />}>
-                                    <FooterCard
-                                        orb={orb}
-                                        index={index}
-                                        onSelect={handleCardSelect}
-                                        isIntroComplete={isIntroComplete}
-                                    />
-                                </HubErrorBoundary>
-                            ))}
-                        </div>
-                    )}
 
-                    {/* MOBILE: All 6 footer cards visible simultaneously — full portrait images, no clipping */}
-                    {isMobile && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                bottom: '6px',
-                                left: 0,
-                                right: 0,
-                                display: 'flex',
-                                flexDirection: 'row',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                padding: '0 6px',
-                                gap: '6px',
-                                overflow: 'visible',
-                            }}
-                        >
-                            {footerCards.slice(0, 5).map((orb, index) => {
-                                // 5 cards, 4 gaps of 6px = 24px. Container padding 12px. Total non-card width = 36px
-                                const cardWidth = `calc((100vw - 36px) / 5)`;
-                                return (
-                                    <HubErrorBoundary key={orb.id} name={`MobileCard-${orb.id}`} fallback={<div style={{ width: cardWidth }} />}>
-                                        <div style={{ width: cardWidth, flexShrink: 0 }}>
-                                            <FooterCard
-                                                orb={orb}
-                                                index={index}
-                                                onSelect={handleCardSelect}
-                                                isIntroComplete={isIntroComplete}
-                                                isMobile={isMobile}
-                                            />
-                                        </div>
-                                    </HubErrorBoundary>
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
 
                 {/* ═══════════════════════════════════════════════════════════════
