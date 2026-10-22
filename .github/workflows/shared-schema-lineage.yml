@@ -1,0 +1,41 @@
+name: Shared PokerIQ schema lineage
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'docs/shared-schema-bootstrap.md'
+      - '.github/workflows/shared-schema-lineage.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'docs/shared-schema-bootstrap.md'
+      - '.github/workflows/shared-schema-lineage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shared-schema-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Load the immutable canonical shared schema qualification source
+        uses: actions/checkout@v4
+        with:
+          repository: Smarter-Poker/Smarter-Poker-Club-Arena
+          ref: 672c582d3e9cdac3e19f8bd3ae522863cc56df71
+          path: shared-schema-source
+          sparse-checkout: |
+            supabase/bootstrap
+            supabase/migrations
+            scripts/schema-rebuild
+          persist-credentials: false
+      - name: Verify this candidate against the pinned shared baseline lineage
+        run: |
+          python3 shared-schema-source/scripts/schema-rebuild/check_source.py
+          python3 shared-schema-source/scripts/schema-rebuild/test_boundaries.py
+          python3 shared-schema-source/scripts/schema-rebuild/check_history.py --checkout . --repo hub --inventory shared-schema-source/supabase/bootstrap/source-history.json --forward shared-schema-source/supabase/bootstrap/forward-schema.json
