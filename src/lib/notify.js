@@ -267,14 +267,13 @@ export function notifyNewMessage(supabase, recipientId, senderName, preview, con
         // notification tells you nothing. Falls back to the default icon when
         // the profile has no avatar.
         icon: senderAvatarUrl || undefined,
-        // The sender is the actor. Recording it (actor_id plus the avatar in
-        // data) lets the bell, the feed and Club Arena's live message pop-up
-        // show who wrote without another profile read.
+        // The sender is the actor. Recording it (actor_id plus senderId in
+        // data) lets the bell and the feed show who wrote; the photo comes
+        // from the actor's profile, which the feed already joins.
         actorId: senderId || undefined,
         data: {
             conversationId,
             ...(senderId ? { senderId } : {}),
-            ...(senderAvatarUrl ? { senderAvatarUrl } : {}),
         },
     });
 }
