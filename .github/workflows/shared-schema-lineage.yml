@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Smarter-Poker/Smarter-Poker-Club-Arena
-          ref: e88d0a24ff02c7f6ec9716359b0abdbe037c1334
+          ref: 56aa016a35a4f1e85bdc66c154009ab2bfc85cbe
           path: shared-schema-source
           sparse-checkout: |
             supabase/bootstrap

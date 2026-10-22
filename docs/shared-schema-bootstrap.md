@@ -17,8 +17,9 @@ rebuild workflow proves that exact canonical source using the real pinned
 provider runtime; Hub's lineage check does not claim a second full restore.
 
 The currently submitted canonical candidate is
-`e88d0a24ff02c7f6ec9716359b0abdbe037c1334`. Full pinned-image qualification is
-pending in Arena run `39854610773`; this Hub submission does not claim a pass.
+`56aa016a35a4f1e85bdc66c154009ab2bfc85cbe`. Full pinned-image qualification is
+pending in the new Arena qualification run; this Hub submission does not claim
+a pass.
 Both pull requests remain subject to that actual result and their required
 checks before protected merge. The schema-only snapshot records historical
 source/ledger differences without replaying financial history. Its one exact
