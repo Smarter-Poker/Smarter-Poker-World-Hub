@@ -837,9 +837,12 @@ const nextConfig = {
       imgSrcDirective(),
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       //
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
-      // Media: self + blob (audio/video playback)
-      "media-src 'self' blob: https://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker data:",
+      // Media: self + blob (audio/video playback). data: carries the inline
+      // notification sounds Messenger plays; Club Arena fetch()es data: URIs to
+      // turn them into blobs (connect-src above). Both were logged by the
+      // report-only policy on 2026-10-22; neither can reach another origin.
+      "media-src 'self' blob: data: https://*.supabase.co",
       // Workers: self + blob (service worker, workbox)
       "worker-src 'self' blob:",
       // Frames: self (needed for our own iframe modals)
