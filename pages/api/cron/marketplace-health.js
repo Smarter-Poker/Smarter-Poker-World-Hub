@@ -11,6 +11,9 @@ import { getMarketplaceReadiness } from '../store/readiness';
 
 export const config = { maxDuration: 30 };
 
+const CONFIRM_DELAY_MS = 3_000;
+const CONFIRM_BUDGET_MS = 12_000;
+
 async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
@@ -19,7 +22,19 @@ async function handler(req, res) {
   if (!requireAdminSecret(req, res, { label: 'marketplace-health' })) return;
 
   try {
-    const readiness = await getMarketplaceReadiness({ force: true });
+    const startedAt = Date.now();
+    let readiness = await getMarketplaceReadiness({ force: true });
+    let confirmed = false;
+    // A single failed probe is usually a provider blip, not an outage: 177
+    // alarms in 7 days (2026-10-22 audit) while every on-demand probe passed.
+    // Confirm a failure once, after a short pause, before calling the
+    // marketplace degraded. Skipped when the first probe already used most of
+    // the 30 s budget, so the cron can never time out on the retry.
+    if (readiness.ready !== true && Date.now() - startedAt < CONFIRM_BUDGET_MS) {
+      await new Promise((resolve) => setTimeout(resolve, CONFIRM_DELAY_MS));
+      readiness = await getMarketplaceReadiness({ force: true });
+      confirmed = readiness.ready !== true;
+    }
     const healthy = readiness.ready === true;
     if (!healthy) {
       const failed = Object.entries(readiness.checks || {})
@@ -30,6 +45,7 @@ async function handler(req, res) {
         reportApiError(new Error(`Marketplace health degraded: ${failed}`), {
           route: '/api/cron/marketplace-health',
           failedDependencies: failed,
+          confirmed,
         });
       } catch (_) {
         // The HTTP 503 and cron health row remain the primary signals.

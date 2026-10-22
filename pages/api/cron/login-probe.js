@@ -126,6 +126,7 @@ async function alertOps(subject, text) {
         }
         await fetch('https://api.resend.com/emails', {
             method: 'POST',
+            signal: AbortSignal.timeout(5000),
             headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 from: (process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker').trim(),
@@ -220,7 +221,10 @@ async function handler(req, res) {
         steps.oauth_chain = { started_at: Date.now() };
         const authorizeRes = await fetch(
             `${(process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim()}/auth/v1/authorize?provider=google`,
-            { redirect: 'manual' },
+            // Every outbound call is bounded: an unbounded one let a slow
+            // provider hold the probe until Vercel killed it at 30 s, which
+            // records nothing instead of a named failure (2026-10-22).
+            { redirect: 'manual', signal: AbortSignal.timeout(8000) },
         );
         if (authorizeRes.status < 300 || authorizeRes.status >= 400) {
             steps.oauth_chain.ok = false;
@@ -243,7 +247,7 @@ async function handler(req, res) {
         steps.oauth_chain.callback_host = callbackHost;
         let cbRes = null;
         try {
-            cbRes = await fetch(`https://${callbackHost}/auth/v1/health`);
+            cbRes = await fetch(`https://${callbackHost}/auth/v1/health`, { signal: AbortSignal.timeout(8000) });
         } catch (netErr) {
             steps.oauth_chain.ok = false;
             steps.oauth_chain.severity = 'CRITICAL';
