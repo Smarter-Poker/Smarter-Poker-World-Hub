@@ -140,6 +140,21 @@ export default async function handler(req, res) {
                       })
                       .eq('id', user_id);
                   if (err_profiles_rzlwk) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_rzlwk.message);
+
+                  // A player's PLAYER wallet is created by a trigger at signup
+                  // (handle_new_user_v2_create_wallet). During the hourly
+                  // maintenance freeze that INSERT is refused and only logged
+                  // to signup_errors, which left 77 players with no wallet row
+                  // (2026-10-22 audit). Re-assert it on the same throttled
+                  // write: zero balance, insert-if-missing, never touches an
+                  // existing wallet. A refusal here just retries next session.
+                  const { error: err_wallet } = await getSupabase()
+                      .from('wallets')
+                      .upsert(
+                          { user_id, wallet_type: 'PLAYER', balance: 0, locked_balance: 0 },
+                          { onConflict: 'user_id,wallet_type', ignoreDuplicates: true }
+                      );
+                  if (err_wallet) console.warn('[ensure-profile] player wallet re-assert deferred:', err_wallet.message);
               }
 
               // ── The welcome grant is restartable from its own record (2026-09-08, Diamond
