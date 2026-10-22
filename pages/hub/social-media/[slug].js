@@ -57,3 +57,11 @@ export default function SocialMediaSlugRedirect() {
         </>
     );
 }
+
+// Resolve the legacy share URL before rendering so crawlers receive the public
+// page identity and its current logo, just as browser navigation does.
+export function getServerSideProps({ params }) {
+    const slug = params?.slug;
+    if (typeof slug !== 'string' || !slug) return { notFound: true };
+    return { redirect: { destination: `/hub/social-pages/${encodeURIComponent(slug)}`, permanent: true } };
+}

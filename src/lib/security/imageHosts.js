@@ -37,6 +37,10 @@ const IMAGE_SOURCES = [
     'https://media.giphy.com',
     'https://*.giphy.com',
     'https://images.unsplash.com',
+    // Google sign-in profile photos. The OAuth callback stores them in
+    // profiles.avatar_url and session metadata; the report-only policy logged
+    // them blocked on /hub and /commander/login (2026-10-22).
+    'https://lh3.googleusercontent.com',
 ];
 
 /** The img-src directive, so the policy cannot drift from the guard. */

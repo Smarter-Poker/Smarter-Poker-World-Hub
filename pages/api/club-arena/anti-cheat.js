@@ -1,3 +1,4 @@
+import { isClubStaffMembership } from '../../../src/lib/club-arena/clubDataAuthorization.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/club-arena/anti-cheat | ORB-7 AUDITED
@@ -146,8 +147,8 @@ try {
       // way the console resolves it (re-verification M-3): the legacy profile
       // roles carry it until enforce_named_roles is on, a granted compliance or
       // operations operator carries it through the grant, and a narrowed
-      // legacy account does not. Club owners, admins and super agents are
-      // authorised through club_members below exactly as before.
+      // legacy account does not. Active club owners, co-owners and admins are
+      // authorized through club_members below.
       const platformGate = await operatorHoldsPermission(
         getSupabase(),
         { userId, profileRole: callerProfile?.role || null },
@@ -171,19 +172,17 @@ try {
         requestId: requestIdOf(req),
       };
 
-      // Verify caller is club owner / admin / super_agent.
-      // Round 72: dropped 'manager' (0 rows in production), added
-      // 'super_agent' (the de-facto admin role used elsewhere - waitlist,
-      // club-analytics, lobby-ordering all gate on this trio).
+      // Club authority requires active owner, co-owner or admin membership.
+      // Agent ranks have no club-wide private moderation/report authority.
       if (!isPlatformAdmin) {
         const { data: membership } = await getSupabase()
           .from('club_members')
-          .select('role')
+          .select('role, status, is_active')
           .eq('club_id', clubId)
           .eq('user_id', userId)
           .maybeSingle();
 
-        if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+        if (!isClubStaffMembership(membership)) {
           return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
         }
         // This caller acted on their club membership, so that is the role the

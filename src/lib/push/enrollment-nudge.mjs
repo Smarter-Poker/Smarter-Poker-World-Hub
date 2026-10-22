@@ -31,7 +31,7 @@
 
 export const OWNER_USER_ID = '47965354-0e56-43ef-931c-ddaab82af765';
 
-export const NUDGE_MOMENTS = Object.freeze(['first_run', 'club_joined', 'rakeback_receipt', 'invoice_workspace']);
+export const NUDGE_MOMENTS = Object.freeze(['first_run', 'club_joined', 'rakeback_receipt', 'invoice_workspace', 'message_received']);
 const RECEIPT_MOMENTS = new Set(['rakeback_receipt', 'invoice_workspace']);
 
 const DAY = 24 * 60 * 60 * 1000;

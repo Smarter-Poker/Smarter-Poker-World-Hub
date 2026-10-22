@@ -60,15 +60,36 @@ try{
  CREATE TABLE horse_hand_reviews(id bigint PRIMARY KEY,hand_id uuid,horse_user_id uuid,played_at timestamptz,review_status text,hole_cards jsonb,actions jsonb,net_bb numeric);
  INSERT INTO hand_history SELECT ('00000000-0000-4000-8000-'||lpad((100+n)::text,12,'0'))::uuid,now()-interval '1 hour' FROM generate_series(1,4)n;
  INSERT INTO horse_hand_reviews SELECT n,('00000000-0000-4000-8000-'||lpad((100+n)::text,12,'0'))::uuid,('00000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,now()-interval '1 hour','auto_reviewed','[{"rank":"A","suit":"s"},{"rank":"A","suit":"h"}]','[{"action":"raise"}]',40 FROM generate_series(1,4)n;
- CREATE TABLE social_posts(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),author_id uuid,content text,content_type text,media_urls jsonb,visibility text,audience_mode text,topic text,topics text[],origin_type text,metadata jsonb,created_at timestamptz DEFAULT now(),is_deleted boolean DEFAULT false);
+ CREATE TABLE social_posts(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),author_id uuid REFERENCES profiles(id),content text,content_type text,media_urls jsonb,visibility text,audience_mode text,topic text,topics text[],origin_type text,metadata jsonb,created_at timestamptz DEFAULT now(),is_deleted boolean DEFAULT false);
  CREATE UNIQUE INDEX uq_slot ON social_posts((metadata->>'publication_key')) WHERE metadata->>'publication_key' IS NOT NULL;
  CREATE TABLE horse_phrase_ledger(id bigint GENERATED ALWAYS AS IDENTITY,phrase_norm text,horse_id uuid,post_id uuid,used_at timestamptz DEFAULT now());
  CREATE TABLE post_briefs(post_id uuid PRIMARY KEY,kind text,domain text,sport text,title text,source text,people text[],teams text[],concepts text[],amounts text[],topic text,tone text,is_question boolean,confidence numeric,summary text,built_from text[]);
  CREATE TABLE rewards(post_id uuid PRIMARY KEY,author_id uuid);
- CREATE FUNCTION fixture_reward() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN UPDATE profiles SET diamonds=diamonds+1 WHERE id=NEW.author_id;INSERT INTO rewards VALUES(NEW.id,NEW.author_id);RETURN NEW;END$$;
+ CREATE FUNCTION fixture_reward() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN PERFORM 1 FROM profiles WHERE id=NEW.author_id FOR UPDATE;UPDATE profiles SET diamonds=diamonds+1 WHERE id=NEW.author_id;INSERT INTO rewards VALUES(NEW.id,NEW.author_id);RETURN NEW;END$$;
  CREATE TRIGGER ordinary_reward AFTER INSERT ON social_posts FOR EACH ROW EXECUTE FUNCTION fixture_reward();`);
  const path=join(root,'supabase/migrations/20261019183000_grounded_hand_atomic_publication.sql');
  if(existsSync(path))sql('install-exact-maintained-migration',readFileSync(path,'utf8'));
+ const bounded=join(root,'supabase/migrations/20261020195500_grounded_hand_bounded_profile_lock.sql');
+ if(existsSync(bounded)){
+  await withLocker(`SELECT id FROM profiles WHERE id='${id(1)}' FOR SHARE;`,async()=>{
+   sql('RED-transient-profile-NOWAIT-refusal',service(call()),{code:'55P03'});
+   sql('RED-transient-profile-no-effects',counts,{expected:'0:0:0:0'});
+  });
+  sql('install-bounded-profile-migration',readFileSync(bounded,'utf8'));
+  await withLocker(`SELECT id FROM profiles WHERE id='${id(1)}' FOR KEY SHARE;`,async locker=>{
+   const pending=race("SET application_name='grounded-transient-profile-test';BEGIN;SET LOCAL lock_timeout='5s';"+call()+"SELECT current_setting('lock_timeout');COMMIT;");
+   await new Promise(ok=>setImmediate(ok));
+   let waiting=false;
+   for(let i=0;i<100&&!waiting;i++)waiting=sql('transient-profile-wait-'+i,"SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='grounded-transient-profile-test' AND wait_event_type='Lock')")==='t';
+   assert(waiting,'Publisher must wait once for actual profile contention');
+   sql('transient-blocker-can-write-global-gates',"BEGIN;SELECT 1 FROM content_settings FOR UPDATE NOWAIT;SELECT 1 FROM caption_model_budget_settings FOR UPDATE NOWAIT;SELECT 1 FROM horse_post_modes FOR UPDATE NOWAIT;ROLLBACK;");
+   locker.stdin.end('COMMIT;\n\\q\n');
+   const result=await pending;assert.match(result,/\|true\|published\n5s$/);cases.push({name:'GREEN-transient-profile-release-one-publication-caller-timeout-restored',passed:true});
+  });
+  sql('transient-profile-exactly-once',counts,{expected:'1:3:1:1'});
+  sql('transient-profile-replay-reward-once',service(call()));sql('transient-replay-counts',counts,{expected:'1:3:1:1'});
+  sql('reset-after-transient-profile',reset);
+ }
  const first=sql('complete-atomic-publication',service(call()));assert.match(first,/\|true\|published$/);
  sql('all-four-effects-once',counts,{expected:'1:3:1:1'});
  sql('public-hands-tab-predicate',"SELECT count(*) FROM social_posts WHERE topics @> ARRAY['hand'] AND topic='poker'",{expected:'1'});
@@ -97,7 +118,14 @@ try{
  sql('reset-old-history',reset);sql('old-own-phrase',`INSERT INTO horse_phrase_ledger(phrase_norm,horse_id,used_at) VALUES('my pocket aces held up at showdown','${id(1)}',now()-interval '60 days')`);sql('horse-90-day-guard',service(call()),{expected:'|false|phrase_used'});
  sql('reset-busy-profile',reset);
  await withLocker(`SELECT id FROM profiles WHERE id='${id(1)}' FOR SHARE;`,async()=>{
+  const began=Date.now();
   sql('busy-profile-refused-before-reward',service(call()),{code:'55P03'});sql('busy-profile-no-effects',counts,{expected:'0:0:0:0'});
+  if(existsSync(bounded)){
+   assert(Date.now()-began<4500,'Persistent profile contention must remain bounded, no retry');
+   const perform=call().replace(/^SELECT .* FROM /,'PERFORM ');
+   sql('shorter-caller-timeout-restored-after-error',service("BEGIN;SET LOCAL lock_timeout='50ms';DO $caught$ BEGIN "+perform+" RAISE EXCEPTION 'expected contention';EXCEPTION WHEN lock_not_available THEN NULL;END $caught$;SELECT current_setting('lock_timeout');ROLLBACK;"),{expected:'50ms'});
+   sql('caught-persistent-contention-no-effects',counts,{expected:'0:0:0:0'});
+  }
  });
  sql('reset-cross-producer',reset);
  await withLocker(`SELECT pg_advisory_xact_lock(hashtextextended('publish-horse-video-author:${id(1)}',0));`,async locker=>{

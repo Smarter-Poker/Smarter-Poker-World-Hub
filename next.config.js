@@ -837,9 +837,12 @@ const nextConfig = {
       imgSrcDirective(),
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       //
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
-      // Media: self + blob (audio/video playback)
-      "media-src 'self' blob: https://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker data:",
+      // Media: self + blob (audio/video playback). data: carries the inline
+      // notification sounds Messenger plays; Club Arena fetch()es data: URIs to
+      // turn them into blobs (connect-src above). Both were logged by the
+      // report-only policy on 2026-10-22; neither can reach another origin.
+      "media-src 'self' blob: data: https://*.supabase.co",
       // Workers: self + blob (service worker, workbox)
       "worker-src 'self' blob:",
       // Frames: self (needed for our own iframe modals)
@@ -1361,6 +1364,31 @@ const nextConfig = {
         {
           source: '/hub/club-arena/legal/:doc(tos|privacy|fair-gaming|promotions)',
           destination: 'https://ca-static.smarter.poker/legal/:doc/index.html',
+        },
+        // Brand-only previews preserve private-route noindex and expose no member data.
+        // These files are published by Club Arena before enabling these exact aliases.
+        {
+          source: '/hub/club-arena/clubs/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)/:path*',
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/invite/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)/:path*',
+          destination: 'https://ca-static.smarter.poker/invite/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'club', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'clubId', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'club_id', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
         },
         { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
         { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },
