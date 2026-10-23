@@ -1148,15 +1148,10 @@ const nextConfig = {
           },
         ],
       },
-      {
-        source: '/hub/club-arena/assets/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
+      // Club Arena assets are external rewrites. Their origin owns caching:
+      // successful hashed files are immutable, while errors are no-store.
+      // A status-blind override here or in vercel.json also marks proxy 502s
+      // immutable, poisoning WebKit's module cache across recovery reloads.
       // Club Arena media (cards, tiles, icons, logos, videos): stable URLs,
       // art changes rarely. 30 days fresh + a week of stale-while-revalidate
       // means repeat visits render cards and the lobby from disk instantly.
