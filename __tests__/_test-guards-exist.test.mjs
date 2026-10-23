@@ -97,6 +97,7 @@ import '../tests/spin-reserve-fund-contract.test.mjs';
 // verification, never at birth (Dan, 2026-10-07). Executed here for the same
 // workflow-permission reason as the suites above.
 import './the-welcome-package-is-earned-by-phone-verification.law.test.mjs';
+import './phone-verification-uptake.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
