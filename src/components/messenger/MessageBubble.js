@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { defaultTheme } from './MessengerTheme';
 import { Avatar } from './Avatar';
 import AccountingInvoiceCard from './AccountingInvoiceCard';
+import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
 
@@ -855,7 +856,21 @@ export function MessageBubble({
                         const meta = message.media_metadata || message.metadata;
                         if (message.message_type === 'invoice' && meta?.kind === 'accounting_invoice' &&
                             (meta?.accounting_verified === true || isUnverifiedCorrectionPlaceholder(meta))) {
-                            return <AccountingInvoiceCard meta={meta} content={content} theme={C} />;
+                            return <AccountingInvoiceCard meta={meta} content={content} theme={C} currentUserId={currentUserId}
+                                renderRequestedPayout={(cashoutId) => <CashoutRequestActions cashoutId={cashoutId} currentUserId={currentUserId} theme={C} />} />;
+                        }
+                        // Auto-sent cashout request from the player to their agent.
+                        // The card reads the live request; Accept / Cancel are
+                        // authorized server-side by the cashier transitions.
+                        if (meta?.kind === 'cashout_request' && meta?.event_kind === 'hold' && meta?.cashout_id) {
+                            return <div style={{ background: C.card, color: C.text, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, width: 'min(320px, 65vw)', maxWidth: '100%', boxSizing: 'border-box' }}>
+                                <div style={{ fontSize: 12, color: C.textSec }}>Requested Payout</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', fontSize: 15, fontWeight: 700 }}>
+                                    <span>Amount</span><span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatChips(meta.amount)} Chips</span>
+                                </div>
+                                <div style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.5 }}>{content}</div>
+                                {!isOwn && <CashoutRequestActions cashoutId={meta.cashout_id} currentUserId={currentUserId} theme={C} showDetails={false} />}
+                            </div>;
                         }
                         if (message.message_type === 'invoice' && meta?.accounting_verified && meta?.kind === 'union_invoice') {
                             return <ClubStatementCard meta={meta} isOwn={isOwn} theme={C} />;

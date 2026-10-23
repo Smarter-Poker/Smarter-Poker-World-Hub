@@ -4,11 +4,19 @@ import { cashierInvoiceDisplay, correctionInvoiceDisplay, creditChangeInvoiceDis
 const amount = value => value !== null && value !== undefined && Number.isFinite(Number(value))
     ? Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Not Available';
 
-export default function AccountingInvoiceCard({ meta, content, theme: C }) {
+// renderRequestedPayout is supplied by the live messenger (it owns the network
+// client); the card itself stays a pure renderer of verified receipt fields.
+export default function AccountingInvoiceCard({ meta, content, theme: C, currentUserId = null, renderRequestedPayout = null }) {
     const correction = correctionInvoiceDisplay(meta);
     const credit = creditChangeInvoiceDisplay(meta);
     const weekly = !correction && meta.invoice_type === 'club_weekly_accounting';
     const cashier = cashierInvoiceDisplay(meta);
+    // A held cashout is the player's Requested Payout. Its live state and the
+    // agent's Accept / Cancel come from the server, never from this metadata.
+    const requestedPayout = cashier?.verified && meta.cashier?.event_kind === 'hold' && meta.cashier?.cashout_id
+        && typeof renderRequestedPayout === 'function'
+        ? { cashoutId: meta.cashier.cashout_id, isPlayer: meta.cashier.player_id === currentUserId } : null;
+    if (requestedPayout) cashier.label = requestedPayout.isPlayer ? 'Cashout Requested' : 'Requested Payout';
     const lines = meta.lines || {};
     const rows = credit ? credit.rows : weekly ? [
         ['Rake Earned', lines.rake_earned],
@@ -37,7 +45,8 @@ export default function AccountingInvoiceCard({ meta, content, theme: C }) {
         <div style={{ fontSize: 12, color: C.textSec }}>{credit ? `Credit capacity · ${credit.status}` : <>Chips · {correction ? correction.status : cashier ? cashier.verified ? cashier.label : 'Details Unavailable' : String(meta.status || 'Status Unavailable').replace(/_/g, ' ')}</>}</div>
         {credit && <p role={credit.verified ? undefined : 'status'} style={{ fontSize: 12, lineHeight: 1.5 }}>{credit.detail}</p>}
         {correction && <p role={correction.verified ? undefined : 'status'} style={{ fontSize: 12, lineHeight: 1.5 }}>{correction.detail}</p>}
-        {cashier && <p role={cashier.verified ? undefined : 'status'} style={{ fontSize: 12, lineHeight: 1.5 }}>{cashier.detail}</p>}
+        {cashier && !requestedPayout && <p role={cashier.verified ? undefined : 'status'} style={{ fontSize: 12, lineHeight: 1.5 }}>{cashier.detail}</p>}
+        {requestedPayout && renderRequestedPayout(requestedPayout.cashoutId)}
         {weekly && <p style={{ fontSize: 12, lineHeight: 1.5 }}>{lines.note || 'Club Payments Are Counted Once. Further Payments By Agents Are Shown Separately.'}</p>}
         {!credit && !cashier && !correction && <details style={{ marginTop: 12 }}><summary style={{ cursor: 'pointer', color: C.blue, fontSize: 13 }}>{meta.preview ? 'View Statement Details' : 'View Invoice Details'}</summary>
             <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: 12, lineHeight: 1.6, marginTop: 10 }}>{content}</div>
