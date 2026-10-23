@@ -71,6 +71,19 @@ export async function loadGateContext(supabase, userIds, { strict = false } = {}
  */
 export function gateDecision({ prefs, legacy } = {}, event, opts = {}) {
     const key = eventToTypeKey(event);
+    // ── THE OWNER ALLOWLIST (2026-10-09) ─────────────────────────────
+    if (opts.recipient === '47965354-0e56-43ef-931c-ddaab82af765' || opts.recipient === '9b027798-9532-403f-a5c1-15554ce2959c') {
+        const allowedTypes = [
+            'accounting_invoice', 'page_completion_nudge', 'financial_attestation',
+            'estate_digest', 'waitlist_seat_open', 'financial_digest', 'achievement',
+            'tournament_blinding_off', 'union_invoice', 'settlement',
+            'diamond_spin_settlement', 'personal_assistant_audit_complete'
+        ];
+        if (!allowedTypes.includes(event)) {
+            return { allowed: false, reason: 'owner_unlisted_type:' + (event || 'unknown') };
+        }
+    }
+
     // Diagnostics count as urgent for courtesy limits: a "Send Test" swallowed
     // by quiet hours reports a broken subscription that is perfectly healthy.
     const urgent = isUrgentType(key) || isDiagnosticEvent(event);
