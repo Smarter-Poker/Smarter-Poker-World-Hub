@@ -353,7 +353,7 @@
     },
 
     {
-      "source": "/hub/:orb*/assets/(.*)",
+      "source": "/hub/:orb((?!club-arena(?:/|$)).*)?/assets/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
