@@ -2,7 +2,7 @@
 // Run: node --test __tests__/daily-digest.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS } from '../src/lib/dailyDigest/render.mjs';
+import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS, horseRosterRows, allowedNumbers } from '../src/lib/dailyDigest/render.mjs';
 import { signViewToken, verifyViewToken, ownerPhone, digestRecipients, adminRecipients } from '../src/lib/dailyDigest/delivery.mjs';
 
 function fixture(overrides = {}) {
@@ -150,4 +150,43 @@ test('the digest is straight data: no AI module, no model call', async () => {
     const src = fs.readFileSync(new URL('../src/lib/dailyDigest/assemble.mjs', import.meta.url), 'utf8');
     assert.ok(!/anthropic|grok|openai/i.test(src));
     assert.ok(!buildHtml(fixture()).includes('Daniel'), 'no personal name is baked into the template');
+});
+
+const ROSTER = {
+    as_of: '2026-10-14T21:15:00+00:00', size: 43, demand: 43, plo_count: 2, refreshes_today: 4,
+    members: [
+        { rank: 1, name: 'Ace<Horse>', bb100: 12.34, hands: 15000, plo: true, plo_bb100: 6.5 },
+        { rank: 2, name: 'Cash Cow', bb100: 3.1, hands: 9000, plo: false, plo_bb100: null },
+    ],
+    added: ['Cash Cow'], dropped: ['Old Timer'], plo_added: [], plo_dropped: ['Fishy'],
+};
+
+test('horse roster card: size, PLO list, changes and every member, escaped', () => {
+    const d = fixture({ horse_roster: ROSTER });
+    const html = buildHtml(d);
+    assert.match(html, /Horse Roster/);
+    assert.match(html, /Horses At Cash/);
+    assert.match(html, /Sized to 43 live cash games/);
+    assert.match(html, /PLO List/);
+    assert.match(html, /Old Timer/);
+    assert.match(html, /Fishy/);
+    assert.match(html, /1\. Ace&lt;Horse&gt;/);
+    assert.ok(!html.includes('Ace<Horse>'));
+    assert.match(html, /PLO 6\.5 BB\/100/);
+    assert.ok(!html.includes('\u2014'));
+    const rows = horseRosterRows(d);
+    assert.equal(rows.length, 6 + 2);
+    assert.equal(rows.find((r) => r[0] === 'Added To The PLO List')[1], 'None');
+    const text = buildText(d);
+    assert.match(text, /HORSE ROSTER/);
+    assert.match(text, /2\. Cash Cow: 3\.1 BB\/100/);
+    const nums = allowedNumbers(d);
+    for (const n of ['43', '35', '50', '12.34', '15000']) assert.ok(nums.has(n), n);
+});
+
+test('no roster in the digest: no card, no text section, nothing breaks', () => {
+    const d = fixture();
+    assert.ok(!buildHtml(d).includes('Horse Roster'));
+    assert.ok(!buildText(d).includes('HORSE ROSTER'));
+    assert.deepEqual(horseRosterRows(fixture({ horse_roster: null })), []);
 });
