@@ -27,8 +27,9 @@
  */
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('../../', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SCAN_ROOTS = ['pages', 'src', 'app', 'components', 'lib', 'public'].map((d) => join(ROOT, d));
 const EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.css', '.html']);
 const SKIP_DIRS = new Set([

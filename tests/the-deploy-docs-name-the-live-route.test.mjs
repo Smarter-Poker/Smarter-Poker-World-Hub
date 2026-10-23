@@ -81,6 +81,14 @@ const RETIREMENT_WORDS =
  * deploy command. The line between the two is the directory.
  */
 const HISTORY_DIRS = ['.agent/audits/', '.agent/handoffs/', 'docs/changelog/', 'docs/_archive/'];
+const repositoryPath = (path) => path.replaceAll('\\', '/');
+
+test('historical repository paths retain the same boundary on Windows and POSIX', () => {
+  for (const path of ['.agent/audits/example.md', '.agent\\audits\\example.md']) {
+    assert.ok(HISTORY_DIRS.some((dir) => repositoryPath(path).startsWith(dir)));
+  }
+  assert.ok(!HISTORY_DIRS.some((dir) => repositoryPath('.agent\\workflows\\example.md').startsWith(dir)));
+});
 
 /** Line-level: a naming is fine, an instruction is not. */
 function deadInstructionsIn(text) {
@@ -132,7 +140,7 @@ function docsAndScripts() {
       if (SKIP.has(entry.name) || entry.name.startsWith('.tmp') || entry.isSymbolicLink()) continue;
       const full = join(dir, entry.name);
       if (entry.isDirectory()) walk(full);
-      else if (entry.isFile() && /\.(md|sh)$/.test(entry.name)) out.push(relative(ROOT, full));
+      else if (entry.isFile() && /\.(md|sh)$/.test(entry.name)) out.push(repositoryPath(relative(ROOT, full)));
     }
   };
   walk(ROOT);
@@ -237,6 +245,7 @@ test('first-open guides do not reinstate retired release or environment directio
 
 // The existing required publication gate also verifies local pre-push refusal.
 import "../__tests__/pre-push-typescript-baseline-safety.test.mjs";
+import './hook-ui-paths.test.mjs';
 
 
 test('active agent templates cannot restore human gates or hook bypass directions', () => {
