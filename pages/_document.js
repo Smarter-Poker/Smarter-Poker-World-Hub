@@ -42,8 +42,7 @@ export default class MyDocument extends Document {
                         contacted. Club Arena's index.html was still injecting the
                         real SDK until 2026-08-29 — that is removed too. */}
                     {/* iOS PWA support */}
-                    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-                    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
+                    {/* Route-specific icon links are owned by _app.js. */}
                     <meta name="apple-mobile-web-app-capable" content="yes" />
                     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
                     <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />

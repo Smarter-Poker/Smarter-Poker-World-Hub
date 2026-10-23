@@ -1144,10 +1144,10 @@ export default function App({ Component, pageProps }) {
                 <link
                   rel="apple-touch-icon"
                   sizes="180x180"
-                  href="/icons/apple-touch-icon-180.png"
+                  href="/icons/smarter-king-180.png"
                 />
-                <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-                <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+                <link rel="icon" type="image/png" sizes="192x192" href="/icons/smarter-king-192.png" />
+                <link rel="icon" type="image/png" sizes="512x512" href="/icons/smarter-king-512.png" />
                 <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
                 <meta name="application-name" content="Smarter.Poker" />
               </>
