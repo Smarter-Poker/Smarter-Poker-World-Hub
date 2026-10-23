@@ -37,9 +37,10 @@
 
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, extname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
-const ROOT = new URL('../../', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 /**
  * PORTED FROM CLUB ARENA 2026-08-31. Club Arena has enforced Title Case since
  * August; the World Hub - which is the SITE, and therefore most of the pages a
