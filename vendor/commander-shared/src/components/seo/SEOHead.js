@@ -34,6 +34,24 @@ export function toJsonLdDocument(jsonLd) {
     return { '@context': 'https://schema.org', ...jsonLd };
 }
 
+/**
+ * Normalize a canonical path or URL to a clean, query-free, hash-free,
+ * zero-trailing-slash (except root '/') https://smarter.poker URL.
+ */
+export function normalizeCanonicalUrl(canonicalTarget) {
+    if (!canonicalTarget || typeof canonicalTarget !== 'string') return undefined;
+    const trimmed = canonicalTarget.trim();
+    if (!trimmed) return undefined;
+    const rawUrl = trimmed.startsWith('http')
+        ? trimmed
+        : `${SITE_URL}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+    const withoutHashOrQuery = rawUrl.split('#')[0].split('?')[0];
+    if (withoutHashOrQuery === `${SITE_URL}/` || withoutHashOrQuery === SITE_URL) {
+        return `${SITE_URL}/`;
+    }
+    return withoutHashOrQuery.replace(/\/+$/, '');
+}
+
 export default function SEOHead({
     title,
     description,
@@ -55,11 +73,7 @@ export default function SEOHead({
             ? title
             : `${title} | ${SITE_NAME}`;
     const canonicalTarget = canonical || path;
-    const fullCanonical = canonicalTarget
-        ? canonicalTarget.startsWith('http')
-            ? canonicalTarget
-            : `${SITE_URL}${canonicalTarget.startsWith('/') ? '' : '/'}${canonicalTarget}`
-        : undefined;
+    const fullCanonical = normalizeCanonicalUrl(canonicalTarget);
     const ogImageUrl = ogImage || DEFAULT_OG_IMAGE;
 
     return (
@@ -68,6 +82,13 @@ export default function SEOHead({
             <title>{fullTitle}</title>
             {description && <meta name="description" content={description} />}
             {fullCanonical && <link key="canonical" rel="canonical" href={fullCanonical} />}
+            {fullCanonical && !noindex && (
+                <>
+                    <link key="hreflang-en-us" rel="alternate" hrefLang="en-US" href={fullCanonical} />
+                    <link key="hreflang-x-default" rel="alternate" hrefLang="x-default" href={fullCanonical} />
+                    <link key="rss-feed" rel="alternate" type="application/rss+xml" title="Smarter.Poker Strategy &amp; Tools RSS Feed" href={`${SITE_URL}/feed.xml`} />
+                </>
+            )}
 
             {/* Robots */}
             {noindex ? (
@@ -156,7 +177,10 @@ export const schemas = {
         inLanguage: 'en-US',
         potentialAction: {
             '@type': 'SearchAction',
-            target: 'https://smarter.poker/hub/poker-near-me/lobby?q={search_term_string}',
+            target: {
+                '@type': 'EntryPoint',
+                urlTemplate: 'https://smarter.poker/hub/poker-near-me/lobby?q={search_term_string}',
+            },
             'query-input': 'required name=search_term_string',
         },
     },

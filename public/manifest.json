@@ -2,6 +2,7 @@
   "name": "Smarter.Poker",
   "short_name": "Smarter.Poker",
   "description": "The Premier Poker Social Network & Training Platform",
+  "id": "/hub",
   "start_url": "/hub",
   "scope": "/",
   "display": "standalone",
@@ -14,6 +15,26 @@
     "entertainment"
   ],
   "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Poker Near Me",
+      "short_name": "Poker Rooms",
+      "description": "Find Live Poker Rooms And Daily Tournaments",
+      "url": "/hub/poker-near-me/lobby"
+    },
+    {
+      "name": "Poker Odds Calculator",
+      "short_name": "Odds Calc",
+      "description": "Calculate Exact Equity And Pot Odds",
+      "url": "/tools/poker-odds-calculator"
+    },
+    {
+      "name": "Preflop Range Matrix",
+      "short_name": "GTO Ranges",
+      "description": "Interactive 169-Hand GTO Preflop Charts",
+      "url": "/tools/preflop-ranges"
+    }
+  ],
   "icons": [
     {
       "src": "/icons/smarter-king-192.png",

@@ -2,6 +2,7 @@
     "name": "Club Commander",
     "short_name": "Commander",
     "description": "Professional Poker Room Management System",
+    "id": "/commander/dashboard",
     "start_url": "/commander/dashboard",
     "scope": "/commander",
     "display": "standalone",
@@ -26,5 +27,7 @@
             "type": "image/png",
             "purpose": "any maskable"
         }
-    ]
+    ],
+    "lang": "en-US",
+    "dir": "ltr"
 }

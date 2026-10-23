@@ -185,6 +185,8 @@ ${sitemapLastmodLine(url.lastmod)}    <changefreq>${url.changefreq}</changefreq>
 </urlset>`;
 }
 
+import crypto from 'node:crypto';
+
 export function generateSitemapIndexXml(sitemaps) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -199,6 +201,70 @@ ${sitemapLastmodLine(s.lastmod)}  </sitemap>`
   )
   .join('\n')}
 </sitemapindex>`;
+}
+
+/**
+ * Compute a deterministic quoted weak/strong SHA-256 ETag for XML sitemap content.
+ */
+export function computeSitemapEtag(xml) {
+  const hash = crypto.createHash('sha256').update(String(xml || ''), 'utf8').digest('hex').slice(0, 32);
+  return `"${hash}"`;
+}
+
+/**
+ * Extract the newest valid <lastmod> timestamp from an XML document (or fall back
+ * to a provided date) and format as an RFC 7231 HTTP-date for Last-Modified.
+ */
+export function extractLatestLastmodHttpDate(xml, fallbackIso = COMPARE_AS_OF) {
+  let maxTime = 0;
+  for (const m of String(xml || '').matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) {
+    const t = new Date(m[1].trim()).getTime();
+    if (Number.isFinite(t) && t > maxTime) maxTime = t;
+  }
+  if (maxTime <= 0 && fallbackIso) {
+    const fb = new Date(fallbackIso).getTime();
+    if (Number.isFinite(fb) && fb > 0) maxTime = fb;
+  }
+  return maxTime > 0 ? new Date(maxTime).toUTCString() : null;
+}
+
+/**
+ * Send an XML sitemap response with ETag, Last-Modified, and HTTP 304 Not Modified
+ * conditional request handling (If-None-Match / If-Modified-Since) while preserving
+ * res.setHeader('Content-Type', 'text/xml') and Cache-Control.
+ */
+export function sendSitemapXmlResponse(req, res, xml, { cacheControl = 'public, s-maxage=300, stale-while-revalidate=1800', lastModified = null } = {}) {
+  const etag = computeSitemapEtag(xml);
+  const httpLastMod = lastModified || extractLatestLastmodHttpDate(xml);
+
+  res.setHeader('Content-Type', 'text/xml');
+  res.setHeader('Cache-Control', cacheControl);
+  res.setHeader('ETag', etag);
+  if (httpLastMod) {
+    res.setHeader('Last-Modified', httpLastMod);
+  }
+
+  const ifNoneMatch = req?.headers?.['if-none-match'];
+  if (ifNoneMatch) {
+    const candidates = String(ifNoneMatch).split(',').map((s) => s.trim().replace(/^W\//, ''));
+    if (candidates.includes(etag) || candidates.includes('*')) {
+      res.statusCode = 304;
+      res.end();
+      return true;
+    }
+  } else if (httpLastMod && req?.headers?.['if-modified-since']) {
+    const imsTime = new Date(req.headers['if-modified-since']).getTime();
+    const lmTime = new Date(httpLastMod).getTime();
+    if (Number.isFinite(imsTime) && Number.isFinite(lmTime) && lmTime <= imsTime) {
+      res.statusCode = 304;
+      res.end();
+      return true;
+    }
+  }
+
+  res.write(xml);
+  res.end();
+  return false;
 }
 
 export async function fetchAllSitemapRows({ supabase, table, select, orderBy, applyFilters }) {

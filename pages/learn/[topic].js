@@ -80,7 +80,14 @@ function lessonSchema(lesson) {
       dateModified: LEARN_MODIFIED,
       inLanguage: 'en-US',
       articleSection: lesson.category,
+      learningResourceType: 'GTO Poker Strategy Guide',
+      educationalLevel: 'Beginner To Advanced',
+      teaches: lesson.title,
       isAccessibleForFree: true,
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'article p:first-of-type'],
+      },
       publisher: { '@id': ORGANIZATION_ID },
       isPartOf: {
         '@type': 'CollectionPage',

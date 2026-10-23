@@ -64,6 +64,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 # -- Search-index crawlers (these decide what an AI answer can cite) ----------
 
@@ -89,6 +93,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: bingbot
 Allow: /
@@ -112,6 +120,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: OAI-SearchBot
 Allow: /
@@ -135,6 +147,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: Claude-SearchBot
 Allow: /
@@ -158,6 +174,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: PerplexityBot
 Allow: /
@@ -181,6 +201,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: meta-webindexer
 Allow: /
@@ -204,6 +228,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: Applebot
 Allow: /
@@ -227,6 +255,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: DuckAssistBot
 Allow: /
@@ -250,6 +282,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 # -- User-triggered fetchers (a person asked for the page) -------------------
 
@@ -275,6 +311,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: Claude-User
 Allow: /
@@ -298,6 +338,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: Perplexity-User
 Allow: /
@@ -321,6 +365,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: meta-externalfetcher
 Allow: /
@@ -344,6 +392,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 # -- Training crawlers (allowed on purpose, see the note above) --------------
 
@@ -369,6 +421,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: ClaudeBot
 Allow: /
@@ -392,6 +448,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: Google-Extended
 Allow: /
@@ -415,6 +475,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: meta-externalagent
 Allow: /
@@ -438,6 +502,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: Amazonbot
 Allow: /
@@ -461,6 +529,10 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 User-agent: Applebot-Extended
 Allow: /
@@ -484,11 +556,20 @@ Disallow: /hub/diamond-store/wishlist
 Disallow: /hub/reels/saved
 Disallow: /hub/reels/my-reels
 Disallow: /hub/trivia/settings
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*tab=
+Disallow: /*?*page=
 
 # Sitemaps. The arena's is generated by its own build from the pages it
 # prerenders (Smarter-Poker-Club-Arena scripts/generate-arena-sitemap.mjs).
+Sitemap: https://smarter.poker/sitemap_index.xml
 Sitemap: https://smarter.poker/sitemap.xml
+Sitemap: https://smarter.poker/sitemap-core.xml
 Sitemap: https://smarter.poker/sitemap-venues.xml
+Sitemap: https://smarter.poker/sitemap-tournaments.xml
 Sitemap: https://smarter.poker/sitemap-series.xml
+Sitemap: https://smarter.poker/sitemap-compare.xml
+Sitemap: https://smarter.poker/sitemap-learn.xml
 Sitemap: https://smarter.poker/sitemap-videos.xml
 Sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
