@@ -364,6 +364,8 @@ export function buildHtml(digest, opts = {}) {
         ['Horse Net Result (BB)', fmtNum(mtd.horse_net_bb), 'House exposure through the horse fleet'],
     ]);
 
+    body += horseRosterCard(digest);
+
     if (digest.week) {
         const w = digest.week;
         body += listCard(`Week In Review (${w.from} To ${w.to})`, [
@@ -441,6 +443,34 @@ function funnelCard(m) {
     ]);
 }
 
+/**
+ * The horse roster (Dan 2026-10-23): the 35 to 50 horses that are the only ones
+ * at cash, sized to the live cash floor, and the PLO list inside it. Comes from
+ * fn_ca_horse_roster_digest via fn_sp_daily_digest's 'horse_roster' key.
+ */
+export function horseRosterRows(digest) {
+    const r = digest && digest.horse_roster;
+    if (!r || !Array.isArray(r.members)) return [];
+    const names = (a) => (Array.isArray(a) && a.length ? a.join(', ') : 'None');
+    const rows = [
+        ['Horses At Cash', fmtInt(r.size), `Sized to ${fmtInt(r.demand)} live cash games (held between 35 and 50), ${fmtInt(r.refreshes_today)} refreshes that day`],
+        ['PLO List', fmtInt(r.plo_count), 'At least 5,000 PLO hands and 1.0 BB/100 over 30 days'],
+        ['Added To The Roster', names(r.added), ''],
+        ['Dropped From The Roster', names(r.dropped), ''],
+        ['Added To The PLO List', names(r.plo_added), ''],
+        ['Dropped From The PLO List', names(r.plo_dropped), ''],
+    ];
+    for (const m of r.members) {
+        const plo = m.plo ? `, PLO ${fmtNum(m.plo_bb100)} BB/100` : '';
+        rows.push([`${fmtInt(m.rank)}. ${m.name || 'Unknown'}`, `${fmtNum(m.bb100)} BB/100`, `${fmtInt(m.hands)} cash hands in 30 days${plo}`]);
+    }
+    return rows;
+}
+
+function horseRosterCard(digest) {
+    return listCard('Horse Roster', horseRosterRows(digest));
+}
+
 function topListCard(title, arr, map) {
     if (!Array.isArray(arr) || !arr.length) return '';
     return listCard(title, arr.map((x) => [...map(x), '']));
@@ -474,6 +504,12 @@ export function buildText(digest, opts = {}) {
     const items = digest.attention || [];
     lines.push(items.length ? `NEEDS YOUR ATTENTION (${items.length})` : 'Nothing needs your attention.');
     for (const it of items) lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]`);
+    const roster = horseRosterRows(digest);
+    if (roster.length) {
+        lines.push('');
+        lines.push('HORSE ROSTER');
+        for (const [label, value, sub] of roster) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    }
     for (const def of SECTION_DEFS) {
         lines.push('');
         lines.push(def.title.toUpperCase());
@@ -510,7 +546,7 @@ export function allowedNumbers(digest, extra = []) {
     extra.forEach(add);
     // counts the email states (attention items, status buckets) and the 7 of "7 day"
     add((digest.attention || []).length);
-    add(7); add(24); add(30);
+    add(7); add(24); add(30); add(35); add(50); add(5000); add(1);
     return set;
 }
 
