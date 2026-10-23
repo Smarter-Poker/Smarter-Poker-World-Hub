@@ -59,6 +59,26 @@ function normalizePhone(raw) {
     return '+' + digits;                               // passthrough
 }
 
+/* ── Durable send log (2026-10-23) ─────────────────────────────────────────
+   sms_otp_codes is a scratch store: verify-otp deletes a code on use and every
+   send purges expired codes, so it can never answer "how many codes did we
+   send". The daily digest counted it anyway and reported 1 code sent on a day
+   Twilio delivered 11. One row per attempt here (no phone number, no code) is
+   what fn_sp_daily_metrics_compute counts. Best-effort: a logging failure must
+   never block or fail a send. */
+async function logSendAttempt(supabase, outcome, providerErrorCode = null) {
+    try {
+        const { error } = await supabase.from('sms_otp_send_log').insert({
+            purpose: 'phone_verify',
+            outcome,
+            provider_error_code: providerErrorCode == null ? null : String(providerErrorCode),
+        });
+        if (error) console.warn('[send-otp] send log insert failed:', error.message);
+    } catch (logErr) {
+        console.warn('[send-otp] send log insert threw:', logErr?.message || logErr);
+    }
+}
+
 /* ── Rate limit: max OTP requests per phone per hour ───────────────────── */
 const MAX_CODES_PER_HOUR = 5;
 
@@ -138,6 +158,7 @@ export default async function handler(req, res) {
               console.warn('[send-otp] Rate limit check error:', countError);
               // Non-blocking: continue even if count fails
           } else if (count >= MAX_CODES_PER_HOUR) {
+              await logSendAttempt(supabase, 'rate_limited');
               return res.status(429).json({
                   success: false, error: 'Too many verification requests. Please try again later.',
                   retryAfter: 3600
@@ -179,6 +200,7 @@ export default async function handler(req, res) {
               from: twilioPhone,
               to: cleanPhone
           });
+          await logSendAttempt(supabase, 'sent');
 
 
           return res.status(200).json({
@@ -208,6 +230,8 @@ export default async function handler(req, res) {
                   console.warn('[send-otp] OTP rollback threw:', rollbackThrow?.message || rollbackThrow);
               }
           }
+
+          if (persistedOtp) await logSendAttempt(supabase, 'failed', error?.code ?? null);
 
           // ── Twilio-specific error codes ──────────────────────────────────
           if (error.code === 21211) return res.status(400).json({ success: false, error: 'Invalid phone number format' });

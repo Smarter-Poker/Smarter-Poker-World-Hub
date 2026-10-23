@@ -299,7 +299,8 @@ test('Auth duplicate responses are recovered without treating unrelated database
 test('signup shows existing-account recovery for both Auth response shapes, keeps new signups on OTP, and preserves referral when signing in', async () => {
     const { createRequire } = await import('node:module');
     const { default: vm } = await import('node:vm');
-    const { isExistingSignup } = await import('../src/lib/signupOutcome.mjs');
+    const signupOutcome = await import('../src/lib/signupOutcome.mjs');
+    const { isExistingSignup } = signupOutcome;
     const { isEmailVerificationCode } = await import('../src/lib/signupExperience.mjs');
     const { authSwitchHref } = await import('../src/lib/clubInvite.js');
     const pendingSignupCodes = await import('../src/lib/pendingSignupCodes.mjs');
@@ -327,7 +328,7 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
                 if (name === 'next/router') return { useRouter: () => ({ query: { ref: '1253', invite: 'ABC2345', redirect: '/hub/club-arena/invite/shark-club' }, push: href => routes.push(href) }) };
                 if (name.endsWith('/ExistingAccountDialog')) return { default: ({ open, onSignIn, onClose }) => open ? React.createElement('div', { role: 'alertdialog' }, React.createElement('h2', null, 'You Already Have An Account'), React.createElement('button', { onClick: onSignIn }, 'Sign In'), React.createElement('button', { onClick: onClose }, 'Use A Different Email')) : null };
                 if (name.endsWith('/SEOHead') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
-                if (name.endsWith('/signupOutcome.mjs')) return { isExistingSignup };
+                if (name.endsWith('/signupOutcome.mjs')) return signupOutcome;
                 if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
                 if (name.endsWith('/clubInvite')) return { authSwitchHref, readPendingInvite: () => null, safeClubArenaPath: () => null };
                 if (name.endsWith('/passwordStrength')) return { validatePassword: async () => ({ ok: true }) };

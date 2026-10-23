@@ -276,7 +276,7 @@ export const MENU_CONFIGS = {
                         MenuIcons.shield,
                         null,
                         null,
-                        { id: 'verify-phone', description: 'Claim Your Welcome Package: 30-Day VIP Card + 500 Diamonds' }
+                        { id: 'verify-phone', description: 'Claim Your Welcome Package: 1 Month Free VIP + 500 Diamonds' }
                     ),
                     createMenuItem.divider(),
                 ]

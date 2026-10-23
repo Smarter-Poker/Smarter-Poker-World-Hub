@@ -81,7 +81,7 @@ export default function WelcomePackageNudge({ eligible, userId }) {
                     <span style={styles.icon}><ShieldCheck size={18} strokeWidth={2} aria-hidden="true" /></span>
                     <span style={styles.text}>
                         <span style={styles.title}>Claim Your Welcome Package</span>
-                        <span style={styles.sub}>Verify Your Phone For A 30-Day VIP Card + 500 Diamonds</span>
+                        <span style={styles.sub}>Verify Your Phone For 1 Month Free VIP + 500 Diamonds</span>
                     </span>
                 </button>
                 <button type="button" onClick={dismiss} style={styles.close} aria-label="Not Now">
