@@ -657,7 +657,7 @@ wanted = {
     '_write_solver_line', '_validate_solver_response',
     '_parse_pio_hand_order', '_outbound_solver_command',
     '_canonicalize_solver_vector_response', '_validate_startup_handshake',
-    '_initialize_solver_transport', '_wavg_bb', '_parse_calc_ev_vectors',
+    '_initialize_solver_transport', '_validate_solver_identity', '_wavg_bb', '_parse_calc_ev_vectors',
     '_parse_calc_results',
     '_assert_calc_results_ev_consistent', 'pio',
 }
@@ -911,6 +911,26 @@ assert scope['_live_source_combo_order_sha256'] == pio_hand_order_sha256
 assert scope['_pio_to_canonical_combo_index'] == list(reversed(range(1326)))
 assert os.environ['PIO_SOURCE_COMBO_ORDER_SCHEMA'] == 'piosolver.show_hand_order.v1'
 assert os.environ['PIO_SOURCE_COMBO_ORDER_SHA256'] == pio_hand_order_sha256
+
+# Pio 3.8 emits a complete startup build banner but numeric show_version.
+# The approved build, protocol version, and pinned binary must all attest.
+original_version = scope['approved_solver_version']
+scope['approved_solver_version'] = 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)'
+approved_banner = scope['approved_solver_version'] + '\nset_end_string ok!'
+scope['_validate_solver_identity'](approved_banner, '3.8.0')
+for banner, version in [
+    (approved_banner, '3.8.1'),
+    (approved_banner, '3.8.0\nextra'),
+    (approved_banner.replace('11:05:45', '11:05:46'), '3.8.0'),
+    ('set_end_string ok!', '3.8.0'),
+    (approved_banner + '\n' + approved_banner, '3.8.0'),
+]:
+    try:
+        scope['_validate_solver_identity'](banner, version)
+        raise AssertionError('foreign or ambiguous Pio build was accepted')
+    except scope['SolverTransportFailure']:
+        pass
+scope['approved_solver_version'] = original_version
 
 for corrupt_hand_order in [
     ' '.join(pio_hand_order[:-1]),

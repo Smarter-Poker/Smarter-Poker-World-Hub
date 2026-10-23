@@ -684,6 +684,24 @@ def _validate_startup_handshake(response):
         raise SolverTransportFailure("PioSOLVER END handshake was not acknowledged")
 
 
+def _validate_solver_identity(handshake, live_version):
+    """Attest Pio's build banner separately from its numeric UPI version."""
+    approved_label, separator, build = approved_solver_version.partition(" (")
+    parts = approved_label.split()
+    if (separator and build.endswith(")") and len(parts) == 2
+            and parts[0].startswith("PioSOLVER-")):
+        banners = [line.strip() for line in str(handshake).splitlines()
+                   if line.strip().startswith("PioSOLVER-")]
+        if banners != [approved_solver_version] or live_version != parts[1]:
+            raise SolverTransportFailure(
+                "PioSOLVER show_version does not match approved PIO_SOLVER_VERSION"
+            )
+    elif live_version != approved_solver_version:
+        raise SolverTransportFailure(
+            "PioSOLVER show_version does not match approved PIO_SOLVER_VERSION"
+        )
+
+
 def _initialize_solver_transport(timeout_seconds=30):
     """Install END framing and attest the live executable before any solve."""
     global _pio_to_canonical_combo_index, _live_source_combo_order_sha256
@@ -698,10 +716,7 @@ def _initialize_solver_transport(timeout_seconds=30):
             _read_until_end(False, timeout_seconds),
             require_ack=False,
         )
-        if live_version != approved_solver_version:
-            raise SolverTransportFailure(
-                "PioSOLVER show_version does not match approved PIO_SOLVER_VERSION"
-            )
+        _validate_solver_identity(handshake, live_version)
 
         _write_solver_line("show_hand_order")
         hand_order_response = _validate_solver_response(
