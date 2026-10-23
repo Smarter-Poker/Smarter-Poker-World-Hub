@@ -58,7 +58,7 @@ test('Club Arena asset responses retain the origin status-dependent cache policy
     assert.deepEqual(cacheRules(config.headers, path), [], `Vercel overrides ${path}`);
     assert.equal(cacheRules(nextHeaders, path).length, 0, `Next overrides ${path}`);
   }
-  for (const path of ['/hub/assets/chart.js', '/hub/training/assets/chart.js', '/hub/other/nested/assets/chart.js',
+  for (const path of ['/hub/assets/chart.js', '/hub/marketplace/assets/chart.js', '/hub/other/nested/assets/chart.js',
     '/hub/club-arena-tools/assets/chart.js']) {
     assert.ok(cacheRules(config.headers, path).some((rule) =>
       rule.headers.some((header) => header.value.includes('immutable'))), path);
