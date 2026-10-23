@@ -5,6 +5,9 @@ on:
       expected_commit:
         required: true
         type: string
+      pipeline_commit:
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
@@ -30,6 +33,7 @@ jobs:
       - name: Build exact corrected M1 release from protected source
         env:
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          QUALIFIED_PIPELINE_COMMIT: ${{ inputs.pipeline_commit }}
           PYTHONDONTWRITEBYTECODE: '1'
         run: python3 -B .github/scripts/qualify_training_m1_release.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
