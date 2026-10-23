@@ -45,6 +45,24 @@ jobs:
           node-version: 24.12.0
       - name: Verify approval guards
         run: node --test __tests__/horse-v31-input-approval.test.mjs
+      - name: Stage protected approval receipt when stored with workflow inputs
+        if: inputs.mode == 'approve'
+        env:
+          APPROVAL_PATH: ${{ inputs.approval_path }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re, shutil
+          destination = os.environ['APPROVAL_PATH']
+          if not re.fullmatch(r'\.agent/v31-inputs/[A-Za-z0-9_-]+\.json', destination):
+              raise SystemExit('immutable_approval_identity_invalid')
+          target = pathlib.Path(destination)
+          if not target.exists():
+              source = pathlib.Path('.github/horse-v31-inputs') / target.name
+              if not source.is_file() or source.is_symlink():
+                  raise SystemExit('committed_approval_receipt_missing')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(source, target)
+          PY
       - name: Qualify existing identity or approve exact immutable inputs
         env:
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
