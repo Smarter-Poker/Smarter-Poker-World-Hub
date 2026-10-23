@@ -899,9 +899,6 @@ class LiveStreamService {
       if (this._remoteMediaStream && this._remoteMediaStream.getTracks().length > 0) {
         this.onRemoteStream?.(this._remoteMediaStream);
       }
-      try {
-        await supabase.rpc('update_live_peak_viewers', { p_stream_id: streamId, p_count: 1 });
-      } catch (_) {}
       // BUG-FIX-DEEP-AUDIT-R3 L-3: ensure heartbeat is running on
       // fast-path rejoin too. Without this, a viewer who briefly
       // navigates away and back would have their heartbeat stopped
@@ -986,11 +983,11 @@ class LiveStreamService {
       this._startViewerHeartbeat(streamId);
     }
 
-    // Update peak_viewers if needed — wrapped in try/catch because supabase.rpc()
-    // returns a thenable without .catch() on some iOS Safari builds
-    try {
-      await supabase.rpc('update_live_peak_viewers', { p_stream_id: streamId, p_count: 1 });
-    } catch (_) {}
+    // peak_viewers is written by the broadcaster's update_live_metrics, which
+    // keeps GREATEST(previous, current) in the same statement as viewer_count.
+    // The viewer used to call update_live_peak_viewers here as well; that
+    // function is service-role only, so every call was refused, silently, and
+    // it could only ever have raised the peak to 1. Removed 2026-10-20.
 
     // Get token and connect
     const { token, url } = await this._getToken(streamId, false);

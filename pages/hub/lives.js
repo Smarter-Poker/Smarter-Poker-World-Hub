@@ -12,6 +12,7 @@ import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import { attachBroadcasters } from '../../src/lib/liveBroadcasters';
 import { LivesListing } from '../../src/components/seo/PublicFeedListing';
 import {
     fetchPublicLivesListing,
@@ -51,6 +52,9 @@ export default function LivesPage({ livesListing = null }) {
     const [streams, setStreams] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
+    // Set when the stream list itself could not be read, so the page says so
+    // instead of claiming there are no lives.
+    const [fetchError, setFetchError] = useState(null);
     const [touchStart, setTouchStart] = useState(null);
     const [likedStreams, setLikedStreams] = useState({});
     const [shareMsg, setShareMsg] = useState('');
@@ -111,31 +115,40 @@ export default function LivesPage({ livesListing = null }) {
     const fetchStreams = useCallback(async () => {
         setLoading(true);
         try {
-            // Get active live streams
-            const { data: liveStreams } = await supabase
-                .from('live_streams')
-                // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
-                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles!broadcaster_id(username, display_name, avatar_url)')
-                .eq('status', 'live')
-                .order('started_at', { ascending: false })
-                .limit(50);
-
-            // Get recorded streams with video URLs (posted ones)
-            const { data: recordedStreams } = await supabase
-                .from('live_streams')
-                // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
-                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles!broadcaster_id(username, display_name, avatar_url)')
-                .eq('status', 'ended')
-                .eq('is_posted', true)
-                .not('video_url', 'is', null)
-                .order('created_at', { ascending: false })
-                .limit(50);
+            // 2026-10-20: these reads used to embed the broadcaster from
+            // profiles. A signed-out visitor (anon) may not read profiles, so
+            // the whole read failed, the error was ignored and the page said
+            // "No Lives Yet" over 11 recordings. The rows are read on their own
+            // and the display-safe name and picture come from
+            // /api/live/broadcasters (src/lib/liveBroadcasters.js).
+            const [liveResult, recordedResult] = await Promise.all([
+                supabase
+                    .from('live_streams')
+                    // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
+                    .select(LIVE_STREAM_SAFE_COLS)
+                    .eq('status', 'live')
+                    .order('started_at', { ascending: false })
+                    .limit(50),
+                // Recorded streams with video URLs (posted ones)
+                supabase
+                    .from('live_streams')
+                    .select(LIVE_STREAM_SAFE_COLS)
+                    .eq('status', 'ended')
+                    .eq('is_posted', true)
+                    .not('video_url', 'is', null)
+                    .order('created_at', { ascending: false })
+                    .limit(50),
+            ]);
+            if (liveResult.error || recordedResult.error) {
+                throw liveResult.error || recordedResult.error;
+            }
 
             // Combine: active lives first, then recorded
-            let allStreams = [
-                ...(liveStreams || []).map(s => ({ ...s, isLive: true })),
-                ...(recordedStreams || []).map(s => ({ ...s, isLive: false }))
-            ];
+            const { rows: named } = await attachBroadcasters([
+                ...(liveResult.data || []).map(s => ({ ...s, isLive: true })),
+                ...(recordedResult.data || []).map(s => ({ ...s, isLive: false })),
+            ]);
+            let allStreams = named;
 
             // Apply category filter if set
             if (categoryFilter !== 'all') {
@@ -143,8 +156,10 @@ export default function LivesPage({ livesListing = null }) {
             }
 
             setStreams(allStreams);
+            setFetchError(null);
         } catch (e) {
             console.warn('fetchStreams error:', e);
+            setFetchError('Lives could not be loaded right now.');
         }
         setLoading(false);
     }, [categoryFilter]);
@@ -217,13 +232,16 @@ export default function LivesPage({ livesListing = null }) {
     // #20: Fetch upcoming scheduled lives
     const fetchScheduledLives = useCallback(async () => {
         try {
-            const { data } = await supabase
+            // No profiles embed: anon cannot read profiles (see fetchStreams).
+            const { data, error } = await supabase
                 .from('scheduled_lives')
-                .select('*, profiles:broadcaster_id(username, display_name, avatar_url)')
+                .select('*')
                 .gte('scheduled_at', new Date().toISOString())
                 .order('scheduled_at', { ascending: true })
                 .limit(5);
-            setScheduledLives(data || []);
+            if (error) throw error;
+            const { rows } = await attachBroadcasters(data || [], { field: 'profiles' });
+            setScheduledLives(rows);
         } catch (e) {
             console.warn('fetchScheduledLives error:', e);
         }
@@ -723,8 +741,41 @@ export default function LivesPage({ livesListing = null }) {
                     </div>
                 )}
 
+                {/* Load failure: say so, never "No Lives Yet" */}
+                {!loading && streams.length === 0 && fetchError && (
+                    <div role="alert" style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: 'white',
+                        textAlign: 'center',
+                        padding: 40,
+                    }}>
+                        <h2 style={{ margin: '0 0 12px', fontSize: 24 }}>Lives Could Not Load</h2>
+                        <p style={{ color: C.textSec, margin: '0 0 24px' }}>
+                            Something Went Wrong Reading The Streams. Please Try Again.
+                        </p>
+                        <button
+                            onClick={() => fetchStreams()}
+                            style={{
+                                padding: '10px 22px',
+                                background: 'rgba(255, 255, 255, 0.12)',
+                                border: '1px solid rgba(255, 255, 255, 0.3)',
+                                borderRadius: 8,
+                                color: 'white',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                )}
+
                 {/* Empty State */}
-                {!loading && streams.length === 0 && (
+                {!loading && streams.length === 0 && !fetchError && (
                     <div style={{
                         position: 'absolute',
                         top: '50%',

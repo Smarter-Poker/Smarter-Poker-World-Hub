@@ -41,6 +41,15 @@ test('the burn-in read does not call the detector wrapper that writes detector e
   assert.match(route, /read-only reconstruction/i);
 });
 
+test('the burn-in chain read names the live function parameter, p_last_n', async () => {
+  // fn_ca_verify_ledger_chain(p_last_n bigint) is the only signature in the
+  // database. Calling it with any other argument name is PGRST202, and the
+  // burn-in route turns that into a 503 for the whole panel.
+  const route = await read('pages/api/horses/economy-admin.js');
+  assert.match(route, /db\.rpc\('fn_ca_verify_ledger_chain', \{ p_last_n: \d+ \}\)/);
+  assert.doesNotMatch(route, /fn_ca_verify_ledger_chain', \{ p_limit/);
+});
+
 test('Phase 7 source parses and contains no forbidden copy', async () => {
   for (const path of SOURCES.filter((path) => path.endsWith('.jsx'))) parse(await read(path), { sourceType: 'module', plugins: ['jsx'] });
   const source = (await Promise.all(SOURCES.map(read))).join('\n');
