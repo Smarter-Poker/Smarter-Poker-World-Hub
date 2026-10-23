@@ -32,7 +32,30 @@ import {
   reportAuthError,
   takeAuthErrorDetail,
 } from '../../src/lib/authErrors';
-import { authSwitchHref, isSafeRelativePath } from '../../src/lib/clubInvite';
+import { authSwitchHref, isSafeRelativePath, safeClubArenaPath } from '../../src/lib/clubInvite';
+import { shouldOfferPhoneWelcome } from '../../src/lib/phoneWelcome';
+
+// The first screen after signing in offers the welcome package (Verify or
+// Skip) to a player who has not verified a phone and has not skipped it
+// (2026-10-23). /hub makes that offer itself; a sign-in that returns straight
+// to Club Arena (?redirect=/hub/club-arena/...) never passed through it, so it
+// is wrapped here and continues to the same club afterwards. Fails open.
+async function withPhoneWelcome(destination, user) {
+  try {
+    const club = safeClubArenaPath(destination);
+    if (!club || !user?.id || user.user_metadata?.phone_prompt_dismissed_at) return destination;
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('phone_verified, is_vip, vip_tier')
+      .eq('id', user.id)
+      .maybeSingle();
+    return shouldOfferPhoneWelcome(profile)
+      ? `/hub/verify-phone?welcome=1&next=${encodeURIComponent(club)}`
+      : destination;
+  } catch {
+    return destination;
+  }
+}
 
 // A successful Supabase sign-in updates the auth store before React finishes
 // rendering this page. A Next.js client transition at that exact boundary can
@@ -306,7 +329,7 @@ export default function LoginPage() {
 
       // Set flag so hub plays intro animation
       sessionStorage.setItem('just_authenticated', 'true');
-      navigateWithFreshAuth(getRedirectUrl(), router);
+      navigateWithFreshAuth(await withPhoneWelcome(getRedirectUrl(), data?.user), router);
     } catch (err) {
       console.warn('Login error:', err);
       reportAuthError('login_form_submit', err);

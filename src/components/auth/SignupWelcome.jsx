@@ -19,12 +19,12 @@ export default function SignupWelcome({ playerNumber, alias, city, state, onCont
                 <div className={styles.identity}><strong>{alias}</strong><span>{[city, state].filter(Boolean).join(', ')}</span></div>
                 <div className={styles.cardFoot}><span>PokerIQ</span><span>Training</span><span>Club Arena</span></div>
             </div>
-            <button type="button" className={styles.continue} onClick={onContinue}>Enter The Club Lobby <ArrowRight size={19} aria-hidden="true" /></button>
             <div className={styles.reward}>
                 <Diamond size={25} aria-hidden="true" />
-                <div><strong>Your Welcome Package Awaits</strong><p>Verify Your Phone To Claim 30 Days Of VIP And 500 Diamonds.</p></div>
+                <div><strong>Your Welcome Package Awaits</strong><p>Verify Your Phone To Claim 1 Month Free VIP And 500 Diamonds.</p></div>
             </div>
-            <button type="button" className={styles.phone} onClick={onVerifyPhone}><Smartphone size={17} aria-hidden="true" /> Verify Phone And Claim Welcome Package</button>
+            <button type="button" className={styles.continue} onClick={onVerifyPhone}><Smartphone size={17} aria-hidden="true" /> Verify Phone And Claim Welcome Package</button>
+            <button type="button" className={styles.phone} onClick={onContinue}>Skip For Now And Enter The Club Lobby <ArrowRight size={17} aria-hidden="true" /></button>
         </section>
     );
 }

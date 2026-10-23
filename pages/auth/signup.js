@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import ExistingAccountDialog from '../../src/components/auth/ExistingAccountDialog';
 import AuthEntryChoices from '../../src/components/auth/AuthEntryChoices';
-import { isExistingSignup } from '../../src/lib/signupOutcome.mjs';
+import { isExistingSignup, isAbortedAuthRequest, signUpWithRecovery } from '../../src/lib/signupOutcome.mjs';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
@@ -53,6 +53,9 @@ import {
   takeAuthErrorDetail,
 } from '../../src/lib/authErrors';
 import { US_COUNTRY, NON_US_COUNTRIES } from '../../src/lib/countries';
+
+// Where a player with no club invite continues after the welcome package offer.
+const CLUB_LOBBY_PATH = '/hub/club-arena/';
 
 // US States for dropdown
 const US_STATES = [
@@ -653,7 +656,7 @@ export default function SignUpPage() {
       // Step 1: Create auth user with email/password
       // [2026-08-04] Normalize the email the same way login.js does —
       // "Dan@X.com " and "dan@x.com" must be the same account.
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      const { data: authData, error: signUpError } = await signUpWithRecovery(supabase.auth, {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         options: {
@@ -777,7 +780,11 @@ export default function SignUpPage() {
         ]);
         setSignupClubPath(next);
         setStep('success');
-        if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
+        // The first screen after signing in is the welcome package offer
+        // (Verify or Skip), with or without a club invite (2026-10-23): an
+        // uninvited player used to stop here on a screen whose main button
+        // went straight to the lobby, and never saw the offer.
+        window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
       }
     } catch (err) {
       console.warn('Signup error:', err);
@@ -786,7 +793,9 @@ export default function SignUpPage() {
         setExistingAccount(true);
       } else {
         reportAuthError('signup_form_submit', err);
-        setError('Failed to create account. Please check your details and try again.');
+        setError(isAbortedAuthRequest(err)
+          ? 'Your Connection Dropped Before We Could Create Your Account. Please Check Your Signal And Tap Create Account Again.'
+          : 'Failed to create account. Please check your details and try again.');
       }
     } finally {
       setLoading(false);
@@ -888,9 +897,9 @@ export default function SignUpPage() {
       ]);
       setSignupClubPath(next);
       setStep('success');
-      // Offer the earned welcome package before entering the invited club.
-      // Verification and Skip For Now both preserve this club destination.
-      if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
+      // Offer the earned welcome package before entering Club Arena, invited
+      // or not. Verification and Skip For Now both continue to the club.
+      window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
     } catch (err) {
       console.warn('Verification error:', err);
       setError(err.message || 'Invalid verification code. Please try again.');
@@ -2022,7 +2031,7 @@ export default function SignUpPage() {
                     { access_token: getAccessToken() },
                     Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
                   );
-                  router.push(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || '/hub/club-arena/')}`);
+                  router.push(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
                 }}
               />
             )}

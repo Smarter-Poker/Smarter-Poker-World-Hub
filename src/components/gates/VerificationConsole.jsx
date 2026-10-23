@@ -33,7 +33,7 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
         <section className={styles.console} aria-labelledby="verification-title" aria-busy={busy || checking}>
             <img className={styles.art} src="/images/verification/phone-welcome-v2.webp" alt="" aria-hidden="true" draggable={false} />
             <h1 id="verification-title" className={styles.srOnly}>{complete ? 'Phone Verified' : 'Welcome To Smarter.Poker'}</h1>
-            <p className={styles.srOnly}>Verify Your Phone Number To Unlock Your Welcome Package. 30-Day VIP Card And 500 Diamonds.</p>
+            <p className={styles.srOnly}>Verify Your Phone Number To Unlock Your Welcome Package: 1 Month Free VIP And 500 Diamonds.</p>
             <button type="button" className={`${styles.hitbox} ${styles.close}`} onClick={complete ? goHub : skip}
                 disabled={busy || checking} aria-label="Close Verification" />
             {complete && !alreadyVerified && <div className={styles.rewardStatus} role="status">
@@ -59,6 +59,7 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
                 </button>
             </form>
             {isCode && <div className={styles.stateFooter}><div className={styles.codeActions}>
+                <strong>Enter The Code To Claim 1 Month Free VIP And 500 Diamonds</strong>
                 <span>Code Sent To +1 {formatPhone(phone)}</span>
                 <button type="button" onClick={changePhone} disabled={busy}>Change Number</button>
                 <button type="button" onClick={sendCode} disabled={busy || cooldown > 0}>{cooldown > 0 ? `Resend In ${cooldown}s` : 'Resend Code'}</button>

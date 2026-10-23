@@ -58,8 +58,9 @@ test('callback phone onboarding precedes a club invite and preserves verified an
     assert.equal(result, expected);
   }
   const signup = read('pages/auth/signup.js');
-  assert.equal((signup.match(/if \(next\) window\.location\.replace\(`\/hub\/verify-phone\?welcome=1&next=\$\{encodeURIComponent\(next\)\}`\)/g) || []).length, 2,
-    'both auto-confirmed signup and email-code confirmation offer phone verification before the club');
+  assert.equal((signup.match(/window\.location\.replace\(`\/hub\/verify-phone\?welcome=1&next=\$\{encodeURIComponent\(next \|\| CLUB_LOBBY_PATH\)\}`\)/g) || []).length, 2,
+    'both auto-confirmed signup and email-code confirmation offer phone verification first, invited or not');
+  assert.doesNotMatch(signup, /if \(next\) window\.location\.replace\(`\/hub\/verify-phone/, 'an uninvited signup must not skip the offer');
   assert.match(signup, /If You Do Not See The Code In Your Inbox, Check Your Spam Or Junk Folder\./);
 });
 
