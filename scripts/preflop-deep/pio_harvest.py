@@ -319,7 +319,21 @@ def parse_strategy(raw, action_codes):
             numeric.append(values)
     if len(numeric) != len(action_codes):
         raise ValueError("strategy lines %d != actions %d" % (len(numeric), len(action_codes)))
-    return {code: numeric[i] for i, code in enumerate(action_codes)}
+    frequencies = {code: numeric[i] for i, code in enumerate(action_codes)}
+    # Float16 strategy storage can accumulate a small probability-sum drift.
+    # Accept at most one half-precision spacing below 1 per action, then
+    # normalize the ratios before the unchanged strict catalog validation.
+    # Zero-mass hands remain zero; large errors never become valid strategies.
+    rounding_bound = len(action_codes) * (2 ** -11)
+    for hand in range(1326):
+        total = math.fsum(frequencies[code][hand] for code in action_codes)
+        if total == 0:
+            continue
+        if abs(total - 1.0) > rounding_bound:
+            raise ValueError("strategy sum exceeds float16 rounding bound")
+        for code in action_codes:
+            frequencies[code][hand] /= total
+    return frequencies
 
 
 def parse_ev_array0(raw):

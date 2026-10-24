@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import unittest
+from unittest.mock import patch
 
 
 for legacy_name in (
@@ -357,6 +358,24 @@ class FourActionGeometryTests(unittest.TestCase):
 
 
 class BoundedCanaryManifestTests(unittest.TestCase):
+    def test_float16_strategy_drift_is_normalized_with_large_errors_rejected(self):
+        codes = ['c', 'b865', 'b1442', 'b2130']
+        # Observed converged M1 Turn export, 2sKs, index 1084. The original
+        # 1.000664 total failed strict validation despite valid live EVs.
+        observed = [0.0, 0.006279, 0.383301, 0.611084]
+        def raw(values):
+            return '\n'.join(' '.join(str(value) if i == 1084 else '0'
+                                     for i in range(1326)) for value in values)
+        parsed = worker.h.parse_strategy(raw(observed), codes)
+        self.assertAlmostEqual(sum(parsed[c][1084] for c in codes), 1.0, places=14)
+        self.assertTrue(all(parsed[c][0] == 0 for c in codes))
+        self.assertAlmostEqual(parsed['b865'][1084] / parsed['b2130'][1084],
+                               observed[1] / observed[3], places=14)
+        for malformed in ([0, .01, .39, .62], [0, .001, 0, 0], [0, -.01, .4, .61],
+                          [0, float('nan'), .4, .6], [0, 0, 0, 1.001]):
+            with self.subTest(malformed=malformed), self.assertRaises(ValueError):
+                worker.h.parse_strategy(raw(malformed), codes)
+
     def test_low_memory_profile_is_explicit_and_fail_closed(self):
         for profile in (None, {}, {**worker.h.SOLVER_RUNTIME_PROFILE, "memory_check": "ignored"},
                         {**worker.h.SOLVER_RUNTIME_PROFILE, "strategy_storage": "float32"}):
@@ -754,6 +773,40 @@ class BoundedCanaryRuntimeTests(unittest.TestCase):
             "bounded-canary-startup", "bounded-canary-complete",
         ])
         self.assertEqual(calls["heartbeat"][-1]["rows_written"], 2)
+
+    def test_rejected_pair_retains_local_evidence_without_any_ingest(self):
+        worker._worker_request = lambda *_args: {
+            "success": True, "operation": "row_states",
+            "rows": [row_for(target) for target in self.targets],
+        }
+        plan = worker.prepare_bounded_canary_execution(
+            self.validated, self.checksum, "M1", 2, 0
+        )
+        for rejected_index in (0, 1):
+            with self.subTest(rejected_index=rejected_index):
+                valid = {"bad_sum_hands": 0, "live_hands": 10, "ev_ok": True}
+                rejected = {**valid, "bad_sum_hands": 1}
+                validations = [rejected] if rejected_index == 0 else [valid, rejected]
+                with patch.object(worker, "fetch_text", return_value=self.raw), \
+                     patch.object(worker, "self_test"), \
+                     patch.object(worker, "load_range", return_value="sealed-range"), \
+                     patch.object(worker, "solve"), \
+                     patch.object(worker, "read_results", return_value=(1, -1, .1)), \
+                     patch.object(worker.h, "harvest_node", return_value=("", {"local": True})), \
+                     patch.object(worker.h, "validate_row", side_effect=validations), \
+                     patch.object(worker.os, "makedirs"), \
+                     patch.object(worker, "write_backup") as backup, \
+                     patch.object(worker, "patch_v2") as ingest, \
+                     self.assertRaisesRegex(SystemExit, "bad_sum_hands.*1"):
+                    worker.run_bounded_canary(plan)
+                ingest.assert_not_called()
+                backup.assert_called_once()
+                path, payload = backup.call_args.args
+                self.assertTrue(path.startswith("diagnostics" + os.sep))
+                self.assertEqual(payload["admission_status"], "rejected_before_any_ingest")
+                self.assertEqual(payload["validation"], rejected)
+                self.assertEqual(payload["target"], plan["targets"][rejected_index])
+                self.assertEqual(payload["manifest_checksum"], self.checksum)
 
     def test_partial_retry_ingests_only_missing_child_and_reverifies_pair(self):
         original = {
