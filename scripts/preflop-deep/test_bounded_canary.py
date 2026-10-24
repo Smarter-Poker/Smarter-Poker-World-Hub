@@ -367,7 +367,7 @@ class BoundedCanaryManifestTests(unittest.TestCase):
 
     def test_low_memory_setup_precedes_build_and_preserves_geometry(self):
         commands = worker.h.build_setup_commands("AhKdQc", "oop", "ip")
-        self.assertLess(commands.index("set_algorithm original_pio"), commands.index("build_tree"))
+        self.assertLess(commands.index("set_algorithm pio_cfr"), commands.index("build_tree"))
         self.assertLess(commands.index("small_strats on"), commands.index("build_tree"))
         self.assertNotIn("build_tree mem_ignore", commands)
         self.assertEqual(commands[0], "free_tree")

@@ -52,7 +52,7 @@ new = json.loads(manifest)
 for key in ('phases','self_test','bounded_canary_contracts','training_game_contracts','training_contract_scope'):
     assert new[key] == original[key], key
 assert new['release_gate']['bounded_canary_ready'] and not new['release_gate']['solver_ready']
-assert new['solver_runtime_profile'] == dict(schema='piosolver.runtime-profile.v1', algorithm='original_pio', strategy_storage='float16', memory_check='required')
+assert new['solver_runtime_profile'] == dict(schema='piosolver.runtime-profile.v1', algorithm='pio_cfr', strategy_storage='float16', memory_check='required')
 with zipfile.ZipFile(output/'m1-bounded-release.zip','w',zipfile.ZIP_DEFLATED) as archive:
     for name,data in {**payloads,'phases.json':manifest}.items():
         archive.writestr(name,data)
