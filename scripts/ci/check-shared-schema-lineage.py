@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep pinned history immutable; admit two exact, freshly qualified DML transitions."""
+"""Keep pinned history immutable; admit three exact, freshly qualified DML transitions."""
 import argparse
 import copy
 import hashlib
@@ -15,6 +15,8 @@ TRANSITIONS = (
      'db76250600559267781decf480070d5e177e01cd62b5207b0f944fa1ef9c3b41'),
     ('supabase/migrations/20261024014250_training_m1_low_memory_repin.sql',
      'db6442684fe844523877d31b6111d9818312080dcac08fb27dbb9a8b390d0900'),
+    ('supabase/migrations/20261024034508_training_m1_float16_normalization_repin.sql',
+     'b6deee756e3426b8a9fa67e74cb490a3aaf68f53ebea7fe6df58bf234979ed8d'),
 )
 EVIDENCE_PREFIX = 'Phase 6 Training solver catalog verification passed: '
 REQUIRED_CHECKS = (
@@ -44,13 +46,13 @@ def validate_inputs(inventory, forward, actual):
         raise ValueError('Historical migration bytes changed')
     new = set(actual) - set(expected)
     if new != set(dict(TRANSITIONS)) or any(actual.get(p) != digest for p, digest in TRANSITIONS):
-        raise ValueError('Only the two exact reviewed M1 repins may receive forward qualification')
+        raise ValueError('Only the three exact reviewed M1 repins may receive forward qualification')
 
 
 def extend_inventory(inventory, forward, actual, proof):
     validate_inputs(inventory, forward, actual)
     if not isinstance(proof, list) or len(proof) != len(TRANSITIONS):
-        raise ValueError('Native proof must cover both transitions in order')
+        raise ValueError('Native proof must cover all three transitions in order')
     for item, (migration, digest) in zip(proof, TRANSITIONS):
         if not isinstance(item, dict) or item.get('path') != migration or item.get('sha256') != digest:
             raise ValueError('Native proof does not bind the exact migration sequence')
