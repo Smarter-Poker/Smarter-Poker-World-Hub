@@ -794,10 +794,14 @@ def _parse_calc_ev_vectors(raw):
     if len(numeric) != 2:
         raise RuntimeError("calc_ev must return exact EV and matchup vectors")
     ev_chips, matchup_weights = numeric
-    if any(not math.isfinite(value) and not math.isnan(value) for value in ev_chips):
-        raise RuntimeError("calc_ev EV vector contains an infinite value")
     if any(not math.isfinite(value) or value < 0 for value in matchup_weights):
         raise RuntimeError("calc_ev matchup vector contains an invalid value")
+    if any(not math.isfinite(value) and weight > 0
+           for value, weight in zip(ev_chips, matchup_weights)):
+        raise RuntimeError("calc_ev contains a non-finite live EV")
+    # Pio 3.8 uses both inf and nan for unreachable hands. Normalize those
+    # markers only after proving their matchup mass is exactly zero.
+    ev_chips = [value if math.isfinite(value) else math.nan for value in ev_chips]
     return ev_chips, matchup_weights
 
 

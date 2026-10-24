@@ -323,17 +323,24 @@ def parse_strategy(raw, action_codes):
 
 
 def parse_ev_array0(raw):
-    """calc_ev output: first long numeric line = per-hand EV (Array 0), in chips."""
-    for ln in raw.splitlines():
-        parts = ln.split()
+    """Return EV chips, treating non-finite zero-matchup markers as absent."""
+    vectors = []
+    for line in raw.splitlines():
+        parts = line.split()
         if len(parts) >= 1000:
-            values = [float(x) for x in parts]
+            values = [float(value) for value in parts]
             if len(values) != 1326:
-                raise ValueError("EV vector must contain exactly 1326 values")
-            if any(not math.isfinite(value) and not math.isnan(value) for value in values):
-                raise ValueError("EV vector contains an infinite value")
-            return values
-    raise ValueError("no 1326-length EV array found in calc_ev output")
+                raise ValueError("EV and matchup vectors must contain exactly 1326 values")
+            vectors.append(values)
+    if len(vectors) != 2:
+        raise ValueError("calc_ev must return exact EV and matchup vectors")
+    evs, matchups = vectors
+    if any(not math.isfinite(weight) or weight < 0 for weight in matchups):
+        raise ValueError("calc_ev matchup vector contains an invalid weight")
+    if any(not math.isfinite(value) and weight > 0
+           for value, weight in zip(evs, matchups)):
+        raise ValueError("calc_ev contains a non-finite live EV")
+    return [value if math.isfinite(value) else math.nan for value in evs]
 
 
 def action_meta(code, facing_wager=False):
