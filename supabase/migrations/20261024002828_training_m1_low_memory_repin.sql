@@ -110,7 +110,7 @@ INSERT INTO public.training_solver_provenance_authority (
   manifest_version, manifest_checksum, source_combo_order_sha256,
   training_game_contracts_sha256, manifest_contracts, approved_by
 ) VALUES (
-  'M1', 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)', 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb', 'fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1', '5', 'ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2',
+  'M1', 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)', 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb', '1ff1f0bfad564607908136a73c37c80ba0d7f325', '5', '31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1',
   '7d1e445d2a9fe34d416ea41adf7f2df2c4319c49141b389be5eb3d6cb2d9618a', '5dc75c9f5dad99b71ea7e84db4c4ced9acfb51078d2fdcd019b802509a94c4a3', '[{"accuracy_fraction":0.005,"eff_chips":9750,"game_type":"hu_cash","ip_player":"BTN","ip_range_checksum":"6255165643c516cc03605773a76bcd43f38ee63d50d4013e296df5e1f6c616cc","oop_player":"BB","oop_range_checksum":"9dbfd7dff86d7502e20acacc8a89d593342287a771acd00b99eca9e0b513148d","pot_chips":550,"rake":"0.05 10","range_combo_order":"card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325","source_combo_order_sha256":"7d1e445d2a9fe34d416ea41adf7f2df2c4319c49141b389be5eb3d6cb2d9618a","stack_depth":100,"streets":["flop","turn"],"tree_geometry":"srp_parameterized_four_action_v3"}]'::jsonb, 'M1 Training version-attestation repair 2026-10-23'
 );
 
@@ -119,8 +119,8 @@ INSERT INTO public.training_solver_bounded_canary_targets (
   manifest_version, manifest_checksum, target_role, artifact_id,
   scenario_hash, street, node, hero_position, approved_by
 ) VALUES
-  ('M1', 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)', 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb', 'fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1', '5', 'ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2', 'parent', '2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a', 'hu_cash_BTN_100bb_2c4c7c', 'flop', 'r:0:c', 'BTN', 'M1 Training version-attestation repair 2026-10-23'),
-  ('M1', 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)', 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb', 'fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1', '5', 'ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2', 'child', '21d75135-faa8-4c0d-acbe-91b55c98daf0', 'turn_hu_cash_BTN_100bb_2c4c7c2d', 'turn', 'r:0:c:b412:c:2d:c', 'BTN', 'M1 Training version-attestation repair 2026-10-23');
+  ('M1', 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)', 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb', '1ff1f0bfad564607908136a73c37c80ba0d7f325', '5', '31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1', 'parent', '2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a', 'hu_cash_BTN_100bb_2c4c7c', 'flop', 'r:0:c', 'BTN', 'M1 Training version-attestation repair 2026-10-23'),
+  ('M1', 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)', 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb', '1ff1f0bfad564607908136a73c37c80ba0d7f325', '5', '31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1', 'child', '21d75135-faa8-4c0d-acbe-91b55c98daf0', 'turn_hu_cash_BTN_100bb_2c4c7c2d', 'turn', 'r:0:c:b412:c:2d:c', 'BTN', 'M1 Training version-attestation repair 2026-10-23');
 
 DO $phase6_m1_single_active_scope$
 BEGIN
@@ -138,9 +138,9 @@ BEGIN
       AND (
         other_scope.solver_version IS DISTINCT FROM 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)'
         OR other_scope.solver_binary_checksum IS DISTINCT FROM 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb'
-        OR other_scope.pipeline_commit IS DISTINCT FROM 'fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1'
+        OR other_scope.pipeline_commit IS DISTINCT FROM '1ff1f0bfad564607908136a73c37c80ba0d7f325'
         OR other_scope.manifest_version IS DISTINCT FROM '5'
-        OR other_scope.manifest_checksum IS DISTINCT FROM 'ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2'
+        OR other_scope.manifest_checksum IS DISTINCT FROM '31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1'
       )
   ) THEN
     RAISE EXCEPTION 'TRAINING_SOLVER_MACHINE_INGEST_SCOPE_ALREADY_ACTIVE';
@@ -157,9 +157,9 @@ SET admission_mode = 'bounded_canary',
 WHERE machine_id = 'M1'
     AND solver_version = 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)'
     AND solver_binary_checksum = 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb'
-    AND pipeline_commit = 'fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1'
+    AND pipeline_commit = '1ff1f0bfad564607908136a73c37c80ba0d7f325'
     AND manifest_version = '5'
-    AND manifest_checksum = 'ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2'
+    AND manifest_checksum = '31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1'
   AND admission_mode = 'held';
 
 DO $phase6_m1_activation_assertion$
@@ -169,9 +169,9 @@ BEGIN
       WHERE machine_id = 'M1'
     AND solver_version = 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)'
     AND solver_binary_checksum = 'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb'
-    AND pipeline_commit = 'fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1'
+    AND pipeline_commit = '1ff1f0bfad564607908136a73c37c80ba0d7f325'
     AND manifest_version = '5'
-    AND manifest_checksum = 'ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2'
+    AND manifest_checksum = '31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1'
         AND admission_mode = 'bounded_canary'
         AND partition_count = 2
         AND partition_index = 0) <> 1 THEN
@@ -184,9 +184,9 @@ $phase6_m1_activation_assertion$;
 DO $verify_low_memory_repin$
 BEGIN
  IF (SELECT count(*) FROM public.training_solver_provenance_authority WHERE machine_id='M1' AND retired_at IS NULL)<>1
- OR (SELECT count(*) FROM public.training_solver_provenance_authority WHERE machine_id='M1' AND solver_version='PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)' AND solver_binary_checksum='e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb' AND pipeline_commit='fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1' AND manifest_version='5' AND manifest_checksum='ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2' AND retired_at IS NULL)<>1
+ OR (SELECT count(*) FROM public.training_solver_provenance_authority WHERE machine_id='M1' AND solver_version='PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)' AND solver_binary_checksum='e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb' AND pipeline_commit='1ff1f0bfad564607908136a73c37c80ba0d7f325' AND manifest_version='5' AND manifest_checksum='31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1' AND retired_at IS NULL)<>1
  OR (SELECT count(*) FROM public.training_solver_provenance_authority WHERE machine_id='M1' AND solver_version='PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)' AND solver_binary_checksum='e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb' AND pipeline_commit='7d1154f84b7220462f896f30af1c9ed1a8cbc200' AND manifest_version='5' AND manifest_checksum='0c1559f64b10903f410bf07f15b1760bff3cf9d5bf89626ad0f0ef0eac650a6c' AND retired_at IS NOT NULL)<>1
- OR (SELECT count(*) FROM public.training_solver_ingest_scopes WHERE machine_id='M1' AND solver_version='PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)' AND solver_binary_checksum='e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb' AND pipeline_commit='fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1' AND manifest_version='5' AND manifest_checksum='ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2' AND admission_mode='bounded_canary' AND partition_count=2 AND partition_index=0)<>1
+ OR (SELECT count(*) FROM public.training_solver_ingest_scopes WHERE machine_id='M1' AND solver_version='PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)' AND solver_binary_checksum='e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb' AND pipeline_commit='1ff1f0bfad564607908136a73c37c80ba0d7f325' AND manifest_version='5' AND manifest_checksum='31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1' AND admission_mode='bounded_canary' AND partition_count=2 AND partition_index=0)<>1
  OR md5(pg_get_functiondef('public.fn_training_solver_scope_transition_guard_v1()'::regprocedure))<>'90f0e00242ccd59c44c83eb338b38220' THEN
   RAISE EXCEPTION 'M1_LOW_MEMORY_REPIN_POSTCONDITION_FAILED';
  END IF;
@@ -198,5 +198,5 @@ COMMIT;
 -- RECOVERY: stop the new pin without reviving the old incompatible pin.
 -- BEGIN;
 -- SELECT pg_advisory_xact_lock(hashtextextended('training-solver-ingest-scope:M1',0));
--- UPDATE public.training_solver_provenance_authority SET retired_at=clock_timestamp() WHERE machine_id='M1' AND solver_version='PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)' AND solver_binary_checksum='e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb' AND pipeline_commit='fc3fbe2e6bfe2aed3e2761ee2ead01580a267fd1' AND manifest_version='5' AND manifest_checksum='ea50737174a9cf2131818b49600de185b14bba9c7a6ecb8e3945cf42577399b2' AND retired_at IS NULL;
+-- UPDATE public.training_solver_provenance_authority SET retired_at=clock_timestamp() WHERE machine_id='M1' AND solver_version='PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)' AND solver_binary_checksum='e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb' AND pipeline_commit='1ff1f0bfad564607908136a73c37c80ba0d7f325' AND manifest_version='5' AND manifest_checksum='31e68135275a192b89af0068a1d984365eba872a1cb67fe73dde59069039e3e1' AND retired_at IS NULL;
 -- COMMIT;
