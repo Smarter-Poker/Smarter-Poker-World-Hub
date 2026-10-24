@@ -1047,6 +1047,25 @@ calc_ev_text = ' '.join(str(value) for value in ev_vector) + '\n' \
     + ' '.join(str(value) for value in matchup_vector)
 parsed_ev, parsed_matchups = scope['_parse_calc_ev_vectors'](calc_ev_text)
 assert scope['_wavg_bb'](parsed_ev, parsed_matchups) == 0.75
+# Non-finite EVs are missing markers only when their matching mass is zero.
+import pio_harvest as harvest
+for marker in ('inf', '-inf', 'nan'):
+    values = [0.0] * 1326
+    values[2] = float(marker)
+    text = ' '.join(map(str, values)) + '\n' + ' '.join(map(str, matchup_vector))
+    parsed, mass = scope['_parse_calc_ev_vectors'](text)
+    assert math.isnan(parsed[2]) and mass[2] == 0
+    assert math.isnan(harvest.parse_ev_array0(text)[2])
+    live_mass = list(matchup_vector)
+    live_mass[2] = 1
+    corrupt = ' '.join(map(str, values)) + '\n' + ' '.join(map(str, live_mass))
+    for parser in (scope['_parse_calc_ev_vectors'], harvest.parse_ev_array0):
+        try:
+            parser(corrupt)
+            raise AssertionError('non-finite live EV accepted')
+        except (RuntimeError, ValueError) as error:
+            assert 'non-finite live EV' in str(error)
+
 assert scope['_wavg_bb'](parsed_ev, [1.0, 1.0] + [0.0] * 1324) == 0.5
 try:
     scope['_wavg_bb']([float('nan')] + [0.0] * 1325, [1.0] + [0.0] * 1325)
@@ -1338,7 +1357,7 @@ def pio(command):
                 vectors[1].append(0.0 if blocked else 0.6)
         return ' '.join(map(str, vectors[0])) + '\n' + ' '.join(map(str, vectors[1]))
     if command.startswith('calc_ev'):
-        return '125 ' * 1326
+        return ('125 ' * 1326) + '\n' + ('1 ' * 1326)
     raise AssertionError(command)
 scenario_hash, matrix = h.harvest_node(
     pio, 'r:0', 'OOP', 'AsKdQcJh2s', 'BB', 'BB', 'BTN',
