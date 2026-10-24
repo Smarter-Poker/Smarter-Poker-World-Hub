@@ -165,7 +165,9 @@ python set_range_export.py   # validates conversion on trusted charts
 The bounded release seals `solver_runtime_profile` alongside its exact pipeline
 bytes. The profile uses Pio 3.8 `original_pio` with `small_strats on` (float16
 strategy storage). It preserves the v3 four-action geometry, ranges, rake,
-accuracy fraction, original reference board, and reserved parent/child pair.
+accuracy fraction, and reserved parent/child pair. The reviewed reference test
+uses `AhKhQh` instead of the rainbow `AhKdQc` board to reduce memory further;
+all other reference fields and strict quality checks remain unchanged.
 The worker rejects a missing or different profile before launching Pio. The
 export records the profile as diagnostic provenance; the existing pipeline and
 manifest authority pins remain the admission boundary.
