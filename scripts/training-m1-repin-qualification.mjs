@@ -28,7 +28,7 @@ const TRANSITIONS = [
   },
   {
     name: 'float16_normalization',
-    path: 'supabase/migrations/20261024034508_training_m1_float16_normalization_repin.sql',
+    path: 'supabase/migrations/20261024040402_training_m1_float16_normalization_repin.sql',
     sha256: 'b6deee756e3426b8a9fa67e74cb490a3aaf68f53ebea7fe6df58bf234979ed8d',
     oldCommit: '1ff1f0bfad564607908136a73c37c80ba0d7f325',
     newCommit: '932f0a21c5f6bb6e8b6f73f540e1271b9f69b8d4',
