@@ -332,7 +332,7 @@ def fake_pio(command):
     if command == 'show_strategy r:0':
         return '\n'.join((check, bet_33, bet_75, bet_125))
     if command == 'calc_ev OOP r:0':
-        return ev
+        return ev + '\n' + ' '.join('1' if value else '0' for value in live)
     raise AssertionError('unexpected harvester command: ' + command)
 
 scenario_hash, matrix = harvest.harvest_node(
