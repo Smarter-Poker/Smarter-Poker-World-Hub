@@ -596,6 +596,7 @@ def _build_manifest(packet, worker):
 
     manifest = {
         "version": packet["manifest_version"],
+        "solver_runtime_profile": dict(worker.h.SOLVER_RUNTIME_PROFILE),
         "execution_scope": worker.EXECUTION_SCOPE_BOUNDED_CANARY,
         "pipeline_distribution": PIPELINE_DISTRIBUTION,
         "pipeline_files_sha256": {

@@ -102,6 +102,7 @@ def make_manifest(include_canaries=True, execution_scope="bounded_canary",
     icm_contracts = worker.canonical_contract_pairs(worker.TRAINING_ICM_CONTRACTS)
     manifest = {
         "version": 5,
+        "solver_runtime_profile": dict(worker.h.SOLVER_RUNTIME_PROFILE),
         "execution_scope": execution_scope,
         "pipeline_bundle_checksum": "f" * 64,
         "range_combo_order": worker.h.COMBO_ORDER,
@@ -356,6 +357,23 @@ class FourActionGeometryTests(unittest.TestCase):
 
 
 class BoundedCanaryManifestTests(unittest.TestCase):
+    def test_low_memory_profile_is_explicit_and_fail_closed(self):
+        for profile in (None, {}, {**worker.h.SOLVER_RUNTIME_PROFILE, "memory_check": "ignored"},
+                        {**worker.h.SOLVER_RUNTIME_PROFILE, "strategy_storage": "float32"}):
+            manifest = make_manifest()
+            manifest["solver_runtime_profile"] = profile
+            with self.subTest(profile=profile), self.assertRaisesRegex(SystemExit, "low-memory solver runtime profile"):
+                validate_manifest(manifest)
+
+    def test_low_memory_setup_precedes_build_and_preserves_geometry(self):
+        commands = worker.h.build_setup_commands("AhKdQc", "oop", "ip")
+        self.assertLess(commands.index("set_algorithm original_pio"), commands.index("build_tree"))
+        self.assertLess(commands.index("small_strats on"), commands.index("build_tree"))
+        self.assertNotIn("build_tree mem_ignore", commands)
+        self.assertEqual(commands[0], "free_tree")
+        self.assertEqual([c for c in commands if c.startswith("add_line ")],
+                         ["add_line " + " ".join(map(str, line)) for line in worker.h.tree_gen.build_lines(550, 9750)])
+
     def test_manifest_requires_exact_integer_version_five(self):
         for invalid_version in (4, 6, "5", 5.0, True, None):
             manifest = make_manifest()

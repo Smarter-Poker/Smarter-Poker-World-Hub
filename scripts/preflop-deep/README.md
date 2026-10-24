@@ -158,3 +158,22 @@ python eqmatrix.py     # writes eq169.npy, w169.npy, classes.json
 python combomap.py     # self-check
 python set_range_export.py   # validates conversion on trusted charts
 ```
+
+
+## M1 lower-memory runtime qualification
+
+The bounded release seals `solver_runtime_profile` alongside its exact pipeline
+bytes. The profile uses Pio 3.8 `original_pio` with `small_strats on` (float16
+strategy storage). It preserves the v3 four-action geometry, ranges, rake,
+accuracy fraction, original reference board, and reserved parent/child pair.
+The worker rejects a missing or different profile before launching Pio. The
+export records the profile as diagnostic provenance; the existing pipeline and
+manifest authority pins remain the admission boundary.
+
+Every build first frees the preceding tree, so the mandatory reference tree
+cannot remain resident during the canary build. Normal memory checks, command
+acknowledgements, per-combo normalization, EV consistency and achieved
+exploitability checks remain required. A smaller tree, skipped reference test,
+memory-check override, or relabeling old artifacts is not this profile.
+Qualification and a matching authority repin must precede bounded execution.
+This source change does not authorize M2 or default backlog execution.

@@ -21,6 +21,12 @@ CHIPS_PER_BB = 100
 GAME_TYPE = "6max_cash"
 STACK_BB = 100
 GEOMETRY_TAG = tree_gen.GEOMETRY_TAG
+SOLVER_RUNTIME_PROFILE = {
+    "schema": "piosolver.runtime-profile.v1",
+    "algorithm": "original_pio",
+    "strategy_storage": "float16",
+    "memory_check": "required",
+}
 COMBO_ORDER = "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
 SOURCE_COMBO_ORDER_SCHEMA = "piosolver.show_hand_order.v1"
 CARD_PATTERN = re.compile(r"^[2-9TJQKA][cdhs]$")
@@ -254,11 +260,14 @@ def build_setup_commands(board, oop_weights, ip_weights, pot=550, eff=9750,
     if not isinstance(rake, str) or not RAKE_PATTERN.fullmatch(rake):
         raise ValueError("rake must be canonical Pio fraction and integer cap")
     cmds = [
+        "free_tree",  # Release the reference tree before the bounded target build.
         "set_pot 0 0 %d" % pot,           # machine: use its exact pot/eff command names
         "set_eff_stack %d" % eff,
         "set_board %s" % board,
         "set_range OOP %s" % oop_weights,
         "set_range IP %s" % ip_weights,
+        "set_algorithm original_pio",
+        "small_strats on",
         "set_isomorphism 1 0",
         "clear_lines",
     ]
@@ -430,6 +439,7 @@ def harvest_node(pio, node, player, board, position, oop_player, ip_player,
         "source_combo_order_sha256": source_combo_order_sha256,
         "training_game_contracts_sha256": training_game_contracts_sha256,
         "tree_geometry": GEOMETRY_TAG, "solver": "PioSOLVER",
+        "solver_runtime_profile": dict(SOLVER_RUNTIME_PROFILE),
     }
     prefix = "" if resolved_street == "flop" else resolved_street + "_"
     scenario_hash = scenario_hash_for(
