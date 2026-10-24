@@ -163,7 +163,7 @@ python set_range_export.py   # validates conversion on trusted charts
 ## M1 lower-memory runtime qualification
 
 The bounded release seals `solver_runtime_profile` alongside its exact pipeline
-bytes. The profile uses Pio 3.8 `pio_cfr` with `small_strats on` (float16
+bytes. The profile uses Pio 3.8 `original_pio` with `small_strats on` (float16
 strategy storage). It preserves the v3 four-action geometry, ranges, rake,
 accuracy fraction, original reference board, and reserved parent/child pair.
 The worker rejects a missing or different profile before launching Pio. The

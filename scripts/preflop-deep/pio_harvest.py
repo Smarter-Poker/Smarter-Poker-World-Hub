@@ -23,7 +23,7 @@ STACK_BB = 100
 GEOMETRY_TAG = tree_gen.GEOMETRY_TAG
 SOLVER_RUNTIME_PROFILE = {
     "schema": "piosolver.runtime-profile.v1",
-    "algorithm": "pio_cfr",
+    "algorithm": "original_pio",
     "strategy_storage": "float16",
     "memory_check": "required",
 }
@@ -266,7 +266,7 @@ def build_setup_commands(board, oop_weights, ip_weights, pot=550, eff=9750,
         "set_board %s" % board,
         "set_range OOP %s" % oop_weights,
         "set_range IP %s" % ip_weights,
-        "set_algorithm pio_cfr",
+        "set_algorithm original_pio",
         "small_strats on",
         "set_isomorphism 1 0",
         "clear_lines",
