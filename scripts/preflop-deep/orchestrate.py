@@ -1556,8 +1556,23 @@ def run_bounded_canary(plan):
         if (validation["bad_sum_hands"] != 0
                 or validation["live_hands"] == 0
                 or not validation["ev_ok"]):
+            # Preserve the rejected local evidence before exiting. Nothing in
+            # this directory is eligible for ingestion or a completed retry.
+            os.makedirs("diagnostics", exist_ok=True)
+            write_backup(os.path.join(
+                "diagnostics", "rejected-bounded-canary-%s-%s.json"
+                % (MID, target["scenario_hash"])
+            ), {
+                "scenario_hash": target["scenario_hash"],
+                "strategy_matrix_v2": strategy_matrix,
+                "validation": validation,
+                "target": target,
+                "manifest_checksum": plan["manifest_checksum"],
+                "admission_status": "rejected_before_any_ingest",
+            })
             raise SystemExit(
-                "bounded canary strict V2 validation failed before any ingest"
+                "bounded canary strict V2 validation failed before any ingest: "
+                "%s %s" % (target["role"], json.dumps(validation, sort_keys=True))
             )
         prepared_artifacts.append((target, strategy_matrix, validation))
 
