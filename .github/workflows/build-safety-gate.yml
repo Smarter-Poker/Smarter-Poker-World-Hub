@@ -232,6 +232,7 @@ jobs:
           __tests__/messenger-sync-lifecycle.test.mjs
           __tests__/messenger-completion-lifecycle.test.mjs
           __tests__/messenger-organization.test.mjs
+          __tests__/messenger-display-name.test.mjs
           __tests__/messenger-alert-preferences.test.mjs
           __tests__/notifications-completion.test.mjs
           __tests__/notification-feed-groups.test.mjs
