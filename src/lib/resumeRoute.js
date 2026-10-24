@@ -25,46 +25,82 @@
  * killed PWA, which is what lets that script tell a launch from a navigation.
  *
  * What is never recorded: /auth (the login flow must not be a destination),
- * error pages, the bare /hub and the root - restoring to those is restoring to
- * nowhere - and anything carrying authError=, which is a sign-out landing.
+ * error pages, the root, and anything carrying authError=, which is a
+ * sign-out landing.
+ *
+ * THE HUB IS RECORDED, AND IT IS THE DEFAULT (Dan, 2026-10-24). Dan, verbatim:
+ * "WHEN I ADD SMARTER.POKER TO THE DESKTOP, IT CONSTANTLY LOADS FROM THE
+ * SETTINGS PAGE, INSTEAD OF THE HUB ... ANYTIME YOU 'REOPEN' THE HOMEPAGE APP
+ * IT SHOULD OPEN TO THE LAST PAGE YOU WERE ON, AND THE DEFAULT BEING THE HUB
+ * PAGE."
+ *
+ * Why it did that. The first version refused to RECORD /hub as well as refusing
+ * to restore to it. The install sheet tells players to install from Settings,
+ * so the last route on file at install time was /hub/settings - and because a
+ * visit to the Hub was never written, nothing ever replaced it. Every launch
+ * went to Settings, however many times the player went back to the Hub.
+ *
+ * So the two questions are now separate:
+ *   isResumable(path)  - worth leaving start_url for on launch (never /hub:
+ *                        the app is already there).
+ *   isRecordable(path) - worth remembering as "where you were". /hub is, so
+ *                        a player who closes the app on the Hub reopens on
+ *                        the Hub.
+ *
+ * There is no age limit. "ANYTIME you reopen" means a week later too; with no
+ * record at all (first launch, cleared storage) the app opens on start_url,
+ * which is the Hub.
  */
 
 export const LAST_ROUTE_KEY = 'sp:last-route';
 export const SESSION_ALIVE_KEY = 'sp:session-alive';
 
-/** A route older than this is not "where you left off", it is history. */
-export const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+/** The default destination, and the manifest's start_url. */
+export const HUB_PATH = '/hub';
 
-const NOT_RESUMABLE = [
+const NOT_RECORDABLE = [
     /^\/$/,
-    /^\/hub\/?$/,
     /^\/auth(\/|$)/,
     /^\/(404|500|_error)(\/|$)/,
 ];
 
+function pathnameOf(path) {
+    return path.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+}
+
 /**
- * True when `path` (an as-path: pathname plus optional query and hash) is a
- * place worth reopening the app on.
+ * True when `path` is a place worth remembering as where the player was:
+ * every real page, the Hub included.
  */
-export function isResumable(path) {
+export function isRecordable(path) {
     if (typeof path !== 'string') return false;
     if (path.charAt(0) !== '/') return false;
     if (path.charAt(1) === '/') return false; // protocol-relative: an open redirect
     if (path.indexOf('authError=') !== -1) return false;
-    const pathname = path.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
-    for (const re of NOT_RESUMABLE) {
+    const pathname = pathnameOf(path);
+    for (const re of NOT_RECORDABLE) {
         if (re.test(pathname)) return false;
     }
     return true;
 }
 
 /**
+ * True when `path` (an as-path: pathname plus optional query and hash) is a
+ * place worth leaving start_url for on launch. The bare Hub is recordable but
+ * not resumable: a launch is already standing on it.
+ */
+export function isResumable(path) {
+    if (!isRecordable(path)) return false;
+    return pathnameOf(path) !== HUB_PATH;
+}
+
+/**
  * Record `path` as the place to reopen on. A no-op for anything not
- * resumable, and never throws: storage can be absent, full, or refused in a
+ * recordable, and never throws: storage can be absent, full, or refused in a
  * private window, and none of that is worth breaking a page over.
  */
 export function recordLastRoute(path) {
-    if (!isResumable(path)) return false;
+    if (!isRecordable(path)) return false;
     try {
         window.localStorage.setItem(LAST_ROUTE_KEY, JSON.stringify({ path, at: Date.now() }));
     } catch (_err) {
@@ -132,7 +168,8 @@ export function installLastRouteRecorder(router) {
 export default {
     LAST_ROUTE_KEY,
     SESSION_ALIVE_KEY,
-    MAX_AGE_MS,
+    HUB_PATH,
+    isRecordable,
     isResumable,
     recordLastRoute,
     installLastRouteRecorder,
