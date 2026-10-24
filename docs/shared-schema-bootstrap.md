@@ -16,9 +16,9 @@ candidate against the pinned canonical baseline. Club Arena's full native
 rebuild workflow proves that exact canonical source using the real pinned
 provider runtime; Hub's lineage check does not claim a second full restore.
 
-For the two M1 authority repins dated October 23 and 24, the Hub workflow
+For the three M1 authority repins dated October 23 and 24, the Hub workflow
 first verifies every captured historical hash and refuses any other new SQL.
-It then runs the existing disposable PostgreSQL 17 verifier, applying both
+It then runs the existing disposable PostgreSQL 17 verifier, applying all three
 exact migrations in order. Each transition must preserve schema, privileges,
 M2 state, receipts and artifacts; install only its two declared targets;
 reject invalid predecessors, changed guards, unexpected receipts and duplicate
@@ -26,10 +26,10 @@ execution; and prove transactional rollback and retirement-only recovery.
 The new scopes retain their historical values after recovery, while retired
 authority must deny requests. Recovery must never reactivate an older pin.
 
-Only a successful native run can add those two path/hash identities to a
+Only a successful native run can add those three path/hash identities to a
 temporary inventory passed to the unchanged canonical checker. The captured
 inventory and canonical forward list remain immutable. Unit tests and matching
-hashes alone cannot admit either transition. This check supplies no production
+hashes alone cannot admit any transition. This check supplies no production
 database access, solver execution, M2 release authority or full-restore claim.
 
 The pinned canonical source is

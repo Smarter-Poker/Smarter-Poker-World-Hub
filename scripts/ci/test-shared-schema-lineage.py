@@ -53,7 +53,7 @@ class LineageAdmissionTests(unittest.TestCase):
                     self.admit()
                 self.actual[path] = digest
 
-    def test_either_missing_transition_refused(self):
+    def test_any_missing_transition_refused(self):
         for path, digest in lineage.TRANSITIONS:
             with self.subTest(path=path):
                 del self.actual[path]
@@ -81,7 +81,7 @@ class LineageAdmissionTests(unittest.TestCase):
                         lineage.extend_inventory(self.inventory, self.forward, self.actual, proof)
 
     def test_proof_requires_complete_ordered_sequence(self):
-        for proof in (None, {}, [], self.proof[:1], self.proof[1:], self.proof[::-1],
+        for proof in (None, {}, [], self.proof[:1], self.proof[:-1], self.proof[1:], self.proof[::-1],
                       [self.proof[0], self.proof[0]], self.proof + self.proof):
             with self.subTest(proof=proof):
                 with self.assertRaises(ValueError):

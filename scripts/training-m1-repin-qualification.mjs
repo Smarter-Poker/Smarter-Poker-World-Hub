@@ -26,6 +26,17 @@ const TRANSITIONS = [
     predecessorError: 'M1_EXACT_FLOAT32_PIN_REQUIRED',
     receiptError: 'M1_FLOAT32_PIN_HAS_ARTIFACT_OR_UNEXPECTED_RECEIPTS',
   },
+  {
+    name: 'float16_normalization',
+    path: 'supabase/migrations/20261024034508_training_m1_float16_normalization_repin.sql',
+    sha256: 'b6deee756e3426b8a9fa67e74cb490a3aaf68f53ebea7fe6df58bf234979ed8d',
+    oldCommit: '1ff1f0bfad564607908136a73c37c80ba0d7f325',
+    newCommit: '932f0a21c5f6bb6e8b6f73f540e1271b9f69b8d4',
+    newManifest: '2613f123d69974275abfbfb2a1e49e88e5286c9278d154cda9ea6def74a9c69c',
+    holdsOldScope: false,
+    predecessorError: 'M1_EXACT_PRIOR_EXPORT_PIN_REQUIRED',
+    receiptError: 'M1_PRIOR_EXPORT_PIN_HAS_ARTIFACT_OR_UNEXPECTED_RECEIPTS',
+  },
 ];
 
 export function qualifyM1Repins({ root, tool, command, commandExpectFailure,
