@@ -692,6 +692,8 @@ def validate_manifest(manifest_text, run_mode="backlog"):
             or manifest["version"] != MANIFEST_VERSION
             or not manifest.get("phases")):
         raise SystemExit("manifest must be exact version 5 with at least one approved phase")
+    if manifest.get("solver_runtime_profile") != h.SOLVER_RUNTIME_PROFILE:
+        raise SystemExit("manifest must seal the exact low-memory solver runtime profile")
     expected_chip_ev = canonical_contract_pairs(TRAINING_SOLVER_CONTRACTS)
     expected_icm = canonical_contract_pairs(TRAINING_ICM_CONTRACTS)
     if (manifest.get("range_combo_order") != h.COMBO_ORDER

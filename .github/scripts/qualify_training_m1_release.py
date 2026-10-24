@@ -40,7 +40,7 @@ packet = dict(schema=builder.INPUT_SCHEMA, migration_version='20261023233000', m
     pio=dict(machine_id='M1', solver_version='PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)',
              binary_sha256='e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb',
              source_combo_order_sha256=original['source_combo_order_sha256']),
-    phase=original['phases'][0], canary=original['bounded_canary_contracts'][0], self_test=original['self_test'])
+    phase=original['phases'][0], canary=original['bounded_canary_contracts'][0], self_test={**original['self_test'], 'board':'AhKhQh'})
 output = Path(os.environ['RUNNER_TEMP']) / 'training-m1-qualified-release'
 output.mkdir(exist_ok=False)
 packet_path = output / 'reviewed-packet.json'
@@ -49,13 +49,15 @@ receipt = builder.build(packet_path, output/'generated', repo, builder.CANONICAL
 manifest = (output/'generated/phases.json').read_bytes()
 assert hashlib.sha256(manifest).hexdigest() == receipt['manifest_sha256']
 new = json.loads(manifest)
-for key in ('phases','self_test','bounded_canary_contracts','training_game_contracts','training_contract_scope'):
+for key in ('phases','bounded_canary_contracts','training_game_contracts','training_contract_scope'):
     assert new[key] == original[key], key
+assert new['self_test'] == {**original['self_test'], 'board':'AhKhQh'}
 assert new['release_gate']['bounded_canary_ready'] and not new['release_gate']['solver_ready']
+assert new['solver_runtime_profile'] == dict(schema='piosolver.runtime-profile.v1', algorithm='original_pio', strategy_storage='float16', memory_check='required')
 with zipfile.ZipFile(output/'m1-bounded-release.zip','w',zipfile.ZIP_DEFLATED) as archive:
     for name,data in {**payloads,'phases.json':manifest}.items():
         archive.writestr(name,data)
 (output/'qualification.json').write_text(json.dumps(dict(status='QUALIFIED_NO_EXECUTION',pipelineCommit=pipeline_commit,
     manifestChecksum=receipt['manifest_sha256'],releaseZipSha256=hashlib.sha256((output/'m1-bounded-release.zip').read_bytes()).hexdigest(),
-    exactOriginalPairAndGameContractsPreserved=True,machine='M1',partition=[2,0],solves=0,databaseWrites=0),indent=2)+'\n')
+    solverRuntimeProfile=new['solver_runtime_profile'],referenceBoard=new['self_test']['board'],exactOriginalPairAndGameContractsPreserved=True,machine='M1',partition=[2,0],solves=0,databaseWrites=0),indent=2)+'\n')
 print(json.dumps(receipt))
