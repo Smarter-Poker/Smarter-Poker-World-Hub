@@ -1,3 +1,4 @@
+import { MESSENGER_PROFILE_COLUMNS, withMessengerDisplayName } from '../../../src/lib/messengerDisplayName.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { searchMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -55,19 +56,21 @@ export default async function handler(req, res) {
           if (senderIds.length > 0) {
               const { data: profs } = await getSupabase()
                   .from('profiles')
-                  .select('id, username, display_name, avatar_url')
+                  .select(MESSENGER_PROFILE_COLUMNS)
                   .in('id', senderIds);
-              (profs || []).forEach(p => { profiles[p.id] = p; });
+              (profs || []).forEach(p => { const named = withMessengerDisplayName(p); if (named) profiles[p.id] = named; });
           }
 
-          const results = (messages || []).map(m => ({
+          // Owner rule 2026-10-24: never show a message from "Unknown". A hit
+          // whose sender no longer has a profile (deleted account) is dropped.
+          const results = (messages || []).filter(m => m.sender_id === user.id || profiles[m.sender_id]).map(m => ({
               id: m.id,
               message_type: m.message_type,
               media_metadata: m.media_metadata,
               content: m.content,
               created_at: m.created_at,
               conversation_id: m.conversation_id,
-              sender: profiles[m.sender_id] || { id: m.sender_id, username: 'Unknown' },
+              sender: profiles[m.sender_id] || { id: m.sender_id },
               isOwn: m.sender_id === user.id,
           }));
 

@@ -335,3 +335,37 @@ test('a promoted staff member sees their empty native Notice Board group without
  const revoked=await getMessengerWorkspace(db,ids.user,{workspace:'social'});
  assert.ok(!revoked.conversations.some(c=>c.id===group));
 });
+
+// Owner rule 2026-10-24: no "Unknown" threads, unread always on top.
+function withInbox(rows) {
+    const made = fixture();
+    const original = made.db.rpc.bind(made.db);
+    made.db.rpc = async (name, args) => {
+        if (name === 'fn_messenger_club_relationships') return { data: [], error: null };
+        return name === 'fn_get_user_conversations' && !args.p_context_entity_id
+            ? { data: rows, error: null } : original(name, args);
+    };
+    made.tables.social_conversations.push(...rows.filter(r => !made.tables.social_conversations.some(c => c.id === r.conversation_id))
+        .map(r => ({ id: r.conversation_id, group_name: null, is_request: false })));
+    return made;
+}
+const orphanId = '30000000-0000-4000-8000-000000000009';
+const namedId = '30000000-0000-4000-8000-000000000008';
+const unreadId = '30000000-0000-4000-8000-000000000007';
+test('a one-to-one thread whose other account was deleted is neither listed nor counted', async () => {
+    const { db } = withInbox([
+        { conversation_id: orphanId, is_group: false, unread_count: 2, last_message_at: '2026-10-24T19:30:00Z', other_user_id: null, other_user_username: null },
+        { conversation_id: namedId, is_group: false, unread_count: 0, last_message_at: '2026-10-20T00:00:00Z', other_user_id: ids.other, other_user_username: 'Player #1250' },
+    ]);
+    const r = await getMessengerWorkspace(db, ids.user, { workspace: 'social' });
+    assert.deepEqual(r.conversations.map(c => c.id), [namedId]);
+    assert.equal(r.unreadCounts.messages, 0);
+});
+test('the global dock lists unread threads first, then by recency', async () => {
+    const { db } = withInbox([
+        { conversation_id: namedId, is_group: false, unread_count: 0, last_message_at: '2026-10-24T00:00:00Z', other_user_id: ids.other, other_user_username: 'Newest Read' },
+        { conversation_id: unreadId, is_group: false, unread_count: 1, last_message_at: '2026-10-01T00:00:00Z', other_user_id: ids.other, other_user_username: 'Older Unread' },
+    ]);
+    const r = await getMessengerWorkspace(db, ids.user, { workspace: 'dock' });
+    assert.equal(r.conversations[0].id, unreadId);
+});

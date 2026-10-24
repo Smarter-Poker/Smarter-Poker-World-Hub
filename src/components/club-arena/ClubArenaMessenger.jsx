@@ -1317,7 +1317,11 @@ export const ChatWindow = ({
     const sortConversations = (convos) => {
         if (!convos?.length) return convos;
         return [...convos].sort((a, b) => {
-            // Pinned first
+            // Owner rule 2026-10-24: unread always on top, even above pins.
+            const aUnread = (a.unreadCount ?? a.unread_count ?? 0) > 0 ? 1 : 0;
+            const bUnread = (b.unreadCount ?? b.unread_count ?? 0) > 0 ? 1 : 0;
+            if (aUnread !== bUnread) return bUnread - aUnread;
+            // Then pinned
             const aPinned = pinnedConvos.includes(a.id) ? 1 : 0;
             const bPinned = pinnedConvos.includes(b.id) ? 1 : 0;
             if (aPinned !== bPinned) return bPinned - aPinned;
@@ -3316,13 +3320,22 @@ export const ConversationList = ({
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
 
+    const conversationTime = conv => Date.parse(conv.last_message_at || '') || Number(conv.lastMessageAt) || 0;
     const filteredConversations = conversations.filter(conv => {
         const otherUser = conv.otherUser || conv.participants?.find(p => p.id !== currentUser?.id);
         const name = otherUser?.name || otherUser?.username || otherUser?.display_name || '';
         const title = conv.title || conv.group_name || '';
+        // Owner rule 2026-10-24: no nameless ("Unknown") one-to-one rows.
+        if (!conv.is_group && !title && !name) return false;
         if (!searchQuery) return true;
         return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                title.toLowerCase().includes(searchQuery.toLowerCase());
+    }).sort((a, b) => {
+        // Owner rule 2026-10-24: unread always on top, newest first.
+        const aUnread = (a.unreadCount ?? a.unread_count ?? 0) > 0;
+        const bUnread = (b.unreadCount ?? b.unread_count ?? 0) > 0;
+        if (aUnread !== bUnread) return aUnread ? -1 : 1;
+        return conversationTime(b) - conversationTime(a);
     });
 
     return (
@@ -3352,7 +3365,7 @@ export const ConversationList = ({
             <div className="conv-items">
                 {filteredConversations.map((conv, i) => {
                     const otherUser = conv.otherUser || conv.participants?.find(p => p.id !== currentUser?.id);
-                    const displayName = conv.title || conv.group_name || otherUser?.name || otherUser?.username || otherUser?.display_name || 'Unknown';
+                    const displayName = conv.title || conv.group_name || otherUser?.name || otherUser?.username || otherUser?.display_name || 'Group';
                     const avatarUrl = otherUser?.avatar_url || otherUser?.avatar || null;
                     const previewText = conv.last_message_preview || conv.lastMessage?.text || '';
                     const isUnread = (conv.unreadCount ?? conv.unread_count ?? 0) > 0;

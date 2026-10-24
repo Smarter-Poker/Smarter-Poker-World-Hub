@@ -577,6 +577,12 @@ function MessengerPage() {
     const { refreshUnread, messengerUnread } = useUnreadCount();
     const [workspaceUnread, setWorkspaceUnread] = useState(null);
     const [incomingRead, setIncomingRead] = useState(null);
+    // Owner rule 2026-10-24: a message notification must put that thread at
+    // the top right away. The header snapshot updates on the notification's
+    // arrival; when its unread total rises, reload the inbox instead of
+    // waiting for the 30-second poll.
+    const globalMessengerUnread = typeof messengerUnread?.total === 'number' ? messengerUnread.total : null;
+    const lastGlobalMessengerUnreadRef = useRef(null);
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
@@ -679,6 +685,13 @@ function MessengerPage() {
         if (user?.id) { setLoading(true); loadConversationsRef.current?.(user.id); }
     }, [workspaceKey]);
     useEffect(() => { goOnlineUserRef.current = user; }, [user]);
+    useEffect(() => {
+        const previous = lastGlobalMessengerUnreadRef.current;
+        lastGlobalMessengerUnreadRef.current = globalMessengerUnread;
+        if (globalMessengerUnread === null || previous === null || globalMessengerUnread <= previous) return;
+        const currentUser = goOnlineUserRef.current;
+        if (currentUser?.id) loadConversationsRef.current?.(currentUser.id, { invalidate: true });
+    }, [globalMessengerUnread]);
     useEffect(() => {
         const goOnline = () => {
             setConnectionStatus('connected');
@@ -4149,7 +4162,7 @@ function MessengerPage() {
                                             const conv = conversations.find(c => c.id === hit.conversation_id);
                                             const who = hit.isOwn
                                                 ? 'You'
-                                                : (hit.sender?.display_name || hit.sender?.username || 'Unknown');
+                                                : (hit.sender?.display_name || hit.sender?.username || '');
                                             return (
                                                 <button
                                                     key={hit.id}

@@ -7,6 +7,7 @@
  *
  * Usage: const svc = useMessengerService({ conversationId, currentUser, messengerType });
  */
+import { messengerDisplayName } from '../lib/messengerDisplayName.mjs';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { eventBus, EventType } from '../engine/EventBus';
 import { supabase } from '../lib/supabase';
@@ -729,7 +730,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             if (uniqueUserIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, display_name, avatar_url, is_vip')
+                    .select('id, username, display_name, alias, player_number, avatar_url, is_vip')
                     .in('id', uniqueUserIds);
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
             }
@@ -739,9 +740,12 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             (allParticipants || []).forEach(p => {
                 if (!participantsByConvo[p.conversation_id]) participantsByConvo[p.conversation_id] = [];
                 const profile = profileMap[p.user_id];
+                // A participant whose account was deleted is not shown at all.
+                const name = messengerDisplayName(profile);
+                if (!name) return;
                 participantsByConvo[p.conversation_id].push({
                     id: p.user_id,
-                    name: profile?.display_name || profile?.username || 'Unknown',
+                    name,
                     avatar: profile?.avatar_url || null,
                     role: p.role || 'member',
                     isVip: profile?.is_vip || false,
@@ -760,8 +764,10 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 };
             });
 
-            // Sort: pinned first, then by last message time
+            // Owner rule 2026-10-24: unread first, then pinned, then by last message time
             merged.sort((a, b) => {
+                const aUnread = (a.unreadCount || 0) > 0, bUnread = (b.unreadCount || 0) > 0;
+                if (aUnread !== bUnread) return aUnread ? -1 : 1;
                 if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
                 return new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0);
             });
@@ -1531,8 +1537,12 @@ ${messages.map(m =>
             case 'name':
                 sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
                 break;
-            default: // 'recent'
-                sorted.sort((a, b) => new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0));
+            default: // 'recent' - unread always on top (owner rule 2026-10-24)
+                sorted.sort((a, b) => {
+                    const aUnread = (a.unreadCount ?? a.unread_count ?? 0) > 0, bUnread = (b.unreadCount ?? b.unread_count ?? 0) > 0;
+                    if (aUnread !== bUnread) return aUnread ? -1 : 1;
+                    return new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0);
+                });
         }
         return sorted;
     }, [conversationSort]);

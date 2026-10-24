@@ -1,4 +1,5 @@
 import { enrichMessengerClubRelationships } from './messengerClubRelationships.mjs';
+import { compareConversations, conversationHasCounterpart } from './messengerOrganization.mjs';
 // Server-side workspace selection. A page identity or URL is never membership.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ADMIN_ROLES = new Set(['owner', 'co_owner', 'admin']);
@@ -122,7 +123,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         const conversations = await enrichMessengerClubRelationships(db, userId,
             [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]);
         return { success: true, clubs, workspace: 'dock', clubId: null, folder: 'messages',
-            conversations: conversations.sort((a, b) => (Date.parse(b.last_message_at) || 0) - (Date.parse(a.last_message_at) || 0)) };
+            conversations: conversations.sort((a, b) => compareConversations(a, b)) };
     }
     if (!['social', 'club', 'resolve'].includes(workspace)) fail(400, 'Invalid Messenger Workspace');
     let club = null;
@@ -199,7 +200,10 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
                 is_club_identity: !!brand, club_id: brand?.club_id || null,
             } : null,
         };
-    }).filter(c => !c.isRequest || c.requestSenderId === userId);
+    }).filter(c => (!c.isRequest || c.requestSenderId === userId)
+        // Owner rule 2026-10-24: never list or count a nameless one-to-one
+        // thread (its other account was deleted). Groups keep their title.
+        && conversationHasCounterpart(c));
     const selected = folder === 'notice-board' || (club && !club.pageId && folder === 'messages') ? []
         : selectWorkspaceConversations(conversations, accounting, userId, club, folder);
     const countUnread = list => list.reduce((sum, c) => sum + c.unreadCount, 0);
