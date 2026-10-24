@@ -1299,6 +1299,9 @@ def canonical_jsonb_text_v1(value):
     if isinstance(value, float):
         if not math.isfinite(value):
             raise ValueError("canonical solver artifacts require finite JSON numbers")
+        # The signed gateway parses JSON and PostgREST serializes JavaScript
+        # Numbers again. Integral doubles (including -0.0) arrive as integers;
+        # hash that same representation before crossing the gateway.
         number = str(value)
         if value == 0:
             number = number.lstrip("-")
@@ -1316,6 +1319,8 @@ def canonical_jsonb_text_v1(value):
                 number = sign + digits + ("0" * (decimal_position - len(digits)))
             else:
                 number = sign + digits[:decimal_position] + "." + digits[decimal_position:]
+        if number.endswith(".0"):
+            number = number[:-2]
         return number
     if isinstance(value, str):
         return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
@@ -1578,6 +1583,7 @@ def run_bounded_canary(plan):
 
     os.makedirs("backup", exist_ok=True)
     admitted = []
+    durable_artifacts = []
     for target, strategy_matrix, validation in prepared_artifacts:
         backup_path = os.path.join(
             "backup", "bounded-canary-%s-%s.json" % (MID, target["scenario_hash"])
@@ -1597,6 +1603,10 @@ def run_bounded_canary(plan):
             "_admission": {"status": "pending", "scope": "local_validation_only"},
         }
         write_backup(backup_path, backup_payload)
+        durable_artifacts.append((target, strategy_matrix, backup_path, backup_payload))
+    # Retain both validated exports before the first network operation: a
+    # rejected parent must not discard the already harvested child.
+    for target, strategy_matrix, backup_path, backup_payload in durable_artifacts:
         try:
             receipt = patch_v2(
                 target["artifact_id"], target["scenario_hash"],
@@ -1608,6 +1618,7 @@ def run_bounded_canary(plan):
                 "status": "failed",
                 "scope": "gateway_rejected_or_unavailable",
                 "error_class": type(error).__name__,
+                "error": str(error),
             }
             write_backup(backup_path, backup_payload)
             raise SystemExit(
