@@ -872,10 +872,23 @@ async function postVideo(composer) {
 
 test('the composer card controls are 44 by 44 targets', async (t) => {
   const { document } = await renderComposer(t, { storage: { 'sp-post-card-draft': POST_CARDS } });
-  for (const control of [byText(document, 'Poker Cards'), byText(document, 'Edit'), byLabel(document, 'Remove Poker Cards')]) {
+  for (const control of [byText(document, 'Edit'), byLabel(document, 'Remove Poker Cards')]) {
     const width = parseFloat(control.style.minWidth) || 0;
     const height = parseFloat(control.style.minHeight) || 0;
     assert.ok(width >= 44 && height >= 44, `${control.getAttribute('aria-label') || control.textContent} is ${width} by ${height}`);
+  }
+});
+
+// Dan, 2026-10-24: "INSIDE THE SOCIAL MEDIA PAGE ON MOBILE THE POKER CARDS ARE
+// MESSED UP AND STACKED. JUST REMOVE THIS FROM THE POST FEED." The composer
+// toolbar's Poker Cards button wrapped letter by letter on a phone and pushed
+// Go Live and Check In onto two lines. It is gone; do not put it back.
+test('the composer toolbar has no Poker Cards button', async (t) => {
+  const { document } = await renderComposer(t);
+  const labels = document.querySelectorAll('button').map((button) => button.textContent.trim());
+  assert.ok(!labels.includes('Poker Cards'), `toolbar still offers Poker Cards: ${labels.join(' | ')}`);
+  for (const kept of ['Photo/Video', 'Go Live', 'Check In']) {
+    assert.ok(labels.includes(kept), `toolbar lost ${kept}`);
   }
 });
 
