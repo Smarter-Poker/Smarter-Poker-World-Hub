@@ -32,12 +32,16 @@ inventory and canonical forward list remain immutable. Unit tests and matching
 hashes alone cannot admit either transition. This check supplies no production
 database access, solver execution, M2 release authority or full-restore claim.
 
-The currently submitted canonical candidate is
-`672c582d3e9cdac3e19f8bd3ae522863cc56df71`. Full pinned-image qualification is
-pending in the new Arena qualification run; this Hub submission does not claim
-a pass.
-Both pull requests remain subject to that actual result and their required
-checks before protected merge. The schema-only snapshot records historical
-source/ledger differences without replaying financial history. Its one exact
-pending migration is applied only in the isolated qualification database after
-independent baseline equality, followed by full catalog comparison.
+The pinned canonical source is
+`672c582d3e9cdac3e19f8bd3ae522863cc56df71`. Its
+[full shared schema rebuild](https://github.com/Smarter-Poker/Smarter-Poker-Club-Arena/actions/runs/39863332181)
+passed using the pinned official PostgreSQL 17 platform runtime, with no
+external network or production credentials during reconstruction. That result
+qualifies the canonical source; each Hub candidate still requires its own
+lineage and exact-DML checks before protected merge.
+
+The schema-only snapshot records historical source/ledger differences without
+replaying financial history. Its exact forward migration is applied only in
+the isolated qualification database after independent baseline equality,
+followed by full catalog comparison. Neither result certifies a production
+installation or releases a solver machine.
