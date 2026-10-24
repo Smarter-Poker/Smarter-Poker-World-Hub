@@ -808,6 +808,38 @@ class BoundedCanaryRuntimeTests(unittest.TestCase):
                 self.assertEqual(payload["target"], plan["targets"][rejected_index])
                 self.assertEqual(payload["manifest_checksum"], self.checksum)
 
+    def test_gateway_failure_retains_both_validated_exports(self):
+        worker._worker_request = lambda *_args: {
+            "success": True, "operation": "row_states",
+            "rows": [row_for(target) for target in self.targets],
+        }
+        plan = worker.prepare_bounded_canary_execution(
+            self.validated, self.checksum, "M1", 2, 0)
+        retained = {}
+        def backup(path, payload):
+            retained[path] = copy.deepcopy(payload)
+        def reject(*_args):
+            self.assertEqual(len(retained), 2)
+            raise worker.WorkerGatewayError("solver worker gateway returned HTTP 503")
+        with patch.object(worker, "fetch_text", return_value=self.raw), \
+             patch.object(worker, "self_test"), \
+             patch.object(worker, "load_range", return_value="sealed-range"), \
+             patch.object(worker, "solve"), \
+             patch.object(worker, "read_results", return_value=(1, -1, .1)), \
+             patch.object(worker.h, "harvest_node", return_value=("", {"local": True})), \
+             patch.object(worker.h, "validate_row", return_value={"bad_sum_hands":0,"live_hands":10,"ev_ok":True}), \
+             patch.object(worker.os, "makedirs"), \
+             patch.object(worker, "write_backup", side_effect=backup), \
+             patch.object(worker, "patch_v2", side_effect=reject), \
+             self.assertRaisesRegex(SystemExit, "gateway failed after 0"):
+            worker.run_bounded_canary(plan)
+        self.assertEqual(len(retained), 2)
+        parent = next(p for p in retained.values() if p['_bounded_canary']['role']=='parent')
+        child = next(p for p in retained.values() if p['_bounded_canary']['role']=='child')
+        self.assertEqual(parent['_admission']['status'], 'failed')
+        self.assertIn('HTTP 503', parent['_admission']['error'])
+        self.assertEqual(child['_admission']['status'], 'pending')
+
     def test_partial_retry_ingests_only_missing_child_and_reverifies_pair(self):
         original = {
             name: getattr(worker, name) for name in (
@@ -918,6 +950,28 @@ class BoundedCanaryRuntimeTests(unittest.TestCase):
             worker.complete_bounded_canary_without_solver(plan)
         self.assertEqual([call[0] for call in calls], ["row_states", "heartbeat"])
         self.assertEqual(calls[-1][1]["rows_written"], 0)
+
+
+class GatewayNumberChecksumTests(unittest.TestCase):
+    def test_canonical_numbers_survive_real_javascript_json_roundtrip(self):
+        import subprocess
+        values = {"frequencies": [0.0, -0.0, 1.0, 0.851807, 1e-6, 1e-7],
+                  "pot_bb": 5.5, "eff_stack_bb": 97.5,
+                  "ev": [None, -2.0, 2.653], "large": [1e20, 1e23]}
+        result = subprocess.run([
+            "node", "-e",
+            'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.stringify(JSON.parse(s))))',
+        ], input=json.dumps(values), text=True, capture_output=True, check=True)
+        after_gateway = json.loads(result.stdout)
+        self.assertEqual(worker.canonical_jsonb_text_v1(values),
+                         worker.canonical_jsonb_text_v1(after_gateway))
+        self.assertEqual(worker.canonical_jsonb_text_v1([0.0, -0.0, 1.0, -2.0]),
+                         "[0,0,1,-2]")
+
+    def test_nonfinite_numbers_still_fail_closed(self):
+        for number in (float('nan'), float('inf'), -float('inf')):
+            with self.assertRaises(ValueError):
+                worker.canonical_jsonb_text_v1(number)
 
 
 if __name__ == "__main__":

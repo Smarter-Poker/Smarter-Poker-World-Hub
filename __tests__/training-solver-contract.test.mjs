@@ -1243,8 +1243,8 @@ canonical_vector = {
     'scenario_hash': 'unicode-é😀',
 }
 canonical_text = o.canonical_jsonb_text_v1(canonical_vector)
-assert canonical_text == '{"scenario_hash":"unicode-é😀","strategy_matrix_v2":{"array":[true,null,"line\\n\\"quote\\"\\\\tail",-0.000000125,123],"combo_order":"card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325","frequencies":{"b525":[0.000001,0.999999],"c":[0.0,1.0]},"hand_evs_bb":[-12.3457,0.125],"nested":{"A":100000000000000000000,"a":0.0000001,"negative_zero":0.0,"unit":1.0},"position":"BB","unicode":"é😀"}}'
-assert hashlib.sha256(canonical_text.encode('utf-8')).hexdigest() == 'db0bdf0ad8539d03e3dab9818577078d819dc2150a98a19ac6debecad1dd1b99'
+assert canonical_text == '{"scenario_hash":"unicode-é😀","strategy_matrix_v2":{"array":[true,null,"line\\n\\"quote\\"\\\\tail",-0.000000125,123],"combo_order":"card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325","frequencies":{"b525":[0.000001,0.999999],"c":[0,1]},"hand_evs_bb":[-12.3457,0.125],"nested":{"A":100000000000000000000,"a":0.0000001,"negative_zero":0,"unit":1},"position":"BB","unicode":"é😀"}}'
+assert hashlib.sha256(canonical_text.encode('utf-8')).hexdigest() == 'b5d057beab195c6b480704819327a2291d865e6c7ca6206bb0223a5785c596ca'
 try:
     o.canonical_jsonb_text_v1(float('nan'))
     raise AssertionError('non-finite artifact number was accepted')
