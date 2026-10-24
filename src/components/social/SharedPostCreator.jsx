@@ -3017,27 +3017,10 @@ export function SharedPostCreator({
           >
             {uploading ? 'Uploading…' : 'Photo/Video'}
           </button>
-          <span style={{ color: '#BCC0C4' }}>·</span>
-          <button
-            type="button"
-            onClick={() => setShowPokerCardPicker(true)}
-            disabled={uploading}
-            style={{
-              minWidth: 44,
-              minHeight: 44,
-              padding: '6px 8px',
-              borderRadius: 6,
-              border: 'none',
-              background: pokerCardsMarkup ? '#FFF4D6' : 'transparent',
-              cursor: uploading ? 'not-allowed' : 'pointer',
-              color: pokerCardsMarkup ? '#8A5A00' : '#65676B',
-              fontSize: 14,
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Poker Cards
-          </button>
+          {/* The Poker Cards toolbar button was removed (Dan, 2026-10-24):
+              on mobile its label wrapped letter by letter and stacked the
+              whole row. A card draft restored from an earlier session can
+              still be edited or removed from its preview above. */}
           <span style={{ color: '#BCC0C4' }}>·</span>
           <button
             onClick={onGoLive}
