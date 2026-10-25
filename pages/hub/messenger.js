@@ -51,6 +51,7 @@ import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
 import { isOnline } from '../../src/utils/authGuard';
+import { usePresence } from '../../src/hooks/usePresence';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // BottomNavBar intentionally removed from messenger — input area was blocked
 
@@ -412,6 +413,29 @@ function MessengerPage() {
     // Online Presence
     const [otherUserStatus, setOtherUserStatus] = useState('offline'); // 'online' | 'away' | 'offline'
     const [otherUserLastSeen, setOtherUserLastSeen] = useState(null);
+    // Green dot = online anywhere on Smarter.Poker, the same answer the feed,
+    // profiles and hover cards use (fn_profile_presence via /api/social/presence).
+    // The messenger-online channel alone only knew who had THIS page open, so
+    // everyone online elsewhere on the platform showed a red dot here.
+    const presenceIds = useMemo(() => {
+        const ids = [];
+        for (const conv of conversations) {
+            const other = conv.otherUser || conv.participants?.find(p => p.id !== user?.id);
+            if (other?.id) ids.push(other.id);
+        }
+        if (activeConversation?.otherUser?.id) ids.push(activeConversation.otherUser.id);
+        return ids;
+    }, [conversations, activeConversation?.otherUser?.id, user?.id]);
+    const platformOnline = usePresence(presenceIds);
+    const mergedOnlineUsers = useMemo(() => {
+        const merged = new Set(onlineUsers);
+        for (const id of platformOnline) merged.add(id);
+        return {
+            has: (id) => typeof id === 'string' && (merged.has(id) || merged.has(id.toLowerCase())),
+        };
+    }, [onlineUsers, platformOnline]);
+    const activeOtherId = activeConversation?.otherUser?.id;
+    const isActiveOtherOnline = otherUserStatus === 'online' || (!!activeOtherId && mergedOnlineUsers.has(activeOtherId));
     const { controller: continuity, edit: editContinuity, flush: flushContinuity } = useMessengerContinuity({
         actorId: user?.id, scope: workspaceKey, identityRef: authIdentityRef,
         workspace: { workspace: workspaceSelection.clubId ? 'club' : 'social', clubId: workspaceSelection.clubId, folder: workspaceSelection.folder },
@@ -4093,7 +4117,7 @@ function MessengerPage() {
                                         isActive={activeConversation?.id === conv.id}
                                         onClick={() => handleSelectConversation(conv)}
                                         currentUserId={user.id}
-                                        onlineUsers={onlineUsers}
+                                        onlineUsers={mergedOnlineUsers}
                                         isPinned={pinnedConvoIds.includes(conv.id)}
                                         isBlocked={blockedUserIds.includes(
                                             conv.otherUser?.id
@@ -4382,15 +4406,15 @@ function MessengerPage() {
 
                                     {activeConversation.isAccounting || !otherUser?.username
                                         ? <Avatar name={activeTitle} size={40} showOnline={false} />
-                                        : <Link href={`/hub/user/${otherUser.username}`}><Avatar src={otherUser.avatar_url} name={activeTitle} size={40} online={otherUserStatus === 'online'} /></Link>}
+                                        : <Link href={`/hub/user/${otherUser.username}`}><Avatar src={otherUser.avatar_url} name={activeTitle} size={40} online={isActiveOtherOnline} /></Link>}
 
                                     <div style={{ flex: 1 }}>
                                         <div style={{ color: C.text, fontWeight: 600, fontSize: 15 }}>{activeTitle}</div>
                                         {activeConversation.relationshipTags?.length > 0 && <div aria-label="Club Relationships" style={{ color: C.blue, fontSize: 12, fontWeight: 600, maxHeight: 96, overflowY: 'auto', overflowWrap: 'anywhere' }}>
                                             {activeConversation.relationshipTags.map(tag => <div key={tag.clubId}>{tag.label}</div>)}
                                         </div>}
-                                        <div style={{ fontSize: 12, color: otherUserStatus === 'online' ? C.green : C.textSec }}>
-                                            {activeConversation.isAccounting ? 'Invoices And Accounting Discussions' : otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
+                                        <div style={{ fontSize: 12, color: isActiveOtherOnline ? C.green : C.textSec }}>
+                                            {activeConversation.isAccounting ? 'Invoices And Accounting Discussions' : isActiveOtherOnline ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
                                                 const diff = Date.now() - new Date(otherUserLastSeen).getTime();
                                                 const mins = Math.floor(diff / 60000);
                                                 if (mins < 1) return 'just now';
