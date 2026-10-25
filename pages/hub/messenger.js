@@ -1784,7 +1784,7 @@ function MessengerPage() {
             const resp = await authedFetch('/api/messenger/get-conversations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ workspace: workspaceSelection.clubId ? 'club' : 'social', ...workspaceSelection }),
+                body: JSON.stringify({ workspace: workspaceSelection.clubId ? 'club' : 'feed', ...workspaceSelection }),
             });
             const result = await resp.json();
             if (!current()) return;
@@ -2086,6 +2086,13 @@ function MessengerPage() {
     };
 
     const handleSelectConversation = async (conversation) => {
+        // A global unread item opens through the same authorized workspace
+        // resolver as a notification, preserving club identity and drafts.
+        if (conversation.dockWorkspace?.clubId && conversation.dockWorkspace.clubId !== workspaceSelection.clubId) {
+            const request = ++restoreSequenceRef.current;
+            await resolveConversationRef.current(conversation.id, '', { isCurrent: () => restoreSequenceRef.current === request });
+            return;
+        }
         rememberReadingPosition();
         flushContinuity();
         const selectionSequence = ++restoreSequenceRef.current;

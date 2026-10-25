@@ -369,3 +369,26 @@ test('the global dock lists unread threads first, then by recency', async () => 
     const r = await getMessengerWorkspace(db, ids.user, { workspace: 'dock' });
     assert.equal(r.conversations[0].id, unreadId);
 });
+
+
+test('main feed surfaces every authorized unread workspace and keeps read social history', async () => {
+    const { db, tables } = fixture();
+    tables.unread_counts = { [ids.social]: 0, [ids.chat]: 2, [ids.invoice]: 1 };
+    const result = await getMessengerWorkspace(db, ids.user, { workspace: 'feed' });
+    assert.deepEqual(result.conversations.map(c => c.id), [ids.chat, ids.invoice, ids.social]);
+    assert.equal(result.conversations[0].unreadCount, 2);
+    assert.equal(result.conversations[0].dockWorkspace.clubId, ids.club);
+    tables.unread_counts[ids.chat] = 0;
+    tables.unread_counts[ids.invoice] = 0;
+    tables.accounting_conversations[0].requires_action = true;
+    assert.deepEqual((await getMessengerWorkspace(db, ids.user, { workspace: 'feed' })).conversations.map(c => c.id), [ids.social]);
+});
+
+test('main feed respects revoked memberships and hidden private invoices', async () => {
+    const revoked = fixture({ member: false });
+    assert.deepEqual((await getMessengerWorkspace(revoked.db, ids.user, { workspace: 'feed' })).conversations.map(c => c.id), [ids.social]);
+    const hidden = fixture();
+    hidden.tables.accounting_conversations[0].recipient_visible = false;
+    assert.deepEqual(new Set((await getMessengerWorkspace(hidden.db, ids.user, { workspace: 'feed' })).conversations.map(c => c.id)), new Set([ids.social, ids.chat]));
+    await assert.rejects(getMessengerWorkspace(fixture({ broken: 'visibility' }).db, ids.user, { workspace: 'feed' }), e => e.status === 503);
+});

@@ -105,3 +105,22 @@ test('the same invoice may be explicitly reopened after the route no longer has 
     f.render({ conversation: 'invoice-a' }); f.commit();
     assert.equal(f.pending.length, 2); f.unmount();
 });
+
+
+test('main-feed unread club clicks resolve their workspace before opening or marking read', async () => {
+    const page = fs.readFileSync(new URL('../pages/hub/messenger.js', import.meta.url), 'utf8');
+    const start = page.indexOf('const handleSelectConversation = async (conversation) => {');
+    const end = page.indexOf('        rememberReadingPosition();', start);
+    let pending;
+    const restoreSequenceRef = { current: 0 };
+    const build = new Function('workspaceSelection', 'resolveConversationRef', 'restoreSequenceRef', `${page.slice(start, end)} return 'local'; }; return handleSelectConversation;`);
+    const select = build({ clubId: null }, { current: async (...args) => { pending = args; } }, restoreSequenceRef);
+    await select({ id: 'club-unread', dockWorkspace: { clubId: 'club-a' } });
+    assert.equal(pending[0], 'club-unread');
+    assert.equal(pending[2].isCurrent(), true);
+    await select({ id: 'another-unread', dockWorkspace: { clubId: 'club-b' } });
+    restoreSequenceRef.current++;
+    assert.equal(pending[2].isCurrent(), false);
+    assert.equal(await select({ id: 'social-read' }), 'local');
+    assert.match(page, /workspace: workspaceSelection.clubId \? 'club' : 'feed'/);
+});
