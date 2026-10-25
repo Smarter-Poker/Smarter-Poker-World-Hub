@@ -308,7 +308,7 @@ export function shortTitle(title, max = 260) {
     return `${(at > 40 ? cut.slice(0, at) : cut.slice(0, cut.lastIndexOf(' '))).trim()} and more`;
 }
 
-const STATUS_LABEL = { fixed: 'Fixed Overnight', in_progress: 'Being Fixed', not_picked_up: 'Not Yet Picked Up', tracked: 'Already In The Fleet Queue' };
+const STATUS_LABEL = { fixed: 'Marked Fixed', in_progress: 'Being Fixed', not_picked_up: 'Not Yet Picked Up', tracked: 'Recorded Alert; Assignment Unconfirmed' };
 
 export function attentionHtml(digest) {
     const items = digest.attention || [];
@@ -317,7 +317,7 @@ export function attentionHtml(digest) {
     }
     const s = digest.attention_status || {};
     const head = `<div style="color:${C.red};font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px;">Needs Your Attention (${items.length})</div>`
-        + `<div style="color:${C.muted};font-size:12px;margin-bottom:10px;">Every item below is with the alert-fixing fleet. ${fmtInt(s.fixed)} fixed overnight, ${fmtInt(s.in_progress)} being fixed, ${fmtInt(s.not_picked_up)} not yet picked up, ${fmtInt(s.tracked)} already in the fleet queue from their own alerts.</div>`;
+        + `<div style="color:${C.muted};font-size:12px;margin-bottom:10px;">Alert records show ${fmtInt(s.fixed)} marked fixed, ${fmtInt(s.in_progress)} under investigation, ${fmtInt(s.not_picked_up)} not yet picked up, and ${fmtInt(s.tracked)} recorded without confirmed assignment. Recording an alert does not confirm that a repair is underway.</div>`;
     const list = items
         .map((it) => {
             const color = it.severity === 'critical' ? C.red : C.amber;
