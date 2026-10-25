@@ -56,7 +56,7 @@ test('html renders every section, escapes untrusted text, has no em dashes', () 
     for (const def of SECTION_DEFS) assert.ok(html.includes(esc(def.title)), def.title);
     assert.ok(html.includes('Needs Your Attention (3)'));
     assert.ok(html.includes('Recorded Alert; Assignment Unconfirmed'));
-    assert.ok(html.includes('Marked Fixed'));
+    assert.ok(html.includes('Resolved Or Reviewed'));
     assert.ok(html.includes('Not Yet Picked Up'));
     assert.ok(!html.includes('<script>x</script>'), 'attention titles are escaped');
     assert.ok(html.includes('&lt;script&gt;'));
@@ -196,4 +196,31 @@ test('no roster in the digest: no card, no text section, nothing breaks', () => 
         assert.doesNotMatch(rendered, /alert-fixing fleet|fleet queue|fixed overnight/i);
         assert.match(rendered, /Recorded Alert; Assignment Unconfirmed/);
     }
+});
+
+test('review and investigation labels do not promise that a repair was completed', () => {
+    const d = fixture({ attention: [
+        { title: 'Reviewed movement', status: 'fixed', resolution: 'Verified legitimate credit' },
+        { title: 'Current investigation', status: 'in_progress' },
+    ] });
+    for (const rendered of [buildHtml(d), buildText(d)]) {
+        assert.match(rendered, /Resolved Or Reviewed/);
+        assert.match(rendered, /Under Investigation/);
+        assert.doesNotMatch(rendered, /Marked Fixed|Being Fixed|marked fixed/);
+        assert.match(rendered, /Verified legitimate credit/);
+    }
+});
+
+test('the signed view link precedes a long roster that Gmail clips', () => {
+    const members = Array.from({ length: 938 }, (_, i) => ({ rank: i + 1, name: `Horse ${i + 1}`, bb100: 1, hands: 5000 }));
+    const d = fixture({ horse_roster: { ...ROSTER, members } });
+    const url = 'https://smarter.poker/api/digest/view?t=test&day=24';
+    const html = buildHtml(d, { viewUrl: url });
+    assert.ok(html.length > 102000, 'reproduces the clipped long-email case');
+    assert.ok(html.indexOf('View This Digest Online') < html.indexOf('Needs Your Attention'));
+    assert.ok(html.includes('Horse 938'), 'the full roster is retained');
+    assert.ok(html.includes('t=test&amp;day=24'), 'the signed URL is escaped');
+    const text = buildText(d, { viewUrl: url });
+    assert.ok(text.indexOf(`View online: ${url}`) < text.indexOf('NEEDS YOUR ATTENTION'));
+    assert.ok(text.includes('Horse 938'));
 });
