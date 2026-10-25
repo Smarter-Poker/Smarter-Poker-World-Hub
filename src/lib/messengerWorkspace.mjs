@@ -106,7 +106,7 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
     const clubs = internal.clubs || await getMessengerClubs(db, userId);
     const workspace = request.workspace || 'social';
-    if (workspace === 'dock') {
+    if (workspace === 'dock' || workspace === 'feed') {
         // Global reconnect/inbox reads must cover each currently authorized
         // workspace, including club discussions missed while offline.
         const options = { clubs, countsOnly: true };
@@ -117,12 +117,14 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
                     { workspace: 'club', clubId: club.id, folder }, options))));
             workspaces.push(...batch);
         }
-        const combined = workspaces.flatMap(selected => selected.conversations.map(conversation => ({
+        const combined = workspaces.flatMap(selected => selected.conversations.filter(conversation =>
+            workspace === 'dock' || selected.workspace === 'social' || Number(conversation.unreadCount) > 0).map(conversation => ({
             ...conversation, dockWorkspace: { workspace: selected.workspace, clubId: selected.clubId, folder: selected.folder },
         })));
         const conversations = await enrichMessengerClubRelationships(db, userId,
             [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]);
-        return { success: true, clubs, workspace: 'dock', clubId: null, folder: 'messages',
+        return { success: true, clubs, workspace: workspace === 'feed' ? 'social' : 'dock', clubId: null, folder: 'messages',
+            unreadCounts: workspaces[0].unreadCounts, attentionCounts: workspaces[0].attentionCounts,
             conversations: conversations.sort((a, b) => compareConversations(a, b)) };
     }
     if (!['social', 'club', 'resolve'].includes(workspace)) fail(400, 'Invalid Messenger Workspace');
