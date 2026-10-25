@@ -308,7 +308,7 @@ export function shortTitle(title, max = 260) {
     return `${(at > 40 ? cut.slice(0, at) : cut.slice(0, cut.lastIndexOf(' '))).trim()} and more`;
 }
 
-const STATUS_LABEL = { fixed: 'Marked Fixed', in_progress: 'Being Fixed', not_picked_up: 'Not Yet Picked Up', tracked: 'Recorded Alert; Assignment Unconfirmed' };
+const STATUS_LABEL = { fixed: 'Resolved Or Reviewed', in_progress: 'Under Investigation', not_picked_up: 'Not Yet Picked Up', tracked: 'Recorded Alert; Assignment Unconfirmed' };
 
 export function attentionHtml(digest) {
     const items = digest.attention || [];
@@ -317,7 +317,7 @@ export function attentionHtml(digest) {
     }
     const s = digest.attention_status || {};
     const head = `<div style="color:${C.red};font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px;">Needs Your Attention (${items.length})</div>`
-        + `<div style="color:${C.muted};font-size:12px;margin-bottom:10px;">Alert records show ${fmtInt(s.fixed)} marked fixed, ${fmtInt(s.in_progress)} under investigation, ${fmtInt(s.not_picked_up)} not yet picked up, and ${fmtInt(s.tracked)} recorded without confirmed assignment. Recording an alert does not confirm that a repair is underway.</div>`;
+        + `<div style="color:${C.muted};font-size:12px;margin-bottom:10px;">Alert records show ${fmtInt(s.fixed)} resolved or reviewed, ${fmtInt(s.in_progress)} under investigation, ${fmtInt(s.not_picked_up)} not yet picked up, and ${fmtInt(s.tracked)} recorded without confirmed assignment. Recording an alert does not confirm that a repair is underway.</div>`;
     const list = items
         .map((it) => {
             const color = it.severity === 'critical' ? C.red : C.amber;
@@ -419,6 +419,7 @@ export function buildHtml(digest, opts = {}) {
         + `<tr><td style="color:${C.teal};font-size:18px;font-weight:800;letter-spacing:3px;">SMARTER.POKER</td></tr>`
         + `<tr><td style="padding:18px 0 6px 0;color:#ffffff;font-size:22px;font-weight:800;">Daily Operations Digest</td></tr>`
         + `<tr><td style="padding:0 0 18px 0;color:${C.text};font-size:14px;">Hi ${esc(name)}, here is the platform snapshot for ${esc(digest.day_label || digest.day)} (Central).</td></tr>`
+        + (viewUrl ? `<tr><td style="padding:0 0 10px 0;">${viewUrl}</td></tr>` : '')
         + body + buttons + footer
         + `</table></td></tr></table></td></tr></table></body></html>`;
 }
@@ -496,6 +497,7 @@ export function buildText(digest, opts = {}) {
     const lines = [];
     lines.push('SMARTER.POKER - DAILY OPERATIONS DIGEST');
     lines.push(`${digest.day_label || digest.day} (Central)`);
+    if (opts.viewUrl) lines.push(`View online: ${opts.viewUrl}`);
     lines.push('');
     if (opts.aiSummary) {
         lines.push(opts.aiSummary);
@@ -503,7 +505,7 @@ export function buildText(digest, opts = {}) {
     }
     const items = digest.attention || [];
     lines.push(items.length ? `NEEDS YOUR ATTENTION (${items.length})` : 'Nothing needs your attention.');
-    for (const it of items) lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]`);
+    for (const it of items) lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
     const roster = horseRosterRows(digest);
     if (roster.length) {
         lines.push('');
@@ -518,7 +520,6 @@ export function buildText(digest, opts = {}) {
     }
     lines.push('');
     lines.push(`Admin dashboard: ${opts.dashboardUrl || 'https://smarter.poker/admin'}`);
-    if (opts.viewUrl) lines.push(`View online: ${opts.viewUrl}`);
     return lines.join('\n');
 }
 
