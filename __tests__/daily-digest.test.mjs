@@ -55,8 +55,8 @@ test('html renders every section, escapes untrusted text, has no em dashes', () 
     const html = buildHtml(fixture(), { viewUrl: 'https://smarter.poker/api/digest/view?t=x' });
     for (const def of SECTION_DEFS) assert.ok(html.includes(esc(def.title)), def.title);
     assert.ok(html.includes('Needs Your Attention (3)'));
-    assert.ok(html.includes('Already In The Fleet Queue'));
-    assert.ok(html.includes('Fixed Overnight'));
+    assert.ok(html.includes('Recorded Alert; Assignment Unconfirmed'));
+    assert.ok(html.includes('Marked Fixed'));
     assert.ok(html.includes('Not Yet Picked Up'));
     assert.ok(!html.includes('<script>x</script>'), 'attention titles are escaped');
     assert.ok(html.includes('&lt;script&gt;'));
@@ -189,4 +189,11 @@ test('no roster in the digest: no card, no text section, nothing breaks', () => 
     assert.ok(!buildHtml(d).includes('Horse Roster'));
     assert.ok(!buildText(d).includes('HORSE ROSTER'));
     assert.deepEqual(horseRosterRows(fixture({ horse_roster: null })), []);
+});
+
+ test('attention never promises a fleet or infers assignment from a recorded alert', () => {
+    for (const rendered of [buildHtml(fixture()), buildText(fixture())]) {
+        assert.doesNotMatch(rendered, /alert-fixing fleet|fleet queue|fixed overnight/i);
+        assert.match(rendered, /Recorded Alert; Assignment Unconfirmed/);
+    }
 });
