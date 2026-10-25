@@ -101,6 +101,9 @@ jobs:
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
 
+      - name: Digest figures remain readable on narrow screens
+        run: npx playwright test --config=playwright.digest.config.mjs
+
       - name: Verify Phase 3 static World menu contracts
         run: node --test __tests__/e2e-port.test.mjs __tests__/world-menu-mobile-phase3.test.mjs
 
@@ -272,6 +275,7 @@ jobs:
           name: global-footer-e2e-results
           path: |
             playwright-report/
+            test-results/digest-layout/
             test-results/
             ${{ steps.trivia_browser_races.outputs.evidence-directory }}/results.json
           retention-days: 14

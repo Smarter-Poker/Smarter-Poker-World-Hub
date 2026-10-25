@@ -243,11 +243,16 @@ const SECTION_DEFS = [
     },
 ];
 
+// Keep a formatted number intact while allowing descriptive values to wrap.
+function figureHtml(value) {
+    return /^[\d\s,$.%/()+-]+$/.test(value) ? `<span style="white-space:nowrap;">${value}</span>` : value;
+}
+
 function rowHtml(label, valueHtml, sub, red, quiet) {
     const vColor = red ? C.red : quiet ? C.muted : C.text;
-    return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;">${esc(label)}</td>`
-        + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;white-space:nowrap;">`
-        + `<span style="color:${vColor};font-weight:700;font-size:14px;">${valueHtml}</span>`
+    return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;overflow-wrap:anywhere;word-break:break-word;">${esc(label)}</td>`
+        + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">`
+        + `<span style="color:${vColor};font-weight:700;font-size:14px;">${figureHtml(valueHtml)}</span>`
         + (sub ? `<div style="color:${C.muted};font-size:11px;margin-top:2px;">${esc(sub)}</div>` : '')
         + `</td></tr>`;
 }
@@ -323,7 +328,7 @@ export function attentionHtml(digest) {
             const color = it.severity === 'critical' ? C.red : C.amber;
             const status = STATUS_LABEL[it.status] || 'Not Yet Picked Up';
             const sColor = it.status === 'fixed' ? C.green : it.status === 'in_progress' || it.status === 'tracked' ? C.amber : C.muted;
-            return `<tr><td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;color:${C.text};">`
+            return `<tr><td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;overflow-wrap:anywhere;word-break:break-word;color:${C.text};">`
                 + `<span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${color};margin-right:8px;"></span>${esc(shortTitle(it.title))}`
                 + `<div style="margin:3px 0 0 16px;font-size:11px;color:${sColor};">${esc(status)}${it.resolution ? ` - ${esc(String(it.resolution).slice(0, 160))}` : ''}</div>`
                 + `</td></tr>`;
@@ -383,7 +388,7 @@ export function buildHtml(digest, opts = {}) {
     for (const def of SECTION_DEFS) {
         body += cardOpen(def.title);
         for (const r of sectionRows(def, digest)) {
-            body += rowHtml(r.label, `${r.bars}${esc(r.value)}`, r.sub, r.red, r.quiet);
+            body += rowHtml(r.label, r.bars ? `${r.bars} ${figureHtml(esc(r.value))}` : esc(r.value), r.sub, r.red, r.quiet);
         }
         for (const b of def.breakdowns || []) {
             body += rowHtml(b.label, `<span style="font-weight:400;font-size:12px;color:${C.muted};">${esc(breakdownText(get(m, b.path)))}</span>`, '', false, false);
