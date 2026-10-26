@@ -364,6 +364,7 @@ export function buildHtml(digest, opts = {}) {
         ['Horse Net Result (BB)', fmtNum(mtd.horse_net_bb), 'House exposure through the horse fleet'],
     ]);
 
+    body += playerTotalsCard(digest);
     body += horseRosterCard(digest);
 
     if (digest.week) {
@@ -472,6 +473,119 @@ function horseRosterCard(digest) {
     return listCard('Horse Roster', horseRosterRows(digest));
 }
 
+/** +1,234.5 / -60 / 0: a player's result with its sign. */
+export function fmtSigned(v) {
+    const n = num(v) ?? 0;
+    if (Math.abs(n) < 0.005) return '0';
+    return `${n > 0 ? '+' : '-'}${fmtNum(Math.abs(n))}`;
+}
+
+/** 822 minutes -> 13h 42m; 45 -> 45m. */
+export function fmtMinutes(v) {
+    const m = Math.max(0, Math.round(num(v) ?? 0));
+    if (m < 60) return `${m}m`;
+    return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+}
+
+function gameLabel(g) {
+    if (g.kind === 'tournament') {
+        const times = Number(g.entries) > 1 ? ` x${fmtInt(g.entries)}` : '';
+        return `${g.label || 'Tournament'}${g.type ? ` (${g.type})` : ''}${times}`;
+    }
+    if (g.kind === 'diamond_arena') return `Diamond Arena ${g.label || ''} (Diamonds)`.trim();
+    return `${g.label || 'Other'} Cash`;
+}
+
+/**
+ * Real Player Totals (Dan 2026-10-25): what every real player did that Central
+ * day. Comes from fn_sp_digest_player_totals (Club Arena migration
+ * 20261026033215) as digest.player_totals. Returns the summary rows and one
+ * block per player: their day, their balances, then every game they played.
+ */
+export function playerTotalsRows(digest) {
+    const p = digest && digest.player_totals;
+    if (!p) return null;
+    if (p.error) return { error: String(p.error), summary: [], players: [] };
+    const t = p.totals || {};
+    const players = Array.isArray(p.players) ? p.players : [];
+    const summary = [
+        ['Real Players Who Played', fmtInt(t.players), `${fmtInt(t.hands)} hands, ${fmtMinutes(t.minutes)} played in all`],
+        ['Players Won / Lost (Chips)', fmtSigned(t.net), `Cash games ${fmtSigned(t.cash_net)}, tournaments ${fmtSigned(t.tournament_net)}`],
+        ['Rake Paid - Cash Games', fmtNum(t.cash_rake), ''],
+        ['Rake Paid - Tournaments', fmtNum(t.tournament_rake), ''],
+        ['Rake Paid - Total', fmtNum((Number(t.cash_rake) || 0) + (Number(t.tournament_rake) || 0)), ''],
+        ['Chip Wallets At End Of Day', fmtNum(t.wallet_end), 'All of these players together'],
+    ];
+    if (Number(t.diamond_arena_net) || Number(t.diamond_arena_rake)) {
+        summary.push(['Diamond Arena Won / Lost (Diamonds)', fmtSigned(t.diamond_arena_net), `Rake ${fmtNum(t.diamond_arena_rake)} diamonds, not in the chip totals`]);
+    }
+    return {
+        error: null,
+        summary,
+        players: players.map((x) => ({
+            name: x.username || 'Unknown',
+            net: num(x.net) ?? 0,
+            head: `${fmtMinutes(x.minutes)} played, ${fmtInt(x.hands)} hands`,
+            rows: [
+                ['Won / Lost', fmtSigned(x.net), `Cash games ${fmtSigned(x.cash_net)}, tournaments ${fmtSigned(x.tournament_net)}`],
+                ['Rake Paid', fmtNum((Number(x.cash_rake) || 0) + (Number(x.tournament_rake) || 0)), `Cash games ${fmtNum(x.cash_rake)}, tournaments ${fmtNum(x.tournament_rake)}`],
+                ['Balances At End Of Day', `${fmtNum(x.wallet_end)} chips`, `${fmtInt(x.diamonds_end)} diamonds`],
+                ...(Array.isArray(x.games) ? x.games : []).map((g) => [
+                    gameLabel(g),
+                    fmtSigned(g.net),
+                    `${fmtInt(g.hands)} hands, ${fmtMinutes(g.minutes)}, rake ${fmtNum(g.rake)}`,
+                ]),
+            ],
+            gamesFrom: 3,
+        })),
+    };
+}
+
+function signedColor(v) {
+    const n = Number(String(v).replace(/,/g, ''));
+    if (!Number.isFinite(n) || n === 0) return C.text;
+    return n > 0 ? C.green : C.text;
+}
+
+function playerTotalsCard(digest) {
+    const r = playerTotalsRows(digest);
+    if (!r) return '';
+    let html = cardOpen('Real Player Totals');
+    if (r.error) {
+        html += rowHtml('Player totals could not be built', '', r.error.slice(0, 200), true, false);
+        return html + cardClose;
+    }
+    for (const [label, value, sub] of r.summary) html += rowHtml(label, `<span style="color:${label.includes('Won / Lost') ? signedColor(value) : C.text};">${esc(value)}</span>`, sub, false, false);
+    if (!r.players.length) html += rowHtml('No real player played a hand or a tournament', '', '', false, true);
+    html += cardClose;
+    for (const pl of r.players) {
+        html += `<tr><td style="padding:14px 0 6px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
+        html += `<tr><td style="padding:10px 14px;color:#ffffff;font-size:15px;font-weight:800;">${esc(pl.name)}<div style="color:${C.muted};font-size:11px;font-weight:400;margin-top:2px;">${esc(pl.head)}</div></td>`
+            + `<td style="padding:10px 14px;text-align:right;white-space:nowrap;font-size:15px;font-weight:800;color:${signedColor(pl.net)};">${esc(fmtSigned(pl.net))}</td></tr>`;
+        pl.rows.forEach(([label, value, sub], i) => {
+            const isGame = i >= pl.gamesFrom;
+            const shown = isGame || i === 0 ? `<span style="color:${signedColor(value)};">${esc(value)}</span>` : esc(value);
+            html += rowHtml(isGame ? `- ${label}` : label, shown, sub, false, false);
+        });
+        html += '</table></td></tr>';
+    }
+    return html;
+}
+
+function playerTotalsText(digest) {
+    const r = playerTotalsRows(digest);
+    if (!r) return [];
+    const lines = ['', 'REAL PLAYER TOTALS'];
+    if (r.error) return [...lines, `Player totals could not be built: ${r.error.slice(0, 200)}`];
+    for (const [label, value, sub] of r.summary) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    for (const pl of r.players) {
+        lines.push('');
+        lines.push(`${pl.name}: ${fmtSigned(pl.net)}  (${pl.head})`);
+        pl.rows.forEach(([label, value, sub], i) => lines.push(`  ${i >= pl.gamesFrom ? '- ' : ''}${label}: ${value}${sub ? `  (${sub})` : ''}`));
+    }
+    return lines;
+}
+
 function topListCard(title, arr, map) {
     if (!Array.isArray(arr) || !arr.length) return '';
     return listCard(title, arr.map((x) => [...map(x), '']));
@@ -506,6 +620,7 @@ export function buildText(digest, opts = {}) {
     const items = digest.attention || [];
     lines.push(items.length ? `NEEDS YOUR ATTENTION (${items.length})` : 'Nothing needs your attention.');
     for (const it of items) lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
+    lines.push(...playerTotalsText(digest));
     const roster = horseRosterRows(digest);
     if (roster.length) {
         lines.push('');
