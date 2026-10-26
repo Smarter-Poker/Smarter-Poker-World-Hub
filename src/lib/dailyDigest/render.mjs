@@ -243,12 +243,21 @@ const SECTION_DEFS = [
     },
 ];
 
+// Dan, 2026-10-26: the digest must read in one screen. A value cell used to be
+// white-space:nowrap as a whole, sub-line included, so one long value (an
+// 886-character name list) or a long grey sub-line forced the 600px card to
+// 6,300px and Gmail stretched every label away from its number. Short values
+// stay on one line; long values and every sub-line wrap inside the card.
+const NOWRAP_VALUE_MAX = 28;
+
 function rowHtml(label, valueHtml, sub, red, quiet) {
     const vColor = red ? C.red : quiet ? C.muted : C.text;
+    const plainLen = String(valueHtml ?? '').replace(/<[^>]*>/g, '').length;
+    const valueWrap = plainLen <= NOWRAP_VALUE_MAX ? 'white-space:nowrap;' : 'white-space:normal;word-break:break-word;';
     return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;">${esc(label)}</td>`
-        + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;white-space:nowrap;">`
-        + `<span style="color:${vColor};font-weight:700;font-size:14px;">${valueHtml}</span>`
-        + (sub ? `<div style="color:${C.muted};font-size:11px;margin-top:2px;">${esc(sub)}</div>` : '')
+        + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;">`
+        + `<span style="color:${vColor};font-weight:700;font-size:14px;${valueWrap}">${valueHtml}</span>`
+        + (sub ? `<div style="color:${C.muted};font-size:11px;margin-top:2px;white-space:normal;word-break:break-word;">${esc(sub)}</div>` : '')
         + `</td></tr>`;
 }
 

@@ -296,3 +296,14 @@ test('signed results and durations read the way a person says them', () => {
     assert.equal(fmtMinutes(822), '13h 42m');
     assert.equal(fmtMinutes(60), '1h 00m');
 });
+
+test('the digest stays inside its 600px card: no value or sub-line can force it wider (Dan, 2026-10-26)', () => {
+    // An 886-character value and long grey sub-lines were white-space:nowrap and
+    // stretched the Oct 25 email to 6,300px in Gmail, labels far from numbers.
+    const html = buildHtml(fixture());
+    assert.ok(html.includes('max-width:600px'), 'the card keeps its 600px width');
+    assert.ok(!/<td[^>]*text-align:right;white-space:nowrap;[^>]*>\s*<span[^>]*>[^<]{29,}/.test(html), 'no long value is held on one line');
+    for (const m of html.matchAll(/<div style="color:[^"]*font-size:11px;margin-top:2px;([^"]*)">/g)) {
+        assert.ok(m[1].includes('white-space:normal'), 'every grey sub-line can wrap');
+    }
+});
