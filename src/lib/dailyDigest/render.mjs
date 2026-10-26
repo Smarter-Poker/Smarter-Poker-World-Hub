@@ -254,7 +254,7 @@ function rowHtml(label, valueHtml, sub, red, quiet) {
     const vColor = red ? C.red : quiet ? C.muted : C.text;
     const plainLen = String(valueHtml ?? '').replace(/<[^>]*>/g, '').length;
     const valueWrap = plainLen <= NOWRAP_VALUE_MAX ? 'white-space:nowrap;' : 'white-space:normal;word-break:break-word;';
-    return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;">${esc(label)}</td>`
+    return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;overflow-wrap:anywhere;word-break:break-word;">${esc(label)}</td>`
         + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;">`
         + `<span style="color:${vColor};font-weight:700;font-size:14px;${valueWrap}">${valueHtml}</span>`
         + (sub ? `<div style="color:${C.muted};font-size:11px;margin-top:2px;white-space:normal;word-break:break-word;">${esc(sub)}</div>` : '')
@@ -332,7 +332,7 @@ export function attentionHtml(digest) {
             const color = it.severity === 'critical' ? C.red : C.amber;
             const status = STATUS_LABEL[it.status] || 'Not Yet Picked Up';
             const sColor = it.status === 'fixed' ? C.green : it.status === 'in_progress' || it.status === 'tracked' ? C.amber : C.muted;
-            return `<tr><td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;color:${C.text};">`
+            return `<tr><td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;overflow-wrap:anywhere;word-break:break-word;color:${C.text};">`
                 + `<span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${color};margin-right:8px;"></span>${esc(shortTitle(it.title))}`
                 + `<div style="margin:3px 0 0 16px;font-size:11px;color:${sColor};">${esc(status)}${it.resolution ? ` - ${esc(String(it.resolution).slice(0, 160))}` : ''}</div>`
                 + `</td></tr>`;
@@ -421,7 +421,7 @@ export function buildHtml(digest, opts = {}) {
         + `Real players exclude horses, test and certification accounts. Generated ${esc(digest.generated_at)}${opts.runId ? `, run ${esc(opts.runId)}` : ''}.`
         + `<br>&copy; ${new Date().getUTCFullYear()} Smarter.Poker</td></tr>`;
 
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title></head>`
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title><style>@media(max-width:480px){.player-period tr{display:flex;flex-wrap:wrap}.player-period .period-label{display:block;width:100%;box-sizing:border-box}.player-period .period-value{display:block;width:33.333%;box-sizing:border-box;font-size:12px!important}.player-period .period-spacer,.player-period .period-empty{display:none}.player-period .period-note{display:block;width:100%;box-sizing:border-box}}</style></head>`
         + `<body style="margin:0;padding:0;background:${C.page};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};"><tr><td align="center" style="padding:28px 12px;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${C.card};border-radius:12px;"><tr><td style="padding:30px 26px;">`
@@ -505,6 +505,46 @@ function gameLabel(g) {
     return `${g.label || 'Other'} Cash`;
 }
 
+function fmtShortDay(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(String(iso))) return String(iso || '');
+    return new Date(`${String(iso).slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+/**
+ * Day / Last 7 Days / Month To Date (Dan, 2026-10-26: "GIVE ME A MONTH TO
+ * DATE, WEEKLY AND DAILY COUNT"). From player_totals.period, which
+ * fn_sp_digest_player_period (Club Arena migration 20261026140704) adds up
+ * from each day's kept per-player results. Null when the period is absent, so
+ * the card shows the day alone exactly as before.
+ */
+export function playerPeriodRows(p) {
+    const P = p && p.period;
+    if (!P || typeof P !== 'object') return null;
+    if (P.error) return { error: String(P.error) };
+    const cols = [P.day, P.week, P.month];
+    if (cols.some((c) => !c || typeof c !== 'object')) return null;
+    const row = (label, pick, signed = false) => ({ label, signed, values: cols.map(pick) });
+    const rows = [
+        row('Real Players Who Played', (c) => fmtInt(c.players)),
+        row('Hands Played', (c) => fmtInt(c.hands)),
+        row('Time Played', (c) => fmtMinutes(c.minutes)),
+        row('Won / Lost (Chips)', (c) => fmtSigned(c.net), true),
+        row('- Cash Games', (c) => fmtSigned(c.cash_net), true),
+        row('- Tournaments', (c) => fmtSigned(c.tournament_net), true),
+        row('Rake Paid - Cash Games', (c) => fmtNum(c.cash_rake)),
+        row('Rake Paid - Tournaments', (c) => fmtNum(c.tournament_rake)),
+        row('Rake Paid - Total', (c) => fmtNum(c.rake ?? ((Number(c.cash_rake) || 0) + (Number(c.tournament_rake) || 0)))),
+        row('Chip Wallets At End Of Day', (c) => fmtNum(c.wallet_end)),
+    ];
+    const notes = [
+        `Last 7 Days: ${fmtShortDay(P.week.from)} to ${fmtShortDay(P.week.to)}. Month To Date: ${fmtShortDay(P.month.from)} to ${fmtShortDay(P.month.to)}.`,
+        `Players are counted once per column; wallets are those players' chip balances at the end of ${fmtShortDay(P.day.to)}.`,
+    ];
+    const missing = Math.max(Number(P.week.missing_days) || 0, Number(P.month.missing_days) || 0);
+    if (missing > 0) notes.push(`${fmtInt(missing)} earlier day${missing === 1 ? ' is' : 's are'} still being added, so the 7 day and month columns are not complete yet.`);
+    return { error: null, head: ['Day', 'Last 7 Days', 'Month To Date'], rows, notes, complete: missing === 0 };
+}
+
 /**
  * Real Player Totals (Dan 2026-10-25): what every real player did that Central
  * day. Comes from fn_sp_digest_player_totals (Club Arena migration
@@ -531,6 +571,7 @@ export function playerTotalsRows(digest) {
     return {
         error: null,
         summary,
+        period: playerPeriodRows(p),
         players: players.map((x) => ({
             name: x.username || 'Unknown',
             net: num(x.net) ?? 0,
@@ -564,7 +605,14 @@ function playerTotalsCard(digest) {
         html += rowHtml('Player totals could not be built', '', r.error.slice(0, 200), true, false);
         return html + cardClose;
     }
-    for (const [label, value, sub] of r.summary) html += rowHtml(label, `<span style="color:${label.includes('Won / Lost') ? signedColor(value) : C.text};">${esc(value)}</span>`, sub, false, false);
+    if (r.period && !r.period.error) {
+        html += periodTableHtml(r.period);
+        // the day-only lines the table does not carry (Diamond Arena is in diamonds, not chips)
+        for (const [label, value, sub] of r.summary.filter(([l]) => l.startsWith('Diamond Arena'))) html += rowHtml(label, `<span style="color:${signedColor(value)};">${esc(value)}</span>`, sub, false, false);
+    } else {
+        for (const [label, value, sub] of r.summary) html += rowHtml(label, `<span style="color:${label.includes('Won / Lost') ? signedColor(value) : C.text};">${esc(value)}</span>`, sub, false, false);
+        if (r.period && r.period.error) html += rowHtml('Last 7 days and month to date could not be built', '', r.period.error.slice(0, 200), true, false);
+    }
     if (!r.players.length) html += rowHtml('No real player played a hand or a tournament', '', '', false, true);
     html += cardClose;
     for (const pl of r.players) {
@@ -581,12 +629,39 @@ function playerTotalsCard(digest) {
     return html;
 }
 
+// Day / Last 7 Days / Month To Date as one table inside the Real Player Totals
+// card. Numbers never wrap; at 600px each number column is about 105px wide,
+// which holds "-12,345.67" in 13px bold with room to spare. On phones,
+// the label sits above three equal value columns; every value stays whole.
+function periodTableHtml(period) {
+    const cell = 'padding:9px 8px;border-top:1px solid ' + C.line + ';';
+    let html = `<tr><td colspan="2" style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="player-period" style="border-collapse:collapse;">`;
+    html += `<tr><td class="period-empty" style="padding:10px 8px 8px 14px;"></td>`
+        + period.head.map((h) => `<td class="period-value" style="padding:10px 8px 8px 8px;text-align:right;color:${C.teal};font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap;">${esc(h)}</td>`).join('')
+        + `<td class="period-spacer" style="width:6px;padding:0;"></td></tr>`;
+    for (const row of period.rows) {
+        const sub = row.label.startsWith('- ');
+        html += `<tr><td class="period-label" style="${cell}padding-left:${sub ? 26 : 14}px;color:${sub ? C.muted : C.text};font-size:${sub ? 13 : 14}px;">${esc(sub ? row.label.slice(2) : row.label)}</td>`
+            + row.values.map((v) => `<td class="period-value" style="${cell}text-align:right;white-space:nowrap;font-size:13px;font-weight:700;color:${row.signed ? signedColor(v) : sub ? C.muted : C.text};">${esc(v)}</td>`).join('')
+            + `<td class="period-spacer" style="${cell}width:6px;padding:0;"></td></tr>`;
+    }
+    html += `<tr><td class="period-note" colspan="5" style="padding:10px 14px;border-top:1px solid ${C.line};color:${C.muted};font-size:11px;line-height:1.5;white-space:normal;">${period.notes.map(esc).join('<br>')}</td></tr>`;
+    return html + '</table></td></tr>';
+}
+
 function playerTotalsText(digest) {
     const r = playerTotalsRows(digest);
     if (!r) return [];
     const lines = ['', 'REAL PLAYER TOTALS'];
     if (r.error) return [...lines, `Player totals could not be built: ${r.error.slice(0, 200)}`];
-    for (const [label, value, sub] of r.summary) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    if (r.period && !r.period.error) {
+        lines.push(`(${r.period.head.join(' / ')})`);
+        for (const row of r.period.rows) lines.push(`${row.label}: ${row.values.join(' / ')}`);
+        for (const n of r.period.notes) lines.push(n);
+    } else {
+        for (const [label, value, sub] of r.summary) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+        if (r.period && r.period.error) lines.push(`Last 7 days and month to date could not be built: ${r.period.error.slice(0, 200)}`);
+    }
     for (const pl of r.players) {
         lines.push('');
         lines.push(`${pl.name}: ${fmtSigned(pl.net)}  (${pl.head})`);

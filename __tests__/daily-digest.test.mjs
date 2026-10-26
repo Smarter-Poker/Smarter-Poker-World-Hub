@@ -307,3 +307,59 @@ test('the digest stays inside its 600px card: no value or sub-line can force it 
         assert.ok(m[1].includes('white-space:normal'), 'every grey sub-line can wrap');
     }
 });
+
+test('Real Player Totals shows Day / Last 7 Days / Month To Date when the period is present (Dan, 2026-10-26)', async () => {
+    const { playerPeriodRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const col = (from, players, net) => ({ from, to: '2026-10-25', players, hands: 10, minutes: 125, net, cash_net: net, tournament_net: 0,
+        cash_rake: 1.5, tournament_rake: 0.5, rake: 2, wallet_end: 100, missing_days: 0 });
+    const totals = { day: '2026-10-25', totals: { players: 1, net: -5, cash_net: -5, tournament_net: 0, cash_rake: 1.5, tournament_rake: 0.5, hands: 10, minutes: 125, wallet_end: 100 },
+        players: [{ username: 'p1', net: -5, cash_net: -5, tournament_net: 0, cash_rake: 1.5, tournament_rake: 0.5, hands: 10, minutes: 125, wallet_end: 100, diamonds_end: 0, games: [] }] };
+    const withPeriod = { ...totals, period: { day: col('2026-10-25', 1, -5), week: col('2026-10-19', 3, 12.25), month: col('2026-10-01', 7, -40), complete: true } };
+
+    const p = playerPeriodRows(withPeriod);
+    assert.deepEqual(p.head, ['Day', 'Last 7 Days', 'Month To Date']);
+    const players = p.rows.find((r) => r.label === 'Real Players Who Played');
+    assert.deepEqual(players.values, ['1', '3', '7']);
+    assert.deepEqual(p.rows.find((r) => r.label === 'Time Played').values, ['2h 05m', '2h 05m', '2h 05m']);
+    assert.ok(p.notes[0].includes('Oct 19 to Oct 25') && p.notes[0].includes('Oct 1 to Oct 25'));
+
+    const html = buildHtml(fixture({ player_totals: withPeriod }));
+    assert.ok(html.includes('Last 7 Days') && html.includes('Month To Date'), 'the three columns render');
+    assert.ok(html.includes('+12.25') && html.includes('-40'), 'week and month values render');
+    assert.ok(!html.includes('—'), 'no em dashes');
+    const text = buildText(fixture({ player_totals: withPeriod }));
+    assert.ok(text.includes('Real Players Who Played: 1 / 3 / 7'));
+
+    // missing days are said plainly
+    const partial = { ...withPeriod, period: { ...withPeriod.period, month: { ...col('2026-10-01', 7, -40), missing_days: 4 }, complete: false } };
+    assert.ok(playerPeriodRows(partial).notes.some((n) => n.includes('4 earlier days are still being added')));
+
+    // no period: the day alone, exactly as before
+    assert.equal(playerPeriodRows(totals), null);
+    assert.ok(buildHtml(fixture({ player_totals: totals })).includes('Chip Wallets At End Of Day'));
+
+    // a period error never hides the day
+    const broken = { ...totals, period: { error: 'boom' } };
+    const bh = buildHtml(fixture({ player_totals: broken }));
+    assert.ok(bh.includes('Last 7 days and month to date could not be built') && bh.includes('Real Players Who Played'));
+});
+
+test('player totals load the period function and fall back to the day alone when it is not installed', async () => {
+    const { loadPlayerTotals } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const calls = [];
+    const sbWith = { rpc: async (fn) => { calls.push(fn); return { data: { day: 'd', period: { day: {} } }, error: null }; } };
+    assert.ok((await loadPlayerTotals(sbWith, '2026-10-25')).period);
+    assert.deepEqual(calls, ['fn_sp_digest_player_period']);
+
+    const calls2 = [];
+    const sbWithout = { rpc: async (fn) => { calls2.push(fn);
+        return fn === 'fn_sp_digest_player_period'
+            ? { data: null, error: { code: 'PGRST202', message: 'Could not find the function public.fn_sp_digest_player_period(p_day) in the schema cache' } }
+            : { data: { day: 'd', totals: {} }, error: null }; } };
+    const r = await loadPlayerTotals(sbWithout, '2026-10-25');
+    assert.deepEqual(calls2, ['fn_sp_digest_player_period', 'fn_sp_digest_player_totals']);
+    assert.ok(r.totals && !r.period);
+
+    const sbFails = { rpc: async () => ({ data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } }) };
+    assert.match((await loadPlayerTotals(sbFails, '2026-10-25')).error, /statement timeout/);
+});
