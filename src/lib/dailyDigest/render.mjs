@@ -254,7 +254,7 @@ function rowHtml(label, valueHtml, sub, red, quiet) {
     const vColor = red ? C.red : quiet ? C.muted : C.text;
     const plainLen = String(valueHtml ?? '').replace(/<[^>]*>/g, '').length;
     const valueWrap = plainLen <= NOWRAP_VALUE_MAX ? 'white-space:nowrap;' : 'white-space:normal;word-break:break-word;';
-    return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;">${esc(label)}</td>`
+    return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;overflow-wrap:anywhere;word-break:break-word;">${esc(label)}</td>`
         + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;">`
         + `<span style="color:${vColor};font-weight:700;font-size:14px;${valueWrap}">${valueHtml}</span>`
         + (sub ? `<div style="color:${C.muted};font-size:11px;margin-top:2px;white-space:normal;word-break:break-word;">${esc(sub)}</div>` : '')
@@ -332,7 +332,7 @@ export function attentionHtml(digest) {
             const color = it.severity === 'critical' ? C.red : C.amber;
             const status = STATUS_LABEL[it.status] || 'Not Yet Picked Up';
             const sColor = it.status === 'fixed' ? C.green : it.status === 'in_progress' || it.status === 'tracked' ? C.amber : C.muted;
-            return `<tr><td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;color:${C.text};">`
+            return `<tr><td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;overflow-wrap:anywhere;word-break:break-word;color:${C.text};">`
                 + `<span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${color};margin-right:8px;"></span>${esc(shortTitle(it.title))}`
                 + `<div style="margin:3px 0 0 16px;font-size:11px;color:${sColor};">${esc(status)}${it.resolution ? ` - ${esc(String(it.resolution).slice(0, 160))}` : ''}</div>`
                 + `</td></tr>`;
@@ -421,7 +421,7 @@ export function buildHtml(digest, opts = {}) {
         + `Real players exclude horses, test and certification accounts. Generated ${esc(digest.generated_at)}${opts.runId ? `, run ${esc(opts.runId)}` : ''}.`
         + `<br>&copy; ${new Date().getUTCFullYear()} Smarter.Poker</td></tr>`;
 
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title></head>`
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title><style>@media(max-width:480px){.player-period tr{display:flex;flex-wrap:wrap}.player-period .period-label{display:block;width:100%;box-sizing:border-box}.player-period .period-value{display:block;width:33.333%;box-sizing:border-box;font-size:12px!important}.player-period .period-spacer,.player-period .period-empty{display:none}.player-period .period-note{display:block;width:100%;box-sizing:border-box}}</style></head>`
         + `<body style="margin:0;padding:0;background:${C.page};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};"><tr><td align="center" style="padding:28px 12px;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${C.card};border-radius:12px;"><tr><td style="padding:30px 26px;">`
@@ -631,20 +631,21 @@ function playerTotalsCard(digest) {
 
 // Day / Last 7 Days / Month To Date as one table inside the Real Player Totals
 // card. Numbers never wrap; at 600px each number column is about 105px wide,
-// which holds "-12,345.67" in 13px bold with room to spare.
+// which holds "-12,345.67" in 13px bold with room to spare. On phones,
+// the label sits above three equal value columns; every value stays whole.
 function periodTableHtml(period) {
     const cell = 'padding:9px 8px;border-top:1px solid ' + C.line + ';';
-    let html = `<tr><td colspan="2" style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">`;
-    html += `<tr><td style="padding:10px 8px 8px 14px;"></td>`
-        + period.head.map((h) => `<td style="padding:10px 8px 8px 8px;text-align:right;color:${C.teal};font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap;">${esc(h)}</td>`).join('')
-        + `<td style="width:6px;padding:0;"></td></tr>`;
+    let html = `<tr><td colspan="2" style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="player-period" style="border-collapse:collapse;">`;
+    html += `<tr><td class="period-empty" style="padding:10px 8px 8px 14px;"></td>`
+        + period.head.map((h) => `<td class="period-value" style="padding:10px 8px 8px 8px;text-align:right;color:${C.teal};font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap;">${esc(h)}</td>`).join('')
+        + `<td class="period-spacer" style="width:6px;padding:0;"></td></tr>`;
     for (const row of period.rows) {
         const sub = row.label.startsWith('- ');
-        html += `<tr><td style="${cell}padding-left:${sub ? 26 : 14}px;color:${sub ? C.muted : C.text};font-size:${sub ? 13 : 14}px;">${esc(sub ? row.label.slice(2) : row.label)}</td>`
-            + row.values.map((v) => `<td style="${cell}text-align:right;white-space:nowrap;font-size:13px;font-weight:700;color:${row.signed ? signedColor(v) : sub ? C.muted : C.text};">${esc(v)}</td>`).join('')
-            + `<td style="${cell}width:6px;padding:0;"></td></tr>`;
+        html += `<tr><td class="period-label" style="${cell}padding-left:${sub ? 26 : 14}px;color:${sub ? C.muted : C.text};font-size:${sub ? 13 : 14}px;">${esc(sub ? row.label.slice(2) : row.label)}</td>`
+            + row.values.map((v) => `<td class="period-value" style="${cell}text-align:right;white-space:nowrap;font-size:13px;font-weight:700;color:${row.signed ? signedColor(v) : sub ? C.muted : C.text};">${esc(v)}</td>`).join('')
+            + `<td class="period-spacer" style="${cell}width:6px;padding:0;"></td></tr>`;
     }
-    html += `<tr><td colspan="5" style="padding:10px 14px;border-top:1px solid ${C.line};color:${C.muted};font-size:11px;line-height:1.5;white-space:normal;">${period.notes.map(esc).join('<br>')}</td></tr>`;
+    html += `<tr><td class="period-note" colspan="5" style="padding:10px 14px;border-top:1px solid ${C.line};color:${C.muted};font-size:11px;line-height:1.5;white-space:normal;">${period.notes.map(esc).join('<br>')}</td></tr>`;
     return html + '</table></td></tr>';
 }
 
