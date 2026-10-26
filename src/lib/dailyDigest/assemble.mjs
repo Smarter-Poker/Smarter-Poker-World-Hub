@@ -3,12 +3,24 @@ import { buildHtml, buildSubject, buildText } from './render.mjs';
 import { providerSpend, viewUrlFor } from './delivery.mjs';
 
 /**
- * Real Player Totals (fn_sp_digest_player_totals): every real player's result,
- * games, rake, end-of-day balances and time played. A failure never stops the
- * digest; the card then says the totals could not be built.
+ * Real Player Totals: every real player's result, games, rake, end-of-day
+ * balances and time played for the day, plus `period` (the day, the last 7
+ * days and the month to date; Dan, 2026-10-26). fn_sp_digest_player_period
+ * returns the day's totals with `period` added; on a database that does not
+ * have it yet this falls back to the day alone (fn_sp_digest_player_totals),
+ * so neither side has to ship first. A failure never stops the digest; the
+ * card then says the totals could not be built.
  */
+function missingFunction(error) {
+    const text = `${error?.code || ''} ${error?.message || ''}`;
+    return /PGRST202|42883|Could not find the function|does not exist/i.test(text);
+}
+
 export async function loadPlayerTotals(sb, day) {
     try {
+        const period = await sb.rpc('fn_sp_digest_player_period', { p_day: day });
+        if (!period.error) return period.data || null;
+        if (!missingFunction(period.error)) return { day, error: period.error.message };
         const { data, error } = await sb.rpc('fn_sp_digest_player_totals', { p_day: day });
         if (error) return { day, error: error.message };
         return data || null;
