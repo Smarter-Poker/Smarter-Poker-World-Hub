@@ -1,0 +1,17 @@
+.panel { display: grid; gap: 12px; max-width: 1000px; color: var(--text); }
+.panel h2, .panel h3, .panel p { margin: 0; }
+.panel p { line-height: 1.6; }
+.notice, .preview, .receipt { padding: 16px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg-panel); }
+.editor { box-sizing: border-box; width: 100%; min-width: 0; padding: 12px; resize: vertical; font-family: monospace; color: var(--text); background: var(--bg-inset); border: 1px solid var(--line-strong); border-radius: 4px; }
+.actions { display: flex; gap: 12px; }
+.panel button { min-height: 44px; padding: 10px 16px; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--line-strong); border-radius: 4px; cursor: pointer; }
+.panel button:disabled { opacity: .6; cursor: not-allowed; }
+.panel button:focus-visible, .editor:focus-visible, .panel summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.preview { display: grid; gap: 12px; }
+.preview dl { display: grid; gap: 6px; margin: 0; }
+.preview dt { color: var(--text-dim); font-weight: 600; }
+.preview dd { margin: 0 0 6px; overflow-wrap: anywhere; }
+.preview summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.preview pre { max-height: 400px; overflow: auto; padding: 12px; background: var(--bg-inset); white-space: pre-wrap; overflow-wrap: anywhere; }
+.receipt code { overflow-wrap: anywhere; }
+.error { color: var(--danger); overflow-wrap: anywhere; }

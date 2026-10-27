@@ -25,6 +25,7 @@ function loadingState(label) {
 const FleetPanel = dynamic(() => import('./FleetPanel'), { ssr: false, loading: loadingState('Fleet Command') });
 const StablePanel = dynamic(() => import('./StablePanel'), { ssr: false, loading: loadingState('Social Horses') });
 const PipelinePanel = dynamic(() => import('./PipelinePanel'), { ssr: false, loading: loadingState('Pipeline') });
+const V31InputsPanel = dynamic(() => import('./V31InputsPanel'), { ssr: false, loading: loadingState('V31 Inputs') });
 const SettingsPanel = dynamic(() => import('./SettingsPanel'), { ssr: false, loading: loadingState('Settings') });
 const StatsPanel = dynamic(() => import('./StatsPanel'), { ssr: false, loading: loadingState('Statistics') });
 const MerchPanel = dynamic(() => import('./MerchPanel'), { ssr: false, loading: loadingState('Merch Catalog') });
@@ -57,6 +58,7 @@ export const TAB_PANEL_COMPONENTS = Object.freeze({
   stable: StablePanel,
   fleet: FleetPanel,
   pipeline: PipelinePanel,
+  'v31-inputs': V31InputsPanel,
   settings: SettingsPanel,
   stats: StatsPanel,
   merch: MerchPanel,
