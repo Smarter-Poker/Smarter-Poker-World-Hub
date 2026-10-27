@@ -162,6 +162,238 @@
           }
         }
       }
+    },
+    "/api/mcp": {
+      "post": {
+        "operationId": "callMcpRpc",
+        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution",
+        "description": "Executes Model Context Protocol (MCP) tool calls including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, get_poker_term_definition, search_poker_venues, and search_tournament_series.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "id": {
+                    "type": "string",
+                    "example": "1"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "tools/call"
+                  },
+                  "params": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "jsonrpc",
+                  "method"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC 2.0 tool execution result with structured data and web citations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getMcpServerInfo",
+        "summary": "MCP Server Capabilities and SSE Transport",
+        "description": "Returns active MCP server capabilities or establishes a Server-Sent Events (SSE) connection with ?transport=sse.",
+        "responses": {
+          "200": {
+            "description": "Server metadata or active SSE event stream."
+          }
+        }
+      }
+    },
+    "/api/ai/odds": {
+      "get": {
+        "operationId": "calculatePokerOdds",
+        "summary": "Calculate Multiway Poker Equity and Odds",
+        "description": "Calculates exact and Monte Carlo hand equity, win probabilities, and tie probabilities for Texas Hold'em and Omaha (PLO-4, PLO-5, PLO-6).",
+        "parameters": [
+          {
+            "name": "hands",
+            "in": "query",
+            "description": "Player hole cards (e.g. AhKd,QcQd).",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AhKd,QcQd"
+            }
+          },
+          {
+            "name": "board",
+            "in": "query",
+            "description": "Community board cards (e.g. JhTs2c).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "JhTs2c"
+            }
+          },
+          {
+            "name": "game",
+            "in": "query",
+            "description": "Poker game variant: nlhe, plo4, plo5, plo6.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "nlhe"
+            }
+          },
+          {
+            "name": "iterations",
+            "in": "query",
+            "description": "Simulation runs (default 5000, max 20000).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 5000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calculated equity percentages with citation URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OddsCalculationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/preflop": {
+      "get": {
+        "operationId": "getPreflopRange",
+        "summary": "Get GTO Preflop Opening Ranges",
+        "description": "Returns solver-calculated 6-Max 100BB GTO opening frequencies for UTG, MP, HJ, CO, BTN, or SB.",
+        "parameters": [
+          {
+            "name": "position",
+            "in": "query",
+            "description": "Table position: UTG, MP, HJ, CO, BTN, SB.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "UTG",
+              "enum": [
+                "UTG",
+                "MP",
+                "HJ",
+                "CO",
+                "BTN",
+                "SB"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GTO opening frequencies and interactive range matrix link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreflopRangeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/icm": {
+      "get": {
+        "operationId": "calculateIcmPayouts",
+        "summary": "Calculate Tournament ICM Dollar Equity",
+        "description": "Computes Malmuth-Harville Independent Chip Model (ICM) tournament equity payouts from player chip stacks.",
+        "parameters": [
+          {
+            "name": "stacks",
+            "in": "query",
+            "description": "Comma-separated chip counts (e.g. 50000,30000,20000).",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "50000,30000,20000"
+            }
+          },
+          {
+            "name": "payouts",
+            "in": "query",
+            "description": "Comma-separated prize payouts (e.g. 5000,3000,2000).",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "5000,3000,2000"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ICM dollar equity per player with citation URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IcmCalculationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/terms": {
+      "get": {
+        "operationId": "getPokerTerm",
+        "summary": "Lookup Authoritative Poker Terminology",
+        "description": "Returns verified poker definitions, GTO acronyms, and live room rules from the official glossary.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Poker term or jargon query (e.g. straddle, pot odds, icm, 3-bet).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "straddle"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching glossary definitions, related terms, and canonical links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlossaryTermsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -289,6 +521,175 @@
             "items": {
               "$ref": "#/components/schemas/SeriesSummary"
             }
+          }
+        }
+      },
+      "OddsCalculationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "game": {
+            "type": "string"
+          },
+          "simulated_iterations": {
+            "type": "integer"
+          },
+          "board_cards_count": {
+            "type": "integer"
+          },
+          "seats": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "seat": {
+                  "type": "string"
+                },
+                "equity_percent": {
+                  "type": "number"
+                },
+                "win_percent": {
+                  "type": "number"
+                },
+                "tie_percent": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "interactive_tool_url": {
+            "type": "string"
+          },
+          "citation": {
+            "type": "string"
+          }
+        }
+      },
+      "PreflopRangeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "string"
+          },
+          "game_structure": {
+            "type": "string"
+          },
+          "total_hands_opened": {
+            "type": "integer"
+          },
+          "hands_in_opening_range": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "hand": {
+                  "type": "string"
+                },
+                "raise_frequency": {
+                  "type": "number"
+                },
+                "call_frequency": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "interactive_matrix_url": {
+            "type": "string"
+          },
+          "citation": {
+            "type": "string"
+          }
+        }
+      },
+      "IcmCalculationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "total_chips_in_play": {
+            "type": "number"
+          },
+          "total_prize_pool": {
+            "type": "number"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "player": {
+                  "type": "string"
+                },
+                "chip_stack": {
+                  "type": "number"
+                },
+                "chip_share_percent": {
+                  "type": "number"
+                },
+                "icm_dollar_equity": {
+                  "type": "number"
+                },
+                "prize_pool_share_percent": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "interactive_tool_url": {
+            "type": "string"
+          },
+          "citation": {
+            "type": "string"
+          }
+        }
+      },
+      "GlossaryTermsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "query": {
+            "type": "string"
+          },
+          "total_found": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "term": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "definition": {
+                  "type": "string"
+                },
+                "canonical_url": {
+                  "type": "string"
+                },
+                "citation": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "glossary_hub_url": {
+            "type": "string"
           }
         }
       }

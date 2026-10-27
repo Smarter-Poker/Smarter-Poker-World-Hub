@@ -24,7 +24,7 @@ import { calculateICM } from '../../engines/ICMCalculator.js';
 import { RFI } from '../../config/solverRanges.js';
 import { GLOSSARY_TERMS } from '../../content/glossary/terms.js';
 
-function parseCardToken(str) {
+export function parseCardToken(str) {
   const match = String(str || '').trim().match(/^(10|[2-9TJQKA])([shdc])$/i);
   if (!match) return null;
   const rank = match[1].toUpperCase() === 'T' ? '10' : match[1].toUpperCase();
@@ -32,7 +32,7 @@ function parseCardToken(str) {
   return makeCard(rank, suits[match[2].toLowerCase()]);
 }
 
-function normalizeCardGroup(input) {
+export function normalizeCardGroup(input) {
   if (Array.isArray(input)) {
     return input.map(parseCardToken).filter(Boolean);
   }

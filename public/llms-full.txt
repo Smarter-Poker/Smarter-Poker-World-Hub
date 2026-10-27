@@ -24,6 +24,10 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Public Model Context Protocol (MCP) Server: https://smarter.poker/api/mcp
 - AI Venues API: https://smarter.poker/api/ai/venues
 - AI Series API: https://smarter.poker/api/ai/series
+- AI Odds API: https://smarter.poker/api/ai/odds
+- AI Preflop API: https://smarter.poker/api/ai/preflop
+- AI ICM API: https://smarter.poker/api/ai/icm
+- AI Terms API: https://smarter.poker/api/ai/terms
 - Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
 - Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
 - Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
