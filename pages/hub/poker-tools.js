@@ -76,6 +76,11 @@ const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
             answer:
                 "Six full variants are supported: Texas Hold'em, Omaha High (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, and Razz (Seven Card Stud Low).",
         },
+        {
+            question: 'Can I share or embed calculated poker odds scenarios?',
+            answer:
+                'Yes. You can copy a persistent permalink containing all player hands, board cards, and dead cards, or embed the responsive iframe calculator directly into external websites.',
+        },
     ],
 });
 
@@ -372,6 +377,45 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
             : validCount >= 2 ? 'Ready To Calculate'
                 : `Fill At Least Two Hands (${config.holeCards} Cards Each) To See Equity`;
 
+    const schema = useMemo(() => {
+        const canonicalPath = router.pathname === '/tools/poker-odds-calculator' ? '/tools/poker-odds-calculator' : '/hub/poker-tools';
+        return hubProductSchema({
+            path: canonicalPath,
+            name: 'Smarter.Poker Odds Calculator',
+            description: "Free Poker Odds Calculator For Texas Hold'em, Omaha, PLO5, PLO6, Seven Card Stud And Razz. Calculate Multiway Hand Equity In Real Time With Zero Account Setup.",
+            applicationCategory: 'GameApplication',
+            applicationSubCategory: 'Poker',
+            trail: [['Hub', '/hub'], ['Poker Odds Calculator', canonicalPath]],
+            faqs: [
+                {
+                    question: 'How does the Smarter.Poker Odds Calculator compute equity?',
+                    answer:
+                        'The calculator runs high-precision Monte Carlo simulations across 10,000 iterations to evaluate exact win, tie, and split-pot equity for Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud, and Razz against up to 6 opponents simultaneously.',
+                },
+                {
+                    question: 'Can I factor dead cards or known discards into the calculation?',
+                    answer:
+                        'Yes. You can mark folded cards or known discards as dead cards. The simulation immediately removes them from the 52-card shoe, refining equity calculation accuracy for complex multiway scenarios.',
+                },
+                {
+                    question: 'Is the Smarter.Poker Odds Calculator free?',
+                    answer:
+                        'Yes. The Smarter.Poker Odds Calculator is 100% free with no account creation, paywall, or advertisement gating required.',
+                },
+                {
+                    question: 'What poker variants are supported by the calculator?',
+                    answer:
+                        "Six full variants are supported: Texas Hold'em, Omaha High (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, and Razz (Seven Card Stud Low).",
+                },
+                {
+                    question: 'Can I share or embed calculated poker odds scenarios?',
+                    answer:
+                        'Yes. You can copy a persistent permalink containing all player hands, board cards, and dead cards, or embed the responsive iframe calculator directly into external websites.',
+                },
+            ],
+        });
+    }, [router.pathname]);
+
     /* ═══════════════════════════════════════
        RENDER
     ═══════════════════════════════════════ */
@@ -381,21 +425,9 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                 title="Poker Odds Calculator: Six Games"
                 description="Free Poker Odds Calculator For Texas Hold'em, Omaha, PLO5, PLO6, Stud, And Razz. Calculate Real-Time Multiway Equity And Test Scenarios With Zero Account Setup."
                 canonical={effectiveCanonical}
+                jsonLd={schema}
                 ogImage="/api/og/tool-card?tool=odds&title=Poker+Odds+Calculator&subtitle=Multiway+Equity+For+Holdem+PLO4+PLO5+PLO6+Stud+And+Razz&statLabel=ITERATIONS&statValue=10,000+RUNS"
             />
-            <Head>
-                <script
-                    key="poker-tools-schema"
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            ...ODDS_CALCULATOR_SCHEMA,
-                            '@id': `${effectiveCanonical}#app`,
-                            url: effectiveCanonical,
-                        }).replace(/</g, '\\u003c'),
-                    }}
-                />
-            </Head>
 
             <div className="odds-page" style={THEME_VARS}>
                 <main className="odds-main">

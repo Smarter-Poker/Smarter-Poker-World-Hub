@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 
@@ -54,18 +55,40 @@ export default function WebmasterEmbedPortal() {
     }
   };
 
-  const portalSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'WebPage',
-    name: 'Webmaster Poker Widgets & Embed Distribution Center',
+  const EMBEDS_SCHEMA = hubProductSchema({
+    path: '/tools/embeds',
+    name: 'Smarter.Poker Webmaster Widgets & Embed Distribution Center',
     description: 'Free embeddable poker widgets, odds calculators, ICM solvers, and GTO charts for poker webmasters, bloggers, and media sites.',
-    url: 'https://smarter.poker/tools/embeds',
-    publisher: {
-      '@type': 'Organization',
-      name: 'Smarter.Poker',
-      url: 'https://smarter.poker',
-    },
-  };
+    applicationCategory: 'WebApplication',
+    applicationSubCategory: 'DeveloperApplication',
+    trail: [
+      ['Hub', '/hub'],
+      ['Poker Tools', '/tools/poker-odds-calculator'],
+      ['Embed Widgets', '/tools/embeds'],
+    ],
+    faqs: [
+      {
+        question: 'How do I embed the Smarter.Poker Odds Calculator on my website?',
+        answer:
+          'Copy the responsive HTML iframe snippet from this portal and paste it into your CMS or HTML page. It automatically adjusts to mobile and desktop viewports with zero API keys required.',
+      },
+      {
+        question: 'Are Smarter.Poker embeddable poker widgets free for commercial and affiliate sites?',
+        answer:
+          'Yes. All Smarter.Poker widgets are 100% free to embed on poker blogs, news portals, casino affiliate sites, and media publications.',
+      },
+      {
+        question: 'Can I customize the theme or default poker game variant for the widget?',
+        answer:
+          'Yes. You can append URL query parameters such as ?game=holdem, ?game=plo4, or ?embed=true to preselect specific variants and lock widget dimensions.',
+      },
+      {
+        question: 'Do these widgets require any JavaScript dependencies or external tracking scripts?',
+        answer:
+          'No. Smarter.Poker widgets run entirely within sandboxed responsive iframes, requiring zero external scripts or client libraries on your host domain.',
+      },
+    ],
+  });
 
   return (
     <>
@@ -73,13 +96,9 @@ export default function WebmasterEmbedPortal() {
         title="Free Poker Widgets & Embeds"
         description="Free embeddable poker widgets for webmasters and bloggers. Embed real-time odds calculators, tournament ICM solvers, and GTO preflop charts with simple HTML iframe snippets."
         canonical="https://smarter.poker/tools/embeds"
+        jsonLd={EMBEDS_SCHEMA}
         ogImage="/api/og/tool-card?tool=embeds&title=Free+Poker+Widgets+And+Embeds&subtitle=Responsive+Iframe+Widgets+For+Odds+ICM+And+Preflop+Ranges&statLabel=WIDGETS&statValue=100%+FREE"
-      >
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(portalSchema) }}
-        />
-      </SEOHead>
+      />
 
       <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#fff', paddingBottom: '60px' }}>
         <UniversalHeader pageDepth={1} />

@@ -113,6 +113,14 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
           question: 'Why do GTO preflop charts employ mixed strategies?',
           answer: 'Mixed strategies prevent opponents from exploiting predictable frequencies and maintain optimal board coverage across varied postflop textures.',
         },
+        {
+          question: 'How does table position influence preflop opening ranges in poker?',
+          answer: 'As position moves closer to the button, fewer opponents remain behind to wake up with premium hands, allowing players to open significantly wider ranges profitably.',
+        },
+        {
+          question: 'Can I export or print this GTO preflop matrix?',
+          answer: 'Yes. Use the print or export action to generate a clean, printer-friendly high-contrast 13x13 preflop chart for study and reference.',
+        },
       ],
     });
   }, [posData, stats, pageDesc]);
@@ -123,16 +131,10 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
         title={pageTitle}
         description={pageDesc}
         canonical={canonicalUrl}
+        jsonLd={schema}
         ogImage={`/api/og/tool-card?tool=ranges&title=${encodeURIComponent(pageTitle)}&subtitle=${encodeURIComponent(`100BB 6-Max Opening Matrix (${stats.percent}% Open Frequency)`)}&statLabel=OPENING+FREQUENCY&statValue=${encodeURIComponent(`${stats.percent}%`)}`}
       />
       <Head>
-        <script
-          key="preflop-matrix-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(schema).replace(/</g, '\\u003c'),
-          }}
-        />
         <style
           key="preflop-matrix-print-styles"
           dangerouslySetInnerHTML={{
