@@ -19,11 +19,11 @@ const LEGACY_REDIRECTS = new Map([
   ['pages/horses/hand-reviews.js', 'hand-reviews'],
 ]);
 
-test('the Phase 9 registry has 28 real, pure-data tabs', () => {
+test('the operator registry has 29 real, pure-data tabs', () => {
   const rendered = visibleTabs(TABS);
-  assert.equal(rendered.length, 28);
-  assert.equal(new Set(rendered.map((tab) => tab.id)).size, 28, 'tab ids must be unique');
-  assert.equal(new Set(rendered.map((tab) => tab.label)).size, 28, 'tab labels must be unique');
+  assert.equal(rendered.length, 29);
+  assert.equal(new Set(rendered.map((tab) => tab.id)).size, 29, 'tab ids must be unique');
+  assert.equal(new Set(rendered.map((tab) => tab.label)).size, 29, 'tab labels must be unique');
 
   for (const tab of rendered) {
     assert.equal(typeof tab.id, 'string', `${tab.label} needs an id`);
@@ -37,6 +37,7 @@ test('the Phase 9 registry has 28 real, pure-data tabs', () => {
   assert.equal(rendered.find((tab) => tab.id === 'sql-console')?.permission, 'sql.execute');
   assert.equal(rendered.find((tab) => tab.id === 'hg-moderation')?.permission, 'players.read');
   assert.equal(rendered.find((tab) => tab.id === 'hand-reviews')?.permission, 'fleet.read');
+  assert.equal(rendered.find((tab) => tab.id === 'solver-inputs')?.permission, 'fleet.read');
 });
 
 test('every tab resolves through one explicit top-level dynamic declaration', async () => {
@@ -53,7 +54,7 @@ test('every tab resolves through one explicit top-level dynamic declaration', as
   assert.ok(mapBody, 'the tab component map must remain explicit');
   const entries = [...mapBody.matchAll(/^\s*(?:'([^']+)'|([a-z][\w-]*)):\s*(\w+Panel),?\s*$/gm)]
     .map((match) => [match[1] || match[2], match[3]]);
-  assert.equal(entries.length, 28, 'one explicit component entry is required per rendered tab');
+  assert.equal(entries.length, 29, 'one explicit component entry is required per rendered tab');
   assert.deepEqual(new Set(entries.map(([id]) => id)), new Set(visibleTabs(TABS).map((tab) => tab.id)));
   for (const [id, component] of entries) {
     assert.ok(declarations.has(component), `${id} maps to undeclared ${component}`);
