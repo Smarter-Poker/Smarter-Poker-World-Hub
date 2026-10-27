@@ -424,7 +424,7 @@ export function buildHtml(digest, opts = {}) {
         + `Real players exclude horses, test and certification accounts. Generated ${esc(digest.generated_at)}${opts.runId ? `, run ${esc(opts.runId)}` : ''}.`
         + `<br>&copy; ${new Date().getUTCFullYear()} Smarter.Poker</td></tr>`;
 
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title></head>`
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title></head>`
         + `<body style="margin:0;padding:0;background:${C.page};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};"><tr><td align="center" style="padding:28px 12px;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${C.card};border-radius:12px;"><tr><td style="padding:30px 26px;">`
@@ -435,6 +435,11 @@ export function buildHtml(digest, opts = {}) {
         + (viewUrl ? `<tr><td style="padding:0 0 10px 0;">${viewUrl}</td></tr>` : '')
         + body + buttons + footer
         + `</table></td></tr></table></td></tr></table></body></html>`;
+    // Keep the email below inbox clipping limits without dropping summary data.
+    // These properties inherit from the body; online rendering stays unchanged.
+    return opts.email ? html.replaceAll('font-size:14px;', '')
+        .replaceAll(`color:${C.text};`, '').replaceAll('white-space:normal;', '')
+        .replace('<body style="', `<body style="font-size:14px;color:${C.text};`) : html;
 }
 
 function funnelCard(m) {
