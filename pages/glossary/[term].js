@@ -121,7 +121,13 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
 
   return (
     <>
-      <SEOHead title={title} description={metaDescription(term.definition)} canonical={path} jsonLd={schema} />
+      <SEOHead
+        title={title}
+        description={metaDescription(term.definition)}
+        canonical={path}
+        ogImage={`/api/og/tool-card?tool=glossary&title=${encodeURIComponent(term.term)}&subtitle=${encodeURIComponent(term.definition.slice(0, 110) + '...')}&statLabel=CATEGORY&statValue=${encodeURIComponent(term.category.toUpperCase())}`}
+        jsonLd={schema}
+      />
 
       <main style={styles.page}>
         <article style={styles.article}>

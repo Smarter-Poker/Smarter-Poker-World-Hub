@@ -28,7 +28,13 @@ export default async function handler(req) {
           ? 'GTO PREFLOP MATRIX'
           : tool === 'icm'
             ? 'ICM PAYOUT SOLVER'
-            : 'POKER STRATEGY TOOL')
+            : tool === 'glossary'
+              ? 'POKER GLOSSARY'
+              : tool === 'about'
+                ? 'ABOUT SMARTER.POKER'
+                : tool === 'embeds'
+                  ? 'WEBMASTER EMBEDS'
+                  : 'POKER STRATEGY TOOL')
     ).toUpperCase();
 
     return new ImageResponse(

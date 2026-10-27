@@ -73,6 +73,7 @@ export default function WebmasterEmbedPortal() {
         title="Free Poker Widgets & Embeds"
         description="Free embeddable poker widgets for webmasters and bloggers. Embed real-time odds calculators, tournament ICM solvers, and GTO preflop charts with simple HTML iframe snippets."
         canonical="https://smarter.poker/tools/embeds"
+        ogImage="/api/og/tool-card?tool=embeds&title=Free+Poker+Widgets+And+Embeds&subtitle=Responsive+Iframe+Widgets+For+Odds+ICM+And+Preflop+Ranges&statLabel=WIDGETS&statValue=100%+FREE"
       >
         <script
           type="application/ld+json"

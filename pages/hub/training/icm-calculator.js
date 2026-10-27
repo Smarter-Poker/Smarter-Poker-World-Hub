@@ -245,6 +245,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
         title="Tournament ICM Calculator"
         description="Free Tournament ICM Calculator. Convert Chip Stacks To Real Dollar Values Using The Malmuth-Harville Model For Final Table And Bubble Decisions."
         canonical={effectiveCanonical}
+        ogImage="/api/og/tool-card?tool=icm&title=Tournament+ICM+Calculator&subtitle=Malmuth-Harville+Final+Table+Chop+And+Bubble+Equity&statLabel=PRECISION&statValue=EXACT+MODEL"
       />
       <Head>
         <script
