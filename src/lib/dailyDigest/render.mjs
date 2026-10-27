@@ -253,7 +253,7 @@ const NOWRAP_VALUE_MAX = 28;
 function rowHtml(label, valueHtml, sub, red, quiet) {
     const vColor = red ? C.red : quiet ? C.muted : C.text;
     const plainLen = String(valueHtml ?? '').replace(/<[^>]*>/g, '').length;
-    const valueWrap = plainLen <= NOWRAP_VALUE_MAX ? 'white-space:nowrap;' : 'white-space:normal;word-break:break-word;';
+    const valueWrap = plainLen <= NOWRAP_VALUE_MAX && /^[\s\d.,+/$%:−-]*$/.test(String(valueHtml ?? '').replace(/<[^>]*>/g, '')) ? 'white-space:nowrap;' : 'white-space:normal;word-break:break-word;';
     return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;">${esc(label)}</td>`
         + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;">`
         + `<span style="color:${vColor};font-weight:700;font-size:14px;${valueWrap}">${valueHtml}</span>`
@@ -263,7 +263,7 @@ function rowHtml(label, valueHtml, sub, red, quiet) {
 
 function cardOpen(title) {
     return `<tr><td style="padding:22px 0 8px 0;color:${C.teal};font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">${esc(title)}</td></tr>`
-        + `<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
+        + `<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
 }
 const cardClose = '</table></td></tr>';
 
@@ -338,7 +338,7 @@ export function attentionHtml(digest) {
                 + `</td></tr>`;
         })
         .join('');
-    return `<tr><td style="padding:16px;border:1px solid ${C.red};border-radius:10px;background:#1a0d10;">${head}<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${list}</table></td></tr>`;
+    return `<tr><td style="padding:16px;border:1px solid ${C.red};border-radius:10px;background:#1a0d10;">${head}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">${list}</table></td></tr>`;
 }
 
 function listCard(title, rows) {
@@ -425,10 +425,10 @@ export function buildHtml(digest, opts = {}) {
         + `<br>&copy; ${new Date().getUTCFullYear()} Smarter.Poker</td></tr>`;
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title></head>`
-        + `<body style="margin:0;padding:0;background:${C.page};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`
+        + `<body style="margin:0;padding:0;background:${C.page};overflow-wrap:anywhere;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};"><tr><td align="center" style="padding:28px 12px;">`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${C.card};border-radius:12px;"><tr><td style="padding:30px 26px;">`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;max-width:600px;background:${C.card};border-radius:12px;"><tr><td style="padding:30px 26px;">`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">`
         + `<tr><td style="color:${C.teal};font-size:18px;font-weight:800;letter-spacing:3px;">SMARTER.POKER</td></tr>`
         + `<tr><td style="padding:18px 0 6px 0;color:#ffffff;font-size:22px;font-weight:800;">Daily Operations Digest</td></tr>`
         + `<tr><td style="padding:0 0 18px 0;color:${C.text};font-size:14px;">Hi ${esc(name)}, here is the platform snapshot for ${esc(digest.day_label || digest.day)} (Central).</td></tr>`
@@ -602,7 +602,7 @@ function playerTotalsCard(digest, opts = {}) {
     }
     html += cardClose;
     for (const pl of opts.email ? [] : r.players) {
-        html += `<tr><td style="padding:14px 0 6px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
+        html += `<tr><td style="padding:14px 0 6px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
         html += `<tr><td style="padding:10px 14px;color:#ffffff;font-size:15px;font-weight:800;">${esc(pl.name)}<div style="color:${C.muted};font-size:11px;font-weight:400;margin-top:2px;">${esc(pl.head)}</div></td>`
             + `<td style="padding:10px 14px;text-align:right;white-space:nowrap;font-size:15px;font-weight:800;color:${signedColor(pl.net)};">${esc(fmtSigned(pl.net))}</td></tr>`;
         pl.rows.forEach(([label, value, sub], i) => {

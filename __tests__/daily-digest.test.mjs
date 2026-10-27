@@ -364,3 +364,10 @@ test('assembler uses the BBJ and period RPC and selects the compact email render
     assert.match(out.html, /Full Player And Horse Details/);
     assert.deepEqual(await loadPlayerTotals({ rpc: async () => ({ error: { message: 'timeout' } }) }, '2026-10-26'), { day: '2026-10-26', error: 'timeout' });
 });
+
+test('email layout fixes the card width and lets long alert identifiers wrap', () => {
+    const html = buildHtml(fixture(), { email: true });
+    assert.match(html, /table-layout:fixed;max-width:600px/);
+    assert.match(html, /overflow-wrap:anywhere/);
+    assert.match(html, /font-size:14px;color:#e7edf3;/);
+});
