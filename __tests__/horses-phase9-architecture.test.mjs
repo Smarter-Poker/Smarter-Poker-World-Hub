@@ -37,7 +37,7 @@ test('the operator registry has 29 real, pure-data tabs', () => {
   assert.equal(rendered.find((tab) => tab.id === 'sql-console')?.permission, 'sql.execute');
   assert.equal(rendered.find((tab) => tab.id === 'hg-moderation')?.permission, 'players.read');
   assert.equal(rendered.find((tab) => tab.id === 'hand-reviews')?.permission, 'fleet.read');
-  assert.equal(rendered.find((tab) => tab.id === 'v31-inputs')?.permission, 'fleet.read');
+  assert.equal(rendered.find((tab) => tab.id === 'solver-inputs')?.permission, 'fleet.read');
 });
 
 test('every tab resolves through one explicit top-level dynamic declaration', async () => {

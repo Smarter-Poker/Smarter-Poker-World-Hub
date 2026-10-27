@@ -64,7 +64,7 @@ export const TABS = [
   { id: 'fleet', label: 'Fleet Command', permission: 'fleet.read',
     aliases: ['grinder'] },
   { id: 'pipeline', label: 'Pipeline', permission: 'fleet.read' },
-  { id: 'v31-inputs', label: 'V31 Inputs', permission: 'fleet.read' },
+  { id: 'solver-inputs', label: 'V31 Inputs', permission: 'fleet.read' },
   // The only tab whose view IS its write: there is no settings.read, and the
   // panel is the form.
   { id: 'settings', label: 'Settings', permission: 'settings.write' },

@@ -33,7 +33,7 @@ function exportedStringValues(source, exportName) {
 
 test('the operator runbook covers every visible top-level tab with its canonical opening permission', () => {
   const tabs = literalObjects(REGISTRY, 'TABS');
-  assert.equal(tabs.length, 28);
+  assert.equal(tabs.length, 29);
   for (const tab of tabs) {
     const row = RUNBOOK.split('\n').find((line) => line.startsWith(`| \`${tab.id}\` |`));
     assert.ok(row, `${tab.id} must have a runbook row`);

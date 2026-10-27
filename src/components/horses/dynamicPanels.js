@@ -58,7 +58,7 @@ export const TAB_PANEL_COMPONENTS = Object.freeze({
   stable: StablePanel,
   fleet: FleetPanel,
   pipeline: PipelinePanel,
-  'v31-inputs': V31InputsPanel,
+  'solver-inputs': V31InputsPanel,
   settings: SettingsPanel,
   stats: StatsPanel,
   merch: MerchPanel,
