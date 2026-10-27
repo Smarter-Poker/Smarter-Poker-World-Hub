@@ -492,7 +492,7 @@ export const REWARDS = {
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // REFERRAL — separate budget line, exempt from the daily cap. Dan,
+  // REFERRAL: separate budget line, exempt from the daily cap. Dan,
   // 2026-10-17: "PAY OUT DIAMONDS FOR ALL REFERRALS" - every referral pays
   // when the new player confirms their email (fn_settle_signup_referral).
   // ─────────────────────────────────────────────────────────────────────────

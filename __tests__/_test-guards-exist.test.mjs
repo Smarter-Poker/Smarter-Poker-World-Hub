@@ -801,6 +801,23 @@ import './club-invite-short-links.test.mjs';
 // 2026-10-17 sweep: conversation previews are plain text; digest figures carry separators.
 import './messenger-preview-is-plain-text.test.mjs';
 import './digest-figures-carry-separators.test.mjs';
+// GSC Series 4 And Series 5 Technical SEO Test Guards
+import './gsc-series4-phase1.test.mjs';
+import './gsc-series4-phase2.test.mjs';
+import './gsc-series4-phase3.test.mjs';
+import './gsc-series4-phase4.test.mjs';
+import './gsc-series4-phase5.test.mjs';
+import './gsc-series4-phase6.test.mjs';
+import './gsc-series4-phase7.test.mjs';
+import './gsc-series4-phase8.test.mjs';
+import './gsc-series5-phase1.test.mjs';
+import './gsc-series5-phase2.test.mjs';
+import './gsc-series5-phase3.test.mjs';
+import './gsc-series5-phase4.test.mjs';
+import './gsc-series5-phase5.test.mjs';
+import './gsc-series5-phase6.test.mjs';
+import './gsc-series5-phase7.test.mjs';
+import './gsc-series5-phase8.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

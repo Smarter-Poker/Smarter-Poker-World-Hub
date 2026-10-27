@@ -335,7 +335,7 @@ export default async function handler(req, res) {
             id: last._source === 'poker' ? last.id.slice(6) : last.id,
         }) : null;
 
-        // ── Phase 3.5: BUG-28 FIX — Enrich home_group notifications with real group names ──
+        // ── Phase 3.5: BUG-28 FIX: Enrich home_group notifications with real group names ──
         // home_group_friend_joined messages were showing raw slugs like 'PHASE40_DM_FEATURE'
         // because the message was stored at insert-time with the slug. Now we resolve the
         // real group name from commander_home_groups and rewrite the message.

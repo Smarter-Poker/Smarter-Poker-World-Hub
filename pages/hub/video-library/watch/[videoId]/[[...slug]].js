@@ -242,6 +242,9 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
     const [autoplayNext, setAutoplayNext] = useState(true);
     const [navigationError, setNavigationError] = useState(false);
     const attemptPlayback = router.query.play === '1';
+    const rawSeekParam = Array.isArray(router.query.t) ? router.query.t[0] : router.query.t;
+    const parsedSeek = Number.parseInt(String(rawSeekParam || '').replace(/s$/i, ''), 10);
+    const initialSeekSeconds = Number.isFinite(parsedSeek) && parsedSeek > 0 ? parsedSeek : 0;
     useEffect(() => { setMiniPlayer(false); }, [video?.videoId]);
     const [menuOpen, setMenuOpen] = useState(false);
     const [shareState, setShareState] = useState('idle');
@@ -367,6 +370,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                     {miniPlayer && <div className="vl-mini-controls"><button type="button" onClick={() => setMiniPlayer(false)}>Expand Player</button><button type="button" onClick={closePlayer}>Close Player</button></div>}
                                 </div>
                                 <WatchPlaybackTools key={`tools:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} active={!ytError} attemptPlayback={attemptPlayback}
+                                    initialSeekSeconds={initialSeekSeconds}
                                     onMarkersChange={setQuizMarkers}
                                     duration={seconds} nextTitle={nextVideo?.title}
                                     onNext={() => openQueuedVideo(queueIndex >= 0 ? playbackQueue.advance(video.videoId) : nextVideo)}

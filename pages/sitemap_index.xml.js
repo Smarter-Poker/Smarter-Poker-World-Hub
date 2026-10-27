@@ -11,10 +11,11 @@
 
 import {
   generateSitemapIndexXml,
+  sendSitemapXmlResponse,
 } from '../src/lib/seo/sitemapBuilders.mjs';
 import { AS_OF as COMPARE_AS_OF } from '../src/content/compare/pages.js';
 
-export async function getServerSideProps({ res }) {
+export async function getServerSideProps({ req, res }) {
   const sitemaps = [
     { loc: '/sitemap-core.xml' },
     { loc: '/sitemap-venues.xml' },
@@ -29,8 +30,7 @@ export async function getServerSideProps({ res }) {
 
   res.setHeader('Content-Type', 'text/xml');
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
-  res.write(xml);
-  res.end();
+  sendSitemapXmlResponse(req, res, xml);
 
   return { props: {} };
 }

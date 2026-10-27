@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 78,
     "realtimeFiles": 6,
-    "tests": 161,
+    "tests": 164,
     "markerCandidates": 335,
     "possibleUnwiredFunctions": 390,
     "routeStateCells": 752,
@@ -17482,6 +17482,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
@@ -17506,6 +17507,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
@@ -17536,6 +17538,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
@@ -17554,6 +17557,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
@@ -17579,6 +17583,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
@@ -17609,6 +17614,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
@@ -17620,6 +17626,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
@@ -17637,12 +17644,14 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         }
       },
       "existingTests": [
+        "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
       ],
@@ -49394,7 +49403,9 @@
     {
       "file": "src/lib/seo/hubPageSchema.js",
       "imports": [],
-      "links": [],
+      "links": [
+        "/hub/training"
+      ],
       "apiReferences": [],
       "apiReferencePrefixes": [],
       "ctas": [],
@@ -49445,8 +49456,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "licensableImageSchema",
+          "line": 76,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "hubProductSchema",
-          "line": 75,
+          "line": 108,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49454,8 +49473,24 @@
         },
         {
           "name": "hubCollectionSchema",
-          "line": 135,
+          "line": 189,
           "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "datasetSchema",
+          "line": 243,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "courseSchema",
+          "line": 287,
+          "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -49463,7 +49498,7 @@
         {
           "name": "absolute",
           "line": 30,
-          "references": 6,
+          "references": 11,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -63412,6 +63447,9 @@
     "__tests__/gsc-series2-phase2.test.mjs",
     "__tests__/gsc-series3-phase2.test.mjs",
     "__tests__/gsc-series3-phase3.test.mjs",
+    "__tests__/gsc-series4-phase3.test.mjs",
+    "__tests__/gsc-series5-phase3.test.mjs",
+    "__tests__/gsc-series5-phase7.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
@@ -81016,6 +81054,7 @@
         }
       ],
       "tests": [
+        "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
       ]
@@ -81759,6 +81798,7 @@
       "tests": [
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/llms-full-txt-standards.test.mjs",
         "__tests__/llms-txt-states-the-entity.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
@@ -85421,7 +85461,9 @@
       "persistence": [],
       "realtime": [],
       "tests": [
-        "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs"
+        "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
+        "__tests__/gsc-series4-phase3.test.mjs",
+        "__tests__/gsc-series5-phase3.test.mjs"
       ]
     },
     {
@@ -86803,6 +86845,7 @@
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/gsc-series5-phase7.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
@@ -93895,7 +93938,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubProductSchema",
-        "line": 75,
+        "line": 108,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93905,6 +93948,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/gsc-series3-phase1.test.mjs",
+          "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/bankroll-manager.js",
           "pages/hub/home-games.js",
@@ -93923,7 +93967,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 135,
+        "line": 189,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93933,6 +93977,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/gsc-series3-phase1.test.mjs",
+          "__tests__/gsc-series4-phase3.test.mjs",
           "pages/hub/events-calendar.js",
           "pages/hub/home-games/near-me.js",
           "pages/hub/index.js",
@@ -103143,7 +103188,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubProductSchema",
-        "line": 75,
+        "line": 108,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -103153,6 +103198,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/gsc-series3-phase1.test.mjs",
+          "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/bankroll-manager.js",
           "pages/hub/home-games.js",
@@ -103171,7 +103217,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 135,
+        "line": 189,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -103181,6 +103227,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/gsc-series3-phase1.test.mjs",
+          "__tests__/gsc-series4-phase3.test.mjs",
           "pages/hub/events-calendar.js",
           "pages/hub/home-games/near-me.js",
           "pages/hub/index.js",

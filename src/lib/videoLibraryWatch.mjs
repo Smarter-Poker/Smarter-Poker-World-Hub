@@ -161,8 +161,45 @@ export function videoThumbnailUrl(video) {
         ? image : `https://i.ytimg.com/vi/${video?.videoId}/hqdefault.jpg`;
 }
 
+/**
+ * Parse explicit timestamp chapters ("0:00 Intro\n3:15 Hand 1") into Schema.org
+ * Clip entities when at least 2 monotonically increasing timestamps exist.
+ */
+export function parseVideoChapters(text, baseUrl, totalDurationSeconds = 0) {
+    if (typeof text !== 'string' || !text.trim() || !baseUrl) return [];
+    const lines = text.split(/\r?\n/);
+    const raw = [];
+    const tsRe = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s+[-\u2013\u2014:]?\s*(.+)$/;
+    for (const line of lines) {
+        const m = line.trim().match(tsRe);
+        if (!m) continue;
+        const hrs = m[1] ? Number(m[1]) : 0;
+        const mins = Number(m[2]);
+        const secs = Number(m[3]);
+        const startOffset = hrs * 3600 + mins * 60 + secs;
+        const name = m[4].trim();
+        if (!name || !Number.isFinite(startOffset) || startOffset < 0) continue;
+        if (totalDurationSeconds > 0 && startOffset >= totalDurationSeconds) continue;
+        if (raw.length > 0 && startOffset <= raw[raw.length - 1].startOffset) continue;
+        raw.push({ name, startOffset });
+    }
+    if (raw.length < 2) return [];
+    return raw.map((clip, idx) => {
+        const nextStart = raw[idx + 1]?.startOffset;
+        const endOffset = nextStart ?? (totalDurationSeconds > clip.startOffset ? totalDurationSeconds : undefined);
+        return {
+            '@type': 'Clip',
+            '@id': `${baseUrl}#clip-${clip.startOffset}`,
+            name: clip.name,
+            startOffset: clip.startOffset,
+            ...(Number.isFinite(endOffset) && endOffset > clip.startOffset ? { endOffset } : {}),
+            url: `${baseUrl}?t=${clip.startOffset}`,
+        };
+    });
+}
+
 /** Only emit Google's video entity when its required publication fact exists. */
-export function buildVideoObject(video, { channelName, channelHref, description } = {}) {
+export function buildVideoObject(video, { channelName, channelHref, description, chaptersText } = {}) {
     const uploadDate = videoPublicationDate(video?.publishedAt);
     if (!uploadDate || !video?.title || !/^[A-Za-z0-9_-]{11}$/.test(video?.videoId || '')) return null;
     const seconds = durationSeconds(video.duration);
@@ -172,6 +209,7 @@ export function buildVideoObject(video, { channelName, channelHref, description 
     // registry. Raw source keys and row attribution do not prove identity.
     const authorUrl = typeof channelHref === 'string' && /^\/hub\/video-library\/channels\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(channelHref)
         ? `${SITE_URL}${channelHref}` : null;
+    const clips = parseVideoChapters(chaptersText, url, seconds);
     const videoObject = {
         '@type': 'VideoObject',
         '@id': `${url}#video`,
@@ -182,6 +220,12 @@ export function buildVideoObject(video, { channelName, channelHref, description 
         duration: isoDuration(seconds) || undefined,
         embedUrl: `https://www.youtube-nocookie.com/embed/${video.videoId}`,
         url,
+        potentialAction: {
+            '@type': 'SeekToAction',
+            target: `${url}?t={seek_to_second_number}`,
+            'startOffset-input': 'required name=seek_to_second_number',
+        },
+        ...(clips.length >= 2 ? { hasPart: clips } : {}),
         ...(channelName ? { author: { '@type': 'Organization', name: channelName, ...(authorUrl ? { url: authorUrl } : {}) } } : {}),
         ...(Number.isSafeInteger(video.viewsCount) && video.viewsCount > 0 ? {
             interactionStatistic: {

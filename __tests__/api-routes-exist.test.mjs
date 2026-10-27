@@ -68,7 +68,10 @@ const EXTS = ['.js', '.jsx', '.ts', '.tsx'];
 // Currently empty: the resolver already handles catch-all handlers (e.g.
 // /api/venues/record-geofence is served by pages/api/venues/[...slug].js), so
 // no route has needed a manual exemption yet. Keep it that way if you can.
-const KNOWN_MISSING = {};
+const KNOWN_MISSING = {
+  // Speculation Rules API Wildcard Exclusion Pattern In pages/_document.js
+  '/api/*': 'Speculation Rules API negative pattern in pages/_document.js, not an API call',
+};
 
 // Prefixes served by an external host via a vercel.json rewrite. Each entry
 // MUST have a corresponding rewrite; the assertion below enforces that.

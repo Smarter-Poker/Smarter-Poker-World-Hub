@@ -106,7 +106,7 @@ function prefixesOwnedByAnotherSitemap() {
   const out = [];
   for (const m of robots.matchAll(/^Sitemap:\s*(\S+)\s*$/gm)) {
     const pathname = m[1].replace(/^https?:\/\/[^/]+/, '');
-    if (pathname === '/sitemap.xml') continue; // this repo's own
+    if (/^\/sitemap[^/]*\.xml$/.test(pathname)) continue; // this repo's own root/sub sitemaps
     const dir = pathname.replace(/\/sitemap\.xml$/, '');
     if (dir) out.push(dir);
   }

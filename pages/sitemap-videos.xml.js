@@ -18,6 +18,7 @@ import { BLOCKED_VIDEO_LIBRARY_IDS, isVideoLibraryVideoAllowed } from '../src/li
 import { VIDEO_LIBRARY_POKER_TYPES, isCuratedFeedVideo, mixedContentFilter } from '../src/lib/videoLibraryCuration.mjs';
 import { VIDEO_ROW_FIELDS, normaliseVideoRow, videoSitemapEntry } from '../src/lib/videoLibraryWatch.mjs';
 import { getVideoChannel } from '../src/lib/videoLibraryCards';
+import { sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
 
 const PAGE_SIZE = 1000;
 // Google accepts 50,000 entries per sitemap file; stop well before it.
@@ -59,12 +60,15 @@ ${videos.map(video => videoSitemapEntry(video, getVideoChannel(video).name)).joi
 </urlset>`;
 }
 
-export async function getServerSideProps({ res }) {
+export async function getServerSideProps({ req, res }) {
     try {
         const videos = await fetchPokerVideos();
         res.setHeader('Content-Type', 'text/xml');
         res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=21600');
-        res.write(buildVideoSitemapXml(videos));
+        sendSitemapXmlResponse(req, res, buildVideoSitemapXml(videos), {
+            cacheControl: 'public, s-maxage=3600, stale-while-revalidate=21600',
+        });
+        return { props: {} };
     } catch (error) {
         // An empty sitemap would tell search engines every video page is gone.
         // A 503 tells them to come back.

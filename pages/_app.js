@@ -72,6 +72,7 @@ const orbitron = Orbitron({
   variable: '--font-orbitron',
   display: 'swap',
   preload: true,
+  adjustFontFallback: true,
 });
 
 const inter = Inter({
@@ -80,6 +81,7 @@ const inter = Inter({
   variable: '--font-inter',
   display: 'swap',
   preload: true,
+  adjustFontFallback: true,
 });
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -88,6 +90,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--font-jakarta',
   display: 'swap',
   preload: false,
+  adjustFontFallback: true,
 });
 
 const spaceGrotesk = Space_Grotesk({
@@ -96,6 +99,7 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
   display: 'swap',
   preload: false,
+  adjustFontFallback: true,
 });
 
 const rajdhani = Rajdhani({
@@ -104,6 +108,7 @@ const rajdhani = Rajdhani({
   variable: '--font-rajdhani',
   display: 'swap',
   preload: false,
+  adjustFontFallback: true,
 });
 
 const robotoCondensed = Roboto_Condensed({
@@ -112,6 +117,7 @@ const robotoCondensed = Roboto_Condensed({
   variable: '--font-roboto-condensed',
   display: 'swap',
   preload: false,
+  adjustFontFallback: true,
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -120,6 +126,7 @@ const ibmPlexMono = IBM_Plex_Mono({
   variable: '--font-ibm-plex-mono',
   display: 'swap',
   preload: false,
+  adjustFontFallback: true,
 });
 
 import dynamic from 'next/dynamic';

@@ -31,11 +31,13 @@ export const LOBBY_DESTINATIONS = [
 ];
 
 export function createLobbyJsonLd(websiteSchema, siteUrl = 'https://smarter.poker') {
+  const lobbyUrl = `${siteUrl}/hub/poker-near-me/lobby`;
   return {
     '@graph': [
       websiteSchema,
       {
         '@type': 'ItemList',
+        '@id': `${lobbyUrl}#list`,
         name: 'Poker Near Me',
         itemListElement: LOBBY_DESTINATIONS.map((destination, index) => ({
           '@type': 'ListItem',
@@ -43,6 +45,43 @@ export function createLobbyJsonLd(websiteSchema, siteUrl = 'https://smarter.poke
           name: destination.label,
           url: `${siteUrl}${destination.href}`,
         })),
+      },
+      {
+        '@type': 'Dataset',
+        '@id': `${lobbyUrl}#dataset`,
+        name: 'United States Live Poker Rooms & Daily Tournaments Directory Dataset',
+        description:
+          'Comprehensive Directory Of Verified Live Poker Rooms, Casino Card Rooms, Charity Poker Venues, Cash Game Stakes, And Daily Tournament Schedules Across The United States.',
+        url: lobbyUrl,
+        sameAs: lobbyUrl,
+        isAccessibleForFree: true,
+        inLanguage: 'en-US',
+        license: `${siteUrl}/terms`,
+        keywords: [
+          'Poker Near Me',
+          'Live Poker Rooms',
+          'Daily Poker Tournaments',
+          'Casino Poker Directory',
+        ],
+        variableMeasured: [
+          'Live Poker Room Locations',
+          'Cash Game Stakes Offered',
+          'Daily Tournament Buy-Ins And Guarantees',
+          'Poker Series Schedules',
+        ],
+        temporalCoverage: '2026',
+        spatialCoverage: {
+          '@type': 'Place',
+          name: 'United States',
+        },
+        creator: {
+          '@type': 'Organization',
+          '@id': `${siteUrl}/#organization`,
+          name: 'Smarter.Poker',
+        },
+        publisher: {
+          '@id': `${siteUrl}/#organization`,
+        },
       },
     ],
   };

@@ -208,7 +208,24 @@ function buildVenueJsonLd(venue, canonical, image) {
   }
 
   if (venue.phone) venueNode.telephone = String(venue.phone);
-  if (image) venueNode.image = image;
+  if (image) {
+    venueNode.image = {
+      '@type': 'ImageObject',
+      '@id': `${canonical}#primaryimage`,
+      url: image,
+      contentUrl: image,
+      caption: `${venue.name} Poker Venue`,
+      license: 'https://smarter.poker/terms',
+      acquireLicensePage: canonical,
+      creditText: 'Smarter.Poker',
+      copyrightNotice: 'Copyright Smarter Software Inc.',
+      creator: {
+        '@type': 'Organization',
+        '@id': 'https://smarter.poker/#organization',
+        name: 'Smarter.Poker',
+      },
+    };
+  }
 
   // Same as buildVenueSeo: the poker_venues blurb lives in `about`.
   const rawBlurb = venue.about || venue.description || venue.tagline;
@@ -429,6 +446,7 @@ export async function getServerSideProps({ params, query, req, res }) {
   // Only set when a lookup positively reports "no such venue" — never on an
   // outage, so a Supabase blip can't start serving 404s for real venues.
   let confirmedMissing = false;
+  let confirmedGone = false;
 
   if (numericId && numericId >= 1) {
     try {
@@ -452,7 +470,7 @@ export async function getServerSideProps({ params, query, req, res }) {
         };
       }
       if (data && data.is_suppressed) {
-        confirmedMissing = true;
+        confirmedGone = true;
       } else if (data) {
         // select('*') mirrors the API's own query — an explicit column list
         // would fail the whole read if any one name drifted.
@@ -482,10 +500,22 @@ export async function getServerSideProps({ params, query, req, res }) {
   }
 
   // Slug / home-group UUID / JSON-only venues, plus any miss above.
-  if (!venue && !confirmedMissing) {
+  if (!venue && !confirmedMissing && !confirmedGone) {
     const viaApi = await resolveVenueViaApi(req, id);
     if (viaApi.venue) venue = viaApi.venue;
     else if (viaApi.notFound) confirmedMissing = true;
+  }
+
+  if (!venue && confirmedGone) {
+    res.statusCode = 410;
+    res.setHeader('Cache-Control', 'public, s-maxage=3600');
+    return {
+      props: {
+        venueId: id,
+        initialVenue: null,
+        isGone: true,
+      },
+    };
   }
 
   if (!venue && confirmedMissing) return { notFound: true };
@@ -766,7 +796,7 @@ function StarRating({ rating, size, interactive, onRate }) {
   );
 }
 
-export default function VenueDetailPage({ venueId = null, initialVenue = null }) {
+export default function VenueDetailPage({ venueId = null, initialVenue = null, isGone = false }) {
   const router = useRouter();
   const { id: queryId, action, tab } = router.query;
   // venueId comes from getServerSideProps and is present on the very first
@@ -941,7 +971,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   }, [id]);
 
   // SWR — parallel fetch venue + follow count + social page
-  const swrKey = id ? `/api/poker/venues?id=${id}` : null;
+  const swrKey = (id && !isGone) ? `/api/poker/venues?id=${id}` : null;
   // Seed SWR with the server-rendered venue so the first paint is populated
   // (no empty shell for crawlers, no flash on navigation). SWR still
   // revalidates on mount, so follower count / social page fill in as before.
@@ -2056,7 +2086,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           </div>
         )}
 
-        {error && !loading && !venue && (
+        {(error || isGone) && !loading && !venue && (
           <div className="error-state">
             {/* `error` is an Error instance — rendering the object itself
                 throws. Also gated on !venue: with the server-rendered venue
@@ -2066,11 +2096,11 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               eyebrow="Venue Intelligence"
               title="Venue Not Found"
               titleId="venue-error-title"
-              pill="Not Found"
+              pill={isGone ? 'Withdrawn' : 'Not Found'}
               pillInk="red"
               crest="locator"
-              body="This venue profile could not be opened."
-              detail={error?.message || 'Something went wrong loading this venue.'}
+              body={isGone ? 'This venue listing has been permanently withdrawn.' : 'This venue profile could not be opened.'}
+              detail={error?.message || 'Explore active live poker rooms and daily tournament schedules across the country.'}
               links={[
                 { href: '/hub/poker-near-me/venues', label: 'All Poker Venues' },
                 { href: '/hub/poker-near-me/in', label: 'Browse By State' },
@@ -2196,6 +2226,14 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               breadcrumbs={[
                 { label: 'Hub', href: '/hub' },
                 { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
+                ...(venue.state ? [{
+                  label: String(venue.state).trim().toUpperCase(),
+                  href: `/hub/poker-near-me/in/${encodeURIComponent(String(venue.state).trim().toLowerCase())}`,
+                }] : []),
+                ...(venue.state && venue.city ? [{
+                  label: String(venue.city).trim(),
+                  href: `/hub/poker-near-me/in/${encodeURIComponent(String(venue.state).trim().toLowerCase())}/${encodeURIComponent(String(venue.city).trim().toLowerCase().replace(/\s+/g, '-'))}`,
+                }] : []),
                 { label: venue.name },
               ]}
               status={bravoLiveTables?.data_mode === 'live'

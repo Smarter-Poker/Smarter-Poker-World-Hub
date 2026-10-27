@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
-   HUB VANGUARD — POKERBROS WORLD HUB
+   HUB VANGUARD: POKERBROS WORLD HUB
    Main card carousel with a clean, uncluttered footer
    
    v19.1 — Baked-in Assets Standard (no duplicate labels)
