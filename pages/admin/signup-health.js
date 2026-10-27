@@ -65,7 +65,7 @@ export async function getServerSideProps({ req, res }) {
 }
 
 function statusBadge(status) {
-    const colors = { ok: '#166534', warn: '#713f12', degraded: '#991b1b', failed: '#991b1b', partial: '#78350f' };
+    const colors = { ok: '#166534', warn: '#713f12', degraded: '#991b1b', failed: '#991b1b', partial: '#78350f', skipped: '#475569' };
     return (
         <span style={{
             background: colors[status] || '#6b7280',

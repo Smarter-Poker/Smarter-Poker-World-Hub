@@ -30,3 +30,38 @@ test('relationship lookup failure or unrelated peer data is unavailable rather t
  const rows=[{id:id(5),otherUser:{id:id(2)}}];
  for(const reply of [{error:{code:'57014'}},{data:null},{data:[{peer_user_id:id(99),club_id:id(10),label:'Owner Of Another Club'}]}])await assert.rejects(enrichMessengerClubRelationships({rpc:async()=>reply},id(1),rows),e=>e.status===503);
 });
+test('owner club welcome uses the separately authorized owner RPC and rejects unknown purposes',async()=>{
+ const valid={action:'save',clubId:id(1),requestId:id(2),content:'Owner Club Welcome',enabled:true,revision:0,messageKind:'club_owner'};
+ let selected;
+ await executeClubWelcomeRequest(valid,async(name)=>{selected=name;return{data:{success:true,revision:1,content:valid.content,enabled:true}};});
+ assert.equal(selected,'fn_save_club_owner_welcome_message');
+ await assert.rejects(executeClubWelcomeRequest({...valid,messageKind:'admin_bypass'},()=>assert.fail('must not call RPC')),e=>e.status===400);
+});
+test('the existing cron door dispatches due owner welcomes and refuses uncertain receipts',async()=>{
+ const vm=await import('node:vm');const {readFileSync}=await import('node:fs');
+ const context=vm.createContext({process:{env:{CRON_SECRET:'isolated-cron',SUPABASE_SERVICE_ROLE_KEY:'isolated-service'}},console:{warn(){},error(){}}});
+ let broken=false;const calls=[];
+ const db={rpc:async(name)=>{calls.push(name);return name==='fn_messenger_dispatch_scheduled'?{data:{success:true,sent:0,failed:0},error:null}:broken?{data:null,error:{message:'Refused'}}:{data:{sent:1,blocked:0,cancelled:0},error:null};}};
+ const module=new vm.SourceTextModule(readFileSync(new URL('../pages/api/messenger/dispatch-scheduled.js',import.meta.url),'utf8'),{context});
+ const synthetic=exports=>new vm.SyntheticModule(Object.keys(exports),function(){for(const[k,v]of Object.entries(exports))this.setExport(k,v)},{context});
+ await module.link(name=>name.includes('apiRateLimit')?synthetic({applyRateLimit:()=>true,LIMITS:{write:{}}}):name.includes('supabaseServerClient')?synthetic({createClient:()=>db}):synthetic({reportApiError:()=>{}}));await module.evaluate();
+ const invoke=async(token)=>{let status=200,body;const response={headersSent:false,setHeader(){},status(n){status=n;return this;},json(b){body=b;this.headersSent=true;return this;}};await module.namespace.default({method:'POST',query:{},headers:{authorization:'Bearer '+token}},response);return{status,body};};
+ assert.equal((await invoke('wrong')).status,401);assert.deepEqual(calls,[]);
+ const sent=await invoke('isolated-cron');assert.equal(sent.status,200);assert.equal(sent.body.ownerWelcomes.sent,1);assert.deepEqual(calls,['fn_messenger_dispatch_scheduled','fn_dispatch_club_owner_welcomes']);
+ broken=true;assert.equal((await invoke('isolated-cron')).status,503);
+});
+test('bounded local cache compression cannot change Vercel or development cache behavior',async()=>{
+ const {readFileSync}=await import('node:fs');const {createRequire}=await import('node:module');const vm=await import('node:vm');
+ const source=readFileSync(new URL('../next.config.js',import.meta.url),'utf8');
+ const start=source.indexOf('webpack: (')+'webpack: '.length;const end=source.indexOf('  // swcMinify',start);
+ assert.ok(start>0&&end>start);
+ const callback=source.slice(start,end).trim().replace(/,$/,'');
+ const config={webpack:vm.runInNewContext('('+callback+')',{process,require:createRequire(import.meta.url),__dirname:new URL('..',import.meta.url).pathname})};
+ const original={flag:process.env.SMARTER_COMPRESS_LOCAL_BUILD_CACHE,vercel:process.env.VERCEL};
+ const cache=(dev)=>config.webpack({resolve:{alias:{}},cache:{type:'filesystem',compression:false}},{dev,isServer:true}).cache;
+ try{
+  delete process.env.VERCEL;delete process.env.SMARTER_COMPRESS_LOCAL_BUILD_CACHE;assert.equal(cache(false).compression,false);
+  process.env.SMARTER_COMPRESS_LOCAL_BUILD_CACHE='1';assert.equal(cache(false).compression,'gzip');assert.equal(cache(true).compression,false);
+  process.env.VERCEL='1';assert.equal(cache(false).compression,false);
+ }finally{for(const[k,v]of Object.entries({SMARTER_COMPRESS_LOCAL_BUILD_CACHE:original.flag,VERCEL:original.vercel})){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
+});

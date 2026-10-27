@@ -6,6 +6,7 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
+import { qualifyM1Repins } from './training-m1-repin-qualification.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MIGRATION = path.join(
@@ -332,7 +333,7 @@ def fake_pio(command):
     if command == 'show_strategy r:0':
         return '\n'.join((check, bet_33, bet_75, bet_125))
     if command == 'calc_ev OOP r:0':
-        return ev
+        return ev + '\n' + ' '.join('1' if value else '0' for value in live)
     raise AssertionError('unexpected harvester command: ' + command)
 
 scenario_hash, matrix = harvest.harvest_node(
@@ -4404,6 +4405,13 @@ try {
     throw new Error('Wrong M1 target identity did not leave activation state untouched.');
   }
 
+  const m1RepinTransitions = qualifyM1Repins({
+    root: ROOT, tool, command, commandExpectFailure,
+    prepareDatabase: prepareM1ActivationDatabase,
+    activationMigration: M1_BOUNDED_ACTIVATION_MIGRATION,
+    transitionSql: replacementSql,
+  });
+
   const evidenceLine = evidence.stdout
     .split('\n')
     .map((line) => line.trim())
@@ -4417,6 +4425,7 @@ try {
     throw new Error(`Operation-scope verifier emitted no evidence.\n${operationScopeEvidence.stdout}`);
   }
   const combinedEvidence = {
+    m1RepinTransitions,
     ...JSON.parse(evidenceLine),
     ...JSON.parse(operationScopeEvidenceLine),
     m1BoundedActivationExact: true,

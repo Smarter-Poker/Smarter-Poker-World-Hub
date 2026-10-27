@@ -131,6 +131,12 @@ jobs:
           node docs/agent-policy/agent-policy.mjs check
           node --test docs/agent-policy/agent-policy.test.mjs
 
+      - name: Club agent private data boundaries
+        run: node --test __tests__/club-agent-data-authorization.test.mjs
+
+      - name: Atomic horse publication profile-lock contention
+        run: node scripts/ci/test-horse-publication-profile-lock.mjs
+
       # The ref guard is the only thing that fires before `git reset --hard`
       # lands, and until 2026-09-21 it printed "They are NOT on origin" about
       # commits it had never compared against a single origin ref. A guard
@@ -160,6 +166,9 @@ jobs:
 
       - name: Operational Alert Delivery Contracts
         run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs __tests__/operational-notification-destination.test.mjs __tests__/operational-push-routing.test.mjs __tests__/operational-push-metadata.test.mjs __tests__/notifications-send-operational-persistence.test.mjs
+
+      - name: Queued Open Claw Publications Keep Protected Source Identity
+        run: node --test __tests__/openclaw-queued-publication.test.mjs __tests__/openclaw*.test.mjs
 
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
@@ -223,6 +232,7 @@ jobs:
           __tests__/messenger-sync-lifecycle.test.mjs
           __tests__/messenger-completion-lifecycle.test.mjs
           __tests__/messenger-organization.test.mjs
+          __tests__/messenger-display-name.test.mjs
           __tests__/messenger-alert-preferences.test.mjs
           __tests__/notifications-completion.test.mjs
           __tests__/notification-feed-groups.test.mjs
@@ -234,8 +244,14 @@ jobs:
           __tests__/correction-accounting-display.test.mjs
           __tests__/credit-change-accounting-display.test.mjs
 
+      # Executes the real useHideOnScroll hook (esbuild + react-test-renderer),
+      # so it runs here where node_modules exist, not in the dependency-free
+      # CHECK 8 step that holds the footer's source pins.
+      - name: Footer Keeps Its Place Under Scroll Anchoring
+        run: node --test __tests__/footer-ignores-scroll-anchoring.test.mjs __tests__/footer-follows-the-reader-not-a-rail.test.mjs
+
       - name: Phone Verification Artwork And Welcome Guards
-        run: node --test __tests__/phone-verification-console.test.mjs __tests__/pending-phone-verification.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs
+        run: node --test __tests__/phone-verification-console.test.mjs __tests__/pending-phone-verification.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs __tests__/phone-verification-uptake.test.mjs
 
       - name: Fabricated Test Sessions Stay Off Live Realtime
         run: node --test __tests__/a-fabricated-session-never-reaches-live-realtime.law.test.mjs
@@ -255,6 +271,7 @@ jobs:
           __tests__/zombie-endpoint-retirement.test.mjs
           __tests__/push-worker-delivery-receipt.test.mjs
           __tests__/push-enrollment-nudge.test.mjs
+          __tests__/message-notification-sender.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
@@ -321,6 +338,11 @@ jobs:
           echo "PHASE6_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
+
+      - name: Atomic actual-own-hand publication qualification
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+        run: node scripts/ci/test-grounded-hand-publication.mjs
 
       - name: Signup Player Number And Downstream PostgreSQL Regression
         run: node --test __tests__/signup-player-number-postgres.test.mjs
@@ -1349,7 +1371,9 @@ jobs:
             __tests__/gdpr-financial-refusal.test.mjs \
             tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \
+            __tests__/signup-location-reaches-the-profile.test.mjs \
             __tests__/a-signup-code-is-never-dropped.law.test.mjs \
+            __tests__/every-referral-is-paid.law.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
             __tests__/retired-error-provider.test.mjs \
             __tests__/notification-feed-recovery.test.mjs \

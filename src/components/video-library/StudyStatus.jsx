@@ -38,7 +38,7 @@ export default function StudyStatus({ refreshKey = 0 }) {
     }, [ownerId, refreshKey, revision]);
     return <section className="vl-study-status" aria-label="Diamond Study Streak" data-video-library-study-status>
         <h2>Diamond Study Streak</h2>
-        {!ownerId ? <p><Link href="/auth/login?redirect=%2Fhub%2Fvideo-library">Sign In To See Your Study Streak</Link></p> : current?.status === 'ready' ? <>
+        {!ownerId ? <p><Link href="/auth/login?redirect=%2Fhub%2Fvideo-library" prefetch={false}>Sign In To See Your Study Streak</Link></p> : current?.status === 'ready' ? <>
             <p className="vl-study-streak-value">{current.data.currentStreak}{current.data.streakAtLeast ? '+' : ''} {current.data.currentStreak === 1 ? 'Day' : 'Days'}</p>
             <p>{current.data.diamondsToday} Diamonds Earned From Videos Today</p>
             <p>Counts Days With Verified Video Watch Diamond Credits. Watch Rewards Use Existing Eligibility And Limits. No Extra Streak Bonus.</p>

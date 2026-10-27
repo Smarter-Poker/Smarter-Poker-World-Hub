@@ -1,3 +1,4 @@
+import { isClubStaffMembership } from '../../../src/lib/club-arena/clubDataAuthorization.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Table Templates API — Save & Load reusable table configurations
@@ -11,7 +12,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *   - use:    Increment use_count (called when creating from template)
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
@@ -54,12 +55,12 @@ export default async function handler(req, res) {
       // Verify user is admin/owner of the club
       const { data: membership } = await getSupabase()
           .from('club_members')
-          .select('role')
+          .select('role, status, is_active')
           .eq('club_id', clubId)
           .eq('user_id', user.id)
           .maybeSingle();
 
-      if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+      if (!isClubStaffMembership(membership)) {
           return res.status(403).json({ error: 'Admin access required' });
       }
 

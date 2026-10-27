@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import ExistingAccountDialog from '../../src/components/auth/ExistingAccountDialog';
 import AuthEntryChoices from '../../src/components/auth/AuthEntryChoices';
-import { isExistingSignup } from '../../src/lib/signupOutcome.mjs';
+import { isExistingSignup, isAbortedAuthRequest, signUpWithRecovery } from '../../src/lib/signupOutcome.mjs';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
@@ -17,7 +17,10 @@ import {
   PENDING_PROMO_KEY,
   PENDING_REFERRAL_KEY,
   RESEND_COOLDOWN_SECONDS,
+  isReferralInput,
   redeemPendingSignupCodes,
+  referralMetadata,
+  refFromRedirect,
 } from '../../src/lib/pendingSignupCodes.mjs';
 import { Mail } from 'lucide-react';
 import { getAccessToken } from '../../src/lib/authUtils';
@@ -49,6 +52,10 @@ import {
   reportAuthError,
   takeAuthErrorDetail,
 } from '../../src/lib/authErrors';
+import { US_COUNTRY, NON_US_COUNTRIES } from '../../src/lib/countries';
+
+// Where a player with no club invite continues after the welcome package offer.
+const CLUB_LOBBY_PATH = '/hub/club-arena/';
 
 // US States for dropdown
 const US_STATES = [
@@ -152,6 +159,10 @@ export default function SignUpPage() {
     birthYear: '',
     city: '',
     state: '',
+    // Everyone defaults to the US. "Outside The US" reveals the country
+    // dropdown, which replaces the State dropdown (2026-10-22, Dan).
+    outsideUs: false,
+    country: '',
     pokerAlias: '',
     promoCode: '',
   });
@@ -224,7 +235,13 @@ export default function SignUpPage() {
       // A Share & Invite link (/i/<code>) sends the player here first. Keep
       // the code (first link wins) so it survives email confirmation.
       if (invite) rememberInvite(String(invite));
-      if (ref && !formData.promoCode) {
+      // A Club Arena invite (/invite/<club>?ref=<player number>) arrives with
+      // its ref inside ?redirect=, not at the top level. Read it there too,
+      // so the referral is shown and recorded (2026-10-17).
+      const nestedRef = !ref ? refFromRedirect(router.query.redirect) : null;
+      if (nestedRef && !formData.promoCode) {
+        setFormData((prev) => ({ ...prev, promoCode: nestedRef }));
+      } else if (ref && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: String(ref).toUpperCase() }));
       } else if (promo && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: String(promo).toUpperCase() }));
@@ -336,27 +353,31 @@ export default function SignUpPage() {
     setReferralValid(null);
     setReferralDetails(null);
 
-    if (!formData.promoCode || formData.promoCode.length < 3) {
+    // A player number can be one digit (kingfish is player 1); only a promo
+    // code needs three characters before it is worth checking.
+    if (!formData.promoCode || (formData.promoCode.length < 3 && !isReferralInput(formData.promoCode))) {
       setIsReferralCode(false);
       return;
     }
 
-    // Determine if this looks like a referral code (all digits) or promo code
-    const isNumeric = /^\d+$/.test(formData.promoCode);
-    setIsReferralCode(isNumeric);
+    // A referral is a player number (all digits) or a Referral Crew code
+    // (SP-56737B: always carries a dash, which no promo code does).
+    const isReferral = isReferralInput(formData.promoCode);
+    setIsReferralCode(isReferral);
 
     const timeout = setTimeout(async () => {
       setPromoChecking(true);
       setPromoError('');
       try {
-        if (isNumeric) {
+        if (isReferral) {
           // Validate as referral code (player number)
           const res = await fetch('/api/promo/validate-referral-code', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: formData.promoCode }),
           });
-          if (!res.ok) throw new Error(`Request failed (${res.status})`);
+          // A 4xx carries the reason ("No player found...", "expired"): show it.
+          if (res.status >= 500) throw new Error(`Request failed (${res.status})`);
           const data = await res.json();
           if (res.ok && data.valid) {
             setReferralValid(true);
@@ -375,7 +396,8 @@ export default function SignUpPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: formData.promoCode }),
           });
-          if (!res.ok) throw new Error(`Request failed (${res.status})`);
+          // A 4xx carries the reason ("No player found...", "expired"): show it.
+          if (res.status >= 500) throw new Error(`Request failed (${res.status})`);
           const data = await res.json();
           if (res.ok && data.valid) {
             setPromoValid(true);
@@ -563,6 +585,13 @@ export default function SignUpPage() {
       return;
     }
 
+    // Location: a US player needs a state; a player outside the US needs a country.
+    if (formData.outsideUs ? !formData.country : !formData.state) {
+      setError(formData.outsideUs ? 'Please Select Your Country' : 'Please Select Your State');
+      setLoading(false);
+      return;
+    }
+
     // Birthdate validation - must be 18+ (using dropdown values)
     if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
       setError('Please Select Your Complete Birth Date');
@@ -627,7 +656,7 @@ export default function SignUpPage() {
       // Step 1: Create auth user with email/password
       // [2026-08-04] Normalize the email the same way login.js does —
       // "Dan@X.com " and "dan@x.com" must be the same account.
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      const { data: authData, error: signUpError } = await signUpWithRecovery(supabase.auth, {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         options: {
@@ -637,7 +666,8 @@ export default function SignUpPage() {
             last_name: cleanLastName,
             poker_alias: formData.pokerAlias,
             city: formData.city,
-            state: formData.state,
+            state: formData.outsideUs ? null : formData.state,
+            country: formData.outsideUs ? formData.country : US_COUNTRY,
             birth_year: parseInt(formData.birthYear),
             birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
             // Phone is verified AFTER first login on /hub/verify-phone
@@ -652,6 +682,13 @@ export default function SignUpPage() {
                 }
               : {}),
             ...(clubJoinPath ? { club_join_path: clubJoinPath } : {}),
+            // The referrer, by player number. The database records the
+            // referral and pays both players when this account's email is
+            // confirmed, on whatever device (fn_settle_signup_referral).
+            // Written whether or not the debounced check has answered yet, so
+            // a fast tap on Create Account cannot drop it; the database
+            // resolves it and ignores anything that names nobody.
+            ...referralMetadata(formData.promoCode, referralDetails),
           },
           // Enable email confirmation - redirect to /auth/callback after verification
           emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -685,7 +722,8 @@ export default function SignUpPage() {
           identify(authData.user.id, {
             email: formData.email,
             signup_source: isReferralCode ? 'referral' : formData.promoCode ? 'promo' : 'organic',
-            state: formData.state,
+            state: formData.outsideUs ? null : formData.state,
+            country: formData.outsideUs ? formData.country : US_COUNTRY,
           });
           // [2026-05-03] Deferred — fired only after profile provision.
           // capture(FunnelEvents.SIGNUP, …) — see end of try{} block below.
@@ -714,12 +752,39 @@ export default function SignUpPage() {
         // Email confirmation required - show pending screen
         setStep('email_pending');
       } else {
-        // Auto-confirmed signups carry the same invitation as code confirmation.
-        const next = await resolveSignupClubPath(authData.session,
-          Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
+        // Auto-confirmed signups (email confirmation off, Dan 2026-10-22) get
+        // everything code confirmation gives: promo/referral codes redeemed,
+        // player number shown, and the same invitation path.
+        const session = authData.session;
+        const fetchPlayerNumber = async () => {
+          if (!authData?.user) return;
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('player_number')
+              .eq('id', authData.user.id)
+              .maybeSingle();
+            if (profile?.player_number) setAssignedPlayerNumber(profile.player_number);
+          } catch (err) {
+            console.log('Could not fetch player number:', err);
+          }
+        };
+        const redeemCodes = session?.access_token && authData?.user?.id
+          ? redeemPendingSignupCodes({ accessToken: session.access_token, userId: authData.user.id })
+          : Promise.resolve();
+        const [, , next] = await Promise.all([
+          fetchPlayerNumber(),
+          redeemCodes,
+          resolveSignupClubPath(session,
+            Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect),
+        ]);
         setSignupClubPath(next);
         setStep('success');
-        if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
+        // The first screen after signing in is the welcome package offer
+        // (Verify or Skip), with or without a club invite (2026-10-23): an
+        // uninvited player used to stop here on a screen whose main button
+        // went straight to the lobby, and never saw the offer.
+        window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
       }
     } catch (err) {
       console.warn('Signup error:', err);
@@ -728,7 +793,9 @@ export default function SignUpPage() {
         setExistingAccount(true);
       } else {
         reportAuthError('signup_form_submit', err);
-        setError('Failed to create account. Please check your details and try again.');
+        setError(isAbortedAuthRequest(err)
+          ? 'Your Connection Dropped Before We Could Create Your Account. Please Check Your Signal And Tap Create Account Again.'
+          : 'Failed to create account. Please check your details and try again.');
       }
     } finally {
       setLoading(false);
@@ -802,39 +869,37 @@ export default function SignUpPage() {
 
       console.log('Email verified:', data);
 
-      // Try to get player number if available
-      if (data.user) {
+      // Everything after the code is independent, so it runs at once: the
+      // player waited for each of these in turn before reaching Club Arena.
+      const fetchPlayerNumber = async () => {
+        if (!data?.user) return;
         try {
           const { data: profile } = await supabase
             .from('profiles')
             .select('player_number')
             .eq('id', data.user.id)
             .maybeSingle();
-
-          if (profile?.player_number) {
-            setAssignedPlayerNumber(profile.player_number);
-          }
+          if (profile?.player_number) setAssignedPlayerNumber(profile.player_number);
         } catch (err) {
           console.log('Could not fetch player number:', err);
         }
-      }
-
+      };
       // The six-digit code never visits /auth/callback, which is the only
       // place a pending promo or referral code used to be redeemed (2026-10-17).
-      if (data?.session?.access_token && data?.user?.id) {
-        await redeemPendingSignupCodes({
-          accessToken: data.session.access_token,
-          userId: data.user.id,
-        });
-      }
-
-      const next = await resolveSignupClubPath(data?.session,
-        Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect);
+      const redeemCodes = data?.session?.access_token && data?.user?.id
+        ? redeemPendingSignupCodes({ accessToken: data.session.access_token, userId: data.user.id })
+        : Promise.resolve();
+      const [, , next] = await Promise.all([
+        fetchPlayerNumber(),
+        redeemCodes,
+        resolveSignupClubPath(data?.session,
+          Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect),
+      ]);
       setSignupClubPath(next);
       setStep('success');
-      // Offer the earned welcome package before entering the invited club.
-      // Verification and Skip For Now both preserve this club destination.
-      if (next) window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next)}`);
+      // Offer the earned welcome package before entering Club Arena, invited
+      // or not. Verification and Skip For Now both continue to the club.
+      window.location.replace(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
     } catch (err) {
       console.warn('Verification error:', err);
       setError(err.message || 'Invalid verification code. Please try again.');
@@ -940,9 +1005,47 @@ export default function SignUpPage() {
                   </div>
                 </div>
 
-                {/* City & State */}
+                {/* Country: United States by default; "Outside The US" reveals the country dropdown */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Where Do You Live?</label>
+                  <div className="auth-field-row" role="radiogroup" aria-label="Where Do You Live?">
+                    {[
+                      { outside: false, label: 'United States' },
+                      { outside: true, label: 'Outside The US' },
+                    ].map((opt) => {
+                      const active = formData.outsideUs === opt.outside;
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          className={`auth-input-styled auth-country-choice${active ? ' is-active' : ''}`}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              outsideUs: opt.outside,
+                              state: opt.outside ? '' : formData.state,
+                              country: opt.outside ? formData.country : '',
+                            })
+                          }
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            cursor: 'pointer',
+                            fontWeight: active ? 700 : 500,
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* City & State (US) or City & Country (outside the US) */}
                 <div className="auth-field-row">
-                  <div className="auth-field-group" style={{ flex: 2 }}>
+                  <div className="auth-field-group" style={{ flex: formData.outsideUs ? 1 : 2 }}>
                     <label className="auth-label">City</label>
                     <input
                       type="text"
@@ -953,20 +1056,37 @@ export default function SignUpPage() {
                       required
                     />
                   </div>
-                  <div className="auth-field-group" style={{ flex: 1 }}>
-                    <label className="auth-label">State</label>
-                    <select
-                      className="auth-input-styled"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      required
-                    >
-                      <option value="" disabled>Select</option>
-                      {usStates.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {formData.outsideUs ? (
+                    <div className="auth-field-group" style={{ flex: 1 }}>
+                      <label className="auth-label">Select Your Country</label>
+                      <select
+                        className="auth-input-styled"
+                        value={formData.country}
+                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        required
+                      >
+                        <option value="" disabled>Select</option>
+                        {NON_US_COUNTRIES.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="auth-field-group" style={{ flex: 1 }}>
+                      <label className="auth-label">State</label>
+                      <select
+                        className="auth-input-styled"
+                        value={formData.state}
+                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                        required
+                      >
+                        <option value="" disabled>Select</option>
+                        {usStates.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Poker Alias */}
@@ -1316,6 +1436,21 @@ export default function SignUpPage() {
                     appearance: auto !important;
                     cursor: pointer;
                   }
+                  /* United States / Outside The US: buttons, not inputs, so the
+                     16px iOS-zoom floor does not apply; keep each label on one line. */
+                  .auth-input-styled.auth-country-choice {
+                    font-size: 12px !important;
+                    padding: 0 3px !important;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  }
+                  .auth-input-styled.auth-country-choice.is-active {
+                    border-color: #00d4ff !important;
+                    background: rgba(0, 212, 255, 0.16) !important;
+                    color: #00d4ff !important;
+                    box-shadow: 0 0 0 1px #00d4ff inset;
+                  }
                   option {
                     background: #0b0e14;
                     color: #fff;
@@ -1482,6 +1617,8 @@ export default function SignUpPage() {
             .sp-signup-phone input[type="checkbox"]:focus-visible { outline: 2px solid #00c6ff; outline-offset: 2px; }
             .sp-signup-phone .auth-label-hint { font-size: 12px !important; }
             .sp-signup-phone .auth-field-row select.auth-input-styled { min-width: 0; padding: 0 8px !important; }
+            .sp-signup-phone .auth-input-styled.auth-country-choice { font-size: 15px !important; padding: 0 6px !important; white-space: nowrap; }
+            .sp-signup-phone .auth-input-styled.auth-country-choice.is-active { border-color: #00d4ff !important; background: rgba(0, 212, 255, 0.16) !important; color: #00d4ff !important; box-shadow: 0 0 0 1px #00d4ff inset; }
           ` }} />
 
           {/* Art header: the top 34% of the painted card (logo, Create Account,
@@ -1844,7 +1981,7 @@ export default function SignUpPage() {
                   <div style={styles.profileRow}>
                     <span style={styles.profileLabel}>Location</span>
                     <span style={styles.profileValue}>
-                      {formData.city}, {formData.state}
+                      {formData.city}, {formData.outsideUs ? formData.country : formData.state}
                     </span>
                   </div>
                 </div>
@@ -1887,14 +2024,14 @@ export default function SignUpPage() {
                 playerNumber={assignedPlayerNumber}
                 alias={formData.pokerAlias}
                 city={formData.city}
-                state={formData.state}
+                state={formData.outsideUs ? formData.country : formData.state}
                 onContinue={() => window.location.assign(signupClubPath || '/hub/club-arena')}
                 onVerifyPhone={async () => {
                   const next = signupClubPath || await resolveSignupClubPath(
                     { access_token: getAccessToken() },
                     Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
                   );
-                  router.push(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || '/hub/club-arena/')}`);
+                  router.push(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
                 }}
               />
             )}

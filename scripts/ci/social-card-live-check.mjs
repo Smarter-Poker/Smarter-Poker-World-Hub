@@ -129,14 +129,23 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
   try {
     receipt.stage = 'open-social-composer';
     await page.goto('/hub/social-media', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.getByRole('button', { name: 'Poker Cards', exact: true }).first().waitFor({ state: 'visible', timeout: 45_000 });
-    await page.evaluate(({ keys, presetKey }) => {
+    // The composer toolbar no longer offers a Poker Cards button (Dan,
+    // 2026-10-24). The picker is reached only from a restored card draft's
+    // Edit control, so the probe seeds one draft card and edits from there.
+    await page.getByRole('button', { name: 'Go Live', exact: true }).first().waitFor({ state: 'visible', timeout: 45_000 });
+    assert.equal(
+      await page.getByRole('button', { name: 'Poker Cards', exact: true }).count(),
+      0,
+      'The removed Poker Cards toolbar button is back in the composer',
+    );
+    await page.evaluate(({ keys, presetKey, seed }) => {
       for (const key of [...keys, presetKey]) localStorage.removeItem(key);
-    }, { keys: DRAFT_KEYS, presetKey: `sp-poker-card-presets:${userId}` });
+      localStorage.setItem('sp-post-card-draft', seed);
+    }, { keys: DRAFT_KEYS, presetKey: `sp-poker-card-presets:${userId}`, seed: 'Hand [[sp-card:2c]]' });
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
 
     const openPicker = async () => {
-      await page.getByRole('button', { name: 'Poker Cards', exact: true }).first().click();
+      await page.getByRole('button', { name: 'Edit Poker Cards', exact: true }).first().click();
       const dialog = page.getByRole('dialog', { name: 'Add Poker Cards' });
       await dialog.waitFor({ state: 'visible', timeout: 20_000 });
       return dialog;

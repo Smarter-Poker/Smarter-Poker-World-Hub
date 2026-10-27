@@ -44,7 +44,7 @@ export function ConversationItem({
         || otherUser?.username
         || otherUser?.name
         || groupTitle
-        || (isGroupThread ? 'Group' : 'Unknown');
+        || (otherUser?.player_number ? `Player #${otherUser.player_number}` : 'Group');
     const lastMsg = conversation.last_message_preview || conversation.lastMessage;
     const isUnread = conversation.unreadCount > 0;
     

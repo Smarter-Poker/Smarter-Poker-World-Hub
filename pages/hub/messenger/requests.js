@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import { MESSENGER_PROFILE_COLUMNS, withMessengerDisplayName } from '../../../src/lib/messengerDisplayName.mjs';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -91,16 +92,18 @@ export default function MessageRequests() {
             if (senderIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, display_name, avatar_url')
+                    .select(MESSENGER_PROFILE_COLUMNS)
                     .in('id', senderIds);
-                (profiles || []).forEach(p => { profilesMap[p.id] = p; });
+                (profiles || []).forEach(p => { const named = withMessengerDisplayName(p); if (named) profilesMap[p.id] = named; });
             }
 
             // Step 4: Enrich requests with sender profiles
+            // A request from an account that no longer exists has no sender to
+            // show, accept or block; it is never rendered as "Unknown".
             const enrichedRequests = requestConvs.map(conv => ({
                 ...conv,
                 sender: profilesMap[conv.request_sender_id] || null,
-            }));
+            })).filter(conv => conv.sender);
 
             setRequests(enrichedRequests);
             setLoading(false);
@@ -318,7 +321,7 @@ export default function MessageRequests() {
                                                 href={`/hub/user/${request.sender?.username || ''}`}
                                                 style={{ ...styles.senderName, textDecoration: 'none', color: 'inherit' }}
                                             >
-                                                {request.sender?.display_name || request.sender?.username || 'Unknown'}
+                                                {request.sender?.display_name || request.sender?.username}
                                             </Link>
                                             {request.sender?.username && (
                                                 <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>

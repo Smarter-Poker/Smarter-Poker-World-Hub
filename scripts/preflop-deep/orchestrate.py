@@ -692,6 +692,8 @@ def validate_manifest(manifest_text, run_mode="backlog"):
             or manifest["version"] != MANIFEST_VERSION
             or not manifest.get("phases")):
         raise SystemExit("manifest must be exact version 5 with at least one approved phase")
+    if manifest.get("solver_runtime_profile") != h.SOLVER_RUNTIME_PROFILE:
+        raise SystemExit("manifest must seal the exact low-memory solver runtime profile")
     expected_chip_ev = canonical_contract_pairs(TRAINING_SOLVER_CONTRACTS)
     expected_icm = canonical_contract_pairs(TRAINING_ICM_CONTRACTS)
     if (manifest.get("range_combo_order") != h.COMBO_ORDER
@@ -1297,6 +1299,9 @@ def canonical_jsonb_text_v1(value):
     if isinstance(value, float):
         if not math.isfinite(value):
             raise ValueError("canonical solver artifacts require finite JSON numbers")
+        # The signed gateway parses JSON and PostgREST serializes JavaScript
+        # Numbers again. Integral doubles (including -0.0) arrive as integers;
+        # hash that same representation before crossing the gateway.
         number = str(value)
         if value == 0:
             number = number.lstrip("-")
@@ -1314,6 +1319,8 @@ def canonical_jsonb_text_v1(value):
                 number = sign + digits + ("0" * (decimal_position - len(digits)))
             else:
                 number = sign + digits[:decimal_position] + "." + digits[decimal_position:]
+        if number.endswith(".0"):
+            number = number[:-2]
         return number
     if isinstance(value, str):
         return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
@@ -1554,13 +1561,29 @@ def run_bounded_canary(plan):
         if (validation["bad_sum_hands"] != 0
                 or validation["live_hands"] == 0
                 or not validation["ev_ok"]):
+            # Preserve the rejected local evidence before exiting. Nothing in
+            # this directory is eligible for ingestion or a completed retry.
+            os.makedirs("diagnostics", exist_ok=True)
+            write_backup(os.path.join(
+                "diagnostics", "rejected-bounded-canary-%s-%s.json"
+                % (MID, target["scenario_hash"])
+            ), {
+                "scenario_hash": target["scenario_hash"],
+                "strategy_matrix_v2": strategy_matrix,
+                "validation": validation,
+                "target": target,
+                "manifest_checksum": plan["manifest_checksum"],
+                "admission_status": "rejected_before_any_ingest",
+            })
             raise SystemExit(
-                "bounded canary strict V2 validation failed before any ingest"
+                "bounded canary strict V2 validation failed before any ingest: "
+                "%s %s" % (target["role"], json.dumps(validation, sort_keys=True))
             )
         prepared_artifacts.append((target, strategy_matrix, validation))
 
     os.makedirs("backup", exist_ok=True)
     admitted = []
+    durable_artifacts = []
     for target, strategy_matrix, validation in prepared_artifacts:
         backup_path = os.path.join(
             "backup", "bounded-canary-%s-%s.json" % (MID, target["scenario_hash"])
@@ -1580,6 +1603,10 @@ def run_bounded_canary(plan):
             "_admission": {"status": "pending", "scope": "local_validation_only"},
         }
         write_backup(backup_path, backup_payload)
+        durable_artifacts.append((target, strategy_matrix, backup_path, backup_payload))
+    # Retain both validated exports before the first network operation: a
+    # rejected parent must not discard the already harvested child.
+    for target, strategy_matrix, backup_path, backup_payload in durable_artifacts:
         try:
             receipt = patch_v2(
                 target["artifact_id"], target["scenario_hash"],
@@ -1591,6 +1618,7 @@ def run_bounded_canary(plan):
                 "status": "failed",
                 "scope": "gateway_rejected_or_unavailable",
                 "error_class": type(error).__name__,
+                "error": str(error),
             }
             write_backup(backup_path, backup_payload)
             raise SystemExit(

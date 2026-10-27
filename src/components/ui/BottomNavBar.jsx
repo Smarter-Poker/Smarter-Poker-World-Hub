@@ -173,6 +173,12 @@ const scrollLimitOf = (source) => {
   return Math.max(0, (source.scrollHeight || 0) - (source.clientHeight || 0));
 };
 
+const contentHeightOf = (source) => {
+  if (typeof window === 'undefined') return 0;
+  if (isDocumentScroller(source)) return document.documentElement?.scrollHeight || 0;
+  return source.scrollHeight || 0;
+};
+
 /**
  * THE TWIN, AND WHY IT DRIFTED (2026-09-06).
  *
@@ -208,7 +214,7 @@ const canScrollVertically = (source) => {
   if (isDocumentScroller(source)) return true;
   return (source.scrollHeight || 0) - (source.clientHeight || 0) > 1;
 };
-function useHideOnScroll(enabled, resetKey) {
+export function useHideOnScroll(enabled, resetKey) {
   const [hidden, setHidden] = useState(false);
   // True once the scroll listener is actually installed. Server-rendered
   // markup and the first client paint both precede the effect that arms the
@@ -263,7 +269,7 @@ function useHideOnScroll(enabled, resetKey) {
     // position its first event reports - see the note there; seeding a panel
     // at 0 when it is already scrolled invents travel nobody performed.
     const seed = (source, y) => {
-      travel.set(source, { last: y, anchor: y, direction: 0 });
+      travel.set(source, { last: y, anchor: y, direction: 0, height: contentHeightOf(source) });
     };
     seed(document, scrollTopOf(document));
 
@@ -305,6 +311,30 @@ function useHideOnScroll(enabled, resetKey) {
         // cost - it is seeded with its real position when the listener is
         // installed, so the first flick on the page still counts.
         seed(source, y);
+        return;
+      }
+
+      /* THE PAGE MOVING IS NOT THE READER MOVING (2026-10-19, ported from
+         Club Arena #7437). When content ABOVE the viewport changes height - a
+         feed card or an image re-rendering shorter and back - the browser's
+         scroll anchoring moves scrollTop by exactly that change so the
+         reader's place stays put, and fires a scroll event. A shrink and
+         restore is an up-then-down pair nobody made, and its down leg cleared
+         the threshold: the bar left while the reader sat still. A scroll whose
+         distance is the scroller's own change in content height is the page
+         keeping its place, not travel: rebase on it and decide nothing, except
+         that the bottom still brings the bar back (a page that shrank under a
+         reader at its end is clamped up to the new end). */
+      const height = contentHeightOf(source);
+      const previousHeight = state.height;
+      const moved = y - state.last;
+      const grew = height - previousHeight;
+      state.height = height;
+      if (previousHeight > 0 && grew !== 0 && moved !== 0 && Math.abs(moved - grew) <= 1) {
+        state.last = y;
+        state.anchor = y;
+        state.direction = 0;
+        if (y >= limit - 1) setHidden(false);
         return;
       }
 

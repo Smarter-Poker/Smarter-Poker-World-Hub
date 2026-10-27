@@ -1,3 +1,4 @@
+import { isActiveClubMembership, loadAgentDataScope } from '../../../src/lib/club-arena/clubDataAuthorization.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/player-chip-flow
@@ -67,12 +68,12 @@ export default async function handler(req, res) {
       // Verify caller is agent / owner / admin in this club
       const { data: member } = await getSupabase()
         .from('club_members')
-        .select('role')
+        .select('role, status, is_active')
         .eq('club_id', clubId)
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (!member || !['owner', 'admin', 'super_agent', 'agent', 'sub_agent'].includes(member.role)) {
+      if (!isActiveClubMembership(member) || !['owner', 'co_owner', 'admin', 'super_agent', 'agent', 'sub_agent'].includes(member.role)) {
         return res.status(403).json({ success: false, error: 'Agent or admin access required' });
       }
 
@@ -82,21 +83,7 @@ export default async function handler(req, res) {
       // Get downline player IDs for scoping (agents only see their own)
       let playerIds = null;
       if (isAgent) {
-        const { data: agentRow } = await getSupabase()
-          .from('agents')
-          .select('id')
-          .eq('club_id', clubId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (agentRow) {
-          const { data: players } = await getSupabase()
-            .from('club_members')
-            .select('user_id')
-            .eq('club_id', clubId)
-            .eq('agent_id', agentRow.id);
-          playerIds = (players || []).map(p => p.user_id);
-        }
+        playerIds = await loadAgentDataScope(getSupabase(), clubId, user.id);
       }
 
       // Query chip_transactions in last 7 days, scoped to this club
@@ -131,13 +118,13 @@ export default async function handler(req, res) {
       for (const tx of (txns || [])) {
         const amt = Number(tx.amount) || 0;
 
-        if (INBOUND_TYPES.includes(tx.transaction_type) && tx.to_user_id) {
+        if (INBOUND_TYPES.includes(tx.transaction_type) && tx.to_user_id && (!isAgent || playerIds.includes(tx.to_user_id))) {
           ensure(tx.to_user_id);
           flow[tx.to_user_id].in += amt;
           flow[tx.to_user_id].net += amt;
         }
 
-        if (OUTBOUND_TYPES.includes(tx.transaction_type) && tx.from_user_id) {
+        if (OUTBOUND_TYPES.includes(tx.transaction_type) && tx.from_user_id && (!isAgent || playerIds.includes(tx.from_user_id))) {
           ensure(tx.from_user_id);
           flow[tx.from_user_id].out += amt;
           flow[tx.from_user_id].net -= amt;

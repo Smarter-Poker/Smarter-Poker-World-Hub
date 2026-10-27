@@ -29,14 +29,19 @@ function usePathname() {
 }
 
 import Head from 'next/head';
+import { shareImageMetadata } from '../../lib/seo/shareImageMetadata.mjs';
 
 export default function SEOHead(props) {
   const pathname = usePathname();
   const ogImage = props.ogImage || productOgImage(pathname);
+  const imageMetadata = shareImageMetadata(ogImage);
   const { geoRegion, geoPlacename, geoPosition } = props;
 
   return (
     <SharedSEOHead {...props} ogImage={ogImage}>
+      {imageMetadata.type && <meta key="og-image-type" property="og:image:type" content={imageMetadata.type} />}
+      {imageMetadata.width && <meta key="og-image-width" property="og:image:width" content={String(imageMetadata.width)} />}
+      {imageMetadata.height && <meta key="og-image-height" property="og:image:height" content={String(imageMetadata.height)} />}
       {geoRegion && <meta key="geo-region" name="geo.region" content={geoRegion} />}
       {geoPlacename && <meta key="geo-placename" name="geo.placename" content={geoPlacename} />}
       {geoPosition && (

@@ -514,7 +514,10 @@ PIO_ACK_COMMANDS = frozenset((
     "add_line",
     "build_tree",
     "clear_lines",
+    "free_tree",
     "go",
+    "set_algorithm",
+    "small_strats",
     "set_accuracy",
     "set_board",
     "set_eff_stack",
@@ -684,6 +687,24 @@ def _validate_startup_handshake(response):
         raise SolverTransportFailure("PioSOLVER END handshake was not acknowledged")
 
 
+def _validate_solver_identity(handshake, live_version):
+    """Attest Pio's build banner separately from its numeric UPI version."""
+    approved_label, separator, build = approved_solver_version.partition(" (")
+    parts = approved_label.split()
+    if (separator and build.endswith(")") and len(parts) == 2
+            and parts[0].startswith("PioSOLVER-")):
+        banners = [line.strip() for line in str(handshake).splitlines()
+                   if line.strip().startswith("PioSOLVER-")]
+        if banners != [approved_solver_version] or live_version != parts[1]:
+            raise SolverTransportFailure(
+                "PioSOLVER show_version does not match approved PIO_SOLVER_VERSION"
+            )
+    elif live_version != approved_solver_version:
+        raise SolverTransportFailure(
+            "PioSOLVER show_version does not match approved PIO_SOLVER_VERSION"
+        )
+
+
 def _initialize_solver_transport(timeout_seconds=30):
     """Install END framing and attest the live executable before any solve."""
     global _pio_to_canonical_combo_index, _live_source_combo_order_sha256
@@ -698,10 +719,7 @@ def _initialize_solver_transport(timeout_seconds=30):
             _read_until_end(False, timeout_seconds),
             require_ack=False,
         )
-        if live_version != approved_solver_version:
-            raise SolverTransportFailure(
-                "PioSOLVER show_version does not match approved PIO_SOLVER_VERSION"
-            )
+        _validate_solver_identity(handshake, live_version)
 
         _write_solver_line("show_hand_order")
         hand_order_response = _validate_solver_response(
@@ -776,10 +794,14 @@ def _parse_calc_ev_vectors(raw):
     if len(numeric) != 2:
         raise RuntimeError("calc_ev must return exact EV and matchup vectors")
     ev_chips, matchup_weights = numeric
-    if any(not math.isfinite(value) and not math.isnan(value) for value in ev_chips):
-        raise RuntimeError("calc_ev EV vector contains an infinite value")
     if any(not math.isfinite(value) or value < 0 for value in matchup_weights):
         raise RuntimeError("calc_ev matchup vector contains an invalid value")
+    if any(not math.isfinite(value) and weight > 0
+           for value, weight in zip(ev_chips, matchup_weights)):
+        raise RuntimeError("calc_ev contains a non-finite live EV")
+    # Pio 3.8 uses both inf and nan for unreachable hands. Normalize those
+    # markers only after proving their matchup mass is exactly zero.
+    ev_chips = [value if math.isfinite(value) else math.nan for value in ev_chips]
     return ev_chips, matchup_weights
 
 

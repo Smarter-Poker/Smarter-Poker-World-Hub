@@ -19,7 +19,7 @@
  * that directory at CI, and forbids pg_cron for application logic. The
  * sanctioned shape is a CRON_SECRET bearer on a normal route driven by Open
  * Claw - the same pattern /api/news/digest and /api/club-arena/union-invoice
- * use. Scheduled every 5 minutes.
+ * use. Scheduled Every Minute; Owner Welcomes Are Due Ten Minutes After The First Welcome.
  */
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -64,7 +64,13 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: error.message });
         }
 
-        return res.status(200).json({ success: true, ...(data || {}) });
+        const { data: welcomes, error: welcomeError } = await getSupabase()
+            .rpc('fn_dispatch_club_owner_welcomes', { p_limit: limit });
+        if (welcomeError || !welcomes || !Number.isSafeInteger(welcomes.sent)) {
+            console.warn('[dispatch-scheduled] owner welcomes unavailable:', welcomeError?.message || 'Invalid Receipt');
+            return res.status(503).json({ success: false, error: 'Owner Welcome Dispatch Unavailable' });
+        }
+        return res.status(200).json({ success: true, ...(data || {}), ownerWelcomes: welcomes });
     } catch (err) {
         try { reportApiError(err, req); } catch (_e) { console.warn('[dispatch-scheduled] error reporting failed'); }
         console.error('[dispatch-scheduled] error:', err.message);

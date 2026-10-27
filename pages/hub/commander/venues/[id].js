@@ -105,6 +105,7 @@ function VenueHead({ venue }) {
       title={venueTitle(venue)}
       description={venueDescription(venue)}
       canonical={venueEntityPath(venue)}
+      ogImage={venue.logo_url}
       jsonLd={commanderBreadcrumbs(venue.name, `/hub/commander/venues/${venue.id}`)}
     />
   );

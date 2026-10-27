@@ -477,13 +477,15 @@ ALL_CRONS = [
     # blocks net-new files there, so this uses the /api/news/digest pattern of
     # a CRON_SECRET bearer on a normal route.
     ('/api/club-arena/union-invoice?action=send', dict(day_of_week='mon', hour=13, minute=0)),
+    # Owner welcomes are due ten minutes after the first native welcome.
+    # The minute cadence dispatches due records without an extra five-minute wait.
     # Scheduled messages (2026-08-21). messenger_scheduled had been write-only
     # since it shipped: the UI queues a message and lists it, and nothing
     # anywhere ever selected a due row and sent it. fn_messenger_dispatch_
     # scheduled claims rows FOR UPDATE SKIP LOCKED so overlapping runs cannot
     # double-send, which makes the cadence safe to run often. Route lives
     # outside pages/api/cron/ for the same reason as the invoice job above.
-    ('/api/messenger/dispatch-scheduled',         dict(minute='*/5')),
+    ('/api/messenger/dispatch-scheduled',         dict(minute='*')),
     # Club Commander login-bridge probe (2026-09-04). The Smarter.Poker ->
     # Commander handshake was broken for days on 2026-09-03 and nothing paged.
     # This is the probe's PRIMARY schedule (hub CLAUDE.md 10.9: never the

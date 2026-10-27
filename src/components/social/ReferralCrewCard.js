@@ -77,7 +77,7 @@ export default function ReferralCrewCard() {
             try {
                 await navigator.share({
                     title: 'Join Smarter.Poker',
-                    text: `Join me on Smarter.Poker and get ${data.bonusPerReferral} bonus diamonds!`,
+                    text: `Join me on Smarter.Poker and get ${data.refereeBonus || 100} bonus diamonds when you confirm your email!`,
                     url: data.shareUrl,
                 });
             } catch (e) { console.warn('[App] Handled exception:', e); }
@@ -113,7 +113,7 @@ export default function ReferralCrewCard() {
                     Refer Friends, Earn Diamonds
                 </div>
                 <div style={{ fontSize: 13, color: T.textSec, lineHeight: 1.5 }}>
-                    Share Your Referral Link. You Earn {data?.bonusPerReferral || 100} Diamonds For Each Friend Who Joins!
+                    Share Your Referral Link. You Earn {data?.bonusPerReferral || 500} Diamonds And Your Friend Earns {data?.refereeBonus || 100} The Moment They Confirm Their Email!
                 </div>
             </div>
 

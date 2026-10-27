@@ -1,0 +1,4074 @@
+{
+  "schemaVersion": 1,
+  "scope": "Reviewed86 caller candidates, plus two partial training browser reads. Existing RLS, columns, data and defaults unchanged. Not an all-history reset certificate.",
+  "roleBindings": {
+    "authenticated": "maintained browser session singleton; home-game API bridge bearer client; injected singleton traced through HUD/messenger helpers",
+    "service_role": "explicit API service key or maintained vendored default createClient(service key first), Arena server shared service client; no anon fallback grant authority",
+    "anon": "only unguarded public read consumers and null-user operational event writer explicitly explained per table"
+  },
+  "sequenceRights": [
+    {
+      "sequence": "scraper_runs_id_seq",
+      "table": "scraper_runs",
+      "column": "id",
+      "role": "service_role",
+      "operations": [
+        "USAGE"
+      ],
+      "evidence": "Original Hub20260325_venue_scraping_infrastructure.sql bigserial; actual BaseScraper.recordScrapeRun service INSERT. Current production preflight independently proves UUID DEFAULT gen_random_uuid(), which requires no sequence grant.",
+      "condition": "Only when scraper_runs.id retains the exact reviewed original bigint nextval/public.scraper_runs_id_seq serial shape. No sequence exists or is granted for current UUID gen_random_uuid() shape."
+    }
+  ],
+  "tables": [
+    {
+      "table": "anti_farming_ips",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260505120000_anti_farming_infrastructure.sql",
+          "table": "anti_farming_ips",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/live/gift.js",
+          "line": 143,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "arena_sessions",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260817_arena_sessions_table_and_record_arena_session.sql",
+          "table": "arena_sessions",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260125900_missing_tables.sql",
+          "table": "arena_sessions",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260314_schema_gap_remediation.sql",
+          "table": "arena_sessions",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/services/ArenaTrainingController.ts",
+          "line": 156,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "bankroll_assistant_memory",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "bankroll_assistant_memory",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/bankroll/locationMemory.ts",
+          "line": 134,
+          "operations": [
+            "DELETE",
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "bankroll_sessions",
+      "rights": {
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_full_data_recovery.sql",
+          "table": "bankroll_sessions",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/rewards/eggVerifiers.js",
+          "line": 252,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/reviews.js",
+          "line": 115,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "bus_event_log",
+      "rights": {
+        "authenticated": [
+          "INSERT"
+        ],
+        "anon": [
+          "INSERT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "App.tsx starts logger globally; BusEventLogger records user id OR NULL, and original policy explicitly accepts null-user event insertion. Anon INSERT only; no anon read."
+      ],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260311_bus_event_log.sql",
+          "table": "bus_event_log",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/services/BusEventLogger.ts",
+          "line": 80,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "club_announcements",
+      "rights": {
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "013_missing_tables.sql",
+          "table": "club_announcements",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "202601242302_gamification_and_social.sql",
+          "table": "club_announcements",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260124970_club_activity.sql",
+          "table": "club_announcements",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/floor-admin.js",
+          "line": 536,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/manage-union.js",
+          "line": 596,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/pages/ClubAnnouncementsPage.tsx",
+          "line": 200,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/pages/AdminDashboardPage.tsx",
+          "line": 929,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/announcements.js",
+          "line": 63,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/components/club/ClubAnnouncementBanner.tsx",
+          "line": 123,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/components/club/ClubEntryMessage.tsx",
+          "line": 88,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "club_challenges",
+      "rights": {
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation_v2.sql",
+          "table": "club_challenges",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/services/ClubsService.ts",
+          "line": 925,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "club_chat",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT"
+        ],
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000000_club_chat.sql",
+          "table": "club_chat",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation_v2.sql",
+          "table": "club_chat",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/club-chat.js",
+          "line": 56,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/chat.js",
+          "line": 89,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/components/club/ClubChat.tsx",
+          "line": 73,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "commander_home_game_tables",
+      "rights": {
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "API bridge returns user-scoped bearer client, not its separate service authentication client: rpcBridge.js:22-26,149-156."
+      ],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260420090011_phase41_home_game_tables_and_reservations_schema.sql",
+          "table": "commander_home_game_tables",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/home-games/tables/[tableId]/unseated.js",
+          "line": 49,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "conversations",
+      "rights": {},
+      "verdict": "no-current-direct-grant-required",
+      "notes": [
+        "No reachable current direct consumer found. Existing defining/RPC routes do not need browser table grants. No correction."
+      ],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260124950_messages_schema.sql",
+          "table": "conversations",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": []
+    },
+    {
+      "table": "credit_requests",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260126400_credit_requests.sql",
+          "table": "credit_requests",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723235154_ca_sweep4_wallet_type_transfer_and_credit_requests.sql",
+          "table": "credit_requests",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/services/CreditRequestService.ts",
+          "line": 98,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "crew_members",
+      "rights": {
+        "authenticated": [
+          "SELECT"
+        ],
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260405120000_referral_and_crews.sql",
+          "table": "crew_members",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "20260405130000_fix_referral_crews_indexes.sql",
+          "table": "crew_members",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/components/social/CrewDashboard.js",
+          "line": 36,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/social/crews.js",
+          "line": 34,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "crews",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260405120000_referral_and_crews.sql",
+          "table": "crews",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "20260405130000_fix_referral_crews_indexes.sql",
+          "table": "crews",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/social/crews.js",
+          "line": 83,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/components/social/CrewDashboard.js",
+          "line": 36,
+          "operations": [
+            "SELECT"
+          ],
+          "reason": "embedded child relation in SELECT crew_members"
+        }
+      ]
+    },
+    {
+      "table": "cron_health_log",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260329_roadmap_phases.sql",
+          "table": "cron_health_log",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/admin/cron-health.js",
+          "line": 141,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/lib/push/pushHealthOperationalAlerts.mjs",
+          "line": 415,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/lib/cronHealth.js",
+          "line": 79,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "engine_maintenance_thaws",
+      "rights": {
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260902091000_the_thaw_gives_back_every_frozen_minute.sql",
+          "table": "engine_maintenance_thaws",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/platform-admin.js",
+          "line": 189,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "server/src/maintenance/OperatorCommands.ts",
+          "line": 58,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "friend_challenges",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260312009_friend_challenges.sql",
+          "table": "friend_challenges",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation.sql",
+          "table": "friend_challenges",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723181924_ca_sweep3_tier1_2_feature_tables.sql",
+          "table": "friend_challenges",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723_sweep3_feature_backends.sql",
+          "table": "friend_challenges",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/components/social/FriendChallengesPanel.tsx",
+          "line": 62,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/components/social/FriendChallengeModal.tsx",
+          "line": 101,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "home_game_vouches",
+      "rights": {
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260514_home_game_vouches.sql",
+          "table": "home_game_vouches",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/public/home-games/[slug]/vouch.js",
+          "line": 90,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "live_ban_audit",
+      "rights": {
+        "service_role": [
+          "INSERT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260511020000_streaming_deep_audit_round3_viewer_heartbeat_and_ban_audit.sql",
+          "table": "live_ban_audit",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/live/moderate.js",
+          "line": 277,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "live_comments",
+      "rights": {
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "anon": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "Anon SELECT preserves public viewer/profile/page consumers with no auth guard; source uses publishable session singleton and current public SELECT policy. No anonymous write."
+      ],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260428_live_comments.sql",
+          "table": "live_comments",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/live/comment.js",
+          "line": 112,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/components/social/LiveStreamViewer.jsx",
+          "line": 279,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/components/social/GoLiveModal.jsx",
+          "line": 983,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/hub/lives.js",
+          "line": 408,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/live/moderate.js",
+          "line": 108,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "live_gifts",
+      "rights": {
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260430_live_streaming_missing_infra.sql",
+          "table": "live_gifts",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/live/gifts.js",
+          "line": 30,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "live_reactions",
+      "rights": {
+        "authenticated": [
+          "INSERT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260501_live_reactions_table_and_analytics_view.sql",
+          "table": "live_reactions",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/components/social/LiveReactions.jsx",
+          "line": 145,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "live_sessions",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260405140000_live_sessions.sql",
+          "table": "live_sessions",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/social/live-session.js",
+          "line": 54,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/livekit/token.js",
+          "line": 80,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messages",
+      "rights": {
+        "authenticated": [
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "013_missing_tables.sql",
+          "table": "messages",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260124200_schema_fixes.sql",
+          "table": "messages",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260124950_messages_schema.sql",
+          "table": "messages",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/stores/useHeaderDataStore.ts",
+          "line": 304,
+          "operations": [
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/components/admin/ArenaLedger.tsx",
+          "line": 86,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_admin_messages",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000006_messenger_phase21.sql",
+          "table": "messenger_admin_messages",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 2720,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_bookmarks",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000004_messenger_backend_tables.sql",
+          "table": "messenger_bookmarks",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/messengerPrefsSync.js",
+          "line": 64,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_call_signals",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000004_messenger_backend_tables.sql",
+          "table": "messenger_call_signals",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "2026031106_messenger_schema.sql",
+          "table": "messenger_call_signals",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 414,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_conversation_labels",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "2026031104_messenger_phase18.sql",
+          "table": "messenger_conversation_labels",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 1954,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_conversations",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000004_messenger_backend_tables.sql",
+          "table": "messenger_conversations",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "2026031106_messenger_schema.sql",
+          "table": "messenger_conversations",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 213,
+          "operations": [
+            "SELECT",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_favorites",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "2026031103_messenger_phase16.sql",
+          "table": "messenger_favorites",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 1720,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_labels",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "messenger_labels",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/messengerPrefsSync.js",
+          "line": 65,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_messages",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000004_messenger_backend_tables.sql",
+          "table": "messenger_messages",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "2026031106_messenger_schema.sql",
+          "table": "messenger_messages",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 141,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_participants",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000004_messenger_backend_tables.sql",
+          "table": "messenger_participants",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "2026031106_messenger_schema.sql",
+          "table": "messenger_participants",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 354,
+          "operations": [
+            "SELECT",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_reactions",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "UPDATE privilege is required by actual UPSERT syntax, even for a first insert; no UPDATE policy is created, so conflicting updates remain row-denied exactly as current."
+      ],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000004_messenger_backend_tables.sql",
+          "table": "messenger_reactions",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "2026031106_messenger_schema.sql",
+          "table": "messenger_reactions",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 295,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_reminders",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000006_messenger_phase21.sql",
+          "table": "messenger_reminders",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 2569,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_reports",
+      "rights": {
+        "authenticated": [
+          "INSERT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "2026031102_messenger_phase15.sql",
+          "table": "messenger_reports",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 1418,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_scheduled",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "2026031103_messenger_phase16.sql",
+          "table": "messenger_scheduled",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "2026031105_messenger_phase19.sql",
+          "table": "messenger_scheduled",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 1608,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_templates",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "2026031104_messenger_phase18.sql",
+          "table": "messenger_templates",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useMessengerService.js",
+          "line": 2004,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "messenger_themes",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "messenger_themes",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/messengerPrefsSync.js",
+          "line": 66,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "notification_preferences",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_full_data_recovery.sql",
+          "table": "notification_preferences",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/push/push-gate.js",
+          "line": 41,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/notifications/push-types.js",
+          "line": 36,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "notifications",
+      "rights": {
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "authenticated": [
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "Browser INSERT attempts are policy-denied; preserve service-only creation. Browser grants cover actual reads/updates only."
+      ],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "013_missing_tables.sql",
+          "table": "notifications",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "202601242302_gamification_and_social.sql",
+          "table": "notifications",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260310_notifications_table.sql",
+          "table": "notifications",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/notify.js",
+          "line": 124,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/hub/social-media/index.js",
+          "line": 803,
+          "operations": []
+        },
+        {
+          "repo": "hub",
+          "path": "pages/hub/user/[username].js",
+          "line": 3306,
+          "operations": []
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/admin/check-notification-actors.js",
+          "line": 32,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/live/schedule.js",
+          "line": 113,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/notifications/live-notify.js",
+          "line": 94,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/notifications/follow.js",
+          "line": 54,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/cron/live-reminders.js",
+          "line": 150,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/public/home-games/[slug]/follow.js",
+          "line": 280,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/public/home-games/[slug]/events/[eventId]/request-seat.js",
+          "line": 289,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "pb_calibration_profiles",
+      "rights": {
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260727161220_worldhub_missing_objects_2026_07_27.sql",
+          "table": "pb_calibration_profiles",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/calibration.js",
+          "line": 38,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "pb_hands",
+      "rights": {
+        "authenticated": [
+          "SELECT"
+        ],
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260409200000_poker_brain.sql",
+          "table": "pb_hands",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/poker-brain/storage.js",
+          "line": 298,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/sessions.js",
+          "line": 57,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/stats.js",
+          "line": 72,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/hand/[id].js",
+          "line": 36,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/session/[id].js",
+          "line": 50,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "pb_profiles",
+      "rights": {},
+      "verdict": "no-current-direct-grant-required",
+      "notes": [
+        "No reachable current direct consumer found. Existing defining/RPC routes do not need browser table grants. No correction."
+      ],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260409200000_poker_brain.sql",
+          "table": "pb_profiles",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": []
+    },
+    {
+      "table": "pb_sessions",
+      "rights": {
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260409200000_poker_brain.sql",
+          "table": "pb_sessions",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/sessions.js",
+          "line": 37,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/stats.js",
+          "line": 48,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/hand/[id].js",
+          "line": 49,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker-brain/session/[id].js",
+          "line": 36,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "pb_stats",
+      "rights": {},
+      "verdict": "no-current-direct-grant-required",
+      "notes": [
+        "No reachable current direct consumer found. Existing defining/RPC routes do not need browser table grants. No correction."
+      ],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260409200000_poker_brain.sql",
+          "table": "pb_stats",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": []
+    },
+    {
+      "table": "player_notes",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260311000005_phase24_player_notes_and_reported.sql",
+          "table": "player_notes",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "20260329_player_notes.sql",
+          "table": "player_notes",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "202601242301_vip_usage_and_settings.sql",
+          "table": "player_notes",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/components/gameplay/PlayerNotesPanel.tsx",
+          "line": 128,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/components/poker/TableExperienceComponents.jsx",
+          "line": 392,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/components/bankroll/PlayerNotes.jsx",
+          "line": 36,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/player-notes.js",
+          "line": 76,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/player-notes.js",
+          "line": 61,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/services/PlayerNotesService.ts",
+          "line": 100,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "poker_seat_preferences",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "2026031108_wave_h_persistence.sql",
+          "table": "poker_seat_preferences",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/components/poker/LivePokerTable.jsx",
+          "line": 5938,
+          "operations": [
+            "SELECT",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "poker_session_stats",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "2026031108_wave_h_persistence.sql",
+          "table": "poker_session_stats",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/components/poker/LivePokerTable.jsx",
+          "line": 6461,
+          "operations": [
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/hub/session-history.js",
+          "line": 32,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/engine/session-stats.js",
+          "line": 34,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "poker_sessions",
+      "rights": {
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "poker_sessions",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/personal-assistant/contextAuthority.js",
+          "line": 64,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "poker_table_layouts",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "2026031108_wave_h_persistence.sql",
+          "table": "poker_table_layouts",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/components/poker/LivePokerTable.jsx",
+          "line": 450,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "promotion_claims",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "Uncalled updateWagerProgress is not granted; current RLS deliberately has no UPDATE policy."
+      ],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation_v2.sql",
+          "table": "promotion_claims",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723181924_ca_sweep3_tier1_2_feature_tables.sql",
+          "table": "promotion_claims",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723_sweep3_feature_backends.sql",
+          "table": "promotion_claims",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/services/PromotionService.ts",
+          "line": 192,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "referral_codes",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260312010_referral_system.sql",
+          "table": "referral_codes",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation.sql",
+          "table": "referral_codes",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723181924_ca_sweep3_tier1_2_feature_tables.sql",
+          "table": "referral_codes",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723_sweep3_feature_backends.sql",
+          "table": "referral_codes",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/services/ReferralService.ts",
+          "line": 69,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "referrals",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_full_data_recovery.sql",
+          "table": "referrals",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "20260329_roadmap_phases.sql",
+          "table": "referrals",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "20260405120000_referral_and_crews.sql",
+          "table": "referrals",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "20260405130000_fix_referral_crews_indexes.sql",
+          "table": "referrals",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation_v2.sql",
+          "table": "referrals",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/rewards/eggVerifiers.js",
+          "line": 242,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/social/referral.js",
+          "line": 88,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/rewards/referral.js",
+          "line": 61,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "scraper_runs",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260325_venue_scraping_infrastructure.sql",
+          "table": "scraper_runs",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/scrapers/BaseScraper.js",
+          "line": 232,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/venue-scraper/receive.js",
+          "line": 354,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/venue-scraper/trigger.js",
+          "line": 265,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "session_chat_messages",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260405140000_live_sessions.sql",
+          "table": "session_chat_messages",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/social/live-session.js",
+          "line": 132,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/components/social/SpectatorView.js",
+          "line": 50,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "session_history",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260312001_analytics_enhancement.sql",
+          "table": "session_history",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation.sql",
+          "table": "session_history",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723181924_ca_sweep3_tier1_2_feature_tables.sql",
+          "table": "session_history",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723_sweep3_feature_backends.sql",
+          "table": "session_history",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/pages/SessionHistoryPage.tsx",
+          "line": 122,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/services/SessionStatsService.ts",
+          "line": 264,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "social_follows",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "anon": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "UPDATE privilege is required by actual UPSERT syntax, even for a first insert; no UPDATE policy is created, so conflicting updates remain row-denied exactly as current.",
+        "Anon SELECT preserves public viewer/profile/page consumers with no auth guard; source uses publishable session singleton and current public SELECT policy. No anonymous write."
+      ],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_full_data_recovery.sql",
+          "table": "social_follows",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/cacheWarmer.js",
+          "line": 69,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/hub/social-media/index.js",
+          "line": 5119,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/hub/user/[username].js",
+          "line": 2565,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/auth/ensure-profile.js",
+          "line": 579,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/rewards/follow.js",
+          "line": 193,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/live/schedule.js",
+          "line": 84,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/friends/index.js",
+          "line": 225,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/notifications/live-notify.js",
+          "line": 62,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/cron/live-reminders.js",
+          "line": 110,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/hooks/useProfilePrefetch.js",
+          "line": 70,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "social_page_comment_likes",
+      "rights": {
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "anon": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "Anon SELECT preserves public viewer/profile/page consumers with no auth guard; source uses publishable session singleton and current public SELECT policy. No anonymous write."
+      ],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260326_social_pages_phase2.sql",
+          "table": "social_page_comment_likes",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/social/pages/engage.js",
+          "line": 133,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/hub/social-pages/[pageId].js",
+          "line": 1431,
+          "operations": [
+            "SELECT"
+          ],
+          "reason": "actual postgres_changes consumer needs SELECT under existing RLS"
+        }
+      ]
+    },
+    {
+      "table": "table_chat",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT"
+        ],
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation_v2.sql",
+          "table": "table_chat",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/table-chat.js",
+          "line": 121,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "server/src/services/HorseTableTalk.ts",
+          "line": 924,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/components/club-arena/TableChatHUD.js",
+          "line": 34,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/engine/connect.js",
+          "line": 77,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/hooks/useTableChat.ts",
+          "line": 197,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "table_templates",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ],
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260126600_templates_and_sng.sql",
+          "table": "table_templates",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/pages/AdminDashboardPage.tsx",
+          "line": 1822,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/table-templates.js",
+          "line": 69,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/pages/TableConfigPage.tsx",
+          "line": 674,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "throw_usage",
+      "rights": {
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260125001_throwables.sql",
+          "table": "throw_usage",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260307_add_missing_columns.sql",
+          "table": "throw_usage",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723181924_ca_sweep3_tier1_2_feature_tables.sql",
+          "table": "throw_usage",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723_sweep3_feature_backends.sql",
+          "table": "throw_usage",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/services/VIPService.ts",
+          "line": 620,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/services/ThrowableService.ts",
+          "line": 1304,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "tour_stop_events",
+      "rights": {
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260407_tour_stop_events.sql",
+          "table": "tour_stop_events",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/events-calendar.js",
+          "line": 660,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/lib/poker/tourSchedule.mjs",
+          "line": 35,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/tour-schedule.js",
+          "line": 277,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "tournament_deal_votes",
+      "rights": {
+        "service_role": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260822100400_fn_final_table_deal.sql",
+          "table": "tournament_deal_votes",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "server/src/tournament/TournamentManagerEliminations.ts",
+          "line": 5412,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/services/TournamentDealService.ts",
+          "line": 279,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "server/src/GameServer.ts",
+          "line": 9755,
+          "operations": [
+            "SELECT"
+          ],
+          "reason": "actual postgres_changes consumer needs SELECT under existing RLS"
+        }
+      ]
+    },
+    {
+      "table": "tournament_registration_approvals",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260822100000_tournament_feature_parity_columns.sql",
+          "table": "tournament_registration_approvals",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/components/tournament/RegistrationApprovalsPanel.tsx",
+          "line": 72,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "training_custom_drills",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "training_custom_drills",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/hub/training/drill-builder.js",
+          "line": 206,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "training_events",
+      "rights": {
+        "authenticated": [
+          "INSERT"
+        ],
+        "service_role": [
+          "INSERT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "training_events",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/engine/CentralBus.js",
+          "line": 219,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/training/log-request.js",
+          "line": 67,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "training_hand_history",
+      "rights": {
+        "authenticated": [
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "training_hand_history",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/components/bankroll/SessionHandReview.jsx",
+          "line": 33,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "trips",
+      "rights": {
+        "authenticated": [
+          "SELECT",
+          "UPDATE"
+        ],
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "trips",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/components/bankroll/TripROICalculator.jsx",
+          "line": 52,
+          "operations": [
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/bankroll/tax-report.js",
+          "line": 68,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "union_applications",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260313_phase5_missing_tables.sql",
+          "table": "union_applications",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260313_phase5_missing_tables.sql",
+          "table": "union_applications",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation_v2.sql",
+          "table": "union_applications",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/floor-admin.js",
+          "line": 385,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/union-application.js",
+          "line": 193,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/manage-union.js",
+          "line": 329,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/pages/UnionDashboardPage.tsx",
+          "line": 811,
+          "operations": [
+            "SELECT"
+          ],
+          "reason": "actual postgres_changes consumer needs SELECT under existing RLS"
+        }
+      ]
+    },
+    {
+      "table": "union_clubs",
+      "rights": {
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "001_club_arena_schema.sql",
+          "table": "union_clubs",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/floor-admin.js",
+          "line": 382,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/union-application.js",
+          "line": 360,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/union-wallet.js",
+          "line": 149,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/manage-union.js",
+          "line": 348,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/pages/ClubDetailPage.tsx",
+          "line": 489,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/pages/UnionDashboardPage.tsx",
+          "line": 520,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/services/UnionService.ts",
+          "line": 149,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/services/PermissionService.ts",
+          "line": 388,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "server/src/handlers/admin.ts",
+          "line": 171,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "server/src/services/TournamentRecurringService.ts",
+          "line": 4514,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "union_leave_requests",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260313_phase5_missing_tables.sql",
+          "table": "union_leave_requests",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260313_phase5_missing_tables.sql",
+          "table": "union_leave_requests",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/floor-admin.js",
+          "line": 386,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/union-application.js",
+          "line": 532,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/manage-union.js",
+          "line": 176,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "unions",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "001_club_arena_schema.sql",
+          "table": "unions",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/fleet-admin.js",
+          "line": 263,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/floor-admin.js",
+          "line": 93,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/club-arena-admin.js",
+          "line": 239,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/mint.js",
+          "line": 211,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/union-application.js",
+          "line": 43,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/union-invoice.js",
+          "line": 76,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/approve-cashout.js",
+          "line": 87,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/union-wallet.js",
+          "line": 109,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/spin-activation.js",
+          "line": 75,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/club-arena/manage-union.js",
+          "line": 98,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "user_blocks",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation.sql",
+          "table": "user_blocks",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260419160017_phase24d_moderation_polls_photos_rpcs.sql",
+          "table": "user_blocks",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/services/BlockService.ts",
+          "line": 40,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "user_feedback",
+      "rights": {
+        "authenticated": [
+          "INSERT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260314_phantom_table_remediation_v2.sql",
+          "table": "user_feedback",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723181924_ca_sweep3_tier1_2_feature_tables.sql",
+          "table": "user_feedback",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260723_sweep3_feature_backends.sql",
+          "table": "user_feedback",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/components/support/FeedbackForm.tsx",
+          "line": 103,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "user_leaks",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260313000000_restore_missing_tables.sql",
+          "table": "user_leaks",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/hooks/useTrainingAccountant.ts",
+          "line": 161,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/assistant/leaks/index.js",
+          "line": 144,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/assistant/leaks/detect.js",
+          "line": 1080,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/assistant/leaks/examples.js",
+          "line": 44,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "user_reports",
+      "rights": {
+        "authenticated": [
+          "INSERT"
+        ],
+        "service_role": [
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "user_reports",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/hub/user/[username].js",
+          "line": 7300,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/player-admin.js",
+          "line": 495,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/pages/ReportPlayerPage.tsx",
+          "line": 66,
+          "operations": [
+            "INSERT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "user_table_settings",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ],
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "202601242301_vip_usage_and_settings.sql",
+          "table": "user_table_settings",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "arena",
+          "file": "20260326_user_table_settings.sql",
+          "table": "user_table_settings",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/hooks/useUserTableSettings.ts",
+          "line": 364,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "src/hooks/useTableSettings.ts",
+          "line": 618,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "arena",
+          "path": "server/src/services/supabase/timeBankPreferences.ts",
+          "line": 8,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "user_venue_checkins",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260403_venue_reviews_checkins.sql",
+          "table": "user_venue_checkins",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/reviews.js",
+          "line": 131,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/venues/[...slug].js",
+          "line": 172,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "venue_daily_tournaments",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260408_create_venue_daily_tournaments.sql",
+          "table": "venue_daily_tournaments",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/venues.js",
+          "line": 2008,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/tournament-alerts.js",
+          "line": 126,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/events-calendar.js",
+          "line": 430,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/venue-tournament-calendar.js",
+          "line": 105,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/daily-tournaments.js",
+          "line": 269,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/venue-scraper/receive.js",
+          "line": 240,
+          "operations": [
+            "INSERT",
+            "SELECT",
+            "UPDATE"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/lib/poker-near-me/dailyTournamentData.mjs",
+          "line": 477,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/notifications/late-reg-cron.js",
+          "line": 52,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "venue_game_alerts",
+      "rights": {
+        "service_role": [
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260329120000_scraper_intelligence_tables.sql",
+          "table": "venue_game_alerts",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "20260329_scraper_infrastructure.sql",
+          "table": "venue_game_alerts",
+          "named_acl": false,
+          "dynamic_acl": false
+        },
+        {
+          "repo": "hub",
+          "file": "20260329_scraper_intelligence_tables.sql",
+          "table": "venue_game_alerts",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/venue-alerts.js",
+          "line": 45,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "venue_reviews",
+      "rights": {
+        "service_role": [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260403_venue_reviews_checkins.sql",
+          "table": "venue_reviews",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/lib/rewards/eggVerifiers.js",
+          "line": 551,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/leaderboards.js",
+          "line": 146,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/poker/reviews.js",
+          "line": 191,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/rewards/venue-review.js",
+          "line": 220,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/venues/[...slug].js",
+          "line": 343,
+          "operations": [
+            "INSERT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/horses/admin-reviews.js",
+          "line": 148,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "video_playlist_items",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "SELECT comes from nested items:video_playlist_items reads; INSERT/reordering go through authoritative RPCs, not direct grants."
+      ],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260423_video_playlists.sql",
+          "table": "video_playlist_items",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/services/videoPlaylists.js",
+          "line": 38,
+          "operations": [
+            "DELETE",
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "video_playlists",
+      "rights": {
+        "authenticated": [
+          "INSERT",
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260423_video_playlists.sql",
+          "table": "video_playlists",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "src/services/videoPlaylists.js",
+          "line": 4,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "w2g_forms",
+      "rights": {
+        "authenticated": [
+          "DELETE",
+          "INSERT",
+          "SELECT"
+        ],
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260727161220_worldhub_missing_objects_2026_07_27.sql",
+          "table": "w2g_forms",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/hub/bankroll-manager.js",
+          "line": 1359,
+          "operations": [
+            "INSERT",
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "pages/api/bankroll/tax-report.js",
+          "line": 77,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/components/bankroll/TaxReportPanel.jsx",
+          "line": 64,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "wallets",
+      "rights": {
+        "service_role": [
+          "SELECT"
+        ]
+      },
+      "verdict": "explicit-grant-gap-for-reachable-caller",
+      "notes": [
+        "Retired ensureWalletsExist INSERT was a comment; AST excludes it. Only service reads of legacy guard rows remain."
+      ],
+      "source_creates": [
+        {
+          "repo": "arena",
+          "file": "20260124100_player_wallets.sql",
+          "table": "wallets",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "hub",
+          "path": "pages/api/cron/signup-probe.js",
+          "line": 112,
+          "operations": [
+            "SELECT"
+          ]
+        },
+        {
+          "repo": "hub",
+          "path": "src/lib/poker-engine/ChipBridge.js",
+          "line": 106,
+          "operations": [
+            "SELECT"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "training_user_achievements",
+      "rights": {
+        "authenticated": [
+          "SELECT"
+        ]
+      },
+      "verdict": "browser-select-gap-service-select-already-dynamic",
+      "notes": [
+        "Service SELECT explicitly covered by20260907010000; only browser SELECT added."
+      ],
+      "source_creates": [
+        {
+          "repo": "hub",
+          "file": "20260314_phantom_tables.sql",
+          "table": "training_user_achievements",
+          "named_acl": false,
+          "dynamic_acl": false
+        }
+      ],
+      "callerEvidence": [
+        {
+          "repo": "arena",
+          "path": "src/pages/SettingsPage.tsx",
+          "line": 553
+        },
+        {
+          "repo": "hub",
+          "path": "src/hooks/useTrainingRealtime.js",
+          "line": 79
+        },
+        {
+          "repo": "arena",
+          "path": "src/services/AchievementService.ts",
+          "line": 354
+        },
+        {
+          "repo": "arena",
+          "path": "src/components/social/PlayerActivityFeed.tsx",
+          "line": 50
+        },
+        {
+          "repo": "arena",
+          "path": "src/components/social/FriendActivityFeed.tsx",
+          "line": 90
+        }
+      ]
+    }
+  ]
+}

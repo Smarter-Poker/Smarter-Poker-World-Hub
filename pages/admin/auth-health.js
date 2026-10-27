@@ -188,7 +188,7 @@ export default function AuthHealthDashboard(props) {
                             <tr key={h.id}>
                                 <td style={S.td}>{fmtAge(h.occurred_at)}</td>
                                 <td style={S.td}><code>{h.probe_name}</code></td>
-                                <td style={S.td}><span style={{ background: h.status === 'ok' ? '#166534' : h.status === 'failed' ? '#991b1b' : '#713f12', color: '#fff', padding: '2px 8px', borderRadius: 8, fontSize: 12 }}>{h.status}</span></td>
+                                <td style={S.td}><span style={{ background: h.status === 'ok' ? '#166534' : h.status === 'failed' ? '#991b1b' : h.status === 'skipped' ? '#475569' : '#713f12', color: '#fff', padding: '2px 8px', borderRadius: 8, fontSize: 12 }}>{h.status}</span></td>
                                 <td style={S.td}>{h.duration_ms ? `${h.duration_ms}ms` : '-'}</td>
                             </tr>
                         ))}

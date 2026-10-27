@@ -47,6 +47,7 @@ const Bubble = compile('../src/components/messenger/MessageBubble.js', name => {
     if (name === '../../lib/accountingMessage.mjs') return accounting;
     if (name === './MessengerTheme') return { defaultTheme: theme };
     if (name === './Avatar') return { Avatar: () => null };
+    if (name === './CashoutRequestActions') return { default: () => null, formatChips: String, __esModule: true };
     if (name === '../../lib/authUtils') return { getAccessToken: () => null, authedFetch: () => { throw new Error('unexpected fetch'); } };
     return require(name);
 }, undefined, 'MessageBubble');

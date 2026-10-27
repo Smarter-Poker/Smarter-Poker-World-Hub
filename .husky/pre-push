@@ -26,6 +26,44 @@ node "$ROOT/docs/agent-policy/agent-policy.mjs" check || exit 1
 node --test "$ROOT/docs/agent-policy/agent-policy.test.mjs" || exit 1
 FAIL=0
 
+node --test "$ROOT/__tests__/explicit-table-access.test.mjs" || FAIL=1
+node "$ROOT/scripts/ci/check-explicit-table-access.mjs" || FAIL=1
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-explicit-crash-log-access.py | grep -qE 'explicit_service_crash_log_access|test-explicit-crash-log-access'; then
+  python3 "$ROOT/scripts/ci/test-explicit-crash-log-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-explicit-direct-caller-access.py | grep -qE 'explicit_direct_caller_table_access|test-explicit-direct-caller-access'; then
+  python3 "$ROOT/scripts/ci/test-explicit-direct-caller-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-pokeriq-browser-structural-privileges.py | grep -qE 'browser_roles_have_no_table_maintenance_rights|test-pokeriq-browser-structural-privileges'; then
+  python3 "$ROOT/scripts/ci/test-pokeriq-browser-structural-privileges.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-reviewed-legacy-table-access.py scripts/ci/reviewed-legacy-table-access.json | grep -qE 'explicit_reviewed_legacy_caller_access|test-reviewed-legacy-table-access|reviewed-legacy-table-access.json'; then
+  python3 "$ROOT/scripts/ci/test-reviewed-legacy-table-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-mention-notification-trigger.py | grep -qE 'mention_notification_trigger_authorization|test-mention-notification-trigger'; then
+  python3 "$ROOT/scripts/ci/test-mention-notification-trigger.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-reviewed-invoker-access.py scripts/ci/reviewed-invoker-access.json scripts/ci/reviewed-invoker-function-fixtures.json | grep -qE 'explicit_reachable_invoker_and_view_access|test-reviewed-invoker-access|reviewed-invoker-'; then
+  python3 "$ROOT/scripts/ci/test-reviewed-invoker-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-reviewed-baseline-caller-access.py scripts/ci/reviewed-baseline-caller-access.json | grep -qE 'explicit_legacy_baseline_caller_access|test-reviewed-baseline-caller-access|reviewed-baseline-caller-access.json'; then
+  python3 "$ROOT/scripts/ci/test-reviewed-baseline-caller-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-premium-self-issuance-access.py tests/fixtures/premium-private-debit-20261020.sql | grep -qE 'premium_access_refuses_browser_self_issuance|test-premium-self-issuance-access|premium-private-debit'; then
+  python3 "$ROOT/scripts/ci/test-premium-self-issuance-access.py" || FAIL=1
+fi
+
+if git diff --name-only origin/main...HEAD -- supabase/migrations scripts/ci/test-home-report-moderation-trigger.py | grep -qE 'home_report_moderation_trigger_authorization|test-home-report-moderation-trigger'; then
+  python3 "$ROOT/scripts/ci/test-home-report-moderation-trigger.py" || FAIL=1
+fi
+
 # ── The pull request for this branch may already be MERGED (2026-09-06) ─────
 # Autopilot squash-merges the instant the required checks pass, so a push made
 # afterwards lands on a CLOSED pull request, changes nothing and exits 0. That

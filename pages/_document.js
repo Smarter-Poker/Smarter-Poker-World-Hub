@@ -42,8 +42,7 @@ export default class MyDocument extends Document {
                         contacted. Club Arena's index.html was still injecting the
                         real SDK until 2026-08-29 — that is removed too. */}
                     {/* iOS PWA support */}
-                    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-                    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
+                    {/* Route-specific icon links are owned by _app.js. */}
                     <meta name="apple-mobile-web-app-capable" content="yes" />
                     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
                     <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
@@ -143,7 +142,11 @@ export default class MyDocument extends Document {
                          Club Arena, on the same origin, both write
                          localStorage['sp:last-route'] = {path, at} on every route
                          change and on pagehide, and sessionStorage['sp:session-alive']
-                         = '1'. Never for /auth, error pages, or the bare hub.
+                         = '1'. Never for /auth, error pages or the root. The
+                         Hub IS recorded (Dan 2026-10-24): it is the default, and a
+                         player who closes the app on the Hub reopens on the Hub.
+                         Leaving it out is what pinned every launch to Settings,
+                         the page players install from. No age limit: "ANYTIME".
 
                          LAUNCH vs NAVIGATION: sessionStorage survives in-app
                          navigation and dies with a killed PWA, so an empty
@@ -168,7 +171,6 @@ export default class MyDocument extends Document {
                                 try {
                                     var LAST_ROUTE_KEY = 'sp:last-route';
                                     var SESSION_ALIVE_KEY = 'sp:session-alive';
-                                    var MAX_AGE_MS = 24 * 60 * 60 * 1000;
                                     var here = location.pathname.replace(/\\/+$/, '');
                                     if (here !== '/hub' || location.search || location.hash) return;
                                     var standalone = navigator.standalone === true ||
@@ -180,11 +182,7 @@ export default class MyDocument extends Document {
                                     var raw = localStorage.getItem(LAST_ROUTE_KEY);
                                     if (!raw) return;
                                     var rec = JSON.parse(raw);
-                                    if (!rec || typeof rec.path !== 'string' || typeof rec.at !== 'number') return;
-                                    if (Date.now() - rec.at > MAX_AGE_MS) {
-                                        localStorage.removeItem(LAST_ROUTE_KEY);
-                                        return;
-                                    }
+                                    if (!rec || typeof rec.path !== 'string') return;
                                     var path = rec.path;
                                     if (path.charAt(0) !== '/' || path.charAt(1) === '/') return;
                                     if (path.indexOf('authError=') !== -1) return;

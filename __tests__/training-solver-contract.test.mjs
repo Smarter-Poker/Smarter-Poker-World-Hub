@@ -657,7 +657,7 @@ wanted = {
     '_write_solver_line', '_validate_solver_response',
     '_parse_pio_hand_order', '_outbound_solver_command',
     '_canonicalize_solver_vector_response', '_validate_startup_handshake',
-    '_initialize_solver_transport', '_wavg_bb', '_parse_calc_ev_vectors',
+    '_initialize_solver_transport', '_validate_solver_identity', '_wavg_bb', '_parse_calc_ev_vectors',
     '_parse_calc_results',
     '_assert_calc_results_ev_consistent', 'pio',
 }
@@ -912,6 +912,26 @@ assert scope['_pio_to_canonical_combo_index'] == list(reversed(range(1326)))
 assert os.environ['PIO_SOURCE_COMBO_ORDER_SCHEMA'] == 'piosolver.show_hand_order.v1'
 assert os.environ['PIO_SOURCE_COMBO_ORDER_SHA256'] == pio_hand_order_sha256
 
+# Pio 3.8 emits a complete startup build banner but numeric show_version.
+# The approved build, protocol version, and pinned binary must all attest.
+original_version = scope['approved_solver_version']
+scope['approved_solver_version'] = 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)'
+approved_banner = scope['approved_solver_version'] + '\nset_end_string ok!'
+scope['_validate_solver_identity'](approved_banner, '3.8.0')
+for banner, version in [
+    (approved_banner, '3.8.1'),
+    (approved_banner, '3.8.0\nextra'),
+    (approved_banner.replace('11:05:45', '11:05:46'), '3.8.0'),
+    ('set_end_string ok!', '3.8.0'),
+    (approved_banner + '\n' + approved_banner, '3.8.0'),
+]:
+    try:
+        scope['_validate_solver_identity'](banner, version)
+        raise AssertionError('foreign or ambiguous Pio build was accepted')
+    except scope['SolverTransportFailure']:
+        pass
+scope['approved_solver_version'] = original_version
+
 for corrupt_hand_order in [
     ' '.join(pio_hand_order[:-1]),
     ' '.join([pio_hand_order[0], *pio_hand_order[1:-1], pio_hand_order[0]]),
@@ -1027,6 +1047,25 @@ calc_ev_text = ' '.join(str(value) for value in ev_vector) + '\n' \
     + ' '.join(str(value) for value in matchup_vector)
 parsed_ev, parsed_matchups = scope['_parse_calc_ev_vectors'](calc_ev_text)
 assert scope['_wavg_bb'](parsed_ev, parsed_matchups) == 0.75
+# Non-finite EVs are missing markers only when their matching mass is zero.
+import pio_harvest as harvest
+for marker in ('inf', '-inf', 'nan'):
+    values = [0.0] * 1326
+    values[2] = float(marker)
+    text = ' '.join(map(str, values)) + '\n' + ' '.join(map(str, matchup_vector))
+    parsed, mass = scope['_parse_calc_ev_vectors'](text)
+    assert math.isnan(parsed[2]) and mass[2] == 0
+    assert math.isnan(harvest.parse_ev_array0(text)[2])
+    live_mass = list(matchup_vector)
+    live_mass[2] = 1
+    corrupt = ' '.join(map(str, values)) + '\n' + ' '.join(map(str, live_mass))
+    for parser in (scope['_parse_calc_ev_vectors'], harvest.parse_ev_array0):
+        try:
+            parser(corrupt)
+            raise AssertionError('non-finite live EV accepted')
+        except (RuntimeError, ValueError) as error:
+            assert 'non-finite live EV' in str(error)
+
 assert scope['_wavg_bb'](parsed_ev, [1.0, 1.0] + [0.0] * 1324) == 0.5
 try:
     scope['_wavg_bb']([float('nan')] + [0.0] * 1325, [1.0] + [0.0] * 1325)
@@ -1204,8 +1243,8 @@ canonical_vector = {
     'scenario_hash': 'unicode-é😀',
 }
 canonical_text = o.canonical_jsonb_text_v1(canonical_vector)
-assert canonical_text == '{"scenario_hash":"unicode-é😀","strategy_matrix_v2":{"array":[true,null,"line\\n\\"quote\\"\\\\tail",-0.000000125,123],"combo_order":"card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325","frequencies":{"b525":[0.000001,0.999999],"c":[0.0,1.0]},"hand_evs_bb":[-12.3457,0.125],"nested":{"A":100000000000000000000,"a":0.0000001,"negative_zero":0.0,"unit":1.0},"position":"BB","unicode":"é😀"}}'
-assert hashlib.sha256(canonical_text.encode('utf-8')).hexdigest() == 'db0bdf0ad8539d03e3dab9818577078d819dc2150a98a19ac6debecad1dd1b99'
+assert canonical_text == '{"scenario_hash":"unicode-é😀","strategy_matrix_v2":{"array":[true,null,"line\\n\\"quote\\"\\\\tail",-0.000000125,123],"combo_order":"card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325","frequencies":{"b525":[0.000001,0.999999],"c":[0,1]},"hand_evs_bb":[-12.3457,0.125],"nested":{"A":100000000000000000000,"a":0.0000001,"negative_zero":0,"unit":1},"position":"BB","unicode":"é😀"}}'
+assert hashlib.sha256(canonical_text.encode('utf-8')).hexdigest() == 'b5d057beab195c6b480704819327a2291d865e6c7ca6206bb0223a5785c596ca'
 try:
     o.canonical_jsonb_text_v1(float('nan'))
     raise AssertionError('non-finite artifact number was accepted')
@@ -1318,7 +1357,7 @@ def pio(command):
                 vectors[1].append(0.0 if blocked else 0.6)
         return ' '.join(map(str, vectors[0])) + '\n' + ' '.join(map(str, vectors[1]))
     if command.startswith('calc_ev'):
-        return '125 ' * 1326
+        return ('125 ' * 1326) + '\n' + ('1 ' * 1326)
     raise AssertionError(command)
 scenario_hash, matrix = h.harvest_node(
     pio, 'r:0', 'OOP', 'AsKdQcJh2s', 'BB', 'BB', 'BTN',

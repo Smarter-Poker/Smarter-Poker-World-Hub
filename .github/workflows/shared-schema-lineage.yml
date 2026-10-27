@@ -1,0 +1,66 @@
+name: Shared PokerIQ schema lineage
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'docs/shared-schema-bootstrap.md'
+      - '.github/workflows/shared-schema-lineage.yml'
+      - 'scripts/ci/*shared-schema-lineage.py'
+      - 'scripts/verify-training-solver-catalog-postgres.mjs'
+      - 'scripts/training-m1-repin-qualification.mjs'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'docs/shared-schema-bootstrap.md'
+      - '.github/workflows/shared-schema-lineage.yml'
+      - 'scripts/ci/*shared-schema-lineage.py'
+      - 'scripts/verify-training-solver-catalog-postgres.mjs'
+      - 'scripts/training-m1-repin-qualification.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shared-schema-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Load the immutable canonical shared schema qualification source
+        uses: actions/checkout@v4
+        with:
+          repository: Smarter-Poker/Smarter-Poker-Club-Arena
+          ref: 672c582d3e9cdac3e19f8bd3ae522863cc56df71
+          path: shared-schema-source
+          sparse-checkout: |
+            supabase/bootstrap
+            supabase/migrations
+            scripts/schema-rebuild
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.12.0
+      - name: Verify pinned source and admission boundaries
+        run: |
+          python3 shared-schema-source/scripts/schema-rebuild/check_source.py
+          python3 shared-schema-source/scripts/schema-rebuild/test_boundaries.py
+          python3 scripts/ci/test-shared-schema-lineage.py
+      - name: Install PostgreSQL 17 for isolated transition qualification
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --show-error --silent \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends postgresql-17 locales
+          sudo locale-gen en_US.UTF-8
+      - name: Qualify exact DML and verify every migration against pinned history
+        env:
+          PHASE6_POSTGRES_BIN: /usr/lib/postgresql/17/bin
+        run: python3 scripts/ci/check-shared-schema-lineage.py --checkout . --shared-source shared-schema-source

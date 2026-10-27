@@ -253,3 +253,90 @@ test('every page under /hub/commander shares the Club Commander card unless it n
   assert.equal(mod.productOgImage('/hub/venues/[id]'), undefined);
   assert.equal(mod.productOgImage(undefined), undefined);
 });
+
+test('public social identity reaches crawlers without exposing private page data', async () => {
+  const source = read('pages/hub/social-pages/[pageId].js');
+  const body = source.slice(source.indexOf('export async function getServerSideProps(')).replace('export async function', 'async function');
+  const run = async (data, error = null, pageId = 'the-felt-society') => {
+    const query = { select() { return this; }, eq() { return this; }, async maybeSingle() { return { data, error }; } };
+    const get = new Function('_spgssGetSupabase', `${body}; return getServerSideProps;`)(() => ({ from: () => query }));
+    return get({ params: { pageId } });
+  };
+  const publicPage = { id: '1170f414-0c80-43ea-bf06-ce3ec3680b81', slug: 'the-felt-society', name: 'The Felt Society', description: 'A poker club', avatar_url: 'https://example.com/logo.png', cover_url: null, page_type: 'club', is_public: true, owner_id: 'private-owner', secret: 'private' };
+  const result = await run(publicPage);
+  assert.equal(result.props.seoPage.name, publicPage.name);
+  assert.equal(result.props.seoPage.avatar_url, publicPage.avatar_url);
+  assert.deepEqual(Object.keys(result.props.seoPage).sort(), ['id', 'slug', 'name', 'description', 'avatar_url', 'cover_url'].sort());
+  assert.deepEqual(await run({ ...publicPage, is_public: false }), { props: {} });
+  assert.deepEqual(await run(null), { props: {} });
+  assert.deepEqual(await run(publicPage, { message: 'unavailable' }), { props: {} });
+  assert.equal((await run({ ...publicPage, page_type: 'home_game' })).redirect.destination, '/hub/home-games/the-felt-society');
+  assert.equal((await run(publicPage, null, publicPage.id)).redirect.destination, '/hub/social-pages/the-felt-society');
+  assert.match(source.slice(source.indexOf('    if (loading) {')), /<SocialPageHead page=\{seoPage\} \/>/);
+  assert.match(source, /<SocialPageHead page=\{page\} \/>/);
+});
+
+test('the venue image survives Commander normalization and image metadata describes the actual PNG', async () => {
+  const source = read('src/lib/commander/venueSeo.js');
+  const venueModule = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+  const image = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/club-logos/the-felt-society/logo-20261020.png';
+  assert.equal(venueModule.toSeoVenue({ id: 1996, name: 'The Felt Society', logo_url: image }).logo_url, image);
+  assert.match(read('pages/hub/commander/venues/[id].js'), /ogImage=\{venue.logo_url\}/);
+  const { shareImageMetadata } = await import('../src/lib/seo/shareImageMetadata.mjs');
+  assert.deepEqual(shareImageMetadata(image), { type: 'image/png', width: 1025, height: 1031 });
+  assert.deepEqual(shareImageMetadata('https://example.com/card.jpg'), { type: 'image/jpeg' });
+  assert.deepEqual(shareImageMetadata(null), { type: null });
+  const wrapper = read('src/components/seo/SEOHead.js');
+  for (const key of ['og-image-type', 'og-image-width', 'og-image-height']) assert.ok(wrapper.includes(`key="${key}"`));
+});
+
+test('Kings supplied square logo uses an absolute crawler URL and true dimensions', async () => {
+  const { absoluteShareImage, shareImageMetadata } = await import('../src/lib/seo/shareImageMetadata.mjs');
+  const path = '/hub/club-arena/images/kings-club-logo.png';
+  assert.equal(absoluteShareImage(path), `https://smarter.poker${path}`);
+  assert.equal(absoluteShareImage('https://example.com/logo.png'), 'https://example.com/logo.png');
+  assert.deepEqual(shareImageMetadata(path), { type: 'image/png', width: 1254, height: 1254 });
+  const page = read('pages/hub/social-pages/[pageId].js');
+  assert.match(page, /ogImage=\{absoluteShareImage\(page.avatar_url \|\| page.cover_url\)\}/);
+  assert.match(page, /logo: absoluteShareImage\(page.avatar_url\)/);
+  const cardExpression = page.match(/twitterCard=\{([^\n]+)\}/)?.[1];
+  assert.ok(cardExpression);
+  const card = new Function('page', 'absoluteShareImage', `return ${cardExpression}`);
+  assert.equal(card({ avatar_url: path }, absoluteShareImage), 'summary');
+  assert.equal(card({ avatar_url: `https://smarter.poker${path}` }, absoluteShareImage), 'summary');
+  assert.equal(card({ avatar_url: '/images/another-club.png' }, absoluteShareImage), 'summary_large_image');
+});
+test('legacy social share URLs redirect server-side to the identity owner', () => {
+  const source = read('pages/hub/social-media/[slug].js');
+  const body = source.slice(source.indexOf('export function getServerSideProps')).replace('export function', 'function');
+  const get = new Function(`${body}; return getServerSideProps;`)();
+  const id = 'eba7d82a-94dd-43b8-840d-1d547961174a';
+  assert.deepEqual(get({ params: { slug: id } }), { redirect: { destination: `/hub/social-pages/${id}`, permanent: true } });
+  assert.deepEqual(get({ params: {} }), { notFound: true });
+});
+test('only known club aliases use noindex brand previews before the private fallback', () => {
+  const config = read('next.config.js');
+  const catchAll = config.indexOf("source: '/hub/club-arena/:path*'");
+  for (const route of ['clubs', 'invite']) {
+    const source = `/hub/club-arena/${route}/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)/:path*`;
+    const position = config.indexOf(`source: '${source}'`);
+    assert.ok(position > -1 && position < catchAll);
+    assert.ok(config.includes(`destination: 'https://ca-static.smarter.poker/${route}/kings-club/index.html'`));
+    assert.ok(source.endsWith('/:path*'));
+  }
+});
+
+test('stats and marketplace previews require an exact Kings identity query', () => {
+  const config = read('next.config.js');
+  const blocks = [...config.matchAll(/source: '\/hub\/club-arena\/:page\(stats\|marketplace\)',\s*has: \[(.*?)\],\s*destination: '(.*?)'/gs)];
+  assert.equal(blocks.length, 3);
+  for (const key of ['club', 'clubId', 'club_id']) {
+    const block = blocks.find((match) => match[1].includes(`key: '${key}'`));
+    assert.ok(block, key);
+    assert.equal(block[2], 'https://ca-static.smarter.poker/clubs/kings-club/index.html');
+    const value = block[1].match(/value: '(.*?)'/)[1];
+    const match = new RegExp(`^${value}$`);
+    for (const id of ['kings-club', 'shark-club', '25450', 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4']) assert.ok(match.test(id));
+    for (const id of ['other-club', '254500', 'prefix-kings-club', '']) assert.equal(match.test(id), false);
+  }
+});

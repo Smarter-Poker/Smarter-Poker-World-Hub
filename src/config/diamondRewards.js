@@ -492,17 +492,17 @@ export const REWARDS = {
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // REFERRAL — separate budget line, exempt from the daily cap, but hard
-  // capped at 10 qualified referrals per month (2,500 ◆ = $25 max exposure).
+  // REFERRAL: separate budget line, exempt from the daily cap. Dan,
+  // 2026-10-17: "PAY OUT DIAMONDS FOR ALL REFERRALS" - every referral pays
+  // when the new player confirms their email (fn_settle_signup_referral).
   // ─────────────────────────────────────────────────────────────────────────
   referral_qualified: {
     key: 'referral_qualified',
-    label: 'Qualified Referral',
+    label: 'Referral',
     description:
-      'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 Diamonds to you, 100 Diamonds to them, up to 20 qualified referrals per month.',
+      'A player you referred confirmed their email. 500 Diamonds to you, 100 Diamonds to them.',
     diamonds: 500,
     maxPerDay: null, // Preserve the existing live catalog; restoration does not roll back reward data.
-    monthlyMax: 20,
     category: 'referral',
     countsTowardDailyCap: false,
     lifetime: false,
@@ -511,7 +511,7 @@ export const REWARDS = {
     gate: 'free',
     serverOnly: true,
     verifyNote:
-      'p_target_id is the referee user id. Qualification is decided server-side (verified email + real activity + distinct device/IP), never by the referrer.',
+      'p_target_id is the referee user id. Paid by fn_settle_signup_referral when the referee confirms their email; the referrer comes from the referee\'s own sign-up record, never from a request.',
   },
 
   referral_referee: {
@@ -779,7 +779,6 @@ export const REFERRAL = {
   referrer: 500,
   referee: 100,
   vipConversionBonus: 500,
-  maxQualifiedPerMonth: 20,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

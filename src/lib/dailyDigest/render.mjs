@@ -243,12 +243,21 @@ const SECTION_DEFS = [
     },
 ];
 
+// Dan, 2026-10-26: the digest must read in one screen. A value cell used to be
+// white-space:nowrap as a whole, sub-line included, so one long value (an
+// 886-character name list) or a long grey sub-line forced the 600px card to
+// 6,300px and Gmail stretched every label away from its number. Short values
+// stay on one line; long values and every sub-line wrap inside the card.
+const NOWRAP_VALUE_MAX = 28;
+
 function rowHtml(label, valueHtml, sub, red, quiet) {
     const vColor = red ? C.red : quiet ? C.muted : C.text;
+    const plainLen = String(valueHtml ?? '').replace(/<[^>]*>/g, '').length;
+    const valueWrap = plainLen <= NOWRAP_VALUE_MAX ? 'white-space:nowrap;' : 'white-space:normal;word-break:break-word;';
     return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;">${esc(label)}</td>`
-        + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;white-space:nowrap;">`
-        + `<span style="color:${vColor};font-weight:700;font-size:14px;">${valueHtml}</span>`
-        + (sub ? `<div style="color:${C.muted};font-size:11px;margin-top:2px;">${esc(sub)}</div>` : '')
+        + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;">`
+        + `<span style="color:${vColor};font-weight:700;font-size:14px;${valueWrap}">${valueHtml}</span>`
+        + (sub ? `<div style="color:${C.muted};font-size:11px;margin-top:2px;white-space:normal;word-break:break-word;">${esc(sub)}</div>` : '')
         + `</td></tr>`;
 }
 
@@ -308,7 +317,7 @@ export function shortTitle(title, max = 260) {
     return `${(at > 40 ? cut.slice(0, at) : cut.slice(0, cut.lastIndexOf(' '))).trim()} and more`;
 }
 
-const STATUS_LABEL = { fixed: 'Fixed Overnight', in_progress: 'Being Fixed', not_picked_up: 'Not Yet Picked Up', tracked: 'Already In The Fleet Queue' };
+const STATUS_LABEL = { fixed: 'Resolved Or Reviewed', in_progress: 'Under Investigation', not_picked_up: 'Not Yet Picked Up', tracked: 'Recorded Alert; Assignment Unconfirmed' };
 
 export function attentionHtml(digest) {
     const items = digest.attention || [];
@@ -317,7 +326,7 @@ export function attentionHtml(digest) {
     }
     const s = digest.attention_status || {};
     const head = `<div style="color:${C.red};font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px;">Needs Your Attention (${items.length})</div>`
-        + `<div style="color:${C.muted};font-size:12px;margin-bottom:10px;">Every item below is with the alert-fixing fleet. ${fmtInt(s.fixed)} fixed overnight, ${fmtInt(s.in_progress)} being fixed, ${fmtInt(s.not_picked_up)} not yet picked up, ${fmtInt(s.tracked)} already in the fleet queue from their own alerts.</div>`;
+        + `<div style="color:${C.muted};font-size:12px;margin-bottom:10px;">Alert records show ${fmtInt(s.fixed)} resolved or reviewed, ${fmtInt(s.in_progress)} under investigation, ${fmtInt(s.not_picked_up)} not yet picked up, and ${fmtInt(s.tracked)} recorded without confirmed assignment. Recording an alert does not confirm that a repair is underway.</div>`;
     const list = items
         .map((it) => {
             const color = it.severity === 'critical' ? C.red : C.amber;
@@ -363,6 +372,9 @@ export function buildHtml(digest, opts = {}) {
         ['Real Player Signups', fmtInt(mtd.signups), `${fmtInt(mtd.days)} days recorded this month`],
         ['Horse Net Result (BB)', fmtNum(mtd.horse_net_bb), 'House exposure through the horse fleet'],
     ]);
+
+    body += playerTotalsCard(digest);
+    body += horseRosterCard(digest);
 
     if (digest.week) {
         const w = digest.week;
@@ -417,6 +429,7 @@ export function buildHtml(digest, opts = {}) {
         + `<tr><td style="color:${C.teal};font-size:18px;font-weight:800;letter-spacing:3px;">SMARTER.POKER</td></tr>`
         + `<tr><td style="padding:18px 0 6px 0;color:#ffffff;font-size:22px;font-weight:800;">Daily Operations Digest</td></tr>`
         + `<tr><td style="padding:0 0 18px 0;color:${C.text};font-size:14px;">Hi ${esc(name)}, here is the platform snapshot for ${esc(digest.day_label || digest.day)} (Central).</td></tr>`
+        + (viewUrl ? `<tr><td style="padding:0 0 10px 0;">${viewUrl}</td></tr>` : '')
         + body + buttons + footer
         + `</table></td></tr></table></td></tr></table></body></html>`;
 }
@@ -439,6 +452,147 @@ function funnelCard(m) {
         ret('d7', 'Day 7 Retention'),
         ret('d30', 'Day 30 Retention'),
     ]);
+}
+
+/**
+ * The horse roster (Dan 2026-10-23): the 35 to 50 horses that are the only ones
+ * at cash, sized to the live cash floor, and the PLO list inside it. Comes from
+ * fn_ca_horse_roster_digest via fn_sp_daily_digest's 'horse_roster' key.
+ */
+export function horseRosterRows(digest) {
+    const r = digest && digest.horse_roster;
+    if (!r || !Array.isArray(r.members)) return [];
+    const names = (a) => (Array.isArray(a) && a.length ? a.join(', ') : 'None');
+    const rows = [
+        ['Horses At Cash', fmtInt(r.size), `Sized to ${fmtInt(r.demand)} live cash games (held between 35 and 50), ${fmtInt(r.refreshes_today)} refreshes that day`],
+        ['PLO List', fmtInt(r.plo_count), 'At least 5,000 PLO hands and 1.0 BB/100 over 30 days'],
+        ['Added To The Roster', names(r.added), ''],
+        ['Dropped From The Roster', names(r.dropped), ''],
+        ['Added To The PLO List', names(r.plo_added), ''],
+        ['Dropped From The PLO List', names(r.plo_dropped), ''],
+    ];
+    for (const m of r.members) {
+        const plo = m.plo ? `, PLO ${fmtNum(m.plo_bb100)} BB/100` : '';
+        rows.push([`${fmtInt(m.rank)}. ${m.name || 'Unknown'}`, `${fmtNum(m.bb100)} BB/100`, `${fmtInt(m.hands)} cash hands in 30 days${plo}`]);
+    }
+    return rows;
+}
+
+function horseRosterCard(digest) {
+    return listCard('Horse Roster', horseRosterRows(digest));
+}
+
+/** +1,234.5 / -60 / 0: a player's result with its sign. */
+export function fmtSigned(v) {
+    const n = num(v) ?? 0;
+    if (Math.abs(n) < 0.005) return '0';
+    return `${n > 0 ? '+' : '-'}${fmtNum(Math.abs(n))}`;
+}
+
+/** 822 minutes -> 13h 42m; 45 -> 45m. */
+export function fmtMinutes(v) {
+    const m = Math.max(0, Math.round(num(v) ?? 0));
+    if (m < 60) return `${m}m`;
+    return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+}
+
+function gameLabel(g) {
+    if (g.kind === 'tournament') {
+        const times = Number(g.entries) > 1 ? ` x${fmtInt(g.entries)}` : '';
+        return `${g.label || 'Tournament'}${g.type ? ` (${g.type})` : ''}${times}`;
+    }
+    if (g.kind === 'diamond_arena') return `Diamond Arena ${g.label || ''} (Diamonds)`.trim();
+    return `${g.label || 'Other'} Cash`;
+}
+
+/**
+ * Real Player Totals (Dan 2026-10-25): what every real player did that Central
+ * day. Comes from fn_sp_digest_player_totals (Club Arena migration
+ * 20261026033215) as digest.player_totals. Returns the summary rows and one
+ * block per player: their day, their balances, then every game they played.
+ */
+export function playerTotalsRows(digest) {
+    const p = digest && digest.player_totals;
+    if (!p) return null;
+    if (p.error) return { error: String(p.error), summary: [], players: [] };
+    const t = p.totals || {};
+    const players = Array.isArray(p.players) ? p.players : [];
+    const summary = [
+        ['Real Players Who Played', fmtInt(t.players), `${fmtInt(t.hands)} hands, ${fmtMinutes(t.minutes)} played in all`],
+        ['Players Won / Lost (Chips)', fmtSigned(t.net), `Cash games ${fmtSigned(t.cash_net)}, tournaments ${fmtSigned(t.tournament_net)}`],
+        ['Rake Paid - Cash Games', fmtNum(t.cash_rake), ''],
+        ['Rake Paid - Tournaments', fmtNum(t.tournament_rake), ''],
+        ['Rake Paid - Total', fmtNum((Number(t.cash_rake) || 0) + (Number(t.tournament_rake) || 0)), ''],
+        ['Chip Wallets At End Of Day', fmtNum(t.wallet_end), 'All of these players together'],
+    ];
+    if (Number(t.diamond_arena_net) || Number(t.diamond_arena_rake)) {
+        summary.push(['Diamond Arena Won / Lost (Diamonds)', fmtSigned(t.diamond_arena_net), `Rake ${fmtNum(t.diamond_arena_rake)} diamonds, not in the chip totals`]);
+    }
+    return {
+        error: null,
+        summary,
+        players: players.map((x) => ({
+            name: x.username || 'Unknown',
+            net: num(x.net) ?? 0,
+            head: `${fmtMinutes(x.minutes)} played, ${fmtInt(x.hands)} hands`,
+            rows: [
+                ['Won / Lost', fmtSigned(x.net), `Cash games ${fmtSigned(x.cash_net)}, tournaments ${fmtSigned(x.tournament_net)}`],
+                ['Rake Paid', fmtNum((Number(x.cash_rake) || 0) + (Number(x.tournament_rake) || 0)), `Cash games ${fmtNum(x.cash_rake)}, tournaments ${fmtNum(x.tournament_rake)}`],
+                ['Balances At End Of Day', `${fmtNum(x.wallet_end)} chips`, `${fmtInt(x.diamonds_end)} diamonds`],
+                ...(Array.isArray(x.games) ? x.games : []).map((g) => [
+                    gameLabel(g),
+                    fmtSigned(g.net),
+                    `${fmtInt(g.hands)} hands, ${fmtMinutes(g.minutes)}, rake ${fmtNum(g.rake)}`,
+                ]),
+            ],
+            gamesFrom: 3,
+        })),
+    };
+}
+
+function signedColor(v) {
+    const n = Number(String(v).replace(/,/g, ''));
+    if (!Number.isFinite(n) || n === 0) return C.text;
+    return n > 0 ? C.green : C.text;
+}
+
+function playerTotalsCard(digest) {
+    const r = playerTotalsRows(digest);
+    if (!r) return '';
+    let html = cardOpen('Real Player Totals');
+    if (r.error) {
+        html += rowHtml('Player totals could not be built', '', r.error.slice(0, 200), true, false);
+        return html + cardClose;
+    }
+    for (const [label, value, sub] of r.summary) html += rowHtml(label, `<span style="color:${label.includes('Won / Lost') ? signedColor(value) : C.text};">${esc(value)}</span>`, sub, false, false);
+    if (!r.players.length) html += rowHtml('No real player played a hand or a tournament', '', '', false, true);
+    html += cardClose;
+    for (const pl of r.players) {
+        html += `<tr><td style="padding:14px 0 6px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
+        html += `<tr><td style="padding:10px 14px;color:#ffffff;font-size:15px;font-weight:800;">${esc(pl.name)}<div style="color:${C.muted};font-size:11px;font-weight:400;margin-top:2px;">${esc(pl.head)}</div></td>`
+            + `<td style="padding:10px 14px;text-align:right;white-space:nowrap;font-size:15px;font-weight:800;color:${signedColor(pl.net)};">${esc(fmtSigned(pl.net))}</td></tr>`;
+        pl.rows.forEach(([label, value, sub], i) => {
+            const isGame = i >= pl.gamesFrom;
+            const shown = isGame || i === 0 ? `<span style="color:${signedColor(value)};">${esc(value)}</span>` : esc(value);
+            html += rowHtml(isGame ? `- ${label}` : label, shown, sub, false, false);
+        });
+        html += '</table></td></tr>';
+    }
+    return html;
+}
+
+function playerTotalsText(digest) {
+    const r = playerTotalsRows(digest);
+    if (!r) return [];
+    const lines = ['', 'REAL PLAYER TOTALS'];
+    if (r.error) return [...lines, `Player totals could not be built: ${r.error.slice(0, 200)}`];
+    for (const [label, value, sub] of r.summary) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    for (const pl of r.players) {
+        lines.push('');
+        lines.push(`${pl.name}: ${fmtSigned(pl.net)}  (${pl.head})`);
+        pl.rows.forEach(([label, value, sub], i) => lines.push(`  ${i >= pl.gamesFrom ? '- ' : ''}${label}: ${value}${sub ? `  (${sub})` : ''}`));
+    }
+    return lines;
 }
 
 function topListCard(title, arr, map) {
@@ -466,6 +620,7 @@ export function buildText(digest, opts = {}) {
     const lines = [];
     lines.push('SMARTER.POKER - DAILY OPERATIONS DIGEST');
     lines.push(`${digest.day_label || digest.day} (Central)`);
+    if (opts.viewUrl) lines.push(`View online: ${opts.viewUrl}`);
     lines.push('');
     if (opts.aiSummary) {
         lines.push(opts.aiSummary);
@@ -473,7 +628,14 @@ export function buildText(digest, opts = {}) {
     }
     const items = digest.attention || [];
     lines.push(items.length ? `NEEDS YOUR ATTENTION (${items.length})` : 'Nothing needs your attention.');
-    for (const it of items) lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]`);
+    for (const it of items) lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
+    lines.push(...playerTotalsText(digest));
+    const roster = horseRosterRows(digest);
+    if (roster.length) {
+        lines.push('');
+        lines.push('HORSE ROSTER');
+        for (const [label, value, sub] of roster) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    }
     for (const def of SECTION_DEFS) {
         lines.push('');
         lines.push(def.title.toUpperCase());
@@ -482,7 +644,6 @@ export function buildText(digest, opts = {}) {
     }
     lines.push('');
     lines.push(`Admin dashboard: ${opts.dashboardUrl || 'https://smarter.poker/admin'}`);
-    if (opts.viewUrl) lines.push(`View online: ${opts.viewUrl}`);
     return lines.join('\n');
 }
 
@@ -510,7 +671,7 @@ export function allowedNumbers(digest, extra = []) {
     extra.forEach(add);
     // counts the email states (attention items, status buckets) and the 7 of "7 day"
     add((digest.attention || []).length);
-    add(7); add(24); add(30);
+    add(7); add(24); add(30); add(35); add(50); add(5000); add(1);
     return set;
 }
 

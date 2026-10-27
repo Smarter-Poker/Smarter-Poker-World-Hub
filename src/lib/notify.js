@@ -254,7 +254,7 @@ export async function notify(supabase, args = {}) {
 // PepNationLab order/commission helpers.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function notifyNewMessage(supabase, recipientId, senderName, preview, conversationId, senderAvatarUrl) {
+export function notifyNewMessage(supabase, recipientId, senderName, preview, conversationId, senderAvatarUrl, senderId) {
     return notify(supabase, {
         userId: recipientId,
         type: 'new_message',
@@ -267,7 +267,14 @@ export function notifyNewMessage(supabase, recipientId, senderName, preview, con
         // notification tells you nothing. Falls back to the default icon when
         // the profile has no avatar.
         icon: senderAvatarUrl || undefined,
-        data: { conversationId },
+        // The sender is the actor. Recording it (actor_id plus senderId in
+        // data) lets the bell and the feed show who wrote; the photo comes
+        // from the actor's profile, which the feed already joins.
+        actorId: senderId || undefined,
+        data: {
+            conversationId,
+            ...(senderId ? { senderId } : {}),
+        },
     });
 }
 

@@ -1054,6 +1054,13 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                                                 {timeAgo(n.created_at)}
                                             </div>
 
+                                            {n.operationalResolution && n.operationalResolution.status !== 'resolved' && (
+                                                <div data-alert-status={n.operationalResolution.status}
+                                                    style={{ fontSize: 12, marginTop: 4, color: n.operationalResolution.status === 'resolved' ? C.green : C.textSec }}>
+                                                    {n.operationalResolution.status === 'resolved' ? 'Resolved' : n.operationalResolution.status === 'open' ? 'Open' : 'Status Unavailable'}
+                                                </div>
+                                            )}
+
                                             {/* Accept/Decline buttons for friend requests */}
                                             {n.type === 'friend_request' && !n.handled && (
                                                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>

@@ -5,6 +5,8 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { deriveInputIdentity, run, validateConfig } from '../scripts/ci/approve-horse-v31-inputs.mjs';
 
 const env = { GITHUB_REF: 'refs/heads/main', GITHUB_RUN_ATTEMPT: '1',
@@ -12,6 +14,31 @@ const env = { GITHUB_REF: 'refs/heads/main', GITHUB_RUN_ATTEMPT: '1',
   NEXT_PUBLIC_SUPABASE_URL: 'https://kuklfnapbkmacvwxktbh.supabase.co',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon', TEST_USER_EMAIL: 'test@example.invalid',
   TEST_USER_PASSWORD: 'test-only', V31_RECEIPT: '/test/receipt.json' };
+
+test('protected workflow receipt staging preserves exact bytes and refuses arbitrary sources', async () => {
+  const workflow = readFileSync(new URL('../.github/workflows/approve-horse-v31-inputs.yml', import.meta.url), 'utf8');
+  const program = workflow.split("python3 - <<'PY'\n")[1].split('\n          PY')[0]
+    .split('\n').map(line => line.replace(/^          /, '')).join('\n');
+  const folder = await mkdtemp(join(tmpdir(), 'v31-staging-'));
+  try {
+    await mkdir(join(folder, '.github/horse-v31-inputs'), { recursive: true });
+    const bytes = Buffer.from('{"exact":"receipt"}\n');
+    await writeFile(join(folder, '.github/horse-v31-inputs/test.json'), bytes);
+    const stage = approvalPath => spawnSync('python3', ['-c', program], {
+      cwd: folder, env: { ...process.env, APPROVAL_PATH: approvalPath }, encoding: 'utf8',
+    });
+    assert.equal(stage('.agent/v31-inputs/test.json').status, 0);
+    assert.deepEqual(await readFile(join(folder, '.agent/v31-inputs/test.json')), bytes);
+    await writeFile(join(folder, '.github/horse-v31-inputs/test.json'), 'different');
+    assert.equal(stage('.agent/v31-inputs/test.json').status, 0);
+    assert.deepEqual(await readFile(join(folder, '.agent/v31-inputs/test.json')), bytes);
+    for (const path of ['../../other.json', '.agent/v31-inputs/../x.json', '.agent/v31-inputs/missing.json']) {
+      assert.notEqual(stage(path).status, 0);
+    }
+  } finally {
+    await rm(folder, { recursive: true });
+  }
+});
 
 test('qualify requires existing configured identity and protected dispatch', () => {
   validateConfig(env);

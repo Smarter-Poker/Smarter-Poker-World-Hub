@@ -299,9 +299,12 @@ test('Auth duplicate responses are recovered without treating unrelated database
 test('signup shows existing-account recovery for both Auth response shapes, keeps new signups on OTP, and preserves referral when signing in', async () => {
     const { createRequire } = await import('node:module');
     const { default: vm } = await import('node:vm');
-    const { isExistingSignup } = await import('../src/lib/signupOutcome.mjs');
+    const signupOutcome = await import('../src/lib/signupOutcome.mjs');
+    const { isExistingSignup } = signupOutcome;
     const { isEmailVerificationCode } = await import('../src/lib/signupExperience.mjs');
     const { authSwitchHref } = await import('../src/lib/clubInvite.js');
+    const pendingSignupCodes = await import('../src/lib/pendingSignupCodes.mjs');
+    const authErrors = await import('../src/lib/authErrors.js');
     const require = createRequire(import.meta.url), ts = require('typescript'), React = require('react');
     const { create, act } = require('react-test-renderer');
     for (const result of [
@@ -309,7 +312,7 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
         { data: { user: null, session: null }, error: { code: 'user_already_exists', message: 'User already registered' } },
         { data: { user: { id: 'local-new-user', identities: [{ provider: 'email' }] }, session: null }, error: null },
     ]) {
-        const mod = { exports: {} }, routes = [], stored = new Map(), writes = [];
+        const mod = { exports: {} }, routes = [], stored = new Map(), writes = [], reported = [];
         vm.runInNewContext(ts.transpileModule(read('pages/auth/signup.js'), {
             compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
         }).outputText, {
@@ -319,16 +322,18 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
             localStorage: { setItem: (...args) => writes.push(args) },
             require: name => {
                 if (name === 'react') return { ...React, useEffect: () => {}, useState: initial => React.useState(initial?.firstName === '' ? {
-                    ...initial, firstName: 'Signup', lastName: 'Test', email: 'PLAYER@example.invalid', password: 'Local-Only-Test-Password', pokerAlias: 'SignupTest', birthMonth: '01', birthDay: '01', birthYear: '1990',
+                    ...initial, firstName: 'Signup', lastName: 'Test', email: 'PLAYER@example.invalid', password: 'Local-Only-Test-Password', pokerAlias: 'SignupTest', birthMonth: '01', birthDay: '01', birthYear: '1990', city: 'Chicago', state: 'IL',
                 } : initial) };
                 if (name === 'react/jsx-runtime' || name === 'lucide-react') return require(name);
                 if (name === 'next/router') return { useRouter: () => ({ query: { ref: '1253', invite: 'ABC2345', redirect: '/hub/club-arena/invite/shark-club' }, push: href => routes.push(href) }) };
                 if (name.endsWith('/ExistingAccountDialog')) return { default: ({ open, onSignIn, onClose }) => open ? React.createElement('div', { role: 'alertdialog' }, React.createElement('h2', null, 'You Already Have An Account'), React.createElement('button', { onClick: onSignIn }, 'Sign In'), React.createElement('button', { onClick: onClose }, 'Use A Different Email')) : null };
                 if (name.endsWith('/SEOHead') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
-                if (name.endsWith('/signupOutcome.mjs')) return { isExistingSignup };
+                if (name.endsWith('/signupOutcome.mjs')) return signupOutcome;
                 if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
                 if (name.endsWith('/clubInvite')) return { authSwitchHref, readPendingInvite: () => null, safeClubArenaPath: () => null };
                 if (name.endsWith('/passwordStrength')) return { validatePassword: async () => ({ ok: true }) };
+                if (name.endsWith('/pendingSignupCodes.mjs')) return pendingSignupCodes;
+                if (name.endsWith('/authErrors')) return { ...authErrors, reportAuthError: (...args) => reported.push(args) };
                 if (name.endsWith('/supabase')) return { supabase: { auth: { signUp: async () => result } } };
                 return {};
             },
@@ -338,6 +343,7 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
         await act(async () => { tree.root.findAllByProps({ type: 'checkbox' })[0].props.onChange({ target: { checked: true } }); });
         await act(async () => { await tree.root.findAllByType('form')[0].props.onSubmit({ preventDefault() {} }); });
         const duplicate = isExistingSignup(result.data, result.error);
+        assert.deepEqual(reported, [], 'a signup submit must not report an auth error');
         assert.equal(tree.root.findAllByProps({ role: 'alertdialog' }).length, duplicate ? 1 : 0);
         assert.equal(tree.root.findAllByProps({ id: 'signup-email-code' }).length, duplicate ? 0 : 1);
         if (duplicate) {

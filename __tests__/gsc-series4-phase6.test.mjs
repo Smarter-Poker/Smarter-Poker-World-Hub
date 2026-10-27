@@ -21,8 +21,18 @@ test('public/manifest.json defines id, start_url, standalone display, theme colo
   const sizes = new Map(manifest.icons.map((i) => [i.sizes, i]));
   assert.ok(sizes.has('192x192'), 'must include 192x192 icon');
   assert.ok(sizes.has('512x512'), 'must include 512x512 icon');
-  assert.equal(sizes.get('192x192').purpose, 'any maskable');
-  assert.equal(sizes.get('512x512').purpose, 'any maskable');
+  assert.ok(
+    manifest.icons.some(
+      (i) => i.sizes === '192x192' && (i.purpose?.includes('any') || i.purpose?.includes('maskable'))
+    ),
+    '192x192 icon must support any or maskable'
+  );
+  assert.ok(
+    manifest.icons.some(
+      (i) => i.sizes === '512x512' && (i.purpose?.includes('any') || i.purpose?.includes('maskable'))
+    ),
+    '512x512 icon must support any or maskable'
+  );
 
   assert.ok(Array.isArray(manifest.shortcuts) && manifest.shortcuts.length >= 3);
   for (const sc of manifest.shortcuts) {

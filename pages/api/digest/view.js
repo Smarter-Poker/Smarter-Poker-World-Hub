@@ -10,6 +10,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { verifyViewToken, viewUrlFor } from '../../../src/lib/dailyDigest/delivery.mjs';
 import { buildHtml } from '../../../src/lib/dailyDigest/render.mjs';
+import { loadPlayerTotals } from '../../../src/lib/dailyDigest/assemble.mjs';
 
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
@@ -24,10 +25,12 @@ export default async function handler(req, res) {
     if (!url || !key) return res.status(500).send('Not configured');
     const sb = createClient(url, key, { auth: { persistSession: false } });
 
-    const [{ data: digest, error }] = await Promise.all([
+    const [{ data: digest, error }, playerTotals] = await Promise.all([
         sb.rpc('fn_sp_daily_digest', { p_day: day, p_dispatch: false }),
+        loadPlayerTotals(sb, day),
     ]);
     if (error || !digest) return res.status(500).send('The digest could not be loaded.');
+    if (playerTotals) digest.player_totals = playerTotals;
 
     const html = buildHtml(digest, { viewUrl: viewUrlFor(day), dashboardUrl: 'https://smarter.poker/admin' });
     res.setHeader('Content-Type', 'text/html; charset=utf-8');

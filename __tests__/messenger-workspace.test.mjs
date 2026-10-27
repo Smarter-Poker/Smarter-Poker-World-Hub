@@ -323,3 +323,72 @@ test('dock inbox refresh retains authoritative relationship labels without chang
  const result=await getMessengerWorkspace(db,ids.user,{workspace:'dock'});
  assert.equal(result.conversations.find(row=>row.id===ids.social).relationshipTags[0].label,'Your Agent In First Club');assert.equal(labels,1);
 });
+test('a promoted staff member sees their empty native Notice Board group without a synthetic post',async()=>{
+ const {db,tables}=fixture();
+ const group='00000000-0000-4000-8000-000000000990';
+ tables.club_messenger_staff_notice_groups=[{club_id:ids.club,conversation_id:group}];
+ tables.social_conversations.push({id:group,is_request:false,group_name:'First Club - Notice Board'});
+ tables.social_conversation_participants.push({conversation_id:group,user_id:ids.user,context_entity_id:null});
+ const result=await getMessengerWorkspace(db,ids.user,{workspace:'social'});
+ assert.equal(result.conversations.find(c=>c.id===group)?.title,'First Club - Notice Board');
+ tables.social_conversation_participants=tables.social_conversation_participants.filter(p=>p.conversation_id!==group);
+ const revoked=await getMessengerWorkspace(db,ids.user,{workspace:'social'});
+ assert.ok(!revoked.conversations.some(c=>c.id===group));
+});
+
+// Owner rule 2026-10-24: no "Unknown" threads, unread always on top.
+function withInbox(rows) {
+    const made = fixture();
+    const original = made.db.rpc.bind(made.db);
+    made.db.rpc = async (name, args) => {
+        if (name === 'fn_messenger_club_relationships') return { data: [], error: null };
+        return name === 'fn_get_user_conversations' && !args.p_context_entity_id
+            ? { data: rows, error: null } : original(name, args);
+    };
+    made.tables.social_conversations.push(...rows.filter(r => !made.tables.social_conversations.some(c => c.id === r.conversation_id))
+        .map(r => ({ id: r.conversation_id, group_name: null, is_request: false })));
+    return made;
+}
+const orphanId = '30000000-0000-4000-8000-000000000009';
+const namedId = '30000000-0000-4000-8000-000000000008';
+const unreadId = '30000000-0000-4000-8000-000000000007';
+test('a one-to-one thread whose other account was deleted is neither listed nor counted', async () => {
+    const { db } = withInbox([
+        { conversation_id: orphanId, is_group: false, unread_count: 2, last_message_at: '2026-10-24T19:30:00Z', other_user_id: null, other_user_username: null },
+        { conversation_id: namedId, is_group: false, unread_count: 0, last_message_at: '2026-10-20T00:00:00Z', other_user_id: ids.other, other_user_username: 'Player #1250' },
+    ]);
+    const r = await getMessengerWorkspace(db, ids.user, { workspace: 'social' });
+    assert.deepEqual(r.conversations.map(c => c.id), [namedId]);
+    assert.equal(r.unreadCounts.messages, 0);
+});
+test('the global dock lists unread threads first, then by recency', async () => {
+    const { db } = withInbox([
+        { conversation_id: namedId, is_group: false, unread_count: 0, last_message_at: '2026-10-24T00:00:00Z', other_user_id: ids.other, other_user_username: 'Newest Read' },
+        { conversation_id: unreadId, is_group: false, unread_count: 1, last_message_at: '2026-10-01T00:00:00Z', other_user_id: ids.other, other_user_username: 'Older Unread' },
+    ]);
+    const r = await getMessengerWorkspace(db, ids.user, { workspace: 'dock' });
+    assert.equal(r.conversations[0].id, unreadId);
+});
+
+
+test('main feed surfaces every authorized unread workspace and keeps read social history', async () => {
+    const { db, tables } = fixture();
+    tables.unread_counts = { [ids.social]: 0, [ids.chat]: 2, [ids.invoice]: 1 };
+    const result = await getMessengerWorkspace(db, ids.user, { workspace: 'feed' });
+    assert.deepEqual(result.conversations.map(c => c.id), [ids.chat, ids.invoice, ids.social]);
+    assert.equal(result.conversations[0].unreadCount, 2);
+    assert.equal(result.conversations[0].dockWorkspace.clubId, ids.club);
+    tables.unread_counts[ids.chat] = 0;
+    tables.unread_counts[ids.invoice] = 0;
+    tables.accounting_conversations[0].requires_action = true;
+    assert.deepEqual((await getMessengerWorkspace(db, ids.user, { workspace: 'feed' })).conversations.map(c => c.id), [ids.social]);
+});
+
+test('main feed respects revoked memberships and hidden private invoices', async () => {
+    const revoked = fixture({ member: false });
+    assert.deepEqual((await getMessengerWorkspace(revoked.db, ids.user, { workspace: 'feed' })).conversations.map(c => c.id), [ids.social]);
+    const hidden = fixture();
+    hidden.tables.accounting_conversations[0].recipient_visible = false;
+    assert.deepEqual(new Set((await getMessengerWorkspace(hidden.db, ids.user, { workspace: 'feed' })).conversations.map(c => c.id)), new Set([ids.social, ids.chat]));
+    await assert.rejects(getMessengerWorkspace(fixture({ broken: 'visibility' }).db, ids.user, { workspace: 'feed' }), e => e.status === 503);
+});

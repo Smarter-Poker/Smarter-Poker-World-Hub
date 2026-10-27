@@ -21,6 +21,12 @@ CHIPS_PER_BB = 100
 GAME_TYPE = "6max_cash"
 STACK_BB = 100
 GEOMETRY_TAG = tree_gen.GEOMETRY_TAG
+SOLVER_RUNTIME_PROFILE = {
+    "schema": "piosolver.runtime-profile.v1",
+    "algorithm": "original_pio",
+    "strategy_storage": "float16",
+    "memory_check": "required",
+}
 COMBO_ORDER = "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
 SOURCE_COMBO_ORDER_SCHEMA = "piosolver.show_hand_order.v1"
 CARD_PATTERN = re.compile(r"^[2-9TJQKA][cdhs]$")
@@ -254,11 +260,14 @@ def build_setup_commands(board, oop_weights, ip_weights, pot=550, eff=9750,
     if not isinstance(rake, str) or not RAKE_PATTERN.fullmatch(rake):
         raise ValueError("rake must be canonical Pio fraction and integer cap")
     cmds = [
+        "free_tree",  # Release the reference tree before the bounded target build.
         "set_pot 0 0 %d" % pot,           # machine: use its exact pot/eff command names
         "set_eff_stack %d" % eff,
         "set_board %s" % board,
         "set_range OOP %s" % oop_weights,
         "set_range IP %s" % ip_weights,
+        "set_algorithm original_pio",
+        "small_strats on",
         "set_isomorphism 1 0",
         "clear_lines",
     ]
@@ -310,21 +319,42 @@ def parse_strategy(raw, action_codes):
             numeric.append(values)
     if len(numeric) != len(action_codes):
         raise ValueError("strategy lines %d != actions %d" % (len(numeric), len(action_codes)))
-    return {code: numeric[i] for i, code in enumerate(action_codes)}
+    frequencies = {code: numeric[i] for i, code in enumerate(action_codes)}
+    # Float16 strategy storage can accumulate a small probability-sum drift.
+    # Accept at most one half-precision spacing below 1 per action, then
+    # normalize the ratios before the unchanged strict catalog validation.
+    # Zero-mass hands remain zero; large errors never become valid strategies.
+    rounding_bound = len(action_codes) * (2 ** -11)
+    for hand in range(1326):
+        total = math.fsum(frequencies[code][hand] for code in action_codes)
+        if total == 0:
+            continue
+        if abs(total - 1.0) > rounding_bound:
+            raise ValueError("strategy sum exceeds float16 rounding bound")
+        for code in action_codes:
+            frequencies[code][hand] /= total
+    return frequencies
 
 
 def parse_ev_array0(raw):
-    """calc_ev output: first long numeric line = per-hand EV (Array 0), in chips."""
-    for ln in raw.splitlines():
-        parts = ln.split()
+    """Return EV chips, treating non-finite zero-matchup markers as absent."""
+    vectors = []
+    for line in raw.splitlines():
+        parts = line.split()
         if len(parts) >= 1000:
-            values = [float(x) for x in parts]
+            values = [float(value) for value in parts]
             if len(values) != 1326:
-                raise ValueError("EV vector must contain exactly 1326 values")
-            if any(not math.isfinite(value) and not math.isnan(value) for value in values):
-                raise ValueError("EV vector contains an infinite value")
-            return values
-    raise ValueError("no 1326-length EV array found in calc_ev output")
+                raise ValueError("EV and matchup vectors must contain exactly 1326 values")
+            vectors.append(values)
+    if len(vectors) != 2:
+        raise ValueError("calc_ev must return exact EV and matchup vectors")
+    evs, matchups = vectors
+    if any(not math.isfinite(weight) or weight < 0 for weight in matchups):
+        raise ValueError("calc_ev matchup vector contains an invalid weight")
+    if any(not math.isfinite(value) and weight > 0
+           for value, weight in zip(evs, matchups)):
+        raise ValueError("calc_ev contains a non-finite live EV")
+    return [value if math.isfinite(value) else math.nan for value in evs]
 
 
 def action_meta(code, facing_wager=False):
@@ -430,6 +460,7 @@ def harvest_node(pio, node, player, board, position, oop_player, ip_player,
         "source_combo_order_sha256": source_combo_order_sha256,
         "training_game_contracts_sha256": training_game_contracts_sha256,
         "tree_geometry": GEOMETRY_TAG, "solver": "PioSOLVER",
+        "solver_runtime_profile": dict(SOLVER_RUNTIME_PROFILE),
     }
     prefix = "" if resolved_street == "flop" else resolved_street + "_"
     scenario_hash = scenario_hash_for(

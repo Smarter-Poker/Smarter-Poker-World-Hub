@@ -644,7 +644,7 @@ export default function ManageSocialPage() {
                                                         setSlugError('Must be at least 3 characters');
                                                     }
                                                 }}
-                                                placeholder="clubjaqk"
+                                                placeholder="The-Felt-Society"
                                                 style={{
                                                     flex: 1, padding: '10px 12px', border: 'none', fontSize: 14,
                                                     fontFamily: 'inherit', outline: 'none', background: 'transparent',

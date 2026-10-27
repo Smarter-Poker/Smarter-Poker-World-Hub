@@ -709,6 +709,13 @@ const nextConfig = {
       ),
     });
 
+    // Opt-in compression keeps private SSD qualification builds bounded.
+    // Vercel and development retain Next's existing filesystem-cache settings.
+    if (!dev && !process.env.VERCEL && process.env.SMARTER_COMPRESS_LOCAL_BUILD_CACHE === '1'
+      && config.cache && typeof config.cache === 'object' && config.cache.type === 'filesystem') {
+      config.cache.compression = 'gzip';
+    }
+
     if (dev) {
       // Prevent CPU/RAM burnout by explicitly ignoring core dependencies from the HMR watcher.
       config.watchOptions = {
@@ -830,9 +837,12 @@ const nextConfig = {
       imgSrcDirective(),
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       //
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
-      // Media: self + blob (audio/video playback)
-      "media-src 'self' blob: https://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker data:",
+      // Media: self + blob (audio/video playback). data: carries the inline
+      // notification sounds Messenger plays; Club Arena fetch()es data: URIs to
+      // turn them into blobs (connect-src above). Both were logged by the
+      // report-only policy on 2026-10-22; neither can reach another origin.
+      "media-src 'self' blob: data: https://*.supabase.co",
       // Workers: self + blob (service worker, workbox)
       "worker-src 'self' blob:",
       // Frames: self (needed for our own iframe modals)
@@ -1138,15 +1148,10 @@ const nextConfig = {
           },
         ],
       },
-      {
-        source: '/hub/club-arena/assets/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
+      // Club Arena assets are external rewrites. Their origin owns caching:
+      // successful hashed files are immutable, while errors are no-store.
+      // A status-blind override here or in vercel.json also marks proxy 502s
+      // immutable, poisoning WebKit's module cache across recovery reloads.
       // Club Arena media (cards, tiles, icons, logos, videos): stable URLs,
       // art changes rarely. 30 days fresh + a week of stale-while-revalidate
       // means repeat visits render cards and the lobby from disk instantly.
@@ -1232,6 +1237,12 @@ const nextConfig = {
   // Club Arena pages are served directly from this deployment (no external proxy)
   async redirects() {
     return [
+      // Retired Club JAQK page IDs still occur in previously shared posts.
+      // Keep those backlinks on the same club's current social identity.
+      { source: '/hub/social-pages/:legacy([cC][lL][uU][bB]-?[jJ][aA][qQ][kK])/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
+      { source: '/hub/social-media/:legacy([cC][lL][uU][bB]-?[jJ][aA][qQ][kK])/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
+      { source: '/hub/social-pages/005cddc8-ecd9-4cd9-aca1-b809609d1239/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
+      { source: '/hub/social-media/005cddc8-ecd9-4cd9-aca1-b809609d1239/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
       // DUPLICATE HOST (2026-09-17, discoverability phase 1). The bare Vercel
       // production alias served the whole site with a 200 and no noindex, a
       // full copy of smarter.poker for any crawler that found it. Preview
@@ -1348,6 +1359,31 @@ const nextConfig = {
         {
           source: '/hub/club-arena/legal/:doc(tos|privacy|fair-gaming|promotions)',
           destination: 'https://ca-static.smarter.poker/legal/:doc/index.html',
+        },
+        // Brand-only previews preserve private-route noindex and expose no member data.
+        // These files are published by Club Arena before enabling these exact aliases.
+        {
+          source: '/hub/club-arena/clubs/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)/:path*',
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/invite/:club(kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)/:path*',
+          destination: 'https://ca-static.smarter.poker/invite/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'club', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'clubId', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
+        },
+        {
+          source: '/hub/club-arena/:page(stats|marketplace)',
+          has: [{ type: 'query', key: 'club_id', value: '(?:kings-club|shark-club|25450|a41434bb-8d0c-400a-8f0d-e8b3d65afed4)' }],
+          destination: 'https://ca-static.smarter.poker/clubs/kings-club/index.html',
         },
         { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
         { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },

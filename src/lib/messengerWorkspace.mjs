@@ -1,4 +1,5 @@
 import { enrichMessengerClubRelationships } from './messengerClubRelationships.mjs';
+import { compareConversations, conversationHasCounterpart } from './messengerOrganization.mjs';
 // Server-side workspace selection. A page identity or URL is never membership.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ADMIN_ROLES = new Set(['owner', 'co_owner', 'admin']);
@@ -105,7 +106,7 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
     const clubs = internal.clubs || await getMessengerClubs(db, userId);
     const workspace = request.workspace || 'social';
-    if (workspace === 'dock') {
+    if (workspace === 'dock' || workspace === 'feed') {
         // Global reconnect/inbox reads must cover each currently authorized
         // workspace, including club discussions missed while offline.
         const options = { clubs, countsOnly: true };
@@ -116,13 +117,15 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
                     { workspace: 'club', clubId: club.id, folder }, options))));
             workspaces.push(...batch);
         }
-        const combined = workspaces.flatMap(selected => selected.conversations.map(conversation => ({
+        const combined = workspaces.flatMap(selected => selected.conversations.filter(conversation =>
+            workspace === 'dock' || selected.workspace === 'social' || Number(conversation.unreadCount) > 0).map(conversation => ({
             ...conversation, dockWorkspace: { workspace: selected.workspace, clubId: selected.clubId, folder: selected.folder },
         })));
         const conversations = await enrichMessengerClubRelationships(db, userId,
             [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]);
-        return { success: true, clubs, workspace: 'dock', clubId: null, folder: 'messages',
-            conversations: conversations.sort((a, b) => (Date.parse(b.last_message_at) || 0) - (Date.parse(a.last_message_at) || 0)) };
+        return { success: true, clubs, workspace: workspace === 'feed' ? 'social' : 'dock', clubId: null, folder: 'messages',
+            unreadCounts: workspaces[0].unreadCounts, attentionCounts: workspaces[0].attentionCounts,
+            conversations: conversations.sort((a, b) => compareConversations(a, b)) };
     }
     if (!['social', 'club', 'resolve'].includes(workspace)) fail(400, 'Invalid Messenger Workspace');
     let club = null;
@@ -156,7 +159,15 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         p_user_id: userId, p_context_entity_id: contextId,
     });
     if (error || !Array.isArray(data)) fail(503, 'Messenger Is Temporarily Unavailable');
-    const unique = [...new Map(data.map(c => [c.conversation_id || c.id, c])).values()];
+    // Staff groups have no synthetic opening post. Include authorized empty
+    // groups so promotion enrollment is visible before anybody sends a message.
+    const managed = !contextId && clubs.length ? await rows(db.from('club_messenger_staff_notice_groups')
+        .select('club_id,conversation_id').in('club_id', clubs.map(c => c.id))) : [];
+    const participation = managed.length ? await rows(db.from('social_conversation_participants')
+        .select('conversation_id').eq('user_id', userId).in('conversation_id', managed.map(g => g.conversation_id))) : [];
+    const emptyGroups = managed.filter(g => participation.some(p => p.conversation_id === g.conversation_id))
+        .map(g => ({ conversation_id: g.conversation_id, is_group: true, unread_count: 0 }));
+    const unique = [...new Map([...emptyGroups, ...data].map(c => [c.conversation_id || c.id, c])).values()];
     const ids = unique.map(c => c.conversation_id || c.id);
     const [meta, accounting] = await Promise.all([
         byIds(db, 'social_conversations', 'id,is_request,request_sender_id,last_message_preview,group_name', 'id', ids),
@@ -191,7 +202,10 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
                 is_club_identity: !!brand, club_id: brand?.club_id || null,
             } : null,
         };
-    }).filter(c => !c.isRequest || c.requestSenderId === userId);
+    }).filter(c => (!c.isRequest || c.requestSenderId === userId)
+        // Owner rule 2026-10-24: never list or count a nameless one-to-one
+        // thread (its other account was deleted). Groups keep their title.
+        && conversationHasCounterpart(c));
     const selected = folder === 'notice-board' || (club && !club.pageId && folder === 'messages') ? []
         : selectWorkspaceConversations(conversations, accounting, userId, club, folder);
     const countUnread = list => list.reduce((sum, c) => sum + c.unreadCount, 0);

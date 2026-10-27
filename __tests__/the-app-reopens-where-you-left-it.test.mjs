@@ -28,7 +28,8 @@ import path from 'node:path';
 import {
     LAST_ROUTE_KEY,
     SESSION_ALIVE_KEY,
-    MAX_AGE_MS,
+    HUB_PATH,
+    isRecordable,
     isResumable,
     recordLastRoute,
     installLastRouteRecorder,
@@ -76,10 +77,31 @@ function withBrowser(location, fn) {
     }
 }
 
-test('the contract keys and the age ceiling are the shared ones', () => {
+test('the contract keys are the shared ones and the Hub is the default', () => {
     assert.equal(LAST_ROUTE_KEY, 'sp:last-route');
     assert.equal(SESSION_ALIVE_KEY, 'sp:session-alive');
-    assert.equal(MAX_AGE_MS, 24 * 60 * 60 * 1000);
+    assert.equal(HUB_PATH, '/hub');
+    const manifest = JSON.parse(read('public/manifest.json'));
+    assert.equal(manifest.start_url, HUB_PATH, 'with nothing recorded the app opens on the Hub');
+});
+
+test('isRecordable remembers every real page, the Hub included (Dan 2026-10-24)', () => {
+    for (const p of ['/hub', '/hub/', '/hub?tab=x', '/hub/settings', '/hub/club-arena/table/x']) {
+        assert.equal(isRecordable(p), true, `${p} must be recordable`);
+    }
+    for (const p of ['/', '/auth/login', '/404', '/hub/x?authError=no_session', '//evil.example/hub', null]) {
+        assert.equal(isRecordable(p), false, `${String(p)} must not be recordable`);
+    }
+});
+
+test('Settings then Hub reopens on the Hub, not Settings (Dan 2026-10-24)', () => {
+    withBrowser({ pathname: '/hub/settings', search: '', hash: '' }, ({ win }) => {
+        const current = () => JSON.parse(win.localStorage.getItem(LAST_ROUTE_KEY)).path;
+        assert.equal(recordLastRoute('/hub/settings'), true);
+        assert.equal(current(), '/hub/settings');
+        assert.equal(recordLastRoute('/hub'), true, 'a visit to the Hub is recorded');
+        assert.equal(current(), '/hub', 'the Hub replaces Settings as the last page');
+    });
 });
 
 test('isResumable refuses the places that are nowhere to come back to', () => {
@@ -184,12 +206,13 @@ test('_document.js restores the recorded route before React, on a standalone lau
         'navigator.standalone === true',
         'document.referrer',
         'location.replace(path)',
-        '24 * 60 * 60 * 1000',
         "'authError='",
-        'localStorage.removeItem(LAST_ROUTE_KEY)',
+        "pathname === '/hub'",
     ]) {
         assert.ok(script.includes(needle), `restore script must contain ${needle}`);
     }
+    // "ANYTIME YOU REOPEN" (Dan 2026-10-24): no age limit on the last page.
+    assert.ok(!/MAX_AGE_MS|24 \* 60 \* 60 \* 1000/.test(script), 'the restore script carries no age limit');
     // It lives in <Head>, ahead of the body, so it runs before React hydrates.
     assert.ok(start < src.indexOf('</Head>'), 'the restore script must be inside <Head>');
 });

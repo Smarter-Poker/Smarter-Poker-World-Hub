@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import unittest
+from unittest.mock import patch
 
 
 for legacy_name in (
@@ -102,6 +103,7 @@ def make_manifest(include_canaries=True, execution_scope="bounded_canary",
     icm_contracts = worker.canonical_contract_pairs(worker.TRAINING_ICM_CONTRACTS)
     manifest = {
         "version": 5,
+        "solver_runtime_profile": dict(worker.h.SOLVER_RUNTIME_PROFILE),
         "execution_scope": execution_scope,
         "pipeline_bundle_checksum": "f" * 64,
         "range_combo_order": worker.h.COMBO_ORDER,
@@ -356,6 +358,41 @@ class FourActionGeometryTests(unittest.TestCase):
 
 
 class BoundedCanaryManifestTests(unittest.TestCase):
+    def test_float16_strategy_drift_is_normalized_with_large_errors_rejected(self):
+        codes = ['c', 'b865', 'b1442', 'b2130']
+        # Observed converged M1 Turn export, 2sKs, index 1084. The original
+        # 1.000664 total failed strict validation despite valid live EVs.
+        observed = [0.0, 0.006279, 0.383301, 0.611084]
+        def raw(values):
+            return '\n'.join(' '.join(str(value) if i == 1084 else '0'
+                                     for i in range(1326)) for value in values)
+        parsed = worker.h.parse_strategy(raw(observed), codes)
+        self.assertAlmostEqual(sum(parsed[c][1084] for c in codes), 1.0, places=14)
+        self.assertTrue(all(parsed[c][0] == 0 for c in codes))
+        self.assertAlmostEqual(parsed['b865'][1084] / parsed['b2130'][1084],
+                               observed[1] / observed[3], places=14)
+        for malformed in ([0, .01, .39, .62], [0, .001, 0, 0], [0, -.01, .4, .61],
+                          [0, float('nan'), .4, .6], [0, 0, 0, 1.001]):
+            with self.subTest(malformed=malformed), self.assertRaises(ValueError):
+                worker.h.parse_strategy(raw(malformed), codes)
+
+    def test_low_memory_profile_is_explicit_and_fail_closed(self):
+        for profile in (None, {}, {**worker.h.SOLVER_RUNTIME_PROFILE, "memory_check": "ignored"},
+                        {**worker.h.SOLVER_RUNTIME_PROFILE, "strategy_storage": "float32"}):
+            manifest = make_manifest()
+            manifest["solver_runtime_profile"] = profile
+            with self.subTest(profile=profile), self.assertRaisesRegex(SystemExit, "low-memory solver runtime profile"):
+                validate_manifest(manifest)
+
+    def test_low_memory_setup_precedes_build_and_preserves_geometry(self):
+        commands = worker.h.build_setup_commands("AhKdQc", "oop", "ip")
+        self.assertLess(commands.index("set_algorithm original_pio"), commands.index("build_tree"))
+        self.assertLess(commands.index("small_strats on"), commands.index("build_tree"))
+        self.assertNotIn("build_tree mem_ignore", commands)
+        self.assertEqual(commands[0], "free_tree")
+        self.assertEqual([c for c in commands if c.startswith("add_line ")],
+                         ["add_line " + " ".join(map(str, line)) for line in worker.h.tree_gen.build_lines(550, 9750)])
+
     def test_manifest_requires_exact_integer_version_five(self):
         for invalid_version in (4, 6, "5", 5.0, True, None):
             manifest = make_manifest()
@@ -737,6 +774,72 @@ class BoundedCanaryRuntimeTests(unittest.TestCase):
         ])
         self.assertEqual(calls["heartbeat"][-1]["rows_written"], 2)
 
+    def test_rejected_pair_retains_local_evidence_without_any_ingest(self):
+        worker._worker_request = lambda *_args: {
+            "success": True, "operation": "row_states",
+            "rows": [row_for(target) for target in self.targets],
+        }
+        plan = worker.prepare_bounded_canary_execution(
+            self.validated, self.checksum, "M1", 2, 0
+        )
+        for rejected_index in (0, 1):
+            with self.subTest(rejected_index=rejected_index):
+                valid = {"bad_sum_hands": 0, "live_hands": 10, "ev_ok": True}
+                rejected = {**valid, "bad_sum_hands": 1}
+                validations = [rejected] if rejected_index == 0 else [valid, rejected]
+                with patch.object(worker, "fetch_text", return_value=self.raw), \
+                     patch.object(worker, "self_test"), \
+                     patch.object(worker, "load_range", return_value="sealed-range"), \
+                     patch.object(worker, "solve"), \
+                     patch.object(worker, "read_results", return_value=(1, -1, .1)), \
+                     patch.object(worker.h, "harvest_node", return_value=("", {"local": True})), \
+                     patch.object(worker.h, "validate_row", side_effect=validations), \
+                     patch.object(worker.os, "makedirs"), \
+                     patch.object(worker, "write_backup") as backup, \
+                     patch.object(worker, "patch_v2") as ingest, \
+                     self.assertRaisesRegex(SystemExit, "bad_sum_hands.*1"):
+                    worker.run_bounded_canary(plan)
+                ingest.assert_not_called()
+                backup.assert_called_once()
+                path, payload = backup.call_args.args
+                self.assertTrue(path.startswith("diagnostics" + os.sep))
+                self.assertEqual(payload["admission_status"], "rejected_before_any_ingest")
+                self.assertEqual(payload["validation"], rejected)
+                self.assertEqual(payload["target"], plan["targets"][rejected_index])
+                self.assertEqual(payload["manifest_checksum"], self.checksum)
+
+    def test_gateway_failure_retains_both_validated_exports(self):
+        worker._worker_request = lambda *_args: {
+            "success": True, "operation": "row_states",
+            "rows": [row_for(target) for target in self.targets],
+        }
+        plan = worker.prepare_bounded_canary_execution(
+            self.validated, self.checksum, "M1", 2, 0)
+        retained = {}
+        def backup(path, payload):
+            retained[path] = copy.deepcopy(payload)
+        def reject(*_args):
+            self.assertEqual(len(retained), 2)
+            raise worker.WorkerGatewayError("solver worker gateway returned HTTP 503")
+        with patch.object(worker, "fetch_text", return_value=self.raw), \
+             patch.object(worker, "self_test"), \
+             patch.object(worker, "load_range", return_value="sealed-range"), \
+             patch.object(worker, "solve"), \
+             patch.object(worker, "read_results", return_value=(1, -1, .1)), \
+             patch.object(worker.h, "harvest_node", return_value=("", {"local": True})), \
+             patch.object(worker.h, "validate_row", return_value={"bad_sum_hands":0,"live_hands":10,"ev_ok":True}), \
+             patch.object(worker.os, "makedirs"), \
+             patch.object(worker, "write_backup", side_effect=backup), \
+             patch.object(worker, "patch_v2", side_effect=reject), \
+             self.assertRaisesRegex(SystemExit, "gateway failed after 0"):
+            worker.run_bounded_canary(plan)
+        self.assertEqual(len(retained), 2)
+        parent = next(p for p in retained.values() if p['_bounded_canary']['role']=='parent')
+        child = next(p for p in retained.values() if p['_bounded_canary']['role']=='child')
+        self.assertEqual(parent['_admission']['status'], 'failed')
+        self.assertIn('HTTP 503', parent['_admission']['error'])
+        self.assertEqual(child['_admission']['status'], 'pending')
+
     def test_partial_retry_ingests_only_missing_child_and_reverifies_pair(self):
         original = {
             name: getattr(worker, name) for name in (
@@ -847,6 +950,28 @@ class BoundedCanaryRuntimeTests(unittest.TestCase):
             worker.complete_bounded_canary_without_solver(plan)
         self.assertEqual([call[0] for call in calls], ["row_states", "heartbeat"])
         self.assertEqual(calls[-1][1]["rows_written"], 0)
+
+
+class GatewayNumberChecksumTests(unittest.TestCase):
+    def test_canonical_numbers_survive_real_javascript_json_roundtrip(self):
+        import subprocess
+        values = {"frequencies": [0.0, -0.0, 1.0, 0.851807, 1e-6, 1e-7],
+                  "pot_bb": 5.5, "eff_stack_bb": 97.5,
+                  "ev": [None, -2.0, 2.653], "large": [1e20, 1e23]}
+        result = subprocess.run([
+            "node", "-e",
+            'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.stringify(JSON.parse(s))))',
+        ], input=json.dumps(values), text=True, capture_output=True, check=True)
+        after_gateway = json.loads(result.stdout)
+        self.assertEqual(worker.canonical_jsonb_text_v1(values),
+                         worker.canonical_jsonb_text_v1(after_gateway))
+        self.assertEqual(worker.canonical_jsonb_text_v1([0.0, -0.0, 1.0, -2.0]),
+                         "[0,0,1,-2]")
+
+    def test_nonfinite_numbers_still_fail_closed(self):
+        for number in (float('nan'), float('inf'), -float('inf')):
+            with self.assertRaises(ValueError):
+                worker.canonical_jsonb_text_v1(number)
 
 
 if __name__ == "__main__":

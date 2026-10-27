@@ -234,3 +234,31 @@ test('the existing message API passes only the authenticated private-reader proo
     assert.equal(meta.cashier.invoice_id, proof.id); assert.equal(meta.source_ledger_id, proof.source_ledger_id);
     assert.equal(meta.cashier.amount, '10.29'); assert.equal(meta.cashier.issued_at, proof.cashier.issued_at);
 });
+
+// Dan 2026-10-23: a held cashout is a Requested Payout the agent accepts or cancels.
+test('a held cashout shows as a Requested Payout with the live actions slot for the agent', () => {
+    const proof = receipt('hold');
+    const verified = verifyAccountingMessage(message(), proof);
+    const seen = [];
+    const render = (userId) => renderToStaticMarkup(React.createElement(Invoice, {
+        meta: verified.media_metadata, content: 'x', theme, currentUserId: userId,
+        renderRequestedPayout: (cashoutId) => { seen.push(cashoutId); return React.createElement('div', null, 'ACTIONS'); },
+    }));
+    const agent = render(id(9));
+    assert.match(agent, /Requested Payout/);
+    assert.match(agent, /ACTIONS/);
+    assert.doesNotMatch(agent, /held while the cashout is reviewed/);
+    assert.match(render(id(8)), /Cashout Requested/);
+    assert.deepEqual(seen, [id(3), id(3)]);
+});
+
+test('a decided cashout never offers the requested payout actions', () => {
+    for (const kind of ['approval', 'decline', 'cancellation', 'expiry_refund']) {
+        const verified = verifyAccountingMessage(message(), receipt(kind));
+        const out = renderToStaticMarkup(React.createElement(Invoice, {
+            meta: verified.media_metadata, content: 'x', theme, currentUserId: id(9),
+            renderRequestedPayout: () => React.createElement('div', null, 'ACTIONS'),
+        }));
+        assert.doesNotMatch(out, /ACTIONS|Requested Payout/);
+    }
+});

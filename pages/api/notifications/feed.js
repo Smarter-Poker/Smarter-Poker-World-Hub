@@ -14,6 +14,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { enrichOperationalResolution } from '../../../src/lib/notifications/operationalResolution.mjs';
 import { resolveNotificationRoute } from '../../../src/lib/notificationRoute';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -197,6 +198,9 @@ export default async function handler(req, res) {
         // BUG-FIX: Removed dead Promise.resolve() placeholder. page_notifications
         // and notification_reads now run sequentially only when needed (can't
         // parallelize because we need page_notification IDs first).
+        // Phases 2, 3.5 and 4 depend only on Phase 1, not on each other, so they
+        // run together: three sequential Supabase round trips became one wait.
+        const pokerPromise = (async () => {
         let pokerNotifs = [];
         // Match the existing poker notification route's filter boundary.
         // Follow ids are user-provided text and must not reshape a service query.
@@ -245,43 +249,25 @@ export default async function handler(req, res) {
                 }));
             }
         }
+        return pokerNotifs;
+        })();
 
-        // ── Phase 3: Merge + sort ──
-        const candidates = [...socialNotifs, ...pokerNotifs].sort(compareRows);
-        const combined = candidates.slice(0, limit);
-        const last = combined.at(-1);
-        const nextCursor = candidates.length > limit && last ? JSON.stringify({
-            source: last._source, at: last.created_at,
-            id: last._source === 'poker' ? last.id.slice(6) : last.id,
-        }) : null;
-
-        // ── Phase 3.5: BUG-28 FIX — Enrich home_group notifications with real group names ──
-        // home_group_friend_joined messages were showing raw slugs like 'PHASE40_DM_FEATURE'
-        // because the message was stored at insert-time with the slug. Now we resolve the
-        // real group name from commander_home_groups and rewrite the message.
+        // ── Phase 3.5 input: home_group notifications are social rows, so their
+        // group ids are known before the merge (a superset of the page shown).
         const groupIds = [...new Set(
-            combined
+            socialNotifs
                 .filter(n => n.type === 'home_group_friend_joined' || n.type === 'home_group_announcement')
                 .map(n => n.data?.group_id)
                 .filter(id => id && typeof id === 'string' && id.match(/^[0-9a-f-]{36}$/i))
         )];
-
-        // groupNameById maps id -> string name, or id -> null if group exists but has no name
-        // Use a Set to track which IDs were found vs not found at all
-        let groupNameById = {};
-        let groupFoundIds = new Set();
-        if (groupIds.length > 0) {
+        const groupsPromise = groupIds.length > 0
             // BUG-36 FIX: Cast group IDs explicitly as uuid type to avoid type mismatch
-            const { data: groups } = await supabase
+            ? supabase
                 .from('commander_home_groups')
                 .select('id, name')
                 .in('id', groupIds)
-                .limit(100);
-            (groups || []).forEach(g => {
-                groupFoundIds.add(g.id);
-                groupNameById[g.id] = g.name || null;
-            });
-        }
+                .limit(100)
+            : Promise.resolve({ data: [] });
 
         // ── Phase 4: Enrich social notifications with actor profiles (server-side) ──
         // BUG-FIX: Also collect friend_id for home_group_friend_joined type notifications
@@ -315,30 +301,56 @@ export default async function handler(req, res) {
         let profileById = {};
         let profileByName = {};
 
-        if (actorIds.length > 0 || actorNames.length > 0) {
-            const [byIdResult, byNameResult] = await Promise.all([
-                actorIds.length > 0
-                    ? supabase.from('profiles')
-                        .select('id, username, display_name, avatar_url')
-                        .in('id', actorIds)
-                        .limit(50)
-                    : Promise.resolve({ data: [] }),
-                actorNames.length > 0
-                    ? supabase.from('profiles')
-                        .select('id, username, display_name, avatar_url')
-                        .in('display_name', actorNames)
-                        .limit(50)
-                    : Promise.resolve({ data: [] }),
-            ]);
+        const profilesPromise = (async () => {
+            if (actorIds.length > 0 || actorNames.length > 0) {
+                const [byIdResult, byNameResult] = await Promise.all([
+                    actorIds.length > 0
+                        ? supabase.from('profiles')
+                            .select('id, username, display_name, avatar_url')
+                            .in('id', actorIds)
+                            .limit(50)
+                        : Promise.resolve({ data: [] }),
+                    actorNames.length > 0
+                        ? supabase.from('profiles')
+                            .select('id, username, display_name, avatar_url')
+                            .in('display_name', actorNames)
+                            .limit(50)
+                        : Promise.resolve({ data: [] }),
+                ]);
 
-            (byIdResult.data || []).forEach(p => { profileById[p.id] = p; });
-            (byNameResult.data || []).forEach(p => {
-                if (p.display_name) profileByName[p.display_name.toLowerCase()] = p;
-            });
-        }
+                (byIdResult.data || []).forEach(p => { profileById[p.id] = p; });
+                (byNameResult.data || []).forEach(p => {
+                    if (p.display_name) profileByName[p.display_name.toLowerCase()] = p;
+                });
+            }
+        })();
+
+        // ── Phase 3: Merge + sort ──
+        const [pokerNotifs, groupsResult] = await Promise.all([pokerPromise, groupsPromise, profilesPromise]);
+        const candidates = [...socialNotifs, ...pokerNotifs].sort(compareRows);
+        const combined = candidates.slice(0, limit);
+        const last = combined.at(-1);
+        const nextCursor = candidates.length > limit && last ? JSON.stringify({
+            source: last._source, at: last.created_at,
+            id: last._source === 'poker' ? last.id.slice(6) : last.id,
+        }) : null;
+
+        // ── Phase 3.5: BUG-28 FIX: Enrich home_group notifications with real group names ──
+        // home_group_friend_joined messages were showing raw slugs like 'PHASE40_DM_FEATURE'
+        // because the message was stored at insert-time with the slug. Now we resolve the
+        // real group name from commander_home_groups and rewrite the message.
+        // groupNameById maps id -> string name, or id -> null if group exists but has no name
+        // Use a Set to track which IDs were found vs not found at all
+        let groupNameById = {};
+        let groupFoundIds = new Set();
+        (groupsResult?.data || []).forEach(g => {
+            groupFoundIds.add(g.id);
+            groupNameById[g.id] = g.name || null;
+        });
+
 
         // ── Phase 5: Apply actor profile enrichment to combined list ──
-        const enriched = combined.map(n => {
+        const enrichedRows = combined.map(n => {
             // Poker/page notifications carry no actor profile, but they still
             // need a destination — they were previously handed to the client
             // with no `link` at all and relied on each renderer guessing.
@@ -432,6 +444,8 @@ export default async function handler(req, res) {
             return { ...row, link: resolveNotificationRoute(row) };
 
         });
+
+        const enriched = await enrichOperationalResolution(supabase, enrichedRows, userId);
 
         // BUG-FIX: notifications table uses is_read as canonical; read is an alias
         // that may not be populated on all rows. Check both to avoid under-counting.

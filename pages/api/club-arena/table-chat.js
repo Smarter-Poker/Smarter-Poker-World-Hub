@@ -1,3 +1,4 @@
+import { isClubStaffMembership } from '../../../src/lib/club-arena/clubDataAuthorization.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Table Chat API — In-table messaging and dealer announcements
@@ -11,7 +12,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *   - mute:          Admin mutes a player at a table
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { sanitizeNote } from '../../../src/lib/club-arena/sanitize';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
@@ -94,7 +95,7 @@ export default async function handler(req, res) {
                       // Admins allowed to chat as dealers, but not regular players
                       const { data: membership } = await getSupabase()
                           .from('club_members')
-                          .select('role')
+                          .select('role, status, is_active')
                           .eq('user_id', user.id)
                           .maybeSingle();
                       if (!membership || !['owner', 'admin'].includes(membership.role)) {
@@ -135,11 +136,11 @@ export default async function handler(req, res) {
                   // Verify admin
                   const { data: membership } = await getSupabase()
                       .from('club_members')
-                      .select('role')
+                      .select('role, status, is_active')
                       .eq('club_id', clubId)
                       .eq('user_id', user.id)
                       .maybeSingle();
-                  if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+                  if (!isClubStaffMembership(membership)) {
                       return res.status(403).json({ error: 'Admin access required' });
                   }
 
@@ -176,11 +177,11 @@ export default async function handler(req, res) {
 
                   const { data: membership } = await getSupabase()
                       .from('club_members')
-                      .select('role')
+                      .select('role, status, is_active')
                       .eq('club_id', clubId)
                       .eq('user_id', user.id)
                       .maybeSingle();
-                  if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+                  if (!isClubStaffMembership(membership)) {
                       return res.status(403).json({ error: 'Admin access required' });
                   }
 

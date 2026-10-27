@@ -32,15 +32,30 @@ async function embeddableLogo(url) {
   }
 }
 
+// The card's built-in font covers Latin text. Any other glyph (a check mark,
+// an emoji, CJK) in a venue name makes Satori fetch a fallback font at render
+// time, which failed with HTTP 400 and logged a runtime error (2026-10-16).
+// Keep Latin letters, digits and ordinary punctuation; drop the rest.
+function cardText(value, fallback = '') {
+  const cleaned = String(value || '')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/[^\u0020-\u007E\u00A0-\u017F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned || fallback;
+}
+
 export default async function handler(req) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id') || '';
-    const name = searchParams.get('name') || 'Poker Venue';
-    const city = searchParams.get('city') || '';
-    const state = searchParams.get('state') || '';
-    const type = (searchParams.get('type') || 'poker_room').replace(/_/g, ' ').toUpperCase();
-    const tables = searchParams.get('tables') || '';
+    const name = cardText(searchParams.get('name'), 'Poker Venue');
+    const city = cardText(searchParams.get('city'));
+    const state = cardText(searchParams.get('state'));
+    const type = cardText(searchParams.get('type'), 'poker_room').replace(/_/g, ' ').toUpperCase();
+    const tables = cardText(searchParams.get('tables'));
     const logoParam = searchParams.get('logo') || (id ? `https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/${id}.png` : '');
 
     const location = [city, state].filter(Boolean).join(', ');
@@ -210,7 +225,17 @@ export default async function handler(req) {
                     marginTop: 10,
                   }}
                 >
-                  📍 {location}
+                  <div
+                    style={{
+                      display: 'flex',
+                      width: 14,
+                      height: 14,
+                      borderRadius: 7,
+                      background: '#00D4FF',
+                      marginRight: 12,
+                    }}
+                  />
+                  {location}
                 </div>
               )}
             </div>

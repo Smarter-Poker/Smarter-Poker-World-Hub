@@ -2,7 +2,7 @@
 // Run: node --test __tests__/daily-digest.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS } from '../src/lib/dailyDigest/render.mjs';
+import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS, horseRosterRows, allowedNumbers, playerTotalsRows, fmtSigned, fmtMinutes } from '../src/lib/dailyDigest/render.mjs';
 import { signViewToken, verifyViewToken, ownerPhone, digestRecipients, adminRecipients } from '../src/lib/dailyDigest/delivery.mjs';
 
 function fixture(overrides = {}) {
@@ -55,8 +55,8 @@ test('html renders every section, escapes untrusted text, has no em dashes', () 
     const html = buildHtml(fixture(), { viewUrl: 'https://smarter.poker/api/digest/view?t=x' });
     for (const def of SECTION_DEFS) assert.ok(html.includes(esc(def.title)), def.title);
     assert.ok(html.includes('Needs Your Attention (3)'));
-    assert.ok(html.includes('Already In The Fleet Queue'));
-    assert.ok(html.includes('Fixed Overnight'));
+    assert.ok(html.includes('Recorded Alert; Assignment Unconfirmed'));
+    assert.ok(html.includes('Resolved Or Reviewed'));
     assert.ok(html.includes('Not Yet Picked Up'));
     assert.ok(!html.includes('<script>x</script>'), 'attention titles are escaped');
     assert.ok(html.includes('&lt;script&gt;'));
@@ -150,4 +150,160 @@ test('the digest is straight data: no AI module, no model call', async () => {
     const src = fs.readFileSync(new URL('../src/lib/dailyDigest/assemble.mjs', import.meta.url), 'utf8');
     assert.ok(!/anthropic|grok|openai/i.test(src));
     assert.ok(!buildHtml(fixture()).includes('Daniel'), 'no personal name is baked into the template');
+});
+
+const ROSTER = {
+    as_of: '2026-10-14T21:15:00+00:00', size: 43, demand: 43, plo_count: 2, refreshes_today: 4,
+    members: [
+        { rank: 1, name: 'Ace<Horse>', bb100: 12.34, hands: 15000, plo: true, plo_bb100: 6.5 },
+        { rank: 2, name: 'Cash Cow', bb100: 3.1, hands: 9000, plo: false, plo_bb100: null },
+    ],
+    added: ['Cash Cow'], dropped: ['Old Timer'], plo_added: [], plo_dropped: ['Fishy'],
+};
+
+test('horse roster card: size, PLO list, changes and every member, escaped', () => {
+    const d = fixture({ horse_roster: ROSTER });
+    const html = buildHtml(d);
+    assert.match(html, /Horse Roster/);
+    assert.match(html, /Horses At Cash/);
+    assert.match(html, /Sized to 43 live cash games/);
+    assert.match(html, /PLO List/);
+    assert.match(html, /Old Timer/);
+    assert.match(html, /Fishy/);
+    assert.match(html, /1\. Ace&lt;Horse&gt;/);
+    assert.ok(!html.includes('Ace<Horse>'));
+    assert.match(html, /PLO 6\.5 BB\/100/);
+    assert.ok(!html.includes('\u2014'));
+    const rows = horseRosterRows(d);
+    assert.equal(rows.length, 6 + 2);
+    assert.equal(rows.find((r) => r[0] === 'Added To The PLO List')[1], 'None');
+    const text = buildText(d);
+    assert.match(text, /HORSE ROSTER/);
+    assert.match(text, /2\. Cash Cow: 3\.1 BB\/100/);
+    const nums = allowedNumbers(d);
+    for (const n of ['43', '35', '50', '12.34', '15000']) assert.ok(nums.has(n), n);
+});
+
+test('no roster in the digest: no card, no text section, nothing breaks', () => {
+    const d = fixture();
+    assert.ok(!buildHtml(d).includes('Horse Roster'));
+    assert.ok(!buildText(d).includes('HORSE ROSTER'));
+    assert.deepEqual(horseRosterRows(fixture({ horse_roster: null })), []);
+});
+
+ test('attention never promises a fleet or infers assignment from a recorded alert', () => {
+    for (const rendered of [buildHtml(fixture()), buildText(fixture())]) {
+        assert.doesNotMatch(rendered, /alert-fixing fleet|fleet queue|fixed overnight/i);
+        assert.match(rendered, /Recorded Alert; Assignment Unconfirmed/);
+    }
+});
+
+test('review and investigation labels do not promise that a repair was completed', () => {
+    const d = fixture({ attention: [
+        { title: 'Reviewed movement', status: 'fixed', resolution: 'Verified legitimate credit' },
+        { title: 'Current investigation', status: 'in_progress' },
+    ] });
+    for (const rendered of [buildHtml(d), buildText(d)]) {
+        assert.match(rendered, /Resolved Or Reviewed/);
+        assert.match(rendered, /Under Investigation/);
+        assert.doesNotMatch(rendered, /Marked Fixed|Being Fixed|marked fixed/);
+        assert.match(rendered, /Verified legitimate credit/);
+    }
+});
+
+test('the signed view link precedes a long roster that Gmail clips', () => {
+    const members = Array.from({ length: 938 }, (_, i) => ({ rank: i + 1, name: `Horse ${i + 1}`, bb100: 1, hands: 5000 }));
+    const d = fixture({ horse_roster: { ...ROSTER, members } });
+    const url = 'https://smarter.poker/api/digest/view?t=test&day=24';
+    const html = buildHtml(d, { viewUrl: url });
+    assert.ok(html.length > 102000, 'reproduces the clipped long-email case');
+    assert.ok(html.indexOf('View This Digest Online') < html.indexOf('Needs Your Attention'));
+    assert.ok(html.includes('Horse 938'), 'the full roster is retained');
+    assert.ok(html.includes('t=test&amp;day=24'), 'the signed URL is escaped');
+    const text = buildText(d, { viewUrl: url });
+    assert.ok(text.indexOf(`View online: ${url}`) < text.indexOf('NEEDS YOUR ATTENTION'));
+    assert.ok(text.includes('Horse 938'));
+});
+
+const PLAYER_TOTALS = {
+    day: '2026-10-24',
+    totals: { players: 2, net: 1381.81, cash_net: 1491.81, tournament_net: -110, diamond_arena_net: -106, cash_rake: 723.88,
+        tournament_rake: 6.18, diamond_arena_rake: 0, hands: 915, minutes: 942, wallet_end: 479.9 },
+    players: [
+        { username: 'Woo<Woo>', net: 1481.81, cash_net: 1481.81, tournament_net: 0, cash_rake: 723.88, tournament_rake: 0,
+            hands: 782, minutes: 822, wallet_end: 479.9, diamonds_end: 275,
+            games: [
+                { kind: 'cash', label: 'PLO5 1/2', hands: 362, net: 1233.6, rake: 459.37, minutes: 473 },
+                { kind: 'cash', label: 'NLH 1/2', hands: 53, net: -190.7, rake: 28.48, minutes: 55 },
+            ] },
+        { username: 'badbeets', net: -100, cash_net: 0, tournament_net: -100, cash_rake: 0, tournament_rake: 6.18,
+            hands: 133, minutes: 120, wallet_end: 0, diamonds_end: 5,
+            games: [
+                { kind: 'tournament', label: 'Nightly 10K (NLH)', type: 'MTT', entries: 2, hands: 93, net: -70, rake: 4.07, minutes: 87 },
+                { kind: 'diamond_arena', label: 'NLH 1/2', hands: 42, net: -106, rake: 0, minutes: 32 },
+            ] },
+    ],
+};
+
+test('real player totals: day totals, rake split, balances, time and every game per player', () => {
+    const d = fixture({ player_totals: PLAYER_TOTALS });
+    const html = buildHtml(d);
+    assert.match(html, /Real Player Totals/);
+    assert.match(html, /Real Players Who Played/);
+    assert.match(html, /Rake Paid - Cash Games/);
+    assert.match(html, /723\.88/);
+    assert.match(html, /Rake Paid - Tournaments/);
+    assert.match(html, /Woo&lt;Woo&gt;/);
+    assert.ok(!html.includes('Woo<Woo>'), 'player names are escaped');
+    assert.match(html, /\+1,481\.81/);
+    assert.match(html, /13h 42m played, 782 hands/);
+    assert.match(html, /479\.9 chips/);
+    assert.match(html, /275 diamonds/);
+    assert.match(html, /PLO5 1\/2 Cash/);
+    assert.match(html, /-190\.7/);
+    assert.match(html, /Nightly 10K \(NLH\) \(MTT\) x2/);
+    assert.match(html, /Diamond Arena NLH 1\/2 \(Diamonds\)/);
+    assert.match(html, /Diamond Arena Won \/ Lost \(Diamonds\)/);
+    assert.ok(html.indexOf('Real Player Totals') < html.indexOf('Growth'), 'near the top, before the sections');
+    assert.ok(!html.includes('\u2014'));
+    const text = buildText(d);
+    assert.match(text, /REAL PLAYER TOTALS/);
+    assert.match(text, /Woo<Woo>: \+1,481\.81  \(13h 42m played, 782 hands\)/);
+    assert.match(text, /- PLO5 1\/2 Cash: \+1,233\.6  \(362 hands, 7h 53m, rake 459\.37\)/);
+    assert.match(text, /Balances At End Of Day: 0 chips  \(5 diamonds\)/);
+    assert.equal(playerTotalsRows(d).players.length, 2);
+});
+
+test('real player totals: absent means no card, an error says so plainly, an empty day says nobody played', () => {
+    const d = fixture();
+    assert.ok(!buildHtml(d).includes('Real Player Totals'));
+    assert.ok(!buildText(d).includes('REAL PLAYER TOTALS'));
+    assert.equal(playerTotalsRows(d), null);
+    const broken = fixture({ player_totals: { day: '2026-10-24', error: 'canceling statement due to <timeout>' } });
+    assert.match(buildHtml(broken), /Player totals could not be built/);
+    assert.match(buildHtml(broken), /&lt;timeout&gt;/);
+    assert.match(buildText(broken), /Player totals could not be built: canceling statement/);
+    const empty = fixture({ player_totals: { day: '2026-10-24', totals: { players: 0 }, players: [] } });
+    assert.match(buildHtml(empty), /No real player played a hand or a tournament/);
+});
+
+test('signed results and durations read the way a person says them', () => {
+    assert.equal(fmtSigned(1233.6), '+1,233.6');
+    assert.equal(fmtSigned(-0.1), '-0.1');
+    assert.equal(fmtSigned(0), '0');
+    assert.equal(fmtSigned(null), '0');
+    assert.equal(fmtMinutes(45), '45m');
+    assert.equal(fmtMinutes(822), '13h 42m');
+    assert.equal(fmtMinutes(60), '1h 00m');
+});
+
+test('the digest stays inside its 600px card: no value or sub-line can force it wider (Dan, 2026-10-26)', () => {
+    // An 886-character value and long grey sub-lines were white-space:nowrap and
+    // stretched the Oct 25 email to 6,300px in Gmail, labels far from numbers.
+    const html = buildHtml(fixture());
+    assert.ok(html.includes('max-width:600px'), 'the card keeps its 600px width');
+    assert.ok(!/<td[^>]*text-align:right;white-space:nowrap;[^>]*>\s*<span[^>]*>[^<]{29,}/.test(html), 'no long value is held on one line');
+    for (const m of html.matchAll(/<div style="color:[^"]*font-size:11px;margin-top:2px;([^"]*)">/g)) {
+        assert.ok(m[1].includes('white-space:normal'), 'every grey sub-line can wrap');
+    }
 });

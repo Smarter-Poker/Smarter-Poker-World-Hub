@@ -4,7 +4,7 @@
  * One short code per player per club, so the person who sends the link is the
  * person credited. This page:
  *   - is server-rendered, so iMessage, WhatsApp, Discord, Telegram and the rest
- *     draw a preview card ("KingFish Invited You To Club JAQK", the club's
+ *     draw a preview card ("KingFish Invited You To The Felt Society", the club's
  *     logo, members and players playing) instead of a bare URL;
  *   - sets the first-party attribution cookie on the response (30 days, first
  *     link wins) and mirrors it to localStorage on the client;
@@ -153,19 +153,20 @@ export default function ClubInviteLanding({ invite, code }) {
                 <title>{`${headline} | Smarter.Poker`}</title>
                 <meta name="description" content={description} />
                 <meta name="robots" content="noindex" />
-                <link rel="canonical" href={pageUrl} />
-                <meta property="og:type" content="website" />
-                <meta property="og:site_name" content="Smarter.Poker" />
-                <meta property="og:url" content={pageUrl} />
-                <meta property="og:title" content={headline} />
-                <meta property="og:description" content={description} />
-                <meta property="og:image" content={ogImage} />
-                <meta property="og:image:width" content="1200" />
-                <meta property="og:image:height" content="630" />
-                <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={headline} />
-                <meta name="twitter:description" content={description} />
-                <meta name="twitter:image" content={ogImage} />
+                <link key="canonical" rel="canonical" href={pageUrl} />
+                <meta key="og-type" property="og:type" content="website" />
+                <meta key="og-site-name" property="og:site_name" content="Smarter.Poker" />
+                <meta key="og-url" property="og:url" content={pageUrl} />
+                <meta key="og-title" property="og:title" content={headline} />
+                <meta key="og-description" property="og:description" content={description} />
+                <meta key="og-image" property="og:image" content={ogImage} />
+                <meta key="og-image-width" property="og:image:width" content="1200" />
+                <meta key="og-image-height" property="og:image:height" content="630" />
+                <meta key="og-image-type" property="og:image:type" content="image/png" />
+                <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
+                <meta key="twitter-title" name="twitter:title" content={headline} />
+                <meta key="twitter-description" name="twitter:description" content={description} />
+                <meta key="twitter-image" name="twitter:image" content={ogImage} />
             </Head>
 
             <div style={styles.frame}>

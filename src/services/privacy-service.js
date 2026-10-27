@@ -7,6 +7,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { MESSENGER_PROFILE_COLUMNS, withMessengerDisplayName } from '../lib/messengerDisplayName.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRIVACY CHECK FUNCTIONS
@@ -245,17 +246,18 @@ export async function getBlockedUsers(userId) {
         const blockedIds = blockedRows.map(r => r.blocked_id);
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, username, display_name, avatar_url')
+            .select(MESSENGER_PROFILE_COLUMNS)
             .in('id', blockedIds);
 
         const profileMap = {};
-        (profiles || []).forEach(p => { profileMap[p.id] = p; });
+        (profiles || []).forEach(p => { const named = withMessengerDisplayName(p); if (named) profileMap[p.id] = named; });
 
-        // Step 3: Merge
-        return blockedRows.map(r => ({
+        // Step 3: Merge. A deleted account is gone for good (owner rule
+        // 2026-10-16) and is never listed as "Unknown".
+        return blockedRows.filter(r => profileMap[r.blocked_id]).map(r => ({
             blocked_id: r.blocked_id,
             created_at: r.created_at,
-            blocked: profileMap[r.blocked_id] || { id: r.blocked_id, username: 'Unknown' }
+            blocked: profileMap[r.blocked_id],
         }));
     } catch (error) {
         console.warn('[Privacy] Error getting blocked users:', error);
