@@ -253,7 +253,7 @@ const NOWRAP_VALUE_MAX = 28;
 function rowHtml(label, valueHtml, sub, red, quiet) {
     const vColor = red ? C.red : quiet ? C.muted : C.text;
     const plainLen = String(valueHtml ?? '').replace(/<[^>]*>/g, '').length;
-    const valueWrap = plainLen <= NOWRAP_VALUE_MAX ? 'white-space:nowrap;' : 'white-space:normal;word-break:break-word;';
+    const valueWrap = plainLen <= NOWRAP_VALUE_MAX && /^[\s\d.,+/$%:−-]*$/.test(String(valueHtml ?? '').replace(/<[^>]*>/g, '')) ? 'white-space:nowrap;' : 'white-space:normal;word-break:break-word;';
     return `<tr><td style="padding:10px 14px;border-top:1px solid ${C.line};color:${quiet ? C.muted : C.text};font-size:14px;">${esc(label)}</td>`
         + `<td style="padding:10px 14px;border-top:1px solid ${C.line};text-align:right;">`
         + `<span style="color:${vColor};font-weight:700;font-size:14px;${valueWrap}">${valueHtml}</span>`
@@ -263,7 +263,7 @@ function rowHtml(label, valueHtml, sub, red, quiet) {
 
 function cardOpen(title) {
     return `<tr><td style="padding:22px 0 8px 0;color:${C.teal};font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">${esc(title)}</td></tr>`
-        + `<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
+        + `<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
 }
 const cardClose = '</table></td></tr>';
 
@@ -338,7 +338,7 @@ export function attentionHtml(digest) {
                 + `</td></tr>`;
         })
         .join('');
-    return `<tr><td style="padding:16px;border:1px solid ${C.red};border-radius:10px;background:#1a0d10;">${head}<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${list}</table></td></tr>`;
+    return `<tr><td style="padding:16px;border:1px solid ${C.red};border-radius:10px;background:#1a0d10;">${head}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">${list}</table></td></tr>`;
 }
 
 function listCard(title, rows) {
@@ -373,8 +373,10 @@ export function buildHtml(digest, opts = {}) {
         ['Horse Net Result (BB)', fmtNum(mtd.horse_net_bb), 'House exposure through the horse fleet'],
     ]);
 
-    body += playerTotalsCard(digest);
-    body += horseRosterCard(digest);
+    body += playerTotalsCard(digest, opts);
+    body += playerPeriodCards(digest);
+    if (!opts.email) body += horseRosterCard(digest);
+    else body += listCard('Horse Roster', horseRosterRows(digest).slice(0, 6));
 
     if (digest.week) {
         const w = digest.week;
@@ -411,6 +413,7 @@ export function buildHtml(digest, opts = {}) {
     }
 
     body += freshnessCard(digest);
+    if (opts.email && opts.viewUrl) body += listCard('Full Player And Horse Details', [['View This Digest Online', 'Complete Report', 'The signed link above contains every player, game and horse roster entry.']]);
 
     const viewUrl = opts.viewUrl ? `<a href="${esc(opts.viewUrl)}" style="display:inline-block;margin:0 8px 8px 0;background:transparent;color:${C.teal};border:1px solid ${C.teal};text-decoration:none;font-weight:700;font-size:14px;padding:13px 22px;border-radius:8px;">View This Digest Online</a>` : '';
     const buttons = `<tr><td style="padding:26px 0 10px 0;">`
@@ -421,17 +424,22 @@ export function buildHtml(digest, opts = {}) {
         + `Real players exclude horses, test and certification accounts. Generated ${esc(digest.generated_at)}${opts.runId ? `, run ${esc(opts.runId)}` : ''}.`
         + `<br>&copy; ${new Date().getUTCFullYear()} Smarter.Poker</td></tr>`;
 
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title></head>`
-        + `<body style="margin:0;padding:0;background:${C.page};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${esc(buildSubject(digest))}</title></head>`
+        + `<body style="margin:0;padding:0;background:${C.page};overflow-wrap:anywhere;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};"><tr><td align="center" style="padding:28px 12px;">`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${C.card};border-radius:12px;"><tr><td style="padding:30px 26px;">`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;max-width:600px;background:${C.card};border-radius:12px;"><tr><td style="padding:30px 26px;">`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">`
         + `<tr><td style="color:${C.teal};font-size:18px;font-weight:800;letter-spacing:3px;">SMARTER.POKER</td></tr>`
         + `<tr><td style="padding:18px 0 6px 0;color:#ffffff;font-size:22px;font-weight:800;">Daily Operations Digest</td></tr>`
         + `<tr><td style="padding:0 0 18px 0;color:${C.text};font-size:14px;">Hi ${esc(name)}, here is the platform snapshot for ${esc(digest.day_label || digest.day)} (Central).</td></tr>`
         + (viewUrl ? `<tr><td style="padding:0 0 10px 0;">${viewUrl}</td></tr>` : '')
         + body + buttons + footer
         + `</table></td></tr></table></td></tr></table></body></html>`;
+    // Keep the email below inbox clipping limits without dropping summary data.
+    // These properties inherit from the body; online rendering stays unchanged.
+    return opts.email ? html.replaceAll('font-size:14px;', '')
+        .replaceAll(`color:${C.text};`, '').replaceAll('white-space:normal;', '')
+        .replace('<body style="', `<body style="font-size:14px;color:${C.text};`) : html;
 }
 
 function funnelCard(m) {
@@ -519,12 +527,15 @@ export function playerTotalsRows(digest) {
     const players = Array.isArray(p.players) ? p.players : [];
     const summary = [
         ['Real Players Who Played', fmtInt(t.players), `${fmtInt(t.hands)} hands, ${fmtMinutes(t.minutes)} played in all`],
-        ['Players Won / Lost (Chips)', fmtSigned(t.net), `Cash games ${fmtSigned(t.cash_net)}, tournaments ${fmtSigned(t.tournament_net)}`],
+        ['Players Net Won / Lost (Chips)', fmtSigned(t.net), `Cash games ${fmtSigned(t.cash_net)}, tournaments ${fmtSigned(t.tournament_net)}; already after rake and BBJ`],
+        ['Winning Players / Losing Players', t.won === undefined ? 'Unavailable' : `${fmtSigned(t.won)} / ${fmtSigned(-Number(t.lost))}`, 'Positive and negative player results shown separately'],
         ['Rake Paid - Cash Games', fmtNum(t.cash_rake), ''],
         ['Rake Paid - Tournaments', fmtNum(t.tournament_rake), ''],
-        ['Rake Paid - Total', fmtNum((Number(t.cash_rake) || 0) + (Number(t.tournament_rake) || 0)), ''],
+        ['BBJ Rake Paid', t.bbj_rake === undefined ? 'Unavailable' : fmtNum(t.bbj_rake), 'Player contributions to the bad beat jackpot'],
+        ['Rake Paid - Total', t.bbj_rake === undefined ? 'Unavailable' : fmtNum((Number(t.cash_rake) || 0) + (Number(t.tournament_rake) || 0) + Number(t.bbj_rake)), 'Cash games, tournaments and BBJ'],
         ['Chip Wallets At End Of Day', fmtNum(t.wallet_end), 'All of these players together'],
     ];
+    if (p.result_basis) summary.push(['Result Calculation', 'Central Day', String(p.result_basis)]);
     if (Number(t.diamond_arena_net) || Number(t.diamond_arena_rake)) {
         summary.push(['Diamond Arena Won / Lost (Diamonds)', fmtSigned(t.diamond_arena_net), `Rake ${fmtNum(t.diamond_arena_rake)} diamonds, not in the chip totals`]);
     }
@@ -537,7 +548,7 @@ export function playerTotalsRows(digest) {
             head: `${fmtMinutes(x.minutes)} played, ${fmtInt(x.hands)} hands`,
             rows: [
                 ['Won / Lost', fmtSigned(x.net), `Cash games ${fmtSigned(x.cash_net)}, tournaments ${fmtSigned(x.tournament_net)}`],
-                ['Rake Paid', fmtNum((Number(x.cash_rake) || 0) + (Number(x.tournament_rake) || 0)), `Cash games ${fmtNum(x.cash_rake)}, tournaments ${fmtNum(x.tournament_rake)}`],
+                ['Rake Paid', x.bbj_rake === undefined ? 'Unavailable' : fmtNum((Number(x.cash_rake) || 0) + (Number(x.tournament_rake) || 0) + Number(x.bbj_rake)), `Cash games ${fmtNum(x.cash_rake)}, tournaments ${fmtNum(x.tournament_rake)}, BBJ ${x.bbj_rake === undefined ? 'unavailable' : fmtNum(x.bbj_rake)}`],
                 ['Balances At End Of Day', `${fmtNum(x.wallet_end)} chips`, `${fmtInt(x.diamonds_end)} diamonds`],
                 ...(Array.isArray(x.games) ? x.games : []).map((g) => [
                     gameLabel(g),
@@ -550,13 +561,33 @@ export function playerTotalsRows(digest) {
     };
 }
 
+function playerPeriodCards(digest) {
+    const period = digest.player_totals?.period;
+    if (!period) return '';
+    if (period.error) return listCard('Player Period Totals', [['Could Not Be Built', 'Unavailable', period.error]]);
+    return [['week', 'Real Players - Last 7 Days'], ['month', 'Real Players - Month To Date']].map(([key, title]) => {
+        const p = period[key];
+        if (!p) return '';
+        if (p.missing_days) return listCard(title, [['History Incomplete', 'Unavailable', `${fmtInt(p.missing_days)} missing days; partial totals are not shown.`]]);
+        return listCard(title, [
+            ['Period', `${p.from} To ${p.to}`, 'Central calendar days'],
+            ['Real Players Who Played', fmtInt(p.players), `${fmtInt(p.hands)} hands, ${fmtMinutes(p.minutes)}`],
+            ['Net Won / Lost (Chips)', fmtSigned(p.net), `Cash ${fmtSigned(p.cash_net)}, tournaments ${fmtSigned(p.tournament_net)}`],
+            ['Rake Paid - Cash Games', fmtNum(p.cash_rake), ''],
+            ['Rake Paid - Tournaments', fmtNum(p.tournament_rake), ''],
+            ['BBJ Rake Paid', p.bbj_rake === undefined ? 'Unavailable' : fmtNum(p.bbj_rake), ''],
+            ['Rake Paid - Total', p.bbj_rake === undefined ? 'Unavailable' : fmtNum(Number(p.cash_rake) + Number(p.tournament_rake) + Number(p.bbj_rake)), 'Includes BBJ'],
+        ]);
+    }).join('');
+}
+
 function signedColor(v) {
     const n = Number(String(v).replace(/,/g, ''));
     if (!Number.isFinite(n) || n === 0) return C.text;
     return n > 0 ? C.green : C.text;
 }
 
-function playerTotalsCard(digest) {
+function playerTotalsCard(digest, opts = {}) {
     const r = playerTotalsRows(digest);
     if (!r) return '';
     let html = cardOpen('Real Player Totals');
@@ -566,9 +597,12 @@ function playerTotalsCard(digest) {
     }
     for (const [label, value, sub] of r.summary) html += rowHtml(label, `<span style="color:${label.includes('Won / Lost') ? signedColor(value) : C.text};">${esc(value)}</span>`, sub, false, false);
     if (!r.players.length) html += rowHtml('No real player played a hand or a tournament', '', '', false, true);
+    if (opts.email) {
+        for (const pl of r.players) html += rowHtml(pl.name, esc(fmtSigned(pl.net)), `${pl.head}; rake ${pl.rows[1][1]}; ${pl.rows[2][1]}`, false, false);
+    }
     html += cardClose;
-    for (const pl of r.players) {
-        html += `<tr><td style="padding:14px 0 6px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
+    for (const pl of opts.email ? [] : r.players) {
+        html += `<tr><td style="padding:14px 0 6px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;background:${C.row};border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;">`;
         html += `<tr><td style="padding:10px 14px;color:#ffffff;font-size:15px;font-weight:800;">${esc(pl.name)}<div style="color:${C.muted};font-size:11px;font-weight:400;margin-top:2px;">${esc(pl.head)}</div></td>`
             + `<td style="padding:10px 14px;text-align:right;white-space:nowrap;font-size:15px;font-weight:800;color:${signedColor(pl.net)};">${esc(fmtSigned(pl.net))}</td></tr>`;
         pl.rows.forEach(([label, value, sub], i) => {
@@ -629,7 +663,20 @@ export function buildText(digest, opts = {}) {
     const items = digest.attention || [];
     lines.push(items.length ? `NEEDS YOUR ATTENTION (${items.length})` : 'Nothing needs your attention.');
     for (const it of items) lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
+    lines.push('', 'MONTH TO DATE');
+    for (const [k, v] of Object.entries(digest.mtd || {})) lines.push(`${k.replace(/_/g, ' ')}: ${fmtNum(v)}`);
+    if (digest.week) {
+        lines.push('', `WEEK IN REVIEW (${digest.week.from} To ${digest.week.to})`);
+        for (const [k, v] of Object.entries(digest.week).filter(([k]) => !['from', 'to'].includes(k))) lines.push(`${k.replace(/_/g, ' ')}: ${fmtNum(v)}`);
+    }
     lines.push(...playerTotalsText(digest));
+    for (const key of ['week', 'month']) {
+        const p = digest.player_totals?.period?.[key];
+        if (!p) continue;
+        lines.push('', key === 'week' ? 'REAL PLAYERS - LAST 7 DAYS' : 'REAL PLAYERS - MONTH TO DATE');
+        if (p.missing_days) lines.push(`Unavailable: ${fmtInt(p.missing_days)} missing days; partial totals are not shown.`);
+        else lines.push(`${p.from} To ${p.to}: ${fmtInt(p.players)} players, net ${fmtSigned(p.net)}, cash rake ${fmtNum(p.cash_rake)}, tournament rake ${fmtNum(p.tournament_rake)}, BBJ ${p.bbj_rake === undefined ? 'unavailable' : fmtNum(p.bbj_rake)}`);
+    }
     const roster = horseRosterRows(digest);
     if (roster.length) {
         lines.push('');

@@ -1,0 +1,37 @@
+name: Digest Report Regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/lib/dailyDigest/**'
+      - 'pages/api/digest/**'
+      - 'pages/api/cron/daily-digest.js'
+      - 'supabase/migrations/*digest*'
+      - '__tests__/*digest*'
+      - 'scripts/verify-digest-player-report-postgres.mjs'
+      - '.github/workflows/digest-report-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/dailyDigest/**'
+      - 'pages/api/digest/**'
+      - 'pages/api/cron/daily-digest.js'
+      - 'supabase/migrations/*digest*'
+      - '__tests__/*digest*'
+      - 'scripts/verify-digest-player-report-postgres.mjs'
+      - '.github/workflows/digest-report-regression.yml'
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+      - name: Render and report boundary regressions
+        run: node --test __tests__/daily-digest.test.mjs __tests__/digest-figures-carry-separators.test.mjs
+      - name: Actual migration and PostgreSQL accounting boundaries
+        run: node scripts/verify-digest-player-report-postgres.mjs
