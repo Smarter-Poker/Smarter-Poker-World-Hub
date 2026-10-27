@@ -1307,6 +1307,17 @@ const nextConfig = {
         destination: '/hub/poker-near-me/lobby',
         permanent: true,
       },
+      // Legacy root venue and series routes to canonical hub routes (301 permanent redirect)
+      {
+        source: '/venues/:id',
+        destination: '/hub/venues/:id',
+        permanent: true,
+      },
+      {
+        source: '/series/:id',
+        destination: '/hub/series/:id',
+        permanent: true,
+      },
     ];
   },
 
