@@ -307,3 +307,60 @@ test('the digest stays inside its 600px card: no value or sub-line can force it 
         assert.ok(m[1].includes('white-space:normal'), 'every grey sub-line can wrap');
     }
 });
+
+test('BBJ is included once in rake totals, never deducted again from net', () => {
+    const p = structuredClone(PLAYER_TOTALS);
+    p.totals.bbj_rake = 77.96;
+    p.totals.won = 1481.81;
+    p.totals.lost = 100;
+    p.players[0].bbj_rake = 70;
+    const d = fixture({ player_totals: p });
+    const rows = playerTotalsRows(d);
+    assert.deepEqual(rows.summary.find(r => r[0] === 'BBJ Rake Paid').slice(0, 2), ['BBJ Rake Paid', '77.96']);
+    assert.equal(rows.summary.find(r => r[0] === 'Rake Paid - Total')[1], '808.02');
+    assert.equal(rows.summary.find(r => r[0] === 'Players Net Won / Lost (Chips)')[1], '+1,381.81');
+    assert.equal(rows.summary.find(r => r[0] === 'Winning Players / Losing Players')[1], '+1,481.81 / -100');
+    assert.equal(rows.players[0].rows[1][1], '793.88');
+    for (const output of [buildHtml(d), buildText(d)]) assert.match(output, /BBJ Rake Paid/);
+    assert.equal(playerTotalsRows(fixture({ player_totals: PLAYER_TOTALS })).summary.find(r => r[0] === 'BBJ Rake Paid')[1], 'Unavailable');
+});
+
+test('email keeps all operating sections below clipping size with a full roster and player games', () => {
+    const members = Array.from({ length: 1000 }, (_, i) => ({ rank: i + 1, name: `Horse ${i + 1}`, bb100: 1, hands: 5000 }));
+    const players = Array.from({ length: 30 }, (_, i) => ({ ...PLAYER_TOTALS.players[0], username: `Player ${i}`, games: Array(20).fill(PLAYER_TOTALS.players[0].games[0]) }));
+    const d = fixture({ horse_roster: { ...ROSTER, members }, player_totals: { ...PLAYER_TOTALS, players } });
+    const opts = { email: true, viewUrl: 'https://smarter.poker/api/digest/view?t=x' };
+    const html = buildHtml(d, opts);
+    assert.ok(Buffer.byteLength(html) < 102000, `email bytes: ${Buffer.byteLength(html)}`);
+    for (const def of SECTION_DEFS) assert.ok(html.includes(def.title), def.title);
+    assert.match(html, /Full Player And Horse Details/);
+    assert.ok(!html.includes('Horse 1000'));
+    assert.ok(html.includes('Player 29'), 'every human stays in the email');
+    assert.ok(!html.includes('PLO5 1/2 Cash'), 'per-game details are linked online');
+    const online = buildHtml(d, { ...opts, email: false });
+    assert.match(online, /Horse 1000/);
+    assert.match(online, /Player 29/);
+    assert.match(buildText(d), /Horse 1000/);
+});
+
+test('incomplete player periods are unavailable, never presented as complete totals', () => {
+    const p = { ...PLAYER_TOTALS, period: {
+        week: { from: '2026-10-20', to: '2026-10-26', players: 8, net: 987654, missing_days: 4 },
+        month: { from: '2026-10-01', to: '2026-10-26', players: 9, net: 876543, missing_days: 20 },
+    } };
+    for (const output of [buildHtml(fixture({ player_totals: p })), buildText(fixture({ player_totals: p }))]) {
+        assert.match(output, /missing days/);
+        assert.ok(!output.includes('987,654') && !output.includes('876,543'));
+    }
+});
+
+test('assembler uses the BBJ and period RPC and selects the compact email rendering', async () => {
+    const { assembleDigest, loadPlayerTotals } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const calls = [];
+    const sb = { rpc: async (name, args) => { calls.push([name, args]); return { data: name === 'fn_sp_daily_digest' ? fixture() : PLAYER_TOTALS, error: null }; } };
+    const out = await assembleDigest(sb, '2026-10-26', { withCosts: false, dispatch: false });
+    assert.ok(calls.some(([n]) => n === 'fn_sp_digest_player_report'));
+    assert.equal(out.opts.email, true);
+    assert.match(out.html, /Full Player And Horse Details/);
+    assert.deepEqual(await loadPlayerTotals({ rpc: async () => ({ error: { message: 'timeout' } }) }, '2026-10-26'), { day: '2026-10-26', error: 'timeout' });
+});
