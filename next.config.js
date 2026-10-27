@@ -1435,6 +1435,22 @@ const nextConfig = {
           source: '/hub/series/:id.md',
           destination: '/hub/series/:id?format=md',
         },
+        {
+          source: '/tools/poker-odds-calculator.md',
+          destination: '/tools/poker-odds-calculator?format=md',
+        },
+        {
+          source: '/tools/icm-calculator.md',
+          destination: '/tools/icm-calculator?format=md',
+        },
+        {
+          source: '/tools/preflop-ranges.md',
+          destination: '/tools/preflop-ranges?format=md',
+        },
+        {
+          source: '/about.md',
+          destination: '/about?format=md',
+        },
         /* CLEAN ROOT TOOL URLS (GSC / AEO Series 3 Phase 3).
            Direct, indexable root tool aliases for competitive SERP keyword capture. */
         {

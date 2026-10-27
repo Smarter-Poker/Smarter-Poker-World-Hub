@@ -25,12 +25,19 @@ https://smarter.poker/about is the page that states it.
 - Sitemap: https://smarter.poker/sitemap.xml
 - Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
-- Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue and series routes, e.g. https://smarter.poker/hub/venues/1832.md)
+- Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue, series, tools, and about routes, e.g. https://smarter.poker/hub/venues/1832.md or https://smarter.poker/tools/poker-odds-calculator.md)
 - Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Supports JSON-RPC 2.0 via POST, SSE via GET /api/mcp?transport=sse)
 - Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
 
 ## Core Features
+
+### Free Interactive Poker Tools
+Solver-grade poker calculators, range tools, and embeddable widgets for web browser usage, raw Markdown ingestion, or direct AI function calling via the Smarter.Poker MCP Server.
+- Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
+- Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
+- Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
+- Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds
 
 ### GTO Training Engine
 Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer. Free to play.

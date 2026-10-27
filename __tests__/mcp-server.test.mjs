@@ -82,3 +82,92 @@ test('MCP Server tool execution handles missing parameters gracefully', async ()
   assert.equal(res.result.isError, true);
   assert.ok(res.result.content[0].text.includes('Missing required parameter'));
 });
+
+test('MCP Server calculate_poker_odds computes hand equity and returns citation', async () => {
+  const req = {
+    jsonrpc: '2.0',
+    id: 6,
+    method: 'tools/call',
+    params: {
+      name: 'calculate_poker_odds',
+      arguments: {
+        game: 'nlhe',
+        hands: [['Ah', 'Kd'], ['Qc', 'Qd']],
+        board: ['Jh', 'Ts', '2c'],
+        iterations: 1000,
+      },
+    },
+  };
+
+  const res = await handleMcpRpc(req);
+  assert.equal(res.jsonrpc, '2.0');
+  assert.equal(res.id, 6);
+  assert.equal(res.result.isError, undefined);
+  const data = JSON.parse(res.result.content[0].text);
+  assert.equal(data.seats.length, 2);
+  assert.ok(data.seats[0].equity_percent > 0);
+  assert.ok(data.interactive_calculator_url.includes('poker-odds-calculator'));
+});
+
+test('MCP Server get_preflop_chart returns GTO opening frequencies and citation', async () => {
+  const req = {
+    jsonrpc: '2.0',
+    id: 7,
+    method: 'tools/call',
+    params: {
+      name: 'get_preflop_chart',
+      arguments: { position: 'UTG' },
+    },
+  };
+
+  const res = await handleMcpRpc(req);
+  assert.equal(res.jsonrpc, '2.0');
+  assert.equal(res.id, 7);
+  const data = JSON.parse(res.result.content[0].text);
+  assert.equal(data.position, 'UTG');
+  assert.ok(data.total_hands_opened > 0);
+  assert.ok(data.interactive_matrix_url.includes('preflop-ranges/utg'));
+});
+
+test('MCP Server calculate_icm_payouts computes tournament equity and returns citation', async () => {
+  const req = {
+    jsonrpc: '2.0',
+    id: 8,
+    method: 'tools/call',
+    params: {
+      name: 'calculate_icm_payouts',
+      arguments: {
+        stacks: [10000, 5000, 2500],
+        payouts: [1000, 600, 400],
+      },
+    },
+  };
+
+  const res = await handleMcpRpc(req);
+  assert.equal(res.jsonrpc, '2.0');
+  assert.equal(res.id, 8);
+  const data = JSON.parse(res.result.content[0].text);
+  assert.equal(data.players.length, 3);
+  assert.ok(data.players[0].icm_dollar_equity > data.players[1].icm_dollar_equity);
+  assert.ok(data.interactive_calculator_url.includes('icm-calculator'));
+});
+
+test('MCP Server get_poker_term_definition returns authoritative definition and citation', async () => {
+  const req = {
+    jsonrpc: '2.0',
+    id: 9,
+    method: 'tools/call',
+    params: {
+      name: 'get_poker_term_definition',
+      arguments: { term: 'pot-odds' },
+    },
+  };
+
+  const res = await handleMcpRpc(req);
+  assert.equal(res.jsonrpc, '2.0');
+  assert.equal(res.id, 9);
+  const data = JSON.parse(res.result.content[0].text);
+  assert.equal(data.found, true);
+  assert.equal(data.term, 'Pot Odds');
+  assert.ok(data.canonical_definition_url.includes('/glossary/pot-odds'));
+});

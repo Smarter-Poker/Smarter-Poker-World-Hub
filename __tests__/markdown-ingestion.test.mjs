@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderVenueMarkdown, renderSeriesMarkdown } from '../src/lib/seo/markdownIngestion.mjs';
+import {
+  renderVenueMarkdown,
+  renderSeriesMarkdown,
+  renderPokerOddsCalculatorMarkdown,
+  renderPreflopRangesMarkdown,
+  renderIcmCalculatorMarkdown,
+  renderAboutPlatformMarkdown,
+} from '../src/lib/seo/markdownIngestion.mjs';
 
 test('renderVenueMarkdown outputs clean token-efficient Markdown', () => {
   const venue = {
@@ -62,4 +69,42 @@ test('renderSeriesMarkdown outputs clean structured tournament series Markdown',
   assert.ok(md.includes('February 25 - March 31, 2026'));
   assert.ok(md.includes('https://smarter.poker/hub/series/468'));
   assert.ok(md.includes('Frequently Asked Questions'));
+});
+
+test('renderPokerOddsCalculatorMarkdown outputs clean structured odds calculator Markdown', () => {
+  const md = renderPokerOddsCalculatorMarkdown();
+  assert.ok(md.includes('# Free Online Poker Odds Calculator & Equity Simulator'));
+  assert.ok(md.includes('https://smarter.poker/tools/poker-odds-calculator'));
+  assert.ok(md.includes('Texas Hold\'em'));
+  assert.ok(md.includes('Pot-Limit Omaha'));
+  assert.ok(md.includes('Monte Carlo'));
+  assert.ok(md.includes('Frequently Asked Questions'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+});
+
+test('renderPreflopRangesMarkdown outputs clean structured range matrix Markdown', () => {
+  const md = renderPreflopRangesMarkdown({ position: 'BTN' });
+  assert.ok(md.includes('# GTO Preflop Range Matrix: BTN Opening Strategy'));
+  assert.ok(md.includes('https://smarter.poker/tools/preflop-ranges/btn'));
+  assert.ok(md.includes('13x13 Preflop Range Matrix'));
+  assert.ok(md.includes('Frequently Asked Questions'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+});
+
+test('renderIcmCalculatorMarkdown outputs clean structured ICM calculator Markdown', () => {
+  const md = renderIcmCalculatorMarkdown();
+  assert.ok(md.includes('# Tournament ICM Calculator & Final Table Equity Engine'));
+  assert.ok(md.includes('https://smarter.poker/tools/icm-calculator'));
+  assert.ok(md.includes('Malmuth-Harville Independent Chip Model'));
+  assert.ok(md.includes('Frequently Asked Questions'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+});
+
+test('renderAboutPlatformMarkdown outputs clean structured about platform Markdown', () => {
+  const md = renderAboutPlatformMarkdown();
+  assert.ok(md.includes('# About Smarter.Poker: Free Online Poker Platform'));
+  assert.ok(md.includes('https://smarter.poker/about'));
+  assert.ok(md.includes('Smarter Software Inc.'));
+  assert.ok(md.includes('No Real-Money Gambling'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
 });

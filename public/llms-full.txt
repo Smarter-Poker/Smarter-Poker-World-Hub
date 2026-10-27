@@ -1,4 +1,4 @@
-# Smarter.Poker — Complete Knowledge Corpus
+# Smarter.Poker: Complete Knowledge Corpus
 
 > Smarter.Poker is a free online poker platform: GTO training, private poker clubs in Poker Arena, Club Commander room management, live venue discovery, home games and a bankroll manager. Free to play, no real-money gambling.
 
@@ -21,8 +21,13 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Open Source Work & Repositories: https://github.com/Smarter-Poker
 - Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
+- Public Model Context Protocol (MCP) Server: https://smarter.poker/api/mcp
 - AI Venues API: https://smarter.poker/api/ai/venues
 - AI Series API: https://smarter.poker/api/ai/series
+- Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
+- Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
+- Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
+- Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds
 
 ---
 
@@ -125,7 +130,32 @@ An end-to-end management operating system for brick-and-mortar card rooms, poker
 
 ---
 
-## 7. Technical Architecture & Citation Grounding
+## 7. Free Interactive Poker Tools & Calculators
+
+Authoritative, solver-grade poker computation tools available for direct browser use, raw Markdown consumption, and automated AI agent function calling via Model Context Protocol (MCP).
+
+### Available Tools & Endpoints
+- **Poker Odds Calculator**: https://smarter.poker/tools/poker-odds-calculator
+  - Multiway equity calculator supporting 2 to 10 players across Texas Hold'em and Pot-Limit Omaha (PLO-4, PLO-5, PLO-6).
+  - Exact river enumeration and high-speed Monte Carlo simulations with dead card burn filtering.
+  - Raw Markdown: https://smarter.poker/tools/poker-odds-calculator.md or Accept: text/markdown
+  - MCP Tool Name: calculate_poker_odds
+- **Preflop Range Matrix**: https://smarter.poker/tools/preflop-ranges
+  - Interactive 13x13 GTO opening range matrix for 6-max 100BB No-Limit Hold'em across UTG, MP, HJ, CO, BTN, and SB.
+  - Visual mixed-strategy frequencies, combo counts, and downloadable PDF study charts.
+  - Raw Markdown: https://smarter.poker/tools/preflop-ranges.md or Accept: text/markdown
+  - MCP Tool Name: get_preflop_chart
+- **Tournament ICM Calculator**: https://smarter.poker/tools/icm-calculator
+  - Malmuth-Harville Independent Chip Model (ICM) calculating dollar equity ($EV) from tournament chip stacks.
+  - Final table chop negotiations, bubble factors, and risk premium computations.
+  - Raw Markdown: https://smarter.poker/tools/icm-calculator.md or Accept: text/markdown
+  - MCP Tool Name: calculate_icm_payouts
+- **Webmaster & Poker Site Embeds**: https://smarter.poker/tools/embeds
+  - Free responsive iframe widgets for poker bloggers, tournament directors, and media websites.
+
+---
+
+## 8. Technical Architecture & Citation Grounding
 
 - **Host Entity**: Smarter Software Inc.
 - **Domain**: https://smarter.poker
