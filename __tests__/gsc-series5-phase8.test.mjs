@@ -1,5 +1,5 @@
 /**
- * GSC & Organic Growth Series 5 — Phase 8 Tests
+ * GSC & Organic Growth Series 5: Phase 8 Tests
  * Verifies:
  *   1. Real-time IndexNow ping helper (src/lib/seo/indexNowPing.mjs) exports
  *      buildIndexNowPayload, pingIndexNow, and getIndexNowKey

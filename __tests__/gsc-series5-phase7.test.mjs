@@ -1,5 +1,5 @@
 /**
- * GSC & Organic Growth Series 5 — Phase 7 Tests
+ * GSC & Organic Growth Series 5: Phase 7 Tests
  * Verifies:
  *   1. Wordle-Style Shareable Spot Summary (buildOddsSpotSummary + Copy Spot
  *      Summary button) in src/lib/poker/oddsPermalink.js, pages/hub/poker-tools.js,

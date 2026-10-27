@@ -1,5 +1,5 @@
 /**
- * GSC & Organic Growth Series 5 — Phase 5 Tests
+ * GSC & Organic Growth Series 5: Phase 5 Tests
  * Verifies:
  *   1. Dynamic OpenGraph Tool Social Card Generator (/api/og/tool-card.js)
  *      renders 1200x630 Satori ImageResponse with display:flex on all elements

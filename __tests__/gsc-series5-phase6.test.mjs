@@ -1,5 +1,5 @@
 /**
- * GSC & Organic Growth Series 5 — Phase 6 Tests
+ * GSC & Organic Growth Series 5: Phase 6 Tests
  * Verifies:
  *   1. Hub-and-Spoke Internal Cross-Linking Mesh between /glossary/[term] and
  *      /learn/[topic] (every glossary term referenced by a lesson links back to

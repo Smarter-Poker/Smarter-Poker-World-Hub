@@ -636,7 +636,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
       activities: aj.success ? (Array.isArray(aj.activities || aj.data) ? (aj.activities || aj.data) : []) : []
     };
   }, {
-    // BUG FIX: don't retry 404s or 410s (series not found / gone) — stops hammering the API
+    // Bug Fix: Don't Retry 404s Or 410s (Series Not Found / Gone): Stops Hammering The API
     onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
       if (error.message && (error.message.includes('not found') || error.message.includes('410') || error.message.includes('removed'))) return;
       if (retryCount >= 3) return; // max 3 retries for actual network errors
