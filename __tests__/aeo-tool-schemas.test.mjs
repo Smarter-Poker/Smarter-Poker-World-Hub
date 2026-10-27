@@ -132,3 +132,17 @@ test('Webmaster Embeds Portal ships complete Schema.org graph with FAQPage and S
   const faq = doc['@graph'].find((n) => n['@type'] === 'FAQPage');
   assert.ok(faq, 'FAQPage required');
 });
+
+test('Glossary term pages emit FAQPage and SpeakableSpecification in schema graph', () => {
+  const src = read('pages/glossary/[term].js');
+  assert.ok(src.includes("'@type': 'FAQPage'"), 'glossary term page must declare FAQPage');
+  assert.ok(src.includes("'@type': 'Question'"), 'glossary term page must declare Question');
+  assert.ok(src.includes("'@type': 'Answer'"), 'glossary term page must declare Answer');
+  assert.ok(src.includes("'@type': 'SpeakableSpecification'"), 'glossary term page must declare SpeakableSpecification');
+});
+
+test('About page declares SpeakableSpecification on AboutPage entity', () => {
+  const src = read('pages/about.js');
+  assert.ok(src.includes("'@type': 'SpeakableSpecification'"), 'About page must declare SpeakableSpecification');
+  assert.ok(src.includes("cssSelector: ['h1', 'p']"), 'About page speakable must target h1 and p');
+});

@@ -117,6 +117,20 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
         { '@type': 'ListItem', position: 3, name: term.term, item: url },
       ],
     },
+    {
+      '@type': 'FAQPage',
+      '@id': `${url}#faq`,
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: `What Is ${term.term}${inPoker}?`,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: term.definition,
+          },
+        },
+      ],
+    },
   ];
 
   return (

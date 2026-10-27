@@ -30,6 +30,10 @@ const ABOUT_PAGE_SCHEMA = {
   name: 'About Smarter Poker',
   mainEntity: { '@id': 'https://smarter.poker/#organization' },
   isPartOf: { '@id': 'https://smarter.poker/#website' },
+  speakable: {
+    '@type': 'SpeakableSpecification',
+    cssSelector: ['h1', 'p'],
+  },
 };
 
 export default function AboutPage() {
