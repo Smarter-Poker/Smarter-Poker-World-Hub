@@ -17,7 +17,7 @@ try {
     started = true;
     run('psql', ['-X', '-v', 'ON_ERROR_STOP=1', '-h', socket, '-p', '56474', '-d', 'postgres',
         '-f', '__tests__/digest-player-report.sql',
-        '-f', 'supabase/migrations/20261027190000_digest_player_report_bbj_and_result_breakdown.sql',
+        '-f', 'supabase/migrations/20261027183951_digest_player_report_bbj_and_result_breakdown.sql',
         '-f', '__tests__/digest-player-report-assert.sql']);
 } finally {
     if (started) run('pg_ctl', ['-D', data, '-m', 'fast', 'stop']);
