@@ -54,7 +54,8 @@ def main() -> None:
     nuts, air, opponent = index(('As', 'Ts')), index(('7c', '6d')), index(('Kd', 'Kh'))
     inputs = {'OOP': [0.] * 1326, 'IP': [0.] * 1326}
     inputs['OOP'][nuts] = inputs['OOP'][air] = inputs['IP'][opponent] = 1.
-    with PioProcess(args.pio_exe, expected_solver_version=args.solver_version, expected_hand_order=order) as pio:
+    with PioProcess(args.pio_exe, expected_solver_version=args.solver_version, expected_hand_order=order) as process:
+        pio = process.command
         for command in setup_commands(scenario, inputs['OOP'], inputs['IP']):
             pio(command)
         if parse_children(pio('show_children ' + node), node) != ['c', 'f']:

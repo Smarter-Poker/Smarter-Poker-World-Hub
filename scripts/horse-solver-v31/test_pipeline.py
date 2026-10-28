@@ -208,6 +208,35 @@ class NodeLineTests(unittest.TestCase):
         scenario["conditional_history"] = {"model": "authored_range_preserving_response", "target_node": node}
         return scenario
 
+    def test_native_driver_binds_actual_command_api_not_process_call(self):
+        import native_conditional_preflight as driver
+        class FirstCommandReached(Exception):
+            pass
+        class NativeProcessAdapter:
+            # Deliberately not callable, matching the real PioProcess boundary.
+            def __init__(self, *args, **kwargs): pass
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def command(self, command):
+                self_command = PioProcess.command
+                if not callable(self_command) or command != "set_pot 0 0 500":
+                    raise AssertionError("driver did not use the actual command interface")
+                raise FirstCommandReached()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            executable, order, receipts = root / "solver", root / "order", root / "receipts.json"
+            executable.write_bytes(b"fixture")
+            order.write_text(" ".join(canonical_hand_order_tokens()), encoding="utf-8")
+            names = ("contract.py", "pio_upi.py", "native_conditional_preflight.py")
+            receipts.write_text(json.dumps({name: digest((HERE / name).read_bytes()) for name in names}))
+            argv = ["native_conditional_preflight.py", "--pio-exe", str(executable),
+                    "--solver-sha256", digest(executable.read_bytes()), "--solver-version", "fixture",
+                    "--hand-order", str(order), "--hand-order-sha256", digest(order.read_bytes()),
+                    "--source-receipts", str(receipts)]
+            with mock.patch.object(driver, "PioProcess", NativeProcessAdapter), mock.patch.object(sys, "argv", argv):
+                with self.assertRaises(FirstCommandReached):
+                    driver.main()
+
     def test_conditional_history_is_cumulative_and_does_not_force_target_action(self):
         scenario = self.conditioned()
         self.assertEqual(validate_conditional_history(scenario), (100, 300, 300, 300, 500))
