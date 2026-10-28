@@ -84,8 +84,16 @@ test('renderPokerOddsCalculatorMarkdown outputs clean structured odds calculator
   assert.ok(md.includes('Texas Hold\'em'));
   assert.ok(md.includes('Pot-Limit Omaha'));
   assert.ok(md.includes('Monte Carlo'));
+  assert.ok(md.includes('Common Preflop Matchup Equities & Benchmarks'));
+  assert.ok(md.includes('Overpair Vs Underpair'));
+  assert.ok(md.includes('The Rule Of 2 And 4 For Postflop Equity Estimation'));
+  assert.ok(md.includes('Open-Ended Straight Draw'));
   assert.ok(md.includes('Frequently Asked Questions'));
   assert.ok(!md.includes('—'), 'Must not contain em dashes');
+
+  const pokerToolsSrc = read('pages/hub/poker-tools.js');
+  assert.ok(pokerToolsSrc.includes('Common Preflop Hand Matchups &amp; Equity Odds'));
+  assert.ok(pokerToolsSrc.includes('The Rule Of 2 And 4 For Postflop Equity Estimation'));
 });
 
 test('renderPreflopRangesMarkdown outputs clean structured range matrix Markdown', () => {
