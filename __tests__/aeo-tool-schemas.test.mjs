@@ -35,6 +35,9 @@ test('Poker Odds Calculator ships complete Schema.org graph with FAQPage and Spe
   const src = read('pages/hub/poker-tools.js');
   assert.ok(src.includes('jsonLd={schema}'), 'poker-tools.js must pass jsonLd to SEOHead');
   assert.ok(!src.includes('...ODDS_CALCULATOR_SCHEMA'), 'Must not spread array into an object');
+  assert.ok(src.includes('ODDS_CALCULATOR_FAQS'), 'poker-tools.js must define ODDS_CALCULATOR_FAQS');
+  assert.ok(src.includes('aria-label="Frequently Asked Questions"'), 'Must render visible FAQ section in DOM');
+  assert.ok(src.includes('<details key={idx}'), 'Must render accessible FAQ details accordions in DOM');
 
   const nodes = hubProductSchema({
     path: '/tools/poker-odds-calculator',
@@ -69,6 +72,9 @@ test('Tournament ICM Calculator ships complete Schema.org graph with FAQPage and
   const src = read('pages/hub/training/icm-calculator.js');
   assert.ok(src.includes('jsonLd={schema}'), 'icm-calculator.js must pass jsonLd to SEOHead');
   assert.ok(!src.includes('...ICM_CALCULATOR_SCHEMA'), 'Must not spread array into an object');
+  assert.ok(src.includes('ICM_CALCULATOR_FAQS'), 'icm-calculator.js must define ICM_CALCULATOR_FAQS');
+  assert.ok(src.includes('aria-label="Frequently Asked Questions"'), 'Must render visible FAQ section in DOM');
+  assert.ok(src.includes('<details'), 'Must render accessible FAQ details accordions in DOM');
 
   const nodes = hubProductSchema({
     path: '/tools/icm-calculator',
@@ -91,6 +97,7 @@ test('Tournament ICM Calculator ships complete Schema.org graph with FAQPage and
 test('GTO Preflop Ranges Matrix ships complete Schema.org graph with FAQPage and Speakable', () => {
   const src = read('pages/tools/preflop-ranges/index.js');
   assert.ok(src.includes('jsonLd={schema}'), 'preflop-ranges index.js must pass jsonLd to SEOHead');
+  assert.ok(src.includes('Frequently Asked Questions'), 'preflop-ranges must render FAQ section in DOM');
 
   const nodes = hubProductSchema({
     path: '/tools/preflop-ranges',
@@ -114,6 +121,9 @@ test('Webmaster Embeds Portal ships complete Schema.org graph with FAQPage and S
   const src = read('pages/tools/embeds.js');
   assert.ok(src.includes('jsonLd={EMBEDS_SCHEMA}'), 'embeds.js must pass jsonLd to SEOHead');
   assert.ok(src.includes('hubProductSchema'), 'embeds.js must use hubProductSchema');
+  assert.ok(src.includes('EMBEDS_FAQS'), 'embeds.js must define EMBEDS_FAQS');
+  assert.ok(src.includes('aria-label="Frequently Asked Questions"'), 'Must render visible FAQ section in DOM');
+  assert.ok(src.includes('<details'), 'Must render accessible FAQ details accordions in DOM');
 
   const nodes = hubProductSchema({
     path: '/tools/embeds',

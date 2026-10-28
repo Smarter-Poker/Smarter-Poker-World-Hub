@@ -48,6 +48,34 @@ export {
     buildOddsSpotSummary,
 };
 
+const ODDS_CALCULATOR_FAQS = [
+    {
+        question: 'How Does The Smarter.Poker Odds Calculator Compute Equity?',
+        answer:
+            'The Calculator Runs High-Precision Monte Carlo Simulations Across 10,000 Iterations To Evaluate Exact Win, Tie, And Split-Pot Equity For Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud, And Razz Against Up To 6 Opponents Simultaneously.',
+    },
+    {
+        question: 'Can I Factor Dead Cards Or Known Discards Into The Calculation?',
+        answer:
+            'Yes. You Can Mark Folded Cards Or Known Discards As Dead Cards. The Simulation Immediately Removes Them From The 52-Card Shoe, Refining Equity Calculation Accuracy For Complex Multiway Scenarios.',
+    },
+    {
+        question: 'Is The Smarter.Poker Odds Calculator Free?',
+        answer:
+            'Yes. The Smarter.Poker Odds Calculator Is 100% Free With No Account Creation, Paywall, Or Advertisement Gating Required.',
+    },
+    {
+        question: 'What Poker Variants Are Supported By The Calculator?',
+        answer:
+            "Six Full Variants Are Supported: Texas Hold'em, Omaha High (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, And Razz (Seven Card Stud Low).",
+    },
+    {
+        question: 'Can I Share Or Embed Calculated Poker Odds Scenarios?',
+        answer:
+            'Yes. You Can Copy A Persistent Permalink Containing All Player Hands, Board Cards, And Dead Cards, Or Embed The Responsive Iframe Calculator Directly Into External Websites.',
+    },
+];
+
 const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     path: '/hub/poker-tools',
     name: 'Smarter.Poker Odds Calculator',
@@ -55,33 +83,7 @@ const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     applicationCategory: 'GameApplication',
     applicationSubCategory: 'Poker',
     trail: [['Hub', '/hub'], ['Poker Odds Calculator', '/hub/poker-tools']],
-    faqs: [
-        {
-            question: 'How does the Smarter.Poker Odds Calculator compute equity?',
-            answer:
-                'The calculator runs high-precision Monte Carlo simulations across 10,000 iterations to evaluate exact win, tie, and split-pot equity for Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud, and Razz against up to 6 opponents simultaneously.',
-        },
-        {
-            question: 'Can I factor dead cards or known discards into the calculation?',
-            answer:
-                'Yes. You can mark folded cards or known discards as dead cards. The simulation immediately removes them from the 52-card shoe, refining equity calculation accuracy for complex multiway scenarios.',
-        },
-        {
-            question: 'Is the Smarter.Poker Odds Calculator free?',
-            answer:
-                'Yes. The Smarter.Poker Odds Calculator is 100% free with no account creation, paywall, or advertisement gating required.',
-        },
-        {
-            question: 'What poker variants are supported by the calculator?',
-            answer:
-                "Six full variants are supported: Texas Hold'em, Omaha High (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, and Razz (Seven Card Stud Low).",
-        },
-        {
-            question: 'Can I share or embed calculated poker odds scenarios?',
-            answer:
-                'Yes. You can copy a persistent permalink containing all player hands, board cards, and dead cards, or embed the responsive iframe calculator directly into external websites.',
-        },
-    ],
+    faqs: ODDS_CALCULATOR_FAQS,
 });
 
 /* ═══════════════════════════════════════════════
@@ -681,6 +683,42 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     <Link href="/hub/bankroll-manager" className="odds-btn" style={{ textDecoration: 'none' }}>
                                         Track Sessions In Bankroll Manager
                                     </Link>
+                                </div>
+                            </section>
+                            <section className="odds-faq-section" aria-label="Frequently Asked Questions" style={{
+                                marginTop: 24,
+                                padding: '20px',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid var(--world-border, #3D679A)',
+                                borderRadius: 12,
+                                width: '100%',
+                            }}>
+                                <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 14px 0', color: 'var(--world-text, #F0F7FF)' }}>
+                                    Frequently Asked Questions
+                                </h2>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {ODDS_CALCULATOR_FAQS.map((faq, idx) => (
+                                        <details key={idx} style={{
+                                            background: 'rgba(255, 255, 255, 0.03)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: 8,
+                                            padding: '12px 14px',
+                                            color: 'var(--world-text, #F0F7FF)',
+                                        }}>
+                                            <summary style={{
+                                                fontWeight: 700,
+                                                fontSize: 14,
+                                                cursor: 'pointer',
+                                                color: 'var(--world-accent, #4E9CFF)',
+                                                outline: 'none',
+                                            }}>
+                                                {faq.question}
+                                            </summary>
+                                            <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--world-muted, #94AFCC)' }}>
+                                                {faq.answer}
+                                            </p>
+                                        </details>
+                                    ))}
                                 </div>
                             </section>
                             <HubPageSummary surface="poker-tools" />

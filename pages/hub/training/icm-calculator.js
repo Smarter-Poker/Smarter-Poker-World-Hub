@@ -22,6 +22,34 @@ import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import VerifiedToolGateway from '../../../src/components/training/VerifiedToolGateway';
 
+const ICM_CALCULATOR_FAQS = [
+  {
+    question: 'What Is ICM In Tournament Poker?',
+    answer:
+      'ICM (Independent Chip Model) Is A Mathematical Model That Translates Tournament Chip Stacks Into Their Actual Expected Dollar Equity Based On The Remaining Prize Pool Distribution.',
+  },
+  {
+    question: 'Why Do Chip Values Decrease As Stacks Grow Larger In Tournaments?',
+    answer:
+      'Because Tournament Payout Structures Award Fixed Prizes To Top Finishes Rather Than Exchanging Chips Directly For Cash. Your First Chip Is Worth The Most (Qualifying For Min-Cashes), While Chips That Exceed First-Place Prize Equity Have Diminishing Marginal Dollar Value.',
+  },
+  {
+    question: 'How Does ICM Affect Calling Ranges On The Bubble?',
+    answer:
+      'ICM Creates Risk Asymmetry Where Losing Chips Hurts Significantly More Than Gaining The Same Number Of Chips Helps. This Forces Players To Tighten Calling Ranges Drastically Against All-In Bets Near Pay Jumps And Bubbles.',
+  },
+  {
+    question: 'Which Algorithm Does This ICM Calculator Use?',
+    answer:
+      'This Calculator Runs The Canonical Malmuth-Harville Multi-Place Probability Model To Calculate Exact Finish-Distribution Odds For Every Seat At Final Tables Up To 9 Players.',
+  },
+  {
+    question: 'How Do I Use ICM Calculations For Final Table Chop Negotiations?',
+    answer:
+      'Input Each Player Stack And Remaining Cash Payout Ranks. The Resulting Dollar Values Represent Mathematically Fair Equity Allocations Before Considering Skill Edge Adjustments.',
+  },
+];
+
 const ICM_CALCULATOR_SCHEMA = hubProductSchema({
   path: '/hub/training/icm-calculator',
   name: 'Smarter.Poker Tournament ICM Calculator',
@@ -29,33 +57,7 @@ const ICM_CALCULATOR_SCHEMA = hubProductSchema({
   applicationCategory: 'GameApplication',
   applicationSubCategory: 'Poker',
   trail: [['Hub', '/hub'], ['GTO Training', '/hub/training'], ['ICM Calculator', '/hub/training/icm-calculator']],
-  faqs: [
-    {
-      question: 'What is ICM in tournament poker?',
-      answer:
-        'ICM (Independent Chip Model) is a mathematical model that translates tournament chip stacks into their actual expected dollar equity based on the remaining prize pool distribution.',
-    },
-    {
-      question: 'Why do chip values decrease as stacks grow larger in tournaments?',
-      answer:
-        'Because tournament payout structures award fixed prizes to top finishes rather than exchanging chips directly for cash. Your first chip is worth the most (qualifying for min-cashes), while chips that exceed first-place prize equity have diminishing marginal dollar value.',
-    },
-    {
-      question: 'How does ICM affect calling ranges on the bubble?',
-      answer:
-        'ICM creates risk asymmetry where losing chips hurts significantly more than gaining the same number of chips helps. This forces players to tighten calling ranges drastically against all-in bets near pay jumps and bubbles.',
-    },
-    {
-      question: 'Which algorithm does this ICM calculator use?',
-      answer:
-        'This calculator runs the canonical Malmuth-Harville multi-place probability model to calculate exact finish-distribution odds for every seat at final tables up to 9 players.',
-    },
-    {
-      question: 'How do I use ICM calculations for final table chop negotiations?',
-      answer:
-        'Input each player stack and remaining cash payout ranks. The resulting dollar values represent mathematically fair equity allocations before considering skill edge adjustments.',
-    },
-  ],
+  faqs: ICM_CALCULATOR_FAQS,
 });
 
 // TRAIN-CSS-MOTION-ADOPT-4 — durations routed through MOTION tokens matched to
@@ -1066,6 +1068,67 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
               Values Above 1.0 Mean Survival Is More Important Than Accumulation.
             </p>
           </div>
+
+          {/* Frequently Asked Questions */}
+          <section
+            aria-label="Frequently Asked Questions"
+            style={{
+              marginTop: 20,
+              padding: '16px 18px',
+              background: 'rgba(255,255,255,0.02)',
+              borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: 'var(--sp-fg)',
+                letterSpacing: 0.5,
+                margin: '0 0 12px 0',
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+              }}
+            >
+              Frequently Asked Questions
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {ICM_CALCULATOR_FAQS.map((faq, idx) => (
+                <details
+                  key={idx}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 8,
+                    padding: '10px 14px',
+                    color: 'var(--sp-fg)',
+                  }}
+                >
+                  <summary
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      color: 'var(--sp-accent-amber)',
+                      outline: 'none',
+                    }}
+                  >
+                    {faq.question}
+                  </summary>
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: 12,
+                      lineHeight: 1.6,
+                      color: 'var(--sp-fg-muted)',
+                    }}
+                  >
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     </>

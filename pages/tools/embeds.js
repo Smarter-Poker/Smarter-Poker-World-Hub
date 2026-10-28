@@ -55,6 +55,29 @@ export default function WebmasterEmbedPortal() {
     }
   };
 
+  const EMBEDS_FAQS = [
+    {
+      question: 'How Do I Embed The Smarter.Poker Odds Calculator On My Website?',
+      answer:
+        'Copy The Responsive HTML Iframe Snippet From This Portal And Paste It Into Your CMS Or HTML Page. It Automatically Adjusts To Mobile And Desktop Viewports With Zero API Keys Required.',
+    },
+    {
+      question: 'Are Smarter.Poker Embeddable Poker Widgets Free For Commercial And Affiliate Sites?',
+      answer:
+        'Yes. All Smarter.Poker Widgets Are 100% Free To Embed On Poker Blogs, News Portals, Casino Affiliate Sites, And Media Publications.',
+    },
+    {
+      question: 'Can I Customize The Theme Or Default Poker Game Variant For The Widget?',
+      answer:
+        'Yes. You Can Append URL Query Parameters Such As ?game=holdem, ?game=plo4, Or ?embed=true To Preselect Specific Variants And Lock Widget Dimensions.',
+    },
+    {
+      question: 'Do These Widgets Require Any JavaScript Dependencies Or External Tracking Scripts?',
+      answer:
+        'No. Smarter.Poker Widgets Run Entirely Within Sandboxed Responsive Iframes, Requiring Zero External Scripts Or Client Libraries On Your Host Domain.',
+    },
+  ];
+
   const EMBEDS_SCHEMA = hubProductSchema({
     path: '/tools/embeds',
     name: 'Smarter.Poker Webmaster Widgets & Embed Distribution Center',
@@ -66,28 +89,7 @@ export default function WebmasterEmbedPortal() {
       ['Poker Tools', '/tools/poker-odds-calculator'],
       ['Embed Widgets', '/tools/embeds'],
     ],
-    faqs: [
-      {
-        question: 'How do I embed the Smarter.Poker Odds Calculator on my website?',
-        answer:
-          'Copy the responsive HTML iframe snippet from this portal and paste it into your CMS or HTML page. It automatically adjusts to mobile and desktop viewports with zero API keys required.',
-      },
-      {
-        question: 'Are Smarter.Poker embeddable poker widgets free for commercial and affiliate sites?',
-        answer:
-          'Yes. All Smarter.Poker widgets are 100% free to embed on poker blogs, news portals, casino affiliate sites, and media publications.',
-      },
-      {
-        question: 'Can I customize the theme or default poker game variant for the widget?',
-        answer:
-          'Yes. You can append URL query parameters such as ?game=holdem, ?game=plo4, or ?embed=true to preselect specific variants and lock widget dimensions.',
-      },
-      {
-        question: 'Do these widgets require any JavaScript dependencies or external tracking scripts?',
-        answer:
-          'No. Smarter.Poker widgets run entirely within sandboxed responsive iframes, requiring zero external scripts or client libraries on your host domain.',
-      },
-    ],
+    faqs: EMBEDS_FAQS,
   });
 
   return (
@@ -222,6 +224,65 @@ export default function WebmasterEmbedPortal() {
                   </article>
                 );
               })}
+            </div>
+          </section>
+
+          {/* Frequently Asked Questions */}
+          <section
+            aria-label="Frequently Asked Questions"
+            style={{
+              marginTop: '40px',
+              padding: '24px',
+              background: '#0d1117',
+              border: '1px solid #30363d',
+              borderRadius: '12px',
+            }}
+          >
+            <h2
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: '#f0f6fc',
+                margin: '0 0 16px 0',
+              }}
+            >
+              Frequently Asked Questions
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {EMBEDS_FAQS.map((faq, idx) => (
+                <details
+                  key={idx}
+                  style={{
+                    background: '#161b22',
+                    border: '1px solid #30363d',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    color: '#f0f6fc',
+                  }}
+                >
+                  <summary
+                    style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      color: '#58a6ff',
+                      outline: 'none',
+                    }}
+                  >
+                    {faq.question}
+                  </summary>
+                  <p
+                    style={{
+                      margin: '10px 0 0',
+                      fontSize: '0.88rem',
+                      lineHeight: 1.6,
+                      color: '#8b949e',
+                    }}
+                  >
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
             </div>
           </section>
         </main>
