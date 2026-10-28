@@ -39,6 +39,7 @@ from contract import (  # noqa: E402
     load_range_vector,
     pipeline_bundle_checksum,
     validate_postflop_positions,
+    validate_conditional_history,
     _validate_scenario,
 )
 from gateway import (  # noqa: E402
@@ -66,6 +67,8 @@ from pio_upi import (  # noqa: E402
     texture_class,
     validate_pipeline_imports,
     PIO_ACK_COMMANDS,
+    validate_conditional_support,
+    COMBO_CARDS,
 )
 from worker import (  # noqa: E402
     artifact_id,
@@ -193,6 +196,73 @@ class NodeLineTests(unittest.TestCase):
             invalid["targets"][0][field] = value
             with self.subTest(field=field, value=value), self.assertRaises(ContractError):
                 _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+
+    def conditioned(self):
+        scenario = base_scenario()
+        scenario["tree_lines"] = [[100, 300, 300, 300, 500, 500]]
+        node = "r:0:b100:b300:c:2d:c:b200"
+        line = analyze_node(node, root_pot_chips=100, effective_stack_chips=1000, preflop_aggressor=None)
+        scenario["targets"][0].update(node=node, board="AsKd7c2d", node_role=line.node_role,
+            facing_kind=line.facing_kind, facing_size_bucket=line.facing_size_bucket,
+            expected_children=["c", "f"])
+        scenario["conditional_history"] = {"model": "authored_range_preserving_response", "target_node": node}
+        return scenario
+
+    def test_conditional_history_is_cumulative_and_does_not_force_target_action(self):
+        scenario = self.conditioned()
+        self.assertEqual(validate_conditional_history(scenario), (100, 300, 300, 300, 500))
+        _validate_scenario(scenario, 0, Path("."), {}, {}, False)
+        commands = setup_commands(scenario, [1.] * 1326, [1.] * 1326)
+        self.assertEqual([c for c in commands if c.startswith("force_line")], ["force_line 100 300 300 300 500"])
+        self.assertLess(commands.index("force_line 100 300 300 300 500"), commands.index("build_tree"))
+        self.assertEqual(scenario["targets"][0]["expected_children"], ["c", "f"])
+
+    def test_conditional_history_refuses_ambiguous_or_unbound_interventions(self):
+        import copy
+        mutations = [
+            lambda s: s.update(purpose="self_test"),
+            lambda s: s.update(conditional_root_action={"action": "all_in", "model": "authored_opponent_jam_response"}),
+            lambda s: s["conditional_history"].update(model="equilibrium"),
+            lambda s: s["conditional_history"].update(unknown=True),
+            lambda s: s["conditional_history"].update(target_node="r:0:b100"),
+            lambda s: s["conditional_history"].update(target_node=s["targets"][0]["node"] + ":c"),
+            lambda s: s["targets"].append(copy.deepcopy(s["targets"][0])),
+            lambda s: s.update(tree_lines=[[100, 300, 300, 300, 500]]),
+            lambda s: s.update(tree_lines=[[0, 100, 100]]),
+            lambda s: s["targets"][0].update(node_role="open", facing_kind="none", facing_size_bucket="none"),
+            lambda s: (s["targets"][0].update(node="r:0", board=s["flop_board"]), s["conditional_history"].update(target_node="r:0")),
+            lambda s: s.update(game_family="omaha"),
+        ]
+        for mutate in mutations:
+            invalid = copy.deepcopy(self.conditioned())
+            mutate(invalid)
+            with self.subTest(mutation=mutate), self.assertRaises(ContractError):
+                _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+
+    def test_conditional_support_requires_both_original_beliefs_and_actual_matchups(self):
+        scenario = self.conditioned()
+        target = scenario["targets"][0]
+        index = lambda hand: next(i for i, cards in enumerate(COMBO_CARDS) if set(cards) == set(hand))
+        a, b, opponent = index(("Ah", "Th")), index(("6c", "5c")), index(("Qc", "Qd"))
+        inputs = {"OOP": [0.] * 1326, "IP": [0.] * 1326}
+        inputs["OOP"][a], inputs["OOP"][b], inputs["IP"][opponent] = 1., .5, 1.
+        actual = {side: list(weights) for side, weights in inputs.items()}
+        matchups = [0.] * 1326
+        matchups[a] = matchups[b] = 1.
+        validate_conditional_support(scenario, target, inputs, actual, "OOP", matchups)
+        tiny = {side: list(weights) for side, weights in inputs.items()}
+        tiny["OOP"][a] = tiny["OOP"][b] = 5e-324
+        with self.assertRaisesRegex(PioError, "finite and positive"):
+            validate_conditional_support(scenario, target, tiny, actual, "OOP", matchups)
+        for defect in ("lost_reach", "changed_ratio", "missing_matchup", "extra_reach"):
+            changed = {side: list(weights) for side, weights in actual.items()}
+            weights = list(matchups)
+            if defect == "lost_reach": changed["OOP"][b] = 0.
+            elif defect == "changed_ratio": changed["OOP"][b] = .25
+            elif defect == "missing_matchup": weights[b] = 0.
+            else: changed["IP"][a] = .1
+            with self.subTest(defect=defect), self.assertRaises(PioError):
+                validate_conditional_support(scenario, target, inputs, changed, "OOP", weights)
 
     def line(self, node: str, preflop: int | None = None):
         return analyze_node(
