@@ -18,10 +18,14 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Arena Sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Terms of Service: https://smarter.poker/terms
 - Privacy Policy: https://smarter.poker/privacy
+- Daily $2,000 Freerolls Hub: https://smarter.poker/freerolls
+- Free Software Comparisons: https://smarter.poker/compare
 - Open Source Work & Repositories: https://github.com/Smarter-Poker
-- Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json
+- Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json (Clean Root Alias: https://smarter.poker/openapi.json)
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
 - Public Model Context Protocol (MCP) Server: https://smarter.poker/api/mcp
+- Public Freerolls Calendar Feed (RFC 5545 iCal): https://smarter.poker/freerolls.ics
+- AI Freerolls API: https://smarter.poker/api/ai/freerolls
 - AI Venues API: https://smarter.poker/api/ai/venues
 - AI Series API: https://smarter.poker/api/ai/series
 - AI Odds API: https://smarter.poker/api/ai/odds
@@ -167,3 +171,23 @@ Authoritative, solver-grade poker computation tools available for direct browser
 - **Data Schemas**: Rich Schema.org microdata embedded across all pages, including `@type: WebPage`, `SoftwareApplication`, `BreadcrumbList`, `FAQPage`, `SportsActivityLocation`, `Casino`, and `EventSeries`.
 - **Integrations**: RFC 5545 `.ics` iCalendar event feeds, Google Calendar web intents, dynamic OpenGraph / Twitter metadata.
 - **Licensing & Policy**: Free-to-play social and training platform. Strict zero-real-money wagering policy.
+
+---
+
+## 9. Daily $2,000 Freerolls & Software Comparisons
+
+### Daily $2,000 Freerolls Guarantee
+Smarter.Poker awards $2,000 in guaranteed prizes every single day across four scheduled multi-table tournament freerolls plus weekly Sunday Diamond Championship Freerolls:
+- **10:00 AM CST**: Morning Opener Freeroll ($250 GTD) - 10,000 Starting Chips, 10-Minute Levels.
+- **2:00 PM CST**: Afternoon Prime Freeroll ($500 GTD) - 15,000 Starting Chips, 12-Minute Levels.
+- **6:00 PM CST**: Evening Championship Freeroll ($750 GTD) - 20,000 Starting Chips, 12-Minute Levels.
+- **9:00 PM CST**: Nightcap Turbo Freeroll ($500 GTD) - 10,000 Starting Chips, 5-Minute Turbo Levels.
+- **Sundays at 5:00 PM CST**: Weekly Diamond Arena Championship ($5,000 GTD) - 25,000 Starting Chips, 15-Minute Levels.
+
+Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and no software download required (plays in-browser on web and mobile).
+
+### Free Software Alternatives & Comparisons (https://smarter.poker/compare)
+- **ICMIZER Alternative**: Smarter.Poker Tournament ICM Calculator (https://smarter.poker/tools/icm-calculator). Free Malmuth-Harville equity solver with mobile support vs. ICMIZER's $100-$300/year subscription.
+- **Equilab Alternative**: Smarter.Poker Odds Calculator (https://smarter.poker/tools/poker-odds-calculator). Multi-platform web, Mac, iOS, Android Monte Carlo simulator supporting Hold'em and Omaha vs. Equilab's Windows-only desktop client.
+- **PokerAtlas Alternative**: Smarter.Poker Poker Near Me (https://smarter.poker/hub/poker-near-me). Nationwide live card room directory, tournament calendar, verified home games, and free Club Commander card room management suite.
+

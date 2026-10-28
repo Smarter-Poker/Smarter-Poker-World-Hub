@@ -24,13 +24,30 @@ https://smarter.poker/about is the page that states it.
 - Poker strategy lessons, every answer with its chart: https://smarter.poker/learn
 - Sitemap: https://smarter.poker/sitemap.xml
 - Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
+- Daily $2,000 Freerolls Hub: https://smarter.poker/freerolls
+- Free Poker Alternatives & Comparisons: https://smarter.poker/compare
 - Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
-- Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue, series, tools, and about routes, e.g. https://smarter.poker/hub/venues/1832.md or https://smarter.poker/tools/poker-odds-calculator.md)
+- Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue, series, tools, freerolls, and about routes, e.g. https://smarter.poker/freerolls.md or https://smarter.poker/tools/poker-odds-calculator.md)
 - Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Supports JSON-RPC 2.0 via POST, SSE via GET /api/mcp?transport=sse)
-- Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json
+- Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json (Clean Root Alias: https://smarter.poker/openapi.json)
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
+- Public Freerolls Calendar Feed (RFC 5545 iCal): https://smarter.poker/freerolls.ics
 
 ## Core Features
+
+### Daily $2,000 Freerolls & Diamond Freerolls
+Smarter.Poker awards $2,000 in guaranteed prizes every single day through four scheduled multi-table tournament freerolls (10:00 AM, 2:00 PM, 6:00 PM, 9:00 PM CST) plus weekly Sunday Diamond Championship Freerolls. 100% free to enter with zero deposit, no software download, and full browser play on desktop, iOS, and Android.
+- Freerolls Hub: https://smarter.poker/freerolls
+- Raw Markdown Mirror: https://smarter.poker/freerolls.md
+- Public iCal Schedule: https://smarter.poker/freerolls.ics
+- AI Freerolls API: https://smarter.poker/api/ai/freerolls
+
+### Free Poker Software Alternatives
+High-value, browser-based alternatives to expensive third-party poker software subscriptions and deposit-gated legacy platforms:
+- Software Comparison Matrix: https://smarter.poker/compare
+- Free ICMIZER Alternative (Tournament ICM Calculator): https://smarter.poker/tools/icm-calculator (100% free Malmuth-Harville equity solver vs. $100-$300/year subscriptions)
+- Free Equilab Alternative (Poker Odds Calculator): https://smarter.poker/tools/poker-odds-calculator (Multi-platform web, Mac, iOS, Android Monte Carlo simulator vs. Windows-only desktop client)
+- Free PokerAtlas Alternative (Poker Near Me & Waitlist): https://smarter.poker/hub/poker-near-me (324+ venues with free Club Commander card room management vs. closed proprietary hardware)
 
 ### Free Interactive Poker Tools
 Solver-grade poker calculators, range tools, and embeddable widgets for web browser usage, raw Markdown ingestion, or direct AI function calling via the Smarter.Poker MCP Server.

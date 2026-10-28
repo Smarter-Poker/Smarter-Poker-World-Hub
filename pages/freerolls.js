@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../src/components/seo/SEOHead';
@@ -100,13 +100,159 @@ const FREEROLLS_FAQS = [
   },
 ];
 
+function NextFreerollCountdown() {
+  const [countdown, setCountdown] = useState(null);
+
+  useEffect(() => {
+    function updateCountdown() {
+      const now = new Date();
+      const chicagoStr = now.toLocaleString('en-US', { timeZone: 'America/Chicago' });
+      const chicagoNow = new Date(chicagoStr);
+
+      const events = [
+        { hour: 10, minute: 0, title: 'Morning Opener Freeroll ($250 GTD)' },
+        { hour: 14, minute: 0, title: 'Afternoon Prime Freeroll ($500 GTD)' },
+        { hour: 18, minute: 0, title: 'Evening Championship Freeroll ($750 GTD)' },
+        { hour: 21, minute: 0, title: 'Nightcap Turbo Freeroll ($500 GTD)' },
+      ];
+
+      let nextEvent = null;
+      let targetDate = null;
+
+      for (const ev of events) {
+        const candidate = new Date(chicagoNow);
+        candidate.setHours(ev.hour, ev.minute, 0, 0);
+        if (candidate > chicagoNow) {
+          nextEvent = ev;
+          targetDate = candidate;
+          break;
+        }
+      }
+
+      if (!nextEvent) {
+        nextEvent = events[0];
+        targetDate = new Date(chicagoNow);
+        targetDate.setDate(targetDate.getDate() + 1);
+        targetDate.setHours(nextEvent.hour, nextEvent.minute, 0, 0);
+      }
+
+      const diffMs = targetDate - chicagoNow;
+      const totalSec = Math.max(0, Math.floor(diffMs / 1000));
+      const hours = Math.floor(totalSec / 3600);
+      const minutes = Math.floor((totalSec % 3600) / 60);
+      const seconds = totalSec % 60;
+      const isRegOpen = totalSec <= 3600;
+
+      setCountdown({
+        title: nextEvent.title,
+        hours: String(hours).padStart(2, '0'),
+        minutes: String(minutes).padStart(2, '0'),
+        seconds: String(seconds).padStart(2, '0'),
+        isRegOpen,
+      });
+    }
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!countdown) {
+    return (
+      <div style={{
+        marginTop: '28px',
+        padding: '16px 24px',
+        backgroundColor: '#101924',
+        border: '1px solid #1E2D3D',
+        borderRadius: '12px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '12px',
+      }}>
+        <Clock size={18} color="#4E9CFF" />
+        <span style={{ fontSize: '14px', color: '#BACCDD', fontWeight: 600 }}>
+          Daily Freerolls Schedule: 10:00 AM, 2:00 PM, 6:00 PM, 9:00 PM CST
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      marginTop: '28px',
+      padding: '18px 24px',
+      backgroundColor: countdown.isRegOpen ? 'rgba(0, 230, 118, 0.08)' : '#101924',
+      border: countdown.isRegOpen ? '1px solid rgba(0, 230, 118, 0.4)' : '1px solid #1E2D3D',
+      borderRadius: '12px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: '16px',
+      maxWidth: '720px',
+      margin: '28px auto 0',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{
+          display: 'inline-block',
+          width: '10px',
+          height: '10px',
+          borderRadius: '50%',
+          backgroundColor: countdown.isRegOpen ? '#00E676' : '#4E9CFF',
+          boxShadow: countdown.isRegOpen ? '0 0 10px #00E676' : '0 0 6px #4E9CFF',
+        }} />
+        <span style={{ fontSize: '13px', fontWeight: 700, color: countdown.isRegOpen ? '#00E676' : '#7E9BB8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {countdown.isRegOpen ? 'Registration Open' : 'Next Freeroll'}
+        </span>
+      </div>
+
+      <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>
+        {countdown.title}
+      </div>
+
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        backgroundColor: '#0D1620',
+        padding: '6px 14px',
+        borderRadius: '8px',
+        border: '1px solid #1E2D3D',
+        fontFamily: 'monospace',
+        fontSize: '16px',
+        fontWeight: 800,
+        color: countdown.isRegOpen ? '#00E676' : '#4E9CFF',
+      }}>
+        <span>{countdown.hours}h</span>
+        <span>:</span>
+        <span>{countdown.minutes}m</span>
+        <span>:</span>
+        <span>{countdown.seconds}s</span>
+      </div>
+
+      <Link
+        href="/hub/club-arena?mode=tournament"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '8px 16px',
+          borderRadius: '8px',
+          backgroundColor: countdown.isRegOpen ? '#00E676' : '#1877F2',
+          color: countdown.isRegOpen ? '#0B1118' : '#FFFFFF',
+          fontSize: '13px',
+          fontWeight: 700,
+          textDecoration: 'none',
+        }}
+      >
+        <span>Register In Lobby</span>
+        <ExternalLink size={14} />
+      </Link>
+    </div>
+  );
+}
+
 export default function FreerollsPage() {
-  const [openFaq, setOpenFaq] = useState(null);
-
-  const toggleFaq = (index) => {
-    setOpenFaq(openFaq === index ? null : index);
-  };
-
   const howToSteps = [
     {
       name: 'Create Your Free Account',
@@ -205,7 +351,7 @@ export default function FreerollsPage() {
 
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link
-              href="/hub/club-arena"
+              href="/hub/club-arena?mode=tournament"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -245,6 +391,8 @@ export default function FreerollsPage() {
               <span>View Daily Schedule</span>
             </a>
           </div>
+
+          <NextFreerollCountdown />
         </header>
 
         {/* AI & Search Executive Citation Block */}
@@ -436,6 +584,28 @@ export default function FreerollsPage() {
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
               <a
+                href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Smarter.Poker+Daily+%242%2C000+Freerolls&details=Play+live+at+https%3A%2F%2Fsmarter.poker%2Fhub%2Fclub-arena%3Fmode%3Dtournament&location=https%3A%2F%2Fsmarter.poker%2Ffreerolls&recur=RRULE%3AFREQ%3DDAILY"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(0, 230, 118, 0.08)',
+                  border: '1px solid rgba(0, 230, 118, 0.25)',
+                  color: '#00E676',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                }}
+              >
+                <Calendar size={14} color="#00E676" />
+                <span>Google Calendar</span>
+              </a>
+
+              <a
                 href="/freerolls.ics"
                 download="smarter-poker-freerolls.ics"
                 style={{
@@ -453,11 +623,11 @@ export default function FreerollsPage() {
                 }}
               >
                 <Calendar size={14} color="#00D4FF" />
-                <span>Add Schedule To Calendar</span>
+                <span>Download ICal (.Ics)</span>
               </a>
 
               <Link
-                href="/hub/club-arena"
+                href="/hub/club-arena?mode=tournament"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -532,7 +702,7 @@ export default function FreerollsPage() {
                       </td>
                       <td style={{ padding: '16px 18px', textAlign: 'right' }}>
                         <Link
-                          href="/hub/club-arena"
+                          href="/hub/club-arena?mode=tournament"
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -865,67 +1035,48 @@ export default function FreerollsPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {FREEROLLS_FAQS.map((faq, index) => {
-              const isOpen = openFaq === index;
-              return (
-                <div
-                  key={index}
+            {FREEROLLS_FAQS.map((faq, index) => (
+              <details
+                key={index}
+                style={{
+                  backgroundColor: '#101924',
+                  border: '1px solid #1E2D3D',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                }}
+              >
+                <summary
                   style={{
-                    backgroundColor: '#101924',
-                    border: isOpen ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    transition: 'border-color 0.2s ease',
+                    padding: '18px 20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    color: '#FFFFFF',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    listStyle: 'none',
                   }}
                 >
-                  <button
-                    onClick={() => toggleFaq(index)}
-                    aria-expanded={isOpen}
-                    style={{
-                      width: '100%',
-                      padding: '18px 20px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: 'none',
-                      border: 'none',
-                      color: '#FFFFFF',
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      gap: '12px',
-                    }}
-                  >
-                    <span>{faq.question}</span>
-                    <ChevronDown
-                      size={18}
-                      color={isOpen ? '#4E9CFF' : '#7E9BB8'}
-                      style={{
-                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s ease',
-                        flexShrink: 0,
-                      }}
-                    />
-                  </button>
+                  <span>{faq.question}</span>
+                  <ChevronDown size={18} color="#7E9BB8" style={{ flexShrink: 0 }} />
+                </summary>
 
-                  {isOpen && (
-                    <div
-                      style={{
-                        padding: '0 20px 18px',
-                        fontSize: '14px',
-                        lineHeight: 1.6,
-                        color: '#94AFCC',
-                        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-                        paddingTop: '14px',
-                      }}
-                    >
-                      {faq.answer}
-                    </div>
-                  )}
+                <div
+                  style={{
+                    padding: '0 20px 18px',
+                    fontSize: '14px',
+                    lineHeight: 1.6,
+                    color: '#94AFCC',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                    paddingTop: '14px',
+                  }}
+                >
+                  {faq.answer}
                 </div>
-              );
-            })}
+              </details>
+            ))}
           </div>
         </section>
 
@@ -946,7 +1097,7 @@ export default function FreerollsPage() {
           </p>
 
           <Link
-            href="/hub/club-arena"
+            href="/hub/club-arena?mode=tournament"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

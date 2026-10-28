@@ -234,3 +234,23 @@ export function buildFreerollsIcs() {
     'END:VCALENDAR',
   ].join('\r\n');
 }
+
+/**
+ * Builds Google Calendar web intent URL for recurring Freerolls
+ */
+export function buildFreerollGoogleCalendarUrl(event = {}) {
+  const title = event.title || 'Smarter.Poker Daily $2,000 Freerolls';
+  const details = event.description || 'Compete in 100% free daily poker tournaments with $2,000 guaranteed daily prizes and Diamond Freerolls. Play live at https://smarter.poker/hub/club-arena?mode=tournament';
+  const location = 'https://smarter.poker/freerolls';
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    details,
+    location,
+    recur: 'RRULE:FREQ=DAILY',
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+

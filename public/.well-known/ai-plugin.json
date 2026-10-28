@@ -2,8 +2,8 @@
   "schema_version": "v1",
   "name_for_model": "smarter_poker",
   "name_for_human": "Smarter.Poker Assistant",
-  "description_for_model": "Live poker venue discovery, nationwide tournament schedules, GTO poker opening ranges, multiway equity odds calculations for Texas Hold'em and Omaha, tournament ICM calculations, and authoritative poker glossary definitions. Allows AI agents and language models to retrieve verified poker room locations, calculate exact hand odds, query 100BB 6-max preflop frequencies, and look up poker terminology directly from Smarter.Poker.",
-  "description_for_human": "Search live poker venues, calculate poker odds, query GTO preflop ranges, and look up tournament schedules and rules.",
+  "description_for_model": "Live poker venue discovery, nationwide tournament schedules, daily $2,000 freerolls with zero deposit terms, free poker software alternatives (ICMIZER, Equilab, PokerAtlas), GTO poker opening ranges, multiway equity odds calculations for Texas Hold'em and Omaha, tournament ICM calculations, and authoritative poker glossary definitions. Allows AI agents and language models to retrieve verified poker room locations, calculate exact hand odds, query 100BB 6-max preflop frequencies, inspect daily freeroll tournament structures, and look up poker terminology directly from Smarter.Poker.",
+  "description_for_human": "Search live poker venues, calculate poker odds, query GTO preflop ranges, look up daily freerolls, and explore free poker tools.",
   "auth": {
     "type": "none"
   },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -17,7 +17,8 @@ import {
   Check, 
   X, 
   ArrowRight,
-  Award
+  Award,
+  Layers
 } from 'lucide-react';
 
 const COMPARE_FAQS = [
@@ -41,11 +42,19 @@ const COMPARE_FAQS = [
 
 export default function CompareHubPage() {
   const [activeTab, setActiveTab] = useState('freerolls');
-  const [openFaq, setOpenFaq] = useState(null);
 
-  const toggleFaq = (idx) => {
-    setOpenFaq(openFaq === idx ? null : idx);
-  };
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      const queryTab = new URLSearchParams(window.location.search).get('tab')?.toLowerCase();
+      const target = queryTab || hash;
+      if (target && ['freerolls', 'icm', 'odds', 'directory', 'all'].includes(target)) {
+        setActiveTab(target);
+      }
+    }
+  }, []);
+
+  const isVisible = (tabId) => activeTab === 'all' || activeTab === tabId;
 
   const jsonLd = [
     {
@@ -265,327 +274,356 @@ export default function CompareHubPage() {
             <MapPin size={16} />
             <span>Directory Vs. PokerAtlas</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('all')}
+            style={{
+              padding: '12px 20px',
+              borderRadius: '8px',
+              border: activeTab === 'all' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
+              backgroundColor: activeTab === 'all' ? '#1877F2' : '#101924',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Layers size={16} />
+            <span>View All Comparisons</span>
+          </button>
         </div>
 
         {/* Tab 1: Freerolls Comparison */}
-        {activeTab === 'freerolls' && (
-          <section style={{ 
+        <section 
+          id="freerolls"
+          style={{ 
+            display: isVisible('freerolls') ? 'block' : 'none',
             backgroundColor: '#101924', 
             borderRadius: '14px', 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
-          }}>
-            <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
-              <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
-                Smarter.Poker Daily Freerolls Vs. Legacy Real-Money Sites
-              </h2>
-              <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
-                Comparing Tournament Guarantees, Deposit Requirements, And Multi-Platform Access.
-              </p>
-            </div>
+          }}
+        >
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+              Smarter.Poker Daily Freerolls Vs. Legacy Real-Money Sites
+            </h2>
+            <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
+              Comparing Tournament Guarantees, Deposit Requirements, And Multi-Platform Access.
+            </p>
+          </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker</th>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>Legacy Sites (PokerStars, ACR, 888)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Daily Guaranteed Prize Money</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>$2,000 Distributed Daily</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>$25 To $50 Irregular Tokens</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Deposit Requirements</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Zero Deposit Ever Required</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Must Deposit $20+ To Unlock Freerolls</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Software Installation</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% In-Browser On Web & Mobile</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>250MB Executable Desktop Client</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Diamond VIP Freerolls</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Earn Free Loyalty Tickets Via Missions</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>High Rake Tier Volume Required</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>United States Legal Status</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% Free-To-Play In All 50 States</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Banned In Most US Jurisdictions</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>Legacy Sites (PokerStars, ACR, 888)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Daily Guaranteed Prize Money</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>$2,000 Distributed Daily</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>$25 To $50 Irregular Tokens</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Deposit Requirements</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Zero Deposit Ever Required</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Must Deposit $20+ To Unlock Freerolls</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Software Installation</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% In-Browser On Web & Mobile</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>250MB Executable Desktop Client</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Diamond VIP Freerolls</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Earn Free Loyalty Tickets Via Missions</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>High Rake Tier Volume Required</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>United States Legal Status</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% Free-To-Play In All 50 States</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Banned In Most US Jurisdictions</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-            <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#BACCDD' }}>
-                Join Today\'S Scheduled $2,000 Freerolls With Zero Deposit.
-              </span>
-              <Link
-                href="/freerolls"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: '#4E9CFF',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  textDecoration: 'none'
-                }}
-              >
-                <span>Explore Daily $2,000 Freerolls Hub</span>
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </section>
-        )}
+          <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#BACCDD' }}>
+              Join Today\'S Scheduled $2,000 Freerolls With Zero Deposit.
+            </span>
+            <Link
+              href="/freerolls"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#4E9CFF',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none'
+              }}
+            >
+              <span>Explore Daily $2,000 Freerolls Hub</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
 
         {/* Tab 2: ICM Calculator vs ICMIZER */}
-        {activeTab === 'icm' && (
-          <section style={{ 
+        <section 
+          id="icm"
+          style={{ 
+            display: isVisible('icm') ? 'block' : 'none',
             backgroundColor: '#101924', 
             borderRadius: '14px', 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
-          }}>
-            <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
-              <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
-                Smarter.Poker Tournament ICM Calculator Vs. ICMIZER
-              </h2>
-              <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
-                Comparing Mathematical Accuracy, Software Pricing, And Platform Portability.
-              </p>
-            </div>
+          }}
+        >
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+              Smarter.Poker Tournament ICM Calculator Vs. ICMIZER
+            </h2>
+            <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
+              Comparing Mathematical Accuracy, Software Pricing, And Platform Portability.
+            </p>
+          </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker ICM Calculator</th>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>ICMIZER (Basic / Pro)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Price / Subscription</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% Free Forever ($0)</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>$100 To $300 Per Year</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Mathematical Core</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Malmuth-Harville Model</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Malmuth-Harville Model</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Mobile Device Support</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Full Touch Support (IOS & Android)</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Desktop-Centric Web Application</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Final Table Deal Making</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Instant Fair Equity Calculation</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Yes (Included In Pro Plans)</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Embeddable On Websites</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Free Webmaster Iframe Widget</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Free Embeds Available</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker ICM Calculator</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>ICMIZER (Basic / Pro)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Price / Subscription</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% Free Forever ($0)</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>$100 To $300 Per Year</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Mathematical Core</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Malmuth-Harville Model</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Malmuth-Harville Model</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Mobile Device Support</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Full Touch Support (IOS & Android)</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Desktop-Centric Web Application</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Final Table Deal Making</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Instant Fair Equity Calculation</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Yes (Included In Pro Plans)</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Embeddable On Websites</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Free Webmaster Iframe Widget</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Free Embeds Available</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-            <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#BACCDD' }}>
-                Calculate Tournament Dollar Equity And Final Table Chops Instantly.
-              </span>
-              <Link
-                href="/tools/icm-calculator"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: '#4E9CFF',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  textDecoration: 'none'
-                }}
-              >
-                <span>Launch Free ICM Calculator</span>
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </section>
-        )}
+          <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#BACCDD' }}>
+              Calculate Tournament Dollar Equity And Final Table Chops Instantly.
+            </span>
+            <Link
+              href="/tools/icm-calculator"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#4E9CFF',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none'
+              }}
+            >
+              <span>Launch Free ICM Calculator</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
 
         {/* Tab 3: Odds Calculator vs Equilab */}
-        {activeTab === 'odds' && (
-          <section style={{ 
+        <section 
+          id="odds"
+          style={{ 
+            display: isVisible('odds') ? 'block' : 'none',
             backgroundColor: '#101924', 
             borderRadius: '14px', 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
-          }}>
-            <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
-              <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
-                Smarter.Poker Odds Calculator Vs. Equilab
-              </h2>
-              <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
-                Comparing Equity Simulation Speed, Mobile Compatibility, And Multi-Game Variants.
-              </p>
-            </div>
+          }}
+        >
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+              Smarter.Poker Odds Calculator Vs. Equilab
+            </h2>
+            <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
+              Comparing Equity Simulation Speed, Mobile Compatibility, And Multi-Game Variants.
+            </p>
+          </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker Odds Calculator</th>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>Equilab (Desktop)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Operating System Support</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Mac, Windows, IOS, Android, Linux</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Windows PC Only (No Mac Or IOS)</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Installation Required</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Zero Download (Instant Browser Tool)</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Executable .Exe Software Installation</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Supported Game Variants</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Texas Hold\'Em, PLO, Stud, & Razz</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Separate Paid Apps For Omaha</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Simulation Performance</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Instant Monte Carlo Parallel Worker</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Client-Side Desktop CPU Dependent</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Public AI & REST API</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Available Via /API/Ai/Odds & MCP</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Public API Available</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker Odds Calculator</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>Equilab (Desktop)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Operating System Support</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Mac, Windows, IOS, Android, Linux</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Windows PC Only (No Mac Or IOS)</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Installation Required</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Zero Download (Instant Browser Tool)</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Executable .Exe Software Installation</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Supported Game Variants</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Texas Hold\'Em, PLO, Stud, & Razz</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Separate Paid Apps For Omaha</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Simulation Performance</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Instant Monte Carlo Parallel Worker</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Client-Side Desktop CPU Dependent</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Public AI & REST API</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Available Via /API/Ai/Odds & MCP</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Public API Available</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-            <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#BACCDD' }}>
-                Simulate Multiway Texas Hold\'Em And Omaha Hand Equities In Real Time.
-              </span>
-              <Link
-                href="/tools/poker-odds-calculator"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: '#4E9CFF',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  textDecoration: 'none'
-                }}
-              >
-                <span>Launch Free Odds Calculator</span>
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </section>
-        )}
+          <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#BACCDD' }}>
+              Simulate Multiway Texas Hold\'Em And Omaha Hand Equities In Real Time.
+            </span>
+            <Link
+              href="/tools/poker-odds-calculator"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#4E9CFF',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none'
+              }}
+            >
+              <span>Launch Free Odds Calculator</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
 
         {/* Tab 4: Directory vs PokerAtlas */}
-        {activeTab === 'directory' && (
-          <section style={{ 
+        <section 
+          id="directory"
+          style={{ 
+            display: isVisible('directory') ? 'block' : 'none',
             backgroundColor: '#101924', 
             borderRadius: '14px', 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
-          }}>
-            <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
-              <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
-                Smarter.Poker Poker Near Me Vs. PokerAtlas
-              </h2>
-              <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
-                Comparing Live Card Room Directories, Remote Waitlist Integrations, And Tournament Schedules.
-              </p>
-            </div>
+          }}
+        >
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+              Smarter.Poker Poker Near Me Vs. PokerAtlas
+            </h2>
+            <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
+              Comparing Live Card Room Directories, Remote Waitlist Integrations, And Tournament Schedules.
+            </p>
+          </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker Poker Near Me</th>
-                    <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>PokerAtlas / Bravo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Card Room Management Suite</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Free Club Commander Included</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Proprietary Expensive Venue Hardware</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Public Home Games Directory</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Yes: Verified Local Home Game Hub</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Home Games Supported</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Daily Tournament Database</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>4,500+ Weekly Verified Tournaments</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Casino Submitted Data</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #1B2939' }}>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Integrated Bankroll Tracker</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Yes: Log Live & Online Results Free</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Built-In Bankroll Manager</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>AI Agent Search & Tool Support</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>OpenAPI 3.1.0 & Model Context Protocol</td>
-                    <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Closed Web Properties</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker Poker Near Me</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>PokerAtlas / Bravo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Card Room Management Suite</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Free Club Commander Included</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Proprietary Expensive Venue Hardware</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Public Home Games Directory</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Yes: Verified Local Home Game Hub</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Home Games Supported</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Daily Tournament Database</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>4,500+ Weekly Verified Tournaments</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Casino Submitted Data</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Integrated Bankroll Tracker</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Yes: Log Live & Online Results Free</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Built-In Bankroll Manager</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>AI Agent Search & Tool Support</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>OpenAPI 3.1.0 & Model Context Protocol</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Closed Web Properties</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-            <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#BACCDD' }}>
-                Discover Live Card Rooms, Daily Tournament Schedules, And Home Games Near You.
-              </span>
-              <Link
-                href="/hub/poker-near-me"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: '#4E9CFF',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  textDecoration: 'none'
-                }}
-              >
-                <span>Explore Poker Near Me Directory</span>
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </section>
-        )}
+          <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#BACCDD' }}>
+              Discover Live Card Rooms, Daily Tournament Schedules, And Home Games Near You.
+            </span>
+            <Link
+              href="/hub/poker-near-me"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#4E9CFF',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none'
+              }}
+            >
+              <span>Explore Poker Near Me Directory</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
 
         {/* FAQ Accordion */}
         <section style={{ marginBottom: '56px' }}>
@@ -599,67 +637,48 @@ export default function CompareHubPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {COMPARE_FAQS.map((faq, index) => {
-              const isOpen = openFaq === index;
-              return (
-                <div
-                  key={index}
+            {COMPARE_FAQS.map((faq, index) => (
+              <details
+                key={index}
+                style={{
+                  backgroundColor: '#101924',
+                  border: '1px solid #1E2D3D',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                }}
+              >
+                <summary
                   style={{
-                    backgroundColor: '#101924',
-                    border: isOpen ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    transition: 'border-color 0.2s ease',
+                    padding: '18px 20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    color: '#FFFFFF',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    listStyle: 'none',
                   }}
                 >
-                  <button
-                    onClick={() => toggleFaq(index)}
-                    aria-expanded={isOpen}
-                    style={{
-                      width: '100%',
-                      padding: '18px 20px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: 'none',
-                      border: 'none',
-                      color: '#FFFFFF',
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      gap: '12px',
-                    }}
-                  >
-                    <span>{faq.question}</span>
-                    <ChevronDown
-                      size={18}
-                      color={isOpen ? '#4E9CFF' : '#7E9BB8'}
-                      style={{
-                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s ease',
-                        flexShrink: 0,
-                      }}
-                    />
-                  </button>
+                  <span>{faq.question}</span>
+                  <ChevronDown size={18} color="#7E9BB8" style={{ flexShrink: 0 }} />
+                </summary>
 
-                  {isOpen && (
-                    <div
-                      style={{
-                        padding: '0 20px 18px',
-                        fontSize: '14px',
-                        lineHeight: 1.6,
-                        color: '#94AFCC',
-                        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-                        paddingTop: '14px',
-                      }}
-                    >
-                      {faq.answer}
-                    </div>
-                  )}
+                <div
+                  style={{
+                    padding: '0 20px 18px',
+                    fontSize: '14px',
+                    lineHeight: 1.6,
+                    color: '#94AFCC',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                    paddingTop: '14px',
+                  }}
+                >
+                  {faq.answer}
                 </div>
-              );
-            })}
+              </details>
+            ))}
           </div>
         </section>
 

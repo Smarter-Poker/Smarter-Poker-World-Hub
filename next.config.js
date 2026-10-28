@@ -1341,6 +1341,8 @@ const nextConfig = {
       // tests/club-arena-is-a-rewrite.test.mjs pins that the tree is gone.
       beforeFiles: [],
       afterFiles: [
+        /* Clean Root OpenAPI Alias for AI crawlers bypassing Disallow: /api/ */
+        { source: '/openapi.json', destination: '/api/openapi.json' },
         /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
            origin wants the app to open /hub/club-arena/* by fetching these two
            files. They are API routes, not files in public/, because their

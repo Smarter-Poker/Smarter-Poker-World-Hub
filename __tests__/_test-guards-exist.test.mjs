@@ -44,6 +44,7 @@ import './aeo-tool-schemas.test.mjs';
 import './aeo-freerolls-hub.test.mjs';
 import './aeo-freerolls-calendar-og.test.mjs';
 import './aeo-freerolls-global-wiring.test.mjs';
+import './aeo-deep-dive-optimizations.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
