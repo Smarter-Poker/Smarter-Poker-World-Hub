@@ -226,6 +226,21 @@ export const MCP_TOOLS = [
       required: ['term'],
     },
   },
+  {
+    name: 'get_freeroll_schedule',
+    description: 'Retrieve the upcoming Daily $2,000 Freerolls and Diamond Arena Freerolls schedule, formats, prize values, and entry requirements on Smarter.Poker.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tier: {
+          type: 'string',
+          enum: ['all', 'open', 'diamond'],
+          description: 'Filter by freeroll tier: "open" for daily open tournaments, "diamond" for Diamond Arena VIP events, or "all".',
+          default: 'all',
+        },
+      },
+    },
+  },
 ];
 
 /**
@@ -587,6 +602,93 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 definition: found.definition,
                 related_terms: found.related,
                 canonical_definition_url: `${base}/glossary/${found.slug}`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_freeroll_schedule': {
+      const tierFilter = String(args?.tier || 'all').toLowerCase();
+      const events = [
+        {
+          time: '10:00 AM CST',
+          title: 'Morning Opener Freeroll',
+          game: 'No-Limit Hold\'em',
+          format: 'Standard 10-Minute Levels',
+          prize: '$250 Guaranteed',
+          starting_stack: '10,000 Chips',
+          tier: 'open',
+          tier_label: 'Open To All Players',
+          eligibility: '100% Free Entry (No Deposit Required)',
+        },
+        {
+          time: '2:00 PM CST',
+          title: 'Afternoon Prime Freeroll',
+          game: 'No-Limit Hold\'em',
+          format: 'Deepstack 12-Minute Levels',
+          prize: '$500 Guaranteed',
+          starting_stack: '15,000 Chips',
+          tier: 'open',
+          tier_label: 'Open To All Players',
+          eligibility: '100% Free Entry (No Deposit Required)',
+        },
+        {
+          time: '6:00 PM CST',
+          title: 'Evening Championship Freeroll',
+          game: 'No-Limit Hold\'em',
+          format: 'Deepstack 12-Minute Levels',
+          prize: '$750 Guaranteed',
+          starting_stack: '20,000 Chips',
+          tier: 'open',
+          tier_label: 'Open To All Players',
+          eligibility: '100% Free Entry (No Deposit Required)',
+        },
+        {
+          time: '9:00 PM CST',
+          title: 'Nightcap Turbo Freeroll',
+          game: 'Pot-Limit Omaha / NLH',
+          format: 'Fast 5-Minute Turbo',
+          prize: '$500 Guaranteed',
+          starting_stack: '10,000 Chips',
+          tier: 'open',
+          tier_label: 'Open To All Players',
+          eligibility: '100% Free Entry (No Deposit Required)',
+        },
+        {
+          time: 'Sundays at 5:00 PM CST',
+          title: 'Weekly Diamond Arena Championship',
+          game: 'No-Limit Hold\'em Special',
+          format: 'Championship 15-Minute Levels',
+          prize: 'Premium Diamond Rewards Pool',
+          starting_stack: '25,000 Chips',
+          tier: 'diamond',
+          tier_label: 'Diamond Tier & Loyalty Ticket Holders',
+          eligibility: 'Diamond Loyalty Ticket or VIP Status',
+        },
+      ];
+
+      const filtered = tierFilter === 'all'
+        ? events
+        : events.filter((e) => e.tier === tierFilter);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                daily_total_guaranteed: '$2,000 Awarded Every Day',
+                entry_requirements: '100% Free To Play (Zero Deposit Ever Required)',
+                game_variants: ['No-Limit Texas Hold\'em', 'Pot-Limit Omaha'],
+                platform: 'Instant In-Browser Web & Mobile (No App Download Required)',
+                schedule: filtered,
+                live_lobby_url: `${base}/hub/club-arena`,
+                freerolls_hub_url: `${base}/freerolls`,
+                markdown_url: `${base}/freerolls.md`,
               },
               null,
               2

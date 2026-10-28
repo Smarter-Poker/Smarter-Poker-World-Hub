@@ -394,6 +394,62 @@
           }
         }
       }
+    },
+    "/api/ai/freerolls": {
+      "get": {
+        "operationId": "getFreerollSchedule",
+        "summary": "Retrieve Daily $2,000 Freerolls & Diamond Freerolls Schedule",
+        "description": "Provides the upcoming Daily $2,000 Freeroll tournaments schedule, formats, prize values, and entry criteria.",
+        "parameters": [
+          {
+            "name": "tier",
+            "in": "query",
+            "description": "Filter by tournament tier: all, open, or diamond.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "open",
+                "diamond"
+              ],
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily freeroll schedule, guarantees, tier rules, and registration links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "daily_guarantee": {
+                      "type": "string"
+                    },
+                    "entry_requirements": {
+                      "type": "string"
+                    },
+                    "schedule": {
+                      "type": "array"
+                    },
+                    "freerolls_hub_url": {
+                      "type": "string"
+                    },
+                    "markdown_url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

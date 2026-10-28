@@ -43,6 +43,7 @@ test('public/api/openapi.json exists and validates as valid OpenAPI 3.1.0 docume
   assert.ok(doc.paths['/api/ai/preflop'], 'declares /api/ai/preflop');
   assert.ok(doc.paths['/api/ai/icm'], 'declares /api/ai/icm');
   assert.ok(doc.paths['/api/ai/terms'], 'declares /api/ai/terms');
+  assert.ok(doc.paths['/api/ai/freerolls'], 'declares /api/ai/freerolls');
 
   // Operation IDs
   assert.equal(doc.paths['/api/ai/venues'].get.operationId, 'searchVenues');
@@ -53,6 +54,7 @@ test('public/api/openapi.json exists and validates as valid OpenAPI 3.1.0 docume
   assert.equal(doc.paths['/api/ai/preflop'].get.operationId, 'getPreflopRange');
   assert.equal(doc.paths['/api/ai/icm'].get.operationId, 'calculateIcmPayouts');
   assert.equal(doc.paths['/api/ai/terms'].get.operationId, 'getPokerTerm');
+  assert.equal(doc.paths['/api/ai/freerolls'].get.operationId, 'getFreerollSchedule');
 
   // Schemas
   assert.ok(doc.components.schemas.VenueSummary);
@@ -189,5 +191,24 @@ test('GET /api/ai/terms searches authoritative glossary and returns citations', 
   assert.equal(body.results[0].slug, 'straddle');
   assert.ok(body.results[0].definition.includes('Straddle'));
   assert.ok(body.results[0].citation.includes('https://smarter.poker/glossary/straddle'));
+  assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
+});
+
+test('GET /api/ai/freerolls returns daily $2,000 schedule and Diamond Freerolls', async () => {
+  const { default: handler } = await import('../pages/api/ai/freerolls.js');
+  const req = {
+    method: 'GET',
+    query: { tier: 'all' },
+  };
+  const res = mockRes();
+  await handler(req, res);
+
+  assert.equal(res.getStatusCode(), 200);
+  const body = res.getBody();
+  assert.equal(body.success, true);
+  assert.ok(body.daily_guarantee.includes('$2,000'));
+  assert.ok(body.schedule.length >= 4);
+  assert.ok(body.freerolls_hub_url.includes('/freerolls'));
+  assert.ok(body.markdown_url.includes('/freerolls.md'));
   assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
 });
