@@ -14,6 +14,7 @@ REPORT_TRANSITIONS = (
     ('supabase/migrations/20261027183951_digest_player_report_bbj_and_result_breakdown.sql', '31c5122fd4bafa935af8bd35077dfe2e0c5c594230e6e3f378866cdaf83186f4'),
     ('supabase/migrations/20261028150757_digest_spins_and_spend.sql', '3a607b11d99c9a2481bcbe6e847a6e1ca47d7e771a1361b477ba71e4830e6edd'),
     ('supabase/migrations/20261028151456_digest_promo_wallet_payouts.sql', '5f2184d05ae638a1aab374f25bb98b2788bef1add2d037312b71b6dc94ad3335'),
+    ('supabase/migrations/20261028152704_digest_profit_fractional_diamonds.sql', '961ffaa783c58f92b17d56f4679882403c7770f96cf3924f79dde60cab7ef5a1'),
 )
 REPORT_PREFIX = 'Digest PostgreSQL qualification passed: '
 

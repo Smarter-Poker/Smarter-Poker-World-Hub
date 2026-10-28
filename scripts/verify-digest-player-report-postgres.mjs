@@ -28,11 +28,13 @@ try {
         '-f', '__tests__/digest-spins-spend.sql',
         '-f', 'supabase/migrations/20261028150757_digest_spins_and_spend.sql',
         '-f', 'supabase/migrations/20261028151456_digest_promo_wallet_payouts.sql',
+        '-f', 'supabase/migrations/20261028152704_digest_profit_fractional_diamonds.sql',
         '-f', '__tests__/digest-spins-spend-assert.sql']);
     console.log('Digest PostgreSQL qualification passed: ' + JSON.stringify([
         'supabase/migrations/20261027183951_digest_player_report_bbj_and_result_breakdown.sql',
         'supabase/migrations/20261028150757_digest_spins_and_spend.sql',
         'supabase/migrations/20261028151456_digest_promo_wallet_payouts.sql',
+        'supabase/migrations/20261028152704_digest_profit_fractional_diamonds.sql',
     ].map(file => ({ path: file, sha256: createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex'), postgresMajor: 17 }))));
 } finally {
     if (started) run('pg_ctl', ['-D', data, '-m', 'fast', 'stop']);

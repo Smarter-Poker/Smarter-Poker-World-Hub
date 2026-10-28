@@ -1,10 +1,10 @@
 DO $$ BEGIN IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; END IF; END $$;
 CREATE TABLE profiles(id uuid,username text,is_horse boolean);
 CREATE TABLE clubs(id uuid,name text); CREATE TABLE unions(id uuid,name text);
-CREATE TABLE wheel_spins(id uuid,user_id uuid,created_at timestamptz,is_fixture boolean,receipt_v2 jsonb,spin_price_diamonds numeric,diamonds_per_chip numeric,outcome_kind text,outcome_amount numeric);
-CREATE TABLE wheel_card_awards(id uuid,spin_id uuid,paid_diamonds numeric,picked_at timestamptz);
-CREATE TABLE wheel_bonus_awards(spin_id uuid,result jsonb,base_diamonds numeric);
-CREATE TABLE diamond_game_round_book(id uuid,payout_chips numeric,bet_diamonds numeric,settled_at timestamptz);
+CREATE TABLE wheel_spins(id uuid,user_id uuid,created_at timestamptz,is_fixture boolean,receipt_v2 jsonb,spin_price_diamonds integer,diamonds_per_chip integer,outcome_kind text,outcome_amount numeric);
+CREATE TABLE wheel_card_awards(id uuid,spin_id uuid,paid_diamonds bigint,picked_at timestamptz);
+CREATE TABLE wheel_bonus_awards(spin_id uuid,result jsonb,base_diamonds integer);
+CREATE TABLE diamond_game_round_book(id uuid,payout_chips numeric,bet_diamonds integer,settled_at timestamptz);
 CREATE TABLE chip_ledger(category text,from_type text,to_type text,amount numeric,to_entity_id uuid,to_label text,created_at timestamptz,from_label text);
 INSERT INTO profiles VALUES ('00000000-0000-0000-0000-000000000001','Human',false),('00000000-0000-0000-0000-000000000002','Horse',true);
 INSERT INTO wheel_spins VALUES
