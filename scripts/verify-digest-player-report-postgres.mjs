@@ -19,6 +19,11 @@ try {
         '-f', '__tests__/digest-player-report.sql',
         '-f', 'supabase/migrations/20261027183951_digest_player_report_bbj_and_result_breakdown.sql',
         '-f', '__tests__/digest-player-report-assert.sql']);
+    run('createdb', ['-h', socket, '-p', '56474', 'spins_report']);
+    run('psql', ['-X', '-v', 'ON_ERROR_STOP=1', '-h', socket, '-p', '56474', '-d', 'spins_report',
+        '-f', '__tests__/digest-spins-spend.sql',
+        '-f', 'supabase/migrations/20261028150757_digest_spins_and_spend.sql',
+        '-f', '__tests__/digest-spins-spend-assert.sql']);
 } finally {
     if (started) run('pg_ctl', ['-D', data, '-m', 'fast', 'stop']);
     rmSync(dir, { recursive: true, force: true });
