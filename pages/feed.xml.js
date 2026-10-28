@@ -33,6 +33,20 @@ const TOOL_ITEMS = [
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
+    {
+        title: 'Free Poker Webmaster Widgets & Embed Center',
+        link: `${SITE_URL}/tools/embeds`,
+        description: 'Embed Free Responsive Poker Odds Calculators, ICM Solvers, And GTO Preflop Charts On Any Website Or Blog.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Smarter.Poker AI Agent OpenAPI Specification',
+        link: `${SITE_URL}/api/openapi.json`,
+        description: 'Public OpenAPI 3.1.0 Machine-Readable API Specification For Autonomous AI Agents, MCP Tools, And Custom GPTs.',
+        category: 'Developer APIs',
+        pubDate: LEARN_MODIFIED,
+    },
 ];
 
 export function buildRssFeedXml() {

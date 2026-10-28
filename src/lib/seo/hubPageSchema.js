@@ -71,6 +71,35 @@ export function faqSchema(items, path) {
 }
 
 /**
+ * Schema.org HowTo schema node for interactive step-by-step tool guidance.
+ */
+export function howToSchema({
+  path,
+  name,
+  description,
+  steps = [],
+  totalTime = 'PT2M',
+} = {}) {
+  if (!Array.isArray(steps) || steps.length === 0) return null;
+  const url = absolute(path);
+  return {
+    '@type': 'HowTo',
+    '@id': `${url}#howto`,
+    name,
+    description,
+    totalTime,
+    inLanguage: 'en-US',
+    step: steps.map((s, index) => ({
+      '@type': 'HowToStep',
+      position: index + 1,
+      name: s.name,
+      text: s.text,
+      url: `${url}#step-${index + 1}`,
+    })),
+  };
+}
+
+/**
  * Google Images Licensable ImageObject schema node.
  * Unlocks the "Licensable" badge in Google Images SERPs by declaring
  * contentUrl, license, acquireLicensePage, creditText, copyrightNotice, and creator.
@@ -122,6 +151,7 @@ export function hubProductSchema({
   image = `${SITE}/images/og-card.jpg`,
   course = null,
   sameAs = null,
+  howTo = null,
 }) {
   const url = absolute(path);
   const resolvedSameAs = Array.isArray(sameAs) && sameAs.length > 0
@@ -174,6 +204,17 @@ export function hubProductSchema({
   if (Array.isArray(faqs) && faqs.length > 0) {
     const faqNode = faqSchema(faqs, path);
     if (faqNode) nodes.push(faqNode);
+  }
+
+  if (howTo && Array.isArray(howTo.steps) && howTo.steps.length > 0) {
+    const howToNode = howToSchema({
+      path,
+      name: howTo.name || `How To Use ${name}`,
+      description: howTo.description || description,
+      steps: howTo.steps,
+      totalTime: howTo.totalTime || 'PT2M',
+    });
+    if (howToNode) nodes.push(howToNode);
   }
 
   if (course || path === '/hub/training') {

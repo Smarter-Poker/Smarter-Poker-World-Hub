@@ -84,6 +84,32 @@ const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     applicationSubCategory: 'Poker',
     trail: [['Hub', '/hub'], ['Poker Odds Calculator', '/hub/poker-tools']],
     faqs: ODDS_CALCULATOR_FAQS,
+    howTo: {
+        name: 'How To Calculate Poker Odds And Hand Equity',
+        description: "Step-by-step instructions for calculating real-time win, tie, and split-pot equity for Texas Hold'em and Omaha on Smarter.Poker.",
+        steps: [
+            {
+                name: 'Select Your Poker Game Variant',
+                text: "Choose between Texas Hold'em, Pot-Limit Omaha (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, or Razz from the top game selector.",
+            },
+            {
+                name: 'Assign Player Hole Cards',
+                text: 'Click player seat card slots and pick exact cards from the interactive 52-card deck palette to set up your matchup with up to 6 players.',
+            },
+            {
+                name: 'Set Community Board Cards',
+                text: 'Select Flop, Turn, and River board cards to simulate postflop equity runouts, or leave empty for preflop calculations.',
+            },
+            {
+                name: 'Burn Known Dead Cards',
+                text: 'Optionally tag folded discards as dead cards to eliminate them from remaining deck iterations and refine calculation accuracy.',
+            },
+            {
+                name: 'Review Monte Carlo Simulation Results',
+                text: 'Inspect instant win percentages, tie odds, and split-pot equity calculated across 10,000 iterations to guide your betting and calling decisions.',
+            },
+        ],
+    },
 });
 
 /* ═══════════════════════════════════════════════

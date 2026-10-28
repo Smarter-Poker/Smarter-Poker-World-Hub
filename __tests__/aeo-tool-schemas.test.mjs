@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { hubProductSchema } from '../src/lib/seo/hubPageSchema.js';
+import { hubProductSchema, howToSchema } from '../src/lib/seo/hubPageSchema.js';
 import { resolveToolWikidataLinks } from '../src/lib/seo/wikidataRegistry.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -187,4 +187,40 @@ test('resolveToolWikidataLinks maps tool keys to canonical Wikidata entities and
   const preflopLinks = resolveToolWikidataLinks('preflop');
   assert.ok(preflopLinks.some((l) => l.includes('wikidata.org/wiki/Q131476')), 'Game Theory Q131476');
   assert.ok(preflopLinks.some((l) => l.includes('wikidata.org/wiki/Q214536')), 'Texas Holdem Q214536');
+});
+
+test('howToSchema and HowTo structured data nodes build valid schema for Odds and ICM tools', () => {
+  const pokerToolsSrc = read('pages/hub/poker-tools.js');
+  assert.ok(pokerToolsSrc.includes('howTo: {'), 'poker-tools.js must configure howTo');
+  assert.ok(pokerToolsSrc.includes('How To Calculate Poker Odds And Hand Equity'));
+
+  const icmSrc = read('pages/hub/training/icm-calculator.js');
+  assert.ok(icmSrc.includes('howTo: {'), 'icm-calculator.js must configure howTo');
+  assert.ok(icmSrc.includes('How To Calculate Tournament Independent Chip Model (ICM) Payouts'));
+
+  const node = howToSchema({
+    path: '/tools/poker-odds-calculator',
+    name: 'How To Calculate Poker Odds',
+    description: 'Instructions for odds calculation.',
+    steps: [
+      { name: 'Step 1', text: 'Select game' },
+      { name: 'Step 2', text: 'Assign cards' },
+    ],
+  });
+
+  assert.equal(node['@type'], 'HowTo');
+  assert.equal(node['@id'], 'https://smarter.poker/tools/poker-odds-calculator#howto');
+  assert.equal(node.step.length, 2);
+  assert.equal(node.step[0]['@type'], 'HowToStep');
+  assert.equal(node.step[0].position, 1);
+  assert.equal(node.step[0].name, 'Step 1');
+  assert.equal(node.step[0].text, 'Select game');
+});
+
+test('RSS 2.0 feed syndicates embeds portal and OpenAPI specification', () => {
+  const feedSrc = read('pages/feed.xml.js');
+  assert.ok(feedSrc.includes('/tools/embeds'), 'feed.xml.js must syndicate /tools/embeds');
+  assert.ok(feedSrc.includes('/api/openapi.json'), 'feed.xml.js must syndicate /api/openapi.json');
+  assert.ok(feedSrc.includes('Free Poker Webmaster Widgets & Embed Center'));
+  assert.ok(feedSrc.includes('Smarter.Poker AI Agent OpenAPI Specification'));
 });

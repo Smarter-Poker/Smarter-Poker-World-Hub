@@ -58,6 +58,28 @@ const ICM_CALCULATOR_SCHEMA = hubProductSchema({
   applicationSubCategory: 'Poker',
   trail: [['Hub', '/hub'], ['GTO Training', '/hub/training'], ['ICM Calculator', '/hub/training/icm-calculator']],
   faqs: ICM_CALCULATOR_FAQS,
+  howTo: {
+    name: 'How To Calculate Tournament Independent Chip Model (ICM) Payouts',
+    description: 'Step-by-step instructions for converting tournament chip stacks into exact cash dollar equity using the Malmuth-Harville model.',
+    steps: [
+      {
+        name: 'Enter Player Chip Stacks',
+        text: 'Input the current chip counts for each remaining player at the final table or tournament bubble.',
+      },
+      {
+        name: 'Configure Prize Structure',
+        text: 'Set the total prize pool and percentage payouts or dollar prizes awarded to each finishing place rank.',
+      },
+      {
+        name: 'Run The Malmuth-Harville Probability Solver',
+        text: 'Click Calculate to execute the multi-place probability solver and generate exact finish distributions for every seat.',
+      },
+      {
+        name: 'Analyze Bubble Factors And Equity Differences',
+        text: 'Review the resulting ICM dollar values, bubble factor risk multipliers, and differences from raw chip EV to negotiate chops or refine push-fold ranges.',
+      },
+    ],
+  },
 });
 
 // TRAIN-CSS-MOTION-ADOPT-4 — durations routed through MOTION tokens matched to
