@@ -27,6 +27,8 @@ export const SITE = 'https://smarter.poker';
 export const ORGANIZATION_ID = `${SITE}/#organization`;
 export const WEBSITE_ID = `${SITE}/#website`;
 
+import { resolveToolWikidataLinks } from './wikidataRegistry.mjs';
+
 const absolute = (path) => `${SITE}${path.startsWith('/') ? '' : '/'}${path}`;
 
 /**
@@ -119,8 +121,13 @@ export function hubProductSchema({
   faqs = null,
   image = `${SITE}/images/og-card.jpg`,
   course = null,
+  sameAs = null,
 }) {
   const url = absolute(path);
+  const resolvedSameAs = Array.isArray(sameAs) && sameAs.length > 0
+    ? sameAs
+    : resolveToolWikidataLinks(path || name);
+
   const imageNode = licensableImageSchema({
     url,
     contentUrl: image,
@@ -142,6 +149,7 @@ export function hubProductSchema({
         '@type': 'SpeakableSpecification',
         cssSelector: ['h1', 'p'],
       },
+      ...(resolvedSameAs.length > 0 ? { sameAs: resolvedSameAs } : {}),
       ...(withBreadcrumb ? { breadcrumb: { '@id': `${url}#breadcrumb` } } : {}),
     },
     {
@@ -157,6 +165,7 @@ export function hubProductSchema({
       inLanguage: 'en',
       publisher: { '@id': ORGANIZATION_ID },
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      ...(resolvedSameAs.length > 0 ? { sameAs: resolvedSameAs } : {}),
     },
     imageNode,
     ...(withBreadcrumb ? [breadcrumbSchema(trail)] : []),

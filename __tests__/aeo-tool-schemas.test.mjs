@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hubProductSchema } from '../src/lib/seo/hubPageSchema.js';
+import { resolveToolWikidataLinks } from '../src/lib/seo/wikidataRegistry.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -61,6 +62,9 @@ test('Poker Odds Calculator ships complete Schema.org graph with FAQPage and Spe
 
   const app = doc['@graph'].find((n) => Array.isArray(n['@type']) && n['@type'].includes('SoftwareApplication'));
   assert.ok(app, 'SoftwareApplication node required');
+  assert.ok(Array.isArray(app.sameAs), 'SoftwareApplication must include sameAs array');
+  assert.ok(app.sameAs.some((url) => url.includes('wikidata.org/wiki/Q214536')), 'Must ground in Texas Holdem Wikidata entity');
+  assert.ok(app.sameAs.some((url) => url.includes('wikidata.org/wiki/Q231548')), 'Must ground in Monte Carlo Wikidata entity');
 
   const faq = doc['@graph'].find((n) => n['@type'] === 'FAQPage');
   assert.ok(faq, 'FAQPage node required');
@@ -92,6 +96,10 @@ test('Tournament ICM Calculator ships complete Schema.org graph with FAQPage and
   assert.ok(webPage.speakable, 'SpeakableSpecification required');
   const faq = doc['@graph'].find((n) => n['@type'] === 'FAQPage');
   assert.ok(faq, 'FAQPage required');
+  const app = doc['@graph'].find((n) => Array.isArray(n['@type']) && n['@type'].includes('SoftwareApplication'));
+  assert.ok(app, 'SoftwareApplication node required');
+  assert.ok(Array.isArray(app.sameAs), 'SoftwareApplication must include sameAs array');
+  assert.ok(app.sameAs.some((url) => url.includes('wikidata.org/wiki/Q6016550')), 'Must ground in ICM Wikidata entity Q6016550');
 });
 
 test('GTO Preflop Ranges Matrix ships complete Schema.org graph with FAQPage and Speakable', () => {
@@ -115,6 +123,10 @@ test('GTO Preflop Ranges Matrix ships complete Schema.org graph with FAQPage and
   assert.ok(webPage.speakable, 'SpeakableSpecification required');
   const faq = doc['@graph'].find((n) => n['@type'] === 'FAQPage');
   assert.ok(faq, 'FAQPage required');
+  const app = doc['@graph'].find((n) => Array.isArray(n['@type']) && n['@type'].includes('SoftwareApplication'));
+  assert.ok(app, 'SoftwareApplication node required');
+  assert.ok(Array.isArray(app.sameAs), 'SoftwareApplication must include sameAs array');
+  assert.ok(app.sameAs.some((url) => url.includes('wikidata.org/wiki/Q131476')), 'Must ground in Game Theory Wikidata entity Q131476');
 });
 
 test('Webmaster Embeds Portal ships complete Schema.org graph with FAQPage and Speakable', () => {
@@ -141,6 +153,10 @@ test('Webmaster Embeds Portal ships complete Schema.org graph with FAQPage and S
   assert.ok(webPage.speakable, 'SpeakableSpecification required');
   const faq = doc['@graph'].find((n) => n['@type'] === 'FAQPage');
   assert.ok(faq, 'FAQPage required');
+  const app = doc['@graph'].find((n) => Array.isArray(n['@type']) && n['@type'].includes('SoftwareApplication'));
+  assert.ok(app, 'SoftwareApplication node required');
+  assert.ok(Array.isArray(app.sameAs), 'SoftwareApplication must include sameAs array');
+  assert.ok(app.sameAs.some((url) => url.includes('wikidata.org/wiki/Q8072')), 'Must ground in Poker Wikidata entity Q8072');
 });
 
 test('Glossary term pages emit FAQPage and SpeakableSpecification in schema graph', () => {
@@ -155,4 +171,20 @@ test('About page declares SpeakableSpecification on AboutPage entity', () => {
   const src = read('pages/about.js');
   assert.ok(src.includes("'@type': 'SpeakableSpecification'"), 'About page must declare SpeakableSpecification');
   assert.ok(src.includes("cssSelector: ['h1', 'p']"), 'About page speakable must target h1 and p');
+});
+
+test('resolveToolWikidataLinks maps tool keys to canonical Wikidata entities and Wikipedia pages', () => {
+  const oddsLinks = resolveToolWikidataLinks('odds');
+  assert.ok(oddsLinks.some((l) => l.includes('wikidata.org/wiki/Q214536')), 'Texas Holdem Q214536');
+  assert.ok(oddsLinks.some((l) => l.includes('wikidata.org/wiki/Q649282')), 'Omaha Q649282');
+  assert.ok(oddsLinks.some((l) => l.includes('wikidata.org/wiki/Q231548')), 'Monte Carlo Q231548');
+  assert.ok(oddsLinks.some((l) => l.includes('wikidata.org/wiki/Q8072')), 'Poker Q8072');
+
+  const icmLinks = resolveToolWikidataLinks('icm');
+  assert.ok(icmLinks.some((l) => l.includes('wikidata.org/wiki/Q6016550')), 'ICM Q6016550');
+  assert.ok(icmLinks.some((l) => l.includes('wikidata.org/wiki/Q131476')), 'Game Theory Q131476');
+
+  const preflopLinks = resolveToolWikidataLinks('preflop');
+  assert.ok(preflopLinks.some((l) => l.includes('wikidata.org/wiki/Q131476')), 'Game Theory Q131476');
+  assert.ok(preflopLinks.some((l) => l.includes('wikidata.org/wiki/Q214536')), 'Texas Holdem Q214536');
 });
