@@ -58,6 +58,17 @@ test('Contextual cross-linking to freerolls exists across tools, calculators, an
   const icmSrc = read('pages/hub/training/icm-calculator.js');
   assert.match(icmSrc, /router\.push\('\/freerolls'\)/);
   assert.match(icmSrc, /Test Your ICM Skills In Daily \$2,000 Freerolls/);
+  assert.match(icmSrc, /href="\/compare"/);
+
+  // Preflop ranges
+  const preflopSrc = read('pages/tools/preflop-ranges/index.js');
+  assert.match(preflopSrc, /href="\/compare"/);
+  assert.match(preflopSrc, /href="\/freerolls"/);
+
+  // Webmaster embeds
+  const embedsSrc = read('pages/tools/embeds.js');
+  assert.match(embedsSrc, /href="\/compare"/);
+  assert.match(embedsSrc, /href="\/freerolls"/);
 
   // Glossary
   const clubPokerProducts = CATEGORY_PRODUCTS['Club Poker'];

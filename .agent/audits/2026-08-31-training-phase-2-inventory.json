@@ -14,7 +14,7 @@
     "dependencyFiles": 351,
     "componentFiles": 51,
     "hookFiles": 14,
-    "ctas": 348,
+    "ctas": 352,
     "dialogs": 12,
     "persistenceFiles": 78,
     "realtimeFiles": 6,
@@ -2325,7 +2325,7 @@
         "success": true,
         "authExpiry": false
       },
-      "ctaCount": 8,
+      "ctaCount": 12,
       "dialogCount": 0,
       "apiReferences": [
         "/api/og/tool-card",
@@ -27971,7 +27971,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 339,
+          "line": 340,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -27981,7 +27981,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 402,
+          "line": 403,
           "handler": "() => loadPreset(p)",
           "destination": null,
           "type": null,
@@ -27991,7 +27991,7 @@
         {
           "element": "button",
           "name": "-",
-          "line": 454,
+          "line": 455,
           "handler": "removePlayer",
           "destination": null,
           "type": null,
@@ -28001,7 +28001,7 @@
         {
           "element": "button",
           "name": "+",
-          "line": 473,
+          "line": 474,
           "handler": "addPlayer",
           "destination": null,
           "type": null,
@@ -28011,7 +28011,7 @@
         {
           "element": "button",
           "name": "-",
-          "line": 567,
+          "line": 568,
           "handler": "removePrize",
           "destination": null,
           "type": null,
@@ -28021,7 +28021,7 @@
         {
           "element": "button",
           "name": "+",
-          "line": 586,
+          "line": 587,
           "handler": "addPrize",
           "destination": null,
           "type": null,
@@ -28031,7 +28031,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1018,
+          "line": 1019,
           "handler": "() => setIcmView(tab.key)",
           "destination": null,
           "type": null,
@@ -28041,12 +28041,52 @@
         {
           "element": "button",
           "name": "View Freeroll Schedule",
-          "line": 1086,
+          "line": 1087,
           "handler": "() => router.push('/freerolls')",
           "destination": null,
           "type": null,
           "disabled": null,
           "wiring": "handler"
+        },
+        {
+          "element": "link",
+          "name": "Compare ICM Calculator Vs. ICMIZER",
+          "line": 1220,
+          "handler": null,
+          "destination": "/compare",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Play Daily $2,000 Freerolls",
+          "line": 1237,
+          "handler": null,
+          "destination": "/freerolls",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Poker Odds Calculator",
+          "line": 1254,
+          "handler": null,
+          "destination": "/tools/poker-odds-calculator",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "13x13 GTO Preflop Ranges",
+          "line": 1271,
+          "handler": null,
+          "destination": "/tools/preflop-ranges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
         }
       ],
       "dialogs": {
@@ -28081,7 +28121,7 @@
       "functions": [
         {
           "name": "ICMCalculatorPage",
-          "line": 180,
+          "line": 181,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -65657,11 +65697,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:339:1",
+      "id": "pages/hub/training/icm-calculator.js:340:1",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "← Training",
-      "line": 339,
+      "line": 340,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -65670,11 +65710,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:402:2",
+      "id": "pages/hub/training/icm-calculator.js:403:2",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 402,
+      "line": 403,
       "handler": "() => loadPreset(p)",
       "destination": null,
       "type": null,
@@ -65683,11 +65723,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:454:3",
+      "id": "pages/hub/training/icm-calculator.js:455:3",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "-",
-      "line": 454,
+      "line": 455,
       "handler": "removePlayer",
       "destination": null,
       "type": null,
@@ -65696,11 +65736,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:473:4",
+      "id": "pages/hub/training/icm-calculator.js:474:4",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "+",
-      "line": 473,
+      "line": 474,
       "handler": "addPlayer",
       "destination": null,
       "type": null,
@@ -65709,11 +65749,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:567:5",
+      "id": "pages/hub/training/icm-calculator.js:568:5",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "-",
-      "line": 567,
+      "line": 568,
       "handler": "removePrize",
       "destination": null,
       "type": null,
@@ -65722,11 +65762,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:586:6",
+      "id": "pages/hub/training/icm-calculator.js:587:6",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "+",
-      "line": 586,
+      "line": 587,
       "handler": "addPrize",
       "destination": null,
       "type": null,
@@ -65735,11 +65775,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1018:7",
+      "id": "pages/hub/training/icm-calculator.js:1019:7",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1018,
+      "line": 1019,
       "handler": "() => setIcmView(tab.key)",
       "destination": null,
       "type": null,
@@ -65748,16 +65788,68 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1086:8",
+      "id": "pages/hub/training/icm-calculator.js:1087:8",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "View Freeroll Schedule",
-      "line": 1086,
+      "line": 1087,
       "handler": "() => router.push('/freerolls')",
       "destination": null,
       "type": null,
       "disabled": null,
       "wiring": "handler",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:1220:9",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "link",
+      "name": "Compare ICM Calculator Vs. ICMIZER",
+      "line": 1220,
+      "handler": null,
+      "destination": "/compare",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:1237:10",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "link",
+      "name": "Play Daily $2,000 Freerolls",
+      "line": 1237,
+      "handler": null,
+      "destination": "/freerolls",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:1254:11",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "link",
+      "name": "Poker Odds Calculator",
+      "line": 1254,
+      "handler": null,
+      "destination": "/tools/poker-odds-calculator",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:1271:12",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "link",
+      "name": "13x13 GTO Preflop Ranges",
+      "line": 1271,
+      "handler": null,
+      "destination": "/tools/preflop-ranges",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
@@ -87078,6 +87170,7 @@
       "realtime": [],
       "tests": [
         "__tests__/aeo-dynamic-og-cards.test.mjs",
+        "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
@@ -91535,7 +91628,7 @@
       {
         "file": "pages/hub/training/icm-calculator.js",
         "name": "ICMCalculatorPage",
-        "line": 180,
+        "line": 181,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -100851,7 +100944,7 @@
       {
         "file": "pages/hub/training/icm-calculator.js",
         "name": "ICMCalculatorPage",
-        "line": 180,
+        "line": 181,
         "references": 1,
         "exported": true,
         "defaultExport": true,

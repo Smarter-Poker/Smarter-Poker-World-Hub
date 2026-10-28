@@ -13,6 +13,7 @@
 // TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useMemo } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { useRouter } from 'next/router';
@@ -1190,6 +1191,100 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                   </p>
                 </details>
               ))}
+            </div>
+          </section>
+
+          {/* Related Poker Tools & Comparisons */}
+          <section
+            aria-label="Related Poker Tools And Software Comparisons"
+            style={{
+              marginTop: 24,
+              padding: '16px 20px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 8,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: 'var(--sp-fg)',
+                margin: '0 0 10px 0',
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+              }}
+            >
+              Related Poker Tools And Software Comparisons
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <Link
+                href="/compare"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(78, 156, 255, 0.1)',
+                  border: '1px solid rgba(78, 156, 255, 0.3)',
+                  borderRadius: 6,
+                  color: '#4E9CFF',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Compare ICM Calculator Vs. ICMIZER
+              </Link>
+              <Link
+                href="/freerolls"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(0, 230, 118, 0.1)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  borderRadius: 6,
+                  color: '#00E676',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Play Daily $2,000 Freerolls
+              </Link>
+              <Link
+                href="/tools/poker-odds-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 6,
+                  color: 'var(--sp-fg)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Poker Odds Calculator
+              </Link>
+              <Link
+                href="/tools/preflop-ranges"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 6,
+                  color: 'var(--sp-fg)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                13x13 GTO Preflop Ranges
+              </Link>
             </div>
           </section>
         </div>

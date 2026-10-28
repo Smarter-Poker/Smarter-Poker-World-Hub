@@ -285,6 +285,99 @@ export default function WebmasterEmbedPortal() {
               ))}
             </div>
           </section>
+
+          {/* Related Free Poker Ecosystem Hubs */}
+          <section
+            aria-label="Related Free Poker Tools And Freerolls"
+            style={{
+              marginTop: '40px',
+              padding: '24px',
+              background: '#0d1117',
+              border: '1px solid #30363d',
+              borderRadius: '12px',
+            }}
+          >
+            <h2
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: '#f0f6fc',
+                margin: '0 0 16px 0',
+              }}
+            >
+              Related Free Poker Ecosystem Hubs
+            </h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <Link
+                href="/compare"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(88, 166, 255, 0.12)',
+                  border: '1px solid rgba(88, 166, 255, 0.3)',
+                  borderRadius: '6px',
+                  color: '#58a6ff',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Compare Free Poker Tools Vs. Paid Software
+              </Link>
+              <Link
+                href="/freerolls"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(0, 230, 118, 0.12)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  borderRadius: '6px',
+                  color: '#00e676',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Play Daily $2,000 Guaranteed Freerolls
+              </Link>
+              <Link
+                href="/tools/poker-odds-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '6px',
+                  color: '#f0f6fc',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Poker Odds Calculator
+              </Link>
+              <Link
+                href="/tools/icm-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '6px',
+                  color: '#f0f6fc',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Tournament ICM Calculator
+              </Link>
+            </div>
+          </section>
         </main>
       </div>
     </>

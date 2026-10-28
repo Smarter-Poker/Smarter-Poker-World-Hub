@@ -498,6 +498,89 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
             </div>
           </div>
 
+          {/* Related Tools & Comparisons */}
+          <div style={{
+            marginTop: 24,
+            background: '#161B22',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: 24,
+          }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 14px 0', color: '#FFFFFF' }}>
+              Related Poker Strategy Tools And Comparisons
+            </h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <Link
+                href="/compare"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(88, 166, 255, 0.12)',
+                  border: '1px solid rgba(88, 166, 255, 0.3)',
+                  borderRadius: 6,
+                  color: '#58A6FF',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Compare Free Poker Tools Vs. Paid Software
+              </Link>
+              <Link
+                href="/freerolls"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(0, 230, 118, 0.12)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  borderRadius: 6,
+                  color: '#00E676',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Play Daily $2,000 Guaranteed Freerolls
+              </Link>
+              <Link
+                href="/tools/poker-odds-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 6,
+                  color: '#E6EDF3',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Poker Odds Calculator
+              </Link>
+              <Link
+                href="/tools/icm-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 6,
+                  color: '#E6EDF3',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Tournament ICM Calculator
+              </Link>
+            </div>
+          </div>
+
         </div>
       </div>
     </>
