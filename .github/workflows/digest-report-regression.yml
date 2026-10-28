@@ -25,7 +25,7 @@ permissions:
 jobs:
   report:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,5 +33,15 @@ jobs:
           node-version: '24.12.0'
       - name: Render and report boundary regressions
         run: node --test __tests__/daily-digest.test.mjs __tests__/digest-figures-carry-separators.test.mjs
+      - name: Install PostgreSQL 17 for report qualification
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --show-error --silent -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends postgresql-17
       - name: Actual migration and PostgreSQL accounting boundaries
+        env:
+          PHASE6_POSTGRES_BIN: /usr/lib/postgresql/17/bin
         run: node scripts/verify-digest-player-report-postgres.mjs
