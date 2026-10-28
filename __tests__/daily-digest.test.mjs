@@ -409,5 +409,5 @@ test('money units and promo versus leaderboard totals remain separate', async ()
     assert.equal(sections.find(([t])=>t==='Promo Player Payouts - Chips')[1][0][1],'5 Chips');
     assert.equal(sections.find(([t])=>t==='Leaderboard Player Payouts - Chips')[1][0][1],'10 Chips');
     assert.ok(!buildHtml(d).includes('Promo, Leaderboard And Setup Ledger Movements'));
-    assert.ok(!buildHtml(d).includes('Chips Equivalent')); 
+    assert.ok(!buildHtml(d).includes('Chips Equivalent'));
 });

@@ -750,7 +750,7 @@ export function spinsSpendRows(digest, opts = {}) {
         chipRows.push(
             [`${name} - Direct Spin Payouts`, `${fmtNum(x.direct_chips_paid ?? 0)} Chips`, ''],
             [`${name} - Bonus Game Payouts`, `${fmtNum(x.bonus_chips_paid ?? 0)} Chips`, ''],
-            [`${name} - Total Chips Paid`, `${fmtNum(x.chips_paid ?? 0)} Chips`, `${fmtInt(x.spins ?? 0)} spins`],
+            [`${name} - Total Chips Paid`, `${fmtNum(x.chips_paid ?? 0)} Chips`, `${fmtInt(x.spins ?? 0)} spins${Number(x.pending_awards) ? `; ${fmtInt(x.pending_awards)} unsettled awards` : ''}`],
         );
     }
     diamondRows.push(['Reporting Basis', 'Diamonds And Chips Kept Separate', 'Spins started during this Central day, including their linked bonus games and picked Diamond prizes. Diamond amounts above are before platform burn and inventory costs.']);
