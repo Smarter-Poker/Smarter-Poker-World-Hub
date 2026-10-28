@@ -738,7 +738,7 @@ export function spinsSpendRows(digest, opts = {}) {
     const r = digest.spins_spend;
     if (!r) return [];
     if (r.error) return [['Diamond Spins And Spend', [['Report Unavailable', 'Unavailable', String(r.error)]]]];
-    const diamondRows = [], chipRows = [], valuationRows = [];
+    const diamondRows = [], chipRows = [];
     for (const [key, name] of [['humans', 'Humans'], ['horses', 'Horses'], ['unknown', 'Unknown'], ['total', 'Total']]) {
         const x = r.spins?.[key] || {};
         if (key === 'unknown' && !x.spins) continue;
@@ -752,10 +752,8 @@ export function spinsSpendRows(digest, opts = {}) {
             [`${name} - Bonus Game Payouts`, `${fmtNum(x.bonus_chips_paid ?? 0)} Chips`, ''],
             [`${name} - Total Chips Paid`, `${fmtNum(x.chips_paid ?? 0)} Chips`, `${fmtInt(x.spins ?? 0)} spins`],
         );
-        valuationRows.push([`${name} - Converted Margin`, `${fmtSigned(x.profit_chip_equivalent ?? 0)} Chips Equivalent`,
-            Number(x.pending_awards) ? `Provisional: ${fmtInt(x.pending_awards)} unsettled awards` : 'Calculated valuation only; not a Chip payment or Diamond settlement']);
     }
-    valuationRows.push(['Calculation', 'Spin Day', r.basis || '']);
+    diamondRows.push(['Reporting Basis', 'Diamonds And Chips Kept Separate', 'Spins started during this Central day, including their linked bonus games and picked Diamond prizes. Diamond amounts above are before platform burn and inventory costs.']);
     const spend = Array.isArray(r.spend) ? r.spend : [];
     const paid = spend.filter(x => x.to_type === 'player_wallet');
     const leaderboard = paid.filter(x => x.category === 'leaderboard_payout');
@@ -775,7 +773,6 @@ export function spinsSpendRows(digest, opts = {}) {
     const payouts = (items) => [['Total Paid', `${fmtNum(items.reduce((sum, x) => sum + Number(x.amount), 0))} Chips`, 'Actual player-wallet payments for this Central day'], ...items.map(detail)];
     return [['Diamond Spins - Diamonds', diamondRows],
         ['Diamond Spins - Chips', chipRows],
-        ['Diamond Spins - Converted Valuation', valuationRows],
         ['Promo Player Payouts - Chips', payouts(promo)],
         ['Leaderboard Player Payouts - Chips', payouts(leaderboard)],
         ['Internal Funding Movements - Chips', internal.length ? internal.map(detail) : [['Internal Movements', '0 Chips', '']]]];

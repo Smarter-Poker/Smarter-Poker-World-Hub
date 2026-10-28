@@ -384,7 +384,7 @@ test('spins report splits actual chips and diamonds, marks provisional profit an
         assert.match(output, /Diamond Spins/i);
         assert.match(output, /2.25 Chips/);
         assert.match(output, /400 Diamonds/);
-        assert.match(output, /Provisional: 1 unsettled awards/);
+
         assert.match(output, /Promo Player Payouts - Chips/i);
         assert.match(output, /Internal Funding Movements - Chips/i);
     }
@@ -409,4 +409,5 @@ test('money units and promo versus leaderboard totals remain separate', async ()
     assert.equal(sections.find(([t])=>t==='Promo Player Payouts - Chips')[1][0][1],'5 Chips');
     assert.equal(sections.find(([t])=>t==='Leaderboard Player Payouts - Chips')[1][0][1],'10 Chips');
     assert.ok(!buildHtml(d).includes('Promo, Leaderboard And Setup Ledger Movements'));
+    assert.ok(!buildHtml(d).includes('Chips Equivalent')); 
 });
