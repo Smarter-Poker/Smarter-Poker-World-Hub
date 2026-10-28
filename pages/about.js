@@ -45,6 +45,7 @@ export default function AboutPage() {
         canonical="/about"
         ogImage="/api/og/tool-card?tool=about&title=About+Smarter.Poker&subtitle=Free+Online+Poker+Platform+Operated+By+Smarter+Software+Inc&statLabel=OPERATOR&statValue=SMARTER+SOFTWARE"
         jsonLd={[schemas.organization, ABOUT_PAGE_SCHEMA]}
+        markdownUrl="https://smarter.poker/about.md"
       />
 
       <main style={styles.page}>

@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   renderVenueMarkdown,
   renderSeriesMarkdown,
@@ -8,6 +11,9 @@ import {
   renderIcmCalculatorMarkdown,
   renderAboutPlatformMarkdown,
 } from '../src/lib/seo/markdownIngestion.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 test('renderVenueMarkdown outputs clean token-efficient Markdown', () => {
   const venue = {
@@ -107,4 +113,29 @@ test('renderAboutPlatformMarkdown outputs clean structured about platform Markdo
   assert.ok(md.includes('Smarter Software Inc.'));
   assert.ok(md.includes('No Real-Money Gambling'));
   assert.ok(!md.includes('—'), 'Must not contain em dashes');
+});
+
+test('SEOHead and tool pages emit rel="alternate" type="text/markdown" link headers', () => {
+  const seoHeadSrc = read('src/components/seo/SEOHead.js');
+  assert.ok(seoHeadSrc.includes('rel="alternate"'), 'SEOHead must support rel="alternate"');
+  assert.ok(seoHeadSrc.includes('type="text/markdown"'), 'SEOHead must support type="text/markdown"');
+  assert.ok(seoHeadSrc.includes('resolvedMarkdownUrl'), 'SEOHead must resolve markdownUrl');
+
+  const oddsSrc = read('pages/hub/poker-tools.js');
+  assert.ok(oddsSrc.includes('markdownUrl="https://smarter.poker/tools/poker-odds-calculator.md"'));
+
+  const icmSrc = read('pages/hub/training/icm-calculator.js');
+  assert.ok(icmSrc.includes('markdownUrl="https://smarter.poker/tools/icm-calculator.md"'));
+
+  const rangesSrc = read('pages/tools/preflop-ranges/index.js');
+  assert.ok(rangesSrc.includes('markdownUrl="https://smarter.poker/tools/preflop-ranges.md"'));
+
+  const aboutSrc = read('pages/about.js');
+  assert.ok(aboutSrc.includes('markdownUrl="https://smarter.poker/about.md"'));
+
+  const venueSrc = read('pages/hub/venues/[id].js');
+  assert.ok(venueSrc.includes('markdownUrl={venue?.id ? `https://smarter.poker/hub/venues/${venue.id}.md` : undefined}'));
+
+  const seriesSrc = read('pages/hub/series/[id].js');
+  assert.ok(seriesSrc.includes('markdownUrl={series?.id ? `https://smarter.poker/hub/series/${series.id}.md` : undefined}'));
 });

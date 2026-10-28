@@ -293,6 +293,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
         canonical={effectiveCanonical}
         jsonLd={schema}
         ogImage="/api/og/tool-card?tool=icm&title=Tournament+ICM+Calculator&subtitle=Malmuth-Harville+Final+Table+Chop+And+Bubble+Equity&statLabel=PRECISION&statValue=EXACT+MODEL"
+        markdownUrl="https://smarter.poker/tools/icm-calculator.md"
       />
 
       <div

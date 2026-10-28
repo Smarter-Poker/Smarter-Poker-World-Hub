@@ -429,6 +429,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                 canonical={effectiveCanonical}
                 jsonLd={schema}
                 ogImage="/api/og/tool-card?tool=odds&title=Poker+Odds+Calculator&subtitle=Multiway+Equity+For+Holdem+PLO4+PLO5+PLO6+Stud+And+Razz&statLabel=ITERATIONS&statValue=10,000+RUNS"
+                markdownUrl="https://smarter.poker/tools/poker-odds-calculator.md"
             />
 
             <div className="odds-page" style={THEME_VARS}>

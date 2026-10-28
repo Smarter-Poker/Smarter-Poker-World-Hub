@@ -133,6 +133,7 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
         canonical={canonicalUrl}
         jsonLd={schema}
         ogImage={`/api/og/tool-card?tool=ranges&title=${encodeURIComponent(pageTitle)}&subtitle=${encodeURIComponent(`100BB 6-Max Opening Matrix (${stats.percent}% Open Frequency)`)}&statLabel=OPENING+FREQUENCY&statValue=${encodeURIComponent(`${stats.percent}%`)}`}
+        markdownUrl="https://smarter.poker/tools/preflop-ranges.md"
       />
       <Head>
         <style
