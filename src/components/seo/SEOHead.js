@@ -48,6 +48,8 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/preflop-ranges.md';
     } else if (pathname === '/about') {
       resolvedMarkdownUrl = 'https://smarter.poker/about.md';
+    } else if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
+      resolvedMarkdownUrl = 'https://smarter.poker/freerolls.md';
     }
   }
 

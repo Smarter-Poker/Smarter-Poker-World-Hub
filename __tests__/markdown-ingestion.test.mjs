@@ -10,6 +10,7 @@ import {
   renderPreflopRangesMarkdown,
   renderIcmCalculatorMarkdown,
   renderAboutPlatformMarkdown,
+  renderFreerollsMarkdown,
 } from '../src/lib/seo/markdownIngestion.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -123,6 +124,22 @@ test('renderAboutPlatformMarkdown outputs clean structured about platform Markdo
   assert.ok(!md.includes('—'), 'Must not contain em dashes');
 });
 
+test('renderFreerollsMarkdown outputs clean structured freerolls Markdown', () => {
+  const md = renderFreerollsMarkdown();
+  assert.ok(md.includes('# Smarter.Poker Daily $2,000 Freerolls & Diamond Freerolls'));
+  assert.ok(md.includes('https://smarter.poker/freerolls'));
+  assert.ok(md.includes('$2,000 In Free Poker Tournaments Every Single Day'));
+  assert.ok(md.includes('Diamond Arena Freerolls'));
+  assert.ok(md.includes('Daily Freeroll Schedule (CST)'));
+  assert.ok(md.includes('10:00 AM CST'));
+  assert.ok(md.includes('Smarter.Poker vs. Legacy Poker Sites'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+
+  const freerollsSrc = read('pages/freerolls.js');
+  assert.ok(freerollsSrc.includes('markdownUrl="https://smarter.poker/freerolls.md"'));
+  assert.ok(freerollsSrc.includes('renderFreerollsMarkdown'));
+});
+
 test('SEOHead and tool pages emit rel="alternate" type="text/markdown" link headers', () => {
   const seoHeadSrc = read('src/components/seo/SEOHead.js');
   assert.ok(seoHeadSrc.includes('rel="alternate"'), 'SEOHead must support rel="alternate"');
@@ -146,4 +163,7 @@ test('SEOHead and tool pages emit rel="alternate" type="text/markdown" link head
 
   const seriesSrc = read('pages/hub/series/[id].js');
   assert.ok(seriesSrc.includes('markdownUrl={series?.id ? `https://smarter.poker/hub/series/${series.id}.md` : undefined}'));
+
+  const freerollsSrc = read('pages/freerolls.js');
+  assert.ok(freerollsSrc.includes('markdownUrl="https://smarter.poker/freerolls.md"'));
 });

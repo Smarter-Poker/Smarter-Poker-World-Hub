@@ -144,6 +144,7 @@ export default function FreerollsPage() {
         description="Compete in 100% free daily poker tournaments with $2,000 in guaranteed daily prizes plus exclusive Diamond Freerolls. No deposit required, play in your browser on web or mobile."
         canonicalUrl="https://smarter.poker/freerolls"
         jsonLd={FREEROLLS_SCHEMA}
+        markdownUrl="https://smarter.poker/freerolls.md"
         ogImage="https://smarter.poker/api/og/tool-card?tool=freerolls"
       />
 
@@ -942,3 +943,22 @@ export default function FreerollsPage() {
     </div>
   );
 }
+
+export async function getServerSideProps({ req, res, query }) {
+  const acceptHeader = String(req?.headers?.accept || '');
+  const isMarkdownRequested =
+    acceptHeader.includes('text/markdown') ||
+    query?.format === 'md' ||
+    req?.url?.includes('format=md');
+  if (isMarkdownRequested) {
+    const { renderFreerollsMarkdown } = await import('../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderFreerollsMarkdown();
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+  return { props: {} };
+}
+
