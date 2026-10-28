@@ -375,7 +375,10 @@ export function buildHtml(digest, opts = {}) {
 
     body += playerTotalsCard(digest, opts);
     body += playerPeriodCards(digest);
-    for (const [title, rows] of spinsSpendRows(digest, opts)) body += listCard(title, rows);
+    for (const [title, rows] of spinsSpendRows(digest, opts)) {
+        body += opts.email ? cardOpen(title) + rows.map(([label, value, sub]) =>
+            `<tr><td colspan="2" class="digest-row"><b>${esc(label)}: ${esc(value)}</b>${sub ? `<div style="color:${C.muted};font-size:11px;">${esc(sub)}</div>` : ''}</td></tr>`).join('') + cardClose : listCard(title, rows);
+    }
     if (!opts.email) body += horseRosterCard(digest);
     else body += listCard('Horse Roster', horseRosterRows(digest).slice(0, 6));
 
@@ -439,9 +442,10 @@ export function buildHtml(digest, opts = {}) {
     // Keep the email below inbox clipping limits without dropping summary data.
     // These properties inherit from the body; online rendering stays unchanged.
     return opts.email ? html.replaceAll('font-size:14px;', '')
-        .replaceAll(`color:${C.text};`, '').replaceAll('white-space:normal;', '')
+        .replaceAll(`color:${C.text};`, '').replaceAll('white-space:normal;', '').replaceAll('word-break:break-word;', '')
         .replaceAll(`<td style="padding:10px 14px;border-top:1px solid ${C.line};`, '<td class="digest-row" style="')
         .replace('</head>', `<style>.digest-row{padding:10px 14px;border-top:1px solid ${C.line}}</style></head>`)
+        .replaceAll(' style=""', '')
         .replace('<body style="', `<body style="font-size:14px;color:${C.text};`) : html;
 }
 
@@ -760,6 +764,6 @@ export function spinsSpendRows(digest, opts = {}) {
     }
     const detail = x => [`${x.recipient} (${x.recipient_kind})`, `${fmtNum(x.amount)} chips`, `${x.category}; ${x.from_type} to ${x.to_type}; ${fmtInt(x.transactions)} transactions`];
     return [['Diamond Spins', rows],
-        ['Promo And Leaderboard Player Payouts', paid.length ? paid.map(detail) : [['Player Payouts', '0 chips', 'No player-wallet payouts in these ledger categories for this Central day']]],
+        ['Promo And Leaderboard Player Payouts', paid.length ? [['Total Paid', `${fmtNum(paid.reduce((sum, x) => sum + Number(x.amount), 0))} chips`, 'Promo wallet payments and promo/leaderboard ledger categories'], ...paid.map(detail)] : [['Player Payouts', '0 chips', 'No player-wallet payouts in these ledger categories for this Central day']]],
         ['Promo And Setup Internal Movements', internal.length ? internal.map(detail) : [['Internal Movements', '0 chips', '']]]];
 }

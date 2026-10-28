@@ -45,3 +45,12 @@ replaying financial history. Its exact forward migration is applied only in
 the isolated qualification database after independent baseline equality,
 followed by full catalog comparison. Neither result certifies a production
 installation or releases a solver machine.
+
+The three exact daily-report migrations dated October 27 and 28 are separately
+qualified by `verify-digest-player-report-postgres.mjs` on PostgreSQL 17. It
+executes both real report functions against isolated financial fixtures and
+checks currency, Central-day boundaries, human/horse scope, linked bonus and
+card accounting, pending liabilities and service-only access. Only its fresh
+successful path/hash/version receipt admits those three immutable SQL files;
+missing proof, different bytes or additional migrations still fail. The M1
+qualification and all historical checks remain mandatory and unchanged.

@@ -389,6 +389,11 @@ test('spins report splits actual chips and diamonds, marks provisional profit an
         assert.match(output, /Promo And Setup Internal Movements/i);
     }
     assert.match(buildHtml(digest), /&lt;Human&gt;/);
+    const email = buildHtml(digest, { email: true });
+    assert.match(email, /digest-row/);
+    assert.match(email, /Total Paid/);
+    assert.match(email, /5 chips/);
+    assert.match(email, /&lt;Human&gt;/);
     assert.ok(!buildHtml(digest).includes('<Human>'));
     const { loadSpinsSpend } = await import('../src/lib/dailyDigest/assemble.mjs');
     assert.deepEqual(await loadSpinsSpend({ rpc: async () => ({ error: { message: 'timeout' } }) }, '2026-10-27'), { day: '2026-10-27', error: 'timeout' });
