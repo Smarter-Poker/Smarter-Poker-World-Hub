@@ -1410,6 +1410,7 @@ jobs:
             __tests__/horses-phase8-model.test.mjs \
             __tests__/horses-phase8-server.test.mjs \
             __tests__/horses-phase8-the-console-never-invents-authority.law.test.mjs \
+            __tests__/horses-phase9-architecture.test.mjs \
             __tests__/horses-phase10-documentation.test.mjs \
             __tests__/horses-export-artifacts.test.mjs \
             __tests__/horses-export-artifacts-review.test.mjs \

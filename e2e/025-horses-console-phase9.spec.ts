@@ -222,13 +222,14 @@ test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
     const tablist = page.getByRole('tablist', { name: 'Stable Admin Tabs' });
     await expect(tablist).toBeVisible();
     const tabs = tablist.getByRole('tab');
-    await expect(tabs).toHaveCount(28);
+    await expect(tabs).toHaveCount(29);
 
     const discovered = await tabs.evaluateAll((nodes) => nodes.map((node) => ({
       id: (node as HTMLElement).dataset.tabid || '',
       label: (node.textContent || '').replace(/\s+\([\d,]+\)$/, '').trim(),
     })));
-    expect(new Set(discovered.map(({ id }) => id)).size).toBe(28);
+    expect(new Set(discovered.map(({ id }) => id)).size).toBe(29);
+    expect(discovered.map(({ id }) => id)).toContain('solver-inputs');
 
     for (const { id, label } of discovered) {
       expect(id, `tab ${label} needs a stable data-tabid`).not.toBe('');
@@ -300,7 +301,7 @@ test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
     await installSignedInPolicyFixture(page);
     await page.goto('/horses', { waitUntil: 'domcontentloaded' });
     const tabs = page.getByRole('tablist', { name: 'Stable Admin Tabs' }).getByRole('tab');
-    await expect(tabs).toHaveCount(28);
+    await expect(tabs).toHaveCount(29);
     await expectSelectedTab(page, 'stable');
 
     await tabs.first().focus();
@@ -342,7 +343,7 @@ test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
     await page.goto('/horses', { waitUntil: 'domcontentloaded' });
 
     const tabs = page.getByRole('tablist', { name: 'Stable Admin Tabs' }).getByRole('tab');
-    await expect(tabs).toHaveCount(28);
+    await expect(tabs).toHaveCount(29);
     await tabs.nth(10).evaluate((element: HTMLButtonElement) => element.click());
     await expect.poll(() => page.evaluate(() => {
       const calls = (window as typeof window & { __phase9ScrollCalls?: ScrollIntoViewOptions[] }).__phase9ScrollCalls || [];
