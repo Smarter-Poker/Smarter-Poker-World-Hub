@@ -411,7 +411,8 @@ def parse_children(raw: str, parent: str, *, minimum_actions: int = 2) -> list[s
             if action in {"c", "f"} or BET.fullmatch(action):
                 result.append(action)
     if len(result) < minimum_actions or len(result) != len(set(result)):
-        raise PioError(f"show_children did not return at least {minimum_actions} unique direct actions")
+        raise PioError("show_children did not return at least "
+                       + ("two" if minimum_actions == 2 else "one") + " unique direct actions")
     return result
 
 
