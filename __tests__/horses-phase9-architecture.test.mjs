@@ -222,6 +222,12 @@ test('the production build runs the Phase 9 lazy-bundle checker', async () => {
 
 test('the existing production-build browser gate enforces desktop and mobile console navigation', async () => {
   const workflow = await read('.github/workflows/global-footer-e2e.yml');
+  const browser = await read('e2e/025-horses-console-phase9.spec.ts');
+  const expected = visibleTabs(TABS).length;
+  const counts = [...browser.matchAll(/tabs\)\.toHaveCount\((\d+)\)/g)].map((match) => Number(match[1]));
+  assert.equal(counts.length, 3, 'desktop, keyboard and mobile browser census must remain enforced');
+  assert.deepEqual(counts, [expected, expected, expected], 'browser census must match the rendered registry');
+  assert.match(browser, /discovered\.map\(\(\{ id \}\) => id\)\)\.toContain\('solver-inputs'\)/);
   assert.match(workflow, /npx playwright test e2e\/025-horses-console-phase9\.spec\.ts --project=chromium --project=mobile-chrome --no-deps --workers=1/);
   assert.match(workflow, /PLAYWRIGHT_BASE_URL: http:\/\/127\.0\.0\.1:\$\{\{ steps\.port\.outputs\.port \}\}/);
 });
