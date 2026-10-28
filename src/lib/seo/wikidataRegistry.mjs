@@ -253,6 +253,30 @@ export const WIKIDATA_ENTITIES = {
     wikipedia: 'https://en.wikipedia.org/wiki/Game_theory',
     wikidata: 'https://www.wikidata.org/wiki/Q131476',
   },
+  'poker-tournament': {
+    qid: 'Q188451',
+    name: 'Poker tournament',
+    wikipedia: 'https://en.wikipedia.org/wiki/Poker_tournament',
+    wikidata: 'https://www.wikidata.org/wiki/Q188451',
+  },
+  'freeroll': {
+    qid: 'Q188451',
+    name: 'Freeroll',
+    wikipedia: 'https://en.wikipedia.org/wiki/Freeroll_(poker)',
+    wikidata: 'https://www.wikidata.org/wiki/Q188451',
+  },
+  'online-poker': {
+    qid: 'Q1194200',
+    name: 'Online poker',
+    wikipedia: 'https://en.wikipedia.org/wiki/Online_poker',
+    wikidata: 'https://www.wikidata.org/wiki/Q1194200',
+  },
+  'prize-money': {
+    qid: 'Q1156823',
+    name: 'Prize money',
+    wikipedia: 'https://en.wikipedia.org/wiki/Prize_money',
+    wikidata: 'https://www.wikidata.org/wiki/Q1156823',
+  },
 
   // Industry Authorities, Media, & Databases
   'pokergo': {
@@ -475,6 +499,13 @@ export function resolveToolWikidataLinks(toolKey) {
     }
   } else if (normalized.includes('odds') || normalized.includes('calculator') || normalized.includes('equity')) {
     const keys = ['texas-holdem', 'omaha-holdem', 'seven-card-stud', 'razz', 'monte-carlo-method', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('freeroll') || normalized.includes('tournament')) {
+    const keys = ['freeroll', 'poker-tournament', 'online-poker', 'texas-holdem', 'omaha-holdem', 'prize-money', 'poker'];
     for (const k of keys) {
       if (WIKIDATA_ENTITIES[k]) {
         links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);

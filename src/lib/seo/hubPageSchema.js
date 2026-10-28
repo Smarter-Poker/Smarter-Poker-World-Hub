@@ -372,3 +372,103 @@ export function courseSchema({
   };
 }
 
+/**
+ * Schema.org SportsEvent & EventSeries node for the Daily $2,000 Freerolls and Diamond Freerolls hub.
+ */
+export function freerollEventSchema({
+  path = '/freerolls',
+  name = 'Smarter.Poker Daily $2,000 Freerolls And Diamond Freerolls',
+  description = 'Compete In 100% Free Daily Poker Tournaments With $2,000 In Guaranteed Daily Prizes Plus Exclusive Diamond Freerolls.',
+  trail = [['Tournaments', '/hub/daily-tournaments'], ['Daily $2,000 Freerolls', '/freerolls']],
+  faqs = [],
+  howTo = null,
+  image = `${SITE}/api/og/tool-card?tool=freerolls`,
+} = {}) {
+  const url = absolute(path);
+  const wikidataSameAs = resolveToolWikidataLinks('freerolls');
+
+  const imageNode = licensableImageSchema({
+    url,
+    contentUrl: image,
+    caption: `${name} - Smarter.Poker`,
+    acquireLicensePage: url,
+  });
+
+  const eventSeriesNode = {
+    '@type': ['SportsEvent', 'EventSeries'],
+    '@id': `${url}#eventseries`,
+    name: 'Smarter.Poker Daily $2,000 Freeroll Tournament Series',
+    description,
+    url,
+    sport: 'Poker',
+    isAccessibleForFree: true,
+    eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
+    eventStatus: 'https://schema.org/EventScheduled',
+    inLanguage: 'en-US',
+    sameAs: wikidataSameAs,
+    organizer: {
+      '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
+      name: 'Smarter.Poker',
+      url: SITE,
+    },
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+      category: 'Free Entry',
+      availability: 'https://schema.org/InStock',
+      url,
+    },
+    location: {
+      '@type': 'VirtualLocation',
+      url: `${SITE}/hub/club-arena`,
+      name: 'Smarter.Poker Club Arena Online Tournament Lobby',
+    },
+  };
+
+  const webPageNode = {
+    '@type': 'WebPage',
+    '@id': `${url}#page`,
+    url,
+    name,
+    description,
+    isPartOf: { '@id': WEBSITE_ID },
+    inLanguage: 'en-US',
+    about: { '@id': `${url}#eventseries` },
+    primaryImageOfPage: { '@id': `${url}#primaryimage` },
+    sameAs: wikidataSameAs,
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'aside[role="complementary"]', 'main p'],
+    },
+    breadcrumb: { '@id': `${url}#breadcrumb` },
+  };
+
+  const nodes = [
+    eventSeriesNode,
+    webPageNode,
+    imageNode,
+    breadcrumbSchema(trail),
+  ];
+
+  if (Array.isArray(faqs) && faqs.length > 0) {
+    const faqNode = faqSchema(faqs, path);
+    if (faqNode) nodes.push(faqNode);
+  }
+
+  if (howTo && Array.isArray(howTo.steps) && howTo.steps.length > 0) {
+    const howToNode = howToSchema({
+      path,
+      name: howTo.name || 'How To Enter And Play Smarter.Poker Daily $2,000 Freerolls',
+      description: howTo.description || description,
+      steps: howTo.steps,
+      totalTime: howTo.totalTime || 'PT1M',
+    });
+    if (howToNode) nodes.push(howToNode);
+  }
+
+  return nodes;
+}
+
+

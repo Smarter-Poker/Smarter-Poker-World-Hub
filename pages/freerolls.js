@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../src/components/seo/SEOHead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
+import { freerollEventSchema } from '../src/lib/seo/hubPageSchema';
 import { 
   Trophy, 
   Calendar, 
@@ -106,12 +107,43 @@ export default function FreerollsPage() {
     setOpenFaq(openFaq === index ? null : index);
   };
 
+  const howToSteps = [
+    {
+      name: 'Create Your Free Account',
+      text: 'Sign up with your email or social login. No credit card, no deposit, and no identity verification documents required to join freerolls.',
+    },
+    {
+      name: 'Open Tournament Lobby',
+      text: 'Navigate to the Club Arena lobby and locate today\'s upcoming $2,000 Daily Freerolls or Diamond Arena events.',
+    },
+    {
+      name: 'Register And Play',
+      text: 'Click the Register button. Your seat is confirmed instantly and the table window opens automatically when cards fly.',
+    },
+  ];
+
+  const FREEROLLS_SCHEMA = freerollEventSchema({
+    path: '/freerolls',
+    name: 'Smarter.Poker Daily $2,000 Freerolls And Diamond Freerolls',
+    description: 'Compete in 100% free daily poker tournaments with $2,000 in guaranteed daily prizes plus exclusive Diamond Freerolls. Zero entry fees, no deposit required.',
+    trail: [
+      ['Tournaments', '/hub/daily-tournaments'],
+      ['Daily $2,000 Freerolls', '/freerolls'],
+    ],
+    faqs: FREEROLLS_FAQS,
+    howTo: {
+      name: 'How To Enter And Play Smarter.Poker Daily $2,000 Freerolls',
+      steps: howToSteps,
+    },
+  });
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B1118', color: '#F0F4F8', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Daily $2,000 Poker Freerolls & Diamond Freerolls | Smarter.Poker"
         description="Compete in 100% free daily poker tournaments with $2,000 in guaranteed daily prizes plus exclusive Diamond Freerolls. No deposit required, play in your browser on web or mobile."
         canonicalUrl="https://smarter.poker/freerolls"
+        jsonLd={FREEROLLS_SCHEMA}
         ogImage="https://smarter.poker/api/og/tool-card?tool=freerolls"
       />
 
