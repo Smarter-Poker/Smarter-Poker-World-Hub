@@ -107,3 +107,19 @@ test('no avatar has a hole punched through the subject', { skip: !sharp }, async
       `Run: node scripts/repair-avatar-mattes.mjs --write`
   );
 });
+
+// A fading torso is open to the exterior, so the enclosed-hole check cannot catch it.
+test('Phoenix retains an opaque connected chest below its head', async () => {
+  assert.ok(sharp, 'sharp is required to verify Phoenix pixels');
+  for (const file of ['table/vip_phoenix.webp', 'table/vip_phoenix@2x.webp']) {
+    const { data, info } = await sharp(join(AVATARS, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let opaque = 0, total = 0;
+    for (let y = Math.floor(info.height * 0.65); y < Math.floor(info.height * 0.90); y++) {
+      for (let x = Math.floor(info.width * 0.40); x < Math.floor(info.width * 0.60); x++) {
+        total++;
+        if (data[(y * info.width + x) * 4 + 3] >= 250) opaque++;
+      }
+    }
+    assert.ok(opaque / total > 0.95, file + ' has a missing or translucent chest');
+  }
+});
