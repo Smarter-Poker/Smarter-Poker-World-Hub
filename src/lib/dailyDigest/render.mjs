@@ -440,6 +440,8 @@ export function buildHtml(digest, opts = {}) {
     // These properties inherit from the body; online rendering stays unchanged.
     return opts.email ? html.replaceAll('font-size:14px;', '')
         .replaceAll(`color:${C.text};`, '').replaceAll('white-space:normal;', '')
+        .replaceAll(`<td style="padding:10px 14px;border-top:1px solid ${C.line};`, '<td class="digest-row" style="')
+        .replace('</head>', `<style>.digest-row{padding:10px 14px;border-top:1px solid ${C.line}}</style></head>`)
         .replace('<body style="', `<body style="font-size:14px;color:${C.text};`) : html;
 }
 
