@@ -6,7 +6,7 @@ import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '..');
-const bin = execFileSync('pg_config', ['--bindir'], { encoding: 'utf8' }).trim();
+const bin = process.env.PHASE6_POSTGRES_BIN || execFileSync('pg_config', ['--bindir'], { encoding: 'utf8' }).trim();
 const dir = mkdtempSync(path.join(tmpdir(), 'digest-report-pg-'));
 const socket = path.join(dir, 'socket');
 const data = path.join(dir, 'data');
