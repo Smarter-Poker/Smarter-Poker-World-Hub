@@ -20,6 +20,7 @@ from contract import (
     parse_source_combo_order,
     validate_postflop_positions,
     validate_conditional_root_action,
+    validate_conditional_history,
 )
 
 
@@ -50,6 +51,7 @@ class NodeLine:
     previous_street_aggressor: int | None
     previous_street_checked_through: bool
     older_street_aggressor: int | None
+    cumulative_line: tuple[int, ...]
 
 
 PIO_ACK_COMMANDS = frozenset(
@@ -396,7 +398,9 @@ def parse_calc_ev(raw: str, *, label: str) -> tuple[list[float], list[float]]:
     return evs, matchups
 
 
-def parse_children(raw: str, parent: str) -> list[str]:
+def parse_children(raw: str, parent: str, *, minimum_actions: int = 2) -> list[str]:
+    if type(minimum_actions) is not int or minimum_actions not in (1, 2):
+        raise PioError("child parser minimum must be exactly one or two")
     prefix = parent + ":"
     depth = parent.count(":") + 1
     result: list[str] = []
@@ -406,8 +410,9 @@ def parse_children(raw: str, parent: str) -> list[str]:
             action = cleaned[len(prefix) :]
             if action in {"c", "f"} or BET.fullmatch(action):
                 result.append(action)
-    if len(result) < 2 or len(result) != len(set(result)):
-        raise PioError("show_children did not return at least two unique direct actions")
+    if len(result) < minimum_actions or len(result) != len(set(result)):
+        raise PioError("show_children did not return at least "
+                       + ("two" if minimum_actions == 2 else "one") + " unique direct actions")
     return result
 
 
@@ -482,6 +487,7 @@ def analyze_node(
     current_actions: list[dict[str, Any]] = []
     completed: list[tuple[int | None, bool]] = []
     last_aggressive: dict[str, Any] | None = None
+    cumulative_line: list[int] = []
 
     for token in tokens[2:]:
         if CARD.fullmatch(token):
@@ -524,6 +530,7 @@ def analyze_node(
                 action_kind = "check"
                 closed = bool(current_actions and current_actions[-1]["kind"] == "check")
                 closed_by_checks = closed
+            cumulative_line.append(total_spent[actor])
             current_actions.append({"actor": actor, "kind": action_kind})
             actor = 1 - actor
             continue
@@ -549,6 +556,7 @@ def analyze_node(
         contributions[actor] = target
         total_spent[actor] += delta
         pot += delta
+        cumulative_line.append(total_spent[actor])
         last_aggressive = {
             "actor": actor,
             "kind": kind,
@@ -668,6 +676,7 @@ def analyze_node(
         previous_street_aggressor=previous_aggressor,
         previous_street_checked_through=previous_checked,
         older_street_aggressor=older_aggressor,
+        cumulative_line=tuple(cumulative_line),
     )
 
 
@@ -780,6 +789,7 @@ def setup_commands(
     icm_model: dict[str, Any] | None = None,
 ) -> list[str]:
     validate_conditional_root_action(scenario)
+    conditional_prefix = validate_conditional_history(scenario)
     if (
         len(oop_range) != 1326
         or len(ip_range) != 1326
@@ -802,6 +812,8 @@ def setup_commands(
     )
     if "conditional_root_action" in scenario:
         commands.append(f"force_line {scenario['effective_stack_chips']}")
+    elif conditional_prefix is not None:
+        commands.append("force_line " + " ".join(str(value) for value in conditional_prefix))
     # Pio 3.8's set_rake requires an existing tree, including the zero-rake
     # command used before installing ICM. Select the EV model before solving.
     commands.append("build_tree")
@@ -1103,6 +1115,7 @@ def harvest_node(
     policy_export_schema: str = "smarter-poker.pio-policy.v3",
     icm_model: dict[str, Any] | None = None,
     icm_model_checksum: str | None = None,
+    conditional_input_ranges: dict[str, list[float]] | None = None,
 ) -> dict[str, Any]:
     if policy_export_schema not in ("smarter-poker.pio-policy.v3", "smarter-poker.pio-policy.v4"):
         raise PioError("unknown policy export schema")
@@ -1127,6 +1140,15 @@ def harvest_node(
     policy_ev, matchups = parse_calc_ev(
         pio(f"calc_ev {player} {node}"), label="policy EV"
     )
+    if "conditional_history" in scenario:
+        validate_conditional_history(scenario)
+        if conditional_input_ranges is None:
+            raise PioError("conditional export requires original approved input ranges")
+        other = "IP" if player == "OOP" else "OOP"
+        actual_ranges = {player: reach, other: parse_vector(
+            pio(f"show_range {other} {node}"), allow_nan=False, label="conditional opponent range")}
+        validate_conditional_support(scenario, target, conditional_input_ranges, actual_ranges,
+                                     player, matchups)
     action_ev: dict[str, list[float]] = {}
     for action in children:
         evs, _action_matchups = parse_calc_ev(
@@ -1220,6 +1242,50 @@ def harvest_node(
         result["complete_public_state"] = complete_node_state(scenario, target, icm_model=icm_model, icm_model_checksum=icm_model_checksum)
         result["solver_ranges"] = {"schema": "smarter-poker.pio-exact-node-ranges.v1", "OOP": ranges["OOP"], "IP": ranges["IP"]}
     return result
+
+
+def validate_conditional_support(
+    scenario: dict[str, Any], target: dict[str, Any],
+    inputs: dict[str, list[float]], actual: dict[str, list[float]],
+    actor: str, matchups: list[float],
+) -> None:
+    """Refuse pruned or changed input beliefs; never manufacture occurrence mass."""
+    validate_conditional_history(scenario)
+    board = {target["board"][i:i + 2] for i in range(0, len(target["board"]), 2)}
+    masks: dict[str, list[int]] = {}
+    for player in ("OOP", "IP"):
+        original, observed = inputs.get(player), actual.get(player)
+        if original is None or observed is None or len(original) != 1326 or len(observed) != 1326:
+            raise PioError("conditional support requires both complete input and target ranges")
+        indices, scale = [], None
+        for index, cards in enumerate(COMBO_CARDS):
+            before, after = original[index], observed[index]
+            if any(not math.isfinite(v) or not 0 <= v <= 1 for v in (before, after)):
+                raise PioError("conditional range contains invalid weight")
+            expected_live = before > 0 and not board.intersection(cards)
+            if (after > 0) != expected_live:
+                raise PioError(f"conditional history changed {player} legal input support at combo {index}")
+            if expected_live:
+                ratio = after / before
+                if not math.isfinite(ratio) or ratio <= 0:
+                    raise PioError("conditional range scale is not finite and positive")
+                if scale is None:
+                    scale = ratio
+                elif not math.isclose(ratio, scale, rel_tol=1e-6, abs_tol=0.0):
+                    raise PioError(f"conditional history changed {player} relative input weights")
+                indices.append(index)
+        if not indices:
+            raise PioError("conditional history has an empty legal input range")
+        masks[player] = indices
+    if actor not in masks or len(matchups) != 1326:
+        raise PioError("conditional matchup evidence is incomplete")
+    other = "IP" if actor == "OOP" else "OOP"
+    for index in masks[actor]:
+        cards = set(COMBO_CARDS[index])
+        if any(not cards.intersection(COMBO_CARDS[j]) for j in masks[other]):
+            if not math.isfinite(matchups[index]) or matchups[index] <= 0:
+                raise PioError(f"conditional history omitted positive actor matchups at combo {index}")
+
 
 def run_icm_activation_self_test(pio: Callable[[str], str]) -> dict[str, float]:
     """Isolated protocol fixture, never a serving scenario or source artifact.

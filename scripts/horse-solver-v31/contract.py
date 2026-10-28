@@ -827,7 +827,7 @@ def _validate_scenario(
     icm_models: dict[str, dict[str, Any]],
     verify_inputs: bool,
 ) -> dict[str, Any]:
-    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action"} & set(raw) if isinstance(raw, dict) else set())
+    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action", "conditional_history"} & set(raw) if isinstance(raw, dict) else set())
     scenario = _exact_keys(raw, keys, f"scenarios[{index}]")
     if scenario.get("purpose", "harvest") not in ("harvest", "self_test"):
         raise ContractError(f"scenarios[{index}].purpose must be harvest or self_test")
@@ -963,6 +963,7 @@ def _validate_scenario(
         seen_targets.add(target["target_id"])
         seen_nodes.add(target["node"])
     validate_conditional_root_action(scenario)
+    validate_conditional_history(scenario)
     return scenario
 
 
@@ -986,6 +987,36 @@ def validate_conditional_root_action(scenario: dict[str, Any]) -> None:
         or target["facing_size_bucket"] != "all_in"
         or target["expected_children"] != ["c", "f"]):
         raise ContractError("conditional root action must bind the exact root all-in response target")
+
+
+def validate_conditional_history(scenario: dict[str, Any]) -> tuple[int, ...] | None:
+    """Bind an exogenously fixed history, never an equilibrium occurrence claim."""
+    if "conditional_history" not in scenario:
+        return None
+    assumption = _exact_keys(scenario["conditional_history"], {"model", "target_node"}, "conditional_history")
+    if (assumption["model"] != "authored_range_preserving_response"
+        or "conditional_root_action" in scenario
+        or scenario.get("purpose", "harvest") != "harvest"
+        or scenario.get("game_family") not in {"cash", "spin", "tourney_ev", "tourney_icm"}
+        or len(scenario["targets"]) != 1):
+        raise ContractError("conditional history requires one harvest response in a supported game")
+    target = scenario["targets"][0]
+    if assumption["target_node"] != target["node"] or target["node"] == "r:0":
+        raise ContractError("conditional history must end exactly before its non-root target")
+    # Lazy import uses the actual chronology owner without a second node parser.
+    from pio_upi import PioError, analyze_node, target_context
+    try:
+        target_context(scenario, target)
+        line = analyze_node(target["node"], root_pot_chips=scenario["pot_chips"],
+                            effective_stack_chips=scenario["effective_stack_chips"],
+                            preflop_aggressor=scenario["preflop_aggressor_solver_player"])
+    except (PioError, ValueError, TypeError) as error:
+        raise ContractError(f"invalid conditional history: {error}") from error
+    prefix = line.cumulative_line
+    if not prefix or not any(len(tree) > len(prefix) and tuple(tree[:len(prefix)]) == prefix
+                             for tree in scenario["tree_lines"]):
+        raise ContractError("conditional history needs a proper authored tree continuation")
+    return prefix
 
 
 @dataclass(frozen=True)

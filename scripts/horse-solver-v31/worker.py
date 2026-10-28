@@ -21,6 +21,7 @@ from contract import (
     ContractError,
     _json_bytes,
     load_manifest,
+    load_range_vector,
     policy_export_schema,
     sha256_file,
 )
@@ -497,6 +498,7 @@ def run(args: argparse.Namespace) -> None:
                                     policy_export_schema=policy_export_schema(manifest.raw),
                                     icm_model=manifest.icm_models.get(scenario["icm_model_id"]),
                                     icm_model_checksum=manifest.raw["icm_model_checksum"],
+                                    conditional_input_ranges={side: load_range_vector(manifest.input_root / scenario[side.lower() + "_range_path"]) for side in ("OOP", "IP")} if "conditional_history" in scenario else None,
                                 )
                             artifact = make_artifact(manifest, args.machine, scenario, target, node)
                         except (ContractError, PioError):

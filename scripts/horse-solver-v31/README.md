@@ -228,6 +228,38 @@ is bound by the approved manifest checksum. Existing unconditioned scenarios
 emit no forced action. Reach, matchup, independent-holdout and quality gates
 remain unchanged; a conditional dataset still cannot serve without passing them.
 
+Generic dedicated response studies may declare the exact singleton assumption
+`conditional_history: {"model":"authored_range_preserving_response","target_node":"r:0:..."}`.
+This is a **new exogenously conditioned authored response model**: every preceding
+bet/check/call is fixed, while all declared target choices remain free. It is not
+natural occurrence or equilibrium play in the original unconstrained game. The
+history must end exactly at a non-root harvest target, have a proper continuation
+in the authored tree, and cannot coexist with `conditional_root_action` or a
+self-test. Each differently conditioned target requires its own reset tree.
+The existing node chronology derives cumulative lifetime chip contributions for
+`force_line`, omitting chance cards; it never appends a target decision.
+The full approved manifest checksum and new pipeline identity bind this assumption;
+artifact schemas and canonical context/action/pot/range/model definitions stay unchanged.
+
+Before any conditioned artifact can be constructed or sent, actual target ranges
+for **both** players must preserve the legal positive input masks and relative
+weights (up to a positive per-player scale, relative floating tolerance `1e-6`).
+Every legal positive actor input with a compatible positive opponent must have
+strictly positive actual matchup evidence. Lost reach, altered beliefs, a changed
+target child list or missing evidence refuses the export. No mass is floored,
+fabricated or backfilled. Board-incompatible hands remain absent. These are
+necessary model-admission invariants, not a guarantee of independent predictive
+accuracy, full coverage, qualification or live readiness. Old exports cannot be
+relabelled into the new approved manifest.
+
+`native_conditional_preflight.py` is an explicitly invoked, gateway-free licensed
+acceptance driver, not a worker or recurring job. Pin its exact three source
+receipts, executable SHA/version and hand-order SHA. It verifies a multi-street
+forced history, actual range/matchup preservation and a free river call/fold
+response with independently known nuts/air choices. Run it on the actual licensed
+solver before a fresh full harvest. The hermetic suite cannot substitute for
+this native proof. Pio command semantics: https://piosolver.com/docs/upi/commands/ .
+
 - Startup must acknowledge `set_end_string END` and `is_ready`; `show_version`
   and `show_hand_order` must exactly match the approved manifest and pinned
   order file. Solver and manifest identity text must already be canonical; the

@@ -39,6 +39,7 @@ from contract import (  # noqa: E402
     load_range_vector,
     pipeline_bundle_checksum,
     validate_postflop_positions,
+    validate_conditional_history,
     _validate_scenario,
 )
 from gateway import (  # noqa: E402
@@ -66,6 +67,8 @@ from pio_upi import (  # noqa: E402
     texture_class,
     validate_pipeline_imports,
     PIO_ACK_COMMANDS,
+    validate_conditional_support,
+    COMBO_CARDS,
 )
 from worker import (  # noqa: E402
     artifact_id,
@@ -193,6 +196,133 @@ class NodeLineTests(unittest.TestCase):
             invalid["targets"][0][field] = value
             with self.subTest(field=field, value=value), self.assertRaises(ContractError):
                 _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+
+    def conditioned(self):
+        scenario = base_scenario()
+        scenario["tree_lines"] = [[100, 300, 300, 300, 500, 500]]
+        node = "r:0:b100:b300:c:2d:c:b200"
+        line = analyze_node(node, root_pot_chips=100, effective_stack_chips=1000, preflop_aggressor=None)
+        scenario["targets"][0].update(node=node, board="AsKd7c2d", node_role=line.node_role,
+            facing_kind=line.facing_kind, facing_size_bucket=line.facing_size_bucket,
+            expected_children=["c", "f"])
+        scenario["conditional_history"] = {"model": "authored_range_preserving_response", "target_node": node}
+        return scenario
+
+    def test_conditional_harvest_refuses_before_export_without_original_range_evidence(self):
+        scenario = self.conditioned()
+        target = scenario["targets"][0]
+        calls = []
+        zero = " ".join(["0"] * 1326)
+        def pio(command):
+            calls.append(command)
+            if command.startswith("show_children "):
+                return target["node"] + ":c " + target["node"] + ":f"
+            if command.startswith("show_strategy ") or command.startswith("calc_ev "):
+                return zero + "\n" + zero
+            if command.startswith("show_range "):
+                return zero
+            raise AssertionError("unexpected command")
+        with self.assertRaisesRegex(PioError, "requires original approved input ranges"):
+            harvest_node(pio, scenario, target, manifest_checksum="c" * 64,
+                         source_combo_order_checksum="d" * 64, range_bundle_checksum="e" * 64)
+        self.assertFalse(any(command.startswith("calc_ev ") and command.endswith(":c") for command in calls))
+
+    def test_native_ancestor_parser_accepts_one_without_weakening_target_default(self):
+        with self.assertRaises(PioError):
+            parse_children("r:0:c", "r:0")
+        self.assertEqual(parse_children("child 0: r:0:c", "r:0", minimum_actions=1), ["c"])
+        self.assertEqual(parse_children("r:0:c r:0:f", "r:0"), ["c", "f"])
+        for raw in ("", "r:0:As", "r:0:c:c", "r:0:c r:0:c", "r:0:b0"):
+            with self.subTest(raw=raw), self.assertRaises(PioError):
+                parse_children(raw, "r:0", minimum_actions=1)
+        for invalid in (0, 3, True, 1., "1", None):
+            with self.subTest(minimum=invalid), self.assertRaises(PioError):
+                parse_children("r:0:c", "r:0", minimum_actions=invalid)
+
+    def test_native_driver_binds_actual_command_api_not_process_call(self):
+        import native_conditional_preflight as driver
+        class FirstCommandReached(Exception):
+            pass
+        class NativeProcessAdapter:
+            # Deliberately not callable, matching the real PioProcess boundary.
+            def __init__(self, *args, **kwargs): pass
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def command(self, command):
+                self_command = PioProcess.command
+                if not callable(self_command) or command != "set_pot 0 0 500":
+                    raise AssertionError("driver did not use the actual command interface")
+                raise FirstCommandReached()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            executable, order, receipts = root / "solver", root / "order", root / "receipts.json"
+            executable.write_bytes(b"fixture")
+            order.write_text(" ".join(canonical_hand_order_tokens()), encoding="utf-8")
+            names = ("contract.py", "pio_upi.py", "native_conditional_preflight.py")
+            receipts.write_text(json.dumps({name: digest((HERE / name).read_bytes()) for name in names}))
+            argv = ["native_conditional_preflight.py", "--pio-exe", str(executable),
+                    "--solver-sha256", digest(executable.read_bytes()), "--solver-version", "fixture",
+                    "--hand-order", str(order), "--hand-order-sha256", digest(order.read_bytes()),
+                    "--source-receipts", str(receipts)]
+            with mock.patch.object(driver, "PioProcess", NativeProcessAdapter), mock.patch.object(sys, "argv", argv):
+                with self.assertRaises(FirstCommandReached):
+                    driver.main()
+
+    def test_conditional_history_is_cumulative_and_does_not_force_target_action(self):
+        scenario = self.conditioned()
+        self.assertEqual(validate_conditional_history(scenario), (100, 300, 300, 300, 500))
+        _validate_scenario(scenario, 0, Path("."), {}, {}, False)
+        commands = setup_commands(scenario, [1.] * 1326, [1.] * 1326)
+        self.assertEqual([c for c in commands if c.startswith("force_line")], ["force_line 100 300 300 300 500"])
+        self.assertLess(commands.index("force_line 100 300 300 300 500"), commands.index("build_tree"))
+        self.assertEqual(scenario["targets"][0]["expected_children"], ["c", "f"])
+
+    def test_conditional_history_refuses_ambiguous_or_unbound_interventions(self):
+        import copy
+        mutations = [
+            lambda s: s.update(purpose="self_test"),
+            lambda s: s.update(conditional_root_action={"action": "all_in", "model": "authored_opponent_jam_response"}),
+            lambda s: s["conditional_history"].update(model="equilibrium"),
+            lambda s: s["conditional_history"].update(unknown=True),
+            lambda s: s["conditional_history"].update(target_node="r:0:b100"),
+            lambda s: s["conditional_history"].update(target_node=s["targets"][0]["node"] + ":c"),
+            lambda s: s["targets"].append(copy.deepcopy(s["targets"][0])),
+            lambda s: s.update(tree_lines=[[100, 300, 300, 300, 500]]),
+            lambda s: s.update(tree_lines=[[0, 100, 100]]),
+            lambda s: s["targets"][0].update(node_role="open", facing_kind="none", facing_size_bucket="none"),
+            lambda s: (s["targets"][0].update(node="r:0", board=s["flop_board"]), s["conditional_history"].update(target_node="r:0")),
+            lambda s: s.update(game_family="omaha"),
+        ]
+        for mutate in mutations:
+            invalid = copy.deepcopy(self.conditioned())
+            mutate(invalid)
+            with self.subTest(mutation=mutate), self.assertRaises(ContractError):
+                _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+
+    def test_conditional_support_requires_both_original_beliefs_and_actual_matchups(self):
+        scenario = self.conditioned()
+        target = scenario["targets"][0]
+        index = lambda hand: next(i for i, cards in enumerate(COMBO_CARDS) if set(cards) == set(hand))
+        a, b, opponent = index(("Ah", "Th")), index(("6c", "5c")), index(("Qc", "Qd"))
+        inputs = {"OOP": [0.] * 1326, "IP": [0.] * 1326}
+        inputs["OOP"][a], inputs["OOP"][b], inputs["IP"][opponent] = 1., .5, 1.
+        actual = {side: list(weights) for side, weights in inputs.items()}
+        matchups = [0.] * 1326
+        matchups[a] = matchups[b] = 1.
+        validate_conditional_support(scenario, target, inputs, actual, "OOP", matchups)
+        tiny = {side: list(weights) for side, weights in inputs.items()}
+        tiny["OOP"][a] = tiny["OOP"][b] = 5e-324
+        with self.assertRaisesRegex(PioError, "finite and positive"):
+            validate_conditional_support(scenario, target, tiny, actual, "OOP", matchups)
+        for defect in ("lost_reach", "changed_ratio", "missing_matchup", "extra_reach"):
+            changed = {side: list(weights) for side, weights in actual.items()}
+            weights = list(matchups)
+            if defect == "lost_reach": changed["OOP"][b] = 0.
+            elif defect == "changed_ratio": changed["OOP"][b] = .25
+            elif defect == "missing_matchup": weights[b] = 0.
+            else: changed["IP"][a] = .1
+            with self.subTest(defect=defect), self.assertRaises(PioError):
+                validate_conditional_support(scenario, target, inputs, changed, "OOP", weights)
 
     def line(self, node: str, preflop: int | None = None):
         return analyze_node(
