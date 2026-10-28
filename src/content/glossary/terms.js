@@ -51,6 +51,7 @@ export const CATEGORY_INTROS = {
 export const CATEGORY_PRODUCTS = {
   'Club Poker': [
     { href: '/hub/club-arena', name: 'Poker Arena', text: 'Private Online Poker Clubs With Club Chips, Unions And Agent Tools.' },
+    { href: '/freerolls', name: 'Daily Freerolls', text: 'Compete In Daily $2,000 Free Tournaments And Diamond Freerolls.' },
   ],
   'Live Room': [
     { href: '/hub/commander', name: 'Club Commander', text: 'Live Poker Room Waitlists, Game Boards And Tournament Clocks.' },

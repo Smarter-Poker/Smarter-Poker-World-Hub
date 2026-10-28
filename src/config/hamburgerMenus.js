@@ -341,6 +341,8 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Home Games', '/hub/home-games'),
             createMenuItem.navigation('Session History', '/hub/session-history'),
             createMenuItem.navigation('Odds Calculator', '/hub/poker-tools'),
+            createMenuItem.navigation('Daily $2,000 Freerolls', '/freerolls'),
+            createMenuItem.navigation('Software Comparisons', '/compare'),
             createMenuItem.divider(),
             createMenuItem.action('Customize My Hub', () => {
                 // Preferred path: the page passes an openCardCustomizer handler
@@ -1136,6 +1138,7 @@ export const MENU_CONFIGS = {
     'tournaments': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Tournaments'),
+            createMenuItem.navigation('Daily $2,000 Freerolls', '/freerolls'),
             createMenuItem.navigation('Daily Tournaments', '/hub/daily-tournaments'),
             createMenuItem.navigation('Events Calendar', '/hub/events-calendar'),
             createMenuItem.navigation('Leaderboards', '/hub/leaderboards'),

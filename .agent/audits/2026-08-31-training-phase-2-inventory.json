@@ -14,11 +14,11 @@
     "dependencyFiles": 351,
     "componentFiles": 51,
     "hookFiles": 14,
-    "ctas": 347,
+    "ctas": 348,
     "dialogs": 12,
     "persistenceFiles": 78,
     "realtimeFiles": 6,
-    "tests": 167,
+    "tests": 168,
     "markerCandidates": 335,
     "possibleUnwiredFunctions": 394,
     "routeStateCells": 752,
@@ -2325,7 +2325,7 @@
         "success": true,
         "authExpiry": false
       },
-      "ctaCount": 7,
+      "ctaCount": 8,
       "dialogCount": 0,
       "apiReferences": [
         "/api/og/tool-card",
@@ -9853,6 +9853,7 @@
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
@@ -9869,6 +9870,7 @@
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
@@ -9888,6 +9890,7 @@
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
@@ -9905,6 +9908,7 @@
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
@@ -9922,6 +9926,7 @@
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
@@ -9939,6 +9944,7 @@
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
@@ -9953,6 +9959,7 @@
           "evidence": [],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
@@ -9971,6 +9978,7 @@
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
+            "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
@@ -9983,6 +9991,7 @@
       },
       "existingTests": [
         "__tests__/aeo-dynamic-og-cards.test.mjs",
+        "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/gsc-series2-phase2.test.mjs",
         "__tests__/gsc-series3-phase2.test.mjs",
@@ -28028,6 +28037,16 @@
           "type": null,
           "disabled": null,
           "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "View Freeroll Schedule",
+          "line": 1086,
+          "handler": "() => router.push('/freerolls')",
+          "destination": null,
+          "type": null,
+          "disabled": null,
+          "wiring": "handler"
         }
       ],
       "dialogs": {
@@ -42505,7 +42524,7 @@
       "functions": [
         {
           "name": "applyWorldMenuDeck",
-          "line": 1446,
+          "line": 1449,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -42513,7 +42532,7 @@
         },
         {
           "name": "getMenuConfig",
-          "line": 1481,
+          "line": 1484,
           "references": 10,
           "exported": true,
           "defaultExport": false,
@@ -42521,7 +42540,7 @@
         },
         {
           "name": "getMenuConfigForPath",
-          "line": 1519,
+          "line": 1522,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42545,7 +42564,7 @@
         },
         {
           "name": "hasItemWithId",
-          "line": 1394,
+          "line": 1397,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -42553,7 +42572,7 @@
         },
         {
           "name": "worldPrimaryDeck",
-          "line": 1396,
+          "line": 1399,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42561,7 +42580,7 @@
         },
         {
           "name": "removePrimaryDuplicates",
-          "line": 1425,
+          "line": 1428,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42575,7 +42594,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 352,
+          "line": 354,
           "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -43094,7 +43113,7 @@
       "functions": [
         {
           "name": "getGlossaryTerm",
-          "line": 675,
+          "line": 676,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -43102,7 +43121,7 @@
         },
         {
           "name": "relatedGlossaryTerms",
-          "line": 680,
+          "line": 681,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -43110,7 +43129,7 @@
         },
         {
           "name": "glossaryByCategory",
-          "line": 685,
+          "line": 686,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -43118,7 +43137,7 @@
         },
         {
           "name": "glossaryTermPath",
-          "line": 693,
+          "line": 694,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -63604,6 +63623,7 @@
   "tests": [
     "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
     "__tests__/aeo-dynamic-og-cards.test.mjs",
+    "__tests__/aeo-freerolls-global-wiring.test.mjs",
     "__tests__/aeo-tool-schemas.test.mjs",
     "__tests__/daily-challenges-casino-realism.test.mjs",
     "__tests__/every-glossary-term-has-a-page.law.test.mjs",
@@ -65721,6 +65741,19 @@
       "name": "<dynamic>",
       "line": 1018,
       "handler": "() => setIcmView(tab.key)",
+      "destination": null,
+      "type": null,
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/icm-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/icm-calculator.js:1086:8",
+      "file": "pages/hub/training/icm-calculator.js",
+      "element": "button",
+      "name": "View Freeroll Schedule",
+      "line": 1086,
+      "handler": "() => router.push('/freerolls')",
       "destination": null,
       "type": null,
       "disabled": null,
@@ -75778,6 +75811,7 @@
       "realtime": [],
       "tests": [
         "__tests__/aeo-dynamic-og-cards.test.mjs",
+        "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/gsc-series2-phase2.test.mjs",
         "__tests__/gsc-series3-phase3.test.mjs",
@@ -83873,6 +83907,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs"
@@ -83947,6 +83982,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs"
@@ -88624,7 +88660,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 352,
+        "line": 354,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -92878,7 +92914,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1519,
+        "line": 1522,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93231,7 +93267,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "getGlossaryTerm",
-        "line": 675,
+        "line": 676,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93247,7 +93283,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "relatedGlossaryTerms",
-        "line": 680,
+        "line": 681,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93262,7 +93298,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryByCategory",
-        "line": 685,
+        "line": 686,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93277,7 +93313,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryTermPath",
-        "line": 693,
+        "line": 694,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97940,7 +97976,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 352,
+        "line": 354,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -102194,7 +102230,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1519,
+        "line": 1522,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102547,7 +102583,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "getGlossaryTerm",
-        "line": 675,
+        "line": 676,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102563,7 +102599,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "relatedGlossaryTerms",
-        "line": 680,
+        "line": 681,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102578,7 +102614,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryByCategory",
-        "line": 685,
+        "line": 686,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102593,7 +102629,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryTermPath",
-        "line": 693,
+        "line": 694,
         "references": 1,
         "exported": true,
         "defaultExport": false,

@@ -87,6 +87,8 @@ export const STATIC_PAGES = [
   { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
+  { path: '/freerolls', priority: '0.9', changefreq: 'daily' },
+  { path: '/hub/freerolls', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/tournaments/this-weekend', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/poker-tours', priority: '0.8', changefreq: 'daily' },

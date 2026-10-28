@@ -1060,6 +1060,46 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
             </AnimatePresence>
           </div>
 
+          {/* Related Tournament Action: Freerolls */}
+          <div
+            style={{
+              marginTop: 20,
+              padding: '16px 18px',
+              background: 'rgba(255, 215, 0, 0.04)',
+              border: '1px solid rgba(255, 215, 0, 0.2)',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#FFD700' }}>
+                Test Your ICM Skills In Daily $2,000 Freerolls
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
+                Put Tournament Equity Strategy Into Action With Zero Entry Fee And Real Guaranteed Prizes.
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/freerolls')}
+              style={{
+                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                color: '#000000',
+                fontWeight: 700,
+                fontSize: 12,
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 16px',
+                cursor: 'pointer',
+              }}
+            >
+              View Freeroll Schedule
+            </button>
+          </div>
+
           {/* About */}
           <div
             style={{

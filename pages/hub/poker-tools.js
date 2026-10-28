@@ -710,6 +710,9 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     <Link href="/hub/bankroll-manager" className="odds-btn" style={{ textDecoration: 'none' }}>
                                         Track Sessions In Bankroll Manager
                                     </Link>
+                                    <Link href="/freerolls" className="odds-btn" style={{ textDecoration: 'none' }}>
+                                        Play Daily $2,000 Guaranteed Poker Freerolls
+                                    </Link>
                                 </div>
                             </section>
                             {/* ─── POKER ODDS REFERENCE TABLES ─── */}
