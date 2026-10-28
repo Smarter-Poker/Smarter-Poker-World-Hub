@@ -208,6 +208,25 @@ class NodeLineTests(unittest.TestCase):
         scenario["conditional_history"] = {"model": "authored_range_preserving_response", "target_node": node}
         return scenario
 
+    def test_conditional_harvest_refuses_before_export_without_original_range_evidence(self):
+        scenario = self.conditioned()
+        target = scenario["targets"][0]
+        calls = []
+        zero = " ".join(["0"] * 1326)
+        def pio(command):
+            calls.append(command)
+            if command.startswith("show_children "):
+                return target["node"] + ":c " + target["node"] + ":f"
+            if command.startswith("show_strategy ") or command.startswith("calc_ev "):
+                return zero + "\n" + zero
+            if command.startswith("show_range "):
+                return zero
+            raise AssertionError("unexpected command")
+        with self.assertRaisesRegex(PioError, "requires original approved input ranges"):
+            harvest_node(pio, scenario, target, manifest_checksum="c" * 64,
+                         source_combo_order_checksum="d" * 64, range_bundle_checksum="e" * 64)
+        self.assertFalse(any(command.startswith("calc_ev ") and command.endswith(":c") for command in calls))
+
     def test_native_ancestor_parser_accepts_one_without_weakening_target_default(self):
         with self.assertRaises(PioError):
             parse_children("r:0:c", "r:0")
