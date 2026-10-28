@@ -122,7 +122,6 @@ const SECTION_DEFS = [
             { label: 'Bad Beat Jackpot Pools', path: 'money.bbj_pool_total', fmt: fmtNum },
             { label: 'Chips Minted', path: 'money.minted', fmt: fmtNum },
             { label: 'Chips Burned', path: 'money.burned', fmt: fmtNum },
-            { label: 'Promo, Leaderboard And Setup Ledger Movements', path: 'money.promo_and_leaderboard', fmt: fmtNum },
             { label: 'Unexplained Supply Drift', path: 'money.supply_unexplained', fmt: fmtNum, redIf: (v) => Number(v) !== 0 },
         ],
     },
@@ -739,18 +738,26 @@ export function spinsSpendRows(digest, opts = {}) {
     const r = digest.spins_spend;
     if (!r) return [];
     if (r.error) return [['Diamond Spins And Spend', [['Report Unavailable', 'Unavailable', String(r.error)]]]];
-    const rows = [];
+    const diamondRows = [], chipRows = [];
     for (const [key, name] of [['humans', 'Humans'], ['horses', 'Horses'], ['unknown', 'Unknown'], ['total', 'Total']]) {
         const x = r.spins?.[key] || {};
         if (key === 'unknown' && !x.spins) continue;
-        rows.push([name, `${fmtNum(x.chips_paid ?? 0)} chips paid`,
-            `${fmtInt(x.spins ?? 0)} spins; ${fmtNum(x.diamonds_collected ?? 0)} diamonds collected; ${fmtNum(x.diamonds_paid ?? 0)} diamonds paid; direct chips ${fmtNum(x.direct_chips_paid ?? 0)}, bonus chips ${fmtNum(x.bonus_chips_paid ?? 0)}`]);
-        rows.push([`${name} Profit (Chip Equivalent)`, fmtSigned(x.profit_chip_equivalent ?? 0),
-            Number(x.pending_awards) ? `Provisional: ${fmtInt(x.pending_awards)} unsettled awards` : 'Settled awards; diamond conversion is not cash revenue']);
+        diamondRows.push(
+            [`${name} - Diamonds Collected`, `${fmtNum(x.diamonds_collected ?? 0)} Diamonds`, ''],
+            [`${name} - Diamond Prizes Paid`, `${fmtNum(x.diamonds_paid ?? 0)} Diamonds`, ''],
+            [`${name} - Collected Less Diamond Prizes`, `${fmtNum(Number(x.diamonds_collected ?? 0) - Number(x.diamonds_paid ?? 0))} Diamonds`, 'Before platform burn, inventory costs and separate Chip payouts'],
+        );
+        chipRows.push(
+            [`${name} - Direct Spin Payouts`, `${fmtNum(x.direct_chips_paid ?? 0)} Chips`, ''],
+            [`${name} - Bonus Game Payouts`, `${fmtNum(x.bonus_chips_paid ?? 0)} Chips`, ''],
+            [`${name} - Total Chips Paid`, `${fmtNum(x.chips_paid ?? 0)} Chips`, `${fmtInt(x.spins ?? 0)} spins${Number(x.pending_awards) ? `; ${fmtInt(x.pending_awards)} unsettled awards` : ''}`],
+        );
     }
-    rows.push(['Calculation', 'Spin Day', r.basis || '']);
+    diamondRows.push(['Reporting Basis', 'Diamonds And Chips Kept Separate', 'Spins started during this Central day, including their linked bonus games and picked Diamond prizes. Diamond amounts above are before platform burn and inventory costs.']);
     const spend = Array.isArray(r.spend) ? r.spend : [];
     const paid = spend.filter(x => x.to_type === 'player_wallet');
+    const leaderboard = paid.filter(x => x.category === 'leaderboard_payout');
+    const promo = paid.filter(x => x.category !== 'leaderboard_payout');
     let internal = spend.filter(x => x.to_type !== 'player_wallet');
     if (opts.email) {
         const grouped = new Map();
@@ -762,8 +769,11 @@ export function spinsSpendRows(digest, opts = {}) {
         }
         internal = [...grouped.values()];
     }
-    const detail = x => [`${x.recipient} (${x.recipient_kind})`, `${fmtNum(x.amount)} chips`, `${x.category}; ${x.from_type} to ${x.to_type}; ${fmtInt(x.transactions)} transactions`];
-    return [['Diamond Spins', rows],
-        ['Promo And Leaderboard Player Payouts', paid.length ? [['Total Paid', `${fmtNum(paid.reduce((sum, x) => sum + Number(x.amount), 0))} chips`, 'Promo wallet payments and promo/leaderboard ledger categories'], ...paid.map(detail)] : [['Player Payouts', '0 chips', 'No player-wallet payouts in these ledger categories for this Central day']]],
-        ['Promo And Setup Internal Movements', internal.length ? internal.map(detail) : [['Internal Movements', '0 chips', '']]]];
+    const detail = x => [`${x.recipient} (${x.recipient_kind})`, `${fmtNum(x.amount)} Chips`, `${x.category}; ${x.from_type} to ${x.to_type}; ${fmtInt(x.transactions)} transactions`];
+    const payouts = (items) => [['Total Paid', `${fmtNum(items.reduce((sum, x) => sum + Number(x.amount), 0))} Chips`, 'Actual player-wallet payments for this Central day'], ...items.map(detail)];
+    return [['Diamond Spins - Diamonds', diamondRows],
+        ['Diamond Spins - Chips', chipRows],
+        ['Promo Player Payouts - Chips', payouts(promo)],
+        ['Leaderboard Player Payouts - Chips', payouts(leaderboard)],
+        ['Internal Funding Movements - Chips', internal.length ? internal.map(detail) : [['Internal Movements', '0 Chips', '']]]];
 }
