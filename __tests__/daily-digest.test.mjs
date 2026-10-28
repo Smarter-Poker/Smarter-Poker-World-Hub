@@ -371,3 +371,43 @@ test('email layout fixes the card width and lets long alert identifiers wrap', (
     assert.match(html, /overflow-wrap:anywhere/);
     assert.match(html, /font-size:14px;color:#e7edf3;/);
 });
+
+
+test('spins report splits actual chips and diamonds, marks provisional profit and escapes recipients', async () => {
+    const digest = fixture({ spins_spend: { spins: {
+        humans: { spins: 1, diamonds_collected: 100, chips_paid: 0.25, direct_chips_paid: 0.25, profit_chip_equivalent: 0.75 },
+        horses: { spins: 1, diamonds_collected: 300, chips_paid: 2, direct_chips_paid: 2, profit_chip_equivalent: 1, pending_awards: 1 },
+        total: { spins: 2, diamonds_collected: 400, chips_paid: 2.25, profit_chip_equivalent: 1.75, pending_awards: 1 },
+    }, spend: [{ recipient: '<Human>', recipient_kind: 'human', category: 'leaderboard_payout', from_type: 'union_wallet', to_type: 'player_wallet', amount: 5, transactions: 1 },
+    { recipient: 'Bank', recipient_kind: 'internal', category: 'promo', from_type: 'bbj_pool', to_type: 'union_wallet', amount: 10, transactions: 1 }] } });
+    for (const output of [buildHtml(digest), buildText(digest)]) {
+        assert.match(output, /Diamond Spins/i);
+        assert.match(output, /2.25 Chips/);
+        assert.match(output, /400 Diamonds/);
+
+        assert.match(output, /Promo Player Payouts - Chips/i);
+        assert.match(output, /Internal Funding Movements - Chips/i);
+    }
+    assert.match(buildHtml(digest), /&lt;Human&gt;/);
+    const email = buildHtml(digest, { email: true });
+    assert.match(email, /digest-row/);
+    assert.match(email, /Total Paid/);
+    assert.match(email, /5 Chips/);
+    assert.match(email, /&lt;Human&gt;/);
+    assert.ok(!buildHtml(digest).includes('<Human>'));
+    const { loadSpinsSpend } = await import('../src/lib/dailyDigest/assemble.mjs');
+    assert.deepEqual(await loadSpinsSpend({ rpc: async () => ({ error: { message: 'timeout' } }) }, '2026-10-27'), { day: '2026-10-27', error: 'timeout' });
+    assert.match(buildText(fixture({ spins_spend: { error: 'timeout' } })), /Unavailable.*timeout/);
+});
+
+
+test('money units and promo versus leaderboard totals remain separate', async () => {
+    const {spinsSpendRows} = await import('../src/lib/dailyDigest/render.mjs');
+    const d=fixture({spins_spend:{spins:{total:{diamonds_collected:31297,diamonds_paid:50,chips_paid:283.13,direct_chips_paid:124.79,bonus_chips_paid:158.34,profit_chip_equivalent:29.34}},spend:[{category:'promo',to_type:'player_wallet',amount:5,recipient:'A'},{category:'leaderboard_payout',to_type:'player_wallet',amount:10,recipient:'B'}]}});
+    const sections=spinsSpendRows(d);
+    assert.ok(sections.find(([t])=>t==='Diamond Spins - Diamonds')[1].some(r=>r[1]==='31,247 Diamonds'));
+    assert.equal(sections.find(([t])=>t==='Promo Player Payouts - Chips')[1][0][1],'5 Chips');
+    assert.equal(sections.find(([t])=>t==='Leaderboard Player Payouts - Chips')[1][0][1],'10 Chips');
+    assert.ok(!buildHtml(d).includes('Promo, Leaderboard And Setup Ledger Movements'));
+    assert.ok(!buildHtml(d).includes('Chips Equivalent'));
+});

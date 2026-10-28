@@ -17,18 +17,27 @@ export async function loadPlayerTotals(sb, day) {
     }
 }
 
+export async function loadSpinsSpend(sb, day) {
+    try {
+        const { data, error } = await sb.rpc('fn_sp_digest_spins_spend', { p_day: day });
+        return error ? { day, error: error.message } : (data || { day, error: 'Report unavailable' });
+    } catch (err) { return { day, error: String(err?.message || err) }; }
+}
+
 /**
  * Straight data, no AI: the same shape as the Pep Nation Lab daily digest.
  * Every number in the email comes from the nightly snapshot or a provider's
  * own billing API; nothing is written by a model.
  */
 export async function assembleDigest(sb, day, { withCosts = true, dispatch = true, recipientName } = {}) {
-    const [{ data: digest, error }, playerTotals] = await Promise.all([
+    const [{ data: digest, error }, playerTotals, spinsSpend] = await Promise.all([
         sb.rpc('fn_sp_daily_digest', { p_day: day, p_dispatch: dispatch }),
         loadPlayerTotals(sb, day),
+        loadSpinsSpend(sb, day),
     ]);
     if (error) throw new Error(`fn_sp_daily_digest: ${error.message}`);
     if (digest && playerTotals) digest.player_totals = playerTotals;
+    if (digest) digest.spins_spend = spinsSpend;
     const costs = withCosts ? await providerSpend(day).catch(() => null) : null;
     const viewUrl = viewUrlFor(day);
     const opts = { costs, viewUrl, dashboardUrl: 'https://smarter.poker/admin', recipientName, email: true };

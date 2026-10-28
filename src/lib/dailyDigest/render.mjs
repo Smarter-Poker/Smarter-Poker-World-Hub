@@ -122,7 +122,6 @@ const SECTION_DEFS = [
             { label: 'Bad Beat Jackpot Pools', path: 'money.bbj_pool_total', fmt: fmtNum },
             { label: 'Chips Minted', path: 'money.minted', fmt: fmtNum },
             { label: 'Chips Burned', path: 'money.burned', fmt: fmtNum },
-            { label: 'Promo And Leaderboard Spend', path: 'money.promo_and_leaderboard', fmt: fmtNum },
             { label: 'Unexplained Supply Drift', path: 'money.supply_unexplained', fmt: fmtNum, redIf: (v) => Number(v) !== 0 },
         ],
     },
@@ -375,6 +374,10 @@ export function buildHtml(digest, opts = {}) {
 
     body += playerTotalsCard(digest, opts);
     body += playerPeriodCards(digest);
+    for (const [title, rows] of spinsSpendRows(digest, opts)) {
+        body += opts.email ? cardOpen(title) + rows.map(([label, value, sub]) =>
+            `<tr><td colspan="2" class="digest-row"><b>${esc(label)}: ${esc(value)}</b>${sub ? `<div style="color:${C.muted};font-size:11px;">${esc(sub)}</div>` : ''}</td></tr>`).join('') + cardClose : listCard(title, rows);
+    }
     if (!opts.email) body += horseRosterCard(digest);
     else body += listCard('Horse Roster', horseRosterRows(digest).slice(0, 6));
 
@@ -438,7 +441,10 @@ export function buildHtml(digest, opts = {}) {
     // Keep the email below inbox clipping limits without dropping summary data.
     // These properties inherit from the body; online rendering stays unchanged.
     return opts.email ? html.replaceAll('font-size:14px;', '')
-        .replaceAll(`color:${C.text};`, '').replaceAll('white-space:normal;', '')
+        .replaceAll(`color:${C.text};`, '').replaceAll('white-space:normal;', '').replaceAll('word-break:break-word;', '')
+        .replaceAll(`<td style="padding:10px 14px;border-top:1px solid ${C.line};`, '<td class="digest-row" style="')
+        .replace('</head>', `<style>.digest-row{padding:10px 14px;border-top:1px solid ${C.line}}</style></head>`)
+        .replaceAll(' style=""', '')
         .replace('<body style="', `<body style="font-size:14px;color:${C.text};`) : html;
 }
 
@@ -670,6 +676,10 @@ export function buildText(digest, opts = {}) {
         for (const [k, v] of Object.entries(digest.week).filter(([k]) => !['from', 'to'].includes(k))) lines.push(`${k.replace(/_/g, ' ')}: ${fmtNum(v)}`);
     }
     lines.push(...playerTotalsText(digest));
+    for (const [title, rows] of spinsSpendRows(digest)) {
+        lines.push('', title.toUpperCase());
+        for (const [label, value, sub] of rows) lines.push(`${label}: ${value}${sub ? ` (${sub})` : ''}`);
+    }
     for (const key of ['week', 'month']) {
         const p = digest.player_totals?.period?.[key];
         if (!p) continue;
@@ -723,3 +733,47 @@ export function allowedNumbers(digest, extra = []) {
 }
 
 export { SECTION_DEFS, C as COLORS };
+
+export function spinsSpendRows(digest, opts = {}) {
+    const r = digest.spins_spend;
+    if (!r) return [];
+    if (r.error) return [['Diamond Spins And Spend', [['Report Unavailable', 'Unavailable', String(r.error)]]]];
+    const diamondRows = [], chipRows = [];
+    for (const [key, name] of [['humans', 'Humans'], ['horses', 'Horses'], ['unknown', 'Unknown'], ['total', 'Total']]) {
+        const x = r.spins?.[key] || {};
+        if (key === 'unknown' && !x.spins) continue;
+        diamondRows.push(
+            [`${name} - Diamonds Collected`, `${fmtNum(x.diamonds_collected ?? 0)} Diamonds`, ''],
+            [`${name} - Diamond Prizes Paid`, `${fmtNum(x.diamonds_paid ?? 0)} Diamonds`, ''],
+            [`${name} - Collected Less Diamond Prizes`, `${fmtNum(Number(x.diamonds_collected ?? 0) - Number(x.diamonds_paid ?? 0))} Diamonds`, 'Before platform burn, inventory costs and separate Chip payouts'],
+        );
+        chipRows.push(
+            [`${name} - Direct Spin Payouts`, `${fmtNum(x.direct_chips_paid ?? 0)} Chips`, ''],
+            [`${name} - Bonus Game Payouts`, `${fmtNum(x.bonus_chips_paid ?? 0)} Chips`, ''],
+            [`${name} - Total Chips Paid`, `${fmtNum(x.chips_paid ?? 0)} Chips`, `${fmtInt(x.spins ?? 0)} spins${Number(x.pending_awards) ? `; ${fmtInt(x.pending_awards)} unsettled awards` : ''}`],
+        );
+    }
+    diamondRows.push(['Reporting Basis', 'Diamonds And Chips Kept Separate', 'Spins started during this Central day, including their linked bonus games and picked Diamond prizes. Diamond amounts above are before platform burn and inventory costs.']);
+    const spend = Array.isArray(r.spend) ? r.spend : [];
+    const paid = spend.filter(x => x.to_type === 'player_wallet');
+    const leaderboard = paid.filter(x => x.category === 'leaderboard_payout');
+    const promo = paid.filter(x => x.category !== 'leaderboard_payout');
+    let internal = spend.filter(x => x.to_type !== 'player_wallet');
+    if (opts.email) {
+        const grouped = new Map();
+        for (const x of internal) {
+            const key = `${x.category}:${x.from_type}:${x.to_type}`;
+            const prior = grouped.get(key);
+            if (prior) { prior.amount += Number(x.amount); prior.transactions += Number(x.transactions); }
+            else grouped.set(key, { ...x, recipient: x.to_type === 'union_wallet' ? x.recipient : x.to_type.replace(/_/g, ' '), amount: Number(x.amount), transactions: Number(x.transactions) });
+        }
+        internal = [...grouped.values()];
+    }
+    const detail = x => [`${x.recipient} (${x.recipient_kind})`, `${fmtNum(x.amount)} Chips`, `${x.category}; ${x.from_type} to ${x.to_type}; ${fmtInt(x.transactions)} transactions`];
+    const payouts = (items) => [['Total Paid', `${fmtNum(items.reduce((sum, x) => sum + Number(x.amount), 0))} Chips`, 'Actual player-wallet payments for this Central day'], ...items.map(detail)];
+    return [['Diamond Spins - Diamonds', diamondRows],
+        ['Diamond Spins - Chips', chipRows],
+        ['Promo Player Payouts - Chips', payouts(promo)],
+        ['Leaderboard Player Payouts - Chips', payouts(leaderboard)],
+        ['Internal Funding Movements - Chips', internal.length ? internal.map(detail) : [['Internal Movements', '0 Chips', '']]]];
+}

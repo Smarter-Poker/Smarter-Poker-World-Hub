@@ -229,6 +229,7 @@ test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
       label: (node.textContent || '').replace(/\s+\([\d,]+\)$/, '').trim(),
     })));
     expect(new Set(discovered.map(({ id }) => id)).size).toBe(29);
+    expect(discovered.map(({ id }) => id)).toContain('solver-inputs');
 
     for (const { id, label } of discovered) {
       expect(id, `tab ${label} needs a stable data-tabid`).not.toBe('');
