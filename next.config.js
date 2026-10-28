@@ -1459,6 +1459,14 @@ const nextConfig = {
           source: '/hub/freerolls.md',
           destination: '/freerolls?format=md',
         },
+        {
+          source: '/freerolls.ics',
+          destination: '/api/calendar/freerolls.ics',
+        },
+        {
+          source: '/hub/freerolls.ics',
+          destination: '/api/calendar/freerolls.ics',
+        },
         /* CLEAN ROOT TOOL URLS (GSC / AEO Series 3 Phase 3).
            Direct, indexable root tool aliases for competitive SERP keyword capture. */
         {

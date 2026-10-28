@@ -145,6 +145,7 @@ export default function FreerollsPage() {
         canonicalUrl="https://smarter.poker/freerolls"
         jsonLd={FREEROLLS_SCHEMA}
         markdownUrl="https://smarter.poker/freerolls.md"
+        calendarUrl="https://smarter.poker/freerolls.ics"
         ogImage="https://smarter.poker/api/og/tool-card?tool=freerolls"
       />
 
@@ -433,21 +434,47 @@ export default function FreerollsPage() {
               </p>
             </div>
 
-            <Link
-              href="/hub/club-arena"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: '#4E9CFF',
-                textDecoration: 'none',
-                fontWeight: 600,
-                fontSize: '14px'
-              }}
-            >
-              <span>Launch Live Tournament Lobby</span>
-              <ExternalLink size={15} />
-            </Link>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <a
+                href="/freerolls.ics"
+                download="smarter-poker-freerolls.ics"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  color: '#E0E8F0',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                }}
+              >
+                <Calendar size={14} color="#00D4FF" />
+                <span>Add Schedule To Calendar</span>
+              </a>
+
+              <Link
+                href="/hub/club-arena"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: '#1877F2',
+                  color: '#FFFFFF',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                }}
+              >
+                <span>Launch Live Tournament Lobby</span>
+                <ExternalLink size={14} />
+              </Link>
+            </div>
           </div>
 
           <div style={{ 

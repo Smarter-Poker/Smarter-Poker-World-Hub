@@ -35,7 +35,7 @@ export default function SEOHead(props) {
   const pathname = usePathname();
   const ogImage = props.ogImage || productOgImage(pathname);
   const imageMetadata = shareImageMetadata(ogImage);
-  const { geoRegion, geoPlacename, geoPosition, markdownUrl } = props;
+  const { geoRegion, geoPlacename, geoPosition, markdownUrl, calendarUrl } = props;
 
   // Auto-resolve markdownUrl for known routes that serve clean .md representations
   let resolvedMarkdownUrl = markdownUrl;
@@ -50,6 +50,14 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/about.md';
     } else if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
       resolvedMarkdownUrl = 'https://smarter.poker/freerolls.md';
+    }
+  }
+
+  // Auto-resolve calendarUrl for known routes that serve clean .ics calendar feeds
+  let resolvedCalendarUrl = calendarUrl;
+  if (!resolvedCalendarUrl && typeof pathname === 'string') {
+    if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
+      resolvedCalendarUrl = 'https://smarter.poker/freerolls.ics';
     }
   }
 
@@ -73,6 +81,15 @@ export default function SEOHead(props) {
           type="text/markdown"
           title="Markdown"
           href={resolvedMarkdownUrl}
+        />
+      )}
+      {resolvedCalendarUrl && (
+        <link
+          key="alternate-calendar"
+          rel="alternate"
+          type="text/calendar"
+          title="iCalendar Schedule"
+          href={resolvedCalendarUrl}
         />
       )}
       {props.children}
