@@ -66,7 +66,7 @@ def main() -> None:
             if len(token) == 2 and token[0] in '23456789TJQKA' and token[1] in 'cdhs':
                 prefix += ':' + token
                 continue
-            if parse_children(pio('show_children ' + prefix), prefix) != [token]:
+            if parse_children(pio('show_children ' + prefix), prefix, minimum_actions=1) != [token]:
                 raise PioError('native force_line did not force the exact historical action')
             prefix += ':' + token
         actual = {side: parse_vector(pio(f'show_range {side} {node}'), allow_nan=False, label='native range')

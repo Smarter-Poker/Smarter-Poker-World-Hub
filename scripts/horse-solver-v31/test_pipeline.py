@@ -208,6 +208,18 @@ class NodeLineTests(unittest.TestCase):
         scenario["conditional_history"] = {"model": "authored_range_preserving_response", "target_node": node}
         return scenario
 
+    def test_native_ancestor_parser_accepts_one_without_weakening_target_default(self):
+        with self.assertRaises(PioError):
+            parse_children("r:0:c", "r:0")
+        self.assertEqual(parse_children("child 0: r:0:c", "r:0", minimum_actions=1), ["c"])
+        self.assertEqual(parse_children("r:0:c r:0:f", "r:0"), ["c", "f"])
+        for raw in ("", "r:0:As", "r:0:c:c", "r:0:c r:0:c", "r:0:b0"):
+            with self.subTest(raw=raw), self.assertRaises(PioError):
+                parse_children(raw, "r:0", minimum_actions=1)
+        for invalid in (0, 3, True, 1., "1", None):
+            with self.subTest(minimum=invalid), self.assertRaises(PioError):
+                parse_children("r:0:c", "r:0", minimum_actions=invalid)
+
     def test_native_driver_binds_actual_command_api_not_process_call(self):
         import native_conditional_preflight as driver
         class FirstCommandReached(Exception):

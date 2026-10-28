@@ -398,7 +398,9 @@ def parse_calc_ev(raw: str, *, label: str) -> tuple[list[float], list[float]]:
     return evs, matchups
 
 
-def parse_children(raw: str, parent: str) -> list[str]:
+def parse_children(raw: str, parent: str, *, minimum_actions: int = 2) -> list[str]:
+    if type(minimum_actions) is not int or minimum_actions not in (1, 2):
+        raise PioError("child parser minimum must be exactly one or two")
     prefix = parent + ":"
     depth = parent.count(":") + 1
     result: list[str] = []
@@ -408,8 +410,8 @@ def parse_children(raw: str, parent: str) -> list[str]:
             action = cleaned[len(prefix) :]
             if action in {"c", "f"} or BET.fullmatch(action):
                 result.append(action)
-    if len(result) < 2 or len(result) != len(set(result)):
-        raise PioError("show_children did not return at least two unique direct actions")
+    if len(result) < minimum_actions or len(result) != len(set(result)):
+        raise PioError(f"show_children did not return at least {minimum_actions} unique direct actions")
     return result
 
 
