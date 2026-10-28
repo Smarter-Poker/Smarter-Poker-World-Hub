@@ -1,6 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderVenueMarkdown, renderSeriesMarkdown } from '../src/lib/seo/markdownIngestion.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  renderVenueMarkdown,
+  renderSeriesMarkdown,
+  renderPokerOddsCalculatorMarkdown,
+  renderPreflopRangesMarkdown,
+  renderIcmCalculatorMarkdown,
+  renderAboutPlatformMarkdown,
+  renderFreerollsMarkdown,
+} from '../src/lib/seo/markdownIngestion.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 test('renderVenueMarkdown outputs clean token-efficient Markdown', () => {
   const venue = {
@@ -62,4 +76,94 @@ test('renderSeriesMarkdown outputs clean structured tournament series Markdown',
   assert.ok(md.includes('February 25 - March 31, 2026'));
   assert.ok(md.includes('https://smarter.poker/hub/series/468'));
   assert.ok(md.includes('Frequently Asked Questions'));
+});
+
+test('renderPokerOddsCalculatorMarkdown outputs clean structured odds calculator Markdown', () => {
+  const md = renderPokerOddsCalculatorMarkdown();
+  assert.ok(md.includes('# Free Online Poker Odds Calculator & Equity Simulator'));
+  assert.ok(md.includes('https://smarter.poker/tools/poker-odds-calculator'));
+  assert.ok(md.includes('Texas Hold\'em'));
+  assert.ok(md.includes('Pot-Limit Omaha'));
+  assert.ok(md.includes('Monte Carlo'));
+  assert.ok(md.includes('Common Preflop Matchup Equities & Benchmarks'));
+  assert.ok(md.includes('Overpair Vs Underpair'));
+  assert.ok(md.includes('The Rule Of 2 And 4 For Postflop Equity Estimation'));
+  assert.ok(md.includes('Open-Ended Straight Draw'));
+  assert.ok(md.includes('Frequently Asked Questions'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+
+  const pokerToolsSrc = read('pages/hub/poker-tools.js');
+  assert.ok(pokerToolsSrc.includes('Common Preflop Hand Matchups &amp; Equity Odds'));
+  assert.ok(pokerToolsSrc.includes('The Rule Of 2 And 4 For Postflop Equity Estimation'));
+});
+
+test('renderPreflopRangesMarkdown outputs clean structured range matrix Markdown', () => {
+  const md = renderPreflopRangesMarkdown({ position: 'BTN' });
+  assert.ok(md.includes('# GTO Preflop Range Matrix: BTN Opening Strategy'));
+  assert.ok(md.includes('https://smarter.poker/tools/preflop-ranges/btn'));
+  assert.ok(md.includes('13x13 Preflop Range Matrix'));
+  assert.ok(md.includes('Frequently Asked Questions'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+});
+
+test('renderIcmCalculatorMarkdown outputs clean structured ICM calculator Markdown', () => {
+  const md = renderIcmCalculatorMarkdown();
+  assert.ok(md.includes('# Tournament ICM Calculator & Final Table Equity Engine'));
+  assert.ok(md.includes('https://smarter.poker/tools/icm-calculator'));
+  assert.ok(md.includes('Malmuth-Harville Independent Chip Model'));
+  assert.ok(md.includes('Frequently Asked Questions'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+});
+
+test('renderAboutPlatformMarkdown outputs clean structured about platform Markdown', () => {
+  const md = renderAboutPlatformMarkdown();
+  assert.ok(md.includes('# About Smarter.Poker: Free Online Poker Platform'));
+  assert.ok(md.includes('https://smarter.poker/about'));
+  assert.ok(md.includes('Smarter Software Inc.'));
+  assert.ok(md.includes('No Real-Money Gambling'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+});
+
+test('renderFreerollsMarkdown outputs clean structured freerolls Markdown', () => {
+  const md = renderFreerollsMarkdown();
+  assert.ok(md.includes('# Smarter.Poker Daily $2,000 Freerolls & Diamond Freerolls'));
+  assert.ok(md.includes('https://smarter.poker/freerolls'));
+  assert.ok(md.includes('$2,000 In Free Poker Tournaments Every Single Day'));
+  assert.ok(md.includes('Diamond Arena Freerolls'));
+  assert.ok(md.includes('Daily Freeroll Schedule (CST)'));
+  assert.ok(md.includes('10:00 AM CST'));
+  assert.ok(md.includes('Smarter.Poker vs. Legacy Poker Sites'));
+  assert.ok(!md.includes('—'), 'Must not contain em dashes');
+
+  const freerollsSrc = read('pages/freerolls.js');
+  assert.ok(freerollsSrc.includes('markdownUrl="https://smarter.poker/freerolls.md"'));
+  assert.ok(freerollsSrc.includes('renderFreerollsMarkdown'));
+});
+
+test('SEOHead and tool pages emit rel="alternate" type="text/markdown" link headers', () => {
+  const seoHeadSrc = read('src/components/seo/SEOHead.js');
+  assert.ok(seoHeadSrc.includes('rel="alternate"'), 'SEOHead must support rel="alternate"');
+  assert.ok(seoHeadSrc.includes('type="text/markdown"'), 'SEOHead must support type="text/markdown"');
+  assert.ok(seoHeadSrc.includes('resolvedMarkdownUrl'), 'SEOHead must resolve markdownUrl');
+
+  const oddsSrc = read('pages/hub/poker-tools.js');
+  assert.ok(oddsSrc.includes('markdownUrl="https://smarter.poker/tools/poker-odds-calculator.md"'));
+
+  const icmSrc = read('pages/hub/training/icm-calculator.js');
+  assert.ok(icmSrc.includes('markdownUrl="https://smarter.poker/tools/icm-calculator.md"'));
+
+  const rangesSrc = read('pages/tools/preflop-ranges/index.js');
+  assert.ok(rangesSrc.includes('markdownUrl="https://smarter.poker/tools/preflop-ranges.md"'));
+
+  const aboutSrc = read('pages/about.js');
+  assert.ok(aboutSrc.includes('markdownUrl="https://smarter.poker/about.md"'));
+
+  const venueSrc = read('pages/hub/venues/[id].js');
+  assert.ok(venueSrc.includes('markdownUrl={venue?.id ? `https://smarter.poker/hub/venues/${venue.id}.md` : undefined}'));
+
+  const seriesSrc = read('pages/hub/series/[id].js');
+  assert.ok(seriesSrc.includes('markdownUrl={series?.id ? `https://smarter.poker/hub/series/${series.id}.md` : undefined}'));
+
+  const freerollsSrc = read('pages/freerolls.js');
+  assert.ok(freerollsSrc.includes('markdownUrl="https://smarter.poker/freerolls.md"'));
 });

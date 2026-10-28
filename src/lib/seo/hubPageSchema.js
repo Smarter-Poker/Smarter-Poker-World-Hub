@@ -27,6 +27,8 @@ export const SITE = 'https://smarter.poker';
 export const ORGANIZATION_ID = `${SITE}/#organization`;
 export const WEBSITE_ID = `${SITE}/#website`;
 
+import { resolveToolWikidataLinks } from './wikidataRegistry.mjs';
+
 const absolute = (path) => `${SITE}${path.startsWith('/') ? '' : '/'}${path}`;
 
 /**
@@ -64,6 +66,35 @@ export function faqSchema(items, path) {
         '@type': 'Answer',
         text: typeof answer === 'string' ? answer.trim() : '',
       },
+    })),
+  };
+}
+
+/**
+ * Schema.org HowTo schema node for interactive step-by-step tool guidance.
+ */
+export function howToSchema({
+  path,
+  name,
+  description,
+  steps = [],
+  totalTime = 'PT2M',
+} = {}) {
+  if (!Array.isArray(steps) || steps.length === 0) return null;
+  const url = absolute(path);
+  return {
+    '@type': 'HowTo',
+    '@id': `${url}#howto`,
+    name,
+    description,
+    totalTime,
+    inLanguage: 'en-US',
+    step: steps.map((s, index) => ({
+      '@type': 'HowToStep',
+      position: index + 1,
+      name: s.name,
+      text: s.text,
+      url: `${url}#step-${index + 1}`,
     })),
   };
 }
@@ -119,8 +150,14 @@ export function hubProductSchema({
   faqs = null,
   image = `${SITE}/images/og-card.jpg`,
   course = null,
+  sameAs = null,
+  howTo = null,
 }) {
   const url = absolute(path);
+  const resolvedSameAs = Array.isArray(sameAs) && sameAs.length > 0
+    ? sameAs
+    : resolveToolWikidataLinks(path || name);
+
   const imageNode = licensableImageSchema({
     url,
     contentUrl: image,
@@ -142,6 +179,7 @@ export function hubProductSchema({
         '@type': 'SpeakableSpecification',
         cssSelector: ['h1', 'p'],
       },
+      ...(resolvedSameAs.length > 0 ? { sameAs: resolvedSameAs } : {}),
       ...(withBreadcrumb ? { breadcrumb: { '@id': `${url}#breadcrumb` } } : {}),
     },
     {
@@ -157,6 +195,7 @@ export function hubProductSchema({
       inLanguage: 'en',
       publisher: { '@id': ORGANIZATION_ID },
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      ...(resolvedSameAs.length > 0 ? { sameAs: resolvedSameAs } : {}),
     },
     imageNode,
     ...(withBreadcrumb ? [breadcrumbSchema(trail)] : []),
@@ -165,6 +204,17 @@ export function hubProductSchema({
   if (Array.isArray(faqs) && faqs.length > 0) {
     const faqNode = faqSchema(faqs, path);
     if (faqNode) nodes.push(faqNode);
+  }
+
+  if (howTo && Array.isArray(howTo.steps) && howTo.steps.length > 0) {
+    const howToNode = howToSchema({
+      path,
+      name: howTo.name || `How To Use ${name}`,
+      description: howTo.description || description,
+      steps: howTo.steps,
+      totalTime: howTo.totalTime || 'PT2M',
+    });
+    if (howToNode) nodes.push(howToNode);
   }
 
   if (course || path === '/hub/training') {
@@ -321,4 +371,104 @@ export function courseSchema({
     },
   };
 }
+
+/**
+ * Schema.org SportsEvent & EventSeries node for the Daily $2,000 Freerolls and Diamond Freerolls hub.
+ */
+export function freerollEventSchema({
+  path = '/freerolls',
+  name = 'Smarter.Poker Daily $2,000 Freerolls And Diamond Freerolls',
+  description = 'Compete In 100% Free Daily Poker Tournaments With $2,000 In Guaranteed Daily Prizes Plus Exclusive Diamond Freerolls.',
+  trail = [['Tournaments', '/hub/daily-tournaments'], ['Daily $2,000 Freerolls', '/freerolls']],
+  faqs = [],
+  howTo = null,
+  image = `${SITE}/api/og/tool-card?tool=freerolls`,
+} = {}) {
+  const url = absolute(path);
+  const wikidataSameAs = resolveToolWikidataLinks('freerolls');
+
+  const imageNode = licensableImageSchema({
+    url,
+    contentUrl: image,
+    caption: `${name} - Smarter.Poker`,
+    acquireLicensePage: url,
+  });
+
+  const eventSeriesNode = {
+    '@type': ['SportsEvent', 'EventSeries'],
+    '@id': `${url}#eventseries`,
+    name: 'Smarter.Poker Daily $2,000 Freeroll Tournament Series',
+    description,
+    url,
+    sport: 'Poker',
+    isAccessibleForFree: true,
+    eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
+    eventStatus: 'https://schema.org/EventScheduled',
+    inLanguage: 'en-US',
+    sameAs: wikidataSameAs,
+    organizer: {
+      '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
+      name: 'Smarter.Poker',
+      url: SITE,
+    },
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+      category: 'Free Entry',
+      availability: 'https://schema.org/InStock',
+      url,
+    },
+    location: {
+      '@type': 'VirtualLocation',
+      url: `${SITE}/hub/club-arena`,
+      name: 'Smarter.Poker Club Arena Online Tournament Lobby',
+    },
+  };
+
+  const webPageNode = {
+    '@type': 'WebPage',
+    '@id': `${url}#page`,
+    url,
+    name,
+    description,
+    isPartOf: { '@id': WEBSITE_ID },
+    inLanguage: 'en-US',
+    about: { '@id': `${url}#eventseries` },
+    primaryImageOfPage: { '@id': `${url}#primaryimage` },
+    sameAs: wikidataSameAs,
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'aside[role="complementary"]', 'main p'],
+    },
+    breadcrumb: { '@id': `${url}#breadcrumb` },
+  };
+
+  const nodes = [
+    eventSeriesNode,
+    webPageNode,
+    imageNode,
+    breadcrumbSchema(trail),
+  ];
+
+  if (Array.isArray(faqs) && faqs.length > 0) {
+    const faqNode = faqSchema(faqs, path);
+    if (faqNode) nodes.push(faqNode);
+  }
+
+  if (howTo && Array.isArray(howTo.steps) && howTo.steps.length > 0) {
+    const howToNode = howToSchema({
+      path,
+      name: howTo.name || 'How To Enter And Play Smarter.Poker Daily $2,000 Freerolls',
+      description: howTo.description || description,
+      steps: howTo.steps,
+      totalTime: howTo.totalTime || 'PT1M',
+    });
+    if (howToNode) nodes.push(howToNode);
+  }
+
+  return nodes;
+}
+
 

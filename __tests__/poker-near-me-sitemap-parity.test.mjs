@@ -13,6 +13,8 @@ test('sitemap route projection deduplicates records and rejects private route fa
     { id: 2, name: 'Suppressed Room', venue_type: 'casino', state: 'NV', city: 'Reno', is_suppressed: true },
     { id: 3, name: 'Inactive Room', venue_type: 'casino', state: 'TX', city: 'Austin', is_active: false },
     { id: 4, name: 'Tour', venue_type: 'tour', state: 'NV', city: 'Las Vegas' },
+    { id: 'sp-1234-uuid', name: 'Social Page Venue', venue_type: 'venue', state: 'NV', city: 'Las Vegas', is_social_page: true },
+    { id: 'sp-5678-uuid', name: 'Charity Page Venue', venue_type: 'charity', state: 'NV', city: 'Las Vegas' },
     { id: 5, name: '', venue_type: 'casino', state: 'CA', city: 'Los Angeles' },
     { id: 'bad/state', name: 'International Room', venue_type: 'casino', state: 'XX', city: 'Elsewhere' },
   ]);

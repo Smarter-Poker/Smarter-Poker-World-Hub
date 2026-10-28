@@ -35,7 +35,31 @@ export default function SEOHead(props) {
   const pathname = usePathname();
   const ogImage = props.ogImage || productOgImage(pathname);
   const imageMetadata = shareImageMetadata(ogImage);
-  const { geoRegion, geoPlacename, geoPosition } = props;
+  const { geoRegion, geoPlacename, geoPosition, markdownUrl, calendarUrl } = props;
+
+  // Auto-resolve markdownUrl for known routes that serve clean .md representations
+  let resolvedMarkdownUrl = markdownUrl;
+  if (!resolvedMarkdownUrl && typeof pathname === 'string') {
+    if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
+      resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
+    } else if (pathname === '/tools/icm-calculator' || pathname === '/hub/training/icm-calculator') {
+      resolvedMarkdownUrl = 'https://smarter.poker/tools/icm-calculator.md';
+    } else if (pathname === '/tools/preflop-ranges' || pathname === '/tools/preflop-ranges/index') {
+      resolvedMarkdownUrl = 'https://smarter.poker/tools/preflop-ranges.md';
+    } else if (pathname === '/about') {
+      resolvedMarkdownUrl = 'https://smarter.poker/about.md';
+    } else if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
+      resolvedMarkdownUrl = 'https://smarter.poker/freerolls.md';
+    }
+  }
+
+  // Auto-resolve calendarUrl for known routes that serve clean .ics calendar feeds
+  let resolvedCalendarUrl = calendarUrl;
+  if (!resolvedCalendarUrl && typeof pathname === 'string') {
+    if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
+      resolvedCalendarUrl = 'https://smarter.poker/freerolls.ics';
+    }
+  }
 
   return (
     <SharedSEOHead {...props} ogImage={ogImage}>
@@ -49,6 +73,24 @@ export default function SEOHead(props) {
           <meta key="geo-position" name="geo.position" content={geoPosition} />
           <meta key="icbm" name="ICBM" content={geoPosition.replace(';', ', ')} />
         </>
+      )}
+      {resolvedMarkdownUrl && (
+        <link
+          key="alternate-markdown"
+          rel="alternate"
+          type="text/markdown"
+          title="Markdown"
+          href={resolvedMarkdownUrl}
+        />
+      )}
+      {resolvedCalendarUrl && (
+        <link
+          key="alternate-calendar"
+          rel="alternate"
+          type="text/calendar"
+          title="iCalendar Schedule"
+          href={resolvedCalendarUrl}
+        />
       )}
       {props.children}
     </SharedSEOHead>

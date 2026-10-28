@@ -48,6 +48,34 @@ export {
     buildOddsSpotSummary,
 };
 
+const ODDS_CALCULATOR_FAQS = [
+    {
+        question: 'How Does The Smarter.Poker Odds Calculator Compute Equity?',
+        answer:
+            'The Calculator Runs High-Precision Monte Carlo Simulations Across 10,000 Iterations To Evaluate Exact Win, Tie, And Split-Pot Equity For Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud, And Razz Against Up To 6 Opponents Simultaneously.',
+    },
+    {
+        question: 'Can I Factor Dead Cards Or Known Discards Into The Calculation?',
+        answer:
+            'Yes. You Can Mark Folded Cards Or Known Discards As Dead Cards. The Simulation Immediately Removes Them From The 52-Card Shoe, Refining Equity Calculation Accuracy For Complex Multiway Scenarios.',
+    },
+    {
+        question: 'Is The Smarter.Poker Odds Calculator Free?',
+        answer:
+            'Yes. The Smarter.Poker Odds Calculator Is 100% Free With No Account Creation, Paywall, Or Advertisement Gating Required.',
+    },
+    {
+        question: 'What Poker Variants Are Supported By The Calculator?',
+        answer:
+            "Six Full Variants Are Supported: Texas Hold'em, Omaha High (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, And Razz (Seven Card Stud Low).",
+    },
+    {
+        question: 'Can I Share Or Embed Calculated Poker Odds Scenarios?',
+        answer:
+            'Yes. You Can Copy A Persistent Permalink Containing All Player Hands, Board Cards, And Dead Cards, Or Embed The Responsive Iframe Calculator Directly Into External Websites.',
+    },
+];
+
 const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     path: '/hub/poker-tools',
     name: 'Smarter.Poker Odds Calculator',
@@ -55,28 +83,33 @@ const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     applicationCategory: 'GameApplication',
     applicationSubCategory: 'Poker',
     trail: [['Hub', '/hub'], ['Poker Odds Calculator', '/hub/poker-tools']],
-    faqs: [
-        {
-            question: 'How does the Smarter.Poker Odds Calculator compute equity?',
-            answer:
-                'The calculator runs high-precision Monte Carlo simulations across 10,000 iterations to evaluate exact win, tie, and split-pot equity for Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud, and Razz against up to 6 opponents simultaneously.',
-        },
-        {
-            question: 'Can I factor dead cards or known discards into the calculation?',
-            answer:
-                'Yes. You can mark folded cards or known discards as dead cards. The simulation immediately removes them from the 52-card shoe, refining equity calculation accuracy for complex multiway scenarios.',
-        },
-        {
-            question: 'Is the Smarter.Poker Odds Calculator free?',
-            answer:
-                'Yes. The Smarter.Poker Odds Calculator is 100% free with no account creation, paywall, or advertisement gating required.',
-        },
-        {
-            question: 'What poker variants are supported by the calculator?',
-            answer:
-                "Six full variants are supported: Texas Hold'em, Omaha High (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, and Razz (Seven Card Stud Low).",
-        },
-    ],
+    faqs: ODDS_CALCULATOR_FAQS,
+    howTo: {
+        name: 'How To Calculate Poker Odds And Hand Equity',
+        description: "Step-by-step instructions for calculating real-time win, tie, and split-pot equity for Texas Hold'em and Omaha on Smarter.Poker.",
+        steps: [
+            {
+                name: 'Select Your Poker Game Variant',
+                text: "Choose between Texas Hold'em, Pot-Limit Omaha (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, or Razz from the top game selector.",
+            },
+            {
+                name: 'Assign Player Hole Cards',
+                text: 'Click player seat card slots and pick exact cards from the interactive 52-card deck palette to set up your matchup with up to 6 players.',
+            },
+            {
+                name: 'Set Community Board Cards',
+                text: 'Select Flop, Turn, and River board cards to simulate postflop equity runouts, or leave empty for preflop calculations.',
+            },
+            {
+                name: 'Burn Known Dead Cards',
+                text: 'Optionally tag folded discards as dead cards to eliminate them from remaining deck iterations and refine calculation accuracy.',
+            },
+            {
+                name: 'Review Monte Carlo Simulation Results',
+                text: 'Inspect instant win percentages, tie odds, and split-pot equity calculated across 10,000 iterations to guide your betting and calling decisions.',
+            },
+        ],
+    },
 });
 
 /* ═══════════════════════════════════════════════
@@ -372,6 +405,45 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
             : validCount >= 2 ? 'Ready To Calculate'
                 : `Fill At Least Two Hands (${config.holeCards} Cards Each) To See Equity`;
 
+    const schema = useMemo(() => {
+        const canonicalPath = router.pathname === '/tools/poker-odds-calculator' ? '/tools/poker-odds-calculator' : '/hub/poker-tools';
+        return hubProductSchema({
+            path: canonicalPath,
+            name: 'Smarter.Poker Odds Calculator',
+            description: "Free Poker Odds Calculator For Texas Hold'em, Omaha, PLO5, PLO6, Seven Card Stud And Razz. Calculate Multiway Hand Equity In Real Time With Zero Account Setup.",
+            applicationCategory: 'GameApplication',
+            applicationSubCategory: 'Poker',
+            trail: [['Hub', '/hub'], ['Poker Odds Calculator', canonicalPath]],
+            faqs: [
+                {
+                    question: 'How does the Smarter.Poker Odds Calculator compute equity?',
+                    answer:
+                        'The calculator runs high-precision Monte Carlo simulations across 10,000 iterations to evaluate exact win, tie, and split-pot equity for Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud, and Razz against up to 6 opponents simultaneously.',
+                },
+                {
+                    question: 'Can I factor dead cards or known discards into the calculation?',
+                    answer:
+                        'Yes. You can mark folded cards or known discards as dead cards. The simulation immediately removes them from the 52-card shoe, refining equity calculation accuracy for complex multiway scenarios.',
+                },
+                {
+                    question: 'Is the Smarter.Poker Odds Calculator free?',
+                    answer:
+                        'Yes. The Smarter.Poker Odds Calculator is 100% free with no account creation, paywall, or advertisement gating required.',
+                },
+                {
+                    question: 'What poker variants are supported by the calculator?',
+                    answer:
+                        "Six full variants are supported: Texas Hold'em, Omaha High (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, and Razz (Seven Card Stud Low).",
+                },
+                {
+                    question: 'Can I share or embed calculated poker odds scenarios?',
+                    answer:
+                        'Yes. You can copy a persistent permalink containing all player hands, board cards, and dead cards, or embed the responsive iframe calculator directly into external websites.',
+                },
+            ],
+        });
+    }, [router.pathname]);
+
     /* ═══════════════════════════════════════
        RENDER
     ═══════════════════════════════════════ */
@@ -381,21 +453,10 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                 title="Poker Odds Calculator: Six Games"
                 description="Free Poker Odds Calculator For Texas Hold'em, Omaha, PLO5, PLO6, Stud, And Razz. Calculate Real-Time Multiway Equity And Test Scenarios With Zero Account Setup."
                 canonical={effectiveCanonical}
+                jsonLd={schema}
                 ogImage="/api/og/tool-card?tool=odds&title=Poker+Odds+Calculator&subtitle=Multiway+Equity+For+Holdem+PLO4+PLO5+PLO6+Stud+And+Razz&statLabel=ITERATIONS&statValue=10,000+RUNS"
+                markdownUrl="https://smarter.poker/tools/poker-odds-calculator.md"
             />
-            <Head>
-                <script
-                    key="poker-tools-schema"
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            ...ODDS_CALCULATOR_SCHEMA,
-                            '@id': `${effectiveCanonical}#app`,
-                            url: effectiveCanonical,
-                        }).replace(/</g, '\\u003c'),
-                    }}
-                />
-            </Head>
 
             <div className="odds-page" style={THEME_VARS}>
                 <main className="odds-main">
@@ -649,6 +710,152 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     <Link href="/hub/bankroll-manager" className="odds-btn" style={{ textDecoration: 'none' }}>
                                         Track Sessions In Bankroll Manager
                                     </Link>
+                                    <Link href="/freerolls" className="odds-btn" style={{ textDecoration: 'none' }}>
+                                        Play Daily $2,000 Guaranteed Poker Freerolls
+                                    </Link>
+                                    <Link href="/compare" className="odds-btn" style={{ textDecoration: 'none' }}>
+                                        Compare Free Poker Tools Vs. Paid Software
+                                    </Link>
+                                </div>
+                            </section>
+                            {/* ─── POKER ODDS REFERENCE TABLES ─── */}
+                            <section className="odds-reference-section" aria-label="Common Preflop Poker Odds Reference Tables" style={{
+                                marginTop: 28,
+                                padding: '24px 20px',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid var(--world-border, #3D679A)',
+                                borderRadius: 12,
+                                width: '100%',
+                            }}>
+                                <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 8px 0', color: 'var(--world-text, #F0F7FF)' }}>
+                                    Common Preflop Hand Matchups &amp; Equity Odds
+                                </h2>
+                                <p style={{ fontSize: 13, color: 'var(--world-muted, #94AFCC)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                                    Benchmark Preflop Texas Hold&apos;Em Equities Calculated Across 10,000 Monte Carlo Iterations. Use These Standard Probabilities For Fast On-Table Hand Decisions.
+                                </p>
+                                <div style={{ overflowX: 'auto', marginBottom: 24 }}>
+                                    <table style={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                        fontSize: 13,
+                                        textAlign: 'left',
+                                        minWidth: 540,
+                                    }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid var(--world-border, #3D679A)', color: 'var(--world-muted, #94AFCC)' }}>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Matchup Type</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 1</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 2</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 1 Equity</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hand 2 Equity</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Tie %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { type: 'Overpair Vs Underpair', h1: 'A♠ A♥', h2: 'K♦ K♣', e1: '81.9%', e2: '17.6%', tie: '0.5%' },
+                                                { type: 'Overpair Vs Two Undercards', h1: 'Q♠ Q♥', h2: '8♦ 7♦', e1: '78.3%', e2: '21.3%', tie: '0.4%' },
+                                                { type: 'Two Overcards Vs Pocket Pair (Coinflip)', h1: 'A♠ K♠', h2: 'Q♦ Q♣', e1: '46.1%', e2: '53.5%', tie: '0.4%' },
+                                                { type: 'Two Overcards Vs Pocket Pair (Offsuit)', h1: 'A♠ K♥', h2: '9♦ 9♣', e1: '45.3%', e2: '54.3%', tie: '0.4%' },
+                                                { type: 'Dominated Kicker (Higher Ace Vs Lower Ace)', h1: 'A♠ K♥', h2: 'A♦ Q♣', e1: '73.5%', e2: '21.6%', tie: '4.9%' },
+                                                { type: 'Pocket Pair Vs One Overcard', h1: 'J♠ J♥', h2: 'A♦ Q♦', e1: '56.8%', e2: '42.8%', tie: '0.4%' },
+                                                { type: 'Suited Connectors Vs Lower Suited Connectors', h1: '10♠ 9♠', h2: '7♦ 6♦', e1: '62.2%', e2: '37.3%', tie: '0.5%' },
+                                            ].map((row, idx) => (
+                                                <tr key={idx} style={{
+                                                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                                                    background: idx % 2 === 0 ? 'rgba(255, 255, 255, 0.015)' : 'transparent',
+                                                }}>
+                                                    <td style={{ padding: '10px', color: 'var(--world-text, #F0F7FF)', fontWeight: 600 }}>{row.type}</td>
+                                                    <td style={{ padding: '10px', color: 'var(--world-accent, #4E9CFF)', fontWeight: 700, fontFamily: 'monospace' }}>{row.h1}</td>
+                                                    <td style={{ padding: '10px', color: '#F59E0B', fontWeight: 700, fontFamily: 'monospace' }}>{row.h2}</td>
+                                                    <td style={{ padding: '10px', color: '#10B981', fontWeight: 700 }}>{row.e1}</td>
+                                                    <td style={{ padding: '10px', color: '#EF4444', fontWeight: 700 }}>{row.e2}</td>
+                                                    <td style={{ padding: '10px', color: 'var(--world-muted, #94AFCC)' }}>{row.tie}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <h2 style={{ fontSize: 18, fontWeight: 800, margin: '24px 0 8px 0', color: 'var(--world-text, #F0F7FF)' }}>
+                                    The Rule Of 2 And 4 For Postflop Equity Estimation
+                                </h2>
+                                <p style={{ fontSize: 13, color: 'var(--world-muted, #94AFCC)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                                    Quick Mental Poker Math Shortcut: On The Flop, Multiply Your Unseen Outs By 4 To Estimate Flop-To-River Win Equity. On The Turn, Multiply Remaining Outs By 2.
+                                </p>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                        fontSize: 13,
+                                        textAlign: 'left',
+                                        minWidth: 520,
+                                    }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid var(--world-border, #3D679A)', color: 'var(--world-muted, #94AFCC)' }}>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Drawing Hand Type</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Unseen Outs</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Turn Equity (Multiply By 2)</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Flop To River (Multiply By 4)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { draw: 'Open-Ended Straight Draw', outs: '8 Outs', turn: '17.4%', river: '31.5%' },
+                                                { draw: 'Four To A Flush (Flush Draw)', outs: '9 Outs', turn: '19.6%', river: '35.0%' },
+                                                { draw: 'Straight Flush Combo Draw', outs: '15 Outs', turn: '32.6%', river: '54.1%' },
+                                                { draw: 'Inside Straight Draw (Gutshot)', outs: '4 Outs', turn: '8.7%', river: '16.5%' },
+                                                { draw: 'Two Overcards (Top Pair Outs)', outs: '6 Outs', turn: '13.0%', river: '24.1%' },
+                                                { draw: 'Set To Full House Or Quads', outs: '7 Outs', turn: '15.2%', river: '33.4%' },
+                                            ].map((row, idx) => (
+                                                <tr key={idx} style={{
+                                                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                                                    background: idx % 2 === 0 ? 'rgba(255, 255, 255, 0.015)' : 'transparent',
+                                                }}>
+                                                    <td style={{ padding: '10px', color: 'var(--world-text, #F0F7FF)', fontWeight: 600 }}>{row.draw}</td>
+                                                    <td style={{ padding: '10px', color: 'var(--world-accent, #4E9CFF)', fontWeight: 700 }}>{row.outs}</td>
+                                                    <td style={{ padding: '10px', color: '#10B981', fontWeight: 700 }}>{row.turn}</td>
+                                                    <td style={{ padding: '10px', color: '#3B82F6', fontWeight: 700 }}>{row.river}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                            <section className="odds-faq-section" aria-label="Frequently Asked Questions" style={{
+                                marginTop: 24,
+                                padding: '20px',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid var(--world-border, #3D679A)',
+                                borderRadius: 12,
+                                width: '100%',
+                            }}>
+                                <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 14px 0', color: 'var(--world-text, #F0F7FF)' }}>
+                                    Frequently Asked Questions
+                                </h2>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {ODDS_CALCULATOR_FAQS.map((faq, idx) => (
+                                        <details key={idx} style={{
+                                            background: 'rgba(255, 255, 255, 0.03)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: 8,
+                                            padding: '12px 14px',
+                                            color: 'var(--world-text, #F0F7FF)',
+                                        }}>
+                                            <summary style={{
+                                                fontWeight: 700,
+                                                fontSize: 14,
+                                                cursor: 'pointer',
+                                                color: 'var(--world-accent, #4E9CFF)',
+                                                outline: 'none',
+                                            }}>
+                                                {faq.question}
+                                            </summary>
+                                            <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--world-muted, #94AFCC)' }}>
+                                                {faq.answer}
+                                            </p>
+                                        </details>
+                                    ))}
                                 </div>
                             </section>
                             <HubPageSummary surface="poker-tools" />

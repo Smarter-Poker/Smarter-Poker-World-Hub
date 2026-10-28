@@ -113,6 +113,14 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
           question: 'Why do GTO preflop charts employ mixed strategies?',
           answer: 'Mixed strategies prevent opponents from exploiting predictable frequencies and maintain optimal board coverage across varied postflop textures.',
         },
+        {
+          question: 'How does table position influence preflop opening ranges in poker?',
+          answer: 'As position moves closer to the button, fewer opponents remain behind to wake up with premium hands, allowing players to open significantly wider ranges profitably.',
+        },
+        {
+          question: 'Can I export or print this GTO preflop matrix?',
+          answer: 'Yes. Use the print or export action to generate a clean, printer-friendly high-contrast 13x13 preflop chart for study and reference.',
+        },
       ],
     });
   }, [posData, stats, pageDesc]);
@@ -123,16 +131,11 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
         title={pageTitle}
         description={pageDesc}
         canonical={canonicalUrl}
+        jsonLd={schema}
         ogImage={`/api/og/tool-card?tool=ranges&title=${encodeURIComponent(pageTitle)}&subtitle=${encodeURIComponent(`100BB 6-Max Opening Matrix (${stats.percent}% Open Frequency)`)}&statLabel=OPENING+FREQUENCY&statValue=${encodeURIComponent(`${stats.percent}%`)}`}
+        markdownUrl="https://smarter.poker/tools/preflop-ranges.md"
       />
       <Head>
-        <script
-          key="preflop-matrix-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(schema).replace(/</g, '\\u003c'),
-          }}
-        />
         <style
           key="preflop-matrix-print-styles"
           dangerouslySetInnerHTML={{
@@ -495,8 +498,110 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
             </div>
           </div>
 
+          {/* Related Tools & Comparisons */}
+          <div style={{
+            marginTop: 24,
+            background: '#161B22',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: 24,
+          }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 14px 0', color: '#FFFFFF' }}>
+              Related Poker Strategy Tools And Comparisons
+            </h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <Link
+                href="/compare"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(88, 166, 255, 0.12)',
+                  border: '1px solid rgba(88, 166, 255, 0.3)',
+                  borderRadius: 6,
+                  color: '#58A6FF',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Compare Free Poker Tools Vs. Paid Software
+              </Link>
+              <Link
+                href="/freerolls"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(0, 230, 118, 0.12)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  borderRadius: 6,
+                  color: '#00E676',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Play Daily $2,000 Guaranteed Freerolls
+              </Link>
+              <Link
+                href="/tools/poker-odds-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 6,
+                  color: '#E6EDF3',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Poker Odds Calculator
+              </Link>
+              <Link
+                href="/tools/icm-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 6,
+                  color: '#E6EDF3',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Tournament ICM Calculator
+              </Link>
+            </div>
+          </div>
+
         </div>
       </div>
     </>
   );
+}
+
+export async function getServerSideProps({ req, res, query }) {
+  const acceptHeader = String(req?.headers?.accept || '');
+  const isMarkdownRequested =
+    acceptHeader.includes('text/markdown') ||
+    query?.format === 'md' ||
+    req?.url?.includes('format=md');
+  if (isMarkdownRequested) {
+    const { renderPreflopRangesMarkdown } = await import('../../../src/lib/seo/markdownIngestion.mjs');
+    const position = query?.pos || query?.position || 'UTG';
+    const mdContent = renderPreflopRangesMarkdown({ position });
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+  return { props: {} };
 }

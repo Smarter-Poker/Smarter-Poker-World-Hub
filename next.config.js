@@ -1307,6 +1307,17 @@ const nextConfig = {
         destination: '/hub/poker-near-me/lobby',
         permanent: true,
       },
+      // Legacy root venue and series routes to canonical hub routes (301 permanent redirect)
+      {
+        source: '/venues/:id',
+        destination: '/hub/venues/:id',
+        permanent: true,
+      },
+      {
+        source: '/series/:id',
+        destination: '/hub/series/:id',
+        permanent: true,
+      },
     ];
   },
 
@@ -1330,6 +1341,10 @@ const nextConfig = {
       // tests/club-arena-is-a-rewrite.test.mjs pins that the tree is gone.
       beforeFiles: [],
       afterFiles: [
+        /* Clean Root OpenAPI Alias for AI crawlers bypassing Disallow: /api/ */
+        { source: '/openapi.json', destination: '/api/openapi.json' },
+        /* Clean Hub Freerolls Alias */
+        { source: '/hub/freerolls', destination: '/freerolls' },
         /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
            origin wants the app to open /hub/club-arena/* by fetching these two
            files. They are API routes, not files in public/, because their
@@ -1423,6 +1438,38 @@ const nextConfig = {
         {
           source: '/hub/series/:id.md',
           destination: '/hub/series/:id?format=md',
+        },
+        {
+          source: '/tools/poker-odds-calculator.md',
+          destination: '/tools/poker-odds-calculator?format=md',
+        },
+        {
+          source: '/tools/icm-calculator.md',
+          destination: '/tools/icm-calculator?format=md',
+        },
+        {
+          source: '/tools/preflop-ranges.md',
+          destination: '/tools/preflop-ranges?format=md',
+        },
+        {
+          source: '/about.md',
+          destination: '/about?format=md',
+        },
+        {
+          source: '/freerolls.md',
+          destination: '/freerolls?format=md',
+        },
+        {
+          source: '/hub/freerolls.md',
+          destination: '/freerolls?format=md',
+        },
+        {
+          source: '/freerolls.ics',
+          destination: '/api/calendar/freerolls.ics',
+        },
+        {
+          source: '/hub/freerolls.ics',
+          destination: '/api/calendar/freerolls.ics',
         },
         /* CLEAN ROOT TOOL URLS (GSC / AEO Series 3 Phase 3).
            Direct, indexable root tool aliases for competitive SERP keyword capture. */

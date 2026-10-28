@@ -2030,6 +2030,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         geoRegion={seo.geoRegion}
         geoPlacename={seo.geoPlacename}
         geoPosition={seo.geoPosition}
+        markdownUrl={venue?.id ? `https://smarter.poker/hub/venues/${venue.id}.md` : undefined}
       />
 
       {venueJsonLd && (

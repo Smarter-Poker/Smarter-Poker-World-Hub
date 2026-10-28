@@ -203,6 +203,12 @@ export const WIKIDATA_ENTITIES = {
   },
 
   // Game Variants & Disciplines
+  'poker': {
+    qid: 'Q8072',
+    name: 'Poker',
+    wikipedia: 'https://en.wikipedia.org/wiki/Poker',
+    wikidata: 'https://www.wikidata.org/wiki/Q8072',
+  },
   'texas-holdem': {
     qid: 'Q214536',
     name: 'Texas hold \'em',
@@ -214,6 +220,62 @@ export const WIKIDATA_ENTITIES = {
     name: 'Omaha hold \'em',
     wikipedia: 'https://en.wikipedia.org/wiki/Omaha_hold_%27em',
     wikidata: 'https://www.wikidata.org/wiki/Q649282',
+  },
+  'seven-card-stud': {
+    qid: 'Q1419736',
+    name: 'Seven-card stud',
+    wikipedia: 'https://en.wikipedia.org/wiki/Seven-card_stud',
+    wikidata: 'https://www.wikidata.org/wiki/Q1419736',
+  },
+  'razz': {
+    qid: 'Q1420138',
+    name: 'Razz (poker)',
+    wikipedia: 'https://en.wikipedia.org/wiki/Razz_(poker)',
+    wikidata: 'https://www.wikidata.org/wiki/Q1420138',
+  },
+
+  // Mathematical & Game Theoretic Foundations
+  'independent-chip-model': {
+    qid: 'Q6016550',
+    name: 'Independent Chip Model',
+    wikipedia: 'https://en.wikipedia.org/wiki/Independent_Chip_Model',
+    wikidata: 'https://www.wikidata.org/wiki/Q6016550',
+  },
+  'monte-carlo-method': {
+    qid: 'Q231548',
+    name: 'Monte Carlo method',
+    wikipedia: 'https://en.wikipedia.org/wiki/Monte_Carlo_method',
+    wikidata: 'https://www.wikidata.org/wiki/Q231548',
+  },
+  'game-theory': {
+    qid: 'Q131476',
+    name: 'Game theory',
+    wikipedia: 'https://en.wikipedia.org/wiki/Game_theory',
+    wikidata: 'https://www.wikidata.org/wiki/Q131476',
+  },
+  'poker-tournament': {
+    qid: 'Q188451',
+    name: 'Poker tournament',
+    wikipedia: 'https://en.wikipedia.org/wiki/Poker_tournament',
+    wikidata: 'https://www.wikidata.org/wiki/Q188451',
+  },
+  'freeroll': {
+    qid: 'Q188451',
+    name: 'Freeroll',
+    wikipedia: 'https://en.wikipedia.org/wiki/Freeroll_(poker)',
+    wikidata: 'https://www.wikidata.org/wiki/Q188451',
+  },
+  'online-poker': {
+    qid: 'Q1194200',
+    name: 'Online poker',
+    wikipedia: 'https://en.wikipedia.org/wiki/Online_poker',
+    wikidata: 'https://www.wikidata.org/wiki/Q1194200',
+  },
+  'prize-money': {
+    qid: 'Q1156823',
+    name: 'Prize money',
+    wikipedia: 'https://en.wikipedia.org/wiki/Prize_money',
+    wikidata: 'https://www.wikidata.org/wiki/Q1156823',
   },
 
   // Industry Authorities, Media, & Databases
@@ -405,4 +467,54 @@ export function resolveTournamentWikidataLinks(tournament) {
   // Deduplicate
   return links.filter((l, idx, arr) => arr.indexOf(l) === idx);
 }
+
+/**
+ * Resolves Wikidata and Wikipedia disambiguation links for poker tools and concepts.
+ */
+export function resolveToolWikidataLinks(toolKey) {
+  if (!toolKey) return [];
+  const normalized = normalizeEntityKey(toolKey);
+  const links = [];
+
+  if (normalized.includes('icm')) {
+    const keys = ['independent-chip-model', 'game-theory', 'texas-holdem', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('preflop') || normalized.includes('range')) {
+    const keys = ['game-theory', 'texas-holdem', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('embed') || normalized.includes('widget')) {
+    const keys = ['poker', 'texas-holdem', 'game-theory'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('odds') || normalized.includes('calculator') || normalized.includes('equity')) {
+    const keys = ['texas-holdem', 'omaha-holdem', 'seven-card-stud', 'razz', 'monte-carlo-method', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('freeroll') || normalized.includes('tournament')) {
+    const keys = ['freeroll', 'poker-tournament', 'online-poker', 'texas-holdem', 'omaha-holdem', 'prize-money', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  }
+
+  // Deduplicate
+  return links.filter((l, idx, arr) => arr.indexOf(l) === idx);
+}
+
 

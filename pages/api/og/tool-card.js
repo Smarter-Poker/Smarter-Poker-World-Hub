@@ -14,22 +14,57 @@ export default async function handler(req) {
   try {
     const { searchParams } = new URL(req.url);
     const tool = (searchParams.get('tool') || 'tool').toLowerCase();
-    const title = searchParams.get('title') || 'Smarter.Poker Strategy Tool';
-    const subtitle =
-      searchParams.get('subtitle') ||
-      'Free Interactive GTO Preflop Charts, Multiway Equity & ICM Calculators';
-    const statLabel = searchParams.get('statLabel') || 'SIMULATION ENGINE';
-    const statValue = searchParams.get('statValue') || '100% FREE';
-    const badge = (
-      searchParams.get('badge') ||
-      (tool === 'odds'
-        ? 'EQUITY CALCULATOR'
-        : tool === 'ranges'
-          ? 'GTO PREFLOP MATRIX'
-          : tool === 'icm'
-            ? 'ICM PAYOUT SOLVER'
-            : 'POKER STRATEGY TOOL')
-    ).toUpperCase();
+    const isFreerolls = tool === 'freerolls';
+    const isCompare = tool === 'compare';
+
+    const defaultTitle = isFreerolls
+      ? '$2,000 In Daily Poker Freerolls'
+      : isCompare
+        ? 'Free Poker Software & Platform Alternatives'
+        : 'Smarter.Poker Strategy Tool';
+
+    const defaultSubtitle = isFreerolls
+      ? 'Daily Free Entry Tournaments • Real Cash Prizes • Zero Deposit Required'
+      : isCompare
+        ? 'Compare Free GTO Solvers, Odds Calculators & Freerolls vs. Paid Tools'
+        : 'Free Interactive GTO Preflop Charts, Multiway Equity & ICM Calculators';
+
+    const defaultStatLabel = isFreerolls
+      ? 'DAILY PRIZE GUARANTEE'
+      : isCompare
+        ? 'ANNUAL SUBSCRIPTION COST'
+        : 'SIMULATION ENGINE';
+
+    const defaultStatValue = isFreerolls
+      ? '$2,000+ DAILY'
+      : isCompare
+        ? '$0 (100% FREE)'
+        : '100% FREE';
+
+    const title = searchParams.get('title') || defaultTitle;
+    const subtitle = searchParams.get('subtitle') || defaultSubtitle;
+    const statLabel = searchParams.get('statLabel') || defaultStatLabel;
+    const statValue = searchParams.get('statValue') || defaultStatValue;
+
+    const defaultBadge = isFreerolls
+      ? 'DAILY $2,000 FREEROLLS'
+      : isCompare
+        ? 'SOFTWARE COMPARISON'
+        : tool === 'odds'
+          ? 'EQUITY CALCULATOR'
+          : tool === 'ranges'
+            ? 'GTO PREFLOP MATRIX'
+            : tool === 'icm'
+              ? 'ICM PAYOUT SOLVER'
+              : tool === 'glossary'
+                ? 'POKER GLOSSARY'
+                : tool === 'about'
+                  ? 'ABOUT SMARTER.POKER'
+                  : tool === 'embeds'
+                    ? 'WEBMASTER EMBEDS'
+                    : 'POKER STRATEGY TOOL';
+
+    const badge = (searchParams.get('badge') || defaultBadge).toUpperCase();
 
     return new ImageResponse(
       (
@@ -55,8 +90,9 @@ export default async function handler(req) {
               width: 380,
               height: 380,
               borderRadius: 190,
-              background:
-                'radial-gradient(circle, rgba(0,212,255,0.18) 0%, rgba(0,212,255,0) 70%)',
+              background: isFreerolls
+                ? 'radial-gradient(circle, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0) 70%)'
+                : 'radial-gradient(circle, rgba(0,212,255,0.18) 0%, rgba(0,212,255,0) 70%)',
               display: 'flex',
             }}
           />
@@ -107,15 +143,23 @@ export default async function handler(req) {
                 alignItems: 'center',
                 padding: '8px 16px',
                 borderRadius: 999,
-                background: 'rgba(57,233,165,0.12)',
-                border: '1px solid rgba(57,233,165,0.35)',
-                color: '#39E9A5',
+                background: isFreerolls
+                  ? 'rgba(255,215,0,0.12)'
+                  : 'rgba(57,233,165,0.12)',
+                border: isFreerolls
+                  ? '1px solid rgba(255,215,0,0.35)'
+                  : '1px solid rgba(57,233,165,0.35)',
+                color: isFreerolls ? '#FFD700' : '#39E9A5',
                 fontSize: 15,
                 fontWeight: 700,
                 letterSpacing: 0.8,
               }}
             >
-              ZERO ACCOUNT SETUP
+              {isFreerolls
+                ? 'ZERO DEPOSIT REQUIRED'
+                : isCompare
+                  ? '100% FREE ALTERNATIVES'
+                  : 'ZERO ACCOUNT SETUP'}
             </div>
           </div>
 
@@ -196,7 +240,7 @@ export default async function handler(req) {
                     display: 'flex',
                     fontSize: 22,
                     fontWeight: 800,
-                    color: '#00D4FF',
+                    color: isFreerolls ? '#FFD700' : '#00D4FF',
                     marginTop: 4,
                   }}
                 >
@@ -214,7 +258,11 @@ export default async function handler(req) {
                 letterSpacing: 0.5,
               }}
             >
-              Smarter.Poker/Tools
+              {isFreerolls
+                ? 'Smarter.Poker/Freerolls'
+                : isCompare
+                  ? 'Smarter.Poker/Compare'
+                  : 'Smarter.Poker/Tools'}
             </div>
           </div>
         </div>

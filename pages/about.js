@@ -30,6 +30,10 @@ const ABOUT_PAGE_SCHEMA = {
   name: 'About Smarter Poker',
   mainEntity: { '@id': 'https://smarter.poker/#organization' },
   isPartOf: { '@id': 'https://smarter.poker/#website' },
+  speakable: {
+    '@type': 'SpeakableSpecification',
+    cssSelector: ['h1', 'p'],
+  },
 };
 
 export default function AboutPage() {
@@ -39,7 +43,9 @@ export default function AboutPage() {
         title="About Smarter.Poker"
         description="Smarter.Poker Is A Free Online Poker Platform From Smarter Software Inc. Read What It Is, What It Is Not, Which Products It Runs And How To Reach Support."
         canonical="/about"
+        ogImage="/api/og/tool-card?tool=about&title=About+Smarter.Poker&subtitle=Free+Online+Poker+Platform+Operated+By+Smarter+Software+Inc&statLabel=OPERATOR&statValue=SMARTER+SOFTWARE"
         jsonLd={[schemas.organization, ABOUT_PAGE_SCHEMA]}
+        markdownUrl="https://smarter.poker/about.md"
       />
 
       <main style={styles.page}>
@@ -157,3 +163,21 @@ const styles = {
   inlineLink: { color: '#9fd8ff', textDecoration: 'underline', marginRight: 12 },
   compliance: { fontSize: 12, lineHeight: 1.6, color: '#7f8ca3', margin: '32px 0 0' },
 };
+
+export async function getServerSideProps({ req, res, query }) {
+  const acceptHeader = String(req?.headers?.accept || '');
+  const isMarkdownRequested =
+    acceptHeader.includes('text/markdown') ||
+    query?.format === 'md' ||
+    req?.url?.includes('format=md');
+  if (isMarkdownRequested) {
+    const { renderAboutPlatformMarkdown } = await import('../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderAboutPlatformMarkdown();
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+  return { props: {} };
+}

@@ -13,8 +13,39 @@
  * 2. get_venue_details: Retrieve full profile, daily tournament schedules, and live action for a specific venue ID.
  * 3. search_tournament_series: Search major and regional poker tournament series and championships.
  * 4. get_series_details: Retrieve detailed tournament series schedules, buy-ins, and guarantees for a series ID.
+ * 5. calculate_poker_odds: Compute exact equity, win, and tie probabilities for Texas Hold'em and Omaha.
+ * 6. get_preflop_chart: Retrieve GTO preflop opening ranges and frequencies for 6-max cash games at 100BB.
+ * 7. calculate_icm_payouts: Compute Malmuth-Harville Independent Chip Model tournament equity payouts.
+ * 8. get_poker_term_definition: Look up official poker definitions, GTO concepts, and table rules.
  */
 import { SITE_ORIGIN } from '../seo/indexingService.mjs';
+import { calculateEquity, makeCard } from '../poker/pokerOddsEngine.js';
+import { calculateICM } from '../../engines/ICMCalculator.js';
+import { RFI } from '../../config/solverRanges.js';
+import { GLOSSARY_TERMS } from '../../content/glossary/terms.js';
+
+export function parseCardToken(str) {
+  const match = String(str || '').trim().match(/^(10|[2-9TJQKA])([shdc])$/i);
+  if (!match) return null;
+  const rank = match[1].toUpperCase() === 'T' ? '10' : match[1].toUpperCase();
+  const suits = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+  return makeCard(rank, suits[match[2].toLowerCase()]);
+}
+
+export function normalizeCardGroup(input) {
+  if (Array.isArray(input)) {
+    return input.map(parseCardToken).filter(Boolean);
+  }
+  if (typeof input === 'string') {
+    const tokens = input.includes(',')
+      ? input.split(',')
+      : (input.includes(' ')
+          ? input.split(' ')
+          : input.match(/(?:10|[2-9TJQKA])[shdc]/gi) || []);
+    return tokens.map(parseCardToken).filter(Boolean);
+  }
+  return [];
+}
 
 export const MCP_SERVER_INFO = {
   name: 'smarter-poker-mcp-server',
@@ -106,6 +137,108 @@ export const MCP_TOOLS = [
         },
       },
       required: ['id'],
+    },
+  },
+  {
+    name: 'calculate_poker_odds',
+    description: 'Calculate exact equity, win, and tie probabilities for Texas Hold\'em and Omaha hands with board runouts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        game: {
+          type: 'string',
+          enum: ['nlhe', 'plo4', 'plo5', 'plo6'],
+          description: 'Poker game variant (default: nlhe for No-Limit Texas Hold\'em).',
+          default: 'nlhe',
+        },
+        hands: {
+          type: 'array',
+          items: {
+            oneOf: [
+              { type: 'array', items: { type: 'string' } },
+              { type: 'string' },
+            ],
+          },
+          description: 'Array of player hands (e.g. [["Ah", "Kd"], ["Qc", "Qd"]] or ["AhKd", "QcQd"]).',
+        },
+        board: {
+          oneOf: [
+            { type: 'array', items: { type: 'string' } },
+            { type: 'string' },
+          ],
+          description: 'Optional community board cards (e.g. ["Jh", "Ts", "2c"] or "Jh,Ts,2c").',
+        },
+        iterations: {
+          type: 'integer',
+          description: 'Monte Carlo simulation iterations (default: 10000, max: 50000).',
+          default: 10000,
+        },
+      },
+      required: ['hands'],
+    },
+  },
+  {
+    name: 'get_preflop_chart',
+    description: 'Retrieve GTO opening ranges and frequencies for 6-max cash games at 100BB stack depth.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        position: {
+          type: 'string',
+          enum: ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'],
+          description: 'Table position to inspect (default: UTG).',
+          default: 'UTG',
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_icm_payouts',
+    description: 'Calculate Independent Chip Model (ICM) tournament equity in dollars based on stack sizes and prize payouts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        stacks: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Array of chip counts for each player at the table (e.g. [100000, 75000, 50000, 25000]).',
+        },
+        payouts: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Array of tournament payout prize values in order of 1st, 2nd, 3rd, etc. (e.g. [5000, 3000, 1500, 500]).',
+        },
+      },
+      required: ['stacks', 'payouts'],
+    },
+  },
+  {
+    name: 'get_poker_term_definition',
+    description: 'Look up authoritative definitions, GTO concepts, and rules from the official Smarter.Poker glossary.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        term: {
+          type: 'string',
+          description: 'Poker term, jargon, or GTO acronym (e.g. "pot odds", "icm", "3-bet", "straddle", "equity").',
+        },
+      },
+      required: ['term'],
+    },
+  },
+  {
+    name: 'get_freeroll_schedule',
+    description: 'Retrieve the upcoming Daily $2,000 Freerolls and Diamond Arena Freerolls schedule, formats, prize values, and entry requirements on Smarter.Poker.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tier: {
+          type: 'string',
+          enum: ['all', 'open', 'diamond'],
+          description: 'Filter by freeroll tier: "open" for daily open tournaments, "diamond" for Diamond Arena VIP events, or "all".',
+          default: 'all',
+        },
+      },
     },
   },
 ];
@@ -306,6 +439,256 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 events: series.events || [],
                 canonical_url: `${base}/hub/series/${series.id}`,
                 markdown_url: `${base}/hub/series/${series.id}.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_poker_odds': {
+      const game = String(args?.game || 'nlhe').toLowerCase();
+      const rawHands = Array.isArray(args?.hands) ? args.hands : [];
+      if (rawHands.length === 0) {
+        throw new Error('Missing required parameter: hands (at least 1 hand required).');
+      }
+      const hands = rawHands.map(normalizeCardGroup);
+      const board = normalizeCardGroup(args?.board);
+      const iterations = Math.min(Math.max(parseInt(args?.iterations, 10) || 10000, 100), 50000);
+
+      const results = calculateEquity({ game, hands, board, iterations });
+      const seats = (Array.isArray(results) ? results : []).map((r, i) => ({
+        seat: i === 0 ? 'Hero' : `Villain ${i}`,
+        equity_percent: Number(r.equity.toFixed(2)),
+        wins: r.wins,
+        ties: r.ties,
+        total_simulated: r.total,
+      }));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                game,
+                simulated_iterations: iterations,
+                board_cards_evaluated: board.length,
+                seats,
+                interactive_calculator_url: `${base}/tools/poker-odds-calculator`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_preflop_chart': {
+      const pos = String(args?.position || 'UTG').toUpperCase();
+      const rfiMap = RFI[pos] || RFI.UTG;
+      const hands = Object.entries(rfiMap).map(([hand, actions]) => ({
+        hand,
+        raise_frequency: Number(actions.raise) || 0,
+        call_frequency: Number(actions.call) || 0,
+      }));
+      const openedHands = hands.filter((h) => h.raise_frequency > 0);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                position: pos,
+                game_structure: '6-Max No-Limit Hold\'em 100BB',
+                total_hands_opened: openedHands.length,
+                hands_in_opening_range: openedHands,
+                interactive_matrix_url: `${base}/tools/preflop-ranges/${pos.toLowerCase()}`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_icm_payouts': {
+      const stacks = (Array.isArray(args?.stacks) ? args.stacks : [])
+        .map(Number)
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const payouts = (Array.isArray(args?.payouts) ? args.payouts : [])
+        .map(Number)
+        .filter((n) => Number.isFinite(n) && n > 0);
+
+      if (stacks.length === 0 || payouts.length === 0) {
+        throw new Error('Both stacks and payouts arrays with positive numbers are required.');
+      }
+
+      const totalChips = stacks.reduce((a, b) => a + b, 0);
+      const totalPrizePool = payouts.reduce((a, b) => a + b, 0);
+      const equities = calculateICM(stacks, payouts);
+      const players = stacks.map((stack, idx) => ({
+        player: `Player ${idx + 1}`,
+        chips: stack,
+        chip_percentage: Number(((stack / totalChips) * 100).toFixed(2)),
+        icm_dollar_equity: Number((equities[idx] || 0).toFixed(2)),
+        prize_share_percentage: Number((((equities[idx] || 0) / totalPrizePool) * 100).toFixed(2)),
+      }));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                total_chips: totalChips,
+                total_prize_pool: totalPrizePool,
+                players,
+                interactive_calculator_url: `${base}/tools/icm-calculator`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_poker_term_definition': {
+      const termQuery = String(args?.term || '').trim().toLowerCase();
+      if (!termQuery) {
+        throw new Error('Missing required parameter: term');
+      }
+      const found = GLOSSARY_TERMS.find(
+        (t) =>
+          t.slug === termQuery ||
+          t.term.toLowerCase() === termQuery ||
+          t.term.toLowerCase().includes(termQuery)
+      );
+
+      if (!found) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  found: false,
+                  message: `Term "${args.term}" not found in poker glossary.`,
+                  glossary_directory_url: `${base}/glossary`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                found: true,
+                term: found.term,
+                category: found.category,
+                definition: found.definition,
+                related_terms: found.related,
+                canonical_definition_url: `${base}/glossary/${found.slug}`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_freeroll_schedule': {
+      const tierFilter = String(args?.tier || 'all').toLowerCase();
+      const events = [
+        {
+          time: '10:00 AM CST',
+          title: 'Morning Opener Freeroll',
+          game: 'No-Limit Hold\'em',
+          format: 'Standard 10-Minute Levels',
+          prize: '$250 Guaranteed',
+          starting_stack: '10,000 Chips',
+          tier: 'open',
+          tier_label: 'Open To All Players',
+          eligibility: '100% Free Entry (No Deposit Required)',
+        },
+        {
+          time: '2:00 PM CST',
+          title: 'Afternoon Prime Freeroll',
+          game: 'No-Limit Hold\'em',
+          format: 'Deepstack 12-Minute Levels',
+          prize: '$500 Guaranteed',
+          starting_stack: '15,000 Chips',
+          tier: 'open',
+          tier_label: 'Open To All Players',
+          eligibility: '100% Free Entry (No Deposit Required)',
+        },
+        {
+          time: '6:00 PM CST',
+          title: 'Evening Championship Freeroll',
+          game: 'No-Limit Hold\'em',
+          format: 'Deepstack 12-Minute Levels',
+          prize: '$750 Guaranteed',
+          starting_stack: '20,000 Chips',
+          tier: 'open',
+          tier_label: 'Open To All Players',
+          eligibility: '100% Free Entry (No Deposit Required)',
+        },
+        {
+          time: '9:00 PM CST',
+          title: 'Nightcap Turbo Freeroll',
+          game: 'Pot-Limit Omaha / NLH',
+          format: 'Fast 5-Minute Turbo',
+          prize: '$500 Guaranteed',
+          starting_stack: '10,000 Chips',
+          tier: 'open',
+          tier_label: 'Open To All Players',
+          eligibility: '100% Free Entry (No Deposit Required)',
+        },
+        {
+          time: 'Sundays at 5:00 PM CST',
+          title: 'Weekly Diamond Arena Championship',
+          game: 'No-Limit Hold\'em Special',
+          format: 'Championship 15-Minute Levels',
+          prize: 'Premium Diamond Rewards Pool',
+          starting_stack: '25,000 Chips',
+          tier: 'diamond',
+          tier_label: 'Diamond Tier & Loyalty Ticket Holders',
+          eligibility: 'Diamond Loyalty Ticket or VIP Status',
+        },
+      ];
+
+      const filtered = tierFilter === 'all'
+        ? events
+        : events.filter((e) => e.tier === tierFilter);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                daily_total_guaranteed: '$2,000 Awarded Every Day',
+                entry_requirements: '100% Free To Play (Zero Deposit Ever Required)',
+                game_variants: ['No-Limit Texas Hold\'em', 'Pot-Limit Omaha'],
+                platform: 'Instant In-Browser Web & Mobile (No App Download Required)',
+                schedule: filtered,
+                live_lobby_url: `${base}/hub/club-arena`,
+                freerolls_hub_url: `${base}/freerolls`,
+                markdown_url: `${base}/freerolls.md`,
               },
               null,
               2

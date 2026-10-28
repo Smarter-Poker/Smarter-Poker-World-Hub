@@ -81,3 +81,36 @@ test('pages/hub/series/[id].js uses seriesOgImage in SEOHead', () => {
   assert.match(code, /import\s*\{[^}]*seriesOgImage[^}]*\}\s*from\s*['"][^'"]*seriesSeo\.mjs['"]/);
   assert.match(code, /ogImage=\{seriesOgImage\(series\)\s*\|\|\s*series\.logoUrl\s*\|\|\s*null\}/);
 });
+
+test('tool-card OG generator module exists with edge runtime and @vercel/og', () => {
+  const code = read('pages/api/og/tool-card.js');
+  assert.match(code, /import\s+\{\s*ImageResponse\s*\}\s+from\s+['"]@vercel\/og['"]/);
+  assert.match(code, /runtime:\s*['"]edge['"]/);
+  assert.match(code, /EQUITY CALCULATOR/);
+  assert.match(code, /GTO PREFLOP MATRIX/);
+  assert.match(code, /ICM PAYOUT SOLVER/);
+  assert.match(code, /POKER GLOSSARY/);
+  assert.match(code, /ABOUT SMARTER\.POKER/);
+  assert.match(code, /WEBMASTER EMBEDS/);
+  assert.ok(!code.includes('—'), 'Must contain zero em dashes');
+});
+
+test('all interactive tools, glossary terms, and about pages pass dynamic ogImage to SEOHead', () => {
+  const glossaryCode = read('pages/glossary/[term].js');
+  assert.match(glossaryCode, /ogImage=\{`\/api\/og\/tool-card\?tool=glossary/);
+
+  const icmCode = read('pages/hub/training/icm-calculator.js');
+  assert.match(icmCode, /ogImage="\/api\/og\/tool-card\?tool=icm/);
+
+  const rangesCode = read('pages/tools/preflop-ranges/index.js');
+  assert.match(rangesCode, /ogImage=\{`\/api\/og\/tool-card\?tool=ranges/);
+
+  const oddsCode = read('pages/hub/poker-tools.js');
+  assert.match(oddsCode, /ogImage="\/api\/og\/tool-card\?tool=odds/);
+
+  const aboutCode = read('pages/about.js');
+  assert.match(aboutCode, /ogImage="\/api\/og\/tool-card\?tool=about/);
+
+  const embedsCode = read('pages/tools/embeds.js');
+  assert.match(embedsCode, /ogImage="\/api\/og\/tool-card\?tool=embeds/);
+});

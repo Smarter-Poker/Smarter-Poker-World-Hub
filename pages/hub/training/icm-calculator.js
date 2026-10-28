@@ -11,8 +11,9 @@
 // TRAIN-CSS-TOKENS-BATCH4-2 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH5-23 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { useRouter } from 'next/router';
@@ -22,6 +23,34 @@ import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import VerifiedToolGateway from '../../../src/components/training/VerifiedToolGateway';
 
+const ICM_CALCULATOR_FAQS = [
+  {
+    question: 'What Is ICM In Tournament Poker?',
+    answer:
+      'ICM (Independent Chip Model) Is A Mathematical Model That Translates Tournament Chip Stacks Into Their Actual Expected Dollar Equity Based On The Remaining Prize Pool Distribution.',
+  },
+  {
+    question: 'Why Do Chip Values Decrease As Stacks Grow Larger In Tournaments?',
+    answer:
+      'Because Tournament Payout Structures Award Fixed Prizes To Top Finishes Rather Than Exchanging Chips Directly For Cash. Your First Chip Is Worth The Most (Qualifying For Min-Cashes), While Chips That Exceed First-Place Prize Equity Have Diminishing Marginal Dollar Value.',
+  },
+  {
+    question: 'How Does ICM Affect Calling Ranges On The Bubble?',
+    answer:
+      'ICM Creates Risk Asymmetry Where Losing Chips Hurts Significantly More Than Gaining The Same Number Of Chips Helps. This Forces Players To Tighten Calling Ranges Drastically Against All-In Bets Near Pay Jumps And Bubbles.',
+  },
+  {
+    question: 'Which Algorithm Does This ICM Calculator Use?',
+    answer:
+      'This Calculator Runs The Canonical Malmuth-Harville Multi-Place Probability Model To Calculate Exact Finish-Distribution Odds For Every Seat At Final Tables Up To 9 Players.',
+  },
+  {
+    question: 'How Do I Use ICM Calculations For Final Table Chop Negotiations?',
+    answer:
+      'Input Each Player Stack And Remaining Cash Payout Ranks. The Resulting Dollar Values Represent Mathematically Fair Equity Allocations Before Considering Skill Edge Adjustments.',
+  },
+];
+
 const ICM_CALCULATOR_SCHEMA = hubProductSchema({
   path: '/hub/training/icm-calculator',
   name: 'Smarter.Poker Tournament ICM Calculator',
@@ -29,28 +58,29 @@ const ICM_CALCULATOR_SCHEMA = hubProductSchema({
   applicationCategory: 'GameApplication',
   applicationSubCategory: 'Poker',
   trail: [['Hub', '/hub'], ['GTO Training', '/hub/training'], ['ICM Calculator', '/hub/training/icm-calculator']],
-  faqs: [
-    {
-      question: 'What is ICM in tournament poker?',
-      answer:
-        'ICM (Independent Chip Model) is a mathematical model that translates tournament chip stacks into their actual expected dollar equity based on the remaining prize pool distribution.',
-    },
-    {
-      question: 'Why do chip values decrease as stacks grow larger in tournaments?',
-      answer:
-        'Because tournament payout structures award fixed prizes to top finishes rather than exchanging chips directly for cash. Your first chip is worth the most (qualifying for min-cashes), while chips that exceed first-place prize equity have diminishing marginal dollar value.',
-    },
-    {
-      question: 'How does ICM affect calling ranges on the bubble?',
-      answer:
-        'ICM creates risk asymmetry where losing chips hurts significantly more than gaining the same number of chips helps. This forces players to tighten calling ranges drastically against all-in bets near pay jumps and bubbles.',
-    },
-    {
-      question: 'Which algorithm does this ICM calculator use?',
-      answer:
-        'This calculator runs the canonical Malmuth-Harville multi-place probability model to calculate exact finish-distribution odds for every seat at final tables up to 9 players.',
-    },
-  ],
+  faqs: ICM_CALCULATOR_FAQS,
+  howTo: {
+    name: 'How To Calculate Tournament Independent Chip Model (ICM) Payouts',
+    description: 'Step-by-step instructions for converting tournament chip stacks into exact cash dollar equity using the Malmuth-Harville model.',
+    steps: [
+      {
+        name: 'Enter Player Chip Stacks',
+        text: 'Input the current chip counts for each remaining player at the final table or tournament bubble.',
+      },
+      {
+        name: 'Configure Prize Structure',
+        text: 'Set the total prize pool and percentage payouts or dollar prizes awarded to each finishing place rank.',
+      },
+      {
+        name: 'Run The Malmuth-Harville Probability Solver',
+        text: 'Click Calculate to execute the multi-place probability solver and generate exact finish distributions for every seat.',
+      },
+      {
+        name: 'Analyze Bubble Factors And Equity Differences',
+        text: 'Review the resulting ICM dollar values, bubble factor risk multipliers, and differences from raw chip EV to negotiate chops or refine push-fold ranges.',
+      },
+    ],
+  },
 });
 
 // TRAIN-CSS-MOTION-ADOPT-4 — durations routed through MOTION tokens matched to
@@ -239,26 +269,55 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
 
   const totalChips = stacks.reduce((s, v) => s + v, 0);
 
+  const schema = useMemo(() => {
+    const canonicalPath = router.pathname === '/tools/icm-calculator' ? '/tools/icm-calculator' : '/hub/training/icm-calculator';
+    return hubProductSchema({
+      path: canonicalPath,
+      name: 'Smarter.Poker Tournament ICM Calculator',
+      description: 'Free Tournament ICM Equity Calculator. Convert Chip Stacks To Real Dollar Values Using The Malmuth-Harville Model For Final Table And Bubble Decisions.',
+      applicationCategory: 'GameApplication',
+      applicationSubCategory: 'Poker',
+      trail: [['Hub', '/hub'], ['GTO Training', '/hub/training'], ['ICM Calculator', canonicalPath]],
+      faqs: [
+        {
+          question: 'What is ICM in tournament poker?',
+          answer:
+            'ICM (Independent Chip Model) is a mathematical model that translates tournament chip stacks into their actual expected dollar equity based on the remaining prize pool distribution.',
+        },
+        {
+          question: 'Why do chip values decrease as stacks grow larger in tournaments?',
+          answer:
+            'Because tournament payout structures award fixed prizes to top finishes rather than exchanging chips directly for cash. Your first chip is worth the most (qualifying for min-cashes), while chips that exceed first-place prize equity have diminishing marginal dollar value.',
+        },
+        {
+          question: 'How does ICM affect calling ranges on the bubble?',
+          answer:
+            'ICM creates risk asymmetry where losing chips hurts significantly more than gaining the same number of chips helps. This forces players to tighten calling ranges drastically against all-in bets near pay jumps and bubbles.',
+        },
+        {
+          question: 'Which algorithm does this ICM calculator use?',
+          answer:
+            'This calculator runs the canonical Malmuth-Harville multi-place probability model to calculate exact finish-distribution odds for every seat at final tables up to 9 players.',
+        },
+        {
+          question: 'How do I use ICM calculations for final table chop negotiations?',
+          answer:
+            'Input each player stack and remaining cash payout ranks. The resulting dollar values represent mathematically fair equity allocations before considering skill edge adjustments.',
+        },
+      ],
+    });
+  }, [router.pathname]);
+
   return (
     <>
       <SEOHead
         title="Tournament ICM Calculator"
         description="Free Tournament ICM Calculator. Convert Chip Stacks To Real Dollar Values Using The Malmuth-Harville Model For Final Table And Bubble Decisions."
         canonical={effectiveCanonical}
+        jsonLd={schema}
+        ogImage="/api/og/tool-card?tool=icm&title=Tournament+ICM+Calculator&subtitle=Malmuth-Harville+Final+Table+Chop+And+Bubble+Equity&statLabel=PRECISION&statValue=EXACT+MODEL"
+        markdownUrl="https://smarter.poker/tools/icm-calculator.md"
       />
-      <Head>
-        <script
-          key="icm-calculator-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              ...ICM_CALCULATOR_SCHEMA,
-              '@id': `${effectiveCanonical}#app`,
-              url: effectiveCanonical,
-            }).replace(/</g, '\\u003c'),
-          }}
-        />
-      </Head>
 
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-icm"
@@ -1002,6 +1061,46 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
             </AnimatePresence>
           </div>
 
+          {/* Related Tournament Action: Freerolls */}
+          <div
+            style={{
+              marginTop: 20,
+              padding: '16px 18px',
+              background: 'rgba(255, 215, 0, 0.04)',
+              border: '1px solid rgba(255, 215, 0, 0.2)',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#FFD700' }}>
+                Test Your ICM Skills In Daily $2,000 Freerolls
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
+                Put Tournament Equity Strategy Into Action With Zero Entry Fee And Real Guaranteed Prizes.
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/freerolls')}
+              style={{
+                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                color: '#000000',
+                fontWeight: 700,
+                fontSize: 12,
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 16px',
+                cursor: 'pointer',
+              }}
+            >
+              View Freeroll Schedule
+            </button>
+          </div>
+
           {/* About */}
           <div
             style={{
@@ -1033,6 +1132,161 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
               Values Above 1.0 Mean Survival Is More Important Than Accumulation.
             </p>
           </div>
+
+          {/* Frequently Asked Questions */}
+          <section
+            aria-label="Frequently Asked Questions"
+            style={{
+              marginTop: 20,
+              padding: '16px 18px',
+              background: 'rgba(255,255,255,0.02)',
+              borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: 'var(--sp-fg)',
+                letterSpacing: 0.5,
+                margin: '0 0 12px 0',
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+              }}
+            >
+              Frequently Asked Questions
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {ICM_CALCULATOR_FAQS.map((faq, idx) => (
+                <details
+                  key={idx}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 8,
+                    padding: '10px 14px',
+                    color: 'var(--sp-fg)',
+                  }}
+                >
+                  <summary
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      color: 'var(--sp-accent-amber)',
+                      outline: 'none',
+                    }}
+                  >
+                    {faq.question}
+                  </summary>
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: 12,
+                      lineHeight: 1.6,
+                      color: 'var(--sp-fg-muted)',
+                    }}
+                  >
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          {/* Related Poker Tools & Comparisons */}
+          <section
+            aria-label="Related Poker Tools And Software Comparisons"
+            style={{
+              marginTop: 24,
+              padding: '16px 20px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 8,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: 'var(--sp-fg)',
+                margin: '0 0 10px 0',
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+              }}
+            >
+              Related Poker Tools And Software Comparisons
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <Link
+                href="/compare"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(78, 156, 255, 0.1)',
+                  border: '1px solid rgba(78, 156, 255, 0.3)',
+                  borderRadius: 6,
+                  color: '#4E9CFF',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Compare ICM Calculator Vs. ICMIZER
+              </Link>
+              <Link
+                href="/freerolls"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(0, 230, 118, 0.1)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  borderRadius: 6,
+                  color: '#00E676',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Play Daily $2,000 Freerolls
+              </Link>
+              <Link
+                href="/tools/poker-odds-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 6,
+                  color: 'var(--sp-fg)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Poker Odds Calculator
+              </Link>
+              <Link
+                href="/tools/preflop-ranges"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 6,
+                  color: 'var(--sp-fg)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                13x13 GTO Preflop Ranges
+              </Link>
+            </div>
+          </section>
         </div>
       </div>
     </>

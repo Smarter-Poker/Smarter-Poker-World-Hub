@@ -33,6 +33,34 @@ const TOOL_ITEMS = [
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
+    {
+        title: 'Free Poker Webmaster Widgets & Embed Center',
+        link: `${SITE_URL}/tools/embeds`,
+        description: 'Embed Free Responsive Poker Odds Calculators, ICM Solvers, And GTO Preflop Charts On Any Website Or Blog.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Daily $2,000 Poker Freerolls & Diamond Freerolls',
+        link: `${SITE_URL}/freerolls`,
+        description: 'Compete In 100% Free Daily Poker Tournaments With $2,000 In Guaranteed Daily Cash Prizes And Diamond Freerolls. Zero Deposit Required.',
+        category: 'Poker Freerolls',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Software & Freeroll Platform Comparisons',
+        link: `${SITE_URL}/compare`,
+        description: 'Compare Smarter.Poker Free GTO Calculators, Equity Solvers, And Daily Freerolls Against Paid Software And Legacy Networks.',
+        category: 'Poker Software Comparison',
+        pubDate: COMPARE_AS_OF,
+    },
+    {
+        title: 'Smarter.Poker AI Agent OpenAPI Specification',
+        link: `${SITE_URL}/api/openapi.json`,
+        description: 'Public OpenAPI 3.1.0 Machine-Readable API Specification For Autonomous AI Agents, MCP Tools, And Custom GPTs.',
+        category: 'Developer APIs',
+        pubDate: LEARN_MODIFIED,
+    },
 ];
 
 export function buildRssFeedXml() {

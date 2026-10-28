@@ -449,6 +449,7 @@ function SeriesHead({ series }) {
       jsonLd={seriesSchema(series)}
       geoRegion={geoRegion}
       geoPlacename={geoPlacename}
+      markdownUrl={series?.id ? `https://smarter.poker/hub/series/${series.id}.md` : undefined}
     />
   );
 }

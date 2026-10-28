@@ -27,3 +27,15 @@ test('venues/[id].js daily tournaments matrix table uses semantic caption and sc
   assert.ok(content.includes('<th scope="col"'), 'Must have column header scopes');
   assert.ok(content.includes('<th scope="row"'), 'Must have row header scopes');
 });
+
+test('compare/index.js features comprehensive comparative matrices and schema', async () => {
+  const content = await fs.readFile('pages/compare/index.js', 'utf8');
+
+  assert.ok(content.includes('Smarter.Poker Vs. Legacy Poker Sites'), 'Must compare against legacy poker sites');
+  assert.ok(content.includes('ICMIZER'), 'Must compare against ICMIZER');
+  assert.ok(content.includes('Equilab'), 'Must compare against Equilab');
+  assert.ok(content.includes('PokerAtlas'), 'Must compare against PokerAtlas');
+  assert.ok(content.includes('role="complementary"'), 'Must contain executive AI citation block');
+  assert.ok(content.includes('faqSchema'), 'Must wire faqSchema');
+  assert.ok(!content.includes('—'), 'Must contain zero em dashes');
+});

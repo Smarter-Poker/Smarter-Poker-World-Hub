@@ -63,6 +63,7 @@ export function buildPokerVenueSitemapUrls(venues = []) {
     const venueType = String(venue?.venue_type ?? '').trim().toLowerCase();
     if (!id || !name || EXCLUDED_VENUE_TYPES.has(venueType)) continue;
     if (venue?.is_active === false || venue?.is_suppressed === true) continue;
+    if (venue?.is_social_page === true || id.startsWith('sp-')) continue;
 
     const lastmod = venueLastmod(venue);
     if (!venueIds.has(id)) {

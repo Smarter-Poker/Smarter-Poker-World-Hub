@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 
@@ -54,18 +55,42 @@ export default function WebmasterEmbedPortal() {
     }
   };
 
-  const portalSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'WebPage',
-    name: 'Webmaster Poker Widgets & Embed Distribution Center',
-    description: 'Free embeddable poker widgets, odds calculators, ICM solvers, and GTO charts for poker webmasters, bloggers, and media sites.',
-    url: 'https://smarter.poker/tools/embeds',
-    publisher: {
-      '@type': 'Organization',
-      name: 'Smarter.Poker',
-      url: 'https://smarter.poker',
+  const EMBEDS_FAQS = [
+    {
+      question: 'How Do I Embed The Smarter.Poker Odds Calculator On My Website?',
+      answer:
+        'Copy The Responsive HTML Iframe Snippet From This Portal And Paste It Into Your CMS Or HTML Page. It Automatically Adjusts To Mobile And Desktop Viewports With Zero API Keys Required.',
     },
-  };
+    {
+      question: 'Are Smarter.Poker Embeddable Poker Widgets Free For Commercial And Affiliate Sites?',
+      answer:
+        'Yes. All Smarter.Poker Widgets Are 100% Free To Embed On Poker Blogs, News Portals, Casino Affiliate Sites, And Media Publications.',
+    },
+    {
+      question: 'Can I Customize The Theme Or Default Poker Game Variant For The Widget?',
+      answer:
+        'Yes. You Can Append URL Query Parameters Such As ?game=holdem, ?game=plo4, Or ?embed=true To Preselect Specific Variants And Lock Widget Dimensions.',
+    },
+    {
+      question: 'Do These Widgets Require Any JavaScript Dependencies Or External Tracking Scripts?',
+      answer:
+        'No. Smarter.Poker Widgets Run Entirely Within Sandboxed Responsive Iframes, Requiring Zero External Scripts Or Client Libraries On Your Host Domain.',
+    },
+  ];
+
+  const EMBEDS_SCHEMA = hubProductSchema({
+    path: '/tools/embeds',
+    name: 'Smarter.Poker Webmaster Widgets & Embed Distribution Center',
+    description: 'Free embeddable poker widgets, odds calculators, ICM solvers, and GTO charts for poker webmasters, bloggers, and media sites.',
+    applicationCategory: 'WebApplication',
+    applicationSubCategory: 'DeveloperApplication',
+    trail: [
+      ['Hub', '/hub'],
+      ['Poker Tools', '/tools/poker-odds-calculator'],
+      ['Embed Widgets', '/tools/embeds'],
+    ],
+    faqs: EMBEDS_FAQS,
+  });
 
   return (
     <>
@@ -73,12 +98,9 @@ export default function WebmasterEmbedPortal() {
         title="Free Poker Widgets & Embeds"
         description="Free embeddable poker widgets for webmasters and bloggers. Embed real-time odds calculators, tournament ICM solvers, and GTO preflop charts with simple HTML iframe snippets."
         canonical="https://smarter.poker/tools/embeds"
-      >
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(portalSchema) }}
-        />
-      </SEOHead>
+        jsonLd={EMBEDS_SCHEMA}
+        ogImage="/api/og/tool-card?tool=embeds&title=Free+Poker+Widgets+And+Embeds&subtitle=Responsive+Iframe+Widgets+For+Odds+ICM+And+Preflop+Ranges&statLabel=WIDGETS&statValue=100%+FREE"
+      />
 
       <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#fff', paddingBottom: '60px' }}>
         <UniversalHeader pageDepth={1} />
@@ -202,6 +224,158 @@ export default function WebmasterEmbedPortal() {
                   </article>
                 );
               })}
+            </div>
+          </section>
+
+          {/* Frequently Asked Questions */}
+          <section
+            aria-label="Frequently Asked Questions"
+            style={{
+              marginTop: '40px',
+              padding: '24px',
+              background: '#0d1117',
+              border: '1px solid #30363d',
+              borderRadius: '12px',
+            }}
+          >
+            <h2
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: '#f0f6fc',
+                margin: '0 0 16px 0',
+              }}
+            >
+              Frequently Asked Questions
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {EMBEDS_FAQS.map((faq, idx) => (
+                <details
+                  key={idx}
+                  style={{
+                    background: '#161b22',
+                    border: '1px solid #30363d',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    color: '#f0f6fc',
+                  }}
+                >
+                  <summary
+                    style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      color: '#58a6ff',
+                      outline: 'none',
+                    }}
+                  >
+                    {faq.question}
+                  </summary>
+                  <p
+                    style={{
+                      margin: '10px 0 0',
+                      fontSize: '0.88rem',
+                      lineHeight: 1.6,
+                      color: '#8b949e',
+                    }}
+                  >
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          {/* Related Free Poker Ecosystem Hubs */}
+          <section
+            aria-label="Related Free Poker Tools And Freerolls"
+            style={{
+              marginTop: '40px',
+              padding: '24px',
+              background: '#0d1117',
+              border: '1px solid #30363d',
+              borderRadius: '12px',
+            }}
+          >
+            <h2
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: '#f0f6fc',
+                margin: '0 0 16px 0',
+              }}
+            >
+              Related Free Poker Ecosystem Hubs
+            </h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <Link
+                href="/compare"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(88, 166, 255, 0.12)',
+                  border: '1px solid rgba(88, 166, 255, 0.3)',
+                  borderRadius: '6px',
+                  color: '#58a6ff',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Compare Free Poker Tools Vs. Paid Software
+              </Link>
+              <Link
+                href="/freerolls"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(0, 230, 118, 0.12)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  borderRadius: '6px',
+                  color: '#00e676',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Play Daily $2,000 Guaranteed Freerolls
+              </Link>
+              <Link
+                href="/tools/poker-odds-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '6px',
+                  color: '#f0f6fc',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Poker Odds Calculator
+              </Link>
+              <Link
+                href="/tools/icm-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '6px',
+                  color: '#f0f6fc',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Tournament ICM Calculator
+              </Link>
             </div>
           </section>
         </main>
