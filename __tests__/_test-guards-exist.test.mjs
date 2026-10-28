@@ -41,6 +41,7 @@ import './aeo-segmented-sitemaps.test.mjs';
 import './aeo-dynamic-og-cards.test.mjs';
 import './aeo-ai-agent-api.test.mjs';
 import './aeo-tool-schemas.test.mjs';
+import './aeo-freerolls-hub.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
