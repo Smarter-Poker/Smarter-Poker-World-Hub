@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
+import {
+  CHECKED_LABEL,
+  COMPARE_BASE,
+  COMPARE_INDEX_TITLE,
+  COMPARE_PAGES,
+  PLAY_CREDIT_DISCLOSURE,
+  compareIndexJsonLd,
+  comparePath,
+} from '../../src/content/compare/pages';
 import { 
   Trophy, 
   Calculator, 
@@ -80,10 +89,10 @@ export default function CompareHubPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B1118', color: '#F0F4F8', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Poker Software & Freerolls Comparisons: Smarter.Poker vs. Alternatives"
-        description="Comprehensive feature, pricing, and platform comparisons between Smarter.Poker, legacy poker sites, ICMIZER, Equilab, and PokerAtlas. Discover 100% free poker tools and daily freerolls."
-        canonicalUrl="https://smarter.poker/compare"
-        jsonLd={jsonLd}
+        title="Poker Room And Software Comparisons"
+        description="Honest Comparisons Of Live Poker Rooms, Club Apps, Room Management Software, GTO Trainers And Bankroll Trackers, With Every Fact Sourced And Dated."
+        canonical={COMPARE_BASE}
+        jsonLd={[schemas.organization, ...compareIndexJsonLd()]}
         ogImage="https://smarter.poker/api/og/tool-card?tool=compare"
       />
 
@@ -138,6 +147,9 @@ export default function CompareHubPage() {
           }}>
             Compare Smarter.Poker Against Traditional Poker Sites, Expensive Subscription Calculators, And Legacy Desktop Software. Learn How Our Free-To-Play Model, $2,000 Daily Freerolls, And Browser-Based GTO Tools Provide Superior Value.
           </p>
+
+          <p className="cmp-checked" style={{ fontSize: '14px', color: '#7E9BB8', margin: '0 0 8px' }}>{CHECKED_LABEL}</p>
+          <p className="cmp-disclosure" style={{ fontSize: '13px', color: '#BACCDD', maxWidth: '780px', margin: '0 auto 24px', lineHeight: 1.5 }}>{PLAY_CREDIT_DISCLOSURE.value}</p>
         </header>
 
         {/* AI Citation Summary Box */}

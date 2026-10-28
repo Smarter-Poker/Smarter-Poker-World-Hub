@@ -286,7 +286,7 @@ export default function FreerollsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B1118', color: '#F0F4F8', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Daily $2,000 Poker Freerolls & Diamond Freerolls | Smarter.Poker"
+        title="Daily $2,000 & Diamond Freerolls | Smarter.Poker"
         description="Compete in 100% free daily poker tournaments with $2,000 in guaranteed daily prizes plus exclusive Diamond Freerolls. No deposit required, play in your browser on web or mobile."
         canonicalUrl="https://smarter.poker/freerolls"
         jsonLd={FREEROLLS_SCHEMA}

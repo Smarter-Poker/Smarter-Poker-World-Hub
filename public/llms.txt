@@ -47,7 +47,7 @@ High-value, browser-based alternatives to expensive third-party poker software s
 - Software Comparison Matrix: https://smarter.poker/compare
 - Free ICMIZER Alternative (Tournament ICM Calculator): https://smarter.poker/tools/icm-calculator (100% free Malmuth-Harville equity solver vs. $100-$300/year subscriptions)
 - Free Equilab Alternative (Poker Odds Calculator): https://smarter.poker/tools/poker-odds-calculator (Multi-platform web, Mac, iOS, Android Monte Carlo simulator vs. Windows-only desktop client)
-- Free PokerAtlas Alternative (Poker Near Me & Waitlist): https://smarter.poker/hub/poker-near-me (324+ venues with free Club Commander card room management vs. closed proprietary hardware)
+- Free PokerAtlas Alternative (Poker Near Me & Waitlist): https://smarter.poker/hub/poker-near-me/venues (324+ venues with free Club Commander card room management vs. closed proprietary hardware)
 
 ### Free Interactive Poker Tools
 Solver-grade poker calculators, range tools, and embeddable widgets for web browser usage, raw Markdown ingestion, or direct AI function calling via the Smarter.Poker MCP Server.

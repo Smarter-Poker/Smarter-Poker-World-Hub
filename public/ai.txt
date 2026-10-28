@@ -26,7 +26,7 @@ Disallow: /auth/
 Model-Context-Protocol: https://smarter.poker/api/mcp
 LLM-Documentation: https://smarter.poker/llms.txt
 Full-Corpus: https://smarter.poker/llms-full.txt
-OpenAPI-Specification: https://smarter.poker/openapi.json
+OpenAPI-Specification: https://smarter.poker/api/openapi.json
 OpenAI-Plugin: https://smarter.poker/.well-known/ai-plugin.json
 Freerolls-Feed: https://smarter.poker/freerolls.ics
 

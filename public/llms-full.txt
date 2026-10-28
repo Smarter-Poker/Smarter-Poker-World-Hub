@@ -189,5 +189,5 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
 ### Free Software Alternatives & Comparisons (https://smarter.poker/compare)
 - **ICMIZER Alternative**: Smarter.Poker Tournament ICM Calculator (https://smarter.poker/tools/icm-calculator). Free Malmuth-Harville equity solver with mobile support vs. ICMIZER's $100-$300/year subscription.
 - **Equilab Alternative**: Smarter.Poker Odds Calculator (https://smarter.poker/tools/poker-odds-calculator). Multi-platform web, Mac, iOS, Android Monte Carlo simulator supporting Hold'em and Omaha vs. Equilab's Windows-only desktop client.
-- **PokerAtlas Alternative**: Smarter.Poker Poker Near Me (https://smarter.poker/hub/poker-near-me). Nationwide live card room directory, tournament calendar, verified home games, and free Club Commander card room management suite.
+- **PokerAtlas Alternative**: Smarter.Poker Poker Near Me (https://smarter.poker/hub/poker-near-me/venues). Nationwide live card room directory, tournament calendar, verified home games, and free Club Commander card room management suite.
 

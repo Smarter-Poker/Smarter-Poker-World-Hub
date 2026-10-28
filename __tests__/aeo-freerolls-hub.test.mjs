@@ -4,11 +4,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const FREEROLLS_PAGE_PATH = path.resolve('pages/freerolls.js');
-const HUB_FREEROLLS_PAGE_PATH = path.resolve('pages/hub/freerolls.js');
+const NEXT_CONFIG_PATH = path.resolve('next.config.js');
 
 test('Freerolls hub: page files exist and are populated', () => {
   assert.ok(fs.existsSync(FREEROLLS_PAGE_PATH), 'pages/freerolls.js must exist');
-  assert.ok(fs.existsSync(HUB_FREEROLLS_PAGE_PATH), 'pages/hub/freerolls.js must exist');
+  const nextConfig = fs.readFileSync(NEXT_CONFIG_PATH, 'utf8');
+  assert.ok(nextConfig.includes('/hub/freerolls'), 'next.config.js must route /hub/freerolls');
 
   const content = fs.readFileSync(FREEROLLS_PAGE_PATH, 'utf8');
   assert.ok(content.length > 1000, 'pages/freerolls.js must have substantive content');

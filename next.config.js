@@ -1343,6 +1343,8 @@ const nextConfig = {
       afterFiles: [
         /* Clean Root OpenAPI Alias for AI crawlers bypassing Disallow: /api/ */
         { source: '/openapi.json', destination: '/api/openapi.json' },
+        /* Clean Hub Freerolls Alias */
+        { source: '/hub/freerolls', destination: '/freerolls' },
         /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
            origin wants the app to open /hub/club-arena/* by fetching these two
            files. They are API routes, not files in public/, because their
