@@ -1456,6 +1456,14 @@ const nextConfig = {
           destination: '/tools/embeds?format=md',
         },
         {
+          source: '/compare.md',
+          destination: '/api/compare-markdown?slug=index',
+        },
+        {
+          source: '/compare/:slug.md',
+          destination: '/api/compare-markdown?slug=:slug',
+        },
+        {
           source: '/about.md',
           destination: '/about?format=md',
         },

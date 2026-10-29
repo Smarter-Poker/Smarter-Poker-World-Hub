@@ -1019,3 +1019,25 @@ export default function CompareHubPage() {
     </div>
   );
 }
+
+export async function getServerSideProps({ req, res, query }) {
+  const acceptHeader = String(req?.headers?.accept || '');
+  const isMarkdownRequested =
+    acceptHeader.includes('text/markdown') ||
+    query?.format === 'md' ||
+    req?.url?.includes('format=md');
+
+  if (isMarkdownRequested) {
+    const { renderCompareIndexMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderCompareIndexMarkdown();
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+
+  return { props: {} };
+}
+
