@@ -112,7 +112,11 @@ const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     applicationSubCategory: 'Poker',
     trail: [['Hub', '/hub'], ['Poker Odds Calculator', '/hub/poker-tools']],
     faqs: ODDS_CALCULATOR_FAQS,
-    howTo: ODDS_CALCULATOR_HOW_TO,
+    howTo: {
+        name: 'How To Calculate Poker Odds And Hand Equity',
+        description: ODDS_CALCULATOR_HOW_TO.description,
+        steps: ODDS_CALCULATOR_HOW_TO.steps,
+    },
 });
 
 /* ═══════════════════════════════════════════════

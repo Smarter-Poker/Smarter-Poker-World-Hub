@@ -83,7 +83,11 @@ const ICM_CALCULATOR_SCHEMA = hubProductSchema({
   applicationSubCategory: 'Poker',
   trail: [['Hub', '/hub'], ['GTO Training', '/hub/training'], ['ICM Calculator', '/hub/training/icm-calculator']],
   faqs: ICM_CALCULATOR_FAQS,
-  howTo: ICM_CALCULATOR_HOW_TO,
+  howTo: {
+    name: 'How To Calculate Tournament Independent Chip Model (ICM) Payouts',
+    description: ICM_CALCULATOR_HOW_TO.description,
+    steps: ICM_CALCULATOR_HOW_TO.steps,
+  },
 });
 
 // TRAIN-CSS-MOTION-ADOPT-4 — durations routed through MOTION tokens matched to
