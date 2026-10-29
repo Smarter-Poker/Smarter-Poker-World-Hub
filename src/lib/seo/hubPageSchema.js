@@ -340,9 +340,12 @@ export function courseSchema({
   description = 'Interactive Game Theory Optimal Poker Training Covering Preflop Ranges, ICM Pressure, Postflop Play, And Bankroll Strategy.',
   educationalLevel = 'Beginner To Advanced',
   teaches = ['Preflop Opening Ranges', 'Pot Odds & Equity', 'ICM Tournament Strategy', 'Postflop Continuation Betting'],
+  courseWorkload = 'PT10H',
+  quizzes = [],
+  hasPart = null,
 } = {}) {
   const url = absolute(path);
-  return {
+  const courseNode = {
     '@type': 'Course',
     '@id': `${url}#course`,
     name,
@@ -367,9 +370,34 @@ export function courseSchema({
     hasCourseInstance: {
       '@type': 'CourseInstance',
       courseMode: 'Online',
-      courseWorkload: 'PT10H',
+      courseWorkload,
     },
   };
+
+  const parts = [];
+  if (Array.isArray(hasPart) && hasPart.length > 0) {
+    parts.push(...hasPart);
+  }
+
+  if (Array.isArray(quizzes) && quizzes.length > 0) {
+    quizzes.forEach((quiz, index) => {
+      parts.push({
+        '@type': 'Quiz',
+        '@id': `${url}#quiz-${index + 1}`,
+        name: quiz.name || `Interactive Pause Quiz ${index + 1}`,
+        description: quiz.description || 'Interactive In-Video Pause Quiz Testing Decision Making And Range Construction.',
+        learningResourceType: 'Quiz',
+        educationalUse: 'Assessment',
+        isAccessibleForFree: true,
+      });
+    });
+  }
+
+  if (parts.length > 0) {
+    courseNode.hasPart = parts;
+  }
+
+  return courseNode;
 }
 
 /**

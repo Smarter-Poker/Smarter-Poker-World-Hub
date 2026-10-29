@@ -49640,7 +49640,7 @@
         },
         {
           "name": "freerollEventSchema",
-          "line": 378,
+          "line": 406,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -94301,6 +94301,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/aeo-tool-schemas.test.mjs",
+          "__tests__/aeo-video-library-schema.test.mjs",
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
@@ -94347,7 +94348,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 378,
+        "line": 406,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -103617,6 +103618,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/aeo-tool-schemas.test.mjs",
+          "__tests__/aeo-video-library-schema.test.mjs",
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/schema-faq-and-rich-results.test.mjs",
@@ -103663,7 +103665,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 378,
+        "line": 406,
         "references": 1,
         "exported": true,
         "defaultExport": false,

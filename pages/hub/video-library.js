@@ -25,13 +25,39 @@ import SEOHead from '../../src/components/video-library/VideoLibrarySEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
-// AEO phase 3 (2026-09-17).
+// AEO phase 3 & 4 (2026-10-29).
 const VIDEO_LIBRARY_SCHEMA = hubProductSchema({
     path: '/hub/video-library',
     name: 'Smarter.Poker Video Library',
     description:
         'A Curated Poker Video Library: Strategy Content, Tournament Coverage And Training Videos, With Watch History And AI Tactical Analysis. Free To Watch.',
     trail: [['Hub', '/hub'], ['Video Library', '/hub/video-library']],
+    course: {
+        name: 'Smarter.Poker Video Coaching Curriculum & Interactive Pause Quizzes',
+        description:
+            'Comprehensive Poker Coaching Video Library Covering Cash Game Exploits, Tournament ICM, Mental Game, And Hand Analysis With In-Video Interactive Pause Quizzes.',
+        educationalLevel: 'Beginner To Professional',
+        courseWorkload: 'PT40H',
+        teaches: [
+            'Tournament Final Table ICM Pressure',
+            'Cash Game Deep-Stack Play',
+            'Interactive Pause Quiz Hand Reviews',
+            'Live Tells And Psychological Reads',
+            'Preflop And Postflop GTO Baselines',
+        ],
+        quizzes: [
+            {
+                name: 'Preflop 3-Bet Pot Decision Pause Quiz',
+                description:
+                    'Test Your Decisions When Facing A 3-Bet Out Of Position In Deep-Stacked NLHE.',
+            },
+            {
+                name: 'River Bluff-Catching Decision Pause Quiz',
+                description:
+                    'Determine The Mathematical Cutoff To Call A Triple-Barrel Shove On Wet Runouts.',
+            },
+        ],
+    },
 });
 import { useRouter } from 'next/router';
 import Link from 'next/link';
