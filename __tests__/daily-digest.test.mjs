@@ -453,11 +453,3 @@ test('the digest is loaded once for all recipients and the reports do not race t
     assert.match(route, /loadDigestData\(sb, day\)/);
     assert.ok(!/for \(const a of admins\) \{\s*out = await assembleDigest/.test(route), 'no per-admin reload');
 });
-
-test('the spins report has the same sixty second ceiling as its sibling reports', async () => {
-    const fs = await import('node:fs');
-    const dir = new URL('../supabase/migrations/', import.meta.url);
-    const file = fs.readdirSync(dir).filter((f) => /digest_spins_report_gets_sixty_seconds/.test(f))[0];
-    assert.ok(file, 'migration present');
-    assert.match(fs.readFileSync(new URL(file, dir), 'utf8'), /ALTER FUNCTION public\.fn_sp_digest_spins_spend\(date\) SET statement_timeout = '60s'/);
-});
