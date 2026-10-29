@@ -1484,6 +1484,14 @@ const nextConfig = {
           destination: '/freerolls?format=md',
         },
         {
+          source: '/hub/home-games.md',
+          destination: '/features/home-poker-games?format=md',
+        },
+        {
+          source: '/hub/messenger.md',
+          destination: '/features/poker-messenger-video-calls?format=md',
+        },
+        {
           source: '/freerolls.ics',
           destination: '/api/calendar/freerolls.ics',
         },

@@ -5,17 +5,43 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { hubProductSchema, faqSchema } from '../../src/lib/seo/hubPageSchema';
+
+const HOME_GAMES_FAQS = [
+    {
+        question: 'How Do I Find Poker Home Games Near Me?',
+        answer: 'Smarter.Poker Home Games directory provides an interactive map and verified listings of private poker home games, social clubs, and player-hosted games nationwide with location and schedule details.',
+    },
+    {
+        question: 'Are Poker Home Games Legal To Host?',
+        answer: 'In most US jurisdictions, private poker games in a residence where no rake, admission fee, or commercial profit is taken by the host are legal social gambling. Always review local municipal ordinances.',
+    },
+    {
+        question: 'Can I Charge Rake At A Private Poker Home Game?',
+        answer: 'No. Taking a rake, seat fee, or time collection from poker pots generally violates social gambling exemptions and requires commercial casino licensing. Smarter.Poker is free to use and prohibits real-money gambling on platform.',
+    },
+    {
+        question: 'How Does Smarter.Poker Help Home Game Hosts?',
+        answer: 'Smarter.Poker provides free host tools including RSVP seat management, digital waitlists, blind timer clocks, automated player SMS reminders, and chip distribution calculators.',
+    },
+    {
+        question: 'Can Players RSVP And Join Waitlists Online?',
+        answer: 'Yes. Players can browse upcoming home game schedules, reserve open seats, and join digital waitlists directly from mobile and desktop browsers.',
+    },
+];
 
 // AEO phase 3 (2026-09-17): 4,942 server-rendered words, the largest page
 // on the site, and no structured data at all.
-const HOME_GAMES_SCHEMA = hubProductSchema({
-    path: '/hub/home-games',
-    name: 'Smarter.Poker Home Games',
-    description:
-        'Find Private Poker Home Games Near You, Join The Local Community, Or Host Your Own With Invites, Seating And Results Handled For You. Free To Play, No Real-Money Gambling.',
-    trail: [['Hub', '/hub'], ['Home Games', '/hub/home-games']],
-});
+const HOME_GAMES_SCHEMA = [
+    ...hubProductSchema({
+        path: '/hub/home-games',
+        name: 'Smarter.Poker Home Games',
+        description:
+            'Find Private Poker Home Games Near You, Join The Local Community, Or Host Your Own With Invites, Seating And Results Handled For You. Free To Play, No Real-Money Gambling.',
+        trail: [['Hub', '/hub'], ['Home Games', '/hub/home-games']],
+    }),
+    faqSchema(HOME_GAMES_FAQS, '/hub/home-games'),
+];
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';
