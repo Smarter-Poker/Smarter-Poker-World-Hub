@@ -6,9 +6,9 @@
  * supply, a tournament stuck RUNNING, a failed Stripe webhook or payment
  * dispute, Diamond Spins funded below 2,500, the digest itself not delivered),
  * records each once in public.sp_critical_pages, hands it to the alert-fixing
- * fleet, and returns the pages still owed to the owner. This route emails and
- * texts each one, then marks it so it is never sent twice. A page that keeps
- * failing is retried up to 5 times.
+ * chat, and returns pending delivery bookkeeping. Tournament failures remain
+ * in that durable chat route and never duplicate delivery to email or SMS.
+ * Other critical page types retain their existing delivery policy.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import { createClient } from '@supabase/supabase-js';
@@ -57,6 +57,12 @@ async function handler(req, res) {
 
     const results = [];
     for (const p of data?.pending || []) {
+        // fn_sp_critical_scan commits the operational alert before returning it.
+        // Keep delivery receipts honest: routing here does not mean SMS/email sent.
+        if (p.rule === 'stuck_tournament' || p.detail?.tournament_id) {
+            results.push({ id: p.id, rule: p.rule, destination: 'codex', emailed: false, texted: false, errors: [] });
+            continue;
+        }
         let emailed = false;
         let texted = false;
         const errors = [];
