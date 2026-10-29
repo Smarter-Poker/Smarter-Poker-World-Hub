@@ -25,6 +25,7 @@ export async function rpcWithRetry(sb, name, args, { sleep = defaultSleep, delay
         if (!message || !STATEMENT_TIMEOUT.test(message)) break;
         if (budget?.deadline && Date.now() + delay > budget.deadline) break;
         await sleep(delay);
+        if (budget?.deadline && Date.now() >= budget.deadline) break;
         result = await sb.rpc(name, args);
     }
     return result;

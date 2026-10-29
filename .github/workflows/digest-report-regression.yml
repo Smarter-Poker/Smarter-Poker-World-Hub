@@ -1,5 +1,15 @@
 name: Digest Report Regression
 on:
+  workflow_dispatch:
+    inputs:
+      day:
+        description: Central report day (YYYY-MM-DD)
+        required: true
+        type: string
+      expected_sha:
+        description: Full protected revision currently served by production
+        required: true
+        type: string
   pull_request:
     branches: [main]
     paths:
@@ -24,6 +34,7 @@ permissions:
   contents: read
 jobs:
   report:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -45,3 +56,18 @@ jobs:
         env:
           PHASE6_POSTGRES_BIN: /usr/lib/postgresql/17/bin
         run: node scripts/verify-digest-player-report-postgres.mjs
+  live-report:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+      - name: Read the signed production digest without sending email
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DIGEST_DAY: ${{ inputs.day }}
+          DIGEST_EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: node scripts/verify-digest-live.mjs

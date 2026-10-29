@@ -23,7 +23,7 @@
  * The 8:15 AM watchdog (fn_sp_digest_watchdog) pages if no send is recorded.
  * ═══════════════════════════════════════════════════════════════════════════
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { assembleDigest, loadDigestData, renderDigest } from '../../../src/lib/dailyDigest/assemble.mjs';

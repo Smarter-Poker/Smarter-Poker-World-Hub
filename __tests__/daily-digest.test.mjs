@@ -453,3 +453,90 @@ test('the digest is loaded once for all recipients and the reports do not race t
     assert.match(route, /loadDigestData\(sb, day\)/);
     assert.ok(!/for \(const a of admins\) \{\s*out = await assembleDigest/.test(route), 'no per-admin reload');
 });
+
+test('a delayed retry wakeup never starts a report after its deadline', async () => {
+    const { rpcWithRetry } = await import('../src/lib/dailyDigest/assemble.mjs');
+    let clock = 100, calls = 0;
+    const originalNow = Date.now;
+    Date.now = () => clock;
+    try {
+        const result = await rpcWithRetry({ rpc: async () => {
+            calls++;
+            return { error: { message: 'canceling statement due to statement timeout' } };
+        } }, 'report', {}, { budget: { deadline: 200 }, delays: [10], sleep: async () => { clock = 201; } });
+        assert.equal(calls, 1);
+        assert.match(result.error.message, /statement timeout/);
+    } finally { Date.now = originalNow; }
+});
+
+test('the signed online view executes the shared serial loader without dispatching or provider costs', async () => {
+    const fs = await import('node:fs/promises');
+    const { loadDigestData, loadPlayerTotals, loadSpinsSpend } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const source = await fs.readFile(new URL('../pages/api/digest/view.js', import.meta.url), 'utf8');
+    // Execute the actual handler, replacing only module imports and external boundaries.
+    const body = source.replace(/^import .*;\n/gm, '').replace('export const config =', 'const config =').replace('export default async function handler', 'return async function handler');
+    const order = [];
+    let inFlight = 0, maxInFlight = 0;
+    const sb = { rpc: async (name, args) => {
+        order.push(name);
+        maxInFlight = Math.max(maxInFlight, ++inFlight);
+        await new Promise(resolve => setTimeout(resolve, 1));
+        inFlight--;
+        if (name === 'fn_sp_daily_digest') {
+            assert.equal(args.p_dispatch, false);
+            return { data: fixture(), error: null };
+        }
+        return { data: name === 'fn_sp_digest_player_report' ? PLAYER_TOTALS : { spins: {} }, error: null };
+    } };
+    let options;
+    const handler = new Function('createClient', 'verifyViewToken', 'viewUrlFor', 'buildHtml', 'loadDigestData', 'loadPlayerTotals', 'loadSpinsSpend', body)(
+        () => sb, () => '2026-10-28', () => 'https://example.test/view', buildHtml,
+        async (client, day, opts) => { options = opts; return loadDigestData(client, day, opts); }, loadPlayerTotals, loadSpinsSpend,
+    );
+    const oldUrl = process.env.NEXT_PUBLIC_SUPABASE_URL, oldKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.test';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'fixture-only';
+    const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(n) { this.code = n; return this; }, send(v) { this.body = v; return this; } };
+    try {
+        await handler({ method: 'GET', query: { t: 'fixture' } }, res);
+        assert.equal(maxInFlight, 1, 'online reports must not compete for the database');
+        assert.deepEqual(options, { withCosts: false, dispatch: false });
+        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend']);
+        assert.equal(res.code, 200);
+        assert.equal(res.headers['Cache-Control'], 'no-store');
+        assert.match(res.body, /Real Player Totals/i);
+    } finally {
+        if (oldUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL; else process.env.NEXT_PUBLIC_SUPABASE_URL = oldUrl;
+        if (oldKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = oldKey;
+    }
+});
+
+test('explicit live verification rejects wrong revisions and broken sections without sending email or exposing links', async () => {
+    const { verifyDigestLive } = await import('../scripts/verify-digest-live.mjs');
+    const oldSecret = process.env.CRON_SECRET;
+    process.env.CRON_SECRET = 'fixture-only-secret';
+    const sha = 'a'.repeat(40);
+    let calls = [];
+    const response = html => new Response(html, { headers: { 'content-type': 'text/html', 'cache-control': 'no-store' } });
+    const fetchImpl = async (url, opts) => {
+        calls.push([url, opts]);
+        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Real Player Totals Diamond Spins');
+    };
+    try {
+        const report = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl });
+        assert.equal(report.playerTotals, 'rendered');
+        assert.equal(calls.length, 2);
+        assert.ok(calls[1][0].startsWith('https://smarter.poker/api/digest/view?t='));
+        assert.equal(calls[1][1].redirect, 'error');
+        assert.doesNotMatch(JSON.stringify(report), /fixture-only-secret|\?t=/);
+        calls = [];
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: 'b'.repeat(40), fetchImpl }), /revision differs/);
+        assert.equal(calls.length, 1, 'a wrong deployment never reads the report');
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url =>
+            url.endsWith('/api/health') ? Response.json({ version: sha }) : response('Real Player Totals Diamond Spins Report Unavailable') }), /section failed/);
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url => {
+            if (url.endsWith('/api/health')) return Response.json({ version: sha });
+            throw new Error(`network failure at ${url}`);
+        } }), error => error.message === 'Production digest request failed');
+    } finally { if (oldSecret === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = oldSecret; }
+});
