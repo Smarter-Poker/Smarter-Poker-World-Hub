@@ -411,3 +411,53 @@ test('money units and promo versus leaderboard totals remain separate', async ()
     assert.ok(!buildHtml(d).includes('Promo, Leaderboard And Setup Ledger Movements'));
     assert.ok(!buildHtml(d).includes('Chips Equivalent'));
 });
+
+test('a report cancelled by a statement timeout is retried after the contention passes, other errors are final', async () => {
+    const { loadPlayerTotals, loadSpinsSpend, rpcWithRetry } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const fast = { sleep: async () => {}, delays: [1, 1] };
+    let n = 0;
+    const flaky = { rpc: async () => (++n < 3 ? { error: { message: 'canceling statement due to statement timeout' } } : { data: { day: 'd', ok: true }, error: null }) };
+    assert.deepEqual(await loadSpinsSpend(flaky, 'd', fast), { day: 'd', ok: true });
+    assert.equal(n, 3, 'two cancelled attempts, then the success');
+    n = 0;
+    const dead = { rpc: async () => { n++; return { error: { message: 'canceling statement due to statement timeout' } }; } };
+    assert.deepEqual(await loadPlayerTotals(dead, 'd', fast), { day: 'd', error: 'canceling statement due to statement timeout' });
+    assert.equal(n, 3, 'gives up after the configured retries');
+    n = 0;
+    const final = { rpc: async () => { n++; return { error: { message: 'permission denied' } }; } };
+    await rpcWithRetry(final, 'x', {}, fast);
+    assert.equal(n, 1, 'a non-timeout error is not retried');
+    n = 0;
+    await rpcWithRetry(dead, 'x', {}, { ...fast, delays: [50], budget: { deadline: Date.now() } });
+    assert.equal(n, 1, 'no retry starts past the shared budget');
+});
+
+test('the digest is loaded once for all recipients and the reports do not race the main read', async () => {
+    const { loadDigestData, renderDigest } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const order = [];
+    let inflight = 0, maxInflight = 0;
+    const sb = { rpc: async (name) => {
+        order.push(name); inflight++; maxInflight = Math.max(maxInflight, inflight);
+        await new Promise((r) => setTimeout(r, 5)); inflight--;
+        return { data: name === 'fn_sp_daily_digest' ? fixture() : PLAYER_TOTALS, error: null };
+    } };
+    const data = await loadDigestData(sb, '2026-10-28', { withCosts: false, dispatch: false });
+    assert.equal(maxInflight, 1, 'one database read at a time');
+    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend']);
+    const a = renderDigest('2026-10-28', data, { recipientName: 'Ann' });
+    const b = renderDigest('2026-10-28', data, { recipientName: 'Bob' });
+    assert.equal(order.length, 3, 'rendering for a second admin reads nothing');
+    assert.match(a.html, /Ann/); assert.match(b.html, /Bob/);
+    const fs = await import('node:fs');
+    const route = fs.readFileSync(new URL('../pages/api/cron/daily-digest.js', import.meta.url), 'utf8');
+    assert.match(route, /loadDigestData\(sb, day\)/);
+    assert.ok(!/for \(const a of admins\) \{\s*out = await assembleDigest/.test(route), 'no per-admin reload');
+});
+
+test('the spins report has the same sixty second ceiling as its sibling reports', async () => {
+    const fs = await import('node:fs');
+    const dir = new URL('../supabase/migrations/', import.meta.url);
+    const file = fs.readdirSync(dir).filter((f) => /digest_spins_report_gets_sixty_seconds/.test(f))[0];
+    assert.ok(file, 'migration present');
+    assert.match(fs.readFileSync(new URL(file, dir), 'utf8'), /ALTER FUNCTION public\.fn_sp_digest_spins_spend\(date\) SET statement_timeout = '60s'/);
+});
