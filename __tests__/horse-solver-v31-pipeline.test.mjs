@@ -102,3 +102,13 @@ test('official scalar exporter checks run with pinned numerical dependencies in 
  const requirements=read('scripts/horse-solver-v31/requirements-public215-tests.txt');
  for(const pin of ['numpy==2.3.5','scipy==1.17.0','scikit-learn==1.9.0','joblib==1.5.3','threadpoolctl==3.6.0','narwhals==2.22.1'])assert.ok(requirements.split('\n').includes(pin));
 });
+
+test('every maintained full-build caller supplies the same pinned scalar-test runtime',()=>{
+ for(const file of ['global-footer-e2e.yml','e2e-tests.yml']){
+  const source=read('.github/workflows/'+file);
+  assert.match(source,/python-version: '3\.14\.2'/);
+  assert.match(source,/only-binary=:all: -r scripts\/horse-solver-v31\/requirements-public215-tests\.txt/);
+  assert.match(source,/V31_NUMERIC_PYTHON=.*v31-public215-contracts\/bin\/python/);
+  assert.ok(source.indexOf('Install locked V31 test numerical dependencies')<source.indexOf('run: npm run build -- --webpack'));
+ }
+});
