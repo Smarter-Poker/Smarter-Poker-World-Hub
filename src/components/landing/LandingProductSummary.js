@@ -24,6 +24,20 @@ import Link from 'next/link';
 
 export const LANDING_PRODUCTS = [
   {
+    id: 'freerolls',
+    name: 'Daily Freerolls',
+    href: '/freerolls',
+    summary:
+      'Daily $2,000 Freerolls And Diamond Freerolls Every 3 Hours. Zero Buy-In, Real Prize Rewards, Live CST Countdown Tickers And Calendar Reminders.',
+  },
+  {
+    id: 'poker-tools',
+    name: 'Poker Tools & Calculators',
+    href: '/tools/poker-odds-calculator',
+    summary:
+      'Free Poker Odds Calculator, Tournament ICM Equity Calculator, And Interactive 13x13 GTO Preflop Range Matrices With Zero Ads Or Login.',
+  },
+  {
     id: 'poker-arena',
     name: 'Poker Arena',
     href: '/hub/club-arena',
