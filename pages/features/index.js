@@ -157,7 +157,7 @@ export default function FeaturesIndexPage() {
   return (
     <>
       <SEOHead
-        title="Platform Features & Capabilities Directory | Smarter.Poker"
+        title="Platform Features Directory"
         description="Comprehensive Guide to Smarter.Poker Free Tools: Bankroll Tax Tracker, Dealer Tokes, Jarvis AI Coach, Club Commander, Video Calls, GTO Solvers, And Trivia."
         canonical="/features"
         markdownUrl="https://smarter.poker/features.md"
