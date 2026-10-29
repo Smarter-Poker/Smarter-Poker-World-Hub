@@ -196,6 +196,21 @@ export const SOURCES = {
     title: 'Poker Income Bankroll Tracker On The Apple App Store',
     kind: 'listing',
   },
+  pokerbaseSite: {
+    url: 'https://pokerbase.app',
+    title: 'Pokerbase Poker Tracker App',
+    kind: 'maker',
+  },
+  downcountSite: {
+    url: 'https://apps.apple.com/us/app/downcount-poker-dealer-tracker/id1450283088',
+    title: 'DownCount Poker Dealer Tracker On Apple App Store',
+    kind: 'listing',
+  },
+  sharpSite: {
+    url: 'https://sharppoker.io',
+    title: 'Sharp Poker AI Training And Hand Analysis',
+    kind: 'maker',
+  },
 
   // Venues and cardrooms
   bellagioSite: {
@@ -611,6 +626,17 @@ export const PRODUCTS = {
       platforms: fact('Web Browser Only; Mobile Not Supported', 'deepsolverPricing'),
     },
   },
+  sharp: {
+    name: 'Sharp Poker',
+    facts: {
+      pricing: fact('Free Download With Premium Subscription Tiers', 'sharpSite'),
+      freeTier: fact('Basic Solved Preflop Ranges And Daily Spot Training', 'sharpSite'),
+      training: fact("AI Hand History Analysis And GTO Spot Practice For Hold'em", 'sharpSite'),
+      solver: fact('Preflop And Postflop AI Neural Solver Recommendations', 'sharpSite'),
+      handReview: fact('Automated Hand History Import And Leak Detection Feedback', 'sharpSite'),
+      platforms: fact('Apple App Store (iPhone, iPad And Mac With Apple Silicon) And Google Play', 'sharpSite'),
+    },
+  },
 
   // ─── Bankroll trackers ───────────────────────────────────────────────────
   bankrollManager: {
@@ -649,6 +675,30 @@ export const PRODUCTS = {
       export: fact('Tab Separated Export For A Spreadsheet', 'pokerIncomeAppStore'),
       extras: fact('Cloud Backup And Restore At Pokerincome.com', 'pokerIncomeAppStore'),
       platforms: fact('Apple App Store (iPhone, iPad And Mac With Apple Silicon)', 'pokerIncomeAppStore'),
+    },
+  },
+  pokerbase: {
+    name: 'Pokerbase',
+    facts: {
+      maker: fact('Pokerbase App', 'pokerbaseSite'),
+      pricing: fact('Free To Download With Subscription Options', 'pokerbaseSite'),
+      sessions: fact('Session Logging With Stakes, Locations, Bankrolls And Notes', 'pokerbaseSite'),
+      analysis: fact('Graphing, Hourly Rate And Statistical Analytics For Live Sessions', 'pokerbaseSite'),
+      export: fact('CSV Data Export And Cloud Backup', 'pokerbaseSite'),
+      extras: fact('Hand History Replayer, Strategy Notes And ICM Calculator', 'pokerbaseSite'),
+      platforms: fact('Apple App Store (iPhone, iPad And Mac With Apple Silicon) And Google Play', 'pokerbaseSite'),
+    },
+  },
+  downcount: {
+    name: 'DownCount',
+    facts: {
+      maker: fact('DownCount App', 'downcountSite'),
+      pricing: fact('Free To Download On The Apple App Store', 'downcountSite'),
+      sessions: fact('Dealer Down Tracking And Shift Logging For Casino Dealing Staff', 'downcountSite'),
+      analysis: fact('Average Down Value, Shift Earnings And Weekly Tip Totals', 'downcountSite'),
+      export: notPublished('The DownCount Listing Publishes No Export Format.'),
+      extras: fact('Down Timer And Tip Calculator For Poker Dealers', 'downcountSite'),
+      platforms: fact('Apple App Store (iPhone, iPad And Mac With Apple Silicon)', 'downcountSite'),
     },
   },
 

@@ -47,6 +47,18 @@ const COMPARE_FAQS = [
     question: 'How Does Smarter.Poker Live Poker Room Directory Compare To PokerAtlas?',
     answer: 'Smarter.Poker features an extensive directory of 324+ verified poker venues and 4,500+ weekly tournament records, integrated directly with free venue management software (Club Commander) for real-time waitlists, tournament clocks, and SMS seat notifications.',
   },
+  {
+    question: 'How Does Smarter.Poker Bankroll Manager Compare To Pokerbase And Poker Bankroll Tracker?',
+    answer: 'Smarter.Poker Bankroll Manager provides 100% free session tracking, trip and series grouping, Form W-2G tax reports, staking tracking, and CSV exports with zero paid paywalls, whereas Poker Bankroll Tracker charges $29.99 per year for pro features.',
+  },
+  {
+    question: 'Is The Smarter.Poker Dealer Toke Tracker Really Free For Casino Dealers?',
+    answer: 'Yes. The Smarter.Poker Dealer Toke Tracker is 100% free for dealing staff to track downs, shifts, hourly tip rates, and annual taxable income, offering an in-browser alternative to standalone iOS apps like DownCount.',
+  },
+  {
+    question: 'How Does Jarvis AI Poker Coach Compare To Commercial GTO Solvers?',
+    answer: 'Smarter.Poker pairs 107 interactive GTO training games and browsable solver baselines with the Jarvis AI Tactical Coach for plain-English hand review, providing immediate leak detection without recurring $49 to $169 monthly fees.',
+  },
 ];
 
 export default function CompareHubPage() {
@@ -57,7 +69,7 @@ export default function CompareHubPage() {
       const hash = window.location.hash.replace('#', '').toLowerCase();
       const queryTab = new URLSearchParams(window.location.search).get('tab')?.toLowerCase();
       const target = queryTab || hash;
-      if (target && ['freerolls', 'icm', 'odds', 'directory', 'all'].includes(target)) {
+      if (target && ['freerolls', 'icm', 'odds', 'directory', 'bankroll', 'toke', 'coach', 'all'].includes(target)) {
         setActiveTab(target);
       }
     }
@@ -285,6 +297,69 @@ export default function CompareHubPage() {
           >
             <MapPin size={16} />
             <span>Directory Vs. PokerAtlas</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('bankroll')}
+            style={{
+              padding: '12px 20px',
+              borderRadius: '8px',
+              border: activeTab === 'bankroll' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
+              backgroundColor: activeTab === 'bankroll' ? '#1877F2' : '#101924',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Coins size={16} />
+            <span>Bankroll Manager Vs. Pokerbase</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('toke')}
+            style={{
+              padding: '12px 20px',
+              borderRadius: '8px',
+              border: activeTab === 'toke' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
+              backgroundColor: activeTab === 'toke' ? '#1877F2' : '#101924',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <ShieldCheck size={16} />
+            <span>Dealer Toke Tracker Vs. DownCount</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('coach')}
+            style={{
+              padding: '12px 20px',
+              borderRadius: '8px',
+              border: activeTab === 'coach' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
+              backgroundColor: activeTab === 'coach' ? '#1877F2' : '#101924',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Award size={16} />
+            <span>Jarvis AI Coach Vs. Sharp Poker</span>
           </button>
 
           <button
@@ -632,6 +707,252 @@ export default function CompareHubPage() {
               }}
             >
               <span>Explore Poker Near Me Directory</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
+
+        {/* Tab 5: Bankroll Manager vs Pokerbase */}
+        <section 
+          id="bankroll"
+          style={{ 
+            display: isVisible('bankroll') ? 'block' : 'none',
+            backgroundColor: '#101924', 
+            borderRadius: '14px', 
+            border: '1px solid #1E2D3D', 
+            overflow: 'hidden',
+            marginBottom: '48px'
+          }}
+        >
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+              Smarter.Poker Bankroll Manager Vs. Pokerbase & Poker Bankroll Tracker
+            </h2>
+            <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
+              Comparing Subscription Costs, Form W-2G Tax Logging, Staking Tools, And Cross-Device Synchronization.
+            </p>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker Bankroll Manager</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>Pokerbase / Poker Bankroll Tracker</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Subscription Price</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% Free Forever ($0)</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Free With $29.99/Year Pro Upgrade</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Form W-2G Tax Ledger</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Full Receipt Scanning & Tax Reporting</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Basic Annual Profit And Loss Charts</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Staking & Backing Tracker</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Included With Backer Payout Summaries</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Not Available Or Separate Upgrades</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>CSV Data Export</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Unlimited Free CSV Export</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Paywalled Behind Pro Subscriptions</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Cross-Device Synchronization</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Web, Apple Mac, IOS, Android & PC</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Mobile App Centric</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#BACCDD' }}>
+              Track Sessions, Manage Trips, Scan Receipts, And Export CPA Tax Ledgers.
+            </span>
+            <Link
+              href="/hub/bankroll-manager"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#4E9CFF',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none'
+              }}
+            >
+              <span>Launch Bankroll Manager</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
+
+        {/* Tab 6: Dealer Toke Tracker vs DownCount */}
+        <section 
+          id="toke"
+          style={{ 
+            display: isVisible('toke') ? 'block' : 'none',
+            backgroundColor: '#101924', 
+            borderRadius: '14px', 
+            border: '1px solid #1E2D3D', 
+            overflow: 'hidden',
+            marginBottom: '48px'
+          }}
+        >
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+              Smarter.Poker Dealer Toke Tracker Vs. DownCount
+            </h2>
+            <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
+              Comparing Poker Dealer Shift Logging, Down Timers, Tip Rate Analytics, And IRS Compliance.
+            </p>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Smarter.Poker Dealer Toke Tracker</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>DownCount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Platform Portability</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% In-Browser On All Mobile & Desktop</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Apple IOS App Store Only</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Down & Hourly Tip Rates</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Real-Time $/Down & $/Hour Tip Metrics</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Basic Manual Shift Tip Totals</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Dealer Scheduling Integration</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Shift Rotation & Room Roster Calendar</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Single-User Down Timer</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>IRS Tip Reporting Ledger</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Integrated W-2 Tax Documentation</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>No Built-In Tax Ledger</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Price / Cost</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% Free For All Casino Dealing Staff</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Free Download With In-App Extras</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#BACCDD' }}>
+              Log Casino Dealing Shifts, Track Hourly Tip Rates, And Maintain Tax Compliance.
+            </span>
+            <Link
+              href="/features/poker-dealer-toke-tracker"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#4E9CFF',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none'
+              }}
+            >
+              <span>Explore Dealer Toke Tracker</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
+
+        {/* Tab 7: Jarvis AI Coach vs Sharp Poker */}
+        <section 
+          id="coach"
+          style={{ 
+            display: isVisible('coach') ? 'block' : 'none',
+            backgroundColor: '#101924', 
+            borderRadius: '14px', 
+            border: '1px solid #1E2D3D', 
+            overflow: 'hidden',
+            marginBottom: '48px'
+          }}
+        >
+          <div style={{ padding: '24px 28px', borderBottom: '1px solid #1E2D3D' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+              Smarter.Poker Jarvis AI Tactical Coach Vs. Sharp Poker & GTO Solvers
+            </h2>
+            <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
+              Comparing AI Tactical Explanations, Interactive Training Games, Solver Libraries, And Monthly Subscriptions.
+            </p>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#162332', borderBottom: '1px solid #233547' }}>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#BACCDD', fontWeight: 700 }}>Comparison Metric</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#4E9CFF', fontWeight: 700 }}>Jarvis AI Coach & GTO Training</th>
+                  <th style={{ padding: '16px 20px', fontSize: '13px', color: '#7E9BB8', fontWeight: 700 }}>Sharp Poker / GTO Wizard</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Monthly Subscription Cost</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>100% Free Forever ($0)</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>$49 To $169 Per Month</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Coaching Explanations</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Plain-English Tactical Leak Analysis</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Raw Solver Frequency Trees</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Interactive Training Games</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>107 Structured Training Games</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Limited Free Practice Spots</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #1B2939' }}>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Hand History Upload Analysis</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Free Multi-Site Hand History Upload</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Capped At 5 Hands/Month Free</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>AI Model Protocol Support</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>OpenAPI 3.1.0 & Model Context Protocol</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Proprietary Closed Ecosystem</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#BACCDD' }}>
+              Train Against GTO Baselines, Upload Hands For Grading, And Eliminate Strategic Leaks.
+            </span>
+            <Link
+              href="/hub/training"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#4E9CFF',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none'
+              }}
+            >
+              <span>Explore GTO Training & AI Coach</span>
               <ArrowRight size={16} />
             </Link>
           </div>
