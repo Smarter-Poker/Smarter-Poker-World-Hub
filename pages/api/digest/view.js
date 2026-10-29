@@ -7,10 +7,12 @@
  * link, is refused. Read only: renders from the stored snapshot, no send, no
  * AI call, no provider calls. Never cached.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { verifyViewToken, viewUrlFor } from '../../../src/lib/dailyDigest/delivery.mjs';
 import { buildHtml } from '../../../src/lib/dailyDigest/render.mjs';
-import { loadPlayerTotals, loadSpinsSpend } from '../../../src/lib/dailyDigest/assemble.mjs';
+import { loadDigestData } from '../../../src/lib/dailyDigest/assemble.mjs';
+
+export const config = { maxDuration: 300 };
 
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
@@ -25,15 +27,14 @@ export default async function handler(req, res) {
     if (!url || !key) return res.status(500).send('Not configured');
     const sb = createClient(url, key, { auth: { persistSession: false } });
 
-    const [{ data: digest, error }, playerTotals, spinsSpend] = await Promise.all([
-        sb.rpc('fn_sp_daily_digest', { p_day: day, p_dispatch: false }),
-        loadPlayerTotals(sb, day),
-        loadSpinsSpend(sb, day),
-    ]);
-    if (error || !digest) return res.status(500).send('The digest could not be loaded.');
-    if (playerTotals) digest.player_totals = playerTotals;
+    let digest;
+    try {
+        ({ digest } = await loadDigestData(sb, day, { withCosts: false, dispatch: false }));
+    } catch {
+        return res.status(500).send('The digest could not be loaded.');
+    }
+    if (!digest) return res.status(500).send('The digest could not be loaded.');
 
-    digest.spins_spend = spinsSpend;
     const html = buildHtml(digest, { viewUrl: viewUrlFor(day), dashboardUrl: 'https://smarter.poker/admin' });
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(200).send(html);
