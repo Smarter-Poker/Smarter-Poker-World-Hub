@@ -87,6 +87,13 @@ test('Freerolls hub: builds complete Schema.org graph with SportsEvent, HowTo, F
   assert.equal(eventNode.offers.price, '0', 'Offer price must be 0');
   assert.equal(eventNode.offers.category, 'Free Entry', 'Offer category must be Free Entry');
   assert.ok(eventNode.sameAs.length >= 4, 'Event must inherit Wikidata sameAs links');
+  assert.ok(Array.isArray(eventNode.subEvent), 'EventSeries must declare subEvent array');
+  assert.equal(eventNode.subEvent.length, 5, 'Must contain 5 daily/weekly sub-events');
+  const morningOpener = eventNode.subEvent.find(e => e.name.includes('Morning Opener'));
+  assert.ok(morningOpener, 'Must include Morning Opener freeroll');
+  assert.equal(morningOpener.isAccessibleForFree, true, 'SubEvent must be free');
+  assert.equal(morningOpener.offers.price, '0', 'SubEvent price must be 0');
+  assert.equal(morningOpener.sport, 'Poker', 'SubEvent sport must be Poker');
 
   const webPageNode = nodes.find(n => n['@type'] === 'WebPage');
   assert.ok(webPageNode, 'Must contain WebPage node');
