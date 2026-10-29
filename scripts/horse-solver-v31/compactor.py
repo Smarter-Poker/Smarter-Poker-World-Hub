@@ -274,12 +274,37 @@ def compact_once(args: argparse.Namespace) -> int:
             raise ContractError(f"dataset state {state} cannot be compacted")
         heartbeat.pulse("scanning", item)
 
+        model_builds = None
+        if manifest.raw.get("policy_representation") == "public_hist215_v1":
+            if not getattr(args,"public_model_builds",None) or not getattr(args,"public_model_builds_checksum",None):
+                raise ContractError("public215 requires an immutable post-capture model build index")
+            from public_hist215 import load_model_build_index
+            model_builds = load_model_build_index(args.public_model_builds,
+                expected_checksum=args.public_model_builds_checksum, dataset_id=dataset_id,
+                manifest={**manifest.raw, "_actual_manifest_checksum":manifest.checksum},
+                prepare_only=getattr(args,"model_operation",None)=="prepare")
+        elif getattr(args,"public_model_builds",None) or getattr(args,"public_model_builds_checksum",None):
+            raise ContractError("legacy matrix compaction cannot accept a public215 model index")
+        model_operation=getattr(args,"model_operation",None)
+        if model_operation is not None:
+            if model_builds is None:raise ContractError("private model operations require public215")
+            for context in coverage:
+                envelope=model_builds[canonical_json(context)]
+                if model_operation=="freeze":
+                    envelope={k:envelope[k] for k in ("context","model_checksum","public_model_build_receipt","model_build_receipt_checksum")}
+                receipt=client.call("prepare_model" if model_operation=="prepare" else "freeze_model",
+                    {"dataset_id":dataset_id,"context":envelope},timeout_seconds=280)
+                if not isinstance(receipt,str) or not HEX64.fullmatch(receipt) or receipt=="0"*64 or (model_operation=="freeze" and receipt!=envelope["model_build_receipt_checksum"]):
+                    raise GatewayError("private model operation returned an invalid immutable receipt")
+            heartbeat.pulse("paused",item)
+            print(f"[v31-compactor] private model {model_operation} completed; runtime build, evaluation and promotion remain separate")
+            return 0
         built = 0
         for context in coverage:
             try:
                 built_receipt = client.call(
                     "build_cell",
-                    {"dataset_id": dataset_id, "context": context},
+                    {"dataset_id": dataset_id, "context": model_builds[canonical_json(context)] if model_builds is not None else context},
                     timeout_seconds=280,
                 )
                 if not build_cell_receipt_is_valid(built_receipt):
@@ -339,9 +364,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--input-root", required=True)
+    parser.add_argument("--model-operation",choices=("prepare","freeze"))
+    parser.add_argument("--public-model-builds")
+    parser.add_argument("--public-model-builds-checksum")
     parser.add_argument("--watch", action="store_true")
     parser.add_argument("--interval-seconds", type=int, default=300)
     args = parser.parse_args()
+    if args.model_operation and args.watch:
+        parser.error("private model operations are finite and cannot watch/retry")
     if args.interval_seconds < 60:
         parser.error("--interval-seconds must be at least 60")
     return args

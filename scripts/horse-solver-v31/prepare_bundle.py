@@ -15,6 +15,7 @@ from typing import Any
 from contract import (
     MANIFEST_CONTRACT,
     REQUIRED_PIPELINE_FILES,
+    required_pipeline_files,
     manifest_keys,
     feature_contract_version,
     policy_export_schema,
@@ -61,6 +62,7 @@ def base_approval_bundle(
     manifest_checksum: str,
 ) -> dict[str, Any]:
     return {
+        **({"policy_representation": manifest["policy_representation"], "public215_contexts": manifest["public215_contexts"], "public215_protocols": manifest["public215_protocols"]} if "policy_representation" in manifest else {}),
         **({"policy_export_schema": policy_export_schema(manifest)} if "policy_export_schema" in manifest else {}),
         **({"feature_contract_version": feature_contract_version(manifest)} if "feature_contract_version" in manifest else {}),
         "bundle_key": bundle_key,
@@ -81,14 +83,17 @@ def base_approval_bundle(
                 "icm_model", manifest["icm_model_path"], manifest["icm_model_checksum"]
             ),
             file_receipt("scenario_manifest", manifest_path, manifest_checksum),
+            *[file_receipt("public215_template", item["path"], item["checksum"]) for item in manifest.get("public215_template_files", [])],
+            *[file_receipt("public215_"+key, item["path"], item["checksum"]) for key,item in sorted(manifest.get("public215_protocol_files", {}).items())],
         ],
         "approval_note": approval_note,
     }
 
 
 def verify_published_pipeline(manifest: dict[str, Any], pipeline_root: Path) -> None:
+    executable_files = required_pipeline_files(manifest)
     paths = [str(item.get("path") or "") for item in manifest["pipeline_files"]]
-    if set(paths) != REQUIRED_PIPELINE_FILES or len(paths) != len(REQUIRED_PIPELINE_FILES):
+    if set(paths) != executable_files or len(paths) != len(executable_files):
         raise ContractError("manifest does not name the complete V31 executable file set")
     try:
         head = subprocess.run(
@@ -99,7 +104,7 @@ def verify_published_pipeline(manifest: dict[str, Any], pipeline_root: Path) -> 
             text=True,
         ).stdout.strip().lower()
         dirty = subprocess.run(
-            ["git", "status", "--porcelain", "--", *sorted(REQUIRED_PIPELINE_FILES)],
+            ["git", "status", "--porcelain", "--", *sorted(executable_files)],
             cwd=pipeline_root,
             check=True,
             capture_output=True,

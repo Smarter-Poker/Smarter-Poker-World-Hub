@@ -66,7 +66,25 @@ ROOT_KEYS = {
     "self_test",
     "scenarios",
 }
-FEATURE_CONTRACT_VERSIONS = frozenset({"rank-suit-count-v1", "holdem-board-relative-v2"})
+PUBLIC215_PIPELINE_CONTRACT = "smarter-poker.horse-solver-v31-pipeline.public215.v1"
+PUBLIC215_PIPELINE_FILES = REQUIRED_PIPELINE_FILES | {
+    "scripts/horse-solver-v31/public_hist215.py",
+    "scripts/horse-solver-v31/public_hist215_feature_descriptor.json",
+    "scripts/horse-solver-v31/final_public215_training.py",
+}
+PUBLIC215_MANIFEST_FIELDS = {"pipeline_contract_version", "policy_representation", "public215_contexts", "public215_template_files", "public215_protocols", "public215_protocol_files"}
+FEATURE_CONTRACT_VERSIONS = frozenset({"rank-suit-count-v1", "holdem-board-relative-v2", "holdem-public-hist215-v1"})
+
+
+def required_pipeline_files(value: dict[str, Any]) -> frozenset[str]:
+    if "pipeline_contract_version" not in value:
+        if any(k in value for k in PUBLIC215_MANIFEST_FIELDS - {"pipeline_contract_version"}) or value.get("feature_contract_version") == "holdem-public-hist215-v1":
+            raise ContractError("public215 requires explicit pipeline contract")
+        return REQUIRED_PIPELINE_FILES
+    if value["pipeline_contract_version"] != PUBLIC215_PIPELINE_CONTRACT or value.get("policy_representation") != "public_hist215_v1" or value.get("feature_contract_version") != "holdem-public-hist215-v1" or policy_export_schema(value) != "smarter-poker.pio-policy.v4" or not PUBLIC215_MANIFEST_FIELDS <= value.keys():
+        raise ContractError("invalid public215 pipeline identity")
+    return PUBLIC215_PIPELINE_FILES
+
 
 
 def feature_contract_version(value: dict[str, Any]) -> str:
@@ -78,7 +96,7 @@ def feature_contract_version(value: dict[str, Any]) -> str:
 
 
 def manifest_keys(value: Any) -> set[str]:
-    return ROOT_KEYS | {key for key in ("feature_contract_version", "policy_export_schema") if isinstance(value, dict) and key in value}
+    return ROOT_KEYS | {key for key in ("feature_contract_version", "policy_export_schema", *PUBLIC215_MANIFEST_FIELDS) if isinstance(value, dict) and key in value}
 
 
 def policy_export_schema(value: dict[str, Any]) -> str:
@@ -327,7 +345,7 @@ def _verify_file(root: Path, relative: str, checksum: str) -> Path:
     return path
 
 
-def pipeline_bundle_checksum(root: Path, receipts: Iterable[dict[str, str]]) -> str:
+def pipeline_bundle_checksum(root: Path, receipts: Iterable[dict[str, str]], *, expected_files: frozenset[str] = REQUIRED_PIPELINE_FILES) -> str:
     digest = hashlib.sha256()
     seen: set[str] = set()
     normalized = []
@@ -341,9 +359,9 @@ def pipeline_bundle_checksum(root: Path, receipts: Iterable[dict[str, str]]) -> 
         normalized.append((relative, checksum))
     if not normalized:
         raise ContractError("pipeline_files cannot be empty")
-    if seen != REQUIRED_PIPELINE_FILES:
-        missing = ",".join(sorted(REQUIRED_PIPELINE_FILES - seen)) or "none"
-        extra = ",".join(sorted(seen - REQUIRED_PIPELINE_FILES)) or "none"
+    if seen != expected_files:
+        missing = ",".join(sorted(expected_files - seen)) or "none"
+        extra = ",".join(sorted(seen - expected_files)) or "none"
         raise ContractError(
             f"pipeline_files must be the complete V31 executable set; missing={missing}; extra={extra}"
         )
@@ -385,7 +403,7 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
             "icm_model_checksum",
             "files",
             "approval_note",
-        } | {key for key in ("feature_contract_version", "policy_export_schema") if isinstance(p_bundle, dict) and key in p_bundle},
+        } | {key for key in ("feature_contract_version", "policy_export_schema", "policy_representation", "public215_contexts", "public215_protocols") if isinstance(p_bundle, dict) and key in p_bundle},
         "input approval bundle",
     )
     bundle_key = _json_string(bundle["bundle_key"], "input approval bundle_key")
@@ -414,6 +432,13 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
     if not isinstance(receipts, list) or not receipts:
         raise ContractError("input approval files cannot be empty")
 
+    public215 = bundle.get("policy_representation") == "public_hist215_v1"
+    if "policy_representation" in bundle or "public215_contexts" in bundle or feature_contract_version(bundle) == "holdem-public-hist215-v1":
+        if not public215 or feature_contract_version(bundle) != "holdem-public-hist215-v1" or policy_export_schema(bundle) != "smarter-poker.pio-policy.v4":
+            raise ContractError("invalid public215 approval identity")
+        from public_hist215 import validate_context_metadata, validate_protocols
+        validate_context_metadata(bundle.get("public215_contexts"))
+        validate_protocols(bundle.get("public215_protocols"), bundle["public215_contexts"])
     allowed_kinds = {
         "range",
         "combo_order",
@@ -421,6 +446,9 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
         "payout_model",
         "scenario_manifest",
     }
+    if public215:
+        allowed_kinds.add("public215_template")
+        allowed_kinds.update("public215_" + k for k in bundle["public215_protocols"])
     seen_paths: set[str] = set()
     normalized: list[dict[str, str]] = []
     for index, raw in enumerate(receipts):
@@ -455,6 +483,16 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
     if sum(item["kind"] == "scenario_manifest" for item in normalized) != 1:
         raise ContractError("input approval must bind exactly one scenario_manifest receipt")
 
+    if public215:
+        actual = [item["checksum"] for item in normalized if item["kind"] == "public215_template"]
+        expected = [item["template_checksum"] for item in bundle["public215_contexts"]]
+        if sorted(actual) != sorted(expected):
+            raise ContractError("approval template file receipts differ")
+        from public_hist215 import digest as public_digest
+        for key, body in bundle["public215_protocols"].items():
+            receipts = [item for item in normalized if item["kind"] == "public215_" + key]
+            if len(receipts) != 1 or receipts[0]["checksum"] != public_digest(body):
+                raise ContractError("approval protocol canonical body/file receipt differs")
     identity_files = sorted(
         (item for item in normalized if item["kind"] != "scenario_manifest"),
         key=lambda item: (item["kind"], item["path"], item["checksum"]),
@@ -464,7 +502,8 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
     feature_contract_version(bundle)
     policy_export_schema(bundle)
     return {
-        "contract": INPUT_BUNDLE_CONTRACT,
+        "contract": "smarter-poker.horse-solver-v31-input-bundle.v3" if public215 else INPUT_BUNDLE_CONTRACT,
+        **({"policy_representation": bundle["policy_representation"], "public215_contexts": bundle["public215_contexts"], "public215_protocols": bundle["public215_protocols"]} if public215 else {}),
         **({"policy_export_schema": bundle["policy_export_schema"]} if "policy_export_schema" in bundle else {}),
         **({"feature_contract_version": bundle["feature_contract_version"]} if "feature_contract_version" in bundle else {}),
         "bundle_key": bundle_key,
@@ -1067,6 +1106,7 @@ def load_manifest(
     manifest = _exact_keys(decoded, manifest_keys(decoded), "manifest")
     feature_contract_version(manifest)
     policy_export_schema(manifest)
+    executable_files = required_pipeline_files(manifest)
     if manifest["contract"] != MANIFEST_CONTRACT:
         raise ContractError("manifest contract is invalid")
     if manifest["enabled"] is not True:
@@ -1166,8 +1206,11 @@ def load_manifest(
     if low > high:
         raise ContractError("self_test EV bounds are reversed")
     _finite_number(self_test["max_exploitability_pct"], "self_test exploitability", 0)
+    if manifest.get("policy_representation") == "public_hist215_v1":
+        from public_hist215 import validate_manifest_metadata
+        validate_manifest_metadata(manifest, root, source_combo_order, verify_inputs=verify_inputs)
     if verify_pipeline:
-        actual_bundle = pipeline_bundle_checksum(Path(pipeline_root), manifest["pipeline_files"])
+        actual_bundle = pipeline_bundle_checksum(Path(pipeline_root), manifest["pipeline_files"], expected_files=executable_files)
         if actual_bundle != manifest["pipeline_bundle_checksum"]:
             raise ContractError(f"pipeline bundle checksum mismatch: {actual_bundle}")
     return ApprovedManifest(
