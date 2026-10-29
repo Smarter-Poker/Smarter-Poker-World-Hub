@@ -48,6 +48,7 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 
 ## High-Intent Public Feature Guides
 
+- Master Features Directory: https://smarter.poker/features (Markdown Catalog: https://smarter.poker/features.md)
 - Bankroll & W-2G Tax Ledger: https://smarter.poker/features/bankroll-tax-tracker (Markdown: https://smarter.poker/features/bankroll-tax-tracker.md)
 - Poker Dealer Toke Tracker: https://smarter.poker/features/poker-dealer-toke-tracker (Markdown: https://smarter.poker/features/poker-dealer-toke-tracker.md)
 - PokerBrain & Jarvis AI Coach: https://smarter.poker/features/poker-ai-coach (Markdown: https://smarter.poker/features/poker-ai-coach.md)

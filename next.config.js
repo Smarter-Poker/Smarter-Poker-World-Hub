@@ -1456,6 +1456,10 @@ const nextConfig = {
           destination: '/about?format=md',
         },
         {
+          source: '/features.md',
+          destination: '/features?format=md',
+        },
+        {
           source: '/features/:slug.md',
           destination: '/features/:slug?format=md',
         },
