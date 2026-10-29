@@ -710,6 +710,118 @@
           }
         }
       }
+    },
+    "/api/ai/trivia": {
+      "get": {
+        "operationId": "getTriviaSpecs",
+        "summary": "Get Poker Trivia and Brain Training Specifications",
+        "description": "Returns capabilities for multiplayer poker trivia, 10,000+ question bank, Survival mode, Blitz Time Attack, and GTO math drills.",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Trivia category (gto_math, wsop_history, rules, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Poker trivia and brain training specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/training": {
+      "get": {
+        "operationId": "getTrainingSpecs",
+        "summary": "Get GTO Training Games and Decision Drill Specifications",
+        "description": "Returns specifications for 100+ interactive scenarios, solver accuracy grading, and multi-street decision branching.",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Game format (mtt, cash, spins, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GTO training games specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/home-games": {
+      "get": {
+        "operationId": "getHomeGamesSpecs",
+        "summary": "Get Home Poker Games Directory Specifications",
+        "description": "Returns specifications for verified home game discovery, host safety standards, blind structures, and SMS waitlists.",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Two-letter US state code.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Home poker games directory specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/messenger": {
+      "get": {
+        "operationId": "getMessengerSpecs",
+        "summary": "Get Poker Messenger and WebRTC Calling Specifications",
+        "description": "Returns specifications for live WebRTC video table calling, spatial voice chat, and social poker messaging.",
+        "responses": {
+          "200": {
+            "description": "Poker messenger and video calling specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

@@ -70,6 +70,10 @@ async function runBenchmark() {
     assertCheck('OpenAPI documents /api/ai/poker-brain', !!doc.paths['/api/ai/poker-brain']);
     assertCheck('OpenAPI documents /api/ai/sandbox', !!doc.paths['/api/ai/sandbox']);
     assertCheck('OpenAPI documents /api/ai/commander', !!doc.paths['/api/ai/commander']);
+    assertCheck('OpenAPI documents /api/ai/trivia', !!doc.paths['/api/ai/trivia']);
+    assertCheck('OpenAPI documents /api/ai/training', !!doc.paths['/api/ai/training']);
+    assertCheck('OpenAPI documents /api/ai/home-games', !!doc.paths['/api/ai/home-games']);
+    assertCheck('OpenAPI documents /api/ai/messenger', !!doc.paths['/api/ai/messenger']);
   } catch (err) {
     assertCheck('OpenAPI JSON parseable', false, err.message);
   }
@@ -109,6 +113,18 @@ async function runBenchmark() {
   const aiCommander = await fetchRoute('/api/ai/commander');
   assertCheck('GET /api/ai/commander returns 200 with card room waitlist specs', aiCommander.status === 200 && aiCommander.text.includes('room_management_features'));
 
+  const aiTrivia = await fetchRoute('/api/ai/trivia');
+  assertCheck('GET /api/ai/trivia returns 200 with knowledge bank specs', aiTrivia.status === 200 && aiTrivia.text.includes('10,000+'));
+
+  const aiTraining = await fetchRoute('/api/ai/training');
+  assertCheck('GET /api/ai/training returns 200 with decision drill specs', aiTraining.status === 200 && aiTraining.text.includes('100+'));
+
+  const aiHomeGames = await fetchRoute('/api/ai/home-games');
+  assertCheck('GET /api/ai/home-games returns 200 with verified game specs', aiHomeGames.status === 200 && aiHomeGames.text.includes('security_and_trust_standards'));
+
+  const aiMessenger = await fetchRoute('/api/ai/messenger');
+  assertCheck('GET /api/ai/messenger returns 200 with WebRTC call specs', aiMessenger.status === 200 && aiMessenger.text.includes('WebRTC'));
+
   // 3. Structured Freerolls & Calendar Schema
   console.log(`\n--- [3/6] Daily $2,000 Freerolls Hub & Calendar Schema ---`);
   const freerolls = await fetchRoute('/freerolls');
@@ -125,6 +141,11 @@ async function runBenchmark() {
     { slug: 'poker-ai-coach', name: 'PokerBrain AI Coach' },
     { slug: 'virtual-poker-sandbox', name: 'Virtual Table Sandbox' },
     { slug: 'club-commander', name: 'Club Commander' },
+    { slug: 'poker-messenger-video-calls', name: 'Poker Messenger & Video Calls' },
+    { slug: 'poker-trivia', name: 'Poker Trivia & Brain Training' },
+    { slug: 'poker-training-games', name: 'GTO Training Games' },
+    { slug: 'home-poker-games', name: 'Home Poker Games Directory' },
+    { slug: 'interactive-video-coaching', name: 'Interactive Video Coaching' },
   ];
 
   for (const feat of features) {
