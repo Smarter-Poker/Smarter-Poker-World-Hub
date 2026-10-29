@@ -303,6 +303,32 @@ this native proof. Pio command semantics: https://piosolver.com/docs/upi/command
 
 ## Recovery
 
+### Exact ICM table reuse within one solver process
+
+The worker uses an explicit `PioSetupSession` for consecutive trees. Its cold
+path still validates and acknowledges every approved ICM interpolation point.
+An exact match of the full model, normalization, generated point commands,
+stacks, root pot and manifest identity may retain that acknowledged table in
+the same live solver process. Only the redundant table reset and point upload
+are omitted. Every new tree still builds normally, disables rake and issues
+`set_icm` after construction and before solving, because Pio 3.8 snapshots the
+table when ICM is activated.
+
+A changed model or manifest, cash/chip-EV setup, raw mutation, failed command,
+invalid acknowledgement or new session requires a complete new installation.
+Partially uploaded tables never receive a reusable receipt. The existing
+analytic activation self-test also clears the session identity. No ordinary
+UPI command is suppressed or given an invented acknowledgement.
+
+`native_icm_session_preflight.py` is a finite licensed acceptance driver with
+exact executable, hand-order and candidate source pins. It compares cold
+setups against retained-table setups on different trees, a different nonlinear
+table, nonzero-rake cash and return to ICM. Actual EVs, positive matchups,
+ranges, strategies and point/reset/activation counts must agree. It contacts
+no gateway and writes no source artifact. Its result qualifies the execution
+optimization only; a new study still needs fresh immutable source pins,
+approval, exports and every existing certification gate.
+
 Artifacts are written atomically beneath `--work-directory` before upload.
 Restarting a worker reuses exactly those bytes and deterministic artifact IDs;
 changed manifests cannot reuse the checkpoint. Gateway retries use fresh
