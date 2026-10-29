@@ -37,10 +37,27 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - AI PokerBrain AI Coach API: https://smarter.poker/api/ai/poker-brain
 - AI Virtual Sandbox API: https://smarter.poker/api/ai/sandbox
 - AI Club Commander API: https://smarter.poker/api/ai/commander
+- AI Trivia & Brain Training API: https://smarter.poker/api/ai/trivia
+- AI GTO Training Games API: https://smarter.poker/api/ai/training
+- AI Home Poker Games API: https://smarter.poker/api/ai/home-games
+- AI Poker Messenger & Video API: https://smarter.poker/api/ai/messenger
 - Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
 - Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
 - Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
 - Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds
+
+## High-Intent Public Feature Guides
+
+- Bankroll & W-2G Tax Ledger: https://smarter.poker/features/bankroll-tax-tracker (Markdown: https://smarter.poker/features/bankroll-tax-tracker.md)
+- Poker Dealer Toke Tracker: https://smarter.poker/features/poker-dealer-toke-tracker (Markdown: https://smarter.poker/features/poker-dealer-toke-tracker.md)
+- PokerBrain & Jarvis AI Coach: https://smarter.poker/features/poker-ai-coach (Markdown: https://smarter.poker/features/poker-ai-coach.md)
+- Virtual Poker Table Sandbox: https://smarter.poker/features/virtual-poker-sandbox (Markdown: https://smarter.poker/features/virtual-poker-sandbox.md)
+- Club Commander Cardroom Management: https://smarter.poker/features/club-commander (Markdown: https://smarter.poker/features/club-commander.md)
+- Live Poker Messenger & Video Calls: https://smarter.poker/features/poker-messenger-video-calls (Markdown: https://smarter.poker/features/poker-messenger-video-calls.md)
+- Multiplayer Poker Trivia: https://smarter.poker/features/poker-trivia (Markdown: https://smarter.poker/features/poker-trivia.md)
+- GTO Poker Training Games: https://smarter.poker/features/poker-training-games (Markdown: https://smarter.poker/features/poker-training-games.md)
+- Verified Home Poker Games: https://smarter.poker/features/home-poker-games (Markdown: https://smarter.poker/features/home-poker-games.md)
+- Interactive Video Coaching: https://smarter.poker/features/interactive-video-coaching (Markdown: https://smarter.poker/features/interactive-video-coaching.md)
 
 ---
 

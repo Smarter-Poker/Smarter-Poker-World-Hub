@@ -34,6 +34,19 @@ https://smarter.poker/about is the page that states it.
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
 - Public Freerolls Calendar Feed (RFC 5545 iCal): https://smarter.poker/freerolls.ics
 
+## Public Feature Landers & Software Guides
+
+- Bankroll & W-2G Tax Ledger: https://smarter.poker/features/bankroll-tax-tracker (Markdown: https://smarter.poker/features/bankroll-tax-tracker.md)
+- Poker Dealer Toke Tracker: https://smarter.poker/features/poker-dealer-toke-tracker (Markdown: https://smarter.poker/features/poker-dealer-toke-tracker.md)
+- PokerBrain & Jarvis AI Coach: https://smarter.poker/features/poker-ai-coach (Markdown: https://smarter.poker/features/poker-ai-coach.md)
+- Virtual Poker Table Sandbox: https://smarter.poker/features/virtual-poker-sandbox (Markdown: https://smarter.poker/features/virtual-poker-sandbox.md)
+- Club Commander Cardroom Management: https://smarter.poker/features/club-commander (Markdown: https://smarter.poker/features/club-commander.md)
+- Live Poker Messenger & Video Calls: https://smarter.poker/features/poker-messenger-video-calls (Markdown: https://smarter.poker/features/poker-messenger-video-calls.md)
+- Multiplayer Poker Trivia: https://smarter.poker/features/poker-trivia (Markdown: https://smarter.poker/features/poker-trivia.md)
+- GTO Poker Training Games: https://smarter.poker/features/poker-training-games (Markdown: https://smarter.poker/features/poker-training-games.md)
+- Verified Home Poker Games: https://smarter.poker/features/home-poker-games (Markdown: https://smarter.poker/features/home-poker-games.md)
+- Interactive Video Coaching: https://smarter.poker/features/interactive-video-coaching (Markdown: https://smarter.poker/features/interactive-video-coaching.md)
+
 ## Core Features Across All Fifteen Verticals
 
 ### 1. Bankroll Manager & Tax / W-2G Ledger
