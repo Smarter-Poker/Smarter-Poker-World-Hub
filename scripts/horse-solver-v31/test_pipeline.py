@@ -650,6 +650,44 @@ class PioHarvestTests(unittest.TestCase):
         with self.assertRaisesRegex(PioError, "normalization"):
             setup_commands(scenario, [1.0] * 1326, [1.0] * 1326, icm_model=model)
 
+    def test_dense_icm_order_guard_has_linear_comparison_cost(self):
+        import pio_upi
+        comparisons = 0
+
+        class CountedCommand(str):
+            __hash__ = str.__hash__
+
+            def __eq__(self, other):
+                nonlocal comparisons
+                comparisons += 1
+                return str.__eq__(self, other)
+
+        # Count work rather than impose a machine-dependent timing limit.
+        count = 512
+        points = [CountedCommand(f"set_icm_point OOP {i} {i}") for i in range(count)]
+        model_commands = ["reset_icm_tables", *points, "set_icm 1000 1400"]
+        scenario = {**base_scenario(), "objective": "icm", "rake": None}
+        with mock.patch.object(pio_upi, "_icm_setup_commands", return_value=model_commands):
+            commands = setup_commands(scenario, [1.] * 1326, [1.] * 1326)
+        self.assertEqual([str(c) for c in commands if c.startswith("set_icm_point ")],
+                         [str(c) for c in points])
+        self.assertLess(comparisons, count * 20)
+
+    def test_icm_order_guard_preserves_first_duplicate_command_positions(self):
+        import pio_upi
+        scenario = {**base_scenario(), "objective": "icm", "rake": None}
+        prefix = ["reset_icm_tables", "set_icm_point OOP 0 0"]
+        # A later duplicate build must not move the first build's boundary.
+        with mock.patch.object(pio_upi, "_icm_setup_commands",
+                               return_value=[*prefix, "build_tree", "set_icm 1000 1400"]):
+            commands = setup_commands(scenario, [1.] * 1326, [1.] * 1326)
+        self.assertEqual(commands.count("build_tree"), 2)
+        # The first go must still reject an activation occurring after it.
+        with mock.patch.object(pio_upi, "_icm_setup_commands",
+                               return_value=[*prefix, "go", "set_icm 1000 1400"]):
+            with self.assertRaisesRegex(PioError, "after build_tree and before go"):
+                setup_commands(scenario, [1.] * 1326, [1.] * 1326)
+
     def test_icm_activation_fixture_rejects_empty_activation_and_cleans_up(self):
         def fake_engine(force_empty=False, bad_ack=False):
             trace, points, ranges = [], [], {}

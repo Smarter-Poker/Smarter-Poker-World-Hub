@@ -875,8 +875,15 @@ def setup_commands(
             raise PioError("ICM must activate exactly once after every interpolation point")
     elif len(rake_commands) != 1 or active_icm_commands:
         raise PioError("a cash/chip-EV scenario must clear ICM and install one rake model")
+    # Preserve list.index's first occurrence while checking dense ICM tables
+    # in linear time, including when a session can reuse their exact points.
+    first_position: dict[str, int] = {}
+    for position, command in enumerate(commands):
+        first_position.setdefault(command, position)
+    build_position = first_position["build_tree"]
+    go_position = first_position["go"]
     if any(
-        not commands.index("build_tree") < commands.index(command) < commands.index("go")
+        not build_position < first_position[command] < go_position
         for command in rake_commands + icm_resets + active_icm_commands
     ):
         raise PioError("the EV model must be configured after build_tree and before go")
