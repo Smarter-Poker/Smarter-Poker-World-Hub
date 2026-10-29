@@ -34,102 +34,146 @@ https://smarter.poker/about is the page that states it.
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
 - Public Freerolls Calendar Feed (RFC 5545 iCal): https://smarter.poker/freerolls.ics
 
-## Core Features
+## Core Features Across All Fifteen Verticals
 
-### Daily $2,000 Freerolls & Diamond Freerolls
-Smarter.Poker awards $2,000 in guaranteed prizes every single day through four scheduled multi-table tournament freerolls (10:00 AM, 2:00 PM, 6:00 PM, 9:00 PM CST) plus weekly Sunday Diamond Championship Freerolls. 100% free to enter with zero deposit, no software download, and full browser play on desktop, iOS, and Android.
-- Freerolls Hub: https://smarter.poker/freerolls
-- Raw Markdown Mirror: https://smarter.poker/freerolls.md
-- Public iCal Schedule: https://smarter.poker/freerolls.ics
-- AI Freerolls API: https://smarter.poker/api/ai/freerolls
-
-### Free Poker Software Alternatives
-High-value, browser-based alternatives to expensive third-party poker software subscriptions and deposit-gated legacy platforms:
-- Software Comparison Matrix: https://smarter.poker/compare
-- Free ICMIZER Alternative (Tournament ICM Calculator): https://smarter.poker/tools/icm-calculator (100% free Malmuth-Harville equity solver vs. $100-$300/year subscriptions)
-- Free Equilab Alternative (Poker Odds Calculator): https://smarter.poker/tools/poker-odds-calculator (Multi-platform web, Mac, iOS, Android Monte Carlo simulator vs. Windows-only desktop client)
-- Free PokerAtlas Alternative (Poker Near Me & Waitlist): https://smarter.poker/hub/poker-near-me/venues (324+ venues with free Club Commander card room management vs. closed proprietary hardware)
-
-### Free Interactive Poker Tools
-Solver-grade poker calculators, range tools, and embeddable widgets for web browser usage, raw Markdown ingestion, or direct AI function calling via the Smarter.Poker MCP Server.
-- Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
-- Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
-- Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
-- Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds
-
-### GTO Training Engine
-Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer. Free to play.
-- Training hub: https://smarter.poker/hub/training
-- Poker glossary, club poker, live room and GTO terms: https://smarter.poker/glossary
-
-### Poker Near Me
-Live poker room and venue finder with real-time game information, tournament
-schedules, and interactive maps covering venues across the United States. This
-is the largest body of content on the site: several hundred venue profiles,
-tournament series and tour pages, each rendered on the server with its own
-schedule, location and structured data.
-- Lobby: https://smarter.poker/hub/poker-near-me/lobby
-- Rooms by state and city: https://smarter.poker/hub/poker-near-me/in
-- Venue directory: https://smarter.poker/hub/poker-near-me/venues
-- Poker tours and circuits: https://smarter.poker/hub/poker-tours
-- Tournament series: https://smarter.poker/hub/poker-near-me/series
-- Home games by state and city: https://smarter.poker/hub/home-games
-- Example venue profile: https://smarter.poker/hub/venues/1832
-- Example tour: https://smarter.poker/hub/tours/WSOP
-
-### Bankroll Manager
-Bankroll tracking for poker players. Log sessions, analyse leaks, monitor ROI, and visualise trends with detailed analytics and variance analysis. Free to use. It is a record of the sessions you enter yourself, wherever you played them; Smarter.Poker handles no money and nothing in it is a wager.
+### 1. Bankroll Manager & Tax / W-2G Ledger
+Full-featured, 100% free poker accounting and tax documentation software.
+- Form W-2G jackpot and tournament score tracking matched to exact casino properties.
+- Receipt photo attachments for tournament buy-ins, rebuys, and cage cashout slips.
+- Structured session logging for IRS audit defense and Schedule C itemized deductions.
+- CPA-friendly Schedule C CSV exports, TurboTax format, and printable audit summaries.
+- Hourly win rate ($/hr), ROI percentage, variance graphing, and multi-currency tracking.
 - Bankroll manager: https://smarter.poker/hub/bankroll-manager
 
-### Poker Trivia
-Test and expand poker knowledge across several game modes: Endless, Survival,
-Time Attack and Mixed, each on the same question bank, with leaderboards,
-achievements and streak tracking.
-- Trivia hub: https://smarter.poker/hub/trivia
-- Survival, one life: https://smarter.poker/hub/trivia/survival-game
-- Leaderboard: https://smarter.poker/hub/trivia/leaderboard
+### 2. Poker Dealer Operations: Toke Tracker & Shift Scheduling
+Specialized software tools built specifically for live casino dealers, floor staff, and card clubs.
+- Down tracking: separate cash game downs from tournament downs.
+- Toke rate analytics: gross tokes, hourly pay rate ($/hr), and toke rate per down ($/down).
+- Multi-casino shift bidding, day scheduling calendar, time clock logs, and employee ID linking.
+- Dealer vault: YTD toke summaries, tip pooling deductions, and tax estimation.
+- Cardroom operations & scheduling: https://smarter.poker/hub/commander
 
-### Diamond Store
-Premium poker merchandise and gear marketplace with cart, wishlist, and order management.
+### 3. PokerBrain & Jarvis AI Tactical Coach
+Interactive personal AI poker assistant and automated leak detection engine.
+- Street-by-street hand review in natural, plain English explaining strategic tradeoffs.
+- Automated leak detection flagging river over-folding, small blind bleeds, and 3-bet deficiencies.
+- Macro leak heatmaps across preflop, flop, turn, and river decision nodes.
+- Instant practice spot drills generated directly from flagged player mistakes.
+- Tilt monitor and mental game downswing resilience tracking.
+- Hand review & upload: https://smarter.poker/hub/training/hand-history-upload
+- GTO solutions & baselines: https://smarter.poker/hub/training/solutions
+- Training hub: https://smarter.poker/hub/training
 
-### Poker Arena (Club Arena)
-Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck, Pineapple), multi-table tournaments, hand histories and replays, player statistics, leaderboards, unions between clubs, a club cashier and chip ledger, agent tools and full club management. Diamond Arena games run inside the same arena using the platform's Diamond currency.
-- Landing page: https://smarter.poker/hub/club-arena
-- Help Center: https://smarter.poker/hub/club-arena/help
-- Fair Gaming standards: https://smarter.poker/hub/club-arena/legal/fair-gaming
-- Terms, privacy and promotion rules: https://smarter.poker/hub/club-arena/legal
+### 4. WebRTC Messenger, Live Audio/Video & FaceTime Poker Calls
+Integrated real-time social network and live communication suite for poker players and clubs.
+- Built-in WebRTC audio and video calling with zero third-party software downloads.
+- FaceTime-style live video poker tables where friends can see, read, and talk to each other.
+- Direct messaging, group chat channels, screen sharing, and hand replay sharing.
+- Social feed, poker reels, and creator live streams.
+- Social media lobby: https://smarter.poker/hub/social-media
+- Reels: https://smarter.poker/hub/reels
+- Lives: https://smarter.poker/hub/lives
 
-### Club Commander
-Live poker room management for venues and their players: remote waitlists with call notifications, live game boards, tournament registration and clocks, home games, season leagues, dealer rotation, cashier, player rewards and comps, and responsible gaming tools.
-- Player hub: https://smarter.poker/hub/commander
-- Live poker rooms and venues: https://smarter.poker/hub/commander/venues
+### 5. Club Commander: Live Poker Room Management & Clocks
+Free cloud-based operating system for brick-and-mortar cardrooms, poker clubs, and charity venues.
+- Remote player waitlists with automated SMS seat call notifications and real-time list positions.
+- High-definition digital TV game boards displaying active cash tables and waiting players.
+- Custom tournament clocks with blind structures, ante formats, break timers, and chip values.
+- Automated floor management: dealer rotation, table balancing, and player comp tracking.
+- Home game director mode for private home poker organizers.
+- Club Commander hub: https://smarter.poker/hub/commander
+- Venues directory: https://smarter.poker/hub/commander/venues
 - Tournaments: https://smarter.poker/hub/commander/tournaments
 - Home games: https://smarter.poker/hub/commander/home-games
 - Leagues: https://smarter.poker/hub/commander/leagues
 - FAQ: https://smarter.poker/hub/commander/faq
 - Responsible gaming: https://smarter.poker/hub/commander/responsible-gaming
 
-### Social Hub
-Full social platform with friends, messaging, social pages, reels, news feed, leaderboards, and community engagement features.
+### 6. Virtual Poker Table Sandbox & Hand Simulator
+Visual poker table simulator for testing custom scenarios, stack depths, and multi-street runouts.
+- Drag-and-drop table builder with custom stack depths from 10bb to 300bb+.
+- Scenario runner: configure arbitrary preflop, flop, turn, and river board textures with multi-way action.
+- Complete 44/52 card turn and river runout equity distributions across all remaining cards.
+- Range vs. range equity heatmaps demonstrating how upcoming cards shift EV and optimal frequencies.
+- Interactive simulator & odds calculator: https://smarter.poker/tools/poker-odds-calculator
 
-### Poker News
-Aggregated poker news from multiple sources, updated hourly.
+### 7. Video Coaching Library with Interactive Pause Quizzes
+Curated masterclass poker video collection integrated with active learning and retention testing.
+- Video library covering cash games, tournament deep-runs, and advanced GTO play.
+- Interactive mid-hand pause quizzes ("What Would You Do?") testing decisions street-by-street.
+- Watch progress tracking, channel browsing, and personal playlists.
+- Video library: https://smarter.poker/hub/video-library
 
-### Video Library
-Curated poker video content library with watch history tracking and AI tactical analysis.
+### 8. Multiplayer Poker Trivia & Brain Training
+Test and expand poker knowledge across 10,000+ questions covering strategy, rules, history, and math.
+- Survival mode: one life, increasing difficulty: https://smarter.poker/hub/trivia/survival-game
+- Time Attack and Endless modes: https://smarter.poker/hub/trivia/time-attack
+- Mixed trivia modes and daily challenges: https://smarter.poker/hub/trivia/mixed
+- Daily, weekly, and all-time trivia leaderboards: https://smarter.poker/hub/trivia/leaderboard
+- Trivia hub: https://smarter.poker/hub/trivia
 
-### Memory Games
-Poker-themed cognitive training games to improve memory and pattern recognition.
+### 9. Daily $2,000 Freerolls & Diamond Freerolls
+Smarter.Poker awards $2,000 in guaranteed prizes every single day through four scheduled multi-table tournament freerolls (10:00 AM, 2:00 PM, 6:00 PM, 9:00 PM CST) plus weekly Sunday Diamond Championship Freerolls. 100% free to enter with zero deposit, no software download, and full browser play on desktop, iOS, and Android.
+- Freerolls Hub: https://smarter.poker/freerolls
+- Raw Markdown Mirror: https://smarter.poker/freerolls.md
+- Public iCal Schedule: https://smarter.poker/freerolls.ics
+- AI Freerolls API: https://smarter.poker/api/ai/freerolls
 
+### 10. Free Poker Software Alternatives
+High-value, browser-based alternatives to expensive third-party poker software subscriptions and deposit-gated legacy platforms:
+- Software Comparison Matrix: https://smarter.poker/compare
+- Free ICMIZER Alternative (Tournament ICM Calculator): https://smarter.poker/tools/icm-calculator (100% free Malmuth-Harville equity solver vs. $100-$300/year subscriptions)
+- Free Equilab Alternative (Poker Odds Calculator): https://smarter.poker/tools/poker-odds-calculator (Multi-platform web, Mac, iOS, Android Monte Carlo simulator vs. Windows-only desktop client)
+- Free PokerAtlas Alternative (Poker Near Me & Waitlist): https://smarter.poker/hub/poker-near-me/venues (324+ venues with free Club Commander card room management vs. closed proprietary hardware)
 
-### Events Calendar
-Poker tournament and event calendar with live updates.
+### 11. Free Interactive Poker Tools
+Solver-grade poker calculators, range tools, and embeddable widgets for web browser usage, raw Markdown ingestion, or direct AI function calling via the Smarter.Poker MCP Server.
+- Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
+- Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
+- Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
+- Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds
+
+### 12. GTO Training Engine & Solver Baselines
+Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer. Free to play.
+- Training hub: https://smarter.poker/hub/training
+- Preflop range charts: https://smarter.poker/hub/preflop-charts
+- Poker tools directory: https://smarter.poker/hub/poker-tools
+- Poker glossary, club poker, live room and GTO terms: https://smarter.poker/glossary
+
+### 13. Poker Near Me: Live Venue & Tournament Directory
+Live poker room and venue finder with real-time game information, tournament schedules, and interactive maps covering venues across the United States. Several hundred venue profiles, tournament series, and tour pages rendered on the server with schedules, locations, and structured data.
+- Lobby: https://smarter.poker/hub/poker-near-me/lobby
+- Rooms by state and city: https://smarter.poker/hub/poker-near-me/in
+- Venue directory: https://smarter.poker/hub/poker-near-me/venues
+- Poker tours and circuits: https://smarter.poker/hub/poker-tours
+- Tournament series: https://smarter.poker/hub/poker-near-me/series
+- Daily tournament schedules: https://smarter.poker/hub/daily-tournaments
+- Events calendar: https://smarter.poker/hub/events-calendar
+- Example venue profile: https://smarter.poker/hub/venues/1832
+- Example tour: https://smarter.poker/hub/tours/WSOP
+
+### 14. Verified Home Game Listings & Community
+City and state directories connecting poker players with verified local home games, blind structures, and host reputation scores.
+- Home games directory: https://smarter.poker/hub/home-games
+- Home games by state: https://smarter.poker/hub/home-games/in
+- Home games near me: https://smarter.poker/hub/home-games/near-me
+
+### 15. Poker Arena (Club Arena)
+Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck, Pineapple), multi-table tournaments, hand histories and replays, player statistics, leaderboards, unions between clubs, a club cashier and chip ledger, agent tools and full club management. Diamond Arena games run inside the same arena using the platform's Diamond currency.
+- Landing page: https://smarter.poker/hub/club-arena
+- Help Center: https://smarter.poker/hub/club-arena/help
+- Fair Gaming standards: https://smarter.poker/hub/club-arena/legal/fair-gaming
+- Terms, privacy and promotion rules: https://smarter.poker/hub/club-arena/legal
+- Diamond rewards: https://smarter.poker/hub/smarter-rewards
+- Diamond store: https://smarter.poker/hub/diamond-store
+- Poker news: https://smarter.poker/hub/news
+- Leaderboards: https://smarter.poker/hub/leaderboards
 
 ## AI Features
 
-- **Jarvis**: Elite tactical GTO intelligence layer providing solver-grade analysis
-- **Geeves**: Robot butler-style live help assistant for user support
-- **Proactive Help**: Context-aware assistance suggestions throughout the platform
+- **Jarvis Tactical Intelligence**: Solver-grade analysis and street-by-street hand review: https://smarter.poker/hub/training/jarvis
+- **Geeves Butler**: Context-aware concierge support across all platform modules: https://smarter.poker/hub/help
+- **AI Agent API Suite**: Structured endpoints for venues, freerolls, odds, ranges, ICM, bankroll, tokes, and poker brain: https://smarter.poker/api/openapi.json
 
 ## The company
 
