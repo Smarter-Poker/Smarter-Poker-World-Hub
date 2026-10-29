@@ -20,6 +20,7 @@ export async function getServerSideProps({ req, res }) {
     { loc: '/sitemap-core.xml' },
     { loc: '/sitemap-venues.xml' },
     { loc: '/sitemap-tournaments.xml' },
+    { loc: '/sitemap-series.xml' },
     { loc: '/sitemap-compare.xml', lastmod: COMPARE_AS_OF },
     { loc: '/sitemap-learn.xml' },
     { loc: '/sitemap-videos.xml' },
