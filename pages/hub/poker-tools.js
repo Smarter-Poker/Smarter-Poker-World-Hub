@@ -48,6 +48,7 @@ export {
     buildOddsSpotSummary,
 };
 
+// FAQ reference: How does the Smarter.Poker Odds Calculator compute equity?
 const ODDS_CALCULATOR_FAQS = [
     {
         question: 'How Does The Smarter.Poker Odds Calculator Compute Equity?',

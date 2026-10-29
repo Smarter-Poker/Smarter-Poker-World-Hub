@@ -23,6 +23,7 @@ import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import VerifiedToolGateway from '../../../src/components/training/VerifiedToolGateway';
 
+// FAQ reference: What is ICM in tournament poker?
 const ICM_CALCULATOR_FAQS = [
   {
     question: 'What Is ICM In Tournament Poker?',
