@@ -76,6 +76,33 @@ const ODDS_CALCULATOR_FAQS = [
     },
 ];
 
+const ODDS_CALCULATOR_HOW_TO = {
+    name: 'How To Calculate Poker Odds And Hand Equity',
+    description: "Step-by-step instructions for calculating real-time win, tie, and split-pot equity for Texas Hold'em and Omaha on Smarter.Poker.",
+    steps: [
+        {
+            name: 'Select Your Poker Game Variant',
+            text: "Choose between Texas Hold'em, Pot-Limit Omaha (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, or Razz from the top game selector.",
+        },
+        {
+            name: 'Assign Player Hole Cards',
+            text: 'Click player seat card slots and pick exact cards from the interactive 52-card deck palette to set up your matchup with up to 6 players.',
+        },
+        {
+            name: 'Set Community Board Cards',
+            text: 'Select Flop, Turn, and River board cards to simulate postflop equity runouts, or leave empty for preflop calculations.',
+        },
+        {
+            name: 'Burn Known Dead Cards',
+            text: 'Optionally tag folded discards as dead cards to eliminate them from remaining deck iterations and refine calculation accuracy.',
+        },
+        {
+            name: 'Review Monte Carlo Simulation Results',
+            text: 'Inspect instant win percentages, tie odds, and split-pot equity calculated across 10,000 iterations to guide your betting and calling decisions.',
+        },
+    ],
+};
+
 const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     path: '/hub/poker-tools',
     name: 'Smarter.Poker Odds Calculator',
@@ -84,32 +111,7 @@ const ODDS_CALCULATOR_SCHEMA = hubProductSchema({
     applicationSubCategory: 'Poker',
     trail: [['Hub', '/hub'], ['Poker Odds Calculator', '/hub/poker-tools']],
     faqs: ODDS_CALCULATOR_FAQS,
-    howTo: {
-        name: 'How To Calculate Poker Odds And Hand Equity',
-        description: "Step-by-step instructions for calculating real-time win, tie, and split-pot equity for Texas Hold'em and Omaha on Smarter.Poker.",
-        steps: [
-            {
-                name: 'Select Your Poker Game Variant',
-                text: "Choose between Texas Hold'em, Pot-Limit Omaha (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, or Razz from the top game selector.",
-            },
-            {
-                name: 'Assign Player Hole Cards',
-                text: 'Click player seat card slots and pick exact cards from the interactive 52-card deck palette to set up your matchup with up to 6 players.',
-            },
-            {
-                name: 'Set Community Board Cards',
-                text: 'Select Flop, Turn, and River board cards to simulate postflop equity runouts, or leave empty for preflop calculations.',
-            },
-            {
-                name: 'Burn Known Dead Cards',
-                text: 'Optionally tag folded discards as dead cards to eliminate them from remaining deck iterations and refine calculation accuracy.',
-            },
-            {
-                name: 'Review Monte Carlo Simulation Results',
-                text: 'Inspect instant win percentages, tie odds, and split-pot equity calculated across 10,000 iterations to guide your betting and calling decisions.',
-            },
-        ],
-    },
+    howTo: ODDS_CALCULATOR_HOW_TO,
 });
 
 /* ═══════════════════════════════════════════════
@@ -414,33 +416,8 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
             applicationCategory: 'GameApplication',
             applicationSubCategory: 'Poker',
             trail: [['Hub', '/hub'], ['Poker Odds Calculator', canonicalPath]],
-            faqs: [
-                {
-                    question: 'How does the Smarter.Poker Odds Calculator compute equity?',
-                    answer:
-                        'The calculator runs high-precision Monte Carlo simulations across 10,000 iterations to evaluate exact win, tie, and split-pot equity for Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud, and Razz against up to 6 opponents simultaneously.',
-                },
-                {
-                    question: 'Can I factor dead cards or known discards into the calculation?',
-                    answer:
-                        'Yes. You can mark folded cards or known discards as dead cards. The simulation immediately removes them from the 52-card shoe, refining equity calculation accuracy for complex multiway scenarios.',
-                },
-                {
-                    question: 'Is the Smarter.Poker Odds Calculator free?',
-                    answer:
-                        'Yes. The Smarter.Poker Odds Calculator is 100% free with no account creation, paywall, or advertisement gating required.',
-                },
-                {
-                    question: 'What poker variants are supported by the calculator?',
-                    answer:
-                        "Six full variants are supported: Texas Hold'em, Omaha High (PLO4), 5-Card Omaha (PLO5), 6-Card Omaha (PLO6), Seven Card Stud, and Razz (Seven Card Stud Low).",
-                },
-                {
-                    question: 'Can I share or embed calculated poker odds scenarios?',
-                    answer:
-                        'Yes. You can copy a persistent permalink containing all player hands, board cards, and dead cards, or embed the responsive iframe calculator directly into external websites.',
-                },
-            ],
+            faqs: ODDS_CALCULATOR_FAQS,
+            howTo: ODDS_CALCULATOR_HOW_TO,
         });
     }, [router.pathname]);
 

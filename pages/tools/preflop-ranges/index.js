@@ -122,6 +122,32 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
           answer: 'Yes. Use the print or export action to generate a clean, printer-friendly high-contrast 13x13 preflop chart for study and reference.',
         },
       ],
+      howTo: {
+        name: 'How To Read And Apply GTO Preflop Range Charts',
+        description: 'Step-by-step instructions for reading 13x13 poker preflop matrices, interpreting opening frequencies, and executing mixed strategies.',
+        steps: [
+          {
+            name: 'Select Table Position',
+            text: 'Choose your table seat position (UTG, HJ, CO, BTN, or SB) to view solver-solved opening frequencies for 100BB 6-max play.',
+          },
+          {
+            name: 'Locate Your Starting Hand In The 13x13 Grid',
+            text: 'Find pocket pairs along the diagonal (AA through 22), suited combinations in the upper-right triangle (AKs through 32s), and offsuit hands in the lower-left triangle (AKo through 32o).',
+          },
+          {
+            name: 'Read The Strategy Color Coding',
+            text: 'Green indicates pure 100% opening raises, teal and blue denote mixed opening frequencies, and dark cells indicate standard folds.',
+          },
+          {
+            name: 'Execute Mixed Strategies Accurately',
+            text: 'Use the second hand of your watch or an RNG number generator (0 to 100) to match the solver percentage when dealt a mixed-frequency hand.',
+          },
+          {
+            name: 'Inspect Combo Counts And Equity Metrics',
+            text: 'Click any individual hand cell to reveal exact combo distributions (suited vs offsuit vs pair combos) and strategic rationales.',
+          },
+        ],
+      },
     });
   }, [posData, stats, pageDesc]);
 

@@ -51,6 +51,29 @@ const ICM_CALCULATOR_FAQS = [
   },
 ];
 
+const ICM_CALCULATOR_HOW_TO = {
+  name: 'How To Calculate Tournament Independent Chip Model (ICM) Payouts',
+  description: 'Step-by-step instructions for converting tournament chip stacks into exact cash dollar equity using the Malmuth-Harville model.',
+  steps: [
+    {
+      name: 'Enter Player Chip Stacks',
+      text: 'Input the current chip counts for each remaining player at the final table or tournament bubble.',
+    },
+    {
+      name: 'Configure Prize Structure',
+      text: 'Set the total prize pool and percentage payouts or dollar prizes awarded to each finishing place rank.',
+    },
+    {
+      name: 'Run The Malmuth-Harville Probability Solver',
+      text: 'Click Calculate to execute the multi-place probability solver and generate exact finish distributions for every seat.',
+    },
+    {
+      name: 'Analyze Bubble Factors And Equity Differences',
+      text: 'Review the resulting ICM dollar values, bubble factor risk multipliers, and differences from raw chip EV to negotiate chops or refine push-fold ranges.',
+    },
+  ],
+};
+
 const ICM_CALCULATOR_SCHEMA = hubProductSchema({
   path: '/hub/training/icm-calculator',
   name: 'Smarter.Poker Tournament ICM Calculator',
@@ -59,28 +82,7 @@ const ICM_CALCULATOR_SCHEMA = hubProductSchema({
   applicationSubCategory: 'Poker',
   trail: [['Hub', '/hub'], ['GTO Training', '/hub/training'], ['ICM Calculator', '/hub/training/icm-calculator']],
   faqs: ICM_CALCULATOR_FAQS,
-  howTo: {
-    name: 'How To Calculate Tournament Independent Chip Model (ICM) Payouts',
-    description: 'Step-by-step instructions for converting tournament chip stacks into exact cash dollar equity using the Malmuth-Harville model.',
-    steps: [
-      {
-        name: 'Enter Player Chip Stacks',
-        text: 'Input the current chip counts for each remaining player at the final table or tournament bubble.',
-      },
-      {
-        name: 'Configure Prize Structure',
-        text: 'Set the total prize pool and percentage payouts or dollar prizes awarded to each finishing place rank.',
-      },
-      {
-        name: 'Run The Malmuth-Harville Probability Solver',
-        text: 'Click Calculate to execute the multi-place probability solver and generate exact finish distributions for every seat.',
-      },
-      {
-        name: 'Analyze Bubble Factors And Equity Differences',
-        text: 'Review the resulting ICM dollar values, bubble factor risk multipliers, and differences from raw chip EV to negotiate chops or refine push-fold ranges.',
-      },
-    ],
-  },
+  howTo: ICM_CALCULATOR_HOW_TO,
 });
 
 // TRAIN-CSS-MOTION-ADOPT-4 — durations routed through MOTION tokens matched to
@@ -278,33 +280,8 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
       applicationCategory: 'GameApplication',
       applicationSubCategory: 'Poker',
       trail: [['Hub', '/hub'], ['GTO Training', '/hub/training'], ['ICM Calculator', canonicalPath]],
-      faqs: [
-        {
-          question: 'What is ICM in tournament poker?',
-          answer:
-            'ICM (Independent Chip Model) is a mathematical model that translates tournament chip stacks into their actual expected dollar equity based on the remaining prize pool distribution.',
-        },
-        {
-          question: 'Why do chip values decrease as stacks grow larger in tournaments?',
-          answer:
-            'Because tournament payout structures award fixed prizes to top finishes rather than exchanging chips directly for cash. Your first chip is worth the most (qualifying for min-cashes), while chips that exceed first-place prize equity have diminishing marginal dollar value.',
-        },
-        {
-          question: 'How does ICM affect calling ranges on the bubble?',
-          answer:
-            'ICM creates risk asymmetry where losing chips hurts significantly more than gaining the same number of chips helps. This forces players to tighten calling ranges drastically against all-in bets near pay jumps and bubbles.',
-        },
-        {
-          question: 'Which algorithm does this ICM calculator use?',
-          answer:
-            'This calculator runs the canonical Malmuth-Harville multi-place probability model to calculate exact finish-distribution odds for every seat at final tables up to 9 players.',
-        },
-        {
-          question: 'How do I use ICM calculations for final table chop negotiations?',
-          answer:
-            'Input each player stack and remaining cash payout ranks. The resulting dollar values represent mathematically fair equity allocations before considering skill edge adjustments.',
-        },
-      ],
+      faqs: ICM_CALCULATOR_FAQS,
+      howTo: ICM_CALCULATOR_HOW_TO,
     });
   }, [router.pathname]);
 
