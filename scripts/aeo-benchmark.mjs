@@ -48,7 +48,7 @@ async function runBenchmark() {
   }
 
   // 1. Universal Knowledge Corpus & AI Grounding
-  console.log(`--- [1/6] Universal AI Knowledge Corpus ---`);
+  console.log(`--- [1/7] Universal AI Knowledge Corpus ---`);
   const llms = await fetchRoute('/llms.txt');
   assertCheck('GET /llms.txt status 200', llms.status === 200, `${llms.durationMs}ms`);
   assertCheck('llms.txt contains OpenAPI spec reference', llms.text.includes('/api/openapi.json'));
@@ -82,7 +82,7 @@ async function runBenchmark() {
   assertCheck('GET /.well-known/ai-plugin.json status 200', aiPlugin.status === 200);
 
   // 2. AI Agent Tool API Endpoints
-  console.log(`\n--- [2/6] AI Agent Tool APIs (MCP / Tool Calling) ---`);
+  console.log(`\n--- [2/7] AI Agent Tool APIs (MCP / Tool Calling) ---`);
   const aiOdds = await fetchRoute('/api/ai/odds?hands=AhAs,KhKd&board=QhJhTh');
   assertCheck('GET /api/ai/odds returns 200 with equity calculation', aiOdds.status === 200 && aiOdds.text.includes('equity_percent'));
 
@@ -126,7 +126,7 @@ async function runBenchmark() {
   assertCheck('GET /api/ai/messenger returns 200 with WebRTC call specs', aiMessenger.status === 200 && aiMessenger.text.includes('WebRTC'));
 
   // 3. Structured Freerolls & Calendar Schema
-  console.log(`\n--- [3/6] Daily $2,000 Freerolls Hub & Calendar Schema ---`);
+  console.log(`\n--- [3/7] Daily $2,000 Freerolls Hub & Calendar Schema ---`);
   const freerolls = await fetchRoute('/freerolls');
   assertCheck('GET /freerolls status 200', freerolls.status === 200, `${freerolls.durationMs}ms`);
   assertCheck('/freerolls contains Schema.org SportsEvent', freerolls.text.includes('"@type":["SportsEvent","EventSeries"]') || freerolls.text.includes('"@type":"SportsEvent"'));
@@ -134,7 +134,7 @@ async function runBenchmark() {
   assertCheck('/freerolls contains FAQPage schema', freerolls.text.includes('"@type":"FAQPage"'));
 
   // 4. Public High-Intent Feature Landers (HTML & Raw Markdown)
-  console.log(`\n--- [4/6] High-Intent Feature Landers (/features/*) ---`);
+  console.log(`\n--- [4/7] High-Intent Feature Landers (/features/*) ---`);
   const featuresHub = await fetchRoute('/features');
   assertCheck('GET /features status 200', featuresHub.status === 200, `${featuresHub.durationMs}ms`);
   assertCheck('/features contains CollectionPage and ItemList schema', featuresHub.text.includes('"@type":"CollectionPage"') && featuresHub.text.includes('"@type":"ItemList"'));
@@ -168,14 +168,14 @@ async function runBenchmark() {
   }
 
   // 5. Course & Educational Credential Schema
-  console.log(`\n--- [5/6] Video Coaching Library & Educational Schema ---`);
+  console.log(`\n--- [5/7] Video Coaching Library & Educational Schema ---`);
   const videoLib = await fetchRoute('/hub/video-library');
   assertCheck('GET /hub/video-library status 200', videoLib.status === 200, `${videoLib.durationMs}ms`);
   assertCheck('/hub/video-library contains Schema.org Course', videoLib.text.includes('"@type":"Course"'));
   assertCheck('/hub/video-library contains Schema.org Quiz nodes', videoLib.text.includes('"@type":"Quiz"'));
 
   // 6. Head-to-Head Comparison Matrices & Software Alternatives
-  console.log(`\n--- [6/6] Comparison Matrices & Alternative Benchmarks ---`);
+  console.log(`\n--- [6/7] Comparison Matrices & Alternative Benchmarks ---`);
   const compareHub = await fetchRoute('/compare');
   assertCheck('GET /compare status 200', compareHub.status === 200, `${compareHub.durationMs}ms`);
   assertCheck('/compare contains Freerolls comparison', compareHub.text.includes('Daily Freerolls Comparison'));
@@ -193,6 +193,45 @@ async function runBenchmark() {
   const compareGto = await fetchRoute('/compare/best-gto-poker-trainers');
   assertCheck('GET /compare/best-gto-poker-trainers status 200', compareGto.status === 200);
   assertCheck('/compare/best-gto-poker-trainers contains Sharp Poker', compareGto.text.includes('Sharp Poker'));
+
+  // 7. Interactive Poker Tools & Embeddable Widgets Schema Hardening
+  console.log(`\n--- [7/7] Interactive Poker Tools & Webmaster Embeds (/tools/*) ---`);
+  const oddsHtml = await fetchRoute('/tools/poker-odds-calculator');
+  assertCheck('GET /tools/poker-odds-calculator status 200', oddsHtml.status === 200, `${oddsHtml.durationMs}ms`);
+  assertCheck('/tools/poker-odds-calculator contains WebApplication schema', oddsHtml.text.includes('"@type":["SoftwareApplication","WebApplication"]') || oddsHtml.text.includes('"@type":"SoftwareApplication"'));
+  assertCheck('/tools/poker-odds-calculator contains HowTo schema', oddsHtml.text.includes('"@type":"HowTo"'));
+  assertCheck('/tools/poker-odds-calculator contains FAQPage schema', oddsHtml.text.includes('"@type":"FAQPage"'));
+
+  const oddsMd = await fetchRoute('/tools/poker-odds-calculator.md');
+  assertCheck('GET /tools/poker-odds-calculator.md status 200', oddsMd.status === 200);
+  assertCheck('/tools/poker-odds-calculator.md returns structured markdown', oddsMd.text.startsWith('# ') && oddsMd.text.includes('Monte Carlo'));
+
+  const icmHtml = await fetchRoute('/tools/icm-calculator');
+  assertCheck('GET /tools/icm-calculator status 200', icmHtml.status === 200, `${icmHtml.durationMs}ms`);
+  assertCheck('/tools/icm-calculator contains WebApplication schema', icmHtml.text.includes('"@type":["SoftwareApplication","WebApplication"]') || icmHtml.text.includes('"@type":"SoftwareApplication"'));
+  assertCheck('/tools/icm-calculator contains HowTo schema', icmHtml.text.includes('"@type":"HowTo"'));
+
+  const icmMd = await fetchRoute('/tools/icm-calculator.md');
+  assertCheck('GET /tools/icm-calculator.md status 200', icmMd.status === 200);
+  assertCheck('/tools/icm-calculator.md returns structured markdown', icmMd.text.startsWith('# ') && icmMd.text.includes('Malmuth-Harville'));
+
+  const preflopHtml = await fetchRoute('/tools/preflop-ranges');
+  assertCheck('GET /tools/preflop-ranges status 200', preflopHtml.status === 200, `${preflopHtml.durationMs}ms`);
+  assertCheck('/tools/preflop-ranges contains WebApplication schema', preflopHtml.text.includes('"@type":["SoftwareApplication","WebApplication"]') || preflopHtml.text.includes('"@type":"SoftwareApplication"'));
+  assertCheck('/tools/preflop-ranges contains HowTo schema', preflopHtml.text.includes('"@type":"HowTo"'));
+
+  const preflopMd = await fetchRoute('/tools/preflop-ranges.md');
+  assertCheck('GET /tools/preflop-ranges.md status 200', preflopMd.status === 200);
+  assertCheck('/tools/preflop-ranges.md returns structured markdown', preflopMd.text.startsWith('# ') && preflopMd.text.includes('13x13'));
+
+  const embedsHtml = await fetchRoute('/tools/embeds');
+  assertCheck('GET /tools/embeds status 200', embedsHtml.status === 200, `${embedsHtml.durationMs}ms`);
+  assertCheck('/tools/embeds contains WebApplication schema', embedsHtml.text.includes('"@type":["SoftwareApplication","WebApplication"]') || embedsHtml.text.includes('"@type":"WebApplication"'));
+  assertCheck('/tools/embeds contains HowTo schema', embedsHtml.text.includes('"@type":"HowTo"'));
+
+  const embedsMd = await fetchRoute('/tools/embeds.md');
+  assertCheck('GET /tools/embeds.md status 200', embedsMd.status === 200);
+  assertCheck('/tools/embeds.md returns structured markdown spec', embedsMd.text.startsWith('# ') && embedsMd.text.includes('Embeddable Poker Widgets'));
 
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);

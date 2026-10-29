@@ -39,6 +39,24 @@ const WIDGETS = [
   },
 ];
 
+export async function getServerSideProps({ req, res, query }) {
+  const acceptHeader = String(req?.headers?.accept || '');
+  const isMarkdownRequested =
+    acceptHeader.includes('text/markdown') ||
+    query?.format === 'md' ||
+    req?.url?.includes('format=md');
+  if (isMarkdownRequested) {
+    const { renderEmbedsMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderEmbedsMarkdown();
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+  return { props: {} };
+}
+
 export default function WebmasterEmbedPortal() {
   const [copiedId, setCopiedId] = useState(null);
 
@@ -90,6 +108,28 @@ export default function WebmasterEmbedPortal() {
       ['Embed Widgets', '/tools/embeds'],
     ],
     faqs: EMBEDS_FAQS,
+    howTo: {
+      name: 'How To Embed Smarter.Poker Calculators On Your Website',
+      description: 'Step-by-step instructions for copying and embedding responsive poker widgets into WordPress, Ghost, Substack, or custom HTML sites.',
+      steps: [
+        {
+          name: 'Select A Poker Widget',
+          text: 'Choose between the Multiway Poker Odds Calculator, Tournament ICM Calculator, or GTO Preflop Range Matrix Hub.',
+        },
+        {
+          name: 'Copy The Responsive Iframe Snippet',
+          text: 'Click the Copy Code button to copy the clean, sandboxed iframe snippet with optimal responsive dimensions.',
+        },
+        {
+          name: 'Paste Into Your Website CMS Or HTML Template',
+          text: 'Paste the iframe snippet into your WordPress Custom HTML block, Webflow embed element, or static HTML template.',
+        },
+        {
+          name: 'Test Live Responsiveness Across Desktop And Mobile',
+          text: 'Preview your published page on mobile and desktop browsers to verify seamless touch interaction and automatic height scaling.',
+        },
+      ],
+    },
   });
 
   return (
@@ -100,6 +140,7 @@ export default function WebmasterEmbedPortal() {
         canonical="https://smarter.poker/tools/embeds"
         jsonLd={EMBEDS_SCHEMA}
         ogImage="/api/og/tool-card?tool=embeds&title=Free+Poker+Widgets+And+Embeds&subtitle=Responsive+Iframe+Widgets+For+Odds+ICM+And+Preflop+Ranges&statLabel=WIDGETS&statValue=100%+FREE"
+        markdownUrl="https://smarter.poker/tools/embeds.md"
       />
 
       <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#fff', paddingBottom: '60px' }}>

@@ -44,7 +44,7 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
 - Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
 - Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
-- Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds
+- Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds (Raw Markdown: https://smarter.poker/tools/embeds.md)
 
 ## High-Intent Public Feature Guides
 
@@ -219,6 +219,7 @@ Authoritative, solver-grade poker computation tools available for direct browser
   - MCP Tool Name: calculate_icm_payouts
 - **Webmaster & Poker Site Embeds**: https://smarter.poker/tools/embeds
   - Free responsive iframe widgets for poker bloggers, tournament directors, and media websites.
+  - Raw Markdown: https://smarter.poker/tools/embeds.md or Accept: text/markdown
 
 ---
 

@@ -142,10 +142,10 @@ High-value, browser-based alternatives to expensive third-party poker software s
 
 ### 11. Free Interactive Poker Tools
 Solver-grade poker calculators, range tools, and embeddable widgets for web browser usage, raw Markdown ingestion, or direct AI function calling via the Smarter.Poker MCP Server.
-- Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
-- Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
-- Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
-- Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds
+- Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator (Raw Markdown: https://smarter.poker/tools/poker-odds-calculator.md)
+- Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges (Raw Markdown: https://smarter.poker/tools/preflop-ranges.md)
+- Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator (Raw Markdown: https://smarter.poker/tools/icm-calculator.md)
+- Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds (Raw Markdown: https://smarter.poker/tools/embeds.md)
 
 ### 12. GTO Training Engine & Solver Baselines
 Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer. Free to play.

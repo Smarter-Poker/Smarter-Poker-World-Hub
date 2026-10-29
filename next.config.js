@@ -1452,6 +1452,10 @@ const nextConfig = {
           destination: '/tools/preflop-ranges?format=md',
         },
         {
+          source: '/tools/embeds.md',
+          destination: '/tools/embeds?format=md',
+        },
+        {
           source: '/about.md',
           destination: '/about?format=md',
         },
