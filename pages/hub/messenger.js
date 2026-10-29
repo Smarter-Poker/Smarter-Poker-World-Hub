@@ -3425,43 +3425,51 @@ function MessengerPage() {
 
     if (loading && clubAccess.userId !== user?.id) {
         return (
-            <div style={{
-                minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-                background: C.bg,
-                display: 'flex',
-            }}>
-                {/* Skeleton sidebar */}
+            <>
+                <SEOHead
+                    title="Poker Messenger & Video Calls"
+                    description="Chat With Poker Friends, Host WebRTC Video Calls, Share Interactive Hand Histories, And Coordinate Private Study Groups On Smarter.Poker Messenger. 100% Free."
+                    canonical="/hub/messenger"
+                    jsonLd={MESSENGER_SCHEMA}
+                />
                 <div style={{
-                    width: 360, background: C.card,
-                    borderRight: `1px solid ${C.border}`,
+                    minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+                    background: C.bg,
+                    display: 'flex',
                 }}>
-                    <div style={{ padding: '12px 16px' }}>
-                        <div style={{
-                            width: 140, height: 28, borderRadius: 8,
-                            background: `linear-gradient(110deg, ${C.bg} 8%, ${C.border} 18%, ${C.bg} 33%)`,
-                            backgroundSize: '200% 100%',
-                            animation: 'shimmer 1.5s infinite',
-                        }} />
+                    {/* Skeleton sidebar */}
+                    <div style={{
+                        width: 360, background: C.card,
+                        borderRight: `1px solid ${C.border}`,
+                    }}>
+                        <div style={{ padding: '12px 16px' }}>
+                            <div style={{
+                                width: 140, height: 28, borderRadius: 8,
+                                background: `linear-gradient(110deg, ${C.bg} 8%, ${C.border} 18%, ${C.bg} 33%)`,
+                                backgroundSize: '200% 100%',
+                                animation: 'shimmer 1.5s infinite',
+                            }} />
+                        </div>
+                        <ConversationSkeleton count={8} theme={C} />
                     </div>
-                    <ConversationSkeleton count={8} theme={C} />
-                </div>
-                {/* Skeleton chat area */}
-                <div style={{
-                    flex: 1, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                }}>
-                    <div style={{ textAlign: 'center', color: C.textSec }}>
-                        <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>💬</div>
-                        <div>Loading Messenger...</div>
+                    {/* Skeleton chat area */}
+                    <div style={{
+                        flex: 1, display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <div style={{ textAlign: 'center', color: C.textSec }}>
+                            <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>💬</div>
+                            <div>Loading Messenger...</div>
+                        </div>
                     </div>
+                    <style dangerouslySetInnerHTML={{ __html: `
+                        @keyframes shimmer {
+                            0% { background-position: 200% 0; }
+                            100% { background-position: -200% 0; }
+                        }
+                    ` }} />
                 </div>
-                <style dangerouslySetInnerHTML={{ __html: `
-                    @keyframes shimmer {
-                        0% { background-position: 200% 0; }
-                        100% { background-position: -200% 0; }
-                    }
-                ` }} />
-            </div>
+            </>
         );
     }
 
