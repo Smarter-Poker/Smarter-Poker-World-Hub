@@ -654,17 +654,17 @@ export const COMPARE_PAGES = [
     title: 'Best GTO Poker Trainers In 2026',
     h1: 'Best GTO Poker Trainers In 2026',
     description:
-      'GTO Wizard, DTO, Odin, Deepsolver And Smarter.Poker GTO Training Compared On Price, Free Access, Training, Solvers, Hand Review And Platforms.',
+      'GTO Wizard, DTO, Odin, Deepsolver, Sharp Poker And Smarter.Poker GTO Training Compared On Price, Free Access, Training, Solvers And Platforms.',
     summary: p(
-      'GTO Wizard Runs From $49 A Month With A Limited Free Version, DTO Cash From $9.99 A Month With One Free Spot, And Deepsolver From $49 A Month With A 2 Day Trial; Odin Showed Us No Prices. Smarter.Poker GTO Training Is Free, With 107 Training Games, A Library Of Solver Baselines And Free Hand History Review, But The Pages We Checked Offer No Custom Spot Solver Like The Ones GTO Wizard And Deepsolver Sell.',
-      ['pokernewsGtoWizardPricing', 'gtowizardHelp', 'dtoCashPricing', 'deepsolverPricing', 'odinSite', 'spTraining', 'spSolutions', 'spHandHistory', 'spHome']
+      'GTO Wizard Runs From $49 A Month With A Limited Free Version, DTO Cash From $9.99 A Month With One Free Spot, And Deepsolver From $49 A Month With A 2 Day Trial; Odin Showed Us No Prices. Sharp Poker Provides Mobile AI Practice. Smarter.Poker GTO Training Is Free, With 107 Training Games, A Library Of Solver Baselines And Free Hand History Review, But The Pages We Checked Offer No Custom Spot Solver Like The Ones GTO Wizard And Deepsolver Sell.',
+      ['pokernewsGtoWizardPricing', 'gtowizardHelp', 'dtoCashPricing', 'deepsolverPricing', 'odinSite', 'sharpSite', 'spTraining', 'spSolutions', 'spHandHistory', 'spHome']
     ),
     intro: p(
       'A GTO Trainer Drills You Against Game Theory Optimal Play And Scores Each Decision. Each Fact Below Comes From The Maker Page, App Store Listing Or PokerNews Article Linked Under Sources.'
     ),
     table: {
       caption: 'GTO Poker Trainers Compared, ' + CHECKED_LABEL,
-      products: ['smarterTraining', 'gtowizard', 'dto', 'odin', 'deepsolver'],
+      products: ['smarterTraining', 'gtowizard', 'dto', 'odin', 'deepsolver', 'sharp'],
       columns: TRAINER_COLUMNS,
     },
     sections: [
@@ -674,6 +674,7 @@ export const COMPARE_PAGES = [
           p('Solve Your Own Spots: GTO Wizard And Deepsolver Both Sell A Solver You Point At A Spot You Define.', ['gtowizardSite', 'deepsolverPricing']),
           p('Play Against Bots: DTO Cash Has You Play GTO Bots With Instant Feedback At 100 Big Blinds.', ['dtoCashPricing']),
           p('Study On A Phone: DTO Cash Has An Apple App Store App; Deepsolver Says Mobile Is Not Supported.', ['dtoCashAppStore', 'deepsolverPricing']),
+          p('Mobile AI Spot Reviews: Sharp Poker Provides AI Neural Recommendations And Hand Leak Detection On Mobile Devices.', ['sharpSite']),
           p('Spend Nothing: Smarter.Poker GTO Training Is Free, Including Its Solutions Library And Hand History Review.', ['spHome', 'spSolutions', 'spHandHistory']),
         ],
       },
@@ -702,6 +703,10 @@ export const COMPARE_PAGES = [
         q: 'Is There A Free GTO Poker Trainer?',
         a: p('Smarter.Poker GTO Training Is Free. GTO Wizard Has A Free Version Limited To One Postflop Spot A Day, And DTO Cash Offers One Free Spot On The Web.', ['spHome', 'gtowizardHelp', 'dtoCashPricing']),
       },
+      {
+        q: 'Does Sharp Poker Support Mobile Hand Reviews?',
+        a: p('Yes. Sharp Poker Features Mobile Hand History Upload And AI Hand Analysis On Apple App Store And Google Play.', ['sharpSite']),
+      },
     ],
     related: ['best-poker-bankroll-trackers', 'best-poker-club-apps'],
     productLinks: ['smarterTraining'],
@@ -715,17 +720,17 @@ export const COMPARE_PAGES = [
     title: 'Best Poker Bankroll Trackers In 2026',
     h1: 'Best Poker Bankroll Trackers In 2026',
     description:
-      'Poker Bankroll Tracker, Poker Income And The Smarter.Poker Bankroll Manager Compared On Price, Session Logging, Analysis, Export And Platforms.',
+      'Poker Bankroll Tracker, Pokerbase, Poker Income And The Smarter.Poker Bankroll Manager Compared On Price, Session Logging, Export And Platforms.',
     summary: p(
-      'Poker Bankroll Tracker Is Free With A Pro Upgrade At $29.99 A Year, Runs On Apple, Android And Desktop, And Adds A Hand Replayer. Poker Income Costs $9.99 On The App Store And Tracks Cash Games And Tournaments With Monthly Reports. The Smarter.Poker Bankroll Manager Is Free On The Web, With Trips, Series, Tax Reports And CSV Export.',
-      ['pbtAppStore', 'pbtSite', 'pokerIncomeAppStore', 'spBankroll']
+      'Poker Bankroll Tracker Is Free With A Pro Upgrade At $29.99 A Year, Runs On Apple, Android And Desktop, And Adds A Hand Replayer. Pokerbase Provides Mobile Session Tracking And Hand Notes. Poker Income Costs $9.99 On The App Store And Tracks Cash Games And Tournaments With Monthly Reports. The Smarter.Poker Bankroll Manager Is Free On The Web, With Trips, Series, Tax Reports And CSV Export.',
+      ['pbtAppStore', 'pbtSite', 'pokerbaseSite', 'pokerIncomeAppStore', 'spBankroll']
     ),
     intro: p(
       'A Bankroll Tracker Is A Log Of What You Played, For How Long And What You Won Or Lost, So You Can See Your Win Rate And Variance. Each Fact Below Comes From The App Store Listing Or Maker Site Linked Under Sources.'
     ),
     table: {
       caption: 'Poker Bankroll Trackers Compared, ' + CHECKED_LABEL,
-      products: ['bankrollManager', 'pokerBankrollTracker', 'pokerIncome'],
+      products: ['bankrollManager', 'pokerBankrollTracker', 'pokerbase', 'pokerIncome'],
       columns: BANKROLL_COLUMNS,
     },
     sections: [
@@ -733,6 +738,7 @@ export const COMPARE_PAGES = [
         heading: 'Which Tracker Fits You',
         bullets: [
           p('Hand Replays And Opponent Stats: Poker Bankroll Tracker Records Hands, Including Bomb Pots And Run It Twice, And Tracks VPIP And PFR.', ['pbtAppStore']),
+          p('Mobile Session History: Pokerbase Provides Live Hand Notes And Mobile Session Logging.', ['pokerbaseSite']),
           p('Pay Once: Poker Income Is A $9.99 Paid App With No In-App Purchases Listed.', ['pokerIncomeAppStore']),
           p('Trips, Staking And Taxes: The Bankroll Manager Groups Sessions Into Trips And Series, And Adds A Staking Tracker, Toke Tracker And Tax Reports.', ['spBankroll']),
         ],
@@ -750,11 +756,21 @@ export const COMPARE_PAGES = [
           p('The Bankroll Manager Is A Record Of Sessions You Log Yourself. There Is No Real-Money Gambling On Smarter.Poker.', ['spBankroll', 'spHome']),
         ],
       },
+      {
+        heading: 'Dealer Tokes And Shift Tracking',
+        paragraphs: [
+          p('For Casino Dealers And Dealing Staff, DownCount Tracks Downs And Tips On Apple Devices. The Smarter.Poker Bankroll Manager Includes A Built-In Toke Tracker With Shift Logging And Tax Reports Built In For Free.', ['downcountSite', 'spBankroll']),
+        ],
+      },
     ],
     faq: [
       {
         q: 'Is There A Free Poker Bankroll Tracker?',
         a: p('Yes. The Smarter.Poker Bankroll Manager Is Free, And Poker Bankroll Tracker Is Free To Download With An Optional Pro Upgrade.', ['spBankroll', 'pbtAppStore']),
+      },
+      {
+        q: 'Does Pokerbase Support Hand Replays?',
+        a: p('Yes. Pokerbase Includes A Hand History Replayer Alongside Session Tracking.', ['pokerbaseSite']),
       },
     ],
     related: ['best-gto-poker-trainers', 'best-poker-room-management-software'],
