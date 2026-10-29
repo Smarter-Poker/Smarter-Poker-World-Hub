@@ -27,11 +27,14 @@ PROTOCOL = "smarter-poker.horse-solver-v31-ingress.v1"
 MAX_BODY_BYTES = 4 * 1024 * 1024
 OPERATIONS = {
     "M1": {"dataset_contract", "worker_heartbeat", "ingest_artifact"},
-    "M2": {"dataset_contract", "worker_heartbeat", "ingest_artifact"},
+    "M2": {"dataset_contract", "worker_heartbeat", "ingest_artifact", "model_freeze_authority"},
     "COMPACTOR": {
         "dataset_contract",
         "register_dataset",
         "build_cell",
+        "prepare_model",
+        "freeze_model",
+        "model_freeze_authority",
         "seal_dataset",
         "compact_heartbeat",
         "certification_status",

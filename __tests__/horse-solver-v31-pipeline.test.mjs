@@ -28,10 +28,15 @@ test('the certified V31 solver pipeline passes its hermetic parser and contract 
 
 for (const suite of [
   'scripts/horse-solver-v31/test_compile_inputs.py',
+  'scripts/horse-solver-v31/test_public_hist215.py',
+  'scripts/horse-solver-v31/test_final_public215_training.py',
   'scripts/ci/test-provision-horse-v31-hmac.py',
 ]) {
   test(`V31 commissioning prerequisite ${suite} passes`, () => {
-    const result = spawnSync(process.env.PYTHON_BIN || 'python3', [suite], {
+    const python = suite.endsWith('/test_final_public215_training.py')
+      ? process.env.V31_NUMERIC_PYTHON || process.env.PYTHON_BIN || 'python3'
+      : process.env.PYTHON_BIN || 'python3';
+    const result = spawnSync(python, [suite], {
       cwd: ROOT, encoding: 'utf8', timeout: 120_000,
     });
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
@@ -85,4 +90,25 @@ test('the shipped example is deliberately disabled and cannot claim a corpus', (
   assert.equal(manifest.scenarios.length, 0);
   assert.equal(manifest.pipeline_commit, '0'.repeat(40));
   assert.equal(manifest.solver_binary_checksum, '0'.repeat(64));
+});
+
+
+test('official scalar exporter checks run with pinned numerical dependencies in the existing required CI job',()=>{
+ const workflow=read('.github/workflows/build-safety-gate.yml');
+ assert.match(workflow,/python-version: '3\.14\.2'/);
+ assert.match(workflow,/update-environment: false/);
+ assert.match(workflow,/requirements-public215-tests\.txt/);
+ assert.match(workflow,/V31_NUMERIC_PYTHON=/);
+ const requirements=read('scripts/horse-solver-v31/requirements-public215-tests.txt');
+ for(const pin of ['numpy==2.3.5','scipy==1.17.0','scikit-learn==1.9.0','joblib==1.5.3','threadpoolctl==3.6.0','narwhals==2.22.1'])assert.ok(requirements.split('\n').includes(pin));
+});
+
+test('every maintained full-build caller supplies the same pinned scalar-test runtime',()=>{
+ for(const file of ['global-footer-e2e.yml','e2e-tests.yml']){
+  const source=read('.github/workflows/'+file);
+  assert.match(source,/python-version: '3\.14\.2'/);
+  assert.match(source,/only-binary=:all: -r scripts\/horse-solver-v31\/requirements-public215-tests\.txt/);
+  assert.match(source,/V31_NUMERIC_PYTHON=.*v31-public215-contracts\/bin\/python/);
+  assert.ok(source.indexOf('Install locked V31 test numerical dependencies')<source.indexOf('run: npm run build -- --webpack'));
+ }
 });

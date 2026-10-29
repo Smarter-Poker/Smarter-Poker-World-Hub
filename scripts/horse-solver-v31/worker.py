@@ -257,7 +257,10 @@ def artifact_matches(
     machine: str,
     scenario: dict[str, Any],
     target: dict[str, Any],
+    *, selection_receipt: dict[str, Any] | None = None,
 ) -> bool:
+    if selection_receipt is not None:
+        from public_hist215 import digest as selection_digest
     expected_id = artifact_id(manifest, machine, target["target_id"])
     matrix = artifact.get("strategy_matrix_v2")
     nodes = matrix.get("nodes") if isinstance(matrix, dict) else None
@@ -280,7 +283,8 @@ def artifact_matches(
         and artifact.get("street") == {6: "flop", 8: "turn", 10: "river"}.get(len(target["board"]))
         and isinstance(artifact.get("solved_at"), str)
         and isinstance(matrix, dict)
-        and set(matrix) == {"schema", "combo_order", "nodes"}
+        and set(matrix) == ({"schema", "combo_order", "nodes", "selection_receipt", "selection_receipt_checksum"} if selection_receipt is not None else {"schema", "combo_order", "nodes"})
+        and (selection_receipt is None or (matrix.get("selection_receipt") == selection_receipt and matrix.get("selection_receipt_checksum") == selection_digest(selection_receipt)))
         and matrix.get("schema") == "smarter-poker.pio-artifact.v31.1"
         and matrix.get("combo_order")
         == "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
@@ -325,6 +329,15 @@ def make_artifact(
             "nodes": [node],
         },
     }
+
+
+def artifact_upload_view(artifact: dict[str, Any], selection_seed: bytes | None) -> dict[str, Any]:
+    """Transient authenticated transport view; never mutate persisted bytes."""
+    if selection_seed is None:
+        return artifact
+    if type(selection_seed) is not bytes or len(selection_seed) != 32:
+        raise ContractError("M2 transient seed has invalid length")
+    return {**artifact, "selection_seed": selection_seed.hex()}
 
 
 def verify_environment(manifest: ApprovedManifest, executable: Path) -> None:
@@ -387,6 +400,12 @@ def run(args: argparse.Namespace) -> None:
         pipeline_root=script_root,
     )
     validate_pipeline_imports()
+    needs_selection = manifest.raw.get("policy_representation") == "public_hist215_v1" and args.machine == "M2"
+    selector_args = [getattr(args,k,None) for k in ("m2_model_builds","m2_model_builds_checksum","m2_seed_file")]
+    if needs_selection and not args.preflight_only and not all(selector_args):
+        raise ContractError("public215 M2 requires the complete frozen Linux model index and seed-file selector")
+    if not needs_selection and any(selector_args):
+        raise ContractError("M2 selector inputs are forbidden for this worker contract")
     executable_value = os.environ.get("PIO_EXE", "").strip()
     if not executable_value:
         raise ContractError("PIO_EXE must name the approved PioSOLVER executable")
@@ -431,6 +450,28 @@ def run(args: argparse.Namespace) -> None:
             "no source rows were changed"
         )
         return
+    selection_receipt, selected_pairs, selection_seed = None, None, None
+    if needs_selection:
+        from public_hist215 import load_model_build_index, make_m2_selection_receipt, canonical_bytes, digest, verify_model_freeze_authority
+        models = load_model_build_index(args.m2_model_builds,
+            expected_checksum=args.m2_model_builds_checksum, dataset_id=dataset_id,
+            manifest={**manifest.raw,"_actual_manifest_checksum":manifest.checksum})
+        authority=client.call("model_freeze_authority",{"dataset_id":dataset_id})
+        verify_model_freeze_authority(authority,manifest=manifest.raw,dataset_id=dataset_id,model_builds=models)
+        # Only after server-authoritative complete freeze AND local Linux receipt admission.
+        seed_path=Path(args.m2_seed_file)
+        if seed_path.is_symlink() or not seed_path.is_file():
+            raise ContractError("M2 seed file must be a regular private file")
+        with seed_path.open("rb") as seed_input:
+            selection_seed=seed_input.read(33)
+        selection_receipt,selected_pairs=make_m2_selection_receipt(manifest.raw,
+            dataset_id=dataset_id,model_builds=models,seed=selection_seed)
+        planned=len(selected_pairs)
+        selection_path=Path(args.work_directory).resolve()/"m2-selection-receipt.json"
+        prior_selection=load_checkpoint(selection_path)
+        if prior_selection is not None and prior_selection!=selection_receipt:
+            raise ContractError("M2 selection checkpoint belongs to another frozen model map")
+        if prior_selection is None:atomic_json(selection_path,selection_receipt)
     heartbeat = WorkerHeartbeat(client, manifest, args.machine, planned)
     heartbeat.pulse("starting", "startup")
     work_directory = Path(args.work_directory).resolve()
@@ -457,6 +498,8 @@ def run(args: argparse.Namespace) -> None:
 
             for scenario in scenarios:
                 targets = owned_targets(scenario, args.machine)
+                if selected_pairs is not None:
+                    targets=[target for target in targets if (canonical_bytes(target_context(scenario,target)),target["board"]) in selected_pairs]
                 if not targets:
                     continue
                 checkpoints: dict[str, dict[str, Any] | None] = {}
@@ -469,7 +512,7 @@ def run(args: argparse.Namespace) -> None:
                         mark_invalid(heartbeat)
                         raise
                     if prior is not None and not artifact_matches(
-                        prior, manifest, args.machine, scenario, target
+                        prior, manifest, args.machine, scenario, target, selection_receipt=selection_receipt
                     ):
                         mark_invalid(heartbeat)
                         raise ContractError(
@@ -502,6 +545,9 @@ def run(args: argparse.Namespace) -> None:
                                     conditional_input_ranges={side: load_range_vector(manifest.input_root / scenario[side.lower() + "_range_path"]) for side in ("OOP", "IP")} if "conditional_history" in scenario else None,
                                 )
                             artifact = make_artifact(manifest, args.machine, scenario, target, node)
+                            if selection_receipt is not None:
+                                artifact["strategy_matrix_v2"]["selection_receipt"]=selection_receipt
+                                artifact["strategy_matrix_v2"]["selection_receipt_checksum"]=digest(selection_receipt)
                         except (ContractError, PioError):
                             mark_invalid(heartbeat)
                             raise
@@ -509,7 +555,7 @@ def run(args: argparse.Namespace) -> None:
                         atomic_json(path, artifact)
                     try:
                         result = client.call(
-                            "ingest_artifact", {"dataset_id": dataset_id, "artifact": artifact}
+                            "ingest_artifact", {"dataset_id": dataset_id, "artifact": artifact_upload_view(artifact,selection_seed)}
                         )
                     except GatewayError as error:
                         if error.status is not None and 400 <= error.status < 500 and error.status != 429:
@@ -547,6 +593,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-root", required=True)
     parser.add_argument("--work-directory")
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--m2-model-builds")
+    parser.add_argument("--m2-model-builds-checksum")
+    parser.add_argument("--m2-seed-file")
     args = parser.parse_args()
     if not args.preflight_only and not args.work_directory:
         parser.error("--work-directory is required unless --preflight-only is used")

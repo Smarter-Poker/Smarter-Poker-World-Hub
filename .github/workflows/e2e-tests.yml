@@ -471,6 +471,19 @@ jobs:
             next-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
             next-wh-${{ runner.os }}-
 
+      - name: Setup pinned Python for V31 scalar export contracts
+        id: v31-numeric-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.2'
+          update-environment: false
+
+      - name: Install locked V31 test numerical dependencies
+        run: |
+          '${{ steps.v31-numeric-python.outputs.python-path }}' -m venv "$RUNNER_TEMP/v31-public215-contracts"
+          "$RUNNER_TEMP/v31-public215-contracts/bin/python" -m pip install --disable-pip-version-check --only-binary=:all: -r scripts/horse-solver-v31/requirements-public215-tests.txt
+          echo "V31_NUMERIC_PYTHON=$RUNNER_TEMP/v31-public215-contracts/bin/python" >> "$GITHUB_ENV"
+
       - name: Build Next.js
         # `npm run build`, NOT a bare `npx next build`.
         #

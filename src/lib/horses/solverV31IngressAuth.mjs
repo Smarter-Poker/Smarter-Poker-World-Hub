@@ -9,6 +9,9 @@ export const V31_INGRESS_OPERATIONS = Object.freeze([
   'ingest_artifact',
   'register_dataset',
   'build_cell',
+  'prepare_model',
+  'freeze_model',
+  'model_freeze_authority',
   'seal_dataset',
   'compact_heartbeat',
   'certification_status',
@@ -30,6 +33,9 @@ const COMPACTOR_OPERATIONS = new Set([
   'dataset_contract',
   'register_dataset',
   'build_cell',
+  'prepare_model',
+  'freeze_model',
+  'model_freeze_authority',
   'seal_dataset',
   'compact_heartbeat',
   'certification_status',
@@ -52,7 +58,7 @@ const PROVENANCE_KEYS = Object.freeze([
 export function v31FeatureContractVersion(value) {
   const version = Object.prototype.hasOwnProperty.call(value || {}, 'feature_contract_version')
     ? value.feature_contract_version : 'rank-suit-count-v1';
-  return ['rank-suit-count-v1', 'holdem-board-relative-v2'].includes(version) ? version : null;
+  return ['rank-suit-count-v1', 'holdem-board-relative-v2', 'holdem-public-hist215-v1'].includes(version) ? version : null;
 }
 
 export function v31PolicyExportSchema(value) {
@@ -331,12 +337,15 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
       || !exactKeys(envelope.provenance, [...PROVENANCE_KEYS, ...['feature_contract_version', 'policy_export_schema'].filter(key => Object.prototype.hasOwnProperty.call(envelope.provenance || {}, key))])
       || !v31FeatureContractVersion(envelope.provenance)
       || !v31PolicyExportSchema(envelope.provenance)
+      || (v31FeatureContractVersion(envelope.provenance) === 'holdem-public-hist215-v1'
+        && v31PolicyExportSchema(envelope.provenance) !== 'smarter-poker.pio-policy.v4')
       || !envelope.payload
       || typeof envelope.payload !== 'object'
       || Array.isArray(envelope.payload)) return false;
 
   const allowed = principal === 'COMPACTOR' ? COMPACTOR_OPERATIONS : WORKER_OPERATIONS;
-  if (!allowed.has(envelope.operation)) return false;
+  if (!allowed.has(envelope.operation) && !(principal === 'M2' && envelope.operation === 'model_freeze_authority')) return false;
+  if (['prepare_model','freeze_model','model_freeze_authority'].includes(envelope.operation) && v31FeatureContractVersion(envelope.provenance) !== 'holdem-public-hist215-v1') return false;
   const provenance = envelope.provenance;
   return DATASET_KEY.test(provenance.dataset_key)
     && canonicalIdentityText(provenance.solver_version, 120)
@@ -358,4 +367,60 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
       provenance.icm_model_checksum,
       provenance.input_bundle_checksum,
     ].every((checksum) => checksum !== '0'.repeat(64));
+}
+
+// This is transport admission, never a parity/quality verdict. PostgreSQL owns
+// full model, source, approval, protocol and independently computed case checks.
+export function v31Public215BuildEnvelopeIsValid(value, datasetId, withReceipt = true) {
+  const keys = ['context','policy_representation','public_model','public_template','public_training_provenance',
+    'model_checksum','template_checksum','feature_schema_checksum','training_provenance_checksum',
+    ...(withReceipt ? ['public_model_build_receipt','model_build_receipt_checksum'] : [])];
+  const contextKeys = ['street','game_family','objective','utility_context','table_size','pot_type',
+    'hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket'];
+  if (!exactKeys(value, keys) || value.policy_representation !== 'public_hist215_v1'
+      || !exactKeys(value.context, contextKeys)) return false;
+  const canonical = (v, depth = 0) => {
+    if (depth > 128) throw Error('public215 depth');
+    if (v === null || typeof v === 'boolean') return JSON.stringify(v);
+    if (typeof v === 'string' && /^[\x20-\x7e]*$/.test(v)) return JSON.stringify(v);
+    if (typeof v === 'number' && Number.isSafeInteger(v) && !Object.is(v,-0)) return JSON.stringify(v);
+    if (Array.isArray(v)) return '['+v.map(x=>canonical(x,depth+1)).join(',')+']';
+    if (v && typeof v === 'object') return '{'+Object.keys(v).sort().map(k=>canonical(k,depth+1)+':'+canonical(v[k],depth+1)).join(',')+'}';
+    throw Error('public215 canonical value');
+  };
+  try {
+    for (const [field, checksum] of [['public_model','model_checksum'],['public_template','template_checksum'],
+      ['public_training_provenance','training_provenance_checksum'],...(withReceipt ? [['public_model_build_receipt','model_build_receipt_checksum']] : [])]) {
+      if (!value[field] || typeof value[field] !== 'object' || Array.isArray(value[field])
+          || typeof value[checksum] !== 'string' || !HEX_64.test(value[checksum]) || value[checksum] === '0'.repeat(64)
+          || createHash('sha256').update(canonical(value[field]),'ascii').digest('hex') !== value[checksum]) return false;
+    }
+    const actions = value.public_model.action_ids;
+    if (!Array.isArray(actions) || actions.length < 2 || actions.some(a=>typeof a !== 'string' || !/^(?:c|f|b[1-9][0-9]{0,78})$/.test(a)) || actions.join('\0') !== [...new Set(actions)].sort().join('\0')) return false;
+    if (value.feature_schema_checksum !== '0ca054f9bb0463bf6a298a80a29cb4b6d9e6bffcc193e4af9d497e2936ec849f'
+        || value.public_model.format !== 'public_hist215_v1'
+        || value.public_template.format !== 'public_hist215_template_v1'
+        || value.public_training_provenance.format !== 'public_hist215_training_v1'
+        || (withReceipt && value.public_model_build_receipt.format !== 'public_hist215_build_receipt_v1')
+        || canonical(value.public_template.context) !== canonical(value.context)
+        || value.public_model.template_sha256 !== value.template_checksum
+        || value.public_model.feature_schema_sha256 !== value.feature_schema_checksum
+        || value.public_model.provenance_sha256 !== value.training_provenance_checksum
+        || (withReceipt && value.public_model_build_receipt.dataset_id !== datasetId)) return false;
+    for (const k of ['model_checksum','template_checksum','feature_schema_checksum','training_provenance_checksum']) {
+      if (withReceipt && value.public_model_build_receipt[k] !== value[k]) return false;
+    }
+    return true;
+  } catch { return false; }
+}
+
+
+export function v31Public215FreezeEnvelopeIsValid(value,datasetId) {
+  if (!exactKeys(value,['context','model_checksum','public_model_build_receipt','model_build_receipt_checksum'])) return false;
+  const receipt=value.public_model_build_receipt;
+  if (!receipt || typeof receipt!=='object' || Array.isArray(receipt) || receipt.format!=='public_hist215_build_receipt_v1' || receipt.dataset_id!==datasetId || receipt.model_checksum!==value.model_checksum) return false;
+  // Reuse the exact canonical transport hash admission with the corresponding
+  // payload references; SQL resolves the immutable prepared model independently.
+  const canonical=v=>{if(v===null||typeof v==='boolean')return JSON.stringify(v);if(typeof v==='string'&&/^[\x20-\x7e]*$/.test(v))return JSON.stringify(v);if(typeof v==='number'&&Number.isSafeInteger(v)&&!Object.is(v,-0))return JSON.stringify(v);if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>canonical(k)+':'+canonical(v[k])).join(',')+'}';throw Error('public215 canonical');};
+  try {return typeof value.model_checksum==='string' && HEX_64.test(value.model_checksum) && value.model_checksum!=='0'.repeat(64) && typeof value.model_build_receipt_checksum==='string' && HEX_64.test(value.model_build_receipt_checksum) && createHash('sha256').update(canonical(receipt),'ascii').digest('hex')===value.model_build_receipt_checksum && exactKeys(value.context,['street','game_family','objective','utility_context','table_size','pot_type','hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket']);}catch{return false;}
 }

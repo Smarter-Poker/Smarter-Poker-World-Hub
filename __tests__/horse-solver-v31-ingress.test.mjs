@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -15,6 +16,8 @@ import {
   verifyV31IngressRequest,
   v31FeatureContractVersion,
   v31PolicyExportSchema,
+  v31Public215BuildEnvelopeIsValid,
+  v31Public215FreezeEnvelopeIsValid,
 } from '../src/lib/horses/solverV31IngressAuth.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -206,4 +209,27 @@ test('the route claims a durable nonce before its narrow RPC dispatch', () => {
   assert.ok(!ROUTE.includes('fn_gto_v31_promote_dataset'));
   assert.ok(!ROUTE.includes('fn_gto_v31_mark_candidate'));
   assert.ok(!ROUTE.includes("supabase.from('solved_spots_gold')"));
+});
+
+
+test('public215 model build transport hashes every separate payload and preserves compactor authority',()=>{
+  const canonical=v=>Array.isArray(v)?'['+v.map(canonical).join(',')+']':v&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}':JSON.stringify(v);
+  const hash=v=>createHash('sha256').update(canonical(v),'ascii').digest('hex');
+  const context=Object.fromEntries(['street','game_family','objective','utility_context','table_size','pot_type','hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket'].map(k=>[k,k==='table_size'?2:k==='depth_bucket'?80:'synthetic']));
+  const e={context,policy_representation:'public_hist215_v1',feature_schema_checksum:'0ca054f9bb0463bf6a298a80a29cb4b6d9e6bffcc193e4af9d497e2936ec849f',public_template:{format:'public_hist215_template_v1',context},public_training_provenance:{format:'public_hist215_training_v1'}};
+  e.template_checksum=hash(e.public_template);e.training_provenance_checksum=hash(e.public_training_provenance);
+  e.public_model={format:'public_hist215_v1',action_ids:['b50','c'],template_sha256:e.template_checksum,feature_schema_sha256:e.feature_schema_checksum,provenance_sha256:e.training_provenance_checksum};e.model_checksum=hash(e.public_model);
+  e.public_model_build_receipt={format:'public_hist215_build_receipt_v1',dataset_id:'11111111-1111-4111-8111-111111111111',...Object.fromEntries(['model_checksum','template_checksum','feature_schema_checksum','training_provenance_checksum'].map(k=>[k,e[k]]))};e.model_build_receipt_checksum=hash(e.public_model_build_receipt);
+  // Transport agreement only: PostgreSQL still rejects these incomplete synthetic model objects.
+  assert.equal(v31Public215BuildEnvelopeIsValid(e,e.public_model_build_receipt.dataset_id),true);
+  const prepared=structuredClone(e);delete prepared.public_model_build_receipt;delete prepared.model_build_receipt_checksum;assert.equal(v31Public215BuildEnvelopeIsValid(prepared,e.public_model_build_receipt.dataset_id,false),true);assert.equal(v31Public215BuildEnvelopeIsValid(prepared,e.public_model_build_receipt.dataset_id),false);
+  const freeze=Object.fromEntries(['context','model_checksum','public_model_build_receipt','model_build_receipt_checksum'].map(k=>[k,e[k]]));assert.equal(v31Public215FreezeEnvelopeIsValid(freeze,e.public_model_build_receipt.dataset_id),true);assert.equal(v31Public215FreezeEnvelopeIsValid({...freeze,public_model:e.public_model},e.public_model_build_receipt.dataset_id),false);
+  for(const change of [e=>e.model_checksum='a'.repeat(64),e=>e.public_model.extra='changed',e=>e.extra=true,e=>e.public_model_build_receipt.dataset_id='wrong',e=>e.public_template.context={...context,street:'changed'},e=>e.public_model_build_receipt.cost=NaN]) {
+    const bad=structuredClone(e);change(bad);assert.equal(v31Public215BuildEnvelopeIsValid(bad,e.public_model_build_receipt.dataset_id),false);
+  }
+  const signed=envelope('COMPACTOR','build_cell');signed.provenance.feature_contract_version='holdem-public-hist215-v1';signed.provenance.policy_export_schema='smarter-poker.pio-policy.v4';assert.equal(v31IngressEnvelopeIsValid(signed,'COMPACTOR'),true);
+  assert.equal(v31IngressEnvelopeIsValid({...signed,principal:'M1'},'M1'),false);
+  for(const operation of ['prepare_model','freeze_model']){assert.equal(v31IngressEnvelopeIsValid({...signed,operation},'COMPACTOR'),true);assert.equal(v31IngressEnvelopeIsValid({...signed,operation,principal:'M2'},'M2'),false);}
+  assert.equal(v31IngressEnvelopeIsValid({...signed,operation:'model_freeze_authority',principal:'M2'},'M2'),true);assert.equal(v31IngressEnvelopeIsValid({...signed,operation:'model_freeze_authority',principal:'M1'},'M1'),false);
+  const missingV4=structuredClone(signed);delete missingV4.provenance.policy_export_schema;assert.equal(v31IngressEnvelopeIsValid(missingV4,'COMPACTOR'),false);
 });
