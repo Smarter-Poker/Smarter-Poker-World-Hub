@@ -86,6 +86,13 @@ export const STATIC_PAGES = [
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
 
+  // High-Intent Public Feature Landers (AEO Phase 3)
+  { path: '/features/bankroll-tax-tracker', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/poker-dealer-toke-tracker', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/poker-ai-coach', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/virtual-poker-sandbox', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/club-commander', priority: '0.9', changefreq: 'weekly' },
+
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/freerolls', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/freerolls', priority: '0.9', changefreq: 'daily' },

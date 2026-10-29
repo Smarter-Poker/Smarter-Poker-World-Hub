@@ -1456,6 +1456,10 @@ const nextConfig = {
           destination: '/about?format=md',
         },
         {
+          source: '/features/:slug.md',
+          destination: '/features/:slug?format=md',
+        },
+        {
           source: '/freerolls.md',
           destination: '/freerolls?format=md',
         },

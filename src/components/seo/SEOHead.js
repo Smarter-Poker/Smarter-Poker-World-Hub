@@ -40,7 +40,9 @@ export default function SEOHead(props) {
   // Auto-resolve markdownUrl for known routes that serve clean .md representations
   let resolvedMarkdownUrl = markdownUrl;
   if (!resolvedMarkdownUrl && typeof pathname === 'string') {
-    if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
+    if (pathname.startsWith('/features/')) {
+      resolvedMarkdownUrl = `https://smarter.poker${pathname}.md`;
+    } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
     } else if (pathname === '/tools/icm-calculator' || pathname === '/hub/training/icm-calculator') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/icm-calculator.md';
