@@ -510,3 +510,33 @@ test('the signed online view executes the shared serial loader without dispatchi
         if (oldKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = oldKey;
     }
 });
+
+test('explicit live verification rejects wrong revisions and broken sections without sending email or exposing links', async () => {
+    const { verifyDigestLive } = await import('../scripts/verify-digest-live.mjs');
+    const oldSecret = process.env.CRON_SECRET;
+    process.env.CRON_SECRET = 'fixture-only-secret';
+    const sha = 'a'.repeat(40);
+    let calls = [];
+    const response = html => new Response(html, { headers: { 'content-type': 'text/html', 'cache-control': 'no-store' } });
+    const fetchImpl = async (url, opts) => {
+        calls.push([url, opts]);
+        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Real Player Totals Diamond Spins');
+    };
+    try {
+        const report = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl });
+        assert.equal(report.playerTotals, 'rendered');
+        assert.equal(calls.length, 2);
+        assert.ok(calls[1][0].startsWith('https://smarter.poker/api/digest/view?t='));
+        assert.equal(calls[1][1].redirect, 'error');
+        assert.doesNotMatch(JSON.stringify(report), /fixture-only-secret|\?t=/);
+        calls = [];
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: 'b'.repeat(40), fetchImpl }), /revision differs/);
+        assert.equal(calls.length, 1, 'a wrong deployment never reads the report');
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url =>
+            url.endsWith('/api/health') ? Response.json({ version: sha }) : response('Real Player Totals Diamond Spins Report Unavailable') }), /section failed/);
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url => {
+            if (url.endsWith('/api/health')) return Response.json({ version: sha });
+            throw new Error(`network failure at ${url}`);
+        } }), error => error.message === 'Production digest request failed');
+    } finally { if (oldSecret === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = oldSecret; }
+});
