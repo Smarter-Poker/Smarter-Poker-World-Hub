@@ -269,7 +269,7 @@ async function runBenchmark() {
 
   const homeGamesMd = await fetchRoute('/hub/home-games.md');
   assertCheck('GET /hub/home-games.md status 200', homeGamesMd.status === 200);
-  assertCheck('/hub/home-games.md returns structured markdown spec', homeGamesMd.text.startsWith('# ') && homeGamesMd.text.includes('Home Poker Games Directory'));
+  assertCheck('/hub/home-games.md returns structured markdown spec', homeGamesMd.text.startsWith('# ') && homeGamesMd.text.includes('Home Poker Game Directory'));
 
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);
