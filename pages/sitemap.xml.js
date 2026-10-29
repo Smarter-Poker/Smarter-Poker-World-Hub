@@ -123,6 +123,7 @@ const staticPages = [
   { path: '/tools/icm-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
+  { path: '/freerolls', priority: '0.9', changefreq: 'daily' },
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
