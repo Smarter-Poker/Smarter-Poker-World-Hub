@@ -3470,7 +3470,7 @@ function MessengerPage() {
         return (
             <>
                 <SEOHead
-                    title="Poker Messenger & Video Calls: Free Chat & FaceTime"
+                    title="Poker Messenger & Video Calls"
                     description="Chat With Poker Friends, Host WebRTC Video Calls, Share Interactive Hand Histories, And Coordinate Private Study Groups On Smarter.Poker Messenger. 100% Free."
                     canonical="/hub/messenger"
                     jsonLd={MESSENGER_SCHEMA}
@@ -3523,7 +3523,7 @@ function MessengerPage() {
     return (
         <>
             <SEOHead
-                title="Poker Messenger & Video Calls: Free Chat & FaceTime"
+                title="Poker Messenger & Video Calls"
                 description="Chat With Poker Friends, Host WebRTC Video Calls, Share Interactive Hand Histories, And Coordinate Private Study Groups On Smarter.Poker Messenger. 100% Free."
                 canonical="/hub/messenger"
                 jsonLd={MESSENGER_SCHEMA}
