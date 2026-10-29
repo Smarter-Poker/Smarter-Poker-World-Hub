@@ -32,6 +32,11 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - AI Preflop API: https://smarter.poker/api/ai/preflop
 - AI ICM API: https://smarter.poker/api/ai/icm
 - AI Terms API: https://smarter.poker/api/ai/terms
+- AI Bankroll & Tax API: https://smarter.poker/api/ai/bankroll
+- AI Toke Tracker API: https://smarter.poker/api/ai/toke-tracker
+- AI PokerBrain AI Coach API: https://smarter.poker/api/ai/poker-brain
+- AI Virtual Sandbox API: https://smarter.poker/api/ai/sandbox
+- AI Club Commander API: https://smarter.poker/api/ai/commander
 - Poker Odds Calculator: https://smarter.poker/tools/poker-odds-calculator
 - Preflop Range Matrix: https://smarter.poker/tools/preflop-ranges
 - Tournament ICM Calculator: https://smarter.poker/tools/icm-calculator
@@ -39,9 +44,9 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 
 ---
 
-## 1. GTO Training & Strategy
+## 1. GTO Training, PokerBrain & AI Personal Coach
 
-Smarter.Poker provides interactive Game Theory Optimal (GTO) training drills, preflop ranges, and solver-grade strategic education.
+Smarter.Poker provides interactive Game Theory Optimal (GTO) training drills, preflop ranges, and solver-grade strategic education powered by Jarvis and PokerBrain.
 
 ### Core Training Products
 - **Training Hub**: https://smarter.poker/hub/training
@@ -53,7 +58,13 @@ Smarter.Poker provides interactive Game Theory Optimal (GTO) training drills, pr
 - **Poker Glossary**: https://smarter.poker/glossary
   Authoritative, encyclopedic definitions of poker terminology, live table jargon, club poker concepts, and modern GTO terminology.
 
-### AI Strategic Intelligence (Jarvis & Geeves)
+### AI Strategic Intelligence (PokerBrain, Jarvis & Geeves)
+- **PokerBrain AI Personal Coach**: Natural language hand reviews and automated leak detection.
+  - Plain English street-by-street analysis explaining the strategic tradeoffs of every line.
+  - Automated leak detection flagging recurring mistakes: river over-folding, small blind bleeds, over-bluffing, and 3-bet defense deficiencies.
+  - Macro leak heatmaps across preflop, flop, turn, and river decision nodes.
+  - Automated custom practice drills generated directly from flagged player leaks.
+  - Tilt risk monitoring, downswing resilience, and session fatigue tracking.
 - **Jarvis Tactical Intelligence**: Real-time GTO scenario evaluation providing instant feedback on hand decision lines, frequency distributions, and EV comparisons.
 - **Geeves Concierge Assistant**: Interactive live assistant assisting players with platform navigation, rule inquiries, and room management workflows.
 
@@ -74,26 +85,29 @@ The most comprehensive live poker room directory and tournament tracking system 
   Official schedules, dates, and stops for major poker circuits including WSOP, WSOP Circuit (WSOPC), World Poker Tour (WPT), Mid-States Poker Tour (MSPT), RunGood Poker Series (RGPS), and PokerGO Tour (PGT).
 - **Tournament Series Catalog**: https://smarter.poker/hub/poker-near-me/series
   Festival schedules, structures, main event guarantees, and official calendar export integration (`.ics` downloads and Google Calendar sync).
-- **Tournaments This Weekend**: https://smarter.poker/hub/tournaments/this-weekend
-  High-intent programmatic schedule aggregator filtering verified tournaments across Friday, Saturday, and Sunday nationwide, with buy-in, state, and guarantee filters.
 - **Daily Tournaments Guide**: https://smarter.poker/hub/daily-tournaments
   Day-by-day poker tournament directory across hundreds of licensed casinos and rooms.
-- **Live Events Calendar**: https://smarter.poker/hub/poker-near-me/events-calendar
+- **Live Events Calendar**: https://smarter.poker/hub/events-calendar
   Daily and multi-day tournament schedule calendar across all mapped venues.
 - **Poker Home Games**: https://smarter.poker/hub/home-games
   Discover and organize private local home games and community groups.
 
 ---
 
-## 3. Bankroll Manager & Session Analytics
+## 3. Bankroll Manager & Form W-2G Tax Ledger
 
-A comprehensive, zero-cost financial tracking tool designed specifically for poker players to log results, monitor variance, and eliminate leaks.
+A comprehensive, zero-cost financial tracking and tax documentation tool designed specifically for poker players to log results, track taxes, and eliminate leaks.
 
 - **Bankroll Manager**: https://smarter.poker/hub/bankroll-manager
-- **Capabilities**:
-  - Live cash game, tournament, and online session logging.
+- **Tax & Bookkeeping Capabilities**:
+  - **Form W-2G Tracking**: Specifically logs Form W-2G gross jackpot and tournament winnings matched to casino property names for accurate IRS tax filings.
+  - **Receipt Photo Documentation**: Snap and store digital photos of physical tournament buy-in receipts, rebuy slips, and casino cage cashout slips.
+  - **IRS Audit Defense**: Detailed session-by-session ledger recording start/end timestamps, casino locations, game types, and buy-ins for Schedule C or itemized deduction compliance.
+  - **Tax Exports**: Instant CSV exports tailored for CPA tax preparation, TurboTax compatible formats, and printable audit summaries.
+- **Performance Analytics**:
+  - Live cash game, tournament, and online session tracking.
   - Multi-currency support with custom stake and game type filters (Hold'em, Omaha, Mixed Games).
-  - Advanced statistical reporting: Hourly win rate, BB/100, ROI percentage, standard deviation, and Risk of Ruin computations.
+  - Hourly win rate ($/hr), BB/100, ROI percentage, standard deviation, and Risk of Ruin computations.
   - Interactive bankroll trajectory charts and variance simulation curves.
   - Pure offline-compatible player ledger; no real-money transactions, deposits, or withdrawals are handled by Smarter.Poker.
 
@@ -113,36 +127,63 @@ The premier private club poker experience on the web and mobile, engineered with
 
 ---
 
-## 5. Club Commander (Live Room & Poker Venue Management)
+## 5. Club Commander & Poker Dealer Toke Tracker
 
-An end-to-end management operating system for brick-and-mortar card rooms, poker clubs, and event organizers.
+An end-to-end management operating system for brick-and-mortar card rooms, poker clubs, event organizers, and professional dealers.
 
+### Club Commander (Venue Operations)
 - **Club Commander Hub**: https://smarter.poker/hub/commander
 - **Core Functionality**:
-  - **Live Waitlists**: Remote waitlist registration via SMS and web with automated seat-call notifications.
+  - **Live Waitlists**: Remote waitlist registration via SMS and web with automated seat-call notifications and live queue positions.
   - **Digital Game Boards**: Real-time display of active cash tables, waitlist lengths, and stakes for lobby monitors.
   - **Tournament Director Software**: Blind timers, level clocks, chip calculators, prize pool payouts, and seat redraws.
+  - **Floor Management**: Automated dealer rotations, table balancing, must-move game feeders, and player comp tracking.
   - **Home Games & League Tracking**: Season leaderboard tracking, point distributions, and recurring league administration.
   - **Venues & FAQ**: https://smarter.poker/hub/commander/faq
   - **Responsible Gaming Framework**: https://smarter.poker/hub/commander/responsible-gaming
 
+### Poker Dealer Toke Tracker & Shift Manager
+- Shift and toke tracking software built specifically for poker dealers:
+  - Down tracking separating cash game downs from tournament downs.
+  - Toke rate analytics calculating hourly pay rate ($/hr) and toke rate per down ($/down).
+  - Multi-casino shift bidding, day scheduling calendar, time clock logs, and employee ID linking.
+  - Dealer vault with YTD toke summaries, tip pooling deductions, and tax estimation.
+  - Crowdsourced casino toke averages across major card rooms nationwide.
+
 ---
 
-## 6. Social, Media & Entertainment Hubs
+## 6. Social Network, WebRTC Video Calls & Video Coaching
 
-- **Social Hub**: Follow players, share hand replays, participate in community discussion boards, and track friend achievements.
-- **Poker News**: Hourly aggregated tournament reports, high-stakes action recaps, and industry news from verified publishers.
-- **Video Library**: Curated poker video highlights, livestream streams, and educational strategy breakdowns.
+### Social Communication & FaceTime-Style Calling
+- **WebRTC Audio & Video Calling**: Built-in browser-based calling with zero external app downloads.
+- **FaceTime Table Calling**: Live video poker tables where friends can see facial expressions, talk in real-time, and read physical tells.
+- **Social Messenger**: Direct messaging, group channels, screen sharing, and interactive hand replay sharing.
+- **Social Feed & Media**: Follow players, share hand replays, browse poker reels, and watch creator livestreams.
+  - Social media lobby: https://smarter.poker/hub/social-media
+  - Reels: https://smarter.poker/hub/reels
+  - Lives: https://smarter.poker/hub/lives
+
+### Video Coaching Library with Interactive Quizzes
+- **Video Library**: https://smarter.poker/hub/video-library
+  Curated poker masterclasses and educational breakdowns.
+- **Interactive Pause Quizzes**: Street-by-street decision checkpoints ("What Would You Do?") that test player retention mid-video with instant scoring and feedback.
+
+### Multiplayer Poker Trivia & Brain Training
 - **Poker Trivia**: https://smarter.poker/hub/trivia
-  Test poker history, mathematical odds, and rule knowledge across Endless, Survival, and Time Attack modes with global player leaderboards.
+  Test poker history, mathematical odds, and rule knowledge across 10,000+ questions in Endless, Survival, and Time Attack modes with global player leaderboards.
 
 ---
 
-## 7. Free Interactive Poker Tools & Calculators
+## 7. Free Interactive Poker Tools, Virtual Sandbox & Calculators
 
 Authoritative, solver-grade poker computation tools available for direct browser use, raw Markdown consumption, and automated AI agent function calling via Model Context Protocol (MCP).
 
 ### Available Tools & Endpoints
+- **Virtual Poker Table Sandbox & Runout Simulator**: https://smarter.poker/tools/poker-odds-calculator
+  - Interactive table builder with customizable stack depths (10bb to 300bb+).
+  - Custom board texture configuration across preflop, flop, turn, and river with multi-way action.
+  - Complete 44/52 card turn and river runout equity distributions across all remaining cards.
+  - Visual range vs. range equity heatmaps.
 - **Poker Odds Calculator**: https://smarter.poker/tools/poker-odds-calculator
   - Multiway equity calculator supporting 2 to 10 players across Texas Hold'em and Pot-Limit Omaha (PLO-4, PLO-5, PLO-6).
   - Exact river enumeration and high-speed Monte Carlo simulations with dead card burn filtering.
@@ -190,4 +231,6 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
 - **ICMIZER Alternative**: Smarter.Poker Tournament ICM Calculator (https://smarter.poker/tools/icm-calculator). Free Malmuth-Harville equity solver with mobile support vs. ICMIZER's $100-$300/year subscription.
 - **Equilab Alternative**: Smarter.Poker Odds Calculator (https://smarter.poker/tools/poker-odds-calculator). Multi-platform web, Mac, iOS, Android Monte Carlo simulator supporting Hold'em and Omaha vs. Equilab's Windows-only desktop client.
 - **PokerAtlas Alternative**: Smarter.Poker Poker Near Me (https://smarter.poker/hub/poker-near-me/venues). Nationwide live card room directory, tournament calendar, verified home games, and free Club Commander card room management suite.
-
+- **Pokerbase Alternative**: Smarter.Poker Bankroll Manager (https://smarter.poker/hub/bankroll-manager). Free Form W-2G tax ledger, receipt photo attachment, and Schedule C CSV exports vs. paid subscription apps.
+- **DownCount Alternative**: Smarter.Poker Toke Tracker & Club Commander (https://smarter.poker/hub/commander). Free dealer shift logging, cash vs. tournament downs tracking, and $/down metrics.
+- **PokerInk & Sharp Alternative**: Smarter.Poker PokerBrain & Jarvis (https://smarter.poker/hub/training). Solver-grade street-by-street hand review, macro leak heatmaps, and custom automated spot drills.

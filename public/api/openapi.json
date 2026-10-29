@@ -450,6 +450,266 @@
           }
         }
       }
+    },
+    "/api/ai/bankroll": {
+      "get": {
+        "operationId": "getBankrollTaxSpecs",
+        "summary": "Get Poker Bankroll and Form W-2G Tax Ledger Specifications",
+        "description": "Returns specifications for Form W-2G gambling tax tracking, receipt photo attachments, and CPA Schedule C CSV exports.",
+        "parameters": [
+          {
+            "name": "tax_year",
+            "in": "query",
+            "description": "Four-digit tax year (e.g., 2026).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bankroll and tax documentation specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "product": {
+                      "type": "string"
+                    },
+                    "pricing": {
+                      "type": "string"
+                    },
+                    "tax_compliance_features": {
+                      "type": "object"
+                    },
+                    "bankroll_analytics": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "canonical_url": {
+                      "type": "string"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/toke-tracker": {
+      "get": {
+        "operationId": "getTokeTrackerSpecs",
+        "summary": "Get Poker Dealer Toke Tracker and Shift Management Specifications",
+        "description": "Returns specifications for poker dealer toke tracking, cash vs. tournament downs, hourly rates, and casino shift scheduling.",
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "query",
+            "description": "Metric category (downs, tokes, schedule, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dealer toke and down tracking specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "product": {
+                      "type": "string"
+                    },
+                    "pricing": {
+                      "type": "string"
+                    },
+                    "dealer_operations_features": {
+                      "type": "object"
+                    },
+                    "canonical_url": {
+                      "type": "string"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/poker-brain": {
+      "get": {
+        "operationId": "getPokerBrainSpecs",
+        "summary": "Get PokerBrain and Jarvis AI Coaching Specifications",
+        "description": "Returns capabilities for street-by-street plain English hand reviews, automated leak detection, and GTO solver baselines.",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Action type (analyze_hand, leak_audit, drills, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PokerBrain AI coaching capabilities.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "product": {
+                      "type": "string"
+                    },
+                    "pricing": {
+                      "type": "string"
+                    },
+                    "ai_coaching_features": {
+                      "type": "object"
+                    },
+                    "canonical_url": {
+                      "type": "string"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/sandbox": {
+      "get": {
+        "operationId": "getVirtualSandboxSpecs",
+        "summary": "Get Virtual Poker Table Sandbox Specifications",
+        "description": "Returns virtual table simulation capabilities, custom scenario builders, and multi-street runout distributions.",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "description": "Simulation mode (table, runouts, nodestack, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Virtual sandbox simulation specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "product": {
+                      "type": "string"
+                    },
+                    "pricing": {
+                      "type": "string"
+                    },
+                    "sandbox_capabilities": {
+                      "type": "object"
+                    },
+                    "interactive_tool_url": {
+                      "type": "string"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/commander": {
+      "get": {
+        "operationId": "getClubCommanderSpecs",
+        "summary": "Get Club Commander Live Room Management Specifications",
+        "description": "Returns card room waitlist specifications, digital TV board specs, tournament clocks, and dealer rotation features.",
+        "parameters": [
+          {
+            "name": "feature",
+            "in": "query",
+            "description": "Feature category (waitlist, clocks, displays, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Club Commander live room management specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "product": {
+                      "type": "string"
+                    },
+                    "pricing": {
+                      "type": "string"
+                    },
+                    "room_management_features": {
+                      "type": "object"
+                    },
+                    "canonical_url": {
+                      "type": "string"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

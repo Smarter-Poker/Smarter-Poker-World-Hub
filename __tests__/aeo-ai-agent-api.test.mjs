@@ -212,3 +212,78 @@ test('GET /api/ai/freerolls returns daily $2,000 schedule and Diamond Freerolls'
   assert.ok(body.markdown_url.includes('/freerolls.md'));
   assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
 });
+
+test('GET /api/ai/bankroll returns Form W-2G tax specs and Schedule C export formats', async () => {
+  const { default: handler } = await import('../pages/api/ai/bankroll.js');
+  const req = { method: 'GET', query: { tax_year: '2026' } };
+  const res = mockRes();
+  await handler(req, res);
+
+  assert.equal(res.getStatusCode(), 200);
+  const body = res.getBody();
+  assert.equal(body.success, true);
+  assert.ok(body.product.includes('Bankroll Manager'));
+  assert.ok(body.tax_compliance_features.form_w2g_tracking.includes('Form W-2G'));
+  assert.ok(body.canonical_url.includes('/hub/bankroll-manager'));
+  assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
+});
+
+test('GET /api/ai/toke-tracker returns dealer shift and down tracking metrics', async () => {
+  const { default: handler } = await import('../pages/api/ai/toke-tracker.js');
+  const req = { method: 'GET', query: { metric: 'all' } };
+  const res = mockRes();
+  await handler(req, res);
+
+  assert.equal(res.getStatusCode(), 200);
+  const body = res.getBody();
+  assert.equal(body.success, true);
+  assert.ok(body.product.includes('Dealer Toke Tracker'));
+  assert.ok(body.dealer_operations_features.down_tracking.includes('Downs'));
+  assert.ok(body.canonical_url.includes('/hub/toke-tracker'));
+  assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
+});
+
+test('GET /api/ai/poker-brain returns plain-English hand review and leak detection capabilities', async () => {
+  const { default: handler } = await import('../pages/api/ai/poker-brain.js');
+  const req = { method: 'GET', query: { action: 'all' } };
+  const res = mockRes();
+  await handler(req, res);
+
+  assert.equal(res.getStatusCode(), 200);
+  const body = res.getBody();
+  assert.equal(body.success, true);
+  assert.ok(body.product.includes('PokerBrain'));
+  assert.ok(body.ai_coaching_features.plain_english_reviews.includes('Plain-English'));
+  assert.ok(body.canonical_url.includes('/hub/training/hand-history-upload'));
+  assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
+});
+
+test('GET /api/ai/sandbox returns virtual table simulation and runout distribution specs', async () => {
+  const { default: handler } = await import('../pages/api/ai/sandbox.js');
+  const req = { method: 'GET', query: { mode: 'all' } };
+  const res = mockRes();
+  await handler(req, res);
+
+  assert.equal(res.getStatusCode(), 200);
+  const body = res.getBody();
+  assert.equal(body.success, true);
+  assert.ok(body.product.includes('Virtual Poker Table Sandbox'));
+  assert.ok(body.sandbox_capabilities.runout_distributions.includes('44/52'));
+  assert.ok(body.interactive_tool_url.includes('/tools/poker-odds-calculator'));
+  assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
+});
+
+test('GET /api/ai/commander returns live card room waitlist, TV display, and clock specs', async () => {
+  const { default: handler } = await import('../pages/api/ai/commander.js');
+  const req = { method: 'GET', query: { feature: 'all' } };
+  const res = mockRes();
+  await handler(req, res);
+
+  assert.equal(res.getStatusCode(), 200);
+  const body = res.getBody();
+  assert.equal(body.success, true);
+  assert.ok(body.product.includes('Club Commander'));
+  assert.ok(body.room_management_features.digital_waitlists.includes('SMS'));
+  assert.ok(body.canonical_url.includes('/hub/commander'));
+  assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
+});
