@@ -26,7 +26,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
-import { assembleDigest } from '../../../src/lib/dailyDigest/assemble.mjs';
+import { assembleDigest, loadDigestData, renderDigest } from '../../../src/lib/dailyDigest/assemble.mjs';
 import { adminRecipients, sendEmail } from '../../../src/lib/dailyDigest/delivery.mjs';
 import { notify } from '../../../src/lib/notify';
 
@@ -94,8 +94,11 @@ async function handler(req, res) {
         let firstId = null;
         const errors = [];
         let out = null;
+        // The reads are heavy and identical for every admin: load them once,
+        // then only the greeting differs per recipient.
+        const loaded = admins.length ? await loadDigestData(sb, day) : null;
         for (const a of admins) {
-            out = await assembleDigest(sb, day, { recipientName: a.name });
+            out = renderDigest(day, loaded, { recipientName: a.name });
             const sent = await sendEmail({
                 to: [a.email], subject: out.subject, html: out.html, text: out.text,
                 idempotencyKey: force ? undefined : `sp-daily-digest-${day}-${a.id || a.email}`,
