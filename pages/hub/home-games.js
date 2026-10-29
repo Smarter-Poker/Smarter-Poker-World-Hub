@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { hubProductSchema, faqSchema } from '../../src/lib/seo/hubPageSchema';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const HOME_GAMES_FAQS = [
     {
@@ -32,16 +32,14 @@ const HOME_GAMES_FAQS = [
 
 // AEO phase 3 (2026-09-17): 4,942 server-rendered words, the largest page
 // on the site, and no structured data at all.
-const HOME_GAMES_SCHEMA = [
-    ...hubProductSchema({
-        path: '/hub/home-games',
-        name: 'Smarter.Poker Home Games',
-        description:
-            'Find Private Poker Home Games Near You, Join The Local Community, Or Host Your Own With Invites, Seating And Results Handled For You. Free To Play, No Real-Money Gambling.',
-        trail: [['Hub', '/hub'], ['Home Games', '/hub/home-games']],
-    }),
-    faqSchema(HOME_GAMES_FAQS, '/hub/home-games'),
-];
+const HOME_GAMES_SCHEMA = hubProductSchema({
+    path: '/hub/home-games',
+    name: 'Smarter.Poker Home Games',
+    description:
+        'Find Private Poker Home Games Near You, Join The Local Community, Or Host Your Own With Invites, Seating And Results Handled For You. Free To Play, No Real-Money Gambling.',
+    trail: [['Hub', '/hub'], ['Home Games', '/hub/home-games']],
+    faqs: HOME_GAMES_FAQS,
+});
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';

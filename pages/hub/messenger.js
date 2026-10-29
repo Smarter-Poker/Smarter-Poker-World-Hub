@@ -7,7 +7,7 @@
 
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { hubProductSchema, faqSchema } from '../../src/lib/seo/hubPageSchema';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const MESSENGER_FAQS = [
     {
@@ -28,18 +28,16 @@ const MESSENGER_FAQS = [
     },
 ];
 
-const MESSENGER_SCHEMA = [
-    ...hubProductSchema({
-        path: '/hub/messenger',
-        name: 'Smarter.Poker Messenger & Video Calls',
-        description:
-            'Real-Time End-To-End Encrypted Poker Messaging, Group Study Chats, Interactive Hand History Replays, And WebRTC Live Video Calls. Free To Use.',
-        applicationCategory: 'CommunicationApplication',
-        applicationSubCategory: 'InstantMessagingApplication',
-        trail: [['Hub', '/hub'], ['Messenger', '/hub/messenger']],
-    }),
-    faqSchema(MESSENGER_FAQS, '/hub/messenger'),
-];
+const MESSENGER_SCHEMA = hubProductSchema({
+    path: '/hub/messenger',
+    name: 'Smarter.Poker Messenger & Video Calls',
+    description:
+        'Real-Time End-To-End Encrypted Poker Messaging, Group Study Chats, Interactive Hand History Replays, And WebRTC Live Video Calls. Free To Use.',
+    applicationCategory: 'CommunicationApplication',
+    applicationSubCategory: 'InstantMessagingApplication',
+    trail: [['Hub', '/hub'], ['Messenger', '/hub/messenger']],
+    faqs: MESSENGER_FAQS,
+});
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
