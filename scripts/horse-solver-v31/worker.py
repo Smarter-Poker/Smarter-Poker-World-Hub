@@ -29,6 +29,7 @@ from gateway import MAX_BODY_BYTES, GatewayClient, GatewayError, canonical_json
 from pio_upi import (
     PioError,
     PioProcess,
+    PioSetupSession,
     harvest_node,
     complete_node_state,
     COMBO_CARDS,
@@ -406,7 +407,7 @@ def run(args: argparse.Namespace) -> None:
             expected_solver_version=manifest.raw["solver_version"],
             expected_hand_order=manifest.source_combo_order,
         ) as process:
-            _, receipt = solver_self_test(process.command, manifest)
+            _, receipt = solver_self_test(PioSetupSession(process.command), manifest)
         print_self_test(receipt)
         print(
             f"[v31-worker] {args.machine} local preflight passed for {planned} assigned targets; "
@@ -442,7 +443,7 @@ def run(args: argparse.Namespace) -> None:
             expected_solver_version=manifest.raw["solver_version"],
             expected_hand_order=manifest.source_combo_order,
         ) as process:
-            pio = process.command
+            pio = PioSetupSession(process.command)
             scenarios = ordered_scenarios(manifest)
             self_scenario = next(
                 scenario

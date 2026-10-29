@@ -1,0 +1,7 @@
+# V31 reuses an identical acknowledged ICM table within its solver process
+
+Repeated singleton board trees previously uploaded every approved ICM point after every build. Dense approved models contain tens of thousands of points, so this repeated transport dominated licensed harvest time.
+
+The worker now owns an explicit setup session. It validates the complete model on every tree and can retain only an exactly identical acknowledged table in that live process. Every tree still sets its board, ranges, pot, stacks, action lines, conditional history, build, zero rake, ICM activation, accuracy and solve. Different models or manifests, cash transitions, raw state mutations, errors, invalid acknowledgements and new processes discard the reusable receipt. Partial uploads fail closed. Point values, normalization, interpolation, provenance, artifact format and quality gates are unchanged.
+
+Focused regression cases cover exact reuse, changed table with the same model ID, normalization, stacks, pot, manifest, process, cash and raw-command transitions, failed queries, invalid models, invalid acknowledgements and partial upload failure. All 50 pipeline unit tests passed. The pinned native driver passed on licensed PioSOLVER 3.8.0: all five cold/reuse cases had zero EV, matchup, range and strategy differences, with six points uploaded only on actual cold installs and one ICM activation per ICM tree. This proves the retained-table execution boundary; the tiny six-point fixture does not establish a dense-model speedup or corpus quality.

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import hashlib
+import json
 import queue
 import re
 import subprocess
@@ -881,6 +883,71 @@ def setup_commands(
     return commands
 
 
+class PioSetupSession:
+    """Exact acknowledged ICM table reuse within one owned UPI process.
+
+    The pure setup_commands path remains the complete cold reference. Only
+    this explicit setup operation can reuse its table; ordinary commands are
+    never suppressed or answered with manufactured acknowledgements.
+    """
+
+    _READ_ONLY = frozenset({"calc_ev", "calc_results", "show_children", "show_node",
+                            "show_strategy", "show_range", "is_ready"})
+
+    def __init__(self, pio: Callable[[str], str]):
+        self._pio = pio
+        self._table_identity: str | None = None
+
+    def invalidate(self) -> None:
+        self._table_identity = None
+
+    def _send(self, command: str) -> str:
+        try:
+            return PioProcess._clean_response(command, self._pio(command))
+        except BaseException:
+            self.invalidate()
+            raise
+
+    def __call__(self, command: str) -> str:
+        # Self-tests and all raw model/tree mutations invalidate the receipt.
+        # A future unknown command cannot silently preserve a stale table.
+        if command.split(" ", 1)[0] not in self._READ_ONLY:
+            self.invalidate()
+        return self._send(command)
+
+    def setup(self, scenario: dict[str, Any], oop_range: list[float],
+              ip_range: list[float], *, icm_model: dict[str, Any] | None,
+              manifest_checksum: str) -> None:
+        try:
+            # Validate every model point, range and scenario on hits as well.
+            commands = setup_commands(scenario, oop_range, ip_range, icm_model=icm_model)
+            identity = None
+            skipped: set[int] = set()
+            if scenario.get("objective") == "icm":
+                if not re.fullmatch(r"[0-9a-f]{64}", manifest_checksum):
+                    raise PioError("ICM session requires the exact manifest identity")
+                table_commands = [c for c in commands if c == "reset_icm_tables"
+                                  or c.startswith(("set_icm_point ", "set_icm "))]
+                identity = hashlib.sha256(json.dumps(
+                    {"manifest": manifest_checksum, "model": icm_model,
+                     "pot": scenario["pot_chips"], "stack": scenario["effective_stack_chips"],
+                     "table_commands": table_commands},
+                    sort_keys=True, separators=(",", ":"), allow_nan=False,
+                ).encode("utf-8")).hexdigest()
+                if identity == self._table_identity:
+                    skipped = {i for i, c in enumerate(commands)
+                               if c == "reset_icm_tables" or c.startswith("set_icm_point ")}
+            # A receipt is committed only after every real command succeeds.
+            self.invalidate()
+            for i, command in enumerate(commands):
+                if i not in skipped:
+                    self._send(command)
+            self._table_identity = identity
+        except BaseException:
+            self.invalidate()
+            raise
+
+
 def solve_scenario(
     pio: Callable[[str], str], scenario: dict[str, Any], manifest: ApprovedManifest
 ) -> dict[str, float]:
@@ -888,10 +955,14 @@ def solve_scenario(
     ip_range = load_range_vector(manifest.input_root / scenario["ip_range_path"])
     model_id = scenario.get("icm_model_id")
     icm_model = manifest.icm_models.get(model_id) if isinstance(model_id, str) else None
-    for command in setup_commands(
-        scenario, oop_range, ip_range, icm_model=icm_model
-    ):
-        pio(command)
+    if isinstance(pio, PioSetupSession):
+        pio.setup(scenario, oop_range, ip_range, icm_model=icm_model,
+                  manifest_checksum=manifest.checksum)
+    else:
+        for command in setup_commands(
+            scenario, oop_range, ip_range, icm_model=icm_model
+        ):
+            pio(command)
     summary = parse_calc_results(pio("calc_results"))
     exploitability_fraction = summary["exploitability_chips"] / scenario["pot_chips"]
     # In chip/cash EV the named calc_results unit is chips, so independently

@@ -52,6 +52,7 @@ from gateway import (  # noqa: E402
 from pio_upi import (  # noqa: E402
     PioError,
     PioProcess,
+    PioSetupSession,
     analyze_node,
     complete_node_state,
     harvest_node,
@@ -747,6 +748,126 @@ class PioHarvestTests(unittest.TestCase):
             self.assertIn("go", commands)
             self.assertNotIn("go 0.005", commands)
             self.assertEqual(commands[-1], "calc_results")
+
+
+class PioSetupSessionTests(unittest.TestCase):
+    def fixture(self):
+        scenario = {**base_scenario(), "objective": "icm", "rake": None,
+                    "icm_model_id": "same-id"}
+        model = {"model_id": "same-id", "oop_stack_chips": 1000,
+                 "ip_stack_chips": 1400, "root_pot_chips": scenario["pot_chips"],
+                 "payout_per_chip": .0004,
+                 "points": (("OOP", 0, 0.), ("OOP", 2100, 1.),
+                            ("IP", 400, .2), ("IP", 2500, 1.))}
+        trace = []
+        def command(text):
+            trace.append(text)
+            return text.split()[0] + " ok!"
+        return scenario, model, trace, command
+
+    def setup(self, session, scenario, model, checksum="a" * 64):
+        session.setup(scenario, [1.] * 1326, [1.] * 1326,
+                      icm_model=model, manifest_checksum=checksum)
+
+    def test_exact_table_reuses_points_but_rebuilds_and_activates_each_tree(self):
+        scenario, model, trace, command = self.fixture()
+        session = PioSetupSession(command)
+        self.setup(session, scenario, model)
+        first = list(trace)
+        trace.clear()
+        session("is_ready")  # Read-only observations keep the receipt.
+        self.setup(session, {**scenario, "flop_board": "AsKdJc"}, model)
+        self.assertEqual(sum(c.startswith("set_icm_point ") for c in first), 4)
+        self.assertFalse(any(c == "reset_icm_tables" or c.startswith("set_icm_point ") for c in trace))
+        self.assertEqual(sum(c.startswith("set_icm ") for c in trace), 1)
+        self.assertLess(trace.index("build_tree"), trace.index("set_rake 0 0"))
+        self.assertLess(trace.index("set_rake 0 0"), trace.index("set_icm 1000 1400"))
+        self.assertLess(trace.index("set_icm 1000 1400"), trace.index("go"))
+        self.assertIn("clear_lines", trace)
+        self.assertIn("wait_for_solver", trace)
+
+    def test_changed_table_normalization_geometry_manifest_and_new_session_are_cold(self):
+        for kind in ("points", "normalization", "stack", "pot", "manifest", "process"):
+            with self.subTest(kind=kind):
+                scenario, model, trace, command = self.fixture()
+                session = PioSetupSession(command)
+                self.setup(session, scenario, model)
+                trace.clear()
+                checksum = "a" * 64
+                if kind == "points":
+                    model = {**model, "points": model["points"][:-1] + (("IP", 2500, 1.1),)}
+                elif kind == "normalization": model = {**model, "payout_per_chip": .0005}
+                elif kind == "stack": model = {**model, "ip_stack_chips": 1500}
+                elif kind == "pot":
+                    scenario = {**scenario, "pot_chips": 150}
+                    model = {**model, "root_pot_chips": 150}
+                elif kind == "manifest": checksum = "b" * 64
+                elif kind == "process": session = PioSetupSession(command)
+                self.setup(session, scenario, model, checksum)
+                self.assertEqual(trace.count("reset_icm_tables"), 1)
+                self.assertEqual(sum(c.startswith("set_icm_point ") for c in trace), 4)
+
+    def test_cash_self_test_and_raw_mutations_invalidate_without_suppressing_commands(self):
+        for mutation in ("reset_icm_tables", "set_icm_point OOP 0 0",
+                         "set_rake 0 0", "set_icm 1000 1400", "load_tree elsewhere",
+                         "free_tree", "future_mutation"):
+            scenario, model, trace, command = self.fixture()
+            session = PioSetupSession(command)
+            self.setup(session, scenario, model)
+            self.assertEqual(session(mutation), mutation.split()[0] + " ok!")
+            trace.clear()
+            self.setup(session, scenario, model)
+            self.assertEqual(sum(c.startswith("set_icm_point ") for c in trace), 4)
+        trace.clear()
+        self.setup(session, base_scenario(), None)
+        self.assertLess(trace.index("reset_icm_tables"), trace.index("set_rake 0 0"))
+        trace.clear()
+        self.setup(session, scenario, model)
+        self.assertEqual(sum(c.startswith("set_icm_point ") for c in trace), 4)
+
+    def test_errors_bad_ack_and_invalid_cached_model_fail_closed(self):
+        for failure in ("bad_ack", "transport", "invalid_model"):
+            scenario, model, trace, command = self.fixture()
+            fail = [False]
+            def guarded(text):
+                if fail[0] and text == "set_icm 1000 1400":
+                    if failure == "transport": raise OSError("broken transport")
+                    return "wrong acknowledgement"
+                return command(text)
+            session = PioSetupSession(guarded)
+            self.setup(session, scenario, model)
+            fail[0] = failure != "invalid_model"
+            invalid = {**model, "payout_per_chip": 0} if failure == "invalid_model" else model
+            with self.assertRaises((PioError, OSError)):
+                self.setup(session, scenario, invalid)
+            fail[0] = False
+            trace.clear()
+            self.setup(session, scenario, model)
+            self.assertEqual(sum(c.startswith("set_icm_point ") for c in trace), 4)
+
+    def test_partial_point_upload_and_query_failure_cannot_leave_a_reusable_receipt(self):
+        scenario, model, trace, command = self.fixture()
+        failure = ["point"]
+        def interrupted(text):
+            if failure[0] == "point" and text.startswith("set_icm_point IP "):
+                raise OSError("partial table upload")
+            if failure[0] == "query" and text == "calc_results":
+                raise PioError("refused query")
+            return command(text)
+        session = PioSetupSession(interrupted)
+        with self.assertRaisesRegex(OSError, "partial"):
+            self.setup(session, scenario, model)
+        failure[0] = None
+        trace.clear()
+        self.setup(session, scenario, model)
+        self.assertEqual(sum(c.startswith("set_icm_point ") for c in trace), 4)
+        failure[0] = "query"
+        with self.assertRaisesRegex(PioError, "refused"):
+            session("calc_results")
+        failure[0] = None
+        trace.clear()
+        self.setup(session, scenario, model)
+        self.assertEqual(sum(c.startswith("set_icm_point ") for c in trace), 4)
 
 
 class PioTransportTests(unittest.TestCase):
