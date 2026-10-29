@@ -135,6 +135,14 @@ async function runBenchmark() {
 
   // 4. Public High-Intent Feature Landers (HTML & Raw Markdown)
   console.log(`\n--- [4/6] High-Intent Feature Landers (/features/*) ---`);
+  const featuresHub = await fetchRoute('/features');
+  assertCheck('GET /features status 200', featuresHub.status === 200, `${featuresHub.durationMs}ms`);
+  assertCheck('/features contains CollectionPage and ItemList schema', featuresHub.text.includes('"@type":"CollectionPage"') && featuresHub.text.includes('"@type":"ItemList"'));
+
+  const featuresHubMd = await fetchRoute('/features.md');
+  assertCheck('GET /features.md status 200', featuresHubMd.status === 200);
+  assertCheck('/features.md returns structured markdown catalog', featuresHubMd.text.startsWith('# ') && featuresHubMd.text.includes('## Complete Feature Landing Guides'));
+
   const features = [
     { slug: 'bankroll-tax-tracker', name: 'Bankroll & Tax Tracker' },
     { slug: 'poker-dealer-toke-tracker', name: 'Dealer Toke Tracker' },

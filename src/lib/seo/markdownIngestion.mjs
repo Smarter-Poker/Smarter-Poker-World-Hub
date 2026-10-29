@@ -715,3 +715,41 @@ export function renderVideoCoachingMarkdown({ canonicalUrl = 'https://smarter.po
   ].join('\n');
 }
 
+/**
+ * Format Master Feature Directory as clean structured Markdown for LLM ingestion
+ */
+export function renderFeaturesIndexMarkdown({ canonicalUrl = 'https://smarter.poker/features' } = {}) {
+  return [
+    '# Smarter.Poker Platform Features & Tools Catalog',
+    '',
+    `> Source: [Platform Features Directory on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Smarter.Poker (https://smarter.poker) Is A Comprehensive Free Poker Ecosystem Combining 15 Integrated Verticals: GTO Solvers, Form W-2G Tax Logging, Dealer Tip Tracking, Jarvis AI Hand Reviews, Club Commander Live Room Operations, FaceTime Video Table Calls, Multiplayer Trivia, And Scenario Drills. Every Capability Is Available Without Subscription Paywalls.',
+    '',
+    '## Complete Feature Landing Guides & Markdown Specifications',
+    '- [Poker Bankroll & Form W-2G Tax Ledger](https://smarter.poker/features/bankroll-tax-tracker) ([Raw Markdown](https://smarter.poker/features/bankroll-tax-tracker.md)): Session Win-Loss Accounting, Form W-2G Document Tracking, Receipt Photos, And CPA Schedule C CSV Exports.',
+    '- [Poker Dealer Toke Tracker & Shift Scheduling](https://smarter.poker/features/poker-dealer-toke-tracker) ([Raw Markdown](https://smarter.poker/features/poker-dealer-toke-tracker.md)): Cash vs. Tournament Down Tracking, Tip Hourly Rates ($/hr), $/down Metrics, And Shift Calendars.',
+    '- [PokerBrain & Jarvis AI Tactical Coach](https://smarter.poker/features/poker-ai-coach) ([Raw Markdown](https://smarter.poker/features/poker-ai-coach.md)): Street-by-Street Plain English Hand Analysis, Automated Leak Detection, And GTO Solver Baselines.',
+    '- [Virtual Poker Table Sandbox & Runout Simulator](https://smarter.poker/features/virtual-poker-sandbox) ([Raw Markdown](https://smarter.poker/features/virtual-poker-sandbox.md)): Interactive Table Builder, Custom Stacks, Turn/River Runout Distributions, And Multiway Equity Modeling.',
+    '- [Club Commander Cardroom Management](https://smarter.poker/features/club-commander) ([Raw Markdown](https://smarter.poker/features/club-commander.md)): Cloud Waitlists, Multi-Screen TV Displays, Automated Two-Way Player SMS Alerts, And Tournament Clocks.',
+    '- [Live Poker Messenger & FaceTime Video Calls](https://smarter.poker/features/poker-messenger-video-calls) ([Raw Markdown](https://smarter.poker/features/poker-messenger-video-calls.md)): In-Browser WebRTC Multi-Peer Video Rooms, Spatial Voice Chat, And Hand History Link Previews.',
+    '- [Multiplayer Poker Trivia & Brain Training](https://smarter.poker/features/poker-trivia) ([Raw Markdown](https://smarter.poker/features/poker-trivia.md)): 10,000+ Question Bank, Survival Mode, 60-Second Blitz, GTO Math Drills, And Daily Leaderboards.',
+    '- [GTO Poker Training Games & Decision Drills](https://smarter.poker/features/poker-training-games) ([Raw Markdown](https://smarter.poker/features/poker-training-games.md)): 100+ Multi-Street Scenarios Across MTT, Cash, Spins, And SNGs With Solver EV Loss Grading.',
+    '- [Verified Home Poker Games Directory](https://smarter.poker/features/home-poker-games) ([Raw Markdown](https://smarter.poker/features/home-poker-games.md)): Verified Local Host Profiles, Blind Structures, City/State Listings, And SMS Waitlists.',
+    '- [Interactive Video Coaching Masterclasses](https://smarter.poker/features/interactive-video-coaching) ([Raw Markdown](https://smarter.poker/features/interactive-video-coaching.md)): Curated Coaching Library With Real-Time Mid-Hand \'What Would You Do?\' Pause Quizzes.',
+    '',
+    '## Free Interactive Calculators & Tools',
+    '- [Poker Odds Calculator](https://smarter.poker/tools/poker-odds-calculator) ([Raw Markdown](https://smarter.poker/tools/poker-odds-calculator.md)): Multiway Equity For Hold\'em, PLO4, PLO5, PLO6, Stud, And Razz.',
+    '- [Tournament ICM Calculator](https://smarter.poker/tools/icm-calculator): Malmuth-Harville Independent Chip Model Equity Distribution For Final Tables.',
+    '- [Preflop Range Matrix](https://smarter.poker/tools/preflop-ranges): Interactive GTO Range Grids Across 15BB to 100BB Stack Depths.',
+    '- [Daily $2,000 Freerolls Hub](https://smarter.poker/freerolls) ([Calendar Feed](https://smarter.poker/freerolls.ics)): Daily $2,000 Guaranteed Tournaments With Zero Deposit.',
+    '',
+    '## Public AI Agent APIs & Specs',
+    '- Public OpenAPI 3.1.0 Specification: https://smarter.poker/api/openapi.json (Root Alias: https://smarter.poker/openapi.json)',
+    '- Model Context Protocol (MCP) Server: https://smarter.poker/api/mcp',
+    '- AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json',
+    '',
+  ].join('\n');
+}
+
