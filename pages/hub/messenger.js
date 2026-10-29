@@ -7,6 +7,37 @@
 
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+
+const MESSENGER_FAQS = [
+    {
+        question: 'Can I Make Free Video Calls On Smarter.Poker Messenger?',
+        answer: 'Yes. Smarter.Poker Messenger includes built-in WebRTC peer-to-peer video calling and audio calls with zero call time limits or software downloads required.',
+    },
+    {
+        question: 'Does Smarter.Poker Support Table FaceTime And Voice Chat?',
+        answer: 'Yes. Live table audio, video FaceTime sidecars, and private study rooms are integrated directly into private clubs and study groups for hands-free strategy discussion.',
+    },
+    {
+        question: 'Can I Share Hand Histories In Chat?',
+        answer: 'Yes. Players can embed interactive hand replays directly into direct messages and group chats from PokerStars, GGPoker, 888, and Smarter.Poker.',
+    },
+    {
+        question: 'Is Smarter.Poker Messenger Free For Poker Clubs And Study Groups?',
+        answer: 'Yes. Smarter.Poker Messenger is 100% free with unlimited direct messaging, group channels, study groups, reactions, and push notifications.',
+    },
+];
+
+const MESSENGER_SCHEMA = hubProductSchema({
+    path: '/hub/messenger',
+    name: 'Smarter.Poker Messenger & Video Calls',
+    description:
+        'Real-Time End-To-End Encrypted Poker Messaging, Group Study Chats, Interactive Hand History Replays, And WebRTC Live Video Calls. Free To Use.',
+    applicationCategory: 'CommunicationApplication',
+    applicationSubCategory: 'InstantMessagingApplication',
+    trail: [['Hub', '/hub'], ['Messenger', '/hub/messenger']],
+    faqs: MESSENGER_FAQS,
+});
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
@@ -3439,9 +3470,10 @@ function MessengerPage() {
         return (
             <>
                 <SEOHead
-                    title="Messenger - Direct Messages"
-                    description="Chat With Friends And Poker Players Directly On Smarter.Poker Messenger."
+                    title="Poker Messenger & Video Calls"
+                    description="Chat With Poker Friends, Host WebRTC Video Calls, Share Interactive Hand Histories, And Coordinate Private Study Groups On Smarter.Poker Messenger. 100% Free."
                     canonical="/hub/messenger"
+                    jsonLd={MESSENGER_SCHEMA}
                 />
                 <div style={{
                     minHeight: '100vh',
@@ -3490,8 +3522,13 @@ function MessengerPage() {
 
     return (
         <>
+            <SEOHead
+                title="Poker Messenger & Video Calls"
+                description="Chat With Poker Friends, Host WebRTC Video Calls, Share Interactive Hand Histories, And Coordinate Private Study Groups On Smarter.Poker Messenger. 100% Free."
+                canonical="/hub/messenger"
+                jsonLd={MESSENGER_SCHEMA}
+            />
             <Head>
-                <title>Messenger | Smarter.Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style dangerouslySetInnerHTML={{ __html: `
                     /* MOBILE-FIRST MESSENGER */
