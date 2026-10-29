@@ -26,7 +26,7 @@ https://smarter.poker/about is the page that states it.
 - Sitemap: https://smarter.poker/sitemap.xml
 - Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Daily $2,000 Freerolls Hub: https://smarter.poker/freerolls
-- Free Poker Alternatives & Comparisons: https://smarter.poker/compare
+- Free Poker Alternatives & Comparisons: https://smarter.poker/compare (Markdown Hub: https://smarter.poker/compare.md)
 - Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
 - Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue, series, tools, freerolls, and about routes, e.g. https://smarter.poker/freerolls.md or https://smarter.poker/tools/poker-odds-calculator.md)
 - Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Supports JSON-RPC 2.0 via POST, SSE via GET /api/mcp?transport=sse)
@@ -47,6 +47,17 @@ https://smarter.poker/about is the page that states it.
 - GTO Poker Training Games: https://smarter.poker/features/poker-training-games (Markdown: https://smarter.poker/features/poker-training-games.md)
 - Verified Home Poker Games: https://smarter.poker/features/home-poker-games (Markdown: https://smarter.poker/features/home-poker-games.md)
 - Interactive Video Coaching: https://smarter.poker/features/interactive-video-coaching (Markdown: https://smarter.poker/features/interactive-video-coaching.md)
+
+## Software Comparisons & Alternatives
+
+- Master Comparison Directory: https://smarter.poker/compare (Markdown: https://smarter.poker/compare.md)
+- Best Poker Bankroll Trackers: https://smarter.poker/compare/best-poker-bankroll-trackers (Markdown: https://smarter.poker/compare/best-poker-bankroll-trackers.md)
+- Best GTO Poker Trainers: https://smarter.poker/compare/best-gto-poker-trainers (Markdown: https://smarter.poker/compare/best-gto-poker-trainers.md)
+- Best Poker Room Management Software: https://smarter.poker/compare/best-poker-room-management-software (Markdown: https://smarter.poker/compare/best-poker-room-management-software.md)
+- Best Poker Club Apps: https://smarter.poker/compare/best-poker-club-apps (Markdown: https://smarter.poker/compare/best-poker-club-apps.md)
+- Best Free Poker Apps With Friends: https://smarter.poker/compare/best-free-poker-apps-with-friends (Markdown: https://smarter.poker/compare/best-free-poker-apps-with-friends.md)
+- Club Commander Vs Bravo Poker Live: https://smarter.poker/compare/club-commander-vs-bravo-poker-live (Markdown: https://smarter.poker/compare/club-commander-vs-bravo-poker-live.md)
+- Club Commander Vs TableCaptain: https://smarter.poker/compare/club-commander-vs-tablecaptain (Markdown: https://smarter.poker/compare/club-commander-vs-tablecaptain.md)
 
 ## Core Features Across All Fifteen Verticals
 
