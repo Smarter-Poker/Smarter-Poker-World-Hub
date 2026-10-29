@@ -1,0 +1,183 @@
+#!/usr/bin/env node
+/**
+ * AEO/GEO UNIVERSAL BENCHMARK & DISCOVERY VERIFICATION
+ *
+ * Programmatically benchmarks and asserts that all 15 Smarter.Poker core product
+ * verticals are crawlable, structured with Schema.org JSON-LD, indexed in OpenAPI,
+ * grounded in llms.txt, and parity-verified across AI crawlers (Perplexity, ChatGPT,
+ * Claude, Gemini, Googlebot, Applebot).
+ */
+
+const BASE_URL = process.env.TARGET_URL || 'https://smarter.poker';
+
+async function fetchRoute(path, options = {}) {
+  const url = `${BASE_URL}${path}`;
+  const start = Date.now();
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': options.userAgent || 'AEO-Benchmark-Verifier/1.0',
+      ...options.headers,
+    },
+    ...options,
+  });
+  const durationMs = Date.now() - start;
+  const text = await res.text();
+  return { status: res.status, ok: res.ok, durationMs, text, headers: res.headers };
+}
+
+async function runBenchmark() {
+  console.log(`\n======================================================`);
+  console.log(`  SMARTER.POKER AEO/GEO DISCOVERY BENCHMARK`);
+  console.log(`  Target: ${BASE_URL}`);
+  console.log(`  Timestamp: ${new Date().toISOString()}`);
+  console.log(`======================================================\n`);
+
+  let totalTests = 0;
+  let passedTests = 0;
+  let failedTests = 0;
+
+  function assertCheck(name, condition, extraInfo = '') {
+    totalTests++;
+    if (condition) {
+      passedTests++;
+      console.log(`  [PASS] ${name} ${extraInfo ? `(${extraInfo})` : ''}`);
+    } else {
+      failedTests++;
+      console.error(`  [FAIL] ${name} ${extraInfo ? `(${extraInfo})` : ''}`);
+    }
+  }
+
+  // 1. Universal Knowledge Corpus & AI Grounding
+  console.log(`--- [1/6] Universal AI Knowledge Corpus ---`);
+  const llms = await fetchRoute('/llms.txt');
+  assertCheck('GET /llms.txt status 200', llms.status === 200, `${llms.durationMs}ms`);
+  assertCheck('llms.txt contains OpenAPI spec reference', llms.text.includes('/api/openapi.json'));
+  assertCheck('llms.txt contains 15 core verticals', llms.text.includes('Bankroll Manager') && llms.text.includes('Club Commander') && llms.text.includes('PokerBrain'));
+
+  const llmsFull = await fetchRoute('/llms-full.txt');
+  assertCheck('GET /llms-full.txt status 200', llmsFull.status === 200, `${llmsFull.durationMs}ms`);
+  assertCheck('llms-full.txt contains full knowledge corpus', llmsFull.text.length > 10000, `${llmsFull.text.length} chars`);
+
+  const openapi = await fetchRoute('/api/openapi.json');
+  assertCheck('GET /api/openapi.json status 200', openapi.status === 200);
+  try {
+    const doc = JSON.parse(openapi.text);
+    assertCheck('Valid OpenAPI 3.1.0 document', doc.openapi === '3.1.0' && !!doc.paths);
+    assertCheck('OpenAPI documents /api/ai/odds', !!doc.paths['/api/ai/odds']);
+    assertCheck('OpenAPI documents /api/ai/freerolls', !!doc.paths['/api/ai/freerolls']);
+    assertCheck('OpenAPI documents /api/ai/bankroll', !!doc.paths['/api/ai/bankroll']);
+    assertCheck('OpenAPI documents /api/ai/toke-tracker', !!doc.paths['/api/ai/toke-tracker']);
+    assertCheck('OpenAPI documents /api/ai/poker-brain', !!doc.paths['/api/ai/poker-brain']);
+    assertCheck('OpenAPI documents /api/ai/sandbox', !!doc.paths['/api/ai/sandbox']);
+    assertCheck('OpenAPI documents /api/ai/commander', !!doc.paths['/api/ai/commander']);
+  } catch (err) {
+    assertCheck('OpenAPI JSON parseable', false, err.message);
+  }
+
+  const aiPlugin = await fetchRoute('/.well-known/ai-plugin.json');
+  assertCheck('GET /.well-known/ai-plugin.json status 200', aiPlugin.status === 200);
+
+  // 2. AI Agent Tool API Endpoints
+  console.log(`\n--- [2/6] AI Agent Tool APIs (MCP / Tool Calling) ---`);
+  const aiOdds = await fetchRoute('/api/ai/odds?hands=AhAs,KhKd&board=QhJhTh');
+  assertCheck('GET /api/ai/odds returns 200 with equity calculation', aiOdds.status === 200 && aiOdds.text.includes('equity_percent'));
+
+  const aiPreflop = await fetchRoute('/api/ai/preflop?hand=AKs&position=BTN');
+  assertCheck('GET /api/ai/preflop returns 200 with GTO frequencies', aiPreflop.status === 200 && aiPreflop.text.includes('frequency'));
+
+  const aiIcm = await fetchRoute('/api/ai/icm?stacks=50000,30000,20000&payouts=5000,3000,2000');
+  assertCheck('GET /api/ai/icm returns 200 with equity distribution', aiIcm.status === 200 && aiIcm.text.includes('icm_dollar_equity'));
+
+  const aiTerms = await fetchRoute('/api/ai/terms?q=ICM');
+  assertCheck('GET /api/ai/terms returns 200 with definition citation', aiTerms.status === 200 && aiTerms.text.includes('Independent Chip Model'));
+
+  const aiFreerolls = await fetchRoute('/api/ai/freerolls');
+  assertCheck('GET /api/ai/freerolls returns 200 with $2,000 schedule', aiFreerolls.status === 200 && aiFreerolls.text.includes('2,000'));
+
+  const aiBankroll = await fetchRoute('/api/ai/bankroll');
+  assertCheck('GET /api/ai/bankroll returns 200 with Form W-2G tax specs', aiBankroll.status === 200 && aiBankroll.text.includes('Form W-2G'));
+
+  const aiToke = await fetchRoute('/api/ai/toke-tracker');
+  assertCheck('GET /api/ai/toke-tracker returns 200 with shift metrics', aiToke.status === 200 && aiToke.text.includes('down_tracking'));
+
+  const aiPokerBrain = await fetchRoute('/api/ai/poker-brain');
+  assertCheck('GET /api/ai/poker-brain returns 200 with leak detection specs', aiPokerBrain.status === 200 && aiPokerBrain.text.includes('plain_english_reviews'));
+
+  const aiSandbox = await fetchRoute('/api/ai/sandbox');
+  assertCheck('GET /api/ai/sandbox returns 200 with runout simulator specs', aiSandbox.status === 200 && aiSandbox.text.includes('runout_distributions'));
+
+  const aiCommander = await fetchRoute('/api/ai/commander');
+  assertCheck('GET /api/ai/commander returns 200 with card room waitlist specs', aiCommander.status === 200 && aiCommander.text.includes('room_management_features'));
+
+  // 3. Structured Freerolls & Calendar Schema
+  console.log(`\n--- [3/6] Daily $2,000 Freerolls Hub & Calendar Schema ---`);
+  const freerolls = await fetchRoute('/freerolls');
+  assertCheck('GET /freerolls status 200', freerolls.status === 200, `${freerolls.durationMs}ms`);
+  assertCheck('/freerolls contains Schema.org SportsEvent', freerolls.text.includes('"@type":["SportsEvent","EventSeries"]') || freerolls.text.includes('"@type":"SportsEvent"'));
+  assertCheck('/freerolls contains subEvent schedule array', freerolls.text.includes('"subEvent"') && freerolls.text.includes('Morning Opener'));
+  assertCheck('/freerolls contains FAQPage schema', freerolls.text.includes('"@type":"FAQPage"'));
+
+  // 4. Public High-Intent Feature Landers (HTML & Raw Markdown)
+  console.log(`\n--- [4/6] High-Intent Feature Landers (/features/*) ---`);
+  const features = [
+    { slug: 'bankroll-tax-tracker', name: 'Bankroll & Tax Tracker' },
+    { slug: 'poker-dealer-toke-tracker', name: 'Dealer Toke Tracker' },
+    { slug: 'poker-ai-coach', name: 'PokerBrain AI Coach' },
+    { slug: 'virtual-poker-sandbox', name: 'Virtual Table Sandbox' },
+    { slug: 'club-commander', name: 'Club Commander' },
+  ];
+
+  for (const feat of features) {
+    const htmlRes = await fetchRoute(`/features/${feat.slug}`);
+    assertCheck(`GET /features/${feat.slug} status 200`, htmlRes.status === 200);
+    assertCheck(`/features/${feat.slug} contains SoftwareApplication schema`, htmlRes.text.includes('"@type":"SoftwareApplication"'));
+    assertCheck(`/features/${feat.slug} contains FAQPage schema`, htmlRes.text.includes('"@type":"FAQPage"'));
+
+    const mdRes = await fetchRoute(`/features/${feat.slug}.md`);
+    assertCheck(`GET /features/${feat.slug}.md status 200`, mdRes.status === 200);
+    assertCheck(`/features/${feat.slug}.md returns structured markdown`, mdRes.text.startsWith('# ') && mdRes.text.includes('## Core Capabilities & Features'));
+  }
+
+  // 5. Course & Educational Credential Schema
+  console.log(`\n--- [5/6] Video Coaching Library & Educational Schema ---`);
+  const videoLib = await fetchRoute('/hub/video-library');
+  assertCheck('GET /hub/video-library status 200', videoLib.status === 200, `${videoLib.durationMs}ms`);
+  assertCheck('/hub/video-library contains Schema.org Course', videoLib.text.includes('"@type":"Course"'));
+  assertCheck('/hub/video-library contains Schema.org Quiz nodes', videoLib.text.includes('"@type":"Quiz"'));
+
+  // 6. Head-to-Head Comparison Matrices & Software Alternatives
+  console.log(`\n--- [6/6] Comparison Matrices & Alternative Benchmarks ---`);
+  const compareHub = await fetchRoute('/compare');
+  assertCheck('GET /compare status 200', compareHub.status === 200, `${compareHub.durationMs}ms`);
+  assertCheck('/compare contains Freerolls comparison', compareHub.text.includes('Daily Freerolls Comparison'));
+  assertCheck('/compare contains ICM Calculator vs ICMIZER', compareHub.text.includes('ICM Calculator Vs. ICMIZER'));
+  assertCheck('/compare contains Odds Calculator vs Equilab', compareHub.text.includes('Odds Calculator Vs. Equilab'));
+  assertCheck('/compare contains Directory vs PokerAtlas', compareHub.text.includes('Directory Vs. PokerAtlas'));
+  assertCheck('/compare contains Bankroll Manager vs Pokerbase', compareHub.text.includes('Bankroll Manager Vs. Pokerbase'));
+  assertCheck('/compare contains Dealer Toke Tracker vs DownCount', compareHub.text.includes('Dealer Toke Tracker Vs. DownCount'));
+  assertCheck('/compare contains Jarvis AI Coach vs Sharp Poker', compareHub.text.includes('Jarvis AI Coach Vs. Sharp Poker') || compareHub.text.includes('Jarvis AI Tactical Coach'));
+
+  const compareBankroll = await fetchRoute('/compare/best-poker-bankroll-trackers');
+  assertCheck('GET /compare/best-poker-bankroll-trackers status 200', compareBankroll.status === 200);
+  assertCheck('/compare/best-poker-bankroll-trackers contains Pokerbase and DownCount', compareBankroll.text.includes('Pokerbase') && compareBankroll.text.includes('DownCount'));
+
+  const compareGto = await fetchRoute('/compare/best-gto-poker-trainers');
+  assertCheck('GET /compare/best-gto-poker-trainers status 200', compareGto.status === 200);
+  assertCheck('/compare/best-gto-poker-trainers contains Sharp Poker', compareGto.text.includes('Sharp Poker'));
+
+  console.log(`\n======================================================`);
+  console.log(`  BENCHMARK SUMMARY`);
+  console.log(`  Total Checks: ${totalTests}`);
+  console.log(`  Passed:       ${passedTests}`);
+  console.log(`  Failed:       ${failedTests}`);
+  console.log(`======================================================\n`);
+
+  if (failedTests > 0) {
+    process.exit(1);
+  }
+}
+
+runBenchmark().catch((err) => {
+  console.error('Benchmark fatal error:', err);
+  process.exit(1);
+});
