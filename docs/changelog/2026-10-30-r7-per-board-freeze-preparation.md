@@ -1,0 +1,9 @@
+# R7 approved per-board physics preparation
+
+The ordinary freeze request performs multiple complete independent board audits. Two R7 requests reached the HTTP deadline while their SQL transactions later committed. The existing single-attempt controller correctly stopped instead of replaying uncertain writes.
+
+The existing authenticated COMPACTOR `freeze_model` operation now accepts an exact typed physics phase. It reads one approved private preparation through the existing service-role RPC, binds the full freeze envelope, model/template/provenance, approved protocol and chronological board, and invokes the unchanged per-board SQL audit using the actual cell key. The audit still checks every legal own-hand combination and all public215 features and model heads. Its receipt is separate from a freeze acknowledgement. The normal freeze payload, RPC and final scientific gates remain unchanged.
+
+The finite R7 continuation verifies the two committed prefix receipts and original failed operation records, prepares each distinct approved board once, then submits the original freeze once. Every phase has durable exclusive evidence and stops on any transport, HTTP or receipt uncertainty. It never retries, trains, captures, opens the holdout seed, certifies or promotes. Approved producer files and all quality thresholds remain unchanged.
+
+Validation: 14 focused ingress tests including actual route dispatch and malformed/foreign authority refusals; seven focused continuation tests covering exact prefix, board authority, single attempt, interruption and receipt binding. Offline admission also checked all 210 approved boards in the remaining 105 actual finalized R7 models. Protected checks, production publication, actual SQL continuation and subsequent fresh M2 qualification remain separate delivery evidence.

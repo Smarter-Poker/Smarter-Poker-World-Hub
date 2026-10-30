@@ -1862,52 +1862,87 @@ class ManifestAndGatewayTests(unittest.TestCase):
 
 class R7FreezeContinuationTests(unittest.TestCase):
     @staticmethod
-    def fixture():
+    def fixture(existing=2):
         import continue_r7_freeze_once as recovery
-        coverage = [{'order': i} for i in range(107)]
-        models = {}
+        coverage = sorted([{'order': i, 'street': 'flop'} for i in range(107)],
+                          key=recovery.canonical)
+        cases = [{'board': 'AcKd2h', 'own': ['4c', '5c']},
+                 {'board': 'AcKd2h', 'own': ['6c', '7c']},
+                 {'board': 'QcJh3d', 'own': ['4c', '5c']}]
+        models, approved = {}, {}
         for context in coverage:
-            checksum = digest(recovery.canonical(context))
-            models[recovery.canonical(context)] = {
-                'context': context, **{f: checksum for f in recovery.FIELDS},
-                'public_model_build_receipt': {'format': 'fixture-only'},
-            }
+            key = recovery.canonical(context)
+            checksum = digest(key)
+            models[key] = {'context': context,
+                **{f: checksum for f in recovery.FIELDS},
+                'public_model_build_receipt': {'cases': cases}}
+            approved[key] = cases
         expected = {'dataset_id': recovery.DATASET, 'index_sha256': recovery.INDEX,
                     'contexts': [{'context': e['context'], 'context_id': digest(k),
                                   **{f: e[f] for f in recovery.FIELDS}}
                                  for k, e in models.items()]}
-        first = next(iter(models.values()))
-        snapshot = [{'context': first['context'], **{f: first[f] for f in recovery.FIELDS},
-                     'frozen_at': '2026-10-30T13:47:34.701753Z'}]
-        return recovery, coverage, models, expected, snapshot
+        snapshot = [{'context': e['context'], **{f: e[f] for f in recovery.FIELDS},
+                     'frozen_at': '2026-10-30T14:41:23.838363Z'}
+                    for e in list(models.values())[:existing]]
+        return recovery, coverage, models, expected, snapshot, approved
 
-    def test_exact_first_receipt_skips_only_one_and_calls106_once(self):
-        recovery, coverage, models, expected, snapshot = self.fixture()
-        remaining = recovery.bindings(coverage, models, expected, snapshot)
-        self.assertEqual([e['context'] for e in remaining], coverage[1:])
+    @staticmethod
+    def response(recovery, payload):
+        entry = payload['context']
+        if 'physics_board' not in payload:
+            return entry['model_build_receipt_checksum']
+        return {'format': 'public215_prepared_physics_v1', 'dataset_id': recovery.DATASET,
+            'context': entry['context'], 'cell_key_checksum': 'b' * 64,
+            'model_checksum': entry['model_checksum'],
+            'template_checksum': entry['public_model_build_receipt']['template_checksum'],
+            'board': payload['physics_board'], 'audit_key': 'c' * 64}
+
+    def plan(self, existing=2):
+        fixture = self.fixture(existing)
+        recovery, coverage, models, expected, snapshot, approved = fixture
+        # Real Linux receipts include this field; maintain it in fixture envelopes.
+        for entry in models.values():
+            entry['public_model_build_receipt'] = {
+                **entry['public_model_build_receipt'], 'template_checksum': entry['template_checksum']}
+        return fixture, recovery.plan_remaining(coverage, models, expected, snapshot,
+                                                existing, approved)
+
+    def test_exact_two_prefix_and_approved_distinct_boards_then105_single_freezes(self):
+        fixture, plan = self.plan()
+        recovery, coverage, models, expected, snapshot, approved = fixture
+        self.assertEqual([p['preparation_offset'] for p in plan], list(range(2, 107)))
+        self.assertTrue(all(p['physics_boards'] == ['AcKd2h', 'QcJh3d'] for p in plan))
         client = mock.Mock(attempts=1)
-        client.call.side_effect = lambda operation, payload, **kwargs: payload['context']['model_build_receipt_checksum']
+        client.call.side_effect = lambda operation, payload, **kwargs: self.response(recovery, payload)
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / 'new-operation'
-            terminal = recovery.run_remaining(client, remaining, output, 'a' * 64)
-            self.assertEqual(terminal['completed_new'], 106)
+            terminal = recovery.run_remaining(client, plan, output, 'a' * 64, 2)
+            self.assertEqual(terminal['completed_new'], 105)
+            self.assertEqual(terminal['existing_verified'], 2)
             self.assertFalse(terminal['certified'])
-            self.assertEqual(client.call.call_count, 106)
-            for call, entry in zip(client.call.call_args_list, remaining):
-                self.assertEqual(call.args[0], 'freeze_model')
-                self.assertEqual(call.args[1]['context']['context'], entry['context'])
-                self.assertEqual(call.kwargs, {'timeout_seconds': 280})
-            self.assertEqual(len(list(output.glob('*.started.json'))), 106)
-            self.assertEqual(len(list(output.glob('*.terminal.json'))), 106)
+            self.assertEqual(client.call.call_count, 315)
+            for i, item in enumerate(plan):
+                calls = client.call.call_args_list[i*3:i*3+3]
+                for call, board in zip(calls[:2], ['AcKd2h', 'QcJh3d']):
+                    self.assertEqual(call.args[0], 'freeze_model')
+                    self.assertEqual(set(call.args[1]), {'dataset_id', 'context',
+                                     'physics_board', 'preparation_offset'})
+                    self.assertEqual(call.args[1]['physics_board'], board)
+                    self.assertEqual(call.args[1]['preparation_offset'], i + 2)
+                    self.assertEqual(call.kwargs, {'timeout_seconds': 280})
+                self.assertEqual(set(calls[2].args[1]), {'dataset_id', 'context'})
+                self.assertEqual(calls[2].args[1]['context']['context'], item['entry']['context'])
+            self.assertEqual(len(list(output.glob('*.physics-*.started.json'))), 210)
+            self.assertEqual(len(list(output.glob('*.freeze.started.json'))), 105)
             with self.assertRaises(recovery.Refusal):
-                recovery.run_remaining(client, remaining, output, 'a' * 64)
-            self.assertEqual(client.call.call_count, 106)
+                recovery.run_remaining(client, plan, output, 'a' * 64, 2)
+            self.assertEqual(client.call.call_count, 315)
 
-    def test_transport_unknown_stops_actual_gateway_after_one_attempt(self):
+    def test_transport_unknown_stops_actual_gateway_first_physics_without_freeze(self):
         from dataclasses import replace
         from gateway import GatewayClient
-        recovery, coverage, models, expected, snapshot = self.fixture()
-        remaining = recovery.bindings(coverage, models, expected, snapshot)
+        fixture, plan = self.plan()
+        recovery = fixture[0]
         client = replace(GatewayClient('https://example.invalid', 'COMPACTOR',
                                       b'hermetic-test-only', {}), attempts=1)
         with tempfile.TemporaryDirectory() as folder:
@@ -1915,65 +1950,116 @@ class R7FreezeContinuationTests(unittest.TestCase):
             with mock.patch('gateway.urlopen', side_effect=TimeoutError('secret URL body')) as request, \
                  mock.patch('gateway.time.sleep') as sleep:
                 with self.assertRaisesRegex(recovery.Refusal, 'FREEZE_OUTCOME_UNKNOWN_NO_RETRY'):
-                    recovery.run_remaining(client, remaining, output, 'a' * 64)
+                    recovery.run_remaining(client, plan, output, 'a' * 64, 2)
             self.assertEqual(request.call_count, 1)
             sleep.assert_not_called()
-            self.assertEqual(len(list(output.glob('*.started.json'))), 1)
+            self.assertEqual(len(list(output.glob('*.physics-*.started.json'))), 1)
+            self.assertEqual(len(list(output.glob('*.freeze.started.json'))), 0)
             terminal = json.loads((output / 'terminal.json').read_text())
             self.assertEqual(terminal['status'], 'incomplete_unknown_stop')
+            self.assertEqual(terminal['failed_phase'], 'physics')
             self.assertEqual(terminal['completed_new'], 0)
             self.assertNotIn('secret URL', ''.join(p.read_text() for p in output.iterdir()))
 
-    def test_wrong_snapshot_and_independent107_map_are_refused(self):
+    def test_wrong_prefix_duplicate_hole_count_and_independent_map_are_refused(self):
         import copy
-        recovery, coverage, models, expected, snapshot = self.fixture()
-        for wrong in [[], snapshot * 2, [{**snapshot[0], 'model_checksum': 'f' * 64}],
-                      [{**snapshot[0], 'context': coverage[1]}]]:
+        recovery, coverage, models, expected, snapshot, approved = self.fixture()
+        for wrong in [[], snapshot[:1], snapshot * 2, [snapshot[0], snapshot[0]],
+                      [{**snapshot[0], 'model_checksum': 'f' * 64}, snapshot[1]],
+                      [snapshot[0], {**snapshot[1], 'context': coverage[2]}]]:
             with self.assertRaises(recovery.Refusal):
-                recovery.bindings(coverage, models, expected, wrong)
+                recovery.bindings(coverage, models, expected, wrong, 2)
+        for count in [True, 0, 1, 106, 107, '2']:
+            with self.assertRaises(recovery.Refusal):
+                recovery.bindings(coverage, models, expected, snapshot, count)
         for field in ['model_checksum', 'model_build_receipt_checksum', 'context_id']:
             wrong = copy.deepcopy(expected)
             wrong['contexts'][5][field] = 'f' * 64
             with self.assertRaises(recovery.Refusal):
-                recovery.bindings(coverage, models, wrong, snapshot)
-        wrong = {**expected, 'index_sha256': 'f' * 64}
+                recovery.bindings(coverage, models, wrong, snapshot, 2)
         with self.assertRaises(recovery.Refusal):
-            recovery.bindings(coverage, models, wrong, snapshot)
+            recovery.bindings(coverage, models, {**expected, 'index_sha256': 'f'*64}, snapshot, 2)
 
-    def test_http504_and_wrong_receipt_keep_safe_facts_and_stop(self):
-        recovery, coverage, models, expected, snapshot = self.fixture()
-        remaining = recovery.bindings(coverage, models, expected, snapshot)
-        for outcome, classification, http_status in [
-            (GatewayError('secret URL body', 504), 'gateway_http', 504),
-            ('f' * 64, 'receipt_mismatch', None),
-        ]:
+    def test_unapproved_case_board_or_pair_is_refused_before_claim(self):
+        import copy
+        recovery, coverage, models, expected, snapshot, approved = self.fixture()
+        for changed in ['KdAc2h', 'AcAc2h', 'AcKd2h3c']:
+            wrong = copy.deepcopy(models)
+            key = recovery.canonical(coverage[2])
+            wrong[key]['public_model_build_receipt']['cases'][0]['board'] = changed
+            with self.assertRaises(recovery.Refusal):
+                recovery.plan_remaining(coverage, wrong, expected, snapshot, 2, approved)
+        wrong = copy.deepcopy(approved)
+        wrong[recovery.canonical(coverage[2])][0]['own'] = ['8c', '9c']
+        with self.assertRaises(recovery.Refusal):
+            recovery.plan_remaining(coverage, models, expected, snapshot, 2, wrong)
+        fixture, plan = self.plan()
+        plan[0]['physics_boards'] = ['KdAc2h']
+        client = mock.Mock(attempts=1)
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'refused-operation'
+            with self.assertRaises(recovery.Refusal):
+                recovery.run_remaining(client, plan, output, 'a'*64, 2)
+            self.assertFalse(output.exists())
+            client.call.assert_not_called()
+
+    def test_wrong_physics_response_bindings_or_extra_are_rejected_and_stop(self):
+        fixture, plan = self.plan()
+        recovery = fixture[0]
+        entry, board = plan[0]['entry'], plan[0]['physics_boards'][0]
+        payload = {'context': entry, 'physics_board': board}
+        base = self.response(recovery, payload)
+        for change in [{'board': 'KdAc2h'}, {'model_checksum': 'f'*64},
+                       {'template_checksum': 'f'*64}, {'context': {'different': True}},
+                       {'dataset_id': str(uuid.uuid4())}, {'extra': True},
+                       {'audit_key': '0'*64}, {'cell_key_checksum': 'invalid'}]:
             client = mock.Mock(attempts=1)
-            if isinstance(outcome, Exception):
-                client.call.side_effect = outcome
-            else:
-                client.call.return_value = outcome
+            client.call.return_value = {**base, **change}
             with tempfile.TemporaryDirectory() as folder:
                 output = Path(folder) / 'new-operation'
                 with self.assertRaises(recovery.Refusal):
-                    recovery.run_remaining(client, remaining, output, 'a' * 64)
+                    recovery.run_remaining(client, plan, output, 'a'*64, 2)
                 self.assertEqual(client.call.call_count, 1)
+                terminal = json.loads((output / '001.terminal.json').read_text())
+                self.assertEqual(terminal['phase'], 'physics')
+                self.assertEqual(terminal['failure_classification'], 'receipt_mismatch')
+                self.assertEqual(len(list(output.glob('*.freeze.started.json'))), 0)
+
+    def test_http504_and_wrong_final_freeze_keep_safe_facts_and_stop(self):
+        fixture, plan = self.plan()
+        recovery = fixture[0]
+        for physics_error in (True, False):
+            client = mock.Mock(attempts=1)
+            def result(operation, payload, **kwargs):
+                if physics_error:
+                    raise GatewayError('secret URL body', 504)
+                if 'physics_board' in payload:
+                    return self.response(recovery, payload)
+                return 'f'*64
+            client.call.side_effect = result
+            with tempfile.TemporaryDirectory() as folder:
+                output = Path(folder) / 'new-operation'
+                with self.assertRaises(recovery.Refusal):
+                    recovery.run_remaining(client, plan, output, 'a'*64, 2)
+                self.assertEqual(client.call.call_count, 1 if physics_error else 3)
                 evidence = json.loads((output / '001.terminal.json').read_text())
-                self.assertEqual(evidence['failure_classification'], classification)
-                self.assertEqual(evidence['http_status'], http_status)
+                self.assertEqual(evidence['failure_classification'],
+                                 'gateway_http' if physics_error else 'receipt_mismatch')
+                self.assertEqual(evidence['http_status'], 504 if physics_error else None)
                 self.assertNotIn('secret URL', ''.join(p.read_text() for p in output.iterdir()))
 
     def test_index_bytes_snapshot_freshness_and_multiattempt_client_fail_closed(self):
         from datetime import datetime, timezone
-        recovery, coverage, models, expected, snapshot = self.fixture()
+        fixture, plan = self.plan()
+        recovery = fixture[0]
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'index.json'
             path.write_bytes(b'changed-index')
             with self.assertRaises(recovery.Refusal):
                 recovery.pinned({'path': str(path), 'sha256': recovery.INDEX}, recovery.INDEX)
             with self.assertRaises(recovery.Refusal):
-                recovery.run_remaining(mock.Mock(attempts=3),
-                    recovery.bindings(coverage, models, expected, snapshot),
-                    Path(folder) / 'refused-operation', 'a' * 64)
+                recovery.run_remaining(mock.Mock(attempts=3), plan,
+                                       Path(folder) / 'refused-operation', 'a'*64, 2)
             self.assertFalse((Path(folder) / 'refused-operation').exists())
         now = datetime(2026, 10, 30, 14, 0, tzinfo=timezone.utc)
         recovery.fresh_snapshot('2026-10-30T13:59:59Z', now)
