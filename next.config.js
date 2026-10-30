@@ -1492,6 +1492,14 @@ const nextConfig = {
           destination: '/features/poker-messenger-video-calls?format=md',
         },
         {
+          source: '/hub/poker-near-me.md',
+          destination: '/features/poker-near-me?format=md',
+        },
+        {
+          source: '/hub/club-arena.md',
+          destination: '/features/private-poker-clubs?format=md',
+        },
+        {
           source: '/freerolls.ics',
           destination: '/api/calendar/freerolls.ics',
         },

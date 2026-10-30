@@ -711,6 +711,57 @@
         }
       }
     },
+    "/api/ai/club-arena": {
+      "get": {
+        "operationId": "getClubArenaSpecs",
+        "summary": "Get Club Arena Private Poker Clubs & Union Hosting Specifications",
+        "description": "Returns private poker club hosting specifications, multi-club union infrastructure, ring game structures, MTT configs, and cashier hierarchies.",
+        "parameters": [
+          {
+            "name": "feature",
+            "in": "query",
+            "description": "Feature category (ring_games, tournaments, unions, cashiers, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Club Arena private club and union specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "product": {
+                      "type": "string"
+                    },
+                    "pricing": {
+                      "type": "string"
+                    },
+                    "union_and_club_features": {
+                      "type": "object"
+                    },
+                    "canonical_url": {
+                      "type": "string"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ai/trivia": {
       "get": {
         "operationId": "getTriviaSpecs",

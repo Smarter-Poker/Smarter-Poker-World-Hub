@@ -103,6 +103,26 @@ export const ALL_FEATURES = [
     mdHref: '/features/interactive-video-coaching.md',
     competitors: 'Free Alternative To PokerCoaching.com & Pokercode',
   },
+  {
+    slug: 'poker-near-me',
+    title: 'Live Poker Near Me & Cardroom Directory',
+    badge: '320+ Live Poker Rooms',
+    description: 'Explore 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Real-Time Cash Games, And Waitlists With Instant GPS Directions.',
+    href: '/features/poker-near-me',
+    appHref: '/hub/poker-near-me/lobby',
+    mdHref: '/features/poker-near-me.md',
+    competitors: 'Free Alternative To PokerAtlas & Bravo Poker Live',
+  },
+  {
+    slug: 'private-poker-clubs',
+    title: 'Private Poker Clubs & Union Hosting Arena',
+    badge: 'Multi-Club Union Arena',
+    description: 'Create And Host Online Poker Clubs, Multi-Club Unions, Ring Games, And Multi-Table Tournaments With Real-Time Rakeback Tracking And WebRTC Video Calls.',
+    href: '/features/private-poker-clubs',
+    appHref: '/hub/club-arena',
+    mdHref: '/features/private-poker-clubs.md',
+    competitors: 'Free Modern Alternative To PokerBros, PPPoker & ClubGG',
+  },
 ];
 
 export default function FeaturesIndexPage() {
@@ -112,7 +132,7 @@ export default function FeaturesIndexPage() {
     '@id': 'https://smarter.poker/features#page',
     url: 'https://smarter.poker/features',
     name: 'Smarter.Poker Platform Features & Tools Directory',
-    description: 'Explore All Ten Smarter.Poker Free Platform Verticals: Form W-2G Tax Ledger, Dealer Toke Tracker, Jarvis AI Coach, Virtual Sandbox, Club Commander, FaceTime Calls, And Solvers.',
+    description: 'Explore Smarter.Poker Free Platform Verticals: Form W-2G Tax Ledger, Dealer Toke Tracker, Jarvis AI Coach, Virtual Sandbox, Club Commander, FaceTime Calls, And Solvers.',
     isPartOf: {
       '@type': 'WebSite',
       '@id': 'https://smarter.poker/#website',
@@ -166,7 +186,7 @@ export default function FeaturesIndexPage() {
 
       <div style={styles.container}>
         <header style={styles.header}>
-          <div style={styles.badge}>All Ten Platform Verticals</div>
+          <div style={styles.badge}>Platform Verticals Directory</div>
           <h1 style={styles.title}>Smarter.Poker Platform Features</h1>
           <p style={styles.subtitle}>
             Explore Professional Poker Tools Built For Players, Dealers, Cardroom Managers, And Coaches.

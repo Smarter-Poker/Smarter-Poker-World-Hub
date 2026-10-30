@@ -64,6 +64,10 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/messenger.md';
     } else if (pathname === '/hub/home-games') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/home-games.md';
+    } else if (pathname === '/hub/poker-near-me' || pathname === '/hub/poker-near-me/lobby') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me.md';
+    } else if (pathname === '/hub/club-arena') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/club-arena.md';
     }
   }
 

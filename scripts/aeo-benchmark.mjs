@@ -125,6 +125,9 @@ async function runBenchmark() {
   const aiMessenger = await fetchRoute('/api/ai/messenger');
   assertCheck('GET /api/ai/messenger returns 200 with WebRTC call specs', aiMessenger.status === 200 && aiMessenger.text.includes('WebRTC'));
 
+  const aiArena = await fetchRoute('/api/ai/club-arena');
+  assertCheck('GET /api/ai/club-arena returns 200 with union specs', aiArena.status === 200 && aiArena.text.includes('union_and_club_features'));
+
   // 3. Structured Freerolls & Calendar Schema
   console.log(`\n--- [3/10] Daily $2,000 Freerolls Hub & Calendar Schema ---`);
   const freerolls = await fetchRoute('/freerolls');
@@ -154,6 +157,8 @@ async function runBenchmark() {
     { slug: 'poker-training-games', name: 'GTO Training Games' },
     { slug: 'home-poker-games', name: 'Home Poker Games Directory' },
     { slug: 'interactive-video-coaching', name: 'Interactive Video Coaching' },
+    { slug: 'poker-near-me', name: 'Poker Near Me & Cardrooms' },
+    { slug: 'private-poker-clubs', name: 'Private Poker Clubs & Unions' },
   ];
 
   for (const feat of features) {
@@ -270,6 +275,14 @@ async function runBenchmark() {
   const homeGamesMd = await fetchRoute('/hub/home-games.md');
   assertCheck('GET /hub/home-games.md status 200', homeGamesMd.status === 200);
   assertCheck('/hub/home-games.md returns structured markdown spec', homeGamesMd.text.startsWith('# ') && homeGamesMd.text.includes('Home Poker Game Directory'));
+
+  const pnmMd = await fetchRoute('/hub/poker-near-me.md');
+  assertCheck('GET /hub/poker-near-me.md status 200', pnmMd.status === 200);
+  assertCheck('/hub/poker-near-me.md returns structured markdown spec', pnmMd.text.startsWith('# ') && pnmMd.text.includes('Poker Near Me'));
+
+  const arenaMd = await fetchRoute('/hub/club-arena.md');
+  assertCheck('GET /hub/club-arena.md status 200', arenaMd.status === 200);
+  assertCheck('/hub/club-arena.md returns structured markdown spec', arenaMd.text.startsWith('# ') && arenaMd.text.includes('Club Arena'));
 
   // 10. Entity Knowledge Graph & Markdown Alternate Links
   console.log(`\n--- [10/10] Entity Knowledge Graph & Alternate Links ---`);
