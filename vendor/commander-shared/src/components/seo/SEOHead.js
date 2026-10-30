@@ -162,6 +162,18 @@ export const schemas = {
             email: 'support@smarter.poker',
         },
         description: 'The Ultimate Poker Platform for GTO Training, Live Venue Discovery, Bankroll Tracking, and Community.',
+        knowsAbout: [
+            'Texas Hold\'em',
+            'Omaha Hold\'em',
+            'Game Theory Optimal Poker Strategy',
+            'Independent Chip Model (ICM)',
+            'Poker Equity and Odds Computation',
+            'Cardroom Management Systems & Poker Tournament Clocks',
+            'Poker Dealer Toke Tracking and Casino Shift Scheduling',
+            'Form W-2G Gambling Taxes and Bankroll Accounting',
+            'Artificial Intelligence in Poker Strategy',
+            'WebRTC Real-Time Video Calling and Hand History Analysis',
+        ],
     },
 
     website: {
