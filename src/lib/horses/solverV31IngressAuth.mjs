@@ -494,3 +494,88 @@ export function v31Public215ApprovedPhysicsPreparation(payload, contract, rows) 
       template_checksum: p.template_checksum};
   } catch { return null; }
 }
+
+
+// Post-capture derived audits use a server-selected M2 board, never caller labels.
+export function v31Public215HeldoutPhysicsPayloadIsValid(payload, contract) {
+  return exactKeys(payload, ['dataset_id','context','preparation_offset','heldout_board_offset'])
+    && payload.dataset_id === contract.dataset_id && contract.state === 'building'
+    && v31FeatureContractVersion(contract) === 'holdem-public-hist215-v1'
+    && Number.isSafeInteger(contract.declared_cells) && contract.declared_cells > 0
+    && contract.declared_cells <= 2147483647
+    && Number.isSafeInteger(payload.preparation_offset) && payload.preparation_offset >= 0
+    && !Object.is(payload.preparation_offset, -0) && payload.preparation_offset < contract.declared_cells
+    && Number.isSafeInteger(payload.heldout_board_offset) && payload.heldout_board_offset >= 0
+    && !Object.is(payload.heldout_board_offset, -0) && payload.heldout_board_offset < 8
+    && v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id);
+}
+
+function heldoutPhysicsCanonical(value, depth = 0) {
+  if (depth > 128) throw Error('public215 depth');
+  if (value === null || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'string' && /^[\x20-\x7e]*$/.test(value)) return JSON.stringify(value);
+  if (typeof value === 'number' && Number.isSafeInteger(value) && !Object.is(value, -0)) return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(x => heldoutPhysicsCanonical(x, depth + 1)).join(',') + ']';
+  if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(k => heldoutPhysicsCanonical(k, depth + 1) + ':' + heldoutPhysicsCanonical(value[k], depth + 1)).join(',') + '}';
+  throw Error('public215 canonical');
+}
+const heldoutPhysicsHex = value => typeof value === 'string' && HEX_64.test(value) && value !== '0'.repeat(64);
+const heldoutPhysicsHash = value => createHash('sha256').update(heldoutPhysicsCanonical(value), 'ascii').digest('hex');
+
+export function v31Public215FrozenHeldoutPreparation(payload, contract, rows) {
+  if (!v31Public215HeldoutPhysicsPayloadIsValid(payload, contract)
+      || !Array.isArray(rows) || rows.length !== 1) return null;
+  try {
+    const p = rows[0], freeze = payload.context, receipt = freeze.public_model_build_receipt;
+    const same = (a, b) => heldoutPhysicsCanonical(a) === heldoutPhysicsCanonical(b);
+    if (!p || p.dataset_id !== contract.dataset_id || p.status !== 'frozen'
+        || p.policy_representation !== 'public_hist215_v1' || !heldoutPhysicsHex(p.cell_key_checksum)
+        || !same(p.context, freeze.context) || !same(p.public_template.context, p.context)
+        || p.model_checksum !== freeze.model_checksum
+        || p.model_build_receipt_checksum !== freeze.model_build_receipt_checksum
+        || !same(p.public_model_build_receipt, receipt)
+        || heldoutPhysicsHash(p.public_model_build_receipt) !== p.model_build_receipt_checksum) return null;
+    for (const key of ['model_checksum','template_checksum','feature_schema_checksum','training_provenance_checksum']) {
+      if (!heldoutPhysicsHex(p[key]) || receipt[key] !== p[key]) return null;
+    }
+    const t = p.public_training_provenance;
+    if (receipt.input_bundle_checksum !== contract.input_bundle_checksum
+        || t.input_bundle_checksum !== contract.input_bundle_checksum
+        || !heldoutPhysicsHex(t.capture_receipt_checksum)
+        || heldoutPhysicsHash(p.public_template) !== p.template_checksum
+        || heldoutPhysicsHash(t) !== p.training_provenance_checksum
+        || p.public_model.template_sha256 !== p.template_checksum
+        || p.public_model.feature_schema_sha256 !== p.feature_schema_checksum
+        || p.public_model.provenance_sha256 !== p.training_provenance_checksum
+        || heldoutPhysicsHash(p.runtime_parity_protocol) !== t.runtime_parity_protocol_checksum
+        || heldoutPhysicsHash(p.encoder_descriptor) !== t.encoder_checksum) return null;
+    for (const key of ['encoder_checksum','physics_checksum','dependency_lock_checksum','producer_commit','producer_bundle_checksum']) {
+      if (receipt[key] !== t[key]) return null;
+    }
+    return {cell_key_checksum: p.cell_key_checksum, model_checksum: p.model_checksum,
+      template_checksum: p.template_checksum, model_build_receipt_checksum: p.model_build_receipt_checksum,
+      capture_receipt_checksum: t.capture_receipt_checksum};
+  } catch { return null; }
+}
+
+export function v31Public215HeldoutPhysicsReceiptIsValid(value, payload, selected) {
+  if (!exactKeys(value, ['format','dataset_id','context','cell_key_checksum','model_checksum',
+    'template_checksum','model_build_receipt_checksum','board','board_offset',
+    'selection_receipt_checksum','capture_receipt_checksum','node_checksum','artifact_checksum','audit_key'])) return false;
+  try {
+    const cards = {flop: 3, turn: 4, river: 5}[payload.context.context.street];
+    if (!selected || !cards || value.format !== 'public215_heldout_physics_v1'
+        || value.dataset_id !== payload.dataset_id
+        || heldoutPhysicsCanonical(value.context) !== heldoutPhysicsCanonical(payload.context.context)
+        || value.board_offset !== payload.heldout_board_offset || Object.is(value.board_offset, -0)
+        || typeof value.board !== 'string' || value.board.length !== cards * 2
+        || !/^(?:[2-9TJQKA][cdhs]){3,5}$/.test(value.board)
+        || new Set(value.board.match(/../g)).size !== cards) return false;
+    for (const key of ['cell_key_checksum','model_checksum','template_checksum',
+      'model_build_receipt_checksum','capture_receipt_checksum']) {
+      if (value[key] !== selected[key] || !heldoutPhysicsHex(value[key])) return false;
+    }
+    return ['selection_receipt_checksum','node_checksum','artifact_checksum','audit_key']
+      .every(key => heldoutPhysicsHex(value[key]));
+  } catch { return false; }
+}

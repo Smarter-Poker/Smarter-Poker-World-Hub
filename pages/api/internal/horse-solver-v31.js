@@ -14,6 +14,9 @@ import {
   v31Public215FreezeEnvelopeIsValid,
   v31Public215PhysicsPayloadIsValid,
   v31Public215ApprovedPhysicsPreparation,
+  v31Public215HeldoutPhysicsPayloadIsValid,
+  v31Public215FrozenHeldoutPreparation,
+  v31Public215HeldoutPhysicsReceiptIsValid,
 } from '../../../src/lib/horses/solverV31IngressAuth.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -309,6 +312,26 @@ async function dispatch(supabase, envelope) {
       context: payload.context.context, cell_key_checksum: selected.cell_key_checksum,
       model_checksum: selected.model_checksum, template_checksum: selected.template_checksum,
       board: payload.physics_board, audit_key: auditKey};
+  }
+  if (operation === 'freeze_model' && Object.prototype.hasOwnProperty.call(payload, 'heldout_board_offset')) {
+    if (!v31Public215HeldoutPhysicsPayloadIsValid(payload, contract)) {
+      throw new GatewayError('Heldout physics payload is invalid', 409);
+    }
+    const rows = await rpc(supabase, 'fn_gto_v31_model_preparations', {
+      p_dataset_id: contract.dataset_id, p_offset: payload.preparation_offset, p_limit: 1,
+    });
+    const selected = v31Public215FrozenHeldoutPreparation(payload, contract, rows);
+    if (!selected) throw new GatewayError('Frozen heldout physics binding is invalid', 409);
+    const receipt = await rpc(supabase, 'fn_gto_v31_prepare_heldout_public_physics', {
+      p_dataset_id: contract.dataset_id, p_cell_key_checksum: selected.cell_key_checksum,
+      p_model_checksum: selected.model_checksum,
+      p_model_build_receipt_checksum: selected.model_build_receipt_checksum,
+      p_board_offset: payload.heldout_board_offset,
+    }, LONG_DB_TIMEOUT_MS);
+    if (!v31Public215HeldoutPhysicsReceiptIsValid(receipt, payload, selected)) {
+      throw new GatewayError('Heldout physics audit receipt is invalid', 503);
+    }
+    return receipt;
   }
   if (operation === 'prepare_model' || operation === 'freeze_model') {
     if (!exactKeys(payload,['dataset_id','context']) || payload.dataset_id!==contract.dataset_id
