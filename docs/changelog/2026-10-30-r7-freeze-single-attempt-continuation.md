@@ -28,3 +28,16 @@ SQL timeouts, lock guards, numerical checks or certification thresholds.
 calls, wrong snapshots/index pins, and immediate stop on ambiguous transport.
 This source change does not itself freeze data, open the seed, certify, promote
 or load Horses. Protected checks and the explicit live operation remain separate.
+
+
+The required TypeScript job separately encountered a demonstrated cache-provider
+quota failure: npm cache restoration stalled after reporting “Egress is over the
+account limit,” exhausting the existing ten-minute job deadline before compilation.
+Node 20 and registry setup now remain mandatory without an embedded cache restore.
+The same npm cache key is restored explicitly as an optional step; both it and the
+existing node_modules cache have two-minute step bounds and the documented
+one-minute segment-download bound. A cache failure falls through to the existing
+install condition and compiler. The job deadline, registry authentication,
+compiler command and advisory behavior are unchanged. The existing CHECK 8 V31
+wrapper protects these admission and fallback contracts. No retry of the unchanged
+failed job, cache quota override or provider replacement is introduced.

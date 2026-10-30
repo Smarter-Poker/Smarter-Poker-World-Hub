@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import yaml from 'js-yaml';
 
 const ROOT = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, ROOT), 'utf8');
@@ -111,4 +112,53 @@ test('every maintained full-build caller supplies the same pinned scalar-test ru
   assert.match(source,/V31_NUMERIC_PYTHON=.*v31-public215-contracts\/bin\/python/);
   assert.ok(source.indexOf('Install locked V31 test numerical dependencies')<source.indexOf('run: npm run build -- --webpack'));
  }
+});
+
+
+test('required TypeScript setup keeps cache failures outside dependency and compiler admission', () => {
+  const job = yaml.load(read('.github/workflows/build-safety-gate.yml')).jobs['type-check'];
+  assert.equal(job['timeout-minutes'], 10);
+  assert.equal(job.if, "github.event_name == 'pull_request'");
+  const steps = job.steps;
+  const node = steps.find(step => step.name === 'Setup Node.js');
+  assert.equal(node.uses, 'actions/setup-node@v4');
+  assert.equal(node.with['node-version'], '20.x');
+  assert.equal(node.with.cache, undefined);
+  assert.equal(node.with['registry-url'], 'https://npm.pkg.github.com');
+  assert.equal(node.with.scope, '@smarter-poker');
+  assert.equal(node.with['always-auth'], true);
+  assert.equal(node['continue-on-error'], undefined, 'Node setup must fail closed');
+  assert.equal(node.if, undefined);
+
+  const location = steps.find(step => step.id === 'npm-cache-location');
+  assert.match(location.run, /npm config get cache/);
+  assert.match(location.run, /node -p 'process.arch'/);
+  const npmCache = steps.find(step => step.name === 'Restore optional npm cache');
+  const modules = steps.find(step => step.id === 'nm-cache');
+  for (const step of [npmCache, modules]) {
+    assert.equal(step['timeout-minutes'], 2);
+    assert.equal(step['continue-on-error'], true);
+    assert.equal(step.env.SEGMENT_DOWNLOAD_TIMEOUT_MINS, 1);
+  }
+  assert.equal(npmCache.uses, 'actions/cache/restore@v4');
+  assert.equal(npmCache.with.path, '${{ steps.npm-cache-location.outputs.path }}');
+  assert.equal(npmCache.with.key, "node-cache-${{ runner.os }}-${{ steps.npm-cache-location.outputs.arch }}-npm-${{ hashFiles('package-lock.json') }}");
+  assert.equal(modules.with.key, "nm-wh-typecheck-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}");
+  const install = steps.find(step => step.name === 'Install dependencies');
+  assert.equal(install.if, "steps.nm-cache.outputs.cache-hit != 'true'");
+  assert.match(install.run, /npm ci --ignore-scripts/);
+  assert.ok(install.env.NODE_AUTH_TOKEN && install.env.NPM_TOKEN);
+  assert.equal(install['continue-on-error'], undefined);
+  const compiler = steps.find(step => step.name === 'CHECK: TypeScript compilation (advisory)');
+  assert.equal(compiler.if, undefined, 'compiler cannot depend on cache success');
+  assert.match(compiler.run, /npx tsc --noEmit/);
+  assert.ok(steps.indexOf(node) < steps.indexOf(npmCache));
+  assert.ok(steps.indexOf(npmCache) < steps.indexOf(modules));
+  assert.ok(steps.indexOf(modules) < steps.indexOf(install));
+  assert.ok(steps.indexOf(install) < steps.indexOf(compiler));
+  // Missing outputs after a failed/timed-out restore select installation;
+  // neither the install nor compiler may require a successful cache outcome.
+  assert.equal(npmCache.if, undefined);
+  assert.equal(modules.if, undefined);
+  assert.doesNotMatch(install.if, /outcome|conclusion|npm-cache-location/);
 });
