@@ -2069,5 +2069,96 @@ class R7FreezeContinuationTests(unittest.TestCase):
         self.assertNotIn('scripts/horse-solver-v31/continue_r7_freeze_once.py', REQUIRED_PIPELINE_FILES)
 
 
+class R7QualifyOnceTests(unittest.TestCase):
+    def fixture(self):
+        import qualify_r7_once as q
+        import compactor
+        entries=[]
+        for i in range(107):
+            e={'context':{'street':'flop','fixture':f'{i:03d}'},'public_model_build_receipt':{}}
+            e.update({k:hashlib.sha256((k+str(i)).encode()).hexdigest() for k in q.FIELDS})
+            entries.append({'entry':e,'cell_key_checksum':hashlib.sha256(('cell'+str(i)).encode()).hexdigest()})
+        snapshot={'observed_at':q.datetime.now(q.timezone.utc).isoformat(),'selection_receipt_checksum':'a'*64}
+        boards=['AcKd2h','AcKd3h','AcKd4h','AcKd5h','AcKd6h','AcKd7h','AcKd8h','AcKd9h']
+        class Client:
+            attempts=1
+            def __init__(self):self.calls=[];self.fail=None;self.bad=False
+            def call(self,op,payload,**kw):
+                self.calls.append((op,payload))
+                if self.fail==len(self.calls):raise GatewayError('SECRET https://secret.invalid',status=504)
+                if op=='build_cell':return {'cell_key_checksum':entries[len(self.calls)-1]['cell_key_checksum']}
+                if op=='freeze_model':
+                    item=entries[payload['preparation_offset']];e=item['entry'];offset=payload['heldout_board_offset']
+                    r={'format':'public215_heldout_physics_v1','dataset_id':q.DATASET,'context':e['context'],'cell_key_checksum':item['cell_key_checksum'],**{k:e[k] for k in ('model_checksum','template_checksum','model_build_receipt_checksum')},'board':boards[offset],'board_offset':offset,'selection_receipt_checksum':'a'*64,'capture_receipt_checksum':q.CAPTURE,'node_checksum':'b'*64,'artifact_checksum':'c'*64,'audit_key':'d'*64}
+                    if self.bad:r['extra']='rejected'
+                    return r
+                if op=='seal_dataset':return {'dataset_checksum':'e'*64,'idempotent':False}
+                return {'datasets':[{'dataset_id':q.DATASET,'state':'evaluating','dataset_checksum':'e'*64,'ingested_source_artifacts':6955,'source_receipt_rows':6955,'runtime_cells':107}]}
+        return q,compactor,entries,snapshot,Client()
+
+    def test_exact_order_and_finite_phase_counts(self):
+        q,c,plan,snapshot,client=self.fixture()
+        with tempfile.TemporaryDirectory() as tmp:
+            result=q.run_once(client,c,plan,snapshot,Path(tmp)/'once','f'*64)
+            self.assertFalse(result['certified'])
+        self.assertEqual([op for op,_ in client.calls[:107]],['build_cell']*107)
+        self.assertEqual([op for op,_ in client.calls[107:-2]],['freeze_model']*856)
+        self.assertEqual([op for op,_ in client.calls[-2:]],['seal_dataset','certification_status'])
+        self.assertEqual([(p['preparation_offset'],p['heldout_board_offset']) for _,p in client.calls[107:-2]],[(i,j) for i in range(107) for j in range(8)])
+        self.assertTrue(all(set(p)=={'dataset_id','context','preparation_offset','heldout_board_offset'} for _,p in client.calls[107:-2]))
+
+    def test_unknown_physics_stops_and_retains_only_safe_facts(self):
+        q,c,plan,snapshot,client=self.fixture();client.fail=108
+        with tempfile.TemporaryDirectory() as tmp:
+            out=Path(tmp)/'once'
+            with self.assertRaises(q.Refusal):q.run_once(client,c,plan,snapshot,out,'f'*64)
+            text=(out/'terminal.json').read_text();terminal=json.loads(text)
+            self.assertEqual(terminal['http_status'],504);self.assertNotIn('SECRET',text)
+            self.assertEqual(len(client.calls),108);self.assertEqual(terminal['completed_physics'],0)
+            with self.assertRaises(q.Refusal):q.run_once(client,c,plan,snapshot,out,'f'*64)
+            self.assertEqual(len(client.calls),108)
+
+    def test_extra_receipt_refused_before_next_phase(self):
+        q,c,plan,snapshot,client=self.fixture();client.bad=True
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(q.Refusal):q.run_once(client,c,plan,snapshot,Path(tmp)/'once','f'*64)
+        self.assertEqual(len(client.calls),108)
+
+    def test_wrong_board_model_and_duplicate_board_refused(self):
+        q,c,plan,snapshot,client=self.fixture();item=plan[0]
+        payload={'dataset_id':q.DATASET,'preparation_offset':0,'heldout_board_offset':0}
+        for key,value in [('model_checksum','f'*64),('board','AcAc2h'),('board_offset',True),('selection_receipt_checksum','f'*64)]:
+            receipt=client.call('freeze_model',payload);receipt[key]=value
+            with self.assertRaises(q.Refusal):q.heldout_receipt(receipt,item,0,'a'*64,set())
+        receipt=client.call('freeze_model',payload)
+        with self.assertRaises(q.Refusal):q.heldout_receipt(receipt,item,0,'a'*64,{receipt['board']})
+
+    def test_authority_refusal_is_one_read_and_precedes_claim(self):
+        q,c,plan,snapshot,client=self.fixture();models={q.canonical(x['entry']['context']):x['entry'] for x in plan}
+        class Reader:
+            attempts=1
+            def __init__(self):self.calls=[]
+            def call(self,op,payload,**kw):self.calls.append(op);return {'wrong':'authority'}
+        reader=Reader();codec=types.SimpleNamespace(verify_model_freeze_authority=mock.Mock(side_effect=ValueError('mismatch')))
+        with tempfile.TemporaryDirectory() as tmp:
+            out=Path(tmp)/'once'
+            with self.assertRaises(ValueError):q.verify_authority(reader,codec,{},models,snapshot)
+            self.assertFalse(out.exists())
+        self.assertEqual(reader.calls,['model_freeze_authority'])
+        stale={**snapshot,'observed_at':'2000-01-01T00:00:00Z'}
+        with self.assertRaises(q.Refusal):q.verify_authority(reader,codec,{},models,stale)
+        self.assertEqual(len(reader.calls),1)
+
+    def test_evidence_requires_complete_independent_exact_binding(self):
+        q,c,plan,snapshot,client=self.fixture();models={q.canonical(x['entry']['context']):x['entry'] for x in plan}
+        evidence={**snapshot,'dataset_id':q.DATASET,'state':'building','source_capture_checksum':q.CAPTURE,'m1_nodes':6099,'m2_nodes':856,'headers_valid':True,'selection_complete':True,'contexts':[{'context':x['entry']['context'],'cell_key_checksum':x['cell_key_checksum'],**{k:x['entry'][k] for k in q.FIELDS},'m1_nodes':57,'m2_nodes':8,'headers_valid':True} for x in plan]}
+        completed={'format':'public215_r7_m2_completion_readback_v1','original_terminal':{'path':'fixture','sha256':'f'*64},'completed_heartbeat':{'run_id':'11111111-1111-1111-1111-111111111111','sequence':42,'received_at':snapshot['observed_at'],'state':'completed'},'dataset_id':q.DATASET,'machine_id':'M2','native_launcher_exit_code':0,'done':856,'written':856,'planned':856,'invalid':0,'selection_receipt_checksum':'a'*64,'source_capture_checksum':q.CAPTURE}
+        self.assertEqual(len(q.validate_evidence(evidence,completed,models)),107)
+        evidence['contexts'][1]['model_checksum']='0'*64
+        with self.assertRaises(q.Refusal):q.validate_evidence(evidence,completed,models)
+        evidence['contexts'][1]['model_checksum']=plan[1]['entry']['model_checksum'];completed['native_launcher_exit_code']=False
+        with self.assertRaises(q.Refusal):q.validate_evidence(evidence,completed,models)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

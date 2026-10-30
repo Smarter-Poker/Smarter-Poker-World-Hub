@@ -362,3 +362,124 @@ test('physics phase refuses forged receipts, foreign boards and changed authorit
     assert.equal(actual.error.status,503);
   }
 });
+
+function heldoutFixture() {
+  const f = physicsFixture(), p = f.row, freeze = f.payload.context;
+  p.status = 'frozen';
+  p.public_training_provenance.capture_receipt_checksum = HEX('8');
+  p.training_provenance_checksum = physicsHash(p.public_training_provenance);
+  p.public_model.provenance_sha256 = p.training_provenance_checksum;
+  p.model_checksum = physicsHash(p.public_model);
+  freeze.model_checksum = p.model_checksum;
+  for (const key of ['model_checksum','training_provenance_checksum']) {
+    freeze.public_model_build_receipt[key] = p[key];
+  }
+  freeze.model_build_receipt_checksum = physicsHash(freeze.public_model_build_receipt);
+  p.public_model_build_receipt = structuredClone(freeze.public_model_build_receipt);
+  p.model_build_receipt_checksum = freeze.model_build_receipt_checksum;
+  delete f.payload.physics_board;
+  f.payload.heldout_board_offset = 0;
+  return f;
+}
+function heldoutReceipt(f) {
+  return {format:'public215_heldout_physics_v1', dataset_id:f.contract.dataset_id,
+    context:f.row.context, cell_key_checksum:f.row.cell_key_checksum, model_checksum:f.row.model_checksum,
+    template_checksum:f.row.template_checksum, model_build_receipt_checksum:f.row.model_build_receipt_checksum,
+    board:'AcKd2h', board_offset:f.payload.heldout_board_offset, selection_receipt_checksum:HEX('9'),
+    capture_receipt_checksum:f.row.public_training_provenance.capture_receipt_checksum,
+    node_checksum:HEX('a'), artifact_checksum:HEX('b'), audit_key:HEX('c')};
+}
+async function callHeldoutFixture(f, {principal='COMPACTOR', receipt=heldoutReceipt(f), rpcError=null} = {}) {
+  const calls = [];
+  const supabase = {rpc(name,args) {
+    calls.push({name,args});
+    const data = name === 'fn_gto_v31_worker_contract' ? f.contract
+      : name === 'fn_gto_v31_model_preparations' ? f.rows || [f.row]
+      : name === 'fn_gto_v31_prepare_heldout_public_physics' ? receipt : null;
+    return {abortSignal:async () => ({data, error:name === 'fn_gto_v31_prepare_heldout_public_physics' ? rpcError : null,
+      status:rpcError ? 500 : 200})};
+  }};
+  const signedProvenance = Object.fromEntries([...Object.keys(provenance()),'feature_contract_version','policy_export_schema'].map(k => [k,f.contract[k]]));
+  try {
+    const result = await physicsDispatch()(supabase, {principal,operation:'freeze_model',payload:f.payload,provenance:signedProvenance});
+    return {result,calls};
+  } catch (error) {return {error,calls};}
+}
+
+test('heldout physics uses a frozen authoritative receipt and only a server-selected M2 board offset', async () => {
+  for (const offset of [0,7]) {
+    const f=heldoutFixture();f.payload.heldout_board_offset=offset;
+    const expected=heldoutReceipt(f), actual=await callHeldoutFixture(f);
+    assert.equal(actual.error,undefined);
+    assert.deepEqual(actual.calls.map(c => c.name),['fn_gto_v31_worker_contract','fn_gto_v31_model_preparations','fn_gto_v31_prepare_heldout_public_physics']);
+    assert.deepEqual(actual.calls[1].args,{p_dataset_id:f.contract.dataset_id,p_offset:0,p_limit:1});
+    assert.deepEqual(actual.calls[2].args,{p_dataset_id:f.contract.dataset_id,p_cell_key_checksum:f.row.cell_key_checksum,
+      p_model_checksum:f.row.model_checksum,p_model_build_receipt_checksum:f.row.model_build_receipt_checksum,p_board_offset:offset});
+    assert.deepEqual(actual.result,expected);
+    assert.ok(!Object.hasOwn(actual.calls[2].args,'p_board'));
+    assert.ok(!f.row.runtime_parity_protocol.contexts[0].cases.some(c => c.board===expected.board));
+  }
+});
+
+test('heldout physics refuses principal, payload and offset faults before the audit RPC', async () => {
+  for (const principal of ['M1','M2']) {
+    const actual=await callHeldoutFixture(heldoutFixture(),{principal});
+    assert.equal(actual.error.status,403);
+    assert.ok(!actual.calls.some(c => c.name==='fn_gto_v31_prepare_heldout_public_physics'));
+  }
+  for (const mutate of [
+    f => f.payload.heldout_board_offset=-1, f => f.payload.heldout_board_offset=-0,
+    f => f.payload.heldout_board_offset=8, f => f.payload.heldout_board_offset=0.5,
+    f => f.payload.heldout_board_offset='0', f => f.payload.heldout_board_offset=true,
+    f => delete f.payload.heldout_board_offset, f => delete f.payload.preparation_offset,
+    f => f.payload.preparation_offset=-1, f => f.payload.preparation_offset=-0,
+    f => f.payload.preparation_offset=107, f => f.payload.preparation_offset='0',
+    f => f.payload.preparation_offset=Number.MAX_SAFE_INTEGER+1,
+    f => f.payload.physics_board='AcKd2h', f => f.payload.selection_seed='f'.repeat(64),
+    f => f.payload.extra=true, f => f.payload.dataset_id='foreign',
+    f => f.contract.state='evaluating', f => f.contract.feature_contract_version='holdem-board-relative-v2',
+  ]) {
+    const f=heldoutFixture();mutate(f);const actual=await callHeldoutFixture(f);
+    assert.ok(actual.error);
+    assert.ok(!actual.calls.some(c => c.name==='fn_gto_v31_prepare_heldout_public_physics'));
+  }
+});
+
+test('heldout physics rejects changed frozen model, provenance or original Linux receipt bindings', async () => {
+  for (const mutate of [
+    f => f.rows=[], f => f.rows=[f.row,f.row], f => f.row.status='prepared',
+    f => f.row.dataset_id='foreign', f => f.row.context={...f.row.context,street:'turn'},
+    f => f.row.cell_key_checksum='0'.repeat(64), f => f.row.model_checksum=HEX('f'),
+    f => f.row.template_checksum=HEX('f'), f => f.row.training_provenance_checksum=HEX('f'),
+    f => f.row.public_model.provenance_sha256=HEX('f'), f => f.row.public_template.extra='changed',
+    f => f.row.encoder_descriptor.extra='changed', f => f.row.runtime_parity_protocol.extra='changed',
+    f => f.row.public_training_provenance.capture_receipt_checksum='0'.repeat(64),
+    f => f.row.model_build_receipt_checksum=HEX('f'), f => f.row.public_model_build_receipt.cases[0].board='AcKd2h',
+    f => {f.payload.context.public_model_build_receipt.cases[0].board='AcKd2h';
+      f.payload.context.model_build_receipt_checksum=physicsHash(f.payload.context.public_model_build_receipt);},
+  ]) {
+    const f=heldoutFixture();mutate(f);const actual=await callHeldoutFixture(f);
+    assert.ok(actual.error);
+    assert.ok(!actual.calls.some(c => c.name==='fn_gto_v31_prepare_heldout_public_physics'));
+  }
+});
+
+test('heldout physics rejects malformed or mismatched SQL receipts and propagates SQL refusal', async () => {
+  const changes=[{format:'other'},{dataset_id:'foreign'},{context:{foreign:true}},
+    {cell_key_checksum:HEX('f')},{model_checksum:HEX('f')},{template_checksum:HEX('f')},
+    {model_build_receipt_checksum:HEX('f')},{capture_receipt_checksum:HEX('f')},
+    {board:'AcAc2h'},{board:'AcKd2h3s'},{board:'acKd2h'},{board:['Ac','Kd','2h']},
+    {board_offset:1},{board_offset:-0},{board_offset:'0'},{extra:true},
+    ...['selection_receipt_checksum','node_checksum','artifact_checksum','audit_key'].flatMap(key =>
+      [{[key]:'0'.repeat(64)},{[key]:'not-a-checksum'}])];
+  for (const change of changes) {
+    const f=heldoutFixture();const actual=await callHeldoutFixture(f,{receipt:{...heldoutReceipt(f),...change}});
+    assert.equal(actual.error.status,503);
+  }
+  for (const receipt of [null,[],{}]) {
+    assert.equal((await callHeldoutFixture(heldoutFixture(),{receipt})).error.status,503);
+  }
+  const refused=await callHeldoutFixture(heldoutFixture(),{rpcError:{message:'complete admitted selection required',code:'P0001'}});
+  assert.ok(refused.error);
+  assert.equal(refused.calls.filter(c => c.name==='fn_gto_v31_prepare_heldout_public_physics').length,1);
+});
