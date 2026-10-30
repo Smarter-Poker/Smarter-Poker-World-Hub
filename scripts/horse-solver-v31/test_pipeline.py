@@ -1860,5 +1860,128 @@ class ManifestAndGatewayTests(unittest.TestCase):
         )
 
 
+class R7FreezeContinuationTests(unittest.TestCase):
+    @staticmethod
+    def fixture():
+        import continue_r7_freeze_once as recovery
+        coverage = [{'order': i} for i in range(107)]
+        models = {}
+        for context in coverage:
+            checksum = digest(recovery.canonical(context))
+            models[recovery.canonical(context)] = {
+                'context': context, **{f: checksum for f in recovery.FIELDS},
+                'public_model_build_receipt': {'format': 'fixture-only'},
+            }
+        expected = {'dataset_id': recovery.DATASET, 'index_sha256': recovery.INDEX,
+                    'contexts': [{'context': e['context'], 'context_id': digest(k),
+                                  **{f: e[f] for f in recovery.FIELDS}}
+                                 for k, e in models.items()]}
+        first = next(iter(models.values()))
+        snapshot = [{'context': first['context'], **{f: first[f] for f in recovery.FIELDS},
+                     'frozen_at': '2026-10-30T13:47:34.701753Z'}]
+        return recovery, coverage, models, expected, snapshot
+
+    def test_exact_first_receipt_skips_only_one_and_calls106_once(self):
+        recovery, coverage, models, expected, snapshot = self.fixture()
+        remaining = recovery.bindings(coverage, models, expected, snapshot)
+        self.assertEqual([e['context'] for e in remaining], coverage[1:])
+        client = mock.Mock(attempts=1)
+        client.call.side_effect = lambda operation, payload, **kwargs: payload['context']['model_build_receipt_checksum']
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'new-operation'
+            terminal = recovery.run_remaining(client, remaining, output, 'a' * 64)
+            self.assertEqual(terminal['completed_new'], 106)
+            self.assertFalse(terminal['certified'])
+            self.assertEqual(client.call.call_count, 106)
+            for call, entry in zip(client.call.call_args_list, remaining):
+                self.assertEqual(call.args[0], 'freeze_model')
+                self.assertEqual(call.args[1]['context']['context'], entry['context'])
+                self.assertEqual(call.kwargs, {'timeout_seconds': 280})
+            self.assertEqual(len(list(output.glob('*.started.json'))), 106)
+            self.assertEqual(len(list(output.glob('*.terminal.json'))), 106)
+            with self.assertRaises(recovery.Refusal):
+                recovery.run_remaining(client, remaining, output, 'a' * 64)
+            self.assertEqual(client.call.call_count, 106)
+
+    def test_transport_unknown_stops_actual_gateway_after_one_attempt(self):
+        from dataclasses import replace
+        from gateway import GatewayClient
+        recovery, coverage, models, expected, snapshot = self.fixture()
+        remaining = recovery.bindings(coverage, models, expected, snapshot)
+        client = replace(GatewayClient('https://example.invalid', 'COMPACTOR',
+                                      b'hermetic-test-only', {}), attempts=1)
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'new-operation'
+            with mock.patch('gateway.urlopen', side_effect=TimeoutError('secret URL body')) as request, \
+                 mock.patch('gateway.time.sleep') as sleep:
+                with self.assertRaisesRegex(recovery.Refusal, 'FREEZE_OUTCOME_UNKNOWN_NO_RETRY'):
+                    recovery.run_remaining(client, remaining, output, 'a' * 64)
+            self.assertEqual(request.call_count, 1)
+            sleep.assert_not_called()
+            self.assertEqual(len(list(output.glob('*.started.json'))), 1)
+            terminal = json.loads((output / 'terminal.json').read_text())
+            self.assertEqual(terminal['status'], 'incomplete_unknown_stop')
+            self.assertEqual(terminal['completed_new'], 0)
+            self.assertNotIn('secret URL', ''.join(p.read_text() for p in output.iterdir()))
+
+    def test_wrong_snapshot_and_independent107_map_are_refused(self):
+        import copy
+        recovery, coverage, models, expected, snapshot = self.fixture()
+        for wrong in [[], snapshot * 2, [{**snapshot[0], 'model_checksum': 'f' * 64}],
+                      [{**snapshot[0], 'context': coverage[1]}]]:
+            with self.assertRaises(recovery.Refusal):
+                recovery.bindings(coverage, models, expected, wrong)
+        for field in ['model_checksum', 'model_build_receipt_checksum', 'context_id']:
+            wrong = copy.deepcopy(expected)
+            wrong['contexts'][5][field] = 'f' * 64
+            with self.assertRaises(recovery.Refusal):
+                recovery.bindings(coverage, models, wrong, snapshot)
+        wrong = {**expected, 'index_sha256': 'f' * 64}
+        with self.assertRaises(recovery.Refusal):
+            recovery.bindings(coverage, models, wrong, snapshot)
+
+    def test_http504_and_wrong_receipt_keep_safe_facts_and_stop(self):
+        recovery, coverage, models, expected, snapshot = self.fixture()
+        remaining = recovery.bindings(coverage, models, expected, snapshot)
+        for outcome, classification, http_status in [
+            (GatewayError('secret URL body', 504), 'gateway_http', 504),
+            ('f' * 64, 'receipt_mismatch', None),
+        ]:
+            client = mock.Mock(attempts=1)
+            if isinstance(outcome, Exception):
+                client.call.side_effect = outcome
+            else:
+                client.call.return_value = outcome
+            with tempfile.TemporaryDirectory() as folder:
+                output = Path(folder) / 'new-operation'
+                with self.assertRaises(recovery.Refusal):
+                    recovery.run_remaining(client, remaining, output, 'a' * 64)
+                self.assertEqual(client.call.call_count, 1)
+                evidence = json.loads((output / '001.terminal.json').read_text())
+                self.assertEqual(evidence['failure_classification'], classification)
+                self.assertEqual(evidence['http_status'], http_status)
+                self.assertNotIn('secret URL', ''.join(p.read_text() for p in output.iterdir()))
+
+    def test_index_bytes_snapshot_freshness_and_multiattempt_client_fail_closed(self):
+        from datetime import datetime, timezone
+        recovery, coverage, models, expected, snapshot = self.fixture()
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'index.json'
+            path.write_bytes(b'changed-index')
+            with self.assertRaises(recovery.Refusal):
+                recovery.pinned({'path': str(path), 'sha256': recovery.INDEX}, recovery.INDEX)
+            with self.assertRaises(recovery.Refusal):
+                recovery.run_remaining(mock.Mock(attempts=3),
+                    recovery.bindings(coverage, models, expected, snapshot),
+                    Path(folder) / 'refused-operation', 'a' * 64)
+            self.assertFalse((Path(folder) / 'refused-operation').exists())
+        now = datetime(2026, 10, 30, 14, 0, tzinfo=timezone.utc)
+        recovery.fresh_snapshot('2026-10-30T13:59:59Z', now)
+        for stamp in ['2026-10-30T13:54:59Z', '2026-10-30T14:00:01Z', '2026-10-30T14:00:00']:
+            with self.assertRaises(recovery.Refusal):
+                recovery.fresh_snapshot(stamp, now)
+        self.assertNotIn('scripts/horse-solver-v31/continue_r7_freeze_once.py', REQUIRED_PIPELINE_FILES)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
