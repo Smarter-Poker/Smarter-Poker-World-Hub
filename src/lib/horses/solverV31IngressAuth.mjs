@@ -424,3 +424,73 @@ export function v31Public215FreezeEnvelopeIsValid(value,datasetId) {
   const canonical=v=>{if(v===null||typeof v==='boolean')return JSON.stringify(v);if(typeof v==='string'&&/^[\x20-\x7e]*$/.test(v))return JSON.stringify(v);if(typeof v==='number'&&Number.isSafeInteger(v)&&!Object.is(v,-0))return JSON.stringify(v);if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>canonical(k)+':'+canonical(v[k])).join(',')+'}';throw Error('public215 canonical');};
   try {return typeof value.model_checksum==='string' && HEX_64.test(value.model_checksum) && value.model_checksum!=='0'.repeat(64) && typeof value.model_build_receipt_checksum==='string' && HEX_64.test(value.model_build_receipt_checksum) && createHash('sha256').update(canonical(receipt),'ascii').digest('hex')===value.model_build_receipt_checksum && exactKeys(value.context,['street','game_family','objective','utility_context','table_size','pot_type','hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket']);}catch{return false;}
 }
+
+
+// Admission for a private derived audit, never a model-freeze acknowledgement.
+export function v31Public215PhysicsPayloadIsValid(payload, contract) {
+  return exactKeys(payload, ['dataset_id','context','physics_board','preparation_offset'])
+    && payload.dataset_id === contract.dataset_id
+    && contract.state === 'building'
+    && v31FeatureContractVersion(contract) === 'holdem-public-hist215-v1'
+    && Number.isSafeInteger(contract.declared_cells) && contract.declared_cells > 0
+    && contract.declared_cells <= 2147483647
+    && Number.isSafeInteger(payload.preparation_offset) && payload.preparation_offset >= 0
+    && payload.preparation_offset < contract.declared_cells
+    && !Object.is(payload.preparation_offset, -0)
+    && typeof payload.physics_board === 'string' && /^(?:[2-9TJQKA][cdhs]){3,5}$/.test(payload.physics_board)
+    && new Set(payload.physics_board.match(/../g)).size === payload.physics_board.length / 2
+    && v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id);
+}
+
+export function v31Public215ApprovedPhysicsPreparation(payload, contract, rows) {
+  if (!v31Public215PhysicsPayloadIsValid(payload, contract)
+      || !Array.isArray(rows) || rows.length !== 1) return null;
+  const canonical = (value, depth = 0) => {
+    if (depth > 128) throw Error('public215 depth');
+    if (value === null || typeof value === 'boolean') return JSON.stringify(value);
+    if (typeof value === 'string' && /^[\x20-\x7e]*$/.test(value)) return JSON.stringify(value);
+    if (typeof value === 'number' && Number.isSafeInteger(value) && !Object.is(value, -0)) return JSON.stringify(value);
+    if (Array.isArray(value)) return '[' + value.map(x => canonical(x, depth + 1)).join(',') + ']';
+    if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(k => canonical(k, depth + 1) + ':' + canonical(value[k], depth + 1)).join(',') + '}';
+    throw Error('public215 canonical');
+  };
+  const same = (a, b) => canonical(a) === canonical(b);
+  const hash = value => createHash('sha256').update(canonical(value), 'ascii').digest('hex');
+  const hex = value => typeof value === 'string' && HEX_64.test(value) && value !== '0'.repeat(64);
+  try {
+    const p = rows[0], freeze = payload.context, receipt = freeze.public_model_build_receipt;
+    if (!p || p.dataset_id !== contract.dataset_id || p.status !== 'prepared'
+        || p.policy_representation !== 'public_hist215_v1' || !hex(p.cell_key_checksum)
+        || !same(p.context, freeze.context) || !same(p.public_template.context, p.context)
+        || p.model_checksum !== freeze.model_checksum) return null;
+    for (const key of ['model_checksum','template_checksum','feature_schema_checksum','training_provenance_checksum']) {
+      if (!hex(p[key]) || receipt[key] !== p[key]) return null;
+    }
+    const t = p.public_training_provenance;
+    if (receipt.input_bundle_checksum !== contract.input_bundle_checksum
+        || t.input_bundle_checksum !== contract.input_bundle_checksum
+        || hash(p.public_template) !== p.template_checksum
+        || hash(t) !== p.training_provenance_checksum
+        || p.public_model.template_sha256 !== p.template_checksum
+        || p.public_model.feature_schema_sha256 !== p.feature_schema_checksum
+        || p.public_model.provenance_sha256 !== p.training_provenance_checksum
+        || hash(p.runtime_parity_protocol) !== t.runtime_parity_protocol_checksum
+        || hash(p.encoder_descriptor) !== t.encoder_checksum) return null;
+    for (const key of ['encoder_checksum','physics_checksum','dependency_lock_checksum','producer_commit','producer_bundle_checksum']) {
+      if (receipt[key] !== t[key]) return null;
+    }
+    const protocol = p.runtime_parity_protocol;
+    if (protocol.format !== 'public_hist215_runtime_parity_protocol_v1'
+        || !Array.isArray(protocol.contexts)) return null;
+    const groups = protocol.contexts.filter(group => same(group.context, p.context));
+    if (groups.length !== 1 || !Array.isArray(groups[0].cases)
+        || groups[0].cases.length < 2 || groups[0].cases.length > 32
+        || !Array.isArray(receipt.cases) || receipt.cases.length !== groups[0].cases.length) return null;
+    const allowed = groups[0].cases;
+    if (!allowed.every((item, i) => exactKeys(item, ['board','own'])
+        && same({board: receipt.cases[i].board, own: receipt.cases[i].own}, item))) return null;
+    if (!allowed.some(item => item.board === payload.physics_board)) return null;
+    return {cell_key_checksum: p.cell_key_checksum, model_checksum: p.model_checksum,
+      template_checksum: p.template_checksum};
+  } catch { return null; }
+}

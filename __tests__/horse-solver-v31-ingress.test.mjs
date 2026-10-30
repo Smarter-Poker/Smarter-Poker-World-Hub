@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import * as ingressAuth from '../src/lib/horses/solverV31IngressAuth.mjs';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -232,4 +233,132 @@ test('public215 model build transport hashes every separate payload and preserve
   for(const operation of ['prepare_model','freeze_model']){assert.equal(v31IngressEnvelopeIsValid({...signed,operation},'COMPACTOR'),true);assert.equal(v31IngressEnvelopeIsValid({...signed,operation,principal:'M2'},'M2'),false);}
   assert.equal(v31IngressEnvelopeIsValid({...signed,operation:'model_freeze_authority',principal:'M2'},'M2'),true);assert.equal(v31IngressEnvelopeIsValid({...signed,operation:'model_freeze_authority',principal:'M1'},'M1'),false);
   const missingV4=structuredClone(signed);delete missingV4.provenance.policy_export_schema;assert.equal(v31IngressEnvelopeIsValid(missingV4,'COMPACTOR'),false);
+});
+
+
+const physicsCanonical = value => Array.isArray(value)
+  ? '[' + value.map(physicsCanonical).join(',') + ']'
+  : value && typeof value === 'object'
+    ? '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + physicsCanonical(value[k])).join(',') + '}'
+    : JSON.stringify(value);
+const physicsHash = value => createHash('sha256').update(physicsCanonical(value), 'ascii').digest('hex');
+function physicsFixture() {
+  const id = '11111111-1111-4111-8111-111111111111';
+  const context = Object.fromEntries(['street','game_family','objective','utility_context','table_size','pot_type','hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket'].map(k => [k, k === 'table_size' ? 2 : k === 'depth_bucket' ? 10 : k === 'street' ? 'flop' : 'synthetic']));
+  const protocol = {format:'public_hist215_runtime_parity_protocol_v1', contexts:[{context, cases:[
+    {board:'KsQd7c', own:['2c','2d']}, {board:'Ks9d5c', own:['2c','2d']},
+  ]}]};
+  const descriptor = {format:'fixture-encoder'};
+  const t = {input_bundle_checksum:HEX('2'), runtime_parity_protocol_checksum:physicsHash(protocol),
+    encoder_checksum:physicsHash(descriptor), physics_checksum:HEX('3'), dependency_lock_checksum:HEX('4'),
+    producer_commit:'b'.repeat(40), producer_bundle_checksum:HEX('c')};
+  const template = {format:'public_hist215_template_v1', context};
+  const row = {dataset_id:id, cell_key_checksum:HEX('5'), context, policy_representation:'public_hist215_v1',
+    status:'prepared', public_template:template, template_checksum:physicsHash(template),
+    feature_schema_checksum:'0ca054f9bb0463bf6a298a80a29cb4b6d9e6bffcc193e4af9d497e2936ec849f',
+    public_training_provenance:t, training_provenance_checksum:physicsHash(t),
+    runtime_parity_protocol:protocol, encoder_descriptor:descriptor};
+  row.public_model = {template_sha256:row.template_checksum, feature_schema_sha256:row.feature_schema_checksum,
+    provenance_sha256:row.training_provenance_checksum};
+  row.model_checksum = physicsHash(row.public_model);
+  const receipt = {format:'public_hist215_build_receipt_v1', dataset_id:id, input_bundle_checksum:HEX('2'),
+    ...Object.fromEntries(['model_checksum','template_checksum','feature_schema_checksum','training_provenance_checksum'].map(k => [k,row[k]])),
+    ...Object.fromEntries(['encoder_checksum','physics_checksum','dependency_lock_checksum','producer_commit','producer_bundle_checksum'].map(k => [k,t[k]])),
+    cases:structuredClone(protocol.contexts[0].cases)};
+  const freeze = {context, model_checksum:row.model_checksum, public_model_build_receipt:receipt,
+    model_build_receipt_checksum:physicsHash(receipt)};
+  const contract = {contract:'smarter-poker.gto-v31-worker-contract.v1', ...provenance(),
+    feature_contract_version:'holdem-public-hist215-v1', policy_export_schema:'smarter-poker.pio-policy.v4',
+    dataset_id:id, state:'building', declared_cells:107, input_approval_status:'approved'};
+  const payload = {dataset_id:id, context:freeze, physics_board:'KsQd7c', preparation_offset:0};
+  return {row, contract, payload};
+}
+
+// Execute the actual route dispatch with only external module imports replaced.
+// Authentication/parser/nonce boundaries remain covered above; no live RPC exists.
+function physicsDispatch() {
+  const source = ROUTE.replace(/^import[\s\S]*?;\n/gm, '')
+    .replace('export const config', 'const config')
+    .replace('export default async function handler', 'async function handler');
+  return new Function('auth', 'const {' + Object.keys(ingressAuth).join(',') + '} = auth;\n'
+    + source + '\nreturn dispatch;')(ingressAuth);
+}
+async function callPhysicsFixture(fixture, {principal='COMPACTOR', audit=HEX('6'), normal=false} = {}) {
+  const calls = [];
+  const supabase = {rpc(name,args) {
+    calls.push({name,args});
+    const data = name === 'fn_gto_v31_worker_contract' ? fixture.contract
+      : name === 'fn_gto_v31_model_preparations' ? fixture.rows || [fixture.row]
+      : name === 'fn_gto_v31_prepare_public_physics' ? audit
+      : name === 'fn_gto_v31_freeze_model' ? fixture.payload.context.model_build_receipt_checksum
+      : null;
+    return {abortSignal:async () => ({data,error:null,status:200})};
+  }};
+  const payload = normal ? {dataset_id:fixture.payload.dataset_id, context:fixture.payload.context} : fixture.payload;
+  const signedProvenance = Object.fromEntries([...Object.keys(provenance()),'feature_contract_version','policy_export_schema'].map(k => [k,fixture.contract[k]]));
+  try {
+    const result = await physicsDispatch()(supabase, {principal,operation:'freeze_model',payload,provenance:signedProvenance});
+    return {result,calls};
+  } catch (error) {return {error,calls};}
+}
+
+test('approved physics phase uses authoritative one-row preparation and preserves the exact normal freeze', async () => {
+  const f = physicsFixture();
+  const actual = await callPhysicsFixture(f);
+  assert.equal(actual.error, undefined);
+  assert.deepEqual(actual.calls.map(c => c.name), ['fn_gto_v31_worker_contract','fn_gto_v31_model_preparations','fn_gto_v31_prepare_public_physics']);
+  assert.deepEqual(actual.calls[1].args, {p_dataset_id:f.contract.dataset_id,p_offset:0,p_limit:1});
+  assert.deepEqual(actual.calls[2].args, {p_dataset_id:f.contract.dataset_id,p_cell_key_checksum:f.row.cell_key_checksum,p_board:['Ks','Qd','7c']});
+  assert.deepEqual(actual.result, {format:'public215_prepared_physics_v1',dataset_id:f.contract.dataset_id,
+    context:f.row.context,cell_key_checksum:f.row.cell_key_checksum,model_checksum:f.row.model_checksum,
+    template_checksum:f.row.template_checksum,board:'KsQd7c',audit_key:HEX('6')});
+  const normal = await callPhysicsFixture(f,{normal:true});
+  assert.equal(normal.result,f.payload.context.model_build_receipt_checksum);
+  assert.deepEqual(normal.calls.map(c => c.name),['fn_gto_v31_worker_contract','fn_gto_v31_freeze_model']);
+  assert.deepEqual(normal.calls[1].args,{p_dataset_id:f.contract.dataset_id,p_freeze:f.payload.context});
+});
+
+test('physics phase refuses authorization, payload and offset faults before physics RPC', async () => {
+  for (const principal of ['M1','M2']) {
+    const actual = await callPhysicsFixture(physicsFixture(),{principal});
+    assert.equal(actual.error.status,403);
+    assert.ok(!actual.calls.some(c => c.name === 'fn_gto_v31_prepare_public_physics'));
+  }
+  for (const mutate of [
+    f => f.payload.extra=true, f => delete f.payload.preparation_offset,
+    f => f.payload.preparation_offset=-1, f => f.payload.preparation_offset=-0,
+    f => f.payload.preparation_offset=0.5, f => f.payload.preparation_offset=107,
+    f => f.payload.preparation_offset=Number.MAX_SAFE_INTEGER+1,
+    f => f.payload.preparation_offset='0', f => f.payload.dataset_id='foreign',
+    f => f.contract.state='candidate', f => f.contract.feature_contract_version='holdem-board-relative-v2',
+    f => f.payload.physics_board=['Ks','Qd','7c'], f => f.payload.physics_board='KsKs7c',
+    f => f.payload.physics_board='ksQd7c', f => f.payload.physics_board='KsQd',
+  ]) {
+    const f=physicsFixture();mutate(f);const actual=await callPhysicsFixture(f);
+    assert.ok(actual.error);
+    assert.ok(!actual.calls.some(c => c.name === 'fn_gto_v31_prepare_public_physics'));
+  }
+});
+
+test('physics phase refuses forged receipts, foreign boards and changed authoritative bindings', async () => {
+  for (const mutate of [
+    f => f.rows=[], f => f.rows=[f.row,f.row], f => f.row.status='frozen',
+    f => f.row.dataset_id='foreign', f => f.row.context={...f.row.context,street:'river'},
+    f => f.row.model_checksum=HEX('7'), f => f.row.template_checksum=HEX('7'),
+    f => f.row.cell_key_checksum='0'.repeat(64), f => f.row.public_model.provenance_sha256=HEX('7'),
+    f => f.row.runtime_parity_protocol.contexts.push(f.row.runtime_parity_protocol.contexts[0]),
+    f => f.row.encoder_descriptor.extra='changed', f => f.payload.physics_board='7cQdKs',
+    f => {f.payload.physics_board='AcKd2h';f.payload.context.public_model_build_receipt.cases[0].board='AcKd2h';
+      f.payload.context.model_build_receipt_checksum=physicsHash(f.payload.context.public_model_build_receipt);},
+    f => {f.payload.context.model_checksum=HEX('7');f.payload.context.public_model_build_receipt.model_checksum=HEX('7');
+      f.payload.context.model_build_receipt_checksum=physicsHash(f.payload.context.public_model_build_receipt);},
+  ]) {
+    const f=physicsFixture();mutate(f);const actual=await callPhysicsFixture(f);
+    assert.ok(actual.error);
+    assert.ok(!actual.calls.some(c => c.name === 'fn_gto_v31_prepare_public_physics'));
+  }
+  for (const audit of [null,'0'.repeat(64),'not-an-audit',{}]) {
+    const actual=await callPhysicsFixture(physicsFixture(),{audit});
+    assert.equal(actual.error.status,503);
+  }
 });

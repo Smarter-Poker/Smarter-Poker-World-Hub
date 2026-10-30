@@ -12,6 +12,8 @@ import {
   v31PolicyExportSchema,
   v31Public215BuildEnvelopeIsValid,
   v31Public215FreezeEnvelopeIsValid,
+  v31Public215PhysicsPayloadIsValid,
+  v31Public215ApprovedPhysicsPreparation,
 } from '../../../src/lib/horses/solverV31IngressAuth.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -287,6 +289,27 @@ async function dispatch(supabase, envelope) {
     });
   }
   if (principal !== 'COMPACTOR') throw new GatewayError('Compactor authority required', 403);
+  if (operation === 'freeze_model' && Object.prototype.hasOwnProperty.call(payload, 'physics_board')) {
+    if (!v31Public215PhysicsPayloadIsValid(payload, contract)) {
+      throw new GatewayError('Approved private physics payload is invalid', 409);
+    }
+    const rows = await rpc(supabase, 'fn_gto_v31_model_preparations', {
+      p_dataset_id: contract.dataset_id, p_offset: payload.preparation_offset, p_limit: 1,
+    });
+    const selected = v31Public215ApprovedPhysicsPreparation(payload, contract, rows);
+    if (!selected) throw new GatewayError('Approved private physics binding is invalid', 409);
+    const auditKey = await rpc(supabase, 'fn_gto_v31_prepare_public_physics', {
+      p_dataset_id: contract.dataset_id, p_cell_key_checksum: selected.cell_key_checksum,
+      p_board: payload.physics_board.match(/../g),
+    }, LONG_DB_TIMEOUT_MS);
+    if (typeof auditKey !== 'string' || !/^[0-9a-f]{64}$/.test(auditKey) || auditKey === '0'.repeat(64)) {
+      throw new GatewayError('Private physics audit receipt is invalid', 503);
+    }
+    return {format: 'public215_prepared_physics_v1', dataset_id: contract.dataset_id,
+      context: payload.context.context, cell_key_checksum: selected.cell_key_checksum,
+      model_checksum: selected.model_checksum, template_checksum: selected.template_checksum,
+      board: payload.physics_board, audit_key: auditKey};
+  }
   if (operation === 'prepare_model' || operation === 'freeze_model') {
     if (!exactKeys(payload,['dataset_id','context']) || payload.dataset_id!==contract.dataset_id
         || contract.state!=='building' || v31FeatureContractVersion(contract)!=='holdem-public-hist215-v1'
