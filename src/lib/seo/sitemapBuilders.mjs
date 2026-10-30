@@ -98,6 +98,8 @@ export const STATIC_PAGES = [
   { path: '/features/poker-training-games', priority: '0.9', changefreq: 'weekly' },
   { path: '/features/home-poker-games', priority: '0.9', changefreq: 'weekly' },
   { path: '/features/interactive-video-coaching', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/poker-near-me', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/private-poker-clubs', priority: '0.9', changefreq: 'weekly' },
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/freerolls', priority: '0.9', changefreq: 'daily' },
