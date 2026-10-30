@@ -2160,5 +2160,40 @@ class R7QualifyOnceTests(unittest.TestCase):
         with self.assertRaises(q.Refusal):q.validate_evidence(evidence,completed,models)
 
 
+class M2SelectedTargetContextImportTests(unittest.TestCase):
+    def test_actual_run_selection_branch_uses_real_context_and_exact_board(self):
+        # Execute the actual maintained M2 branch with real context derivation,
+        # without starting Gateway/Pio, opening a seed, or making checkpoints.
+        import ast
+        import inspect
+        import pio_upi
+        from public_hist215 import canonical_bytes
+        tree = ast.parse(inspect.getsource(worker.run))
+        branches = [n for n in ast.walk(tree) if isinstance(n, ast.If)
+                    and ast.unparse(n.test) == 'selected_pairs is not None']
+        self.assertEqual(len(branches), 1)
+        code = compile(ast.fix_missing_locations(ast.Module(body=[branches[0]],
+                       type_ignores=[])), worker.__file__, 'exec')
+        scenario = base_scenario()
+        selected = dict(scenario['targets'][0])
+        line = pio_upi.analyze_node('r:0:c', root_pot_chips=scenario['pot_chips'],
+                                    effective_stack_chips=scenario['effective_stack_chips'],
+                                    preflop_aggressor=scenario['preflop_aggressor_solver_player'])
+        excluded = {**selected, 'target_id': 'excluded', 'node': 'r:0:c',
+                    'node_role': line.node_role, 'facing_kind': line.facing_kind,
+                    'facing_size_bucket': line.facing_size_bucket}
+        context = pio_upi.target_context(scenario, selected)
+        namespace = {**vars(worker), 'scenario': scenario,
+                     'targets': [selected, excluded], 'canonical_bytes': canonical_bytes,
+                     'selected_pairs': {(canonical_bytes(context), selected['board'])}}
+        exec(code, namespace)
+        self.assertEqual(namespace['targets'], [selected])
+        self.assertIs(namespace['target_context'], pio_upi.target_context)
+        namespace['targets'] = [selected, excluded]
+        namespace['selected_pairs'] = set()
+        exec(code, namespace)
+        self.assertEqual(namespace['targets'], [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
