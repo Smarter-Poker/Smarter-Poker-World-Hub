@@ -42,6 +42,14 @@ export default function SEOHead(props) {
   if (!resolvedMarkdownUrl && typeof pathname === 'string') {
     if (pathname.startsWith('/features/')) {
       resolvedMarkdownUrl = `https://smarter.poker${pathname}.md`;
+    } else if (pathname === '/features') {
+      resolvedMarkdownUrl = 'https://smarter.poker/features.md';
+    } else if (pathname.startsWith('/compare/')) {
+      resolvedMarkdownUrl = `https://smarter.poker${pathname}.md`;
+    } else if (pathname === '/compare') {
+      resolvedMarkdownUrl = 'https://smarter.poker/compare.md';
+    } else if (pathname === '/tools/embeds') {
+      resolvedMarkdownUrl = 'https://smarter.poker/tools/embeds.md';
     } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
     } else if (pathname === '/tools/icm-calculator' || pathname === '/hub/training/icm-calculator') {
@@ -52,6 +60,10 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/about.md';
     } else if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
       resolvedMarkdownUrl = 'https://smarter.poker/freerolls.md';
+    } else if (pathname === '/hub/messenger') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/messenger.md';
+    } else if (pathname === '/hub/home-games') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/home-games.md';
     }
   }
 
