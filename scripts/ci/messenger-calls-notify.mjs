@@ -119,12 +119,32 @@ async function main() {
             // Headless Chrome registers the worker but cannot reach Google's
             // push service (run 41250392204); headed Chrome under a virtual
             // display can, when NOTIFY_HEADED_PUSH=1.
-            const pushBrowser = await chromium.launch({ channel: 'chrome', headless: !HEADED_PUSH, args: FAKE_MEDIA });
-            report.pushBrowserMode = HEADED_PUSH ? 'headed Chrome (xvfb)' : 'headless Chrome';
-            browsers.push(pushBrowser);
-            report.browsers.chrome = pushBrowser.version();
-            const eligible = await session(pushBrowser, C.session, { ...devices['Pixel 7'] }, { media: true });
-            await eligible.context.grantPermissions(['notifications', 'camera', 'microphone'], { origin: APP_ORIGIN });
+            // Run 41251100828: Playwright's grant covers `notifications` but not
+            // Chrome's separate `push` permission, so subscribe() answered
+            // "Registration failed - permission denied", and Playwright's
+            // default --disable-background-networking keeps Chrome off Google's
+            // push service. A persistent Chrome profile without that flag, with
+            // `push` granted through DevTools, is a real Chrome enrolment.
+            const { mkdtempSync } = await import('node:fs');
+            const { tmpdir } = await import('node:os');
+            const profile = mkdtempSync(`${tmpdir()}/sp-push-`);
+            const pushContextPersistent = await chromium.launchPersistentContext(profile, {
+                channel: 'chrome', headless: !HEADED_PUSH, args: FAKE_MEDIA, ignoreDefaultArgs: ['--disable-background-networking'], ...devices['Pixel 7'],
+            });
+            browsers.push(pushContextPersistent);
+            report.pushBrowserMode = `${HEADED_PUSH ? 'headed' : 'headless'} Google Chrome, persistent profile, background networking on`;
+            await pushContextPersistent.addInitScript(({ s: sess }) => {
+                localStorage.setItem('smarter-poker-auth', JSON.stringify(sess));
+                localStorage.setItem(`sp_firstrun_notif_v2_${sess.user.id}`, String(Date.now()));
+                sessionStorage.setItem('social-intro-seen', 'true');
+            }, { s: C.session });
+            await pushContextPersistent.grantPermissions(['notifications', 'camera', 'microphone'], { origin: APP_ORIGIN });
+            const eligiblePage = pushContextPersistent.pages()[0] || await pushContextPersistent.newPage();
+            eligiblePage.setDefaultTimeout(20000);
+            const devtools = await pushContextPersistent.newCDPSession(eligiblePage);
+            report.chromePushPermission = await devtools.send('Browser.setPermission', { permission: { name: 'push', userVisibleOnly: true }, setting: 'granted', origin: APP_ORIGIN }).then(() => 'granted through DevTools', error => `not granted: ${String(error?.message || error).slice(0, 120)}`);
+            report.browsers.chrome = await eligiblePage.evaluate(() => navigator.userAgent.match(/Chrome\/([\d.]+)/)?.[1] || null);
+            const eligible = { context: pushContextPersistent, page: eligiblePage };
             pushContext = eligible.context;
             await eligible.page.goto(`${APP_ORIGIN}/hub/friends`, { waitUntil: 'domcontentloaded' });
             await sleep(4000);
