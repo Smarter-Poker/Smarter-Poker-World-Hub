@@ -460,15 +460,19 @@ export async function run() {
         const pendingRoom = async () => (await admin.from('pending_calls').select('room_name').eq('caller_id', A).eq('callee_id', B.id).order('created_at', { ascending: false }).limit(1).maybeSingle()).data?.room_name || null;
         // Answer a ringing call the way tapping Accept on the push does, then
         // require real two-way media before calling it answered.
-        const answerFromPush = async (answering, label, expectSend) => {
+        const answerFromPush = async (answering, label, expectSend, outcome = {}) => {
             const room = await pendingRoom();
             assert.ok(room, 'No pending call to answer');
             const consoleErrors = [];
-            answering.page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text().slice(0, 160)); });
+            answering.page.on('console', message => {
+                const text = message.text();
+                if (message.type() === 'error' || /livekit|CallScreen|disconnect|RTCPeer|ICE|codec|getUserMedia|NotAllowed|NotFound/i.test(text)) consoleErrors.push(`${message.type()}: ${text.slice(0, 200)}`);
+            });
             await answering.page.goto(`${APP_ORIGIN}/hub/messenger?incomingCall=${encodeURIComponent(room)}&answer=1`, { waitUntil: 'domcontentloaded' });
             await until(() => callOpen(answering.page), { timeout: 30000, message: `${label}: push route did not open the call` });
             try {
                 const atA = await until(async () => { const st = await callStatus(a.page); return /^\d+:\d{2}$/.test(st || '') ? st : null; }, { timeout: 30000, message: `${label}: never joined the call (caller kept waiting)` });
+                outcome.answered = true;
                 const received = await until(async () => { const v = await videos(answering.page); return v.remote >= 1 ? v : null; }, { timeout: 30000, message: `${label}: received no video` });
                 const heard = await audioPeak(answering.page, 3000);
                 assert.ok(heard.streams >= 1 && heard.peak > 0.01, `${label}: heard no audio`);
@@ -483,7 +487,13 @@ export async function run() {
             } catch (error) {
                 const answeringStatus = await callStatus(answering.page).catch(() => null);
                 await shot(answering.page, `fail-06-${label.replace(/\W+/g, '-').toLowerCase()}`);
-                throw new Error(`${error.message}; answering status ${JSON.stringify(answeringStatus)}; console ${JSON.stringify(consoleErrors.slice(0, 4))}`);
+                const capability = await answering.page.evaluate(() => ({
+                    peerConnection: typeof RTCPeerConnection,
+                    videoCodecs: (window.RTCRtpReceiver?.getCapabilities?.('video')?.codecs || []).map(c => c.mimeType).filter((v, i, a) => a.indexOf(v) === i),
+                    audioCodecs: (window.RTCRtpReceiver?.getCapabilities?.('audio')?.codecs || []).map(c => c.mimeType).filter((v, i, a) => a.indexOf(v) === i).slice(0, 6),
+                    mediaDevices: !!navigator.mediaDevices?.getUserMedia,
+                })).catch(e => ({ error: String(e?.message || e).slice(0, 120) }));
+                throw new Error(`${error.message}; answered ${!!outcome.answered}; answering status ${JSON.stringify(answeringStatus)}; webrtc ${JSON.stringify(capability)}; console ${JSON.stringify(consoleErrors.slice(-12))}`);
             }
         };
         const endFromCaller = async (answering) => {
@@ -493,9 +503,10 @@ export async function run() {
         };
         if (unreachable) {
             const chromePhone = await device(chrome, B.session, { ...devices['Pixel 7'] }, 'B2 (Android Chrome emulation, throwaway)');
-            const ok = await step('Push Accept route answers the call with two-way media (mobile Chromium)', () => answerFromPush(chromePhone, 'Mobile Chromium', true));
-            expectedReceipts[expectedReceipts.length - 1] = ok ? 'completed' : 'cancelled';
-            if (!ok) expectedMissedNotices += 1;
+            const chromeOutcome = {};
+            await step('Push Accept route answers the call with two-way media (mobile Chromium)', () => answerFromPush(chromePhone, 'Mobile Chromium', true, chromeOutcome));
+            expectedReceipts[expectedReceipts.length - 1] = chromeOutcome.answered ? 'completed' : 'cancelled';
+            if (!chromeOutcome.answered) expectedMissedNotices += 1;
             await endFromCaller(chromePhone);
             await chromePhone.context.close();
 
@@ -514,9 +525,10 @@ export async function run() {
                 assertProbeCallee(B.id, probeIds);
                 await a.page.getByLabel('Start Video Call', { exact: true }).click();
                 await until(async () => (await callStatus(a.page)) !== 'Starting Call...' && !!(await pendingRoom()), { timeout: 15000 }).catch(() => {});
-                const wkOk = await step('Mobile WebKit (iPhone 13 emulation) answers from the push route and receives the call', () => answerFromPush(safari, 'Mobile WebKit', false));
-                expectedReceipts.push(wkOk ? 'completed' : 'cancelled');
-                if (!wkOk) expectedMissedNotices += 1;
+                const wkOutcome = {};
+                await step('Mobile WebKit (iPhone 13 emulation) answers from the push route and receives the call', () => answerFromPush(safari, 'Mobile WebKit', false, wkOutcome));
+                expectedReceipts.push(wkOutcome.answered ? 'completed' : 'cancelled');
+                if (!wkOutcome.answered) expectedMissedNotices += 1;
                 await endFromCaller(safari);
                 report.limitations.push('Mobile Safari: verified only as Playwright WebKit with iPhone 13 emulation on Linux, receive-only (no synthetic camera or microphone in WebKit). Safari on a physical iPhone was not available to this run.');
             }
