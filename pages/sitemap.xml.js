@@ -19,8 +19,8 @@ import {
 import bundledSeriesData from '../data/poker-tour-series-2026.json';
 import { AS_OF as COMPARE_AS_OF, compareRoutes } from '../src/content/compare/pages';
 import tourSourceRegistry from '../data/tour-source-registry.json';
-import { LESSONS } from '../src/content/learn/lessons';
-import { LEARN_PATH, lessonPath } from '../src/lib/learn/learnSite';
+import { LESSONS, LEARN_CATEGORIES } from '../src/content/learn/lessons';
+import { LEARN_PATH, lessonPath, learnCategoryPath } from '../src/lib/learn/learnSite';
 
 const SITE_URL = 'https://smarter.poker';
 const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -50,6 +50,7 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 // __tests__/every-lesson-answers-first.law.test.mjs.
 const learnPages = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
+  ...LEARN_CATEGORIES.map((c) => ({ path: learnCategoryPath(c), priority: '0.75', changefreq: 'monthly' })),
   ...LESSONS.map((l) => ({ path: lessonPath(l.slug), priority: '0.7', changefreq: 'monthly' })),
 ];
 
@@ -84,6 +85,7 @@ const staticPages = [
   // The entity anchor an AI engine reads to answer "what is Smarter Poker"
   // and "who makes Club Commander" (AEO phase 2, 2026-09-17).
   { path: '/about', priority: '0.8', changefreq: 'monthly' },
+  { path: '/verification-methodology', priority: '0.7', changefreq: 'monthly' },
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
   // /privacy was missing (AEO phase 3, 2026-09-18). It is a 524 word page
   // that every hub summary links to in its compliance line, and the URL the

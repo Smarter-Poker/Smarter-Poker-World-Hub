@@ -466,7 +466,7 @@ test('the schema is an Article by the organization, part of the collection, with
 
 test('the sitemap and llms.txt promote /learn and every lesson from the module', () => {
   const sitemap = read('pages/sitemap.xml.js');
-  assert.match(sitemap, /import \{ LESSONS \} from '..\/src\/content\/learn\/lessons'/);
+  assert.match(sitemap, /import \{[^}]*LESSONS[^}]*\} from '\.\.\/src\/content\/learn\/lessons'/);
   assert.match(sitemap, /const learnPages = \[\s*\{ path: LEARN_PATH,/);
   assert.match(sitemap, /\.\.\.LESSONS\.map\(\(l\) => \(\{ path: lessonPath\(l\.slug\)/);
   assert.match(sitemap, /\.\.\.learnPages,/, 'the block is spread into the sitemap');

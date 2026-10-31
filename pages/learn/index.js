@@ -29,6 +29,7 @@ import {
   LEARN_MODIFIED,
   lessonPath,
   categoryAnchor,
+  learnCategoryPath,
 } from '../../src/lib/learn/learnSite.js';
 import { LESSONS, lessonsByCategory } from '../../src/content/learn/lessons.js';
 
@@ -129,7 +130,11 @@ export default function LearnIndex({ count, groups }) {
 
           {groups.map((g) => (
             <section key={g.category} id={categoryAnchor(g.category)} style={styles.section}>
-              <h2 style={styles.h2}>{g.category}</h2>
+              <h2 style={styles.h2}>
+                <Link href={learnCategoryPath(g.category)} style={styles.h2Link}>
+                  {g.category}
+                </Link>
+              </h2>
               {g.intro && <p style={styles.intro}>{g.intro}</p>}
               <ul style={styles.list}>
                 {g.lessons.map((l) => (
@@ -190,6 +195,10 @@ const styles = {
     color: '#ffffff',
     margin: '0 0 6px',
     letterSpacing: '0.5px',
+  },
+  h2Link: {
+    color: '#ffffff',
+    textDecoration: 'none',
   },
   intro: { fontSize: 14, lineHeight: 1.6, color: '#9fb0c8', margin: '0 0 12px' },
   list: { listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 },

@@ -79,6 +79,9 @@ const EXPECTED_SLUGS = [
   'best-poker-rooms-in-las-vegas',
   'best-poker-rooms-in-texas',
   'best-poker-rooms-near-major-airports',
+  'smarter-poker-vs-pokercoaching',
+  'smarter-poker-vs-icmizer',
+  'smarter-poker-vs-equilab',
 ];
 
 /** Other names a product goes by in running copy. */
@@ -95,6 +98,7 @@ const ALIASES = {
   tchDallas: ['Texas Card House', 'Texas Card House Dallas'],
   southPoint: ['South Point', 'South Point Hotel'],
   liveMaryland: ['Live! Maryland', 'Live! Casino', 'Maryland Live'],
+  equilab: ['Equilab'],
 };
 
 const allFacts = () =>

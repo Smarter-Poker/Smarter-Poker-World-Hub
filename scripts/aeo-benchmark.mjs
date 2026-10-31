@@ -418,6 +418,70 @@ async function runBenchmark() {
   assertCheck('/feed.xml syndicates /features/* vertical landers', rssXml.text.includes('https://smarter.poker/features/bankroll-tax-tracker') && rssXml.text.includes('https://smarter.poker/features/poker-equity-calculators'));
   assertCheck('/feed.xml syndicates /glossary/* term definitions', rssXml.text.includes('https://smarter.poker/glossary/3-bet') && rssXml.text.includes('https://smarter.poker/glossary/icm'));
 
+  const dailyTournMd = await fetchRoute('/hub/daily-tournaments.md');
+  assertCheck('GET /hub/daily-tournaments.md status 200 with tournament directory spec', dailyTournMd.status === 200 && dailyTournMd.text.includes('Daily Poker Tournaments Directory'));
+
+  const eventsCalMd = await fetchRoute('/hub/events-calendar.md');
+  assertCheck('GET /hub/events-calendar.md status 200 with calendar spec', eventsCalMd.status === 200 && eventsCalMd.text.includes('Unified Live Poker Events Calendar'));
+
+  const pokerToursMd = await fetchRoute('/hub/poker-tours.md');
+  assertCheck('GET /hub/poker-tours.md status 200 with tours directory spec', pokerToursMd.status === 200 && pokerToursMd.text.includes('Major Traveling Poker Tours'));
+
+  const pokerSeriesMd = await fetchRoute('/hub/poker-series.md');
+  assertCheck('GET /hub/poker-series.md status 200 with series directory spec', pokerSeriesMd.status === 200 && pokerSeriesMd.text.includes('Live Poker Tournament Series Directory'));
+
+  const venuesMd = await fetchRoute('/hub/poker-near-me/venues.md');
+  assertCheck('GET /hub/poker-near-me/venues.md status 200 with venues directory spec', venuesMd.status === 200 && venuesMd.text.includes('Live Poker Near Me & Cardroom Directory'));
+
+  // Phases 24-34 Live Grounding Checks
+  const locationIndexMd = await fetchRoute('/hub/poker-near-me/in.md');
+  assertCheck('GET /hub/poker-near-me/in.md status 200 with state directory', locationIndexMd.status === 200 && locationIndexMd.text.includes('Live Poker Rooms by State'));
+
+  const comparePcMd = await fetchRoute('/compare/smarter-poker-vs-pokercoaching.md');
+  assertCheck('GET /compare/smarter-poker-vs-pokercoaching.md status 200', comparePcMd.status === 200 && comparePcMd.text.includes('PokerCoaching.com'));
+
+  const compareIcmMd = await fetchRoute('/compare/smarter-poker-vs-icmizer.md');
+  assertCheck('GET /compare/smarter-poker-vs-icmizer.md status 200', compareIcmMd.status === 200 && compareIcmMd.text.includes('ICMIZER'));
+
+  const compareEqMd = await fetchRoute('/compare/smarter-poker-vs-equilab.md');
+  assertCheck('GET /compare/smarter-poker-vs-equilab.md status 200', compareEqMd.status === 200 && compareEqMd.text.includes('Equilab'));
+
+  const learnCatHtml = await fetchRoute('/learn/category/math');
+  assertCheck('GET /learn/category/math status 200 with CollectionPage schema', learnCatHtml.status === 200 && learnCatHtml.text.includes('"@type":"CollectionPage"'));
+
+  const learnCatMd = await fetchRoute('/learn/category/math.md');
+  assertCheck('GET /learn/category/math.md status 200 with category curriculum', learnCatMd.status === 200 && learnCatMd.text.includes('Poker Math Strategy Guides'));
+
+  const svgChart = await fetchRoute('/api/og/chart/pot-odds-curve');
+  assertCheck('GET /api/og/chart/pot-odds-curve returns SVG chart', svgChart.status === 200 && svgChart.text.includes('<svg'));
+
+  const secTxt = await fetchRoute('/.well-known/security.txt');
+  assertCheck('GET /.well-known/security.txt returns RFC 9116 policy', secTxt.status === 200 && secTxt.text.includes('Contact: mailto:security@smarter.poker'));
+
+  const verifHtml = await fetchRoute('/verification-methodology');
+  assertCheck('GET /verification-methodology status 200 with WebPage schema', verifHtml.status === 200 && verifHtml.text.includes('Data Provenance'));
+
+  const verifMd = await fetchRoute('/verification-methodology.md');
+  assertCheck('GET /verification-methodology.md status 200 with methodology markdown', verifMd.status === 200 && verifMd.text.includes('Smarter.Poker Data Provenance'));
+
+  const mcpPromptsRes = await fetch(`${BASE_URL}/api/mcp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 10, method: 'prompts/list' }),
+  });
+  const mcpPromptsJson = await mcpPromptsRes.json();
+  assertCheck('POST /api/mcp prompts/list returns prompt templates', mcpPromptsRes.status === 200 && Array.isArray(mcpPromptsJson?.result?.prompts) && mcpPromptsJson.result.prompts.length >= 4);
+
+  const mcpResTemplates = await fetch(`${BASE_URL}/api/mcp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 11, method: 'resources/templates/list' }),
+  });
+  const mcpResTemplatesJson = await mcpResTemplates.json();
+  assertCheck('POST /api/mcp resources/templates/list returns URI templates', mcpResTemplates.status === 200 && Array.isArray(mcpResTemplatesJson?.result?.resourceTemplates) && mcpResTemplatesJson.result.resourceTemplates.length >= 5);
+
+  assertCheck('/api/openapi.json includes x-ai-citation-url extension', openapi.text.includes('"x-ai-citation-url"'));
+
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);
   console.log(`  Total Checks: ${totalTests}`);

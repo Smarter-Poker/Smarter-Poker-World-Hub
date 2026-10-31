@@ -43174,22 +43174,6 @@
       "functions": [
         {
           "name": "getGlossaryTerm",
-          "line": 676,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "relatedGlossaryTerms",
-          "line": 681,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "glossaryByCategory",
           "line": 686,
           "references": 1,
           "exported": true,
@@ -43197,8 +43181,24 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "relatedGlossaryTerms",
+          "line": 691,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "glossaryByCategory",
+          "line": 696,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "glossaryTermPath",
-          "line": 694,
+          "line": 704,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -93385,7 +93385,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "getGlossaryTerm",
-        "line": 676,
+        "line": 686,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93402,7 +93402,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "relatedGlossaryTerms",
-        "line": 681,
+        "line": 691,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93418,7 +93418,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryByCategory",
-        "line": 686,
+        "line": 696,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93434,7 +93434,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryTermPath",
-        "line": 694,
+        "line": 704,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102708,7 +102708,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "getGlossaryTerm",
-        "line": 676,
+        "line": 686,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102725,7 +102725,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "relatedGlossaryTerms",
-        "line": 681,
+        "line": 691,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102741,7 +102741,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryByCategory",
-        "line": 686,
+        "line": 696,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102757,7 +102757,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryTermPath",
-        "line": 694,
+        "line": 704,
         "references": 1,
         "exported": true,
         "defaultExport": false,

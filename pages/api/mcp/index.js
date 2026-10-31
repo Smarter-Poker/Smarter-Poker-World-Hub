@@ -11,7 +11,13 @@
  * directly to external autonomous agents and reasoning engines (Claude Desktop,
  * Cursor, OpenAI, ChatGPT, Windsurf, custom agents).
  */
-import { handleMcpRpc, MCP_SERVER_INFO, MCP_TOOLS } from '../../../src/lib/mcp/mcpServer.mjs';
+import {
+  handleMcpRpc,
+  MCP_SERVER_INFO,
+  MCP_TOOLS,
+  MCP_PROMPTS,
+  MCP_RESOURCE_TEMPLATES,
+} from '../../../src/lib/mcp/mcpServer.mjs';
 import { originFrom } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 
 export default async function handler(req, res) {
@@ -69,6 +75,8 @@ export default async function handler(req, res) {
       },
       tools_available: MCP_TOOLS.map((t) => t.name),
       tools: MCP_TOOLS,
+      prompts: MCP_PROMPTS,
+      resourceTemplates: MCP_RESOURCE_TEMPLATES,
       documentation: `${origin}/llms.txt`,
       openapi: `${origin}/api/openapi.json`,
     });
