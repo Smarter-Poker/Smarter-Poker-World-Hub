@@ -1,42 +1,42 @@
 /**
  * /api/cron/signup-probe — Synthetic Signup Health Probe
  * ═══════════════════════════════════════════════════════════════════════════
- * Runs once daily at 2am UTC via Vercel cron. Verifies the signup trigger
- * chain is intact by inspecting a PERMANENT probe account — it NEVER creates
- * a new user, so it generates exactly 0 MAU events per run.
+ * Runs once daily at 2am UTC via Vercel cron (vercel.json "0 2 * * *").
+ * Each run creates ONE throwaway auth user with the service role, checks
+ * that the signup trigger chain wrote its rows, then deletes that user.
  *
- * ⚠️  MAU FIX (2026-05-18)
- * ────────────────────────
- * The previous version called admin.auth.admin.createUser() on every
- * invocation (originally every 5 min, later every 15 min).  Supabase counts
- * every INSERT into auth.users as an MAU event regardless of subsequent
- * deletion.  At 96 runs/day that generated ~2,880 fake MAU/month.
+ * WHY A THROWAWAY USER AGAIN (Phase 4, 2026-10-31)
+ * ────────────────────────────────────────────────
+ * From 2026-05-18 the probe inspected a PERMANENT account
+ * (PROBE_SIGNUP_USER_ID). That account was deleted, so every check
+ * (user / profile / wallet / diamonds) failed every day and the probe
+ * reported a broken signup chain that was really a missing fixture. A
+ * fixture check also only proves the triggers worked on the day the
+ * fixture was made; it never exercised today's handle_new_user.
  *
- * This version never touches auth.users writes.  It simply queries whether
- * the expected downstream rows exist for a known permanent probe account.
- * If they exist → triggers are confirmed working → 200.
- * If any are missing → trigger chain is broken → 503.
+ * MAU / cost bound: the 2026-05-18 removal was about a probe that inserted
+ * into auth.users every 5-15 minutes (~2,880 users/month). This one runs
+ * once a day: at most ~31 throwaway users a month, each deleted in the
+ * same run. It never calls auth.signUp and never signs the user in, so no
+ * session or refresh token is issued. __tests__/signup-hardening.test.mjs
+ * pins both the once-a-day schedule and the delete-in-finally.
  *
- * SETUP (one-time, if not already done)
- * ──────────────────────────────────────
- *   1. In Supabase → Authentication → Users, create a user manually:
- *        Email:    probe-signup@probe.smarter.poker
- *        Confirm the user immediately (set email_confirmed_at)
- *   2. Note the UUID Supabase assigns to that user.
- *   3. Add to Vercel env vars (all environments):
- *        PROBE_SIGNUP_USER_ID = <the UUID from step 2>
- *   4. Do NOT delete this user.  It should persist indefinitely.
- *      The rows in profiles / wallets / user_diamonds must also persist.
+ * The user:
+ *   • email   signup-probe-<ts>-<rand>@example.invalid (RFC 2606: can never
+ *             receive mail, can never collide with a real player)
+ *   • email_confirm false: the confirmed-referral triggers stay out of it
+ *   • user_metadata.signup_probe = true, so reports can exclude it
  *
  * What is tested
  * ──────────────
- *   • auth.users: probe account exists (getUserById)
- *   • profiles:   row with id = PROBE_SIGNUP_USER_ID exists
- *   • wallets:    row with user_id = PROBE_SIGNUP_USER_ID exists
- *   • user_diamonds: row with user_id = PROBE_SIGNUP_USER_ID exists
- *
- * A missing row means the trigger that creates it is broken (or the probe
- * account was accidentally deleted — which should itself be alerted).
+ *   • user_created:    admin.auth.admin.createUser succeeded
+ *   • user_exists:     getUserById returns it
+ *   • profile_exists:  handle_new_user wrote public.profiles
+ *   • wallet_exists:   on_auth_user_created_wallet wrote public.wallets
+ *   • diamonds_exists: on_auth_user_created_diamonds wrote public.user_diamonds
+ *   • cleanup:         admin.auth.admin.deleteUser removed it again
+ * handle_new_user swallows its own errors into public.signup_errors, so any
+ * signup_errors rows for the throwaway id are attached to the heartbeat.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -58,6 +58,50 @@ function getAdmin() {
 
 export const config = { maxDuration: 30 };
 
+// RFC 2606 reserves .invalid: this address can never receive mail and can
+// never belong to a real player.
+export const THROWAWAY_DOMAIN = 'example.invalid';
+
+function throwawayEmail() {
+    const rand = Math.random().toString(36).slice(2, 10);
+    return `signup-probe-${Date.now()}-${rand}@${THROWAWAY_DOMAIN}`;
+}
+
+function randomPassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*';
+    let p = '';
+    for (let i = 0; i < 32; i++) p += chars[Math.floor(Math.random() * chars.length)];
+    return p;
+}
+
+/** One downstream row written by a signup trigger. */
+async function rowCheck(admin, table, column, userId) {
+    const started = Date.now();
+    const { data, error } = await admin.from(table).select(column).eq(column, userId).maybeSingle();
+    const out = { duration_ms: Date.now() - started };
+    if (error || !data) {
+        out.ok = false;
+        out.error = error?.message || `row not found in ${table}`;
+    } else {
+        out.ok = true;
+    }
+    return out;
+}
+
+/** Hard-delete the throwaway user and confirm it is gone. Never throws. */
+async function deleteThrowaway(admin, userId) {
+    const started = Date.now();
+    try {
+        const { error } = await admin.auth.admin.deleteUser(userId);
+        if (error) return { ok: false, user_id: userId, error: error.message, duration_ms: Date.now() - started };
+        const { data } = await admin.auth.admin.getUserById(userId);
+        if (data?.user?.id) return { ok: false, user_id: userId, error: 'user still present after deleteUser', duration_ms: Date.now() - started };
+        return { ok: true, duration_ms: Date.now() - started };
+    } catch (err) {
+        return { ok: false, user_id: userId, error: err?.message || String(err), duration_ms: Date.now() - started };
+    }
+}
+
 async function handler(req, res) {
     if (!validateCronAuth(req)) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -69,76 +113,68 @@ async function handler(req, res) {
         return unconfiguredProbe(res, admin, 'signup-probe', 'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     }
 
-    const probeUserId = process.env.PROBE_SIGNUP_USER_ID;
-    if (!probeUserId) {
-        return unconfiguredProbe(res, admin, 'signup-probe', 'Missing PROBE_SIGNUP_USER_ID env var. ' +
-                'Create a permanent probe account in Supabase and set this to its UUID. ' +
-                'See the file header comment for setup instructions.');
-    }
-
     const startedAt = Date.now();
     const checks = {};
+    let probeUserId = null;
 
     try {
-        // Check 1: auth.users — probe account itself exists
-        checks.user_exists = { started_at: Date.now() };
-        const { data: authData, error: authErr } = await admin.auth.admin.getUserById(probeUserId);
-        checks.user_exists.duration_ms = Date.now() - checks.user_exists.started_at;
-        if (authErr || !authData?.user?.id) {
-            checks.user_exists.ok = false;
-            checks.user_exists.error = authErr?.message || 'user not found in auth.users';
+        // Check 0: create the throwaway user (service role; no session issued)
+        checks.user_created = { started_at: Date.now() };
+        const probeEmail = throwawayEmail();
+        const { data: created, error: createErr } = await admin.auth.admin.createUser({
+            email: probeEmail,
+            password: randomPassword(),
+            email_confirm: false,
+            user_metadata: { full_name: 'Signup Probe', signup_probe: true },
+        });
+        checks.user_created.duration_ms = Date.now() - checks.user_created.started_at;
+        probeUserId = created?.user?.id || null;
+        if (createErr || !probeUserId) {
+            checks.user_created.ok = false;
+            checks.user_created.error = createErr?.message || 'createUser returned no user';
         } else {
-            checks.user_exists.ok = true;
-            checks.user_exists.email = authData.user.email;
+            checks.user_created.ok = true;
+            checks.user_created.email = probeEmail;
+            checks.user_created.user_id = probeUserId;
         }
 
-        // Check 2: profiles row
-        checks.profile_exists = { started_at: Date.now() };
-        const { data: profileData, error: profileErr } = await admin
-            .from('profiles')
-            .select('id')
-            .eq('id', probeUserId)
-            .maybeSingle();
-        checks.profile_exists.duration_ms = Date.now() - checks.profile_exists.started_at;
-        if (profileErr || !profileData) {
-            checks.profile_exists.ok = false;
-            checks.profile_exists.error = profileErr?.message || 'row not found in profiles';
-        } else {
-            checks.profile_exists.ok = true;
-        }
+        if (probeUserId) {
+            // Check 1: auth.users — the new account is readable
+            checks.user_exists = { started_at: Date.now() };
+            const { data: authData, error: authErr } = await admin.auth.admin.getUserById(probeUserId);
+            checks.user_exists.duration_ms = Date.now() - checks.user_exists.started_at;
+            if (authErr || !authData?.user?.id) {
+                checks.user_exists.ok = false;
+                checks.user_exists.error = authErr?.message || 'user not found in auth.users';
+            } else {
+                checks.user_exists.ok = true;
+            }
 
-        // Check 3: wallets row
-        checks.wallet_exists = { started_at: Date.now() };
-        const { data: walletData, error: walletErr } = await admin
-            .from('wallets')
-            .select('user_id')
-            .eq('user_id', probeUserId)
-            .maybeSingle();
-        checks.wallet_exists.duration_ms = Date.now() - checks.wallet_exists.started_at;
-        if (walletErr || !walletData) {
-            checks.wallet_exists.ok = false;
-            checks.wallet_exists.error = walletErr?.message || 'row not found in wallets';
-        } else {
-            checks.wallet_exists.ok = true;
-        }
+            // Checks 2-4: the AFTER INSERT triggers wrote their rows
+            checks.profile_exists = await rowCheck(admin, 'profiles', 'id', probeUserId);
+            checks.wallet_exists = await rowCheck(admin, 'wallets', 'user_id', probeUserId);
+            checks.diamonds_exists = await rowCheck(admin, 'user_diamonds', 'user_id', probeUserId);
 
-        // Check 4: user_diamonds row
-        checks.diamonds_exists = { started_at: Date.now() };
-        const { data: diamondsData, error: diamondsErr } = await admin
-            .from('user_diamonds')
-            .select('user_id')
-            .eq('user_id', probeUserId)
-            .maybeSingle();
-        checks.diamonds_exists.duration_ms = Date.now() - checks.diamonds_exists.started_at;
-        if (diamondsErr || !diamondsData) {
-            checks.diamonds_exists.ok = false;
-            checks.diamonds_exists.error = diamondsErr?.message || 'row not found in user_diamonds';
-        } else {
-            checks.diamonds_exists.ok = true;
+            // handle_new_user records what it swallowed; attach it (informational)
+            const { data: sErr } = await admin
+                .from('signup_errors')
+                .select('trigger_name, error_code, error_msg')
+                .eq('user_id', probeUserId)
+                .limit(5);
+            if (Array.isArray(sErr) && sErr.length) checks.signup_errors = { ok: null, rows: sErr };
         }
+    } catch (err) {
+        checks.exception = { ok: false, error: err?.message || String(err) };
+        try { reportApiError(err, req); } catch (_) { /* ignore */ }
+    } finally {
+        // Always remove the throwaway user, whatever happened above.
+        if (probeUserId) checks.cleanup = await deleteThrowaway(admin, probeUserId);
+    }
 
-        const allOk = Object.values(checks).every((c) => c.ok === true);
+    try {
+        // signup_errors is informational (ok: null); every other check must be ok.
         const failedChecks = Object.keys(checks).filter((k) => checks[k].ok === false);
+        const allOk = failedChecks.length === 0 && checks.user_created?.ok === true && checks.cleanup?.ok === true;
 
         const duration_ms = Date.now() - startedAt;
 
@@ -161,7 +197,7 @@ async function handler(req, res) {
             return res.status(503).json({
                 status: 'failed',
                 duration_ms,
-                error: `Trigger chain broken - missing rows: ${failedChecks.join(', ')}`,
+                error: `Signup probe failed checks: ${failedChecks.join(', ') || 'unknown'}`,
                 failed_checks: failedChecks,
                 checks,
             });

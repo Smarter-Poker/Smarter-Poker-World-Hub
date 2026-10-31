@@ -8,7 +8,8 @@
  *      either present in geo-blocks.json allow_paths OR in middleware.ts
  *      AUTH_ALWAYS_ALLOW. Both is best.
  *   2. /api/health/signup must exist and query signup_health_view.
- *   3. /api/cron/signup-probe must exist and exercise full signup flow.
+ *   3. /api/cron/signup-probe must exist and exercise full signup flow
+ *      (one throwaway user per day, always deleted).
  *   4. login.js handleSignup must call validatePassword OR redirect to
  *      /auth/signup OR be removed entirely.
  *   5. signup.js handleOAuthSignIn must address www→apex PKCE-verifier
@@ -47,37 +48,42 @@ test('/api/health/signup endpoint exists and is non-trivial', () => {
     assert.match(src, /signup_health_view/, 'health endpoint must query signup_health_view');
 });
 
-test('/api/cron/signup-probe verifies the downstream chain without creating users', () => {
+test('/api/cron/signup-probe exercises a throwaway signup once a day and always deletes it', () => {
     const p = path.join(REPO_ROOT, 'pages/api/cron/signup-probe.js');
     assert.ok(fs.existsSync(p), '/api/cron/signup-probe is missing — the synthetic probe is the early-warning system.');
     const src = fs.readFileSync(p, 'utf8');
 
     // Strip comments before any negative assertion: this file documents the
-    // behaviour it deliberately removed ("The previous version called
-    // admin.auth.admin.createUser() on every invocation"), and a naive
-    // doesNotMatch would fail on the very comment explaining why it is correct.
-    // The (^|[^:]) guard keeps `https://` in string literals intact, and
-    // stripping only from `//` onward (rather than the whole line) preserves
-    // code that has a trailing comment.
+    // behaviour it deliberately removed, and a naive doesNotMatch would fail
+    // on the very comment explaining why it is correct. The (^|[^:]) guard
+    // keeps `https://` in string literals intact, and stripping only from `//`
+    // onward (rather than the whole line) preserves code with a trailing comment.
     const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-    // This test previously required signUp + deleteUser, matching the probe's
-    // original design: sign up a throwaway user each run, then delete it. That
-    // was removed on 2026-05-18 — every signUp bills as a Supabase Monthly
-    // Active User, and on a cron this probe alone manufactured ~2,880 synthetic
-    // MAU/month. It now inspects a PERMANENT probe account instead.
-    assert.match(src, /profiles|user_diamonds|wallets/, 'probe must verify downstream trigger rows');
+    // History: 2026-05-03 the probe signed up a throwaway user every 5-15 min;
+    // 2026-05-18 that was replaced by a permanent fixture account because the
+    // cadence manufactured ~2,880 synthetic MAU/month. The fixture was later
+    // deleted, so every check failed every day (Phase 4, 2026-10-31). The probe
+    // now creates ONE throwaway user per run, once a day, and deletes it in the
+    // same run. These assertions pin the cost bound instead of the fixture.
+    assert.match(src, /profiles/, 'probe must verify the handle_new_user profiles row');
+    assert.match(src, /wallets/, 'probe must verify the wallets row');
+    assert.match(src, /user_diamonds/, 'probe must verify the user_diamonds row');
+    assert.match(code, /admin\.auth\.admin\.createUser\s*\(/, 'probe must create its own throwaway user');
+    assert.match(code, /example\.invalid/, 'throwaway users must use the RFC 2606 .invalid domain, never a deliverable address');
+    assert.match(code, /finally\s*\{[\s\S]*?deleteThrowaway\(/, 'the throwaway user must be deleted in a finally block');
+    assert.match(code, /admin\.auth\.admin\.deleteUser\s*\(/, 'probe must delete the throwaway user');
+    assert.doesNotMatch(code, /PROBE_SIGNUP_USER_ID/, 'the deleted permanent fixture must not come back');
+    assert.doesNotMatch(
+        code, /auth\.signUp\s*\(|signInWithPassword\s*\(|signInWithOtp\s*\(/,
+        'MAU-safety: signup-probe must never sign the throwaway user up or in (no session, no refresh token).',
+    );
+    const crons = JSON.parse(read('vercel.json')).crons || [];
+    const entries = crons.filter((c) => c.path === '/api/cron/signup-probe');
+    assert.equal(entries.length, 1, 'signup-probe must be scheduled exactly once');
     assert.match(
-        code, /getUserById/,
-        'probe must inspect the permanent probe account (PROBE_SIGNUP_USER_ID) to confirm the auth -> profile chain is intact.',
-    );
-    assert.doesNotMatch(
-        code, /auth\.signUp\s*\(/,
-        'MAU-safety regression: signup-probe must NOT sign up a new user per run.',
-    );
-    assert.doesNotMatch(
-        code, /admin\.auth\.admin\.(createUser|deleteUser)\s*\(/,
-        'MAU-safety regression: signup-probe must NOT create or delete users — it reads a permanent account.',
+        entries[0].schedule, /^\d+ \d+ \* \* \*$/,
+        'MAU-safety: signup-probe creates a user per run, so it must stay at once a day (fixed minute and hour).',
     );
 });
 

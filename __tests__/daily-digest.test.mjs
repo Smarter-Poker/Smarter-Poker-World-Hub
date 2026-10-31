@@ -96,6 +96,64 @@ test('red only where a rule fires', () => {
     assert.equal(rows.find((r) => r.label === 'Cash Game Rake').red, false);
 });
 
+test('phase 4 tiles: new health and security metrics render, flag red where a rule fires', () => {
+    const base = fixture().metrics;
+    const d = fixture({ metrics: { ...base,
+        health: { ...base.health, breaks: { total: 24, passed: 23, gate_opened: 22 }, alerts_new: { ...base.health.alerts_new, critical_distinct: 4 },
+            financial_alerts_open_actionable: 2, tournaments_stuck_running: 1, tournaments_past_start_registering: 3,
+            engine_restarts_outside_break: 2, drift_open_manual_needed: 5, client_errors_distinct_users: 17, client_errors_top_share: 0.4167 },
+        security: { ...base.security, login_probe_failures: 0, recovery_probe_failures: 1, signup_probe_failures: 2, trigger_audit_failures: 3 } } });
+    const health = sectionRows(SECTION_DEFS.find((x) => x.title === 'Platform Health'), d);
+    const h = (label) => health.find((r) => r.label === label);
+    assert.equal(h('Engine Breaks Passed').value, '23 of 24');
+    assert.equal(h('Breaks Restartable').value, '22 of 24');
+    assert.equal(h('Engine Restarts Outside A Break').value, '2');
+    assert.equal(h('Engine Restarts Outside A Break').red, true);
+    assert.equal(h('- Distinct Critical Alerts').value, '4');
+    assert.equal(h('- Actionable').value, '2');
+    assert.equal(h('Tournaments Stuck Running').red, true);
+    assert.equal(h('Tournaments Past Start Still Registering').value, '3');
+    assert.equal(h('Tournaments Past Start Still Registering').red, true);
+    assert.equal(h('- Needing Manual Repair').value, '5');
+    assert.equal(h('- Distinct Users Affected').value, '17');
+    assert.equal(h('- Share From The Top Error').value, '42%');
+    const sec = sectionRows(SECTION_DEFS.find((x) => x.title === 'Security'), d);
+    const s = (label) => sec.find((r) => r.label === label);
+    assert.equal(s('Login Probe Failures').red, false);
+    for (const [label, v] of [['Recovery Probe Failures', '1'], ['Signup Probe Failures', '2'], ['Trigger Audit Failures', '3']]) {
+        assert.equal(s(label).value, v, label);
+        assert.equal(s(label).red, true, label);
+    }
+    const zero = fixture({ metrics: { ...base, health: { ...base.health, tournaments_stuck_running: 0, tournaments_past_start_registering: 0, engine_restarts_outside_break: 0 },
+        security: { ...base.security, recovery_probe_failures: 0, signup_probe_failures: 0, trigger_audit_failures: 0 } } });
+    for (const r of [...sectionRows(SECTION_DEFS.find((x) => x.title === 'Platform Health'), zero), ...sectionRows(SECTION_DEFS.find((x) => x.title === 'Security'), zero)]) {
+        if (/Stuck Running|Past Start|Restarts Outside|Recovery Probe|Signup Probe|Trigger Audit/.test(r.label)) assert.equal(r.red, false, r.label);
+    }
+});
+
+test('phase 4 tiles: an older day without the new keys shows n/a, not 0, not red, no em dash, no crash', () => {
+    const d = fixture({ prev: { health: { tournaments_stuck_running: 4 } } });
+    const health = sectionRows(SECTION_DEFS.find((x) => x.title === 'Platform Health'), d);
+    const sec = sectionRows(SECTION_DEFS.find((x) => x.title === 'Security'), d);
+    const labels = ['Breaks Restartable', 'Engine Restarts Outside A Break', '- Distinct Critical Alerts', '- Actionable', 'Tournaments Stuck Running',
+        'Tournaments Past Start Still Registering', '- Needing Manual Repair', '- Distinct Users Affected', '- Share From The Top Error',
+        'Recovery Probe Failures', 'Signup Probe Failures', 'Trigger Audit Failures'];
+    for (const label of labels) {
+        const r = [...health, ...sec].find((x) => x.label === label);
+        assert.ok(r, label);
+        assert.equal(r.value, 'n/a', label);
+        assert.equal(r.red, false, label);
+        assert.equal(r.sub, '', label);
+    }
+    assert.equal(health.find((r) => r.label === 'Engine Breaks Passed').value, '24 of 24', 'existing breaks tile unchanged');
+    const noBreaks = fixture({ metrics: { ...fixture().metrics, health: { ...fixture().metrics.health, breaks: undefined } } });
+    assert.equal(sectionRows(SECTION_DEFS.find((x) => x.title === 'Platform Health'), noBreaks).find((r) => r.label === 'Breaks Restartable').value, 'n/a');
+    const html = buildHtml(d);
+    assert.ok(html.includes('Trigger Audit Failures'));
+    assert.ok(!html.includes('—'), 'no em dashes');
+    assert.match(buildText(d), /Recovery Probe Failures: n\/a/);
+});
+
 test('plain text version lists attention and sections', () => {
     const t = buildText(fixture());
     assert.match(t, /NEEDS YOUR ATTENTION \(3\)/);
@@ -173,7 +231,7 @@ test('horse roster card: size, PLO list, changes and every member, escaped', () 
     assert.match(html, /1\. Ace&lt;Horse&gt;/);
     assert.ok(!html.includes('Ace<Horse>'));
     assert.match(html, /PLO 6\.5 BB\/100/);
-    assert.ok(!html.includes('\u2014'));
+    assert.ok(!html.includes('—'));
     const rows = horseRosterRows(d);
     assert.equal(rows.length, 6 + 2);
     assert.equal(rows.find((r) => r[0] === 'Added To The PLO List')[1], 'None');
@@ -265,7 +323,7 @@ test('real player totals: day totals, rake split, balances, time and every game 
     assert.match(html, /Diamond Arena NLH 1\/2 \(Diamonds\)/);
     assert.match(html, /Diamond Arena Won \/ Lost \(Diamonds\)/);
     assert.ok(html.indexOf('Real Player Totals') < html.indexOf('Growth'), 'near the top, before the sections');
-    assert.ok(!html.includes('\u2014'));
+    assert.ok(!html.includes('—'));
     const text = buildText(d);
     assert.match(text, /REAL PLAYER TOTALS/);
     assert.match(text, /Woo<Woo>: \+1,481\.81  \(13h 42m played, 782 hands\)/);
