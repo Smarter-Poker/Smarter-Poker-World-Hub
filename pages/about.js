@@ -23,20 +23,14 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 import { LANDING_PRODUCTS } from '../src/components/landing/LandingProductSummary';
 
-const ABOUT_PAGE_SCHEMA = [
-  {
-    '@type': 'AboutPage',
-    '@id': 'https://smarter.poker/about#page',
-    url: 'https://smarter.poker/about',
-    name: 'About Smarter Poker',
-    mainEntity: { '@id': 'https://smarter.poker/#organization' },
-    isPartOf: { '@id': 'https://smarter.poker/#website' },
-    speakable: {
-      '@type': 'SpeakableSpecification',
-      cssSelector: ['h1', 'p'],
-    },
-  },
-  {
+const ABOUT_PAGE_SCHEMA = {
+  '@type': 'AboutPage',
+  '@id': 'https://smarter.poker/about#page',
+  url: 'https://smarter.poker/about',
+  name: 'About Smarter Poker',
+  mainEntity: { '@id': 'https://smarter.poker/#organization' },
+  isPartOf: { '@id': 'https://smarter.poker/#website' },
+  breadcrumb: {
     '@type': 'BreadcrumbList',
     '@id': 'https://smarter.poker/about#breadcrumb',
     itemListElement: [
@@ -54,7 +48,11 @@ const ABOUT_PAGE_SCHEMA = [
       },
     ],
   },
-];
+  speakable: {
+    '@type': 'SpeakableSpecification',
+    cssSelector: ['h1', 'p'],
+  },
+};
 
 export default function AboutPage() {
   return (
@@ -64,7 +62,7 @@ export default function AboutPage() {
         description="Smarter.Poker Is A Free Online Poker Platform From Smarter Software Inc. Read What It Is, What It Is Not, Which Products It Runs And How To Reach Support."
         canonical="/about"
         ogImage="/api/og/tool-card?tool=about&title=About+Smarter.Poker&subtitle=Free+Online+Poker+Platform+Operated+By+Smarter+Software+Inc&statLabel=OPERATOR&statValue=SMARTER+SOFTWARE"
-        jsonLd={[schemas.organization, ...ABOUT_PAGE_SCHEMA]}
+        jsonLd={[schemas.organization, ABOUT_PAGE_SCHEMA]}
         markdownUrl="https://smarter.poker/about.md"
       />
 
