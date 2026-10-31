@@ -179,6 +179,9 @@ async function main() {
         }
 
         // ── Part B: ringing outside Messenger ────────────────────────────
+        // Only one callee device may be open: close Part A's Chrome pages (its
+        // service worker stays registered for Part C).
+        if (pushContext) for (const p of pushContext.pages()) await p.close();
         const callee = await session(chrome, C.session, { ...devices['Pixel 7'] }, { media: true });
         const cdp = await callee.context.newCDPSession(callee.page);
         const ringCase = async (name, prepare, { during = null, answer = false } = {}) => {
@@ -252,11 +255,9 @@ async function main() {
 
         // ── Part C: push chain for the subscription Part A created ────────
         if (pushContext && subscriptionId) {
-            for (const p of pushContext.pages()) await p.close();
-            await sleep(3000);
             const before = (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at').eq('id', subscriptionId).maybeSingle()).data;
             const t0 = await placeCall();
-            const after = await until(async () => { const d = (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at, last_failure_reason').eq('id', subscriptionId).maybeSingle()).data; return d?.last_receipt_at && d.last_receipt_at !== before?.last_receipt_at ? d : null; }, { timeout: 30000 }).catch(async () => (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at, last_failure_reason').eq('id', subscriptionId).maybeSingle()).data);
+            const after = await until(async () => { const d = (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at, last_failure_reason').eq('id', subscriptionId).maybeSingle()).data; return d?.last_receipt_at && d.last_receipt_at !== before?.last_receipt_at ? d : null; }, { timeout: 15000 }).catch(async () => (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at, last_failure_reason').eq('id', subscriptionId).maybeSingle()).data);
             const outbox = ((await admin.from('push_outbox').select('status, failure_reason, event').eq('recipient_user_id', C.id).eq('event', 'incoming_call').gte('created_at', t0)).data || []);
             const advanced = (x, y) => Boolean(y && (!x || new Date(y) > new Date(x)));
             check('C', 'Server push acceptance: exactly one incoming-call push, sent, subscription last_used_at advanced', outbox.length === 1 && outbox[0].status === 'sent' && advanced(before?.last_used_at, after?.last_used_at), { outbox, lastUsedAdvanced: advanced(before?.last_used_at, after?.last_used_at), lastFailure: after?.last_failure_reason || null });
