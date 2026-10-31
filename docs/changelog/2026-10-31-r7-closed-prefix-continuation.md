@@ -1,0 +1,7 @@
+# Preserve completed R7 qualification after a lost audit outcome
+
+The corrected R7 qualifier stopped with native exit1 after107 acknowledged builds and one acknowledged M2 physics audit. Read-only reconciliation matched the next request's canonical body to its ingress nonce and proved that its audit also committed with all1,176 legal combinations and the exact frozen model, template and encoding bindings. The client-side failure cause remains unknown; neither completed audit is replayed.
+
+The new closed continuation validates the original failed-operation bytes and all107 build acknowledgments against a fresh complete model/source snapshot. It requires a separate fresh database recovery proof for both audits, including complete combo counts, exact request identity and distinct board hashes. It labels the recovered audit as database evidence rather than an original gateway acknowledgment, then executes only854 remaining audits and the ordinary seal/status operations once.
+
+Original source, capture, training, model index, holdout selection, numerical gates and qualifier validators stay unchanged. The continuation requires protected source and fresh evidence, uses an exclusive new operation directory, retains all predecessor evidence and stops on any unknown outcome. Error records expose only bounded typed facts, never messages, headers or secrets. It cannot promote a dataset. Its focused regression is enforced by the existing required Python pipeline wrapper; certification, promotion, runtime loading and live fleet proof remain separate gates.
