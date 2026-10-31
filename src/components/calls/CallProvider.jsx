@@ -403,7 +403,35 @@ export default function CallProvider({ children }) {
                 setCall(null);
             }
         });
-        return () => { stop(); };
+        // SECOND RING PATH (2026-10-31). The incoming call is also written to
+        // the callee's notifications as a bell row, the same realtime stream
+        // that updates the header bell on every page. If the call signal does
+        // not reach this page, the bell row still rings it. ringFor ignores a
+        // room that is already ringing or finished, so both paths arriving
+        // rings once; verifyAndRing drops a call that is no longer pending.
+        let ringChannel = null;
+        try {
+            ringChannel = supabase
+                .channel(`call-ring-notifications:${user.id}`)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, message => {
+                    const row = message?.new;
+                    if (row?.type !== 'incoming_call') return;
+                    const data = row.data || {};
+                    if (!data.roomName || !data.callerId || data.callerId === userRef.current?.id) return;
+                    if (callRef.current?.id === data.roomName || finished.current.has(data.roomName)) return;
+                    void verifyAndRing({
+                        roomName: data.roomName, callerId: data.callerId, conversationId: data.conversationId,
+                        callType: data.callType, callerName: data.callerName, callerAvatar: data.callerAvatar || null,
+                    });
+                })
+                .subscribe();
+        } catch (error) {
+            console.warn('[CallProvider] ringing notification listener unavailable:', error?.message || error);
+        }
+        return () => {
+            stop();
+            if (ringChannel) { try { supabase.removeChannel(ringChannel); } catch { /* already gone */ } }
+        };
     }, [user?.id, clearRingTimer, finish, verifyAndRing, setCall, stopRinging]);
 
     // ── Calls that rang while this page was closed (push notifications) ─────

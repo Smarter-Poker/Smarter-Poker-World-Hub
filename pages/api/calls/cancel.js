@@ -60,6 +60,20 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
+          // The ringing call's bell row says "is calling you"; once the call is
+          // answered, declined or over it must not keep saying so. A missed call
+          // gets its own notice from insert-missed-call-notification. Scoped to
+          // this room and to a row the authenticated user owns or caused.
+          if (typeof roomName === 'string' && /^sp-call-[0-9a-f-]{36}-[a-z0-9]+$/i.test(roomName)) {
+              const { error: notifError } = await getSupabase()
+                  .from('notifications')
+                  .delete()
+                  .eq('type', 'incoming_call')
+                  .eq('data->>roomName', roomName)
+                  .or(`user_id.eq.${authenticatedUserId},actor_id.eq.${authenticatedUserId}`);
+              if (notifError) console.warn('[calls/cancel] ringing notification cleanup failed:', notifError.message);
+          }
+
           return res.json({ success: true });
       } catch (e) {
           console.warn('[calls/cancel] Exception:', e);

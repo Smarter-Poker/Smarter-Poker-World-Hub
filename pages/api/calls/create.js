@@ -13,7 +13,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
-import { enqueuePush } from '../../../src/lib/push/push-enqueue';
+import { notify } from '../../../src/lib/notify';
 import { isPushConfigured } from '../../../src/lib/push/web-push';
 import { authorizeCallConversation } from '../../../src/lib/calls/callAuthorization.mjs';
 import { parseCallRoomConversation, normalizeCallType, CALL_RING_TIMEOUT_MS } from '../../../src/lib/calls/callRoom.mjs';
@@ -141,32 +141,42 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Could Not Start The Call. Please Try Again.' });
       }
 
-      // Ring the callee's phone. A push failure never fails the call: an
-      // open Smarter.Poker tab rings from the realtime signal regardless.
+      // Tell the callee the way every other alert does (2026-10-31, Dan: "AS
+      // THE CALL IS RINGING THEY SHOULD GET A NOTIFICATION JUST LIKE ANY OTHER
+      // NOTIFICATION"). One notify() call writes the bell row, which reaches
+      // every open Smarter.Poker page through the notifications realtime stream
+      // (CallProvider rings from it as a second path beside the call signal),
+      // and sends the phone push with Accept and Decline. A notification failure
+      // never fails the call.
       let push = { attempted: false };
-      if (isPushConfigured()) {
-          try {
-              const result = await enqueuePush(sb, {
-                  userId: calleeId,
-                  title: `Incoming ${callType === 'video' ? 'Video' : 'Voice'} Call`,
-                  body: `${displayName} is calling you`,
-                  url: `/hub/messenger?incomingCall=${encodeURIComponent(roomName)}`,
-                  event: 'incoming_call',
-                  data: { type: 'incoming_call', roomName, callType, callerId, conversationId },
-                  icon: avatar || undefined,
-                  relatedEntityId: null,
-                  requireInteraction: true,
-                  tag: `call-${callerId}`,
-                  actions: [
-                      { action: 'accept', title: 'Accept' },
-                      { action: 'decline', title: 'Decline' },
-                  ],
-              });
-              push = { attempted: true, sent: !!result?.sent, skipped: !!result?.skipped, reason: typeof result?.reason === 'string' ? result.reason.split(':')[0] : null };
-          } catch (pushError) {
-              console.warn('[calls/create] push failed (call continues):', pushError?.message || pushError);
-              push = { attempted: true, sent: false };
-          }
+      try {
+          const result = await notify(sb, {
+              userId: calleeId,
+              type: 'incoming_call',
+              event: 'incoming_call',
+              title: `Incoming ${callType === 'video' ? 'Video' : 'Voice'} Call`,
+              body: `${displayName} is calling you`,
+              url: `/hub/messenger?incomingCall=${encodeURIComponent(roomName)}`,
+              actorId: callerId,
+              data: { type: 'incoming_call', roomName, callType, callerId, conversationId, callerName: displayName, callerAvatar: avatar || null },
+              icon: avatar || undefined,
+              relatedEntityId: null,
+              requireInteraction: true,
+              tag: `call-${callerId}`,
+              actions: [
+                  { action: 'accept', title: 'Accept' },
+                  { action: 'decline', title: 'Decline' },
+              ],
+              withPush: isPushConfigured(),
+          });
+          const r = result?.push;
+          push = r
+              ? { attempted: true, sent: !!r.sent, skipped: !!r.skipped, reason: typeof r.reason === 'string' ? r.reason.split(':')[0] : null }
+              : { attempted: false };
+          push.notified = !!result?.ok;
+      } catch (notifyError) {
+          console.warn('[calls/create] notification failed (call continues):', notifyError?.message || notifyError);
+          push = { attempted: true, sent: false };
       }
 
       return res.json({ success: true, call: { id: data.id, roomName, conversationId, callType }, push });
