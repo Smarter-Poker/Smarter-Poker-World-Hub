@@ -11,8 +11,8 @@ import { probeEmail, assertProbeCallee, validateCallProbeConfiguration, PROBE_DO
 const source = readFileSync(new URL('../scripts/ci/messenger-calls-live.mjs', import.meta.url), 'utf8');
 
 test('throwaway identities use a domain that can never receive mail', () => {
-    assert.equal(PROBE_DOMAIN, 'example.invalid');
-    assert.match(probeEmail('b'), /@example\.invalid$/);
+    assert.equal(PROBE_DOMAIN, 'call-probe.example.com');
+    assert.match(probeEmail('b'), /@call-probe\.example\.com$/);
     assert.throws(() => probeEmail('a'), /throwaway roles/);
 });
 

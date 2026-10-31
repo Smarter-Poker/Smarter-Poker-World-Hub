@@ -727,7 +727,7 @@ jobs:
 
   messenger-calls-live:
     # Two-device phone and video call verification against the published app:
-    # the designated test account (caller only) and throwaway .invalid users
+    # the designated test account (caller only) and throwaway example.com users
     # created and hard-deleted by scripts/ci/messenger-calls-live.mjs. No real
     # contact is called and no subscribed phone rings.
     name: Published Messenger Calls Two-Device Verification

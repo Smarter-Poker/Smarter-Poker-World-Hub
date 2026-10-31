@@ -11,8 +11,8 @@
  *      ever PLACES calls, so no device subscribed to the test account rings.
  *   B  a throwaway callee, C an unrelated throwaway. Both are created with the
  *      service role exactly like the signup probe's throwaway user
- *      (pages/api/cron/signup-probe.js): an RFC 2606 .invalid address that can
- *      never receive mail, user_metadata.messenger_call_probe = true, and hard
+ *      (pages/api/cron/signup-probe.js): an RFC 2606 reserved example.com
+ *      address that can never receive mail, user_metadata.messenger_call_probe = true, and hard
  *      deletion in `finally`, confirmed gone. B and C have no push
  *      subscriptions, so no phone anywhere rings.
  *
@@ -33,7 +33,12 @@ import { pathToFileURL } from 'node:url';
 import { APP_ORIGIN, AUTH_ORIGIN } from './messenger-live-configuration.mjs';
 import { makeCallRoomName, CALL_RING_TIMEOUT_MS } from '../../src/lib/calls/callRoom.mjs';
 
-export const PROBE_DOMAIN = 'example.invalid';
+// RFC 2606 reserves example.com: it can never receive mail. Not `.invalid`:
+// fn_ca_is_cert_account classes every `%.invalid` address as certification
+// equipment, and fn_get_user_conversations hides those threads from real
+// users, so a `.invalid` callee's conversation vanished from the caller's
+// inbox after its first message and later receipts were refused.
+export const PROBE_DOMAIN = 'call-probe.example.com';
 export const PROBE_FLAG = 'messenger_call_probe';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LONG_NAME = 'Call Probe Bartholomew Featherstonehaugh-Smythe The Third';
@@ -58,7 +63,7 @@ export function assertProbeCallee(calleeId, probeIds) {
 
 export function selfTest() {
     assert.throws(() => validateCallProbeConfiguration({}), /TEST_USER_EMAIL/);
-    assert.match(probeEmail('b', 1, 'abcd'), /^messenger-call-probe-b-1-abcd@example\.invalid$/);
+    assert.match(probeEmail('b', 1, 'abcd'), /^messenger-call-probe-b-1-abcd@call-probe\.example\.com$/);
     assert.throws(() => probeEmail('a'));
     const probe = new Set(['00000000-0000-4000-8000-000000000001']);
     assert.doesNotThrow(() => assertProbeCallee('00000000-0000-4000-8000-000000000001', probe));
