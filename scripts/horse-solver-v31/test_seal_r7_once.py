@@ -38,7 +38,7 @@ class SealOnlyTests(unittest.TestCase):
    args=list(self.fixture());mutate(args[0])
    with self.assertRaises(q.Refusal):s.proof(q,c,*args)
  def test_missing_or_zero_function_hash_refused(self):
-  for mutate in (lambda p:p['function_hashes'].pop('fn_gto_v31_cell_payload_checksum(jsonb)'),lambda p:p['function_hashes'].update({'fn_gto_v31_public215_canonical(jsonb)':'0'*32})):
+  for mutate in (lambda p:p['function_hashes'].pop('fn_gto_v31_cell_payload_checksum(jsonb)'),lambda p:p['function_hashes'].update({'fn_gto_v31_public215_canonical(jsonb)':'0'*32}),lambda p:p['function_hashes'].pop('fn_gto_v31_source_node_v4_valid(jsonb)'),lambda p:p['function_hashes'].update({'fn_gto_v31_source_node_v3_valid(jsonb)':'0'*32}),lambda p:p['function_hashes'].pop('fn_gto_v31_source_node_v3_fields_valid(jsonb)')):
    args=list(self.fixture());mutate(args[0])
    with self.assertRaises(q.Refusal):s.proof(q,c,*args)
  def test_missing_854_receipt_refused(self):
