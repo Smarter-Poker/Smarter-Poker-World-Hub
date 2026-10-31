@@ -229,6 +229,10 @@ export async function run() {
         };
         const AB = await conversation(B.id);
         const AC = await conversation(C.id);
+        // The inbox deliberately omits empty threads; give C's one a message so
+        // A can switch to it from the list during a call.
+        const { error: seedError } = await admin.from('social_messages').insert({ conversation_id: AC, sender_id: C.id, content: 'Call Verification Thread', message_type: 'text' });
+        assert.ok(!seedError, 'Second synthetic thread could not be seeded');
         const t0 = new Date().toISOString();
 
         // ── Devices ───────────────────────────────────────────────────────
@@ -450,33 +454,72 @@ export async function run() {
             const { data: pushes } = await admin.from('push_outbox').select('status, failure_reason, event').eq('recipient_user_id', B.id).eq('event', 'incoming_call').gte('created_at', t0);
             return { status, pushAttempts: (pushes || []).map(p => `${p.status}:${p.failure_reason || ''}`) };
         });
-        let pushRoute = null;
+        const expectedReceipts = ['completed', 'declined', ...(dockOk ? ['missed'] : [])];
+        let expectedMissedNotices = dockOk ? 1 : 0;
+        if (unreachable) expectedReceipts.push('pending');
+        const pendingRoom = async () => (await admin.from('pending_calls').select('room_name').eq('caller_id', A).eq('callee_id', B.id).order('created_at', { ascending: false }).limit(1).maybeSingle()).data?.room_name || null;
+        // Answer a ringing call the way tapping Accept on the push does, then
+        // require real two-way media before calling it answered.
+        const answerFromPush = async (answering, label, expectSend) => {
+            const room = await pendingRoom();
+            assert.ok(room, 'No pending call to answer');
+            const consoleErrors = [];
+            answering.page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text().slice(0, 160)); });
+            await answering.page.goto(`${APP_ORIGIN}/hub/messenger?incomingCall=${encodeURIComponent(room)}&answer=1`, { waitUntil: 'domcontentloaded' });
+            await until(() => callOpen(answering.page), { timeout: 30000, message: `${label}: push route did not open the call` });
+            try {
+                const atA = await until(async () => { const st = await callStatus(a.page); return /^\d+:\d{2}$/.test(st || '') ? st : null; }, { timeout: 30000, message: `${label}: never joined the call (caller kept waiting)` });
+                const received = await until(async () => { const v = await videos(answering.page); return v.remote >= 1 ? v : null; }, { timeout: 30000, message: `${label}: received no video` });
+                const heard = await audioPeak(answering.page, 3000);
+                assert.ok(heard.streams >= 1 && heard.peak > 0.01, `${label}: heard no audio`);
+                let sentBack = null;
+                if (expectSend) {
+                    sentBack = await until(async () => { const v = await videos(a.page); return v.remote >= 1 ? v : null; }, { timeout: 20000, message: `${label}: caller received no video back` });
+                    const back = await audioPeak(a.page, 3000);
+                    assert.ok(back.peak > 0.01, `${label}: caller heard nothing back`);
+                }
+                await shot(answering.page, `06-answered-from-push-${label.replace(/\W+/g, '-').toLowerCase()}`);
+                return { statusAtCaller: atA, receivedVideo: received, audioPeak: +heard.peak.toFixed(3), sentBack };
+            } catch (error) {
+                const answeringStatus = await callStatus(answering.page).catch(() => null);
+                await shot(answering.page, `fail-06-${label.replace(/\W+/g, '-').toLowerCase()}`);
+                throw new Error(`${error.message}; answering status ${JSON.stringify(answeringStatus)}; console ${JSON.stringify(consoleErrors.slice(0, 4))}`);
+            }
+        };
+        const endFromCaller = async (answering) => {
+            await a.page.getByLabel('End Call', { exact: true }).first().click().catch(() => {});
+            await until(async () => !(await callOpen(a.page)), { timeout: 10000 }).catch(() => {});
+            if (answering) await until(async () => !(await callOpen(answering.page)), { timeout: 15000 }).catch(() => {});
+        };
         if (unreachable) {
-            const { data: pending } = await admin.from('pending_calls').select('room_name').eq('caller_id', A).eq('callee_id', B.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
-            pushRoute = pending?.room_name || null;
+            const chromePhone = await device(chrome, B.session, { ...devices['Pixel 7'] }, 'B2 (Android Chrome emulation, throwaway)');
+            const ok = await step('Push Accept route answers the call with two-way media (mobile Chromium)', () => answerFromPush(chromePhone, 'Mobile Chromium', true));
+            expectedReceipts[expectedReceipts.length - 1] = ok ? 'completed' : 'cancelled';
+            if (!ok) expectedMissedNotices += 1;
+            await endFromCaller(chromePhone);
+            await chromePhone.context.close();
+
+            // Mobile Safari approximation: Playwright WebKit with iPhone 13
+            // emulation. It has no synthetic camera or microphone here.
             let safari = null;
             try {
                 const wk = await webkit.launch({ headless: true });
                 browsers.push(wk);
-                safari = await device(wk, B.session, { ...devices['iPhone 13'] }, 'B2 (WebKit iPhone 13 emulation, throwaway)');
+                safari = await device(wk, B.session, { ...devices['iPhone 13'] }, 'B3 (WebKit iPhone 13 emulation, throwaway)');
             } catch (error) {
                 report.limitations.push(`WebKit could not launch here: ${String(error?.message || error).split('\n')[0].slice(0, 160)}`);
             }
-            const answering = safari || await device(chrome, B.session, { ...devices['Pixel 7'] }, 'B2 (Android Chrome emulation, throwaway)');
-            await step(`Push Accept route answers the call (${safari ? 'mobile WebKit' : 'mobile Chromium'})`, async () => {
-                assert.ok(pushRoute, 'No pending call to answer');
-                await answering.page.goto(`${APP_ORIGIN}/hub/messenger?incomingCall=${encodeURIComponent(pushRoute)}&answer=1`, { waitUntil: 'domcontentloaded' });
-                await until(() => callOpen(answering.page), { timeout: 30000, message: 'Push route did not open the call' });
-                const atA = await until(async () => { const s = await callStatus(a.page); return /^\d+:\d{2}$/.test(s || '') || s === 'Waiting For Them To Join...' ? s : null; }, { timeout: 30000, message: 'Caller never saw the answer' });
-                const received = await until(async () => { const v = await videos(answering.page); return v.remote >= 1 ? v : null; }, { timeout: 30000, message: 'Answering device received no video' }).catch(error => ({ error: error.message }));
-                const heard = await audioPeak(answering.page, 3000).catch(() => ({ streams: 0, peak: 0 }));
-                const sentBack = await videos(a.page);
-                await shot(answering.page, '06-answered-from-push-route');
-                if (safari) report.limitations.push('WebKit here is Playwright WebKit with iPhone 13 emulation on Linux, not Safari on an iPhone; it has no synthetic camera or microphone, so it can only receive.');
-                return { statusAtCaller: atA, answeringReceivedVideo: received, answeringAudioPeak: +((heard.peak || 0).toFixed(3)), callerReceivesVideoFromAnswerer: sentBack.remote };
-            });
-            await a.page.getByLabel('End Call', { exact: true }).first().click().catch(() => {});
-            await until(async () => !(await callOpen(answering.page)), { timeout: 15000, message: 'Answering device stayed in the call' }).catch(() => {});
+            if (safari) {
+                await sleep(1500);
+                assertProbeCallee(B.id, probeIds);
+                await a.page.getByLabel('Start Video Call', { exact: true }).click();
+                await until(async () => (await callStatus(a.page)) !== 'Starting Call...' && !!(await pendingRoom()), { timeout: 15000 }).catch(() => {});
+                const wkOk = await step('Mobile WebKit (iPhone 13 emulation) answers from the push route and receives the call', () => answerFromPush(safari, 'Mobile WebKit', false));
+                expectedReceipts.push(wkOk ? 'completed' : 'cancelled');
+                if (!wkOk) expectedMissedNotices += 1;
+                await endFromCaller(safari);
+                report.limitations.push('Mobile Safari: verified only as Playwright WebKit with iPhone 13 emulation on Linux, receive-only (no synthetic camera or microphone in WebKit). Safari on a physical iPhone was not available to this run.');
+            }
         }
 
         // ── Exactly one receipt per call, exactly one missed-call notice ──
@@ -486,10 +529,9 @@ export async function run() {
             const statuses = (receipts || []).map(r => JSON.parse(r.content.slice('[CALL_RECEIPT]'.length)).status);
             const senders = new Set((receipts || []).map(r => r.sender_id));
             const { data: notices } = await admin.from('notifications').select('type, actor_id').eq('user_id', B.id).eq('type', 'missed_call').gte('created_at', t0);
-            const expected = ['completed', 'declined', ...(dockOk ? ['missed'] : []), ...(unreachable ? ['completed'] : [])];
-            assert.deepEqual(statuses, expected, `Receipts were ${JSON.stringify(statuses)}`);
+            assert.deepEqual(statuses, expectedReceipts, `Receipts were ${JSON.stringify(statuses)}, expected ${JSON.stringify(expectedReceipts)}`);
             assert.ok(senders.size === 1 && senders.has(A), 'A receipt was written by the callee');
-            assert.equal((notices || []).length, dockOk ? 1 : 0, `Missed-call notices: ${(notices || []).length}`);
+            assert.equal((notices || []).length, expectedMissedNotices, `Missed-call notices: ${(notices || []).length}, expected ${expectedMissedNotices}`);
             return { receipts: statuses, missedCallNotices: (notices || []).length };
         });
 
