@@ -52,6 +52,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Home Games', href: '/hub/home-games', text: 'Find And Host Home Poker Games Near You.' },
       { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Sessions, Results And Bankroll With Exports.' },
       { name: 'Poker App Comparisons', href: '/compare', text: 'How These Products Compare With The Alternatives, With Sources.' },
+      { name: 'Platform Features', href: '/features', text: 'All Fifteen Free Smarter.Poker Verticals And Plain-Text Markdown Specs.' },
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Free Poker Quiz Games With Leaderboards And Daily Runs.' },
     ],
   },

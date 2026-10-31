@@ -112,6 +112,12 @@ export const LANDING_GUIDES = [
     href: '/compare',
     summary: 'Club Apps, Room Software, GTO Trainers And Bankroll Trackers Compared, With Sources.',
   },
+  {
+    id: 'features',
+    name: 'Platform Features Directory',
+    href: '/features',
+    summary: 'All Fifteen Free Smarter.Poker Verticals: Bankroll Tax Ledger, Dealer Toke Tracker, Jarvis AI Coach, Club Commander And Solvers.',
+  },
 ];
 
 export default function LandingProductSummary() {

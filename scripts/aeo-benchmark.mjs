@@ -405,6 +405,19 @@ async function runBenchmark() {
   const aboutMd = await fetchRoute('/about.md');
   assertCheck('GET /about.md status 200 with corporate entity spec', aboutMd.status === 200 && aboutMd.text.includes('Smarter Software Inc.'));
 
+  assertCheck('/ links directly to /features directory', homeHtml.text.includes('href="/features"'));
+
+  const glossaryTermHtml = await fetchRoute('/glossary/icm');
+  assertCheck('/glossary/icm includes Wikidata sameAs entity link', glossaryTermHtml.status === 200 && glossaryTermHtml.text.includes('wikidata.org/entity/Q6016143'));
+
+  const learnLessonHtml = await fetchRoute('/learn/icm-basics');
+  assertCheck('/learn/icm-basics includes Wikidata sameAs concept grounding', learnLessonHtml.status === 200 && learnLessonHtml.text.includes('wikidata.org/entity/Q6016143'));
+
+  const rssXml = await fetchRoute('/feed.xml');
+  assertCheck('GET /feed.xml status 200', rssXml.status === 200);
+  assertCheck('/feed.xml syndicates /features/* vertical landers', rssXml.text.includes('https://smarter.poker/features/bankroll-tax-tracker') && rssXml.text.includes('https://smarter.poker/features/poker-equity-calculators'));
+  assertCheck('/feed.xml syndicates /glossary/* term definitions', rssXml.text.includes('https://smarter.poker/glossary/3-bet') && rssXml.text.includes('https://smarter.poker/glossary/icm'));
+
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);
   console.log(`  Total Checks: ${totalTests}`);

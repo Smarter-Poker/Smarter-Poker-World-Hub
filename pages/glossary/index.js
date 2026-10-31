@@ -26,6 +26,7 @@ import {
   glossaryByCategory,
   glossaryTermPath,
 } from '../../src/content/glossary/terms';
+import { getGlossarySameAs } from '../../src/lib/seo/wikidataConcepts';
 
 const categoryAnchor = (category) => category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
@@ -53,6 +54,7 @@ const GLOSSARY_SCHEMA = [
       description: t.definition,
       url: `https://smarter.poker${glossaryTermPath(t.slug)}`,
       termCode: t.slug,
+      sameAs: getGlossarySameAs(t.slug),
       inDefinedTermSet: { '@id': GLOSSARY_SET_ID },
     })),
   },

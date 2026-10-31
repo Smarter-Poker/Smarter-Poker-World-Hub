@@ -40,6 +40,7 @@ import {
 } from '../../src/lib/learn/learnSite.js';
 import { LESSONS, getLesson, trainingCta } from '../../src/content/learn/lessons.js';
 import { readGlossaryTerms, glossaryLinksFor } from '../../src/lib/learn/glossaryLinks.js';
+import { getLessonAboutThing } from '../../src/lib/seo/wikidataConcepts.js';
 
 export async function getStaticPaths() {
   return {
@@ -83,6 +84,7 @@ function lessonSchema(lesson) {
       learningResourceType: 'GTO Poker Strategy Guide',
       educationalLevel: 'Beginner To Advanced',
       teaches: lesson.title,
+      about: getLessonAboutThing(lesson),
       isAccessibleForFree: true,
       speakable: {
         '@type': 'SpeakableSpecification',
