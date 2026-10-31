@@ -11,22 +11,22 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 351,
+    "dependencyFiles": 353,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 352,
     "dialogs": 12,
-    "persistenceFiles": 78,
+    "persistenceFiles": 79,
     "realtimeFiles": 6,
     "tests": 170,
-    "markerCandidates": 337,
-    "possibleUnwiredFunctions": 394,
+    "markerCandidates": 338,
+    "possibleUnwiredFunctions": 397,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 275,
     "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
-    "markerDocumentedFollowUp": 104,
+    "markerDocumentedFollowUp": 105,
     "functionPhaseReview": 0
   },
   "games": [
@@ -4618,6 +4618,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -4634,6 +4635,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -4698,6 +4700,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -4724,11 +4727,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -4758,6 +4763,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -4781,6 +4787,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -4820,6 +4827,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -4863,6 +4871,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -5901,6 +5910,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -5916,6 +5926,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -5969,6 +5980,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -5987,11 +5999,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -6013,6 +6027,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -6029,6 +6044,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -6062,6 +6078,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -6091,6 +6108,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -6296,6 +6314,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/GAME_IMAGES.js",
         "src/data/TRAINING_LIBRARY.js",
@@ -6315,6 +6334,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -6374,6 +6394,7 @@
             "src/hooks/useTrainingProgress.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -6392,12 +6413,14 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useTrainingProgress.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -6419,6 +6442,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -6435,6 +6459,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -6470,6 +6495,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -6500,6 +6526,7 @@
             "src/components/ui/InviteFriendsModal.jsx",
             "src/hooks/useTrainingProgress.js",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -6545,6 +6572,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -6561,6 +6589,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -6630,6 +6659,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -6657,11 +6687,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -6692,6 +6724,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -6715,6 +6748,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -6754,6 +6788,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -6798,6 +6833,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -6855,6 +6891,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/TRAINING_CLINICS.js",
         "src/engine/EventBus.js",
@@ -6871,6 +6908,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -6922,6 +6960,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -6938,11 +6977,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -6962,6 +7003,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -6976,6 +7018,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -7007,6 +7050,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -7032,6 +7076,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -8323,6 +8368,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -8339,6 +8385,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -8391,6 +8438,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -8410,11 +8458,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -8436,6 +8486,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -8452,6 +8503,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -8485,6 +8537,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -8515,6 +8568,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -9634,6 +9688,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -9651,6 +9706,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -9703,6 +9759,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -9722,11 +9779,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -9748,6 +9807,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -9764,6 +9824,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -9799,6 +9860,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -9829,6 +9891,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -10227,6 +10290,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -10243,6 +10307,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -10306,6 +10371,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -10328,11 +10394,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -10357,6 +10425,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -10375,6 +10444,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -10409,6 +10479,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -10443,6 +10514,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -10490,6 +10562,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -10507,6 +10580,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -10580,6 +10654,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -10609,12 +10684,14 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/usePersistedFilters.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -10646,6 +10723,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -10671,6 +10749,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -10715,6 +10794,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -10762,6 +10842,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -10816,6 +10897,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -10831,6 +10913,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -10880,6 +10963,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -10896,11 +10980,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -10920,6 +11006,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -10934,6 +11021,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -10965,6 +11053,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -10990,6 +11079,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -12153,6 +12243,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/GAME_IMAGES.js",
         "src/data/TRAINING_LIBRARY.js",
@@ -12174,6 +12265,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -12239,6 +12331,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -12265,11 +12358,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -12298,6 +12393,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -12321,6 +12417,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/LevelSelector.tsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -12361,6 +12458,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -12403,6 +12501,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -12979,6 +13078,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -12995,6 +13095,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -13069,6 +13170,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -13105,11 +13207,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -13150,6 +13254,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -13183,6 +13288,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -13232,6 +13338,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -13295,6 +13402,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -13365,6 +13473,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -13380,6 +13489,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -13431,6 +13541,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -13449,11 +13560,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -13475,6 +13588,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -13491,6 +13605,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -13524,6 +13639,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -13553,6 +13669,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -16039,6 +16156,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -16055,6 +16173,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -16116,6 +16235,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -16139,11 +16259,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -16171,6 +16293,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -16191,6 +16314,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -16227,6 +16351,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -16264,6 +16389,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -16312,6 +16438,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -16328,6 +16455,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -16386,6 +16514,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -16409,11 +16538,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -16440,6 +16571,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -16460,6 +16592,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -16496,6 +16629,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -16532,6 +16666,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -16852,6 +16987,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -16867,6 +17003,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -16918,6 +17055,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -16934,11 +17072,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -16958,6 +17098,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -16972,6 +17113,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -17003,6 +17145,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -17028,6 +17171,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -17253,6 +17397,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -17269,6 +17414,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -17321,6 +17467,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -17341,11 +17488,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -17368,6 +17517,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -17385,6 +17535,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -17419,6 +17570,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -17451,6 +17603,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -17501,6 +17654,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -17517,6 +17671,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -17578,6 +17733,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
@@ -17602,11 +17758,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -17633,6 +17791,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -17654,6 +17813,7 @@
             "src/components/sandbox/paTokens.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -17693,6 +17853,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -17734,6 +17895,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -17789,6 +17951,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -17806,6 +17969,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -17874,6 +18038,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -17900,11 +18065,13 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/config/hamburgerMenus.js",
             "src/contexts/AvatarContext.jsx",
+            "src/contexts/PushContext.jsx",
             "src/hooks/useCurrentUser.js",
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/ownProfile.js",
+            "src/lib/push-client.js",
             "src/lib/server/fetchJsonWithDeadline.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
@@ -17934,6 +18101,7 @@
             "src/components/ui/WorldCommandMenuBoundary.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/push-client.js",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
@@ -17957,6 +18125,7 @@
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
+            "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/ReportBugWidget.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/config/hamburgerMenus.js",
@@ -17997,6 +18166,7 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -18042,6 +18212,7 @@
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
             "src/lib/authUtils.js",
+            "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
           ],
@@ -40703,12 +40874,14 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/lib/authUtils.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/supabase.js",
         "src/lib/world-menu/navigationState.mjs",
         "src/stores/pageOverlayStore.js",
+        "src/stores/toastStore.js",
         "src/tutorials/index.js"
       ],
       "links": [],
@@ -40718,7 +40891,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 849,
+          "line": 851,
           "handler": "onActivate",
           "destination": null,
           "type": "button",
@@ -40728,7 +40901,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 856,
+          "line": 858,
           "handler": "onActivate",
           "destination": "item.href",
           "type": null,
@@ -40738,7 +40911,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 862,
+          "line": 864,
           "handler": "onActivate",
           "destination": "item.href",
           "type": null,
@@ -40748,7 +40921,7 @@
         {
           "element": "button",
           "name": "item.label",
-          "line": 879,
+          "line": 881,
           "handler": "() => item.onChange(!item.checked)",
           "destination": null,
           "type": "button",
@@ -40758,7 +40931,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 938,
+          "line": 940,
           "handler": "() => {\n              if (item.openInviteModal) {\n                onClose?.();\n                setShowInviteModal(true);\n                return;\n              }\n              if (typeof item.onClick === 'function') item.onClick();\n              if (item.closeOnClick !== false) onClose?.();\n            }",
           "destination": null,
           "type": "button",
@@ -40768,7 +40941,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1028,
+          "line": 1030,
           "handler": "() => {\n                      gridItem.onClick();\n                      onClose?.();\n                    }",
           "destination": null,
           "type": "button",
@@ -40778,7 +40951,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 1055,
+          "line": 1057,
           "handler": "onTile",
           "destination": "gridItem.href",
           "type": null,
@@ -40788,7 +40961,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1062,
+          "line": 1064,
           "handler": "onTile",
           "destination": "gridItem.href",
           "type": null,
@@ -40798,7 +40971,7 @@
         {
           "element": "button",
           "name": "editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'",
-          "line": 1278,
+          "line": 1314,
           "handler": "() => setEditFavs((v) => !v)",
           "destination": null,
           "type": "button",
@@ -40808,7 +40981,7 @@
         {
           "element": "button",
           "name": "Close menu",
-          "line": 1293,
+          "line": 1329,
           "handler": "onClose",
           "destination": null,
           "type": "button",
@@ -40818,7 +40991,7 @@
         {
           "element": "button",
           "name": "Clear search",
-          "line": 1355,
+          "line": 1391,
           "handler": "() => {\n                    setQuery('');\n                    if (isPokerNearMeMenu) searchInputRef.current?.focus();\n                  }",
           "destination": null,
           "type": "button",
@@ -40828,7 +41001,7 @@
         {
           "element": "a",
           "name": "`Open ${sc.name}`",
-          "line": 1449,
+          "line": 1485,
           "handler": "(e) => {\n                            e.preventDefault();\n                            if (sc.page) switchToClub(sc.page);\n                            onClose?.();\n                            window.location.href = sc.href;\n                          }",
           "destination": "sc.href",
           "type": null,
@@ -40838,7 +41011,7 @@
         {
           "element": "link",
           "name": "`Open ${sc.name}`",
-          "line": 1467,
+          "line": 1503,
           "handler": "() => {\n                          if (sc.page) switchToClub(sc.page);\n                          onClose?.();\n                        }",
           "destination": "sc.href",
           "type": null,
@@ -40848,7 +41021,7 @@
         {
           "element": "link",
           "name": "See all your pages",
-          "line": 1484,
+          "line": 1520,
           "handler": "() => onClose?.()",
           "destination": "/hub/social-pages",
           "type": null,
@@ -40858,7 +41031,7 @@
         {
           "element": "link",
           "name": "View Profile",
-          "line": 1551,
+          "line": 1587,
           "handler": "() => onClose?.()",
           "destination": "isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'",
           "type": null,
@@ -40868,7 +41041,7 @@
         {
           "element": "button",
           "name": "(Personal)",
-          "line": 1597,
+          "line": 1633,
           "handler": "() => { switchToPersonal(); onClose?.(); }",
           "destination": null,
           "type": "button",
@@ -40878,7 +41051,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1620,
+          "line": 1656,
           "handler": "() => {\n                            switchToClub(page);\n                            onClose?.();\n                            if (page.page_type === 'home_game') {\n                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route\n                            } else if (page.page_type === 'club') {\n                              window.location.href = '/hub/commander';\n                            } else {\n                              router.push(`/hub/social-pages/${page.id}`);\n                            }\n                          }",
           "destination": null,
           "type": "button",
@@ -40888,7 +41061,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1703,
+          "line": 1739,
           "handler": "() => toggleSection(group.label)",
           "destination": null,
           "type": "button",
@@ -40898,7 +41071,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1782,
+          "line": 1818,
           "handler": "() => {\n                      if (link.openInviteModal) {\n                        onClose?.();\n                        setShowInviteModal(true);\n                        return;\n                      }\n                      if (typeof link.onClick === 'function') link.onClick();\n                      onClose?.();\n                    }",
           "destination": null,
           "type": "button",
@@ -40908,7 +41081,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 1806,
+          "line": 1842,
           "handler": "() => onClose?.()",
           "destination": "link.href",
           "type": null,
@@ -40918,7 +41091,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1815,
+          "line": 1851,
           "handler": "() => { rememberRecent(link); onClose?.(); }",
           "destination": "link.href",
           "type": null,
@@ -40940,7 +41113,7 @@
         "retry": false,
         "offline": true,
         "stale": true,
-        "success": false,
+        "success": true,
         "authExpiry": true
       },
       "persistenceWrites": {
@@ -40960,7 +41133,7 @@
       "functions": [
         {
           "name": "pokerNearMeCommandIcon",
-          "line": 132,
+          "line": 134,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40968,7 +41141,7 @@
         },
         {
           "name": "buildGroups",
-          "line": 159,
+          "line": 161,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40976,7 +41149,7 @@
         },
         {
           "name": "countActionable",
-          "line": 174,
+          "line": 176,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40984,7 +41157,7 @@
         },
         {
           "name": "collectLinkables",
-          "line": 179,
+          "line": 181,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40992,7 +41165,7 @@
         },
         {
           "name": "HamburgerMenuContent",
-          "line": 192,
+          "line": 194,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41000,7 +41173,7 @@
         },
         {
           "name": "HamburgerMenu",
-          "line": 2210,
+          "line": 2246,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -41008,7 +41181,7 @@
         },
         {
           "name": "needsHardNav",
-          "line": 58,
+          "line": 60,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41016,7 +41189,7 @@
         },
         {
           "name": "isNotificationsHref",
-          "line": 68,
+          "line": 70,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41024,7 +41197,7 @@
         },
         {
           "name": "isModifiedActivation",
-          "line": 73,
+          "line": 75,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41032,7 +41205,7 @@
         },
         {
           "name": "lsGet",
-          "line": 81,
+          "line": 83,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -41040,7 +41213,7 @@
         },
         {
           "name": "lsSet",
-          "line": 91,
+          "line": 93,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41048,7 +41221,7 @@
         },
         {
           "name": "labelOf",
-          "line": 96,
+          "line": 98,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -41056,15 +41229,15 @@
         },
         {
           "name": "matchesId",
-          "line": 97,
-          "references": 3,
+          "line": 99,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "looksLikeSignOut",
-          "line": 98,
+          "line": 100,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41072,7 +41245,7 @@
         },
         {
           "name": "pokerNearMeIconClass",
-          "line": 216,
+          "line": 218,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -41080,7 +41253,7 @@
         },
         {
           "name": "goOn",
-          "line": 311,
+          "line": 313,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41088,7 +41261,7 @@
         },
         {
           "name": "goOff",
-          "line": 312,
+          "line": 314,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41096,15 +41269,15 @@
         },
         {
           "name": "on",
-          "line": 325,
-          "references": 25,
+          "line": 327,
+          "references": 27,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "containOutsideKey",
-          "line": 398,
+          "line": 400,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41112,7 +41285,7 @@
         },
         {
           "name": "handleTouchStart",
-          "line": 474,
+          "line": 476,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41120,7 +41293,7 @@
         },
         {
           "name": "handleTouchEnd",
-          "line": 484,
+          "line": 486,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41128,7 +41301,7 @@
         },
         {
           "name": "handleTouchCancel",
-          "line": 495,
+          "line": 497,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41136,7 +41309,7 @@
         },
         {
           "name": "isolateBranches",
-          "line": 532,
+          "line": 534,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41144,7 +41317,7 @@
         },
         {
           "name": "toggleSection",
-          "line": 633,
+          "line": 635,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41152,7 +41325,7 @@
         },
         {
           "name": "toggleFav",
-          "line": 644,
+          "line": 646,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41160,7 +41333,7 @@
         },
         {
           "name": "renderNavigation",
-          "line": 747,
+          "line": 749,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41168,7 +41341,7 @@
         },
         {
           "name": "onActivate",
-          "line": 802,
+          "line": 804,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41176,7 +41349,7 @@
         },
         {
           "name": "renderMenuItem",
-          "line": 868,
+          "line": 870,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41184,7 +41357,7 @@
         },
         {
           "name": "onTile",
-          "line": 1045,
+          "line": 1047,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41192,7 +41365,7 @@
         },
         {
           "name": "renderSectionTitle",
-          "line": 1089,
+          "line": 1091,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41200,7 +41373,7 @@
         },
         {
           "name": "isWiredSignOut",
-          "line": 1132,
+          "line": 1168,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41211,7 +41384,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 81,
+          "line": 83,
           "excerpt": "const lsGet = (key, fallback) => {",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41219,7 +41392,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 84,
+          "line": 86,
           "excerpt": "if (!raw) return fallback;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41227,7 +41400,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 86,
+          "line": 88,
           "excerpt": "return parsed === null || parsed === undefined ? fallback : parsed;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41235,7 +41408,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 88,
+          "line": 90,
           "excerpt": "return fallback;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41243,7 +41416,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 422,
+          "line": 424,
           "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41251,7 +41424,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 438,
+          "line": 440,
           "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41259,7 +41432,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1025,
+          "line": 1027,
           "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41267,7 +41440,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1026,
+          "line": 1028,
           "excerpt": "if (stub) return null;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41275,7 +41448,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1129,
+          "line": 1165,
           "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41283,7 +41456,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1345,
+          "line": 1381,
           "excerpt": "placeholder=\"Search menu\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41291,7 +41464,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1779,
+          "line": 1815,
           "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41299,7 +41472,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1780,
+          "line": 1816,
           "excerpt": "if (stub) return null;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -43626,6 +43799,78 @@
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
           "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+        }
+      ]
+    },
+    {
+      "file": "src/contexts/PushContext.jsx",
+      "imports": [
+        "src/lib/push-client.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "PushProvider",
+          "line": 26,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "usePush",
+          "line": 96,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "PushProvider",
+        "usePush"
+      ],
+      "markers": [
+        {
+          "kind": "FALLBACK",
+          "line": 99,
+          "excerpt": "// Render-safe fallback: a consumer mounted outside the provider gets",
+          "disposition": "runtime-resilience-fallback",
+          "review": "documented-follow-up",
+          "followUpPhase": 15,
+          "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
         }
       ]
     },
@@ -49283,6 +49528,247 @@
         }
       ],
       "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/lib/push-client.js",
+      "imports": [
+        "src/lib/authUtils.js"
+      ],
+      "links": [],
+      "apiReferences": [
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key"
+      ],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "retry": true,
+        "offline": false,
+        "stale": true,
+        "success": false,
+        "authExpiry": true
+      },
+      "persistenceWrites": {
+        "localStorage": 2,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "authHeaders",
+          "line": 36,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "withTimeout",
+          "line": 67,
+          "references": 13,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isWebPushSupported",
+          "line": 76,
+          "references": 6,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "notificationPermission",
+          "line": 85,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isIosStandalonePwa",
+          "line": 95,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isIos",
+          "line": 101,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "urlBase64ToUint8Array",
+          "line": 107,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bufferToBase64Url",
+          "line": 116,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "applicationServerKeyMatches",
+          "line": 124,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "deviceId",
+          "line": 161,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "deviceLabel",
+          "line": 177,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "fetchVapidKey",
+          "line": 187,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "waitForActiveWorker",
+          "line": 211,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getRegistration",
+          "line": 235,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "persistSubscription",
+          "line": 279,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "enablePush",
+          "line": 328,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isOptedOut",
+          "line": 436,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "setOptOut",
+          "line": 439,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "clearOptOut",
+          "line": 442,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "disablePush",
+          "line": 447,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "sendTestPush",
+          "line": 480,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "hasLocalSubscription",
+          "line": 500,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "finish",
+          "line": 218,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "onState",
+          "line": 225,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "isOptedOut"
+      ],
       "markers": []
     },
     {
@@ -62924,6 +63410,10 @@
     },
     {
       "from": "src/components/ui/HamburgerMenu.jsx",
+      "to": "src/contexts/PushContext.jsx"
+    },
+    {
+      "from": "src/components/ui/HamburgerMenu.jsx",
       "to": "src/lib/authUtils.js"
     },
     {
@@ -62945,6 +63435,10 @@
     {
       "from": "src/components/ui/HamburgerMenu.jsx",
       "to": "src/stores/pageOverlayStore.js"
+    },
+    {
+      "from": "src/components/ui/HamburgerMenu.jsx",
+      "to": "src/stores/toastStore.js"
     },
     {
       "from": "src/components/ui/HamburgerMenu.jsx",
@@ -63077,6 +63571,10 @@
     {
       "from": "src/contexts/AvatarContext.jsx",
       "to": "src/services/avatar-service.js"
+    },
+    {
+      "from": "src/contexts/PushContext.jsx",
+      "to": "src/lib/push-client.js"
     },
     {
       "from": "src/contexts/TrainingSettingsContext.jsx",
@@ -63373,6 +63871,10 @@
     {
       "from": "src/lib/idbCacheStore.js",
       "to": "src/lib/idbCacheStore.js"
+    },
+    {
+      "from": "src/lib/push-client.js",
+      "to": "src/lib/authUtils.js"
     },
     {
       "from": "src/lib/seo/hubPageSchema.js",
@@ -64588,6 +65090,17 @@
         "updates": 0,
         "deletes": 0,
         "rpc": 1
+      }
+    },
+    {
+      "file": "src/lib/push-client.js",
+      "writes": {
+        "localStorage": 2,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
       }
     },
     {
@@ -68753,11 +69266,11 @@
       "effectRef": "src/components/ui/GeevesMenuWidget.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:849:1",
+      "id": "src/components/ui/HamburgerMenu.jsx:851:1",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 849,
+      "line": 851,
       "handler": "onActivate",
       "destination": null,
       "type": "button",
@@ -68766,11 +69279,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:856:2",
+      "id": "src/components/ui/HamburgerMenu.jsx:858:2",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 856,
+      "line": 858,
       "handler": "onActivate",
       "destination": "item.href",
       "type": null,
@@ -68779,11 +69292,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:862:3",
+      "id": "src/components/ui/HamburgerMenu.jsx:864:3",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 862,
+      "line": 864,
       "handler": "onActivate",
       "destination": "item.href",
       "type": null,
@@ -68792,11 +69305,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:879:4",
+      "id": "src/components/ui/HamburgerMenu.jsx:881:4",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "item.label",
-      "line": 879,
+      "line": 881,
       "handler": "() => item.onChange(!item.checked)",
       "destination": null,
       "type": "button",
@@ -68805,11 +69318,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:938:5",
+      "id": "src/components/ui/HamburgerMenu.jsx:940:5",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 938,
+      "line": 940,
       "handler": "() => {\n              if (item.openInviteModal) {\n                onClose?.();\n                setShowInviteModal(true);\n                return;\n              }\n              if (typeof item.onClick === 'function') item.onClick();\n              if (item.closeOnClick !== false) onClose?.();\n            }",
       "destination": null,
       "type": "button",
@@ -68818,11 +69331,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1028:6",
+      "id": "src/components/ui/HamburgerMenu.jsx:1030:6",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1028,
+      "line": 1030,
       "handler": "() => {\n                      gridItem.onClick();\n                      onClose?.();\n                    }",
       "destination": null,
       "type": "button",
@@ -68831,11 +69344,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1055:7",
+      "id": "src/components/ui/HamburgerMenu.jsx:1057:7",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 1055,
+      "line": 1057,
       "handler": "onTile",
       "destination": "gridItem.href",
       "type": null,
@@ -68844,11 +69357,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1062:8",
+      "id": "src/components/ui/HamburgerMenu.jsx:1064:8",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1062,
+      "line": 1064,
       "handler": "onTile",
       "destination": "gridItem.href",
       "type": null,
@@ -68857,11 +69370,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1278:9",
+      "id": "src/components/ui/HamburgerMenu.jsx:1314:9",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'",
-      "line": 1278,
+      "line": 1314,
       "handler": "() => setEditFavs((v) => !v)",
       "destination": null,
       "type": "button",
@@ -68870,11 +69383,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1293:10",
+      "id": "src/components/ui/HamburgerMenu.jsx:1329:10",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "Close menu",
-      "line": 1293,
+      "line": 1329,
       "handler": "onClose",
       "destination": null,
       "type": "button",
@@ -68883,11 +69396,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1355:11",
+      "id": "src/components/ui/HamburgerMenu.jsx:1391:11",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "Clear search",
-      "line": 1355,
+      "line": 1391,
       "handler": "() => {\n                    setQuery('');\n                    if (isPokerNearMeMenu) searchInputRef.current?.focus();\n                  }",
       "destination": null,
       "type": "button",
@@ -68896,11 +69409,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1449:12",
+      "id": "src/components/ui/HamburgerMenu.jsx:1485:12",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "`Open ${sc.name}`",
-      "line": 1449,
+      "line": 1485,
       "handler": "(e) => {\n                            e.preventDefault();\n                            if (sc.page) switchToClub(sc.page);\n                            onClose?.();\n                            window.location.href = sc.href;\n                          }",
       "destination": "sc.href",
       "type": null,
@@ -68909,11 +69422,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1467:13",
+      "id": "src/components/ui/HamburgerMenu.jsx:1503:13",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "`Open ${sc.name}`",
-      "line": 1467,
+      "line": 1503,
       "handler": "() => {\n                          if (sc.page) switchToClub(sc.page);\n                          onClose?.();\n                        }",
       "destination": "sc.href",
       "type": null,
@@ -68922,11 +69435,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1484:14",
+      "id": "src/components/ui/HamburgerMenu.jsx:1520:14",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "See all your pages",
-      "line": 1484,
+      "line": 1520,
       "handler": "() => onClose?.()",
       "destination": "/hub/social-pages",
       "type": null,
@@ -68935,11 +69448,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1551:15",
+      "id": "src/components/ui/HamburgerMenu.jsx:1587:15",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "View Profile",
-      "line": 1551,
+      "line": 1587,
       "handler": "() => onClose?.()",
       "destination": "isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'",
       "type": null,
@@ -68948,11 +69461,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1597:16",
+      "id": "src/components/ui/HamburgerMenu.jsx:1633:16",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "(Personal)",
-      "line": 1597,
+      "line": 1633,
       "handler": "() => { switchToPersonal(); onClose?.(); }",
       "destination": null,
       "type": "button",
@@ -68961,11 +69474,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1620:17",
+      "id": "src/components/ui/HamburgerMenu.jsx:1656:17",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1620,
+      "line": 1656,
       "handler": "() => {\n                            switchToClub(page);\n                            onClose?.();\n                            if (page.page_type === 'home_game') {\n                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route\n                            } else if (page.page_type === 'club') {\n                              window.location.href = '/hub/commander';\n                            } else {\n                              router.push(`/hub/social-pages/${page.id}`);\n                            }\n                          }",
       "destination": null,
       "type": "button",
@@ -68974,11 +69487,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1703:18",
+      "id": "src/components/ui/HamburgerMenu.jsx:1739:18",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1703,
+      "line": 1739,
       "handler": "() => toggleSection(group.label)",
       "destination": null,
       "type": "button",
@@ -68987,11 +69500,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1782:19",
+      "id": "src/components/ui/HamburgerMenu.jsx:1818:19",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1782,
+      "line": 1818,
       "handler": "() => {\n                      if (link.openInviteModal) {\n                        onClose?.();\n                        setShowInviteModal(true);\n                        return;\n                      }\n                      if (typeof link.onClick === 'function') link.onClick();\n                      onClose?.();\n                    }",
       "destination": null,
       "type": "button",
@@ -69000,11 +69513,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1806:20",
+      "id": "src/components/ui/HamburgerMenu.jsx:1842:20",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 1806,
+      "line": 1842,
       "handler": "() => onClose?.()",
       "destination": "link.href",
       "type": null,
@@ -69013,11 +69526,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1815:21",
+      "id": "src/components/ui/HamburgerMenu.jsx:1851:21",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1815,
+      "line": 1851,
       "handler": "() => { rememberRecent(link); onClose?.(); }",
       "destination": "link.href",
       "type": null,
@@ -72428,6 +72941,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -72444,6 +72958,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -72475,6 +72990,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -72615,6 +73133,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -73285,6 +73814,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -73300,6 +73830,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -73331,6 +73862,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -73470,6 +74004,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -73633,6 +74178,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/GAME_IMAGES.js",
         "src/data/TRAINING_LIBRARY.js",
@@ -73652,6 +74198,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -73683,6 +74230,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -73837,6 +74387,17 @@
           }
         },
         {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/store/checkoutIntentStore.js",
           "writes": {
             "localStorage": 0,
@@ -73969,6 +74530,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -73985,6 +74547,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -74020,6 +74583,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -74159,6 +74725,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -74293,6 +74870,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/TRAINING_CLINICS.js",
         "src/engine/EventBus.js",
@@ -74309,6 +74887,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -74340,6 +74919,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -74479,6 +75061,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -74993,6 +75586,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -75009,6 +75603,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -75038,6 +75633,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -75178,6 +75776,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -75619,6 +76228,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -75636,6 +76246,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -75665,6 +76276,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -75816,6 +76430,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -76063,6 +76688,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -76079,6 +76705,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -76115,6 +76742,9 @@
         "/api/jarvis/user-insights",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -76257,6 +76887,17 @@
           }
         },
         {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/store/checkoutIntentStore.js",
           "writes": {
             "localStorage": 0,
@@ -76390,6 +77031,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -76407,6 +77049,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -76443,6 +77086,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -76597,6 +77243,17 @@
           }
         },
         {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/store/checkoutIntentStore.js",
           "writes": {
             "localStorage": 0,
@@ -76729,6 +77386,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -76744,6 +77402,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -76773,6 +77432,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -76912,6 +77574,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -77498,6 +78171,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/GAME_IMAGES.js",
         "src/data/TRAINING_LIBRARY.js",
@@ -77519,6 +78193,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -77553,6 +78228,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -77704,6 +78382,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -78077,6 +78766,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -78093,6 +78783,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -78125,6 +78816,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -78264,6 +78958,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -78403,6 +79108,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -78418,6 +79124,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -78447,6 +79154,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -78586,6 +79296,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -79701,6 +80422,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -79717,6 +80439,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -79748,6 +80471,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -79888,6 +80614,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -80071,6 +80808,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -80087,6 +80825,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -80116,6 +80855,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -80256,6 +80998,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -80442,6 +81195,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -80457,6 +81211,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -80488,6 +81243,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -80627,6 +81385,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -80817,6 +81586,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -80833,6 +81603,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -80862,6 +81633,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -81005,6 +81779,17 @@
           }
         },
         {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/store/checkoutIntentStore.js",
           "writes": {
             "localStorage": 0,
@@ -81135,6 +81920,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -81151,6 +81937,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
@@ -81182,6 +81969,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -81322,6 +82112,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -81462,6 +82263,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/data/TRAINING_LIBRARY.js",
         "src/engine/EventBus.js",
@@ -81479,6 +82281,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -81514,6 +82317,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -81654,6 +82460,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -83434,6 +84251,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useProfileRealtime.js",
@@ -83444,6 +84262,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -83451,6 +84270,7 @@
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
+        "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
         "src/tutorials/personal-assistant.js",
@@ -83465,6 +84285,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/training/challenges",
         "/api/training/save-session",
@@ -83547,6 +84370,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -83702,6 +84536,7 @@
         "src/config/worldMenuNavigation.js",
         "src/contexts/ActiveIdentityContext.jsx",
         "src/contexts/AvatarContext.jsx",
+        "src/contexts/PushContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
         "src/hooks/useCurrentUser.js",
@@ -83717,6 +84552,7 @@
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
         "src/lib/ownProfile.js",
+        "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
         "src/lib/store/boundedCommerceFetch.js",
@@ -83746,6 +84582,9 @@
         "/api/geeves/chat",
         "/api/live-help/report-bug",
         "/api/notifications/mark-read",
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
         "/api/social/pages",
         "/api/store/diamond-transactions",
         "/api/store/diamond-transfer",
@@ -83885,6 +84724,17 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -84320,6 +85170,61 @@
           }
         }
       ],
+      "tests": []
+    },
+    {
+      "file": "src/contexts/PushContext.jsx",
+      "reachableFiles": [
+        "src/contexts/PushContext.jsx",
+        "src/lib/authUtils.js",
+        "src/lib/push-client.js",
+        "src/lib/supabase.js",
+        "src/lib/supabaseKeys.js",
+        "src/lib/training/boundedTrainingFetch.js"
+      ],
+      "apiReferences": [
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
+        "/api/training/challenges",
+        "/api/training/save-session"
+      ],
+      "persistence": [
+        {
+          "file": "src/lib/authUtils.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/training/boundedTrainingFetch.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
       "tests": []
     },
     {
@@ -85795,6 +86700,60 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/lib/push-client.js",
+      "reachableFiles": [
+        "src/lib/authUtils.js",
+        "src/lib/push-client.js",
+        "src/lib/supabase.js",
+        "src/lib/supabaseKeys.js",
+        "src/lib/training/boundedTrainingFetch.js"
+      ],
+      "apiReferences": [
+        "/api/push/subscribe",
+        "/api/push/test",
+        "/api/push/vapid-public-key",
+        "/api/training/challenges",
+        "/api/training/save-session"
+      ],
+      "persistence": [
+        {
+          "file": "src/lib/authUtils.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 2,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/push-client.js",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/training/boundedTrainingFetch.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
           }
         }
       ],
@@ -88512,7 +89471,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 81,
+        "line": 83,
         "excerpt": "const lsGet = (key, fallback) => {",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88521,7 +89480,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 84,
+        "line": 86,
         "excerpt": "if (!raw) return fallback;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88530,7 +89489,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 86,
+        "line": 88,
         "excerpt": "return parsed === null || parsed === undefined ? fallback : parsed;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88539,7 +89498,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 88,
+        "line": 90,
         "excerpt": "return fallback;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88548,7 +89507,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 422,
+        "line": 424,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88557,7 +89516,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 438,
+        "line": 440,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88566,7 +89525,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1025,
+        "line": 1027,
         "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88575,7 +89534,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1026,
+        "line": 1028,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88584,7 +89543,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1129,
+        "line": 1165,
         "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88593,7 +89552,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1345,
+        "line": 1381,
         "excerpt": "placeholder=\"Search menu\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88602,7 +89561,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1779,
+        "line": 1815,
         "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88611,7 +89570,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1780,
+        "line": 1816,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -88992,6 +89951,16 @@
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
         "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+      },
+      {
+        "file": "src/contexts/PushContext.jsx",
+        "kind": "FALLBACK",
+        "line": 99,
+        "excerpt": "// Render-safe fallback: a consumer mounted outside the provider gets",
+        "disposition": "runtime-resilience-fallback",
+        "review": "documented-follow-up",
+        "followUpPhase": 15,
+        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
       },
       {
         "file": "src/contexts/TrainingSettingsContext.jsx",
@@ -93538,6 +94507,40 @@
         ]
       },
       {
+        "file": "src/contexts/PushContext.jsx",
+        "name": "PushProvider",
+        "line": 26,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/_app.js",
+          "src/contexts/OneSignalContext.jsx",
+          "src/contexts/OneSignalContext.jsx"
+        ]
+      },
+      {
+        "file": "src/contexts/PushContext.jsx",
+        "name": "usePush",
+        "line": 96,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/ui/HamburgerMenu.jsx",
+          "src/contexts/OneSignalContext.jsx",
+          "src/contexts/OneSignalContext.jsx"
+        ]
+      },
+      {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAvatarsByCategory",
         "line": 1060,
@@ -94162,6 +95165,22 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/social/GoLiveModal.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/push-client.js",
+        "name": "isOptedOut",
+        "line": 436,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/notifications/FirstRunNotificationPrompt.jsx",
+          "src/components/notifications/PushSubscriptionSync.jsx"
         ]
       },
       {
@@ -97855,7 +98874,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 81,
+        "line": 83,
         "excerpt": "const lsGet = (key, fallback) => {",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97864,7 +98883,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 84,
+        "line": 86,
         "excerpt": "if (!raw) return fallback;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97873,7 +98892,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 86,
+        "line": 88,
         "excerpt": "return parsed === null || parsed === undefined ? fallback : parsed;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97882,7 +98901,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 88,
+        "line": 90,
         "excerpt": "return fallback;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97891,7 +98910,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 422,
+        "line": 424,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97900,7 +98919,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 438,
+        "line": 440,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97909,7 +98928,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1025,
+        "line": 1027,
         "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97918,7 +98937,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1026,
+        "line": 1028,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97927,7 +98946,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1129,
+        "line": 1165,
         "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97936,7 +98955,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1345,
+        "line": 1381,
         "excerpt": "placeholder=\"Search menu\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97945,7 +98964,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1779,
+        "line": 1815,
         "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -97954,7 +98973,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1780,
+        "line": 1816,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -98335,6 +99354,16 @@
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
         "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+      },
+      {
+        "file": "src/contexts/PushContext.jsx",
+        "kind": "FALLBACK",
+        "line": 99,
+        "excerpt": "// Render-safe fallback: a consumer mounted outside the provider gets",
+        "disposition": "runtime-resilience-fallback",
+        "review": "documented-follow-up",
+        "followUpPhase": 15,
+        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
       },
       {
         "file": "src/contexts/TrainingSettingsContext.jsx",
@@ -102881,6 +103910,40 @@
         ]
       },
       {
+        "file": "src/contexts/PushContext.jsx",
+        "name": "PushProvider",
+        "line": 26,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/_app.js",
+          "src/contexts/OneSignalContext.jsx",
+          "src/contexts/OneSignalContext.jsx"
+        ]
+      },
+      {
+        "file": "src/contexts/PushContext.jsx",
+        "name": "usePush",
+        "line": 96,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/ui/HamburgerMenu.jsx",
+          "src/contexts/OneSignalContext.jsx",
+          "src/contexts/OneSignalContext.jsx"
+        ]
+      },
+      {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAvatarsByCategory",
         "line": 1060,
@@ -103505,6 +104568,22 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/social/GoLiveModal.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/push-client.js",
+        "name": "isOptedOut",
+        "line": 436,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/notifications/FirstRunNotificationPrompt.jsx",
+          "src/components/notifications/PushSubscriptionSync.jsx"
         ]
       },
       {
