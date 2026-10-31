@@ -145,9 +145,26 @@ export async function run() {
     await mkdir(evidenceDir, { recursive: true });
     const report = { observedAt: new Date().toISOString(), expectedSha: process.env.MESSENGER_EXPECTED_SHA, status: 'running', checks: [], limitations: [], devices: {} };
     const record = (name, ok, detail = null) => { report.checks.push({ name, ok: !!ok, ...(detail ? { detail } : {}) }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` ${JSON.stringify(detail)}` : ''}`); };
+    const livePages = new Map();
+    // Content-free diagnostics: where each device is and which controls it
+    // shows. No message text, names of other conversations or account data.
+    const diagnose = async () => {
+        const out = {};
+        for (const [label, page] of livePages) {
+            if (page.isClosed()) continue;
+            out[label] = await page.evaluate(() => ({
+                path: location.pathname,
+                dialogs: [...document.querySelectorAll('[role="dialog"],[role="alertdialog"]')].map(d => (d.getAttribute('aria-label') || '').slice(0, 60)),
+                buttons: [...document.querySelectorAll('button[aria-label]')].filter(b => b.getBoundingClientRect().width > 0).map(b => b.getAttribute('aria-label')).filter(l => !/\d{3,}/.test(l)).slice(0, 25),
+                dock: document.querySelectorAll('.messenger-dock, .dock-chat').length,
+                alerts: [...document.querySelectorAll('[role="alert"]')].map(a => (a.textContent || '').trim().slice(0, 80)).slice(0, 5),
+            })).then(view => ({ ...view, httpErrors: page.__httpErrors || {} })).catch(error => ({ error: String(error?.message || error).slice(0, 120) }));
+        }
+        return out;
+    };
     const step = async (name, fn) => {
         try { const detail = await fn(); record(name, true, detail || null); return true; }
-        catch (error) { record(name, false, { error: String(error?.message || error).split('\n')[0].slice(0, 300) }); return false; }
+        catch (error) { record(name, false, { error: String(error?.message || error).split('\n')[0].slice(0, 300), devices: await diagnose() }); return false; }
     };
     const shot = async (page, name) => { try { await page.screenshot({ path: `${evidenceDir}/${name}.png` }); } catch { /* evidence only */ } };
 
@@ -222,7 +239,17 @@ export async function run() {
             page.setDefaultTimeout(20000);
             const errors = [];
             page.on('pageerror', error => errors.push(String(error?.message || error).slice(0, 160)));
+            const httpErrors = {};
+            page.on('response', response => {
+                if (response.status() < 400) return;
+                const url = new URL(response.url());
+                if (url.origin !== APP_ORIGIN) return;
+                const key = `${response.status()} ${url.pathname}`;
+                httpErrors[key] = (httpErrors[key] || 0) + 1;
+            });
+            page.__httpErrors = httpErrors;
             report.devices[label] = { userAgent: options.userAgent || 'desktop-chromium', viewport: options.viewport };
+            livePages.set(label.split(' ')[0], page);
             return { context, page, errors };
         };
         const a = await device(chrome, sessionA, { ...devices['Pixel 7'] }, 'A (Android Chrome emulation, test account)');
@@ -329,7 +356,10 @@ export async function run() {
 
         // ── 2. Second incoming call without reload, declined (B ended the last call) ──
         await a.page.evaluate(id => window.next?.router?.push(`/hub/messenger?conversation=${id}`), AB);
-        await a.page.getByLabel('Start Voice Call', { exact: true }).waitFor({ timeout: 30000 });
+        await a.page.getByLabel('Start Voice Call', { exact: true }).waitFor({ timeout: 30000 }).catch(async () => {
+            await a.page.goto(`${APP_ORIGIN}/hub/messenger?conversation=${AB}`, { waitUntil: 'domcontentloaded' });
+            await a.page.getByLabel('Start Voice Call', { exact: true }).waitFor({ timeout: 60000 });
+        });
         await sleep(1500);
         assertProbeCallee(B.id, probeIds);
         await a.page.getByLabel('Start Voice Call', { exact: true }).click();
@@ -393,12 +423,16 @@ export async function run() {
 
         // ── 5. Unreachable, then answered from the push route on mobile WebKit ──
         await b.context.close();
-        await a.page.goto(`${APP_ORIGIN}/hub/messenger?conversation=${AB}`, { waitUntil: 'domcontentloaded' });
-        await a.page.getByLabel('Start Video Call', { exact: true }).waitFor({ timeout: 60000 });
-        await sleep(1500);
-        assertProbeCallee(B.id, probeIds);
-        await a.page.getByLabel('Start Video Call', { exact: true }).click();
-        const unreachable = await step('Offline callee with notifications off: caller sees Not Reachable Right Now and why', async () => {
+        const reopened = await step('Caller reopens the conversation for the next call', async () => {
+            await a.page.goto(`${APP_ORIGIN}/hub/messenger?conversation=${AB}`, { waitUntil: 'domcontentloaded' });
+            await a.page.getByLabel('Start Video Call', { exact: true }).waitFor({ timeout: 60000 });
+            await sleep(1500);
+        });
+        if (reopened) {
+            assertProbeCallee(B.id, probeIds);
+            await a.page.getByLabel('Start Video Call', { exact: true }).click();
+        }
+        const unreachable = reopened && await step('Offline callee with notifications off: caller sees Not Reachable Right Now and why', async () => {
             const status = await until(async () => { const s = await callStatus(a.page); return s === 'Not Reachable Right Now' ? s : null; }, { timeout: 15000, message: 'Not Reachable status never shown' });
             const explained = await a.page.getByText('Has Notifications Turned Off', { exact: false }).count();
             assert.ok(explained > 0, 'No explanation shown');
@@ -452,9 +486,9 @@ export async function run() {
         // ── Narrow phone layouts with real components ─────────────────────
         const narrow = await device(chrome, sessionA, { ...devices['iPhone SE'], userAgent: devices['Pixel 7'].userAgent }, 'A narrow (320x568 Chromium)');
         await narrow.page.setViewportSize({ width: 320, height: 568 });
-        await narrow.page.goto(`${APP_ORIGIN}/hub/messenger?conversation=${AB}`, { waitUntil: 'domcontentloaded' });
-        await narrow.page.getByLabel('Start Voice Call', { exact: true }).waitFor({ timeout: 60000 });
         await step('320px: call buttons, composer and Send on screen; keyboard-height viewport keeps the composer', async () => {
+            await narrow.page.goto(`${APP_ORIGIN}/hub/messenger?conversation=${AB}`, { waitUntil: 'domcontentloaded' });
+            await narrow.page.getByLabel('Start Voice Call', { exact: true }).waitFor({ timeout: 60000 });
             const header = await layoutReport(narrow.page, ['Start Voice Call', 'Start Video Call', 'User Info']);
             for (const name of ['Start Voice Call', 'Start Video Call']) assert.ok(header.boxes[name]?.inView, `${name} off screen at 320px`);
             const composer = narrow.page.getByLabel('Message', { exact: true });
@@ -475,6 +509,7 @@ export async function run() {
 
         const pageErrors = Object.fromEntries([['A', a.errors], ['narrow', narrow.errors]].map(([k, v]) => [k, v.length]));
         report.pageErrors = pageErrors;
+        report.httpErrors = Object.fromEntries([...livePages].map(([label, page]) => [label, page.__httpErrors || {}]));
         const failed = report.checks.filter(check => !check.ok);
         report.status = failed.length ? 'failed' : 'passed';
         if (failed.length) process.exitCode = 1;
