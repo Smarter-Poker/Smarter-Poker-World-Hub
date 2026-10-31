@@ -79,7 +79,7 @@ export default function VirtualPokerSandboxPage() {
       canonical="/features/virtual-poker-sandbox"
       badgeText="100% Free Poker Simulation Lab"
       primaryCtaText="Open Virtual Sandbox"
-      primaryCtaHref="/hub/sandbox"
+      primaryCtaHref="/tools/poker-odds-calculator"
       secondaryCtaText="View Plain-Text Spec"
       secondaryCtaHref="/features/virtual-poker-sandbox.md"
       markdownUrl="https://smarter.poker/features/virtual-poker-sandbox.md"

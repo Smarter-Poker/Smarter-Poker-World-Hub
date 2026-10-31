@@ -152,6 +152,7 @@ export function hubProductSchema({
   course = null,
   sameAs = null,
   howTo = null,
+  featureList = null,
 }) {
   const url = absolute(path);
   const resolvedSameAs = Array.isArray(sameAs) && sameAs.length > 0
@@ -195,6 +196,7 @@ export function hubProductSchema({
       inLanguage: 'en',
       publisher: { '@id': ORGANIZATION_ID },
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      ...(Array.isArray(featureList) && featureList.length > 0 ? { featureList } : {}),
       ...(resolvedSameAs.length > 0 ? { sameAs: resolvedSameAs } : {}),
     },
     imageNode,

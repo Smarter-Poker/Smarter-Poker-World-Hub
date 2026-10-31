@@ -118,6 +118,18 @@ export const LANDING_GUIDES = [
     href: '/features',
     summary: 'All Fifteen Free Smarter.Poker Verticals: Bankroll Tax Ledger, Dealer Toke Tracker, Jarvis AI Coach, Club Commander And Solvers.',
   },
+  {
+    id: 'hands',
+    name: 'Starting Hand Encyclopedia',
+    href: '/learn/hands',
+    summary: 'Combinatorics, 100BB 6-Max GTO Opening Ranges, 3-Bet Frequencies And Equities For Canonical Texas Holdem Starting Hands.',
+  },
+  {
+    id: 'research',
+    name: 'Original Poker Research',
+    href: '/research',
+    summary: 'First-Party Empirical Benchmarks On US Live Poker Room Rake, Tournament Buy-In Indexes, Population Leaks And Club Economics.',
+  },
 ];
 
 export default function LandingProductSummary() {

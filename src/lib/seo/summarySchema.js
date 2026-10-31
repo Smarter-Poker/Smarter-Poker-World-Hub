@@ -114,6 +114,9 @@ export function summarySchema(page, entry) {
   const name = `${entry.heading.replace(/^About (The )?/i, '')} | Smarter.Poker`;
   const description = entry.lead;
   const trail = route.trail || [['Hub', '/hub']];
+  const featureList = Array.isArray(entry.links)
+    ? entry.links.map((l) => `${l.name}: ${l.text}`)
+    : [];
   const nodes = route.collection
     ? hubCollectionSchema({ path: route.path, name, description, trail })
     : hubProductSchema({
@@ -123,6 +126,7 @@ export function summarySchema(page, entry) {
         applicationCategory: route.category || 'GameApplication',
         trail,
         withBreadcrumb: route.breadcrumb !== false,
+        featureList,
       });
 
   if (page === 'trivia' || String(page).startsWith('trivia-')) {

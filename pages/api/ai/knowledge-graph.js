@@ -13,11 +13,14 @@
  * - CollectionPage for the 20-hand starting hand encyclopedia
  * - 4 Report + Dataset nodes for first-party poker industry research
  */
-import { GLOSSARY_TERMS } from '../../../src/content/glossary/terms';
-import { LESSONS, LEARN_CATEGORIES } from '../../../src/content/learn/lessons';
-import { STARTING_HANDS } from '../../../src/content/learn/hands';
-import { RESEARCH_REPORTS } from '../../../src/content/research/reports';
-import { COMPARE_PAGES, AS_OF } from '../../../src/content/compare/pages';
+import { GLOSSARY_TERMS } from '../../../src/content/glossary/terms.js';
+import { LESSONS, LEARN_CATEGORIES } from '../../../src/content/learn/lessons.js';
+import { STARTING_HANDS } from '../../../src/content/learn/hands.js';
+import { RESEARCH_REPORTS } from '../../../src/content/research/reports.js';
+import { COMPARE_PAGES, AS_OF } from '../../../src/content/compare/pages.js';
+import { SCHEMA_ROUTES } from '../../../src/lib/seo/summarySchema.js';
+import { getHubPageSummaries } from '../../../src/lib/seo/hubPageSummariesData.js';
+import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY.js';
 
 const SITE = 'https://smarter.poker';
 
@@ -256,6 +259,27 @@ export function buildKnowledgeGraph() {
         dateModified: r.updated,
         publisher: { '@id': `${SITE}/#organization` },
       })),
+      {
+        '@type': 'ItemList',
+        '@id': `${SITE}/hub/training#simulator-catalog`,
+        name: 'Smarter.Poker Interactive World Hub Tools & GTO Simulators Catalog',
+        description:
+          'Complete Directory Of Public Interactive Poker Simulators, Leak Scanners, ICM Calculators, Range Builders And Training Drills In The Smarter.Poker World Hub.',
+        url: `${SITE}/features`,
+        numberOfItems: Object.keys(SCHEMA_ROUTES).length + TRAINING_LIBRARY.length,
+        itemListElement: Object.entries(SCHEMA_ROUTES).map(([key, route], idx) => {
+          const summaries = getHubPageSummaries();
+          const entry = summaries[key];
+          const title = entry ? entry.heading.replace(/^About (The )?/i, '') : key;
+          return {
+            '@type': 'ListItem',
+            position: idx + 1,
+            name: title,
+            url: `${SITE}${route.path}`,
+            description: entry?.lead || '',
+          };
+        }),
+      },
     ],
   };
 }

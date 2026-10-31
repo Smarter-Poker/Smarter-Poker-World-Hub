@@ -328,7 +328,7 @@ test('the series index is not capped the way the cards are', () => {
  */
 test('every content index is linked from the front page', () => {
   const landing = fs.readFileSync(path.join(ROOT, 'src/components/landing/LandingProductSummary.js'), 'utf8');
-  const indexes = ['/learn', '/glossary', '/compare', '/features'];
+  const indexes = ['/learn', '/glossary', '/compare', '/features', '/learn/hands', '/research'];
   for (const index of indexes) {
     assert.match(landing, new RegExp(`href: '${index}'`), `the landing page links ${index}`);
     assert.ok(fs.existsSync(path.join(ROOT, 'pages', index.slice(1), 'index.js')), `${index} is a real page`);

@@ -111,6 +111,23 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/training/jarvis.md';
     } else if (pathname === '/hub/training/equity-calculator') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
+    } else if (pathname === '/hub/personal-assistant' || pathname.startsWith('/hub/personal-assistant/')) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+    } else if (pathname === '/hub/install') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/install.md';
+    } else if (pathname === '/hub/vip-membership/compare') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/vip-membership/compare.md';
+    } else if (pathname.startsWith('/hub/training/') && !pathname.includes('[')) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+    } else if (pathname.startsWith('/hub/trivia/') && !pathname.includes('[')) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+    } else if (
+      pathname === '/hub/commander/venues' ||
+      pathname === '/hub/commander/tournaments' ||
+      pathname === '/hub/commander/home-games' ||
+      pathname === '/hub/commander/leagues'
+    ) {
+      resolvedMarkdownUrl = `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/hub/daily-tournaments') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/daily-tournaments.md';
     } else if (pathname === '/hub/events-calendar') {
