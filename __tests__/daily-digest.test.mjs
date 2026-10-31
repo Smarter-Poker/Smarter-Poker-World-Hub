@@ -150,7 +150,7 @@ test('phase 4 tiles: an older day without the new keys shows n/a, not 0, not red
     assert.equal(sectionRows(SECTION_DEFS.find((x) => x.title === 'Platform Health'), noBreaks).find((r) => r.label === 'Breaks Restartable').value, 'n/a');
     const html = buildHtml(d);
     assert.ok(html.includes('Trigger Audit Failures'));
-    assert.ok(!html.includes('—'), 'no em dashes');
+    assert.ok(!html.includes('\u2014'), 'no em dashes');
     assert.match(buildText(d), /Recovery Probe Failures: n\/a/);
 });
 
@@ -231,7 +231,7 @@ test('horse roster card: size, PLO list, changes and every member, escaped', () 
     assert.match(html, /1\. Ace&lt;Horse&gt;/);
     assert.ok(!html.includes('Ace<Horse>'));
     assert.match(html, /PLO 6\.5 BB\/100/);
-    assert.ok(!html.includes('—'));
+    assert.ok(!html.includes('\u2014'));
     const rows = horseRosterRows(d);
     assert.equal(rows.length, 6 + 2);
     assert.equal(rows.find((r) => r[0] === 'Added To The PLO List')[1], 'None');
@@ -323,7 +323,7 @@ test('real player totals: day totals, rake split, balances, time and every game 
     assert.match(html, /Diamond Arena NLH 1\/2 \(Diamonds\)/);
     assert.match(html, /Diamond Arena Won \/ Lost \(Diamonds\)/);
     assert.ok(html.indexOf('Real Player Totals') < html.indexOf('Growth'), 'near the top, before the sections');
-    assert.ok(!html.includes('—'));
+    assert.ok(!html.includes('\u2014'));
     const text = buildText(d);
     assert.match(text, /REAL PLAYER TOTALS/);
     assert.match(text, /Woo<Woo>: \+1,481\.81  \(13h 42m played, 782 hands\)/);
