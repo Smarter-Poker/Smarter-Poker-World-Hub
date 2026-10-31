@@ -174,7 +174,7 @@ function authFixture() {
         setTimeout: fn => { state.timer = fn; return 1; }, clearTimeout() {}, clearPersistedSession() {}, persistSession() {}, console: quiet,
     }, 'createMultiDeviceAuthListener');
     const authIdentityRef = { current: 'account-a' }, authGenerationRef = { current: 0 };
-    evaluate(slice(messenger, '    //  MULTI-DEVICE RESILIENCE:', '    // Check for pending calls'), {
+    evaluate(slice(messenger, '    //  MULTI-DEVICE RESILIENCE:', '    // isPaginatingRef:'), {
         useEffect: fn => { cleanup = fn(); }, supabase, createMultiDeviceAuthListener, user: state.actor, authIdentityRef, authGenerationRef,
         workspaceRef: { current: 'scope-a' }, activeConversationRef: { current: { id: 'conversation-a' } }, messageCacheRef: { current: new Map() },
         sendOperationsRef: { current: new Map() }, forwardOperationRef: { current: null }, sendLockRef: { current: null },
@@ -228,7 +228,7 @@ test('a persisted read receipt only marks sent messages within its acknowledged 
     ] };
     const workspaceRef = { current: 'scope-a' };
     const channel = { on(_type, spec, handler) { handlers.push({ spec, handler }); return this; }, subscribe() { return this; } };
-    evaluate(slice(messenger, '    // Typing indicator broadcast', '    // Listen for incoming calls'), {
+    evaluate(slice(messenger, '    // Typing indicator broadcast', '    // Broadcast our typing state'), {
         useEffect: fn => fn(), useRef: value => ({ current: value }), user: { id: 'account-a' }, activeConversation: { id: 'conversation-a' },
         supabase: { channel: () => channel }, typingChannelRef: {}, compareMessageTimestamps,
         workspaceKey: 'scope-a', workspaceRef, activeConversationRef: { current: { id: 'conversation-a' } },

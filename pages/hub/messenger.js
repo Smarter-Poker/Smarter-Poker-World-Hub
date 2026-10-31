@@ -65,11 +65,6 @@ import { createMessengerSendOperation, restoreMessengerSendOperations, messenger
     mergeMessengerPendingMessages, reconcileMessengerMessage, acknowledgeMessengerSend,
     performMessengerSend, saveMessengerSendOperation } from '../../src/lib/messengerSendOperation.mjs';
 
-// Dynamic import for LiveKit (client-side only)
-const LiveKitCall = dynamic(
-    () => import('../../src/components/video/LiveKitCall'),
-    { ssr: false }
-);
 
 // JarvisMessengerWidget's dynamic import was removed 2026-08-21: it was
 // declared here and never rendered anywhere in this page, so it only served to
@@ -80,7 +75,7 @@ const LiveKitCall = dynamic(
 import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
-import { createRingTone } from '../../src/utils/ringTone';
+import { useCall } from '../../src/components/calls/CallProvider';
 import { isOnline } from '../../src/utils/authGuard';
 import { usePresence } from '../../src/hooks/usePresence';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
@@ -154,7 +149,7 @@ function compareMessageTimestamps(left, right) {
 // 📱 smarter-poker-style SVG ICONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { Phone, Video, Search, Info } from 'lucide-react';
+import { Phone, Video, Search, Info, SquarePen } from 'lucide-react';
 import { spKeyActivate } from '../../src/lib/keyboardActivate';
 
 const PhoneIcon = ({ size = 24, color = '#0084FF' }) => (
@@ -427,10 +422,6 @@ function MessengerPage() {
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
     const [friends, setFriends] = useState([]); // Friends list for quick access
-    // Jitsi Call State
-    const [showCall, setShowCall] = useState(false);
-    const [callType, setCallType] = useState('video'); // 'audio' or 'video'
-    const [callRoomName, setCallRoomName] = useState('');
     const [showUserInfo, setShowUserInfo] = useState(false);
     // Editing State
     const [editingMessage, setEditingMessage] = useState(null); // message being edited
@@ -524,18 +515,8 @@ function MessengerPage() {
         return ids;
     };
     const deletionFlightsRef = useRef(new Set());
-    // Incoming Call State (for seamless calling like Snapchat/WhatsApp)
-    const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
-    const [callingUser, setCallingUser] = useState(null); // Track who we're calling
     const [isVip, setIsVip] = useState(false); // VIP status for Jarvis daily limits
-    const incomingCallAudioRef = useRef(null);
-    // outgoingCallAudioRef removed - using Web Audio API createRingTone() instead
-    const outgoingRingToneRef = useRef(null); // Web Audio API ring tone (more reliable)
-    const callTimeoutRef = useRef(null);
-    const callStartTimeRef = useRef(null); // Track call start for duration
-    // BUG-3 FIX: Refs to avoid stale closures in long-lived Realtime signaling listener
-    const showCallRef = useRef(false);
-    const callingUserRef = useRef(null);
+    const { startCall: startAppCall } = useCall();
 
     // Hamburger Menu State
     const [menuOpen, setMenuOpen] = useState(false);
@@ -655,9 +636,6 @@ function MessengerPage() {
     // incoming message), so it reads the current list through a ref.
     const conversationsRef = useRef([]);
     useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
-    // DEEP-SWEEP FIX: callTypeRef prevents stale closure in broadcast handlers
-    const callTypeRef = useRef(callType);
-    useEffect(() => { callTypeRef.current = callType; }, [callType]);
     const typingChannelRef = useRef(null);
 
     // Menu config with handlers
@@ -923,7 +901,7 @@ function MessengerPage() {
                 throw new Error(result.error || 'Conversation Unavailable');
             }
             controls.onResolved?.();
-            setClubAccess({ userId: accountId, clubs: result.clubs });
+            setClubAccess({ userId: accountId, clubs: Array.isArray(result.clubs) ? result.clubs : [] });
             setWorkspaceSelection({ clubId: result.clubId, folder: result.folder });
             setConversations(result.conversations);
             setPendingConversationId(result.conversation.id);
@@ -1116,49 +1094,6 @@ function MessengerPage() {
         return () => { cancelled = true; profileSequence++; data?.subscription?.unsubscribe(); };
     }, []);
 
-    // Check for pending calls when messenger opens (for users coming from push notification)
-    useEffect(() => {
-        if (!user?.id) return;
-
-        const ac = new AbortController();
-
-        async function checkPendingCalls(signal) {
-            try {
-                const pendingToken = getAccessToken();
-                const res = await authedFetch(`/api/calls/pending?userId=${user.id}`, {
-                    headers: pendingToken ? { Authorization: `Bearer ${pendingToken}` } : {},
-                    signal,
-                });
-                if (!res.ok) throw new Error(`Request failed (${res.status})`);
-                const result = await res.json();
-
-                if (result.success && result.pendingCall) {
-                    const call = result.pendingCall;
-
-                    // Show incoming call UI
-                    setIncomingCall({
-                        callerId: call.callerId,
-                        callerName: call.callerName,
-                        callerAvatar: call.callerAvatar,
-                        callType: call.callType,
-                        roomName: call.roomName,
-                        pendingCallId: call.id, // Store ID for cleanup
-                    });
-
-                    // Play incoming call sound
-                    if (incomingCallAudioRef.current) {
-                        incomingCallAudioRef.current.loop = true;
-                        incomingCallAudioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                    }
-                }
-            } catch (e) {
-                if (e.name !== 'AbortError') console.warn('[Pending calls]', e);
-            }
-        }
-
-        checkPendingCalls(ac.signal);
-        return () => ac.abort();
-    }, [user?.id]);
 
     // isPaginatingRef: when true, the messages change was a backward-pagination prepend.
     // The scroll-to-bottom effect must NOT fire in this case — rAF in loadOlderMessages restores position.
@@ -1512,282 +1447,6 @@ function MessengerPage() {
     // Same primitive-dep pattern as above — avoids teardown on every sidebar refresh
     }, [user?.id, activeConversation?.id]);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 📞 CALL SIGNALING VIA SUPABASE REALTIME
-    // Listen for incoming calls, call accepted/declined, call ended
-    // BUG-3 FIX: Use refs for showCall/callingUser to avoid channel teardown on state changes
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Keep refs in sync with state (prevents stale closures in broadcast handlers)
-    useEffect(() => { showCallRef.current = showCall; }, [showCall]);
-    useEffect(() => { callingUserRef.current = callingUser; }, [callingUser]);
-
-    useEffect(() => {
-        if (!user) return;
-
-        const callChannel = supabase
-            .channel(`call-signal:${user.id}`)
-            .on('broadcast', { event: 'incoming_call' }, (payload) => {
-                const { callerId, callerName, callerAvatar, callType, roomName } = payload.payload;
-
-                // Don't show incoming call if we're already in a call (read from ref, not state)
-                if (showCallRef.current) return;
-
-                // 🔒 TAB CLAIM: Only one tab should handle the call
-                // Use localStorage to prevent multiple tabs from all ringing
-                const claimKey = `call_claim_${roomName}`;
-                const existingClaim = localStorage.getItem(claimKey);
-                const now = Date.now();
-
-                // If another tab claimed this call within the last 30 seconds, ignore
-                if (existingClaim && (now - parseInt(existingClaim)) < 30000) {
-                    return;
-                }
-
-                // Claim this call for this tab
-                localStorage.setItem(claimKey, now.toString());
-
-                // Clean up old claims after 35 seconds
-                setTimeout(() => localStorage.removeItem(claimKey), 35000);
-
-                setIncomingCall({ callerId, callerName, callerAvatar, callType, roomName });
-
-                // Play ringing sound
-                if (incomingCallAudioRef.current) {
-                    incomingCallAudioRef.current.loop = true;
-                    incomingCallAudioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                }
-
-                // Auto-decline after 30 seconds
-                if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-                callTimeoutRef.current = setTimeout(() => {
-                    handleDeclineCall('timeout');
-                }, 30000);
-            })
-            .on('broadcast', { event: 'call_declined' }, (payload) => {
-                // Read from ref to avoid stale closure
-                if (callingUserRef.current) {
-                    const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
-                    setToast({ type: 'info', message: reason });
-
-                    // ── CALL RECEIPT: Save missed/declined receipt as message in chat ──
-                    // DEEP-SWEEP FIX: Use refs to avoid stale closure (this handler is created once at mount)
-                    const receiptStatus = payload.payload.reason === 'timeout' ? 'missed' : 'declined';
-                    const currentConvo = activeConversationRef.current;
-                    const currentCallType = callTypeRef.current;
-                    if (currentConvo?.id && user?.id) {
-                        const receiptPayload = JSON.stringify({
-                            type: currentCallType,
-                            duration: 0,
-                            status: receiptStatus,
-                        });
-                        sendOperationRef.current?.(`[CALL_RECEIPT]${receiptPayload}`, {
-                            conversationId: currentConvo.id, actorId: user.id,
-                        });
-                    }
-
-                    // ── MISSED CALL NOTIFICATION: Only for timeout (not for active decline) ──
-                    // Declined = callee pressed Decline (they already know). Missed = timeout (they need to know).
-                    if (receiptStatus === 'missed' && currentConvo?.otherUser?.id && user?.id) {
-                        const token = getAccessToken();
-                        authedFetch('/api/messenger/insert-missed-call-notification', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                            },
-                            body: JSON.stringify({
-                                calleeId: currentConvo.otherUser.id,
-                                callType: currentCallType,
-                                reason: receiptStatus,
-                            }),
-                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                    }
-
-                    // DEFENSE-IN-DEPTH: Caller-side cancel of pending_calls row.
-                    // The callee already cancels, but if their fetch failed this ensures cleanup.
-                    if (user?.id && currentConvo?.otherUser?.id) {
-                        const cancelToken = getAccessToken();
-                        if (cancelToken) {
-                            authedFetch('/api/calls/cancel', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
-                                body: JSON.stringify({ callerId: user.id, calleeId: currentConvo.otherUser.id }),
-                            }).catch(() => {});
-                        }
-                    }
-
-                    setCallingUser(null);
-                    // BUG-8 FIX: Also close the call modal — caller shouldn't stay in empty room
-                    setShowCall(false);
-                    setCallRoomName('');
-                    // Stop outgoing ring (Web Audio only now)
-                    if (outgoingRingToneRef.current) {
-                        outgoingRingToneRef.current.stop();
-                        outgoingRingToneRef.current = null;
-                    }
-                }
-            })
-            .on('broadcast', { event: 'call_accepted' }, (payload) => {
-                // The caller's call is already showing, just clear the "calling" state
-                setCallingUser(null);
-                // Track call start time for call receipt
-                callStartTimeRef.current = Date.now();
-                // Stop outgoing ring - call connected! (Web Audio only now)
-                if (outgoingRingToneRef.current) {
-                    outgoingRingToneRef.current.stop();
-                    outgoingRingToneRef.current = null;
-                }
-            })
-            .on('broadcast', { event: 'call_ended' }, (payload) => {
-                setShowCall(false);
-                setCallRoomName('');
-                setCallingUser(null);
-                setIncomingCall(null);
-                setToast({ type: 'info', message: 'Call Ended' });
-                // Stop any ringing (Web Audio only now)
-                if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
-                // BUG-7 FIX: Also stop incoming ring audio if it was playing
-                if (incomingCallAudioRef.current) {
-                    incomingCallAudioRef.current.loop = false;
-                    incomingCallAudioRef.current.pause();
-                    incomingCallAudioRef.current.currentTime = 0;
-                }
-                // Stop any running call timeout
-                if (callTimeoutRef.current) {
-                    clearTimeout(callTimeoutRef.current);
-                }
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(callChannel);
-            if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-        };
-    // Use user?.id (primitive) not the full user object — profile updates would tear
-    // down the call channel, creating a gap window where incoming calls are dropped.
-    }, [user?.id]);
-
-    // Handle accepting incoming call
-    const handleAcceptCall = async () => {
-        if (!incomingCall || !user) return;
-
-        // Stop ringing
-        if (incomingCallAudioRef.current) {
-            incomingCallAudioRef.current.loop = false;
-            incomingCallAudioRef.current.pause();
-            incomingCallAudioRef.current.currentTime = 0;
-        }
-        if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-
-        // Notify caller that we accepted (subscribe, send, then cleanup)
-        try {
-            const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
-            try {
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
-                    channel.subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            clearTimeout(timeout);
-                            resolve();
-                        } else if (status === 'CHANNEL_ERROR') {
-                            clearTimeout(timeout);
-                            reject(new Error('Channel error'));
-                        }
-                    });
-                });
-                await channel.send({
-                    type: 'broadcast',
-                    event: 'call_accepted',
-                    payload: { accepterId: user.id }
-                });
-            } finally {
-                // Cleanup after a short delay
-                setTimeout(() => supabase.removeChannel(channel), 1000);
-            }
-        } catch (e) {
-            console.warn('[Messenger] Accept call signaling error (non-blocking):', e?.message || e);
-        }
-
-        // Join the call
-        callStartTimeRef.current = Date.now(); // Track start time for receipt
-        setCallRoomName(incomingCall.roomName);
-        setCallType(incomingCall.callType);
-        setShowCall(true);
-
-        // Cancel pending call in database
-        if (incomingCall.pendingCallId) {
-            authedFetch('/api/calls/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        } else {
-            authedFetch('/api/calls/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body: JSON.stringify({ callerId: incomingCall.callerId, calleeId: user.id }),
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        }
-
-        setIncomingCall(null);
-    };
-
-    // Handle declining incoming call
-    const handleDeclineCall = async (reason = 'declined') => {
-        if (!incomingCall) return;
-
-        // Stop ringing
-        if (incomingCallAudioRef.current) {
-            incomingCallAudioRef.current.loop = false;
-            incomingCallAudioRef.current.pause();
-            incomingCallAudioRef.current.currentTime = 0;
-        }
-        if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-
-        // Notify caller that we declined (subscribe, send, then cleanup)
-        try {
-            const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
-            try {
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
-                    channel.subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            clearTimeout(timeout);
-                            resolve();
-                        } else if (status === 'CHANNEL_ERROR') {
-                            clearTimeout(timeout);
-                            reject(new Error('Channel error'));
-                        }
-                    });
-                });
-                await channel.send({
-                    type: 'broadcast',
-                    event: 'call_declined',
-                    payload: { declinerId: user?.id, reason }
-                });
-            } finally {
-                // Cleanup after a short delay
-                setTimeout(() => supabase.removeChannel(channel), 1000);
-            }
-        } catch (e) {
-            console.warn('[Messenger] Decline call signaling error (non-blocking):', e?.message || e);
-        }
-        if (incomingCall.pendingCallId) {
-            authedFetch('/api/calls/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        } else {
-            authedFetch('/api/calls/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body: JSON.stringify({ callerId: incomingCall.callerId, calleeId: user.id }),
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        }
-
-        setIncomingCall(null);
-    };
 
     // Broadcast our typing state — reuse the existing typing channel subscription
     // Phase 3 BUGFIX: Throttle to max once every 2s to prevent flooding Supabase
@@ -1849,7 +1508,7 @@ function MessengerPage() {
                 if (preferencesRef.current.messageSounds !== false) playMessageSound();
             }
             setConnectionStatus('connected');
-            setClubAccess({ userId, clubs: result.clubs });
+            setClubAccess({ userId, clubs: Array.isArray(result.clubs) ? result.clubs : [] });
             setConversations(result.conversations);
             setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts, attentionCounts: result.attentionCounts });
             setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
@@ -2977,29 +2636,6 @@ function MessengerPage() {
             updateDbPresence(false);
             presenceChannel.untrack();
             
-            // EDGE-CASE FIX: If user closes tab while calling/in-call, clean up pending calls.
-            // Try both orderings (caller->callee and callee->caller) since we don't know which
-            // role this user played in the interrupted call.
-            if (showCallRef.current || callingUserRef.current) {
-                const token = getAccessToken();
-                const otherUserId = activeConversationRef.current?.otherUser?.id;
-                if (token && user?.id && otherUserId && otherUserId !== user.id) {
-                    try {
-                        authedFetch('/api/calls/cancel', {
-                            method: 'POST',
-                            keepalive: true,
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ callerId: user.id, calleeId: otherUserId })
-                        }).catch(() => {});
-                        authedFetch('/api/calls/cancel', {
-                            method: 'POST',
-                            keepalive: true,
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ callerId: otherUserId, calleeId: user.id })
-                        }).catch(() => {});
-                    } catch (e) { /* ignore — tab is closing */ }
-                }
-            }
         };
         window.addEventListener('beforeunload', handleUnload);
 
@@ -3142,286 +2778,20 @@ function MessengerPage() {
         });
     }, [router.query.chat]);
 
-    // Start a Jitsi call - Now uses real-time signaling for instant popup
-    const startCall = async (type) => {
+    // Calls run app-wide in src/components/calls/CallProvider.jsx (2026-10-31):
+    // they ring on every page, survive a hang-up, time out, and write exactly
+    // one receipt. This page only says who to call.
+    const startCall = (type) => {
         if (!activeConversation || !user) return;
-
-        // BUG-9 FIX: Prevent double-click or calling while already in a call
-        if (callingUser || showCall) {
-            return;
-        }
-
-        const continuityButtonStyle = { minHeight: 44, border: `1px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.blue, padding: '8px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
-    const otherUser = activeConversation?.otherUser;
-
-        // 🔒 CRITICAL VALIDATION: Ensure we're calling the right person
-        if (!otherUser?.id) {
-            setToast({ type: 'error', message: 'Cannot Start Call - User Not Found' });
-            console.warn('❌ CALL ERROR: otherUser is missing!', { activeConversation });
-            return;
-        }
-
-        // Block calls for message request conversations — must accept request first
-        if (activeConversation.isRequest) {
-            setToast({ type: 'error', message: 'Accept The Message Request Before Calling' });
-            return;
-        }
-
-        // Block calls in group chats - only 1-on-1 calls are supported
-        if (otherUser.isGroupChat) {
-            setToast({ type: 'error', message: 'Calls Are Only Available In 1-on-1 Conversations' });
-            return;
-        }
-
-        // NEVER call yourself - this would be a bug
-        if (otherUser.id === user.id) {
-            setToast({ type: 'error', message: 'Cannot Call Yourself' });
-            console.warn('❌ CALL ERROR: Attempted to call self!', { otherUser, currentUser: user.id });
-            return;
-        }
-
-        // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
-        const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
-        // callerName is broadcast to the callee, so it is the public handle only:
-        // full_name (profile or stale Google OAuth user_metadata) is owner-only.
-        const callerName = user.display_name || user.username || user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
-        const callerAvatar = user.avatar_url || user.user_metadata?.avatar_url || null;
-
-        // Set calling state to show "Calling..." UI
-        setCallingUser(otherUser);
-        setCallType(type);
-
-        // 📞 Send real-time call signal to the other user
-        // CRITICAL: Must subscribe before sending broadcast
-        try {
-            const channel = supabase.channel(`call-signal:${otherUser.id}`);
-            try {
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
-                    channel.subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            clearTimeout(timeout);
-                            resolve();
-                        } else if (status === 'CHANNEL_ERROR') {
-                            clearTimeout(timeout);
-                            reject(new Error('Channel error'));
-                        }
-                    });
-                });
-
-                await channel.send({
-                    type: 'broadcast',
-                    event: 'incoming_call',
-                    payload: {
-                        callerId: user.id,
-                        callerName: callerName,
-                        callerAvatar: callerAvatar,
-                        callType: type,
-                        roomName: roomName,
-                    }
-                });
-            } finally {
-                // Cleanup channel after a delay (receiver has their own listener)
-                setTimeout(() => supabase.removeChannel(channel), 2000);
-            }
-
-            // 📱 Create pending call in database (for offline users)
-            try {
-                const callToken = getAccessToken();
-                await authedFetch('/api/calls/create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(callToken ? { Authorization: `Bearer ${callToken}` } : {}),
-                    },
-                    body: JSON.stringify({
-                        callerId: user.id,
-                        calleeId: otherUser.id,
-                        callerName: callerName,
-                        callerAvatar: callerAvatar,
-                        callType: type,
-                        roomName: roomName,
-                    }),
-                });
-            } catch (e) {
-                console.warn('[Messenger] Call signal broadcast error (non-blocking):', e?.message || e);
-            }
-
-
-            // Also send push notification for users not on the page
-            // This will make their phone RING like a real call!
-            try {
-                const pushRes = await authedFetch('/api/notifications/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: `Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
-                        message: `${callerName} is calling you`,
-                        url: `https://smarter.poker/hub/messenger`,
-                        externalUserIds: [otherUser.id],
-                        // 📞 CALL-SPECIFIC: Makes the phone ring like a real call!
-                        isCall: true,
-                        callType: type,
-                        roomName: roomName,
-                        callerId: user.id,
-                    }),
-                });
-                if (!pushRes.ok) throw new Error(`Request failed (${pushRes.status})`);
-                const pushResult = await pushRes.json();
-                if (pushResult.error) {
-                    console.warn('[Messenger] Push notification reported error (non-blocking):', pushResult.error);
-                }
-            } catch (pushError) {
-                console.warn('[Messenger] Push notification for call failed (non-blocking):', pushError?.message || pushError);
-            }
-        } catch (e) {
-            console.warn('Failed to send call signal:', e);
-            setToast({ type: 'error', message: 'Failed To Call. Please Try Again.' });
-            setCallingUser(null);
-            return;
-        }
-
-        // Start the call immediately for the caller
-        setCallRoomName(roomName);
-        setShowCall(true);
-
-        //  Play outgoing ring sound while waiting for answer
-        // BUG-4 FIX: Always stop and clear existing ring tone before creating new one
-        if (outgoingRingToneRef.current) {
-            outgoingRingToneRef.current.stop();
-            outgoingRingToneRef.current = null;
-        }
-        outgoingRingToneRef.current = createRingTone();
-        if (outgoingRingToneRef.current) {
-            outgoingRingToneRef.current.start();
-        }
-
-        setToast({ type: 'info', message: `Calling ${otherUser.display_name || otherUser.username}...` });
+        void startAppCall({
+            conversationId: activeConversation.id,
+            otherUser: activeConversation.otherUser,
+            callType: type === 'video' ? 'video' : 'audio',
+            isRequest: !!activeConversation.isRequest,
+            isGroup: !!activeConversation.is_group || !!activeConversation.otherUser?.isGroupChat,
+        });
     };
 
-    const isEndingCallRef = useRef(false);
-    // End call - notify the other party
-    const endCall = async () => {
-        if (!showCallRef.current && !callingUserRef.current) return;
-        if (isEndingCallRef.current) return;
-        isEndingCallRef.current = true;
-
-        // BUG-7 FIX: Stop ALL audio sources immediately
-        if (outgoingRingToneRef.current) {
-            outgoingRingToneRef.current.stop();
-            outgoingRingToneRef.current = null;
-        }
-        if (incomingCallAudioRef.current) {
-            incomingCallAudioRef.current.loop = false;
-            incomingCallAudioRef.current.pause();
-            incomingCallAudioRef.current.currentTime = 0;
-        }
-
-        // Notify the other user that call ended (subscribe, send, then cleanup)
-        // BUG-2 FIX: Send on BOTH channel patterns to avoid signal:sender vs signal:receiver mismatch
-        if (activeConversation?.otherUser?.id) {
-            const otherUserId = activeConversation.otherUser.id;
-            const channelNames = [
-                `call-signal:${otherUserId}`,   // Other user's listener channel
-                `call-signal:${user?.id}`,       // Own channel (callee may be listening here)
-            ];
-            for (const chName of channelNames) {
-                try {
-                    const channel = supabase.channel(chName);
-                    try {
-                        await new Promise((resolve) => {
-                            const timeout = setTimeout(resolve, 2000);
-                            channel.subscribe((status) => {
-                                if (status === 'SUBSCRIBED') {
-                                    clearTimeout(timeout);
-                                    resolve();
-                                }
-                            });
-                        });
-                        await channel.send({
-                            type: 'broadcast',
-                            event: 'call_ended',
-                            payload: { enderId: user?.id }
-                        });
-                    } finally {
-                        setTimeout(() => supabase.removeChannel(channel), 1000);
-                    }
-                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-            }
-        }
-
-        // Save call receipt as structured JSON message
-        if (activeConversation?.id && user?.id) {
-            let receiptStatus = 'completed';
-            let callDuration = 0;
-
-            if (callStartTimeRef.current) {
-                // Call was connected — save completed receipt with duration
-                callDuration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
-                receiptStatus = 'completed';
-            } else {
-                // Call was never connected — caller hung up before answer = cancelled
-                receiptStatus = 'cancelled';
-            }
-
-            const receiptPayload = JSON.stringify({
-                type: callType,
-                duration: callDuration,
-                status: receiptStatus,
-            });
-
-            await queueMessengerSend(`[CALL_RECEIPT]${receiptPayload}`, { conversationId: activeConversation.id });
-        }
-        callStartTimeRef.current = null;
-
-        // Cancel any pending call in database (in case call wasn't answered).
-        // CRITICAL FIX: We don't know if this user is the caller or the callee — try both orderings.
-        // The cancel API verifies the authenticated user is a party to the call before deleting.
-        if (activeConversation?.otherUser?.id && user?.id) {
-            const cancelToken = getAccessToken();
-            const otherUserId = activeConversation.otherUser.id;
-            if (cancelToken) {
-                // Try as caller (we initiated the call)
-                authedFetch('/api/calls/cancel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
-                    body: JSON.stringify({ callerId: user.id, calleeId: otherUserId }),
-                }).catch(() => {});
-                // Try as callee (they initiated the call) — ensures cleanup regardless of who called whom
-                authedFetch('/api/calls/cancel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
-                    body: JSON.stringify({ callerId: otherUserId, calleeId: user.id }),
-                }).catch(() => {});
-            }
-        }
-
-        setShowCall(false);
-        setCallRoomName('');
-        setCallingUser(null);
-        setToast({ type: 'info', message: 'Call Ended' });
-        
-        // Reset the flag so future calls can be ended
-        setTimeout(() => {
-            isEndingCallRef.current = false;
-        }, 1000);
-    };
-
-    // BUG-4 FIX: Clean up ring tone AudioContext on component unmount
-    useEffect(() => {
-        return () => {
-            if (outgoingRingToneRef.current) {
-                outgoingRingToneRef.current.stop();
-                outgoingRingToneRef.current = null;
-            }
-            if (incomingCallAudioRef.current) {
-                incomingCallAudioRef.current.pause();
-            }
-            if (callTimeoutRef.current) {
-                clearTimeout(callTimeoutRef.current);
-            }
-        };
-    }, []);
 
     if (loading && clubAccess.userId !== user?.id) {
         return (
@@ -3559,21 +2929,16 @@ function MessengerPage() {
                             height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
                         }
                         
-                        /* Smaller avatars on mobile */
-                        .messenger-page img[src*="avatar"],
-                        .messenger-page [style*="borderRadius: '50%'"] {
-                            max-width: 44px;
-                            max-height: 44px;
-                        }
-                        
                         /* Conversation list - tighter padding */
                         .messenger-page aside {
                             padding: 0;
                         }
                         
-                        /* Message bubbles - wider on mobile */
-                        .messenger-page [style*="paddingLeft: 60px"],
-                        .messenger-page [style*="paddingRight: 60px"] {
+                        /* Message bubbles - wider on mobile. The old selector
+                           matched paddingLeft: 60px, but React writes
+                           padding-left: 60px, so it never applied and bubbles
+                           used barely half a phone screen. */
+                        .messenger-page .sp-message-row {
                             padding-left: 8px !important;
                             padding-right: 8px !important;
                         }
@@ -3617,10 +2982,13 @@ function MessengerPage() {
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.5)', zIndex: 2000,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    // Keep the card and its Close button below the phone's status bar.
+                    paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                    boxSizing: 'border-box',
                 }} onClick={() => setForwardingMessage(null)}>
                     <div
                       data-sp-skip-a11y="propagation guard, not a control" style={{
-                        background: C.card, borderRadius: 12, width: 360, maxHeight: 480,
+                        background: C.card, color: C.text, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', borderRadius: 12, width: 360, maxWidth: 'calc(100vw - 24px)', maxHeight: 480,
                         boxShadow: '0 8px 32px rgba(0,0,0,0.3)', overflow: 'hidden',
                     }} onClick={e => e.stopPropagation()}>
                         <div style={{ padding: '8px 8px 8px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -3641,13 +3009,14 @@ function MessengerPage() {
                                         display: 'flex', alignItems: 'center', gap: 12,
                                         width: '100%', padding: '10px 16px', border: 'none',
                                         background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                                        fontFamily: 'inherit', minHeight: 48, color: C.text,
                                     }}
                                     onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.display_name || conv.otherUser?.username} size={36} />
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.display_name || conv.otherUser?.username}</div>
+                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.display_name || conv.otherUser?.username || conv.group_name || conv.title || 'Group'} size={36} />
+                                    <div style={{ minWidth: 0 }}>
+                                        <div data-user-content style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.otherUser?.display_name || conv.otherUser?.username || conv.group_name || conv.title || 'Group Chat'}</div>
                                     </div>
                                 </button>
                             ))}
@@ -3661,318 +3030,6 @@ function MessengerPage() {
 
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} theme={C} />
-
-            {/* Ringing Audio for Incoming Calls */}
-            <audio
-                ref={incomingCallAudioRef}
-                src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK"
-            />
-
-
-
-            {/* Outgoing Ring: Using Web Audio API createRingTone() instead */}
-
-            {/* ════════════════════════════════════════════════════════
-                BUG-2 FIX: "CALLING..." OVERLAY - Shows while waiting for answer
-                ════════════════════════════════════════════════════════ */}
-            {callingUser && !showCall && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 10000,
-                    background: 'rgba(0, 0, 0, 0.85)',
-                    backdropFilter: 'blur(8px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                        borderRadius: 24,
-                        padding: 40,
-                        textAlign: 'center',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        maxWidth: 360,
-                        width: '90%',
-                    }}>
-                        {/* Call Type Icon */}
-                        <div style={{
-                            fontSize: 48,
-                            marginBottom: 16,
-                            animation: 'pulse 1.5s infinite',
-                        }}>
-                            {callType === 'video' ? '\ud83d\udcf9' : '\ud83d\udcde'}
-                        </div>
-
-                        {/* Callee Avatar */}
-                        <div style={{
-                            width: 100,
-                            height: 100,
-                            borderRadius: '50%',
-                            margin: '0 auto 16px',
-                            background: callingUser.avatar_url
-                                ? `url(${callingUser.avatar_url}) center/cover`
-                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 40,
-                            color: 'white',
-                            border: '3px solid rgba(255,255,255,0.2)',
-                            boxShadow: '0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4)',
-                            animation: 'ring 1.5s infinite',
-                        }}>
-                            {!callingUser.avatar_url && (callingUser.username?.[0]?.toUpperCase() || callingUser.display_name?.[0]?.toUpperCase() || '?')}
-                        </div>
-
-                        {/* Callee Name */}
-                        <h2 style={{
-                            color: 'white',
-                            fontSize: 24,
-                            fontWeight: 600,
-                            margin: '0 0 8px 0',
-                        }}>
-                            {callingUser.display_name || callingUser.username || 'User'}
-                        </h2>
-
-                        {/* Status */}
-                        <p style={{
-                            color: 'rgba(255,255,255,0.7)',
-                            fontSize: 16,
-                            margin: '0 0 32px 0',
-                        }}>
-                            Calling...
-                        </p>
-
-                        {/* Cancel Button */}
-                        <button
-                            onClick={() => {
-                                setCallingUser(null);
-                                if (outgoingRingToneRef.current) {
-                                    outgoingRingToneRef.current.stop();
-                                    outgoingRingToneRef.current = null;
-                                }
-                                endCall();
-                            }}
-                            style={{
-                                width: 70,
-                                height: 70,
-                                borderRadius: '50%',
-                                border: 'none',
-                                background: 'linear-gradient(135deg, #ff4757 0%, #c0392b 100%)',
-                                color: 'white',
-                                fontSize: 28,
-                                cursor: 'pointer',
-                                boxShadow: '0 4px 20px rgba(255,71,87,0.4)',
-                                transition: 'transform 0.2s',
-                            }}
-                            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-                            title="Cancel Call"
-                        >
-                            ×
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* ════════════════════════════════════════════════════════
-                INCOMING CALL POPUP - Shows when someone calls you
-                ════════════════════════════════════════════════════════ */}
-            {incomingCall && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 10000,
-                    background: 'rgba(0, 0, 0, 0.85)',
-                    backdropFilter: 'blur(8px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                        borderRadius: 24,
-                        padding: 40,
-                        textAlign: 'center',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        maxWidth: 360,
-                        width: '90%',
-                    }}>
-                        {/* BUG-6 FIX: Call Type Icon — show actual icons, not plain text */}
-                        <div style={{
-                            fontSize: 48,
-                            marginBottom: 16,
-                            animation: 'pulse 1.5s infinite',
-                        }}>
-                            {incomingCall.callType === 'video' ? '📹' : '📞'}
-                        </div>
-
-                        {/* Caller Avatar */}
-                        <div style={{
-                            width: 100,
-                            height: 100,
-                            borderRadius: '50%',
-                            margin: '0 auto 16px',
-                            background: incomingCall.callerAvatar
-                                ? `url(${incomingCall.callerAvatar}) center/cover`
-                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 40,
-                            color: 'white',
-                            border: '3px solid rgba(255,255,255,0.2)',
-                            boxShadow: '0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4)',
-                            animation: 'ring 1.5s infinite',
-                        }}>
-                            {!incomingCall.callerAvatar && (incomingCall.callerName?.[0]?.toUpperCase() || '?')}
-                        </div>
-
-                        {/* Caller Name */}
-                        <h2 style={{
-                            color: 'white',
-                            fontSize: 24,
-                            fontWeight: 600,
-                            margin: '0 0 8px 0',
-                        }}>
-                            {incomingCall.callerName}
-                        </h2>
-
-                        {/* Call Type Label */}
-                        <p style={{
-                            color: 'rgba(255,255,255,0.7)',
-                            fontSize: 16,
-                            margin: '0 0 32px 0',
-                        }}>
-                            Incoming {incomingCall.callType === 'video' ? 'Video' : 'Voice'} Call...
-                        </p>
-
-                        {/* Accept / Decline Buttons */}
-                        <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
-                            <button
-                                onClick={() => handleDeclineCall('declined')}
-                                style={{
-                                    width: 70,
-                                    height: 70,
-                                    borderRadius: '50%',
-                                    border: 'none',
-                                    background: 'linear-gradient(135deg, #ff4757 0%, #c0392b 100%)',
-                                    color: 'white',
-                                    fontSize: 28,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 20px rgba(255,71,87,0.4)',
-                                    transition: 'transform 0.2s',
-                                }}
-                                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-                                title="Decline"
-                            >
-                                ×
-                            </button>
-                            <button
-                                onClick={handleAcceptCall}
-                                style={{
-                                    width: 70,
-                                    height: 70,
-                                    borderRadius: '50%',
-                                    border: 'none',
-                                    background: 'linear-gradient(135deg, #00b894 0%, #27ae60 100%)',
-                                    color: 'white',
-                                    fontSize: 28,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 20px rgba(0,184,148,0.4)',
-                                    transition: 'transform 0.2s',
-                                }}
-                                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-                                title="Accept"
-                            >
-                                📞
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Ring Animation Keyframes */}
-                    <style dangerouslySetInnerHTML={{ __html: `
-                        @keyframes ring {
-                            0%, 100% { box-shadow: 0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4); }
-                            50% { box-shadow: 0 0 0 8px rgba(0,132,255,0.2), 0 0 50px rgba(0,132,255,0.6); }
-                        }
-                        @keyframes pulse {
-                            0%, 100% { transform: scale(1); }
-                            50% { transform: scale(1.1); }
-                        }
-                    ` }} />
-                </div>
-            )}
-
-            {/* LiveKit Video Call Modal - True seamless WhatsApp/Snapchat style */}
-            {showCall && callRoomName && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 9999,
-                    background: '#000',
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}>
-                    {/* Call Header. Below the status bar so End Call is reachable (mobile phase 0b). */}
-                    <div style={{
-                        padding: '12px 16px',
-                        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-                        background: 'rgba(0,0,0,0.9)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid #333',
-                        zIndex: 10,
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
-                            <div>
-                                <div style={{ color: 'white', fontWeight: 600 }}>
-                                    {callType === 'video' ? 'Video' : 'Voice'} Call With {activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username || 'User'}
-                                </div>
-                                <div style={{ color: '#888', fontSize: 12 }}>Smarter Poker Video</div>
-                            </div>
-                        </div>
-                        <button
-                            onClick={endCall}
-                            aria-label="End Call"
-                            style={{
-                                padding: '10px 20px',
-                                minHeight: 44,
-                                touchAction: 'manipulation',
-                                WebkitTapHighlightColor: 'transparent',
-                                background: '#E53935',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 8,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                            }}
-                        >
-                            📵 End Call
-                        </button>
-                    </div>
-                    {/* LiveKit Video Component — BUG-1 FIX: Pass auth token for API calls */}
-                    <LiveKitCall
-                        roomName={callRoomName}
-                        participantName={user?.display_name || user?.username || user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User'}
-                        participantId={user?.id}
-                        callType={callType}
-                        otherUserName={activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username}
-                        onEnd={endCall}
-                        authToken={getAccessToken()}
-                    />
-                </div>
-            )}
 
             <div className="messenger-page" style={{
                 display: 'flex',
@@ -4038,13 +3095,15 @@ function MessengerPage() {
                                 setTimeout(() => searchInputRef.current?.focus(), 100);
                             }}
                             title="New Message"
+                            aria-label="New Message"
                             style={{
-                                width: 36, height: 36, borderRadius: '50%',
+                                width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
                                 background: composing ? C.blue : C.bg,
-                                border: 'none', cursor: 'pointer', fontSize: 16,
+                                border: 'none', cursor: 'pointer',
                                 color: composing ? 'white' : C.text,
-                                transition: 'all 0.2s',
-                            }}>✏️</button>
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s', touchAction: 'manipulation',
+                            }}><SquarePen size={20} aria-hidden="true" /></button>
                     </div>
 
                     {/* Search */}
@@ -4380,7 +3439,8 @@ function MessengerPage() {
                                     <div style={{
                                         fontSize: 13,
                                         color: '#00D4FF',
-                                        lineHeight: 1.3
+                                        lineHeight: 1.3,
+                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                     }}>
                                         Your Personal Smarter.Poker Coach - Always Online Always Available! Ask Me Anything...
                                     </div>
@@ -4419,13 +3479,16 @@ function MessengerPage() {
                         ) : activeConversation ? (
                             <>
                                 {/* Chat Header */}
-                                <div style={{
-                                    padding: '10px 16px',
+                                <div data-messenger-chat-header style={{
+                                    padding: isMobile ? '8px 8px 8px 4px' : '10px 16px',
+                                    paddingTop: isMobile ? 8 : 10,
                                     borderBottom: `1px solid ${C.border}`,
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 12,
+                                    gap: isMobile ? 6 : 12,
                                     background: C.card,
+                                    minWidth: 0,
+                                    flexShrink: 0,
                                 }}>
                                     {isMobile && (
                                         <button
@@ -4434,31 +3497,31 @@ function MessengerPage() {
                                                 setActiveConversation(null);
                                             }}
                                             style={{
-                                                background: C.bg, border: 'none', cursor: 'pointer',
-                                                fontSize: 16, padding: '6px 10px',
-                                                borderRadius: 8, color: C.blue, fontWeight: 600,
-                                                display: 'flex', alignItems: 'center', gap: 4,
-                                                marginRight: 4,
+                                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                                width: 40, height: 40, padding: 0, flexShrink: 0,
+                                                borderRadius: '50%', color: C.blue,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                touchAction: 'manipulation',
                                             }}
                                             aria-label="Back to conversations"
                                         >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                                 <polyline points="15 18 9 12 15 6" />
                                             </svg>
-                                            Back
                                         </button>
                                     )}
 
                                     {activeConversation.isAccounting || !otherUser?.username
-                                        ? <Avatar name={activeTitle} size={40} showOnline={false} />
-                                        : <Link href={`/hub/user/${otherUser.username}`}><Avatar src={otherUser.avatar_url} name={activeTitle} size={40} online={isActiveOtherOnline} /></Link>}
+                                        ? <div style={{ flexShrink: 0 }}><Avatar name={activeTitle} size={isMobile ? 36 : 40} showOnline={false} /></div>
+                                        : <Link href={`/hub/user/${otherUser.username}`} style={{ flexShrink: 0 }}><Avatar src={otherUser.avatar_url} name={activeTitle} size={isMobile ? 36 : 40} online={isActiveOtherOnline} /></Link>}
 
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ color: C.text, fontWeight: 600, fontSize: 15 }}>{activeTitle}</div>
-                                        {activeConversation.relationshipTags?.length > 0 && <div aria-label="Club Relationships" style={{ color: C.blue, fontSize: 12, fontWeight: 600, maxHeight: 96, overflowY: 'auto', overflowWrap: 'anywhere' }}>
+                                    {/* minWidth 0 lets a long name truncate instead of pushing the call buttons off a phone screen. */}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ color: C.text, fontWeight: 600, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeTitle}</div>
+                                        {activeConversation.relationshipTags?.length > 0 && <div aria-label="Club Relationships" style={{ color: C.blue, fontSize: 12, fontWeight: 600, maxHeight: isMobile ? 32 : 96, overflowY: 'auto', overflowWrap: 'anywhere' }}>
                                             {activeConversation.relationshipTags.map(tag => <div key={tag.clubId}>{tag.label}</div>)}
                                         </div>}
-                                        <div style={{ fontSize: 12, color: isActiveOtherOnline ? C.green : C.textSec }}>
+                                        <div style={{ fontSize: 12, color: isActiveOtherOnline ? C.green : C.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {activeConversation.isAccounting ? 'Invoices And Accounting Discussions' : isActiveOtherOnline ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
                                                 const diff = Date.now() - new Date(otherUserLastSeen).getTime();
                                                 const mins = Math.floor(diff / 60000);
@@ -4471,44 +3534,49 @@ function MessengerPage() {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: 8 }}>
+                                    <div style={{ display: 'flex', gap: isMobile ? 2 : 8, flexShrink: 0, alignItems: 'center' }}>
                                         <button
                                             onClick={() => setShowMessageSearch(!showMessageSearch)}
                                             style={{
-                                                width: 36, height: 36, borderRadius: '50%',
+                                                width: 40, height: 40, borderRadius: '50%', flexShrink: 0, touchAction: 'manipulation',
                                                 background: showMessageSearch ? C.bg : 'transparent',
                                                 border: 'none', cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             }}
                                             title="Search Messages"
+                                            aria-label="Search Messages"
                                         ><SearchIcon size={20} /></button>
                                         {/* Hide call buttons for message request conversations */}
-                                        {!activeConversation?.isRequest && !activeConversation.isAccounting && (
+                                        {!activeConversation?.isRequest && !activeConversation.isAccounting && !activeConversation.is_group && (
                                             <>
                                         <button
                                             onClick={() => startCall('audio')}
                                             title="Voice Call"
+                                            aria-label="Start Voice Call"
                                             style={{
-                                                width: 36, height: 36, borderRadius: '50%',
+                                                width: 40, height: 40, borderRadius: '50%', flexShrink: 0, touchAction: 'manipulation',
                                                 background: 'transparent', border: 'none', cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            }}><PhoneIcon size={20} /></button>
+                                            }}><PhoneIcon size={22} /></button>
                                         <button
                                             onClick={() => startCall('video')}
                                             title="Video Call"
+                                            aria-label="Start Video Call"
                                             style={{
-                                                width: 36, height: 36, borderRadius: '50%',
+                                                width: 40, height: 40, borderRadius: '50%', flexShrink: 0, touchAction: 'manipulation',
                                                 background: 'transparent', border: 'none', cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            }}><VideoIcon size={20} /></button>
+                                            }}><VideoIcon size={22} /></button>
                                             </>
                                         )}
-                                        {!activeConversation.isAccounting && <button
-                                            onClick={() => setShowUserInfo(!showUserInfo)}
-                                            title="User Info"
+                                        {/* User Info had no panel behind it and did nothing; it opens the profile. */}
+                                        {!activeConversation.isAccounting && !activeConversation.is_group && otherUser?.username && <button
+                                            onClick={() => router.push(`/hub/user/${encodeURIComponent(otherUser.username)}`)}
+                                            title="View Profile"
+                                            aria-label="User Info"
                                             style={{
-                                                width: 36, height: 36, borderRadius: '50%',
-                                                background: showUserInfo ? C.bg : 'transparent', border: 'none', cursor: 'pointer',
+                                                width: 40, height: 40, borderRadius: '50%', flexShrink: 0, touchAction: 'manipulation',
+                                                background: 'transparent', border: 'none', cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             }}><InfoIcon size={20} /></button>}
                                     </div>

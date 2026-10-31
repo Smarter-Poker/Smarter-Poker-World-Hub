@@ -85,6 +85,22 @@ export default async function handler(req, res) {
                   error: 'You can only send notifications to yourself.',
               });
           }
+          // 2026-10-31: a call push may only ring someone the sender is
+          // actually calling right now. /api/calls/create authorises the
+          // conversation and writes that pending call (and now sends the push
+          // itself); without this check any account could ring any user id.
+          if (!isSelfOnly && isSingleCall) {
+              const { data: ringing } = await supabaseForAuth
+                  .from('pending_calls')
+                  .select('id')
+                  .eq('caller_id', user.id)
+                  .eq('callee_id', externalUserIds[0])
+                  .gt('expires_at', new Date().toISOString())
+                  .limit(1);
+              if (!ringing?.length) {
+                  return res.status(403).json({ success: false, error: 'There is no call to this person in progress.' });
+              }
+          }
       }
 
       try {

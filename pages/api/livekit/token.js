@@ -13,6 +13,8 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { authorizeCallConversation } from '../../../src/lib/calls/callAuthorization.mjs';
+import { parseCallRoomConversation } from '../../../src/lib/calls/callRoom.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -66,14 +68,29 @@ export default async function handler(req, res) {
       let authorized = false;
       try {
           const sb = getSupabase();
-          const { data: call } = await sb
+          // 2026-10-31: a Messenger call room names its conversation
+          // (src/lib/calls/callRoom.mjs). Authorise it from the conversation,
+          // which still exists after the call is answered. The pending_calls
+          // row is deleted on answer, so authorising from that row refused
+          // the answering side whenever the delete won the race.
+          const callConversationId = parseCallRoomConversation(roomName);
+          if (callConversationId) {
+              const callAuth = await authorizeCallConversation(sb, { conversationId: callConversationId, userId: _authUser.id });
+              if (!callAuth.ok) return res.status(callAuth.status).json({ error: callAuth.error });
+              authorized = true;
+              canPublish = true; // both parties of a 1:1 call publish
+          }
+          const legacyCallRoom = /^smarter-poker-[0-9a-f]{8}-\d{10,16}$/i.test(roomName);
+          const { data: call } = authorized || !legacyCallRoom ? { data: null } : await sb
               .from('pending_calls')
               .select('caller_id, callee_id')
               .eq('room_name', roomName)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
-          if (call && (call.caller_id === _authUser.id || call.callee_id === _authUser.id)) {
+          if (authorized) {
+              // Authorised above from the call's conversation.
+          } else if (call && (call.caller_id === _authUser.id || call.callee_id === _authUser.id)) {
               authorized = true;
               canPublish = true; // both parties of a 1:1 call publish
           } else {
@@ -116,8 +133,8 @@ export default async function handler(req, res) {
           // BUG #263 FIX: Always use authenticated user's ID as the participant identity.
           const token = new AccessToken(apiKey, apiSecret, {
               identity: _authUser.id,
-              name: participantName,
-              ttl: '1h',
+              name: String(participantName).slice(0, 80),
+              ttl: '4h',
           });
 
           token.addGrant({

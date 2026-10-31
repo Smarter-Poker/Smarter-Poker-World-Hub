@@ -276,7 +276,13 @@ self.addEventListener('notificationclick', (event) => {
 
     if (event.action === 'decline') return;
 
-    const url = (event.notification.data && event.notification.data.url) || '/hub';
+    const baseUrl = (event.notification.data && event.notification.data.url) || '/hub';
+    // Tapping Accept on a ringing call answers it as the page opens
+    // (CallProvider reads ?incomingCall=<room>&answer=1). Tapping the banner
+    // itself opens the ringing screen so the user can still choose.
+    const url = event.action === 'accept' && baseUrl.indexOf('incomingCall=') !== -1
+        ? `${baseUrl}${baseUrl.indexOf('?') === -1 ? '?' : '&'}answer=1`
+        : baseUrl;
 
     const sameDestination = (a, b) => {
         try {

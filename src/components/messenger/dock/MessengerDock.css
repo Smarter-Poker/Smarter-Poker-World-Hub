@@ -298,6 +298,18 @@
 .dock-chat-header > button:active {
   background: #f0f2f5;
 }
+/* Phone and video: full touch targets on a phone, next to the name. */
+.dock-chat-header > button.dock-call {
+  width: 36px;
+  height: 36px;
+}
+.dock-mobile .dock-chat-header > button:not(.dock-chat-person) {
+  width: 38px;
+  height: 40px;
+}
+.dock-call-receipt {
+  font-weight: 600;
+}
 .dock-chat-avatar {
   width: 32px;
   height: 32px;

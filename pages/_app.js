@@ -147,6 +147,7 @@ import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { PushProvider } from '../src/contexts/PushContext';
 import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContext';
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
+import CallProvider from '../src/components/calls/CallProvider';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalPageOverlay from '../src/components/ui/GlobalPageOverlay';
 import { isOperatorConsoleRoute } from '../src/components/admin/operatorConsoleRoutes';
@@ -1170,6 +1171,7 @@ export default function App({ Component, pageProps }) {
                       <TrainingSettingsProvider>
                         <NavigationGuard>
                           <ActiveIdentityProvider>
+                            <CallProvider>
                             <WorldThemeProvider>
                               <PageErrorBoundary key={pageErrorBoundaryKey}>
                                 {isTrainingRoute ? (
@@ -1294,6 +1296,7 @@ export default function App({ Component, pageProps }) {
                                 </HubErrorBoundary>
                               </ToastProvider>
                             </WorldThemeProvider>
+                            </CallProvider>
                           </ActiveIdentityProvider>
                         </NavigationGuard>
                       </TrainingSettingsProvider>

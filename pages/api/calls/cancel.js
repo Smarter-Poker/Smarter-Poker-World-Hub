@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const authenticatedUserId = authUser.id;
-      const { callId, callerId, calleeId } = req.body;
+      const { callId, callerId, calleeId, roomName } = req.body || {};
 
       try {
           let query = getSupabase().from('pending_calls').delete();
@@ -47,6 +47,8 @@ export default async function handler(req, res) {
                   return res.status(403).json({ success: false, error: 'Not authorized to cancel this call' });
               }
               query = query.eq('caller_id', callerId).eq('callee_id', calleeId);
+              // Scope to one call so a late hang-up cannot delete a redial.
+              if (typeof roomName === 'string' && roomName.length <= 120) query = query.eq('room_name', roomName);
           } else {
               return res.status(400).json({ success: false, error: 'Missing callId or callerId+calleeId' });
           }

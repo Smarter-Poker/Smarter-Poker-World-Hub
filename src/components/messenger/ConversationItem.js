@@ -160,18 +160,19 @@ export function ConversationItem({
                             <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
                         </svg>
                     )}
-                    {displayName}
+                    <span data-user-content style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{displayName}</span>
                 </div>
                 <div style={{
                     fontSize: 13,
                     color: isUnread ? C.text : C.textSec,
                     fontWeight: isUnread ? 500 : 400,
                     whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    display: 'flex',
+                    minWidth: 0,
                 }}>
-                    {messengerPreviewText(lastMsg || '')}
-                    <span style={{ color: C.textSec }}> · {timeAgo(conversation.last_message_at)}</span>
+                    {/* The preview truncates; the time never does. */}
+                    <span data-user-content style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{messengerPreviewText(lastMsg || '')}</span>
+                    <span style={{ color: C.textSec, flexShrink: 0, whiteSpace: 'pre' }}> · {timeAgo(conversation.last_message_at)}</span>
                 </div>
             </div>
 
@@ -188,6 +189,7 @@ export function ConversationItem({
                     fontSize: 11,
                     fontWeight: 700,
                     padding: '0 5px',
+                    flexShrink: 0,
                 }}>{conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}</div>
             )}
         </div>
