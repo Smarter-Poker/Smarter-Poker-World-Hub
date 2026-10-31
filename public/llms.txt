@@ -19,10 +19,10 @@ https://smarter.poker/about is the page that states it.
 
 - About, the company and the products: https://smarter.poker/about
 - The hub, every product in one place: https://smarter.poker/hub
-- Poker glossary, every term on its own page: https://smarter.poker/glossary
+- Poker glossary, every term on its own page: https://smarter.poker/glossary (Markdown Corpus: https://smarter.poker/glossary.md)
 - Terms of service: https://smarter.poker/terms
 - Privacy policy: https://smarter.poker/privacy
-- Poker strategy lessons, every answer with its chart: https://smarter.poker/learn
+- Poker strategy lessons, every answer with its chart: https://smarter.poker/learn (Markdown Curriculum: https://smarter.poker/learn.md)
 - Sitemap: https://smarter.poker/sitemap.xml
 - Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Daily $2,000 Freerolls Hub: https://smarter.poker/freerolls

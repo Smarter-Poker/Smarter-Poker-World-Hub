@@ -864,6 +864,118 @@
         }
       }
     },
+    "/api/ai/lessons": {
+      "get": {
+        "operationId": "getStrategyLessons",
+        "summary": "Search & Retrieve GTO Poker Strategy Lessons",
+        "description": "Returns complete poker strategy lessons, answer-first summaries, mathematical tables, and training drill links from the 40-lesson Smarter.Poker curriculum.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search query or lesson slug (e.g. pot-odds, 3-bet, icm, button-opening-range).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Lesson category filter (Preflop, Postflop, Math, Tournaments, Cash, Bankroll, Mental Game, Theory).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GTO strategy curriculum lessons and structured content.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "total_lessons": {
+                      "type": "integer"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "curriculum_url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/comparisons": {
+      "get": {
+        "operationId": "getCompetitorComparisons",
+        "summary": "Get Verified Software & Cardroom Comparisons",
+        "description": "Returns verified, source-cited side-by-side comparison matrices and best-of benchmarks between Smarter.Poker and named competitors.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "description": "Comparison slug (e.g. best-poker-club-apps, best-gto-poker-trainers, best-poker-bankroll-trackers, best-poker-room-management-software).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Keyword search across all 16 verified comparisons.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verified competitor comparison matrix and primary sources.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "total_comparisons": {
+                      "type": "integer"
+                    },
+                    "comparisons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "comparisons_hub_url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ai/trivia": {
       "get": {
         "operationId": "getTriviaSpecs",

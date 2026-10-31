@@ -16,6 +16,21 @@ import {
   cellFor,
   pageSources,
 } from '../../content/compare/pages.js';
+import {
+  GLOSSARY_TERMS,
+  CATEGORY_INTROS as GLOSSARY_CATEGORY_INTROS,
+  CATEGORY_PRODUCTS as GLOSSARY_CATEGORY_PRODUCTS,
+  glossaryByCategory,
+  relatedGlossaryTerms,
+  glossaryTermPath,
+} from '../../content/glossary/terms.js';
+import {
+  LESSONS,
+  CATEGORY_INTROS as LEARN_CATEGORY_INTROS,
+  lessonsByCategory,
+  trainingCta,
+  lessonPath,
+} from '../../content/learn/lessons.js';
 
 function clean(str) {
   return String(str || '').replace(/\s+/g, ' ').trim();
@@ -1175,6 +1190,208 @@ export function renderComparePageMarkdown(page, { canonicalBase = 'https://smart
     }
     lines.push('');
   }
+
+  return lines.join('\n');
+}
+
+/**
+ * Format Master Poker Glossary Index as clean structured Markdown for LLM ingestion
+ */
+export function renderGlossaryIndexMarkdown({ canonicalUrl = 'https://smarter.poker/glossary' } = {}) {
+  const groups = glossaryByCategory();
+  const lines = [
+    '# Smarter.Poker Poker Glossary & DefinedTerm Corpus',
+    '',
+    `> Source: [Poker Glossary on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI Search Assistants',
+    `${GLOSSARY_TERMS.length} Poker Terms Defined In Plain Language, From Private Club Poker And Live Room Operations To GTO Strategy. Every Term Has Its Own Canonical Page And Raw Markdown Specification.`,
+    '',
+    `> **Compliance Notice**: ${PLAY_CREDIT_DISCLOSURE.value}`,
+    '',
+  ];
+
+  for (const group of groups) {
+    lines.push(`## ${clean(group.category)}`, '');
+    if (GLOSSARY_CATEGORY_INTROS[group.category]) {
+      lines.push(clean(GLOSSARY_CATEGORY_INTROS[group.category]), '');
+    }
+    for (const term of group.terms) {
+      const termUrl = `https://smarter.poker${glossaryTermPath(term.slug)}`;
+      const mdUrl = `${termUrl}.md`;
+      lines.push(
+        `### [${clean(term.term)}](${termUrl}) ([Raw Markdown](${mdUrl}))`,
+        clean(term.definition),
+        ''
+      );
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Format a Single Poker Glossary Term as clean structured Markdown for LLM ingestion
+ */
+export function renderGlossaryTermMarkdown(term, { canonicalBase = 'https://smarter.poker/glossary' } = {}) {
+  if (!term || !term.slug) return '';
+  const url = `${canonicalBase}/${term.slug}`;
+  const related = relatedGlossaryTerms(term);
+  const products = GLOSSARY_CATEGORY_PRODUCTS[term.category] || [];
+  const lessons = LESSONS.filter((l) => Array.isArray(l.glossary) && l.glossary.includes(term.slug));
+
+  const lines = [
+    `# ${clean(term.term)}`,
+    '',
+    `> Source: [${clean(term.term)} in the Smarter.Poker Glossary](${url})`,
+    '',
+    '## Definition',
+    clean(term.definition),
+    '',
+    `- **Category**: ${clean(term.category)}`,
+    `- **Term Code**: \`${term.slug}\``,
+    `- **DefinedTermSet**: [Smarter.Poker Poker Glossary](https://smarter.poker/glossary)`,
+    '',
+  ];
+
+  if (related.length > 0) {
+    lines.push('## Related Poker Terms', '');
+    for (const r of related) {
+      lines.push(`- [${clean(r.term)}](https://smarter.poker${glossaryTermPath(r.slug)}) ([Markdown](https://smarter.poker${glossaryTermPath(r.slug)}.md)): ${clean(r.definition)}`);
+    }
+    lines.push('');
+  }
+
+  if (lessons.length > 0) {
+    lines.push('## Related Strategy Lessons', '');
+    for (const l of lessons) {
+      lines.push(`- [${clean(l.title)}](https://smarter.poker${lessonPath(l.slug)}) ([Markdown](https://smarter.poker${lessonPath(l.slug)}.md)): ${clean(l.summary)}`);
+    }
+    lines.push('');
+  }
+
+  if (products.length > 0) {
+    lines.push('## Practice On Smarter.Poker', '');
+    for (const p of products) {
+      lines.push(`- [${clean(p.name)}](https://smarter.poker${p.href}): ${clean(p.text)}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('## Compliance & Fair Play', '', PLAY_CREDIT_DISCLOSURE.value, '');
+  return lines.join('\n');
+}
+
+/**
+ * Format Master Poker Strategy Lessons (/learn) Index as clean structured Markdown for LLM ingestion
+ */
+export function renderLearnIndexMarkdown({ canonicalUrl = 'https://smarter.poker/learn' } = {}) {
+  const groups = lessonsByCategory();
+  const lines = [
+    '# Smarter.Poker GTO Poker Strategy Lessons & Curriculum',
+    '',
+    `> Source: [Poker Strategy Lessons on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI Search Assistants',
+    `${LESSONS.length} Comprehensive Poker Strategy Lessons Covering Preflop Ranges, Postflop Play, Poker Math, Tournament ICM, Cash Game Dynamics, Bankroll Management, Mental Game, And Game Theory Optimal (GTO) Principles. Every Lesson Includes Answer-First Summaries, Exact Mathematical Tables, And Raw Markdown Mirrors.`,
+    '',
+    `> **Compliance Notice**: ${PLAY_CREDIT_DISCLOSURE.value}`,
+    '',
+  ];
+
+  for (const group of groups) {
+    lines.push(`## ${clean(group.category)}`, '');
+    if (LEARN_CATEGORY_INTROS[group.category]) {
+      lines.push(clean(LEARN_CATEGORY_INTROS[group.category]), '');
+    }
+    for (const lesson of group.lessons) {
+      const lessonUrl = `https://smarter.poker${lessonPath(lesson.slug)}`;
+      const mdUrl = `${lessonUrl}.md`;
+      lines.push(
+        `### [${clean(lesson.title)}](${lessonUrl}) ([Raw Markdown](${mdUrl}))`,
+        clean(lesson.summary),
+        ''
+      );
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Format a Single Poker Strategy Lesson (/learn/<slug>) as clean structured Markdown for LLM ingestion
+ */
+export function renderLearnLessonMarkdown(lesson, { canonicalBase = 'https://smarter.poker/learn' } = {}) {
+  if (!lesson || !lesson.slug) return '';
+  const url = `${canonicalBase}/${lesson.slug}`;
+  const cta = trainingCta(lesson);
+
+  const lines = [
+    `# ${clean(lesson.title)}`,
+    '',
+    `> Source: [${clean(lesson.title)} on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary',
+    clean(lesson.summary),
+    '',
+    `- **Category**: ${clean(lesson.category)}`,
+    `- **Curriculum**: [Smarter.Poker Strategy Lessons](https://smarter.poker/learn)`,
+    '',
+  ];
+
+  if (Array.isArray(lesson.sections)) {
+    for (const section of lesson.sections) {
+      lines.push(`## ${clean(section.heading)}`, '');
+      if (Array.isArray(section.paragraphs)) {
+        for (const p of section.paragraphs) {
+          lines.push(clean(p), '');
+        }
+      }
+      if (section.table && Array.isArray(section.table.head) && Array.isArray(section.table.rows)) {
+        if (section.table.caption) {
+          lines.push(`### ${clean(section.table.caption)}`, '');
+        }
+        const head = section.table.head.map((h) => clean(h));
+        const sep = head.map(() => '---');
+        lines.push(`| ${head.join(' | ')} |`, `| ${sep.join(' | ')} |`);
+        for (const row of section.table.rows) {
+          lines.push(`| ${row.map((c) => clean(c).replace(/\|/g, '\\|')).join(' | ')} |`);
+        }
+        lines.push('');
+      }
+      if (section.chart && section.chart.sizes) {
+        if (section.chart.caption) {
+          lines.push(`### ${clean(section.chart.caption)}`, '');
+        }
+        const { sizes } = section.chart;
+        if (sizes.reach !== null && sizes.reach !== undefined) {
+          lines.push(`- **Range Frequency**: Opens ${sizes.percent}% Of All Starting Hands By Frequency, And Plays ${sizes.reach}% At Least Some Of The Time.`, '');
+        } else {
+          lines.push(`- **Range Frequency**: Continues With ${sizes.percent}% Of All Starting Hands By Frequency.`, '');
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(lesson.glossary) && lesson.glossary.length > 0) {
+    lines.push('## Key Poker Terms In This Lesson', '');
+    for (const slug of lesson.glossary) {
+      lines.push(`- [${slug}](https://smarter.poker/glossary/${slug}) ([Markdown](https://smarter.poker/glossary/${slug}.md))`);
+    }
+    lines.push('');
+  }
+
+  lines.push('## Practice & Interactive Tools On Smarter.Poker', '');
+  if (cta.game) {
+    lines.push(`- **Training Drill**: [Play ${clean(cta.game.name)}](https://smarter.poker${cta.game.href})`);
+  }
+  if (cta.tool) {
+    lines.push(`- **Interactive Calculator**: [Open ${clean(cta.tool.name)}](https://smarter.poker${cta.tool.href})`);
+  }
+  if (cta.jarvis) {
+    lines.push(`- **AI Coach**: [${clean(cta.jarvis.name)}](https://smarter.poker${cta.jarvis.href})`);
+  }
+  lines.push('');
 
   return lines.join('\n');
 }

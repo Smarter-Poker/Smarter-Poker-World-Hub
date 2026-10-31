@@ -77,6 +77,8 @@ async function runBenchmark() {
     assertCheck('OpenAPI documents /api/ai/club-arena', !!doc.paths['/api/ai/club-arena']);
     assertCheck('OpenAPI documents /api/ai/social-reels', !!doc.paths['/api/ai/social-reels']);
     assertCheck('OpenAPI documents /api/ai/video-library', !!doc.paths['/api/ai/video-library']);
+    assertCheck('OpenAPI documents /api/ai/lessons', !!doc.paths['/api/ai/lessons']);
+    assertCheck('OpenAPI documents /api/ai/comparisons', !!doc.paths['/api/ai/comparisons']);
   } catch (err) {
     assertCheck('OpenAPI JSON parseable', false, err.message);
   }
@@ -86,6 +88,8 @@ async function runBenchmark() {
 
   const mcpDiscovery = await fetchRoute('/api/mcp');
   assertCheck('GET /api/mcp returns 200 with get_platform_feature_specs tool', mcpDiscovery.status === 200 && mcpDiscovery.text.includes('get_platform_feature_specs'));
+  assertCheck('GET /api/mcp includes search_strategy_lessons tool', mcpDiscovery.text.includes('search_strategy_lessons'));
+  assertCheck('GET /api/mcp includes get_competitor_comparison tool', mcpDiscovery.text.includes('get_competitor_comparison'));
 
   // 2. AI Agent Tool API Endpoints
   console.log(`\n--- [2/10] AI Agent Tool APIs (MCP / Tool Calling) ---`);
@@ -139,6 +143,12 @@ async function runBenchmark() {
 
   const aiVideoLib = await fetchRoute('/api/ai/video-library');
   assertCheck('GET /api/ai/video-library returns 200 with coaching specs', aiVideoLib.status === 200 && aiVideoLib.text.includes('library_features'));
+
+  const aiLessons = await fetchRoute('/api/ai/lessons?q=pot-odds');
+  assertCheck('GET /api/ai/lessons returns 200 with strategy lessons', aiLessons.status === 200 && aiLessons.text.includes('Pot Odds'));
+
+  const aiComparisons = await fetchRoute('/api/ai/comparisons?slug=best-poker-club-apps');
+  assertCheck('GET /api/ai/comparisons returns 200 with verified table', aiComparisons.status === 200 && aiComparisons.text.includes('PokerBros'));
 
   // 3. Structured Freerolls & Calendar Schema
   console.log(`\n--- [3/10] Daily $2,000 Freerolls Hub & Calendar Schema ---`);
@@ -323,6 +333,28 @@ async function runBenchmark() {
 
   const featuresHtml = await fetchRoute('/features');
   assertCheck('/features includes alternate text/markdown link', featuresHtml.text.includes('rel="alternate"') && featuresHtml.text.includes('type="text/markdown"'));
+
+  const glossaryMd = await fetchRoute('/glossary.md');
+  assertCheck('GET /glossary.md status 200', glossaryMd.status === 200);
+  assertCheck('/glossary.md returns DefinedTerm corpus', glossaryMd.text.startsWith('# ') && glossaryMd.text.includes('Poker Glossary'));
+
+  const glossaryTermMd = await fetchRoute('/glossary/3-bet.md');
+  assertCheck('GET /glossary/3-bet.md status 200', glossaryTermMd.status === 200);
+  assertCheck('/glossary/3-bet.md returns structured term definition', glossaryTermMd.text.startsWith('# 3-Bet') && glossaryTermMd.text.includes('## Definition'));
+
+  const learnMd = await fetchRoute('/learn.md');
+  assertCheck('GET /learn.md status 200', learnMd.status === 200);
+  assertCheck('/learn.md returns strategy curriculum', learnMd.text.startsWith('# ') && learnMd.text.includes('Strategy Lessons'));
+
+  const learnLessonMd = await fetchRoute('/learn/pot-odds.md');
+  assertCheck('GET /learn/pot-odds.md status 200', learnLessonMd.status === 200);
+  assertCheck('/learn/pot-odds.md returns structured lesson with tables', learnLessonMd.text.startsWith('# ') && learnLessonMd.text.includes('## Executive Summary'));
+
+  const glossaryHtml = await fetchRoute('/glossary');
+  assertCheck('/glossary includes alternate text/markdown link', glossaryHtml.text.includes('rel="alternate"') && glossaryHtml.text.includes('type="text/markdown"'));
+
+  const learnHtml = await fetchRoute('/learn');
+  assertCheck('/learn includes alternate text/markdown link', learnHtml.text.includes('rel="alternate"') && learnHtml.text.includes('type="text/markdown"'));
 
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);
