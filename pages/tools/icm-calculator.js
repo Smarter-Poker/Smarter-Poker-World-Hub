@@ -16,7 +16,10 @@ export async function getServerSideProps({ req, res, query }) {
         req?.url?.includes('format=md');
     if (isMarkdownRequested) {
         const { renderIcmCalculatorMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
-        const mdContent = renderIcmCalculatorMarkdown();
+        const mdContent = renderIcmCalculatorMarkdown({
+            stacks: query?.stacks || '',
+            payouts: query?.payouts || '',
+        });
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
         res.setHeader('Vary', 'Accept');
         res.write(mdContent);

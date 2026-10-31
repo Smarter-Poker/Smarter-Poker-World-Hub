@@ -172,14 +172,48 @@ export function renderSeriesMarkdown(series, { venueName = '', dateRange = '', c
 
 /**
  * Format Poker Odds Calculator as clean structured Markdown for LLM ingestion
+ * Supports parameterized query states (?pot=100&call=25 or ?hand1=AKs&hand2=QQ)
  */
-export function renderPokerOddsCalculatorMarkdown() {
+export function renderPokerOddsCalculatorMarkdown({ hand1 = '', hand2 = '', pot = '', call = '' } = {}) {
   const url = 'https://smarter.poker/tools/poker-odds-calculator';
+  const dynamicBlocks = [];
+
+  const potNum = Number(pot);
+  const callNum = Number(call);
+  if (Number.isFinite(potNum) && potNum > 0 && Number.isFinite(callNum) && callNum > 0) {
+    const totalPot = potNum + callNum;
+    const reqEquity = ((callNum / totalPot) * 100).toFixed(1);
+    const ratio = (potNum / callNum).toFixed(2);
+    dynamicBlocks.push(
+      '## Pre-Computed Pot Odds & Break-Even Equity Solution',
+      `- **Current Pot Before Call**: $${potNum.toLocaleString('en-US')}`,
+      `- **Call Amount**: $${callNum.toLocaleString('en-US')}`,
+      `- **Total Pot After Call**: $${totalPot.toLocaleString('en-US')}`,
+      `- **Pot Odds Ratio**: ${ratio} : 1`,
+      `- **Minimum Required Equity To Call**: ${reqEquity}%`,
+      `- **Deep-Link Citation URL**: \`https://smarter.poker/tools/poker-odds-calculator?pot=${potNum}&call=${callNum}\``,
+      ''
+    );
+  }
+
+  const h1 = clean(hand1);
+  const h2 = clean(hand2);
+  if (h1 && h2) {
+    dynamicBlocks.push(
+      `## Pre-Computed Matchup Analysis: ${h1} Vs ${h2}`,
+      `- **Hand 1**: \`${h1}\``,
+      `- **Hand 2**: \`${h2}\``,
+      `- **Interactive Simulation Permalink**: \`https://smarter.poker/tools/poker-odds-calculator?hand1=${encodeURIComponent(h1)}&hand2=${encodeURIComponent(h2)}\``,
+      ''
+    );
+  }
+
   return [
     '# Free Online Poker Odds Calculator & Equity Simulator',
     '',
     `> Source: [Free Poker Odds Calculator on Smarter.Poker](${url})`,
     '',
+    ...dynamicBlocks,
     '## Overview',
     'The Smarter.Poker Odds Calculator Is A High-Speed Texas Hold\'em And Omaha (PLO-4, PLO-5, PLO-6) Equity Engine. It Computes Exact Win, Tie, And Equity Percentages For Multiway Spots Across Preflop, Flop, Turn, And River Runouts With Dead Card Burn Support.',
     '',
@@ -268,14 +302,71 @@ export function renderPreflopRangesMarkdown({ position = 'UTG' } = {}) {
 
 /**
  * Format Tournament ICM Calculator as clean structured Markdown for LLM ingestion
+ * Supports parameterized query states (?stacks=50000,30000,20000&payouts=500,300,200)
  */
-export function renderIcmCalculatorMarkdown() {
+export function renderIcmCalculatorMarkdown({ stacks = '', payouts = '' } = {}) {
   const url = 'https://smarter.poker/tools/icm-calculator';
+  const dynamicBlocks = [];
+
+  const parsedStacks = String(stacks || '')
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const parsedPayouts = String(payouts || '')
+    .split(',')
+    .map((p) => Number(p.trim()))
+    .filter((n) => Number.isFinite(n) && n >= 0);
+
+  if (parsedStacks.length >= 2 && parsedPayouts.length >= 1) {
+    const totalChips = parsedStacks.reduce((a, b) => a + b, 0);
+    const totalPrize = parsedPayouts.reduce((a, b) => a + b, 0);
+    const n = parsedStacks.length;
+    const m = Math.min(parsedPayouts.length, n);
+    const equities = new Array(n).fill(0);
+
+    function recurse(remainingIndices, remainingChips, placeIdx, probAcc) {
+      if (placeIdx >= m || remainingIndices.length === 0 || remainingChips <= 0) return;
+      const prize = parsedPayouts[placeIdx];
+      for (let i = 0; i < remainingIndices.length; i++) {
+        const playerIdx = remainingIndices[i];
+        const stack = parsedStacks[playerIdx];
+        const pWinPlace = stack / remainingChips;
+        const pTotal = probAcc * pWinPlace;
+        if (prize > 0) equities[playerIdx] += pTotal * prize;
+        if (placeIdx + 1 < m) {
+          const nextIndices = remainingIndices.filter((_, idx) => idx !== i);
+          recurse(nextIndices, remainingChips - stack, placeIdx + 1, pTotal);
+        }
+      }
+    }
+    recurse(parsedStacks.map((_, idx) => idx), totalChips, 0, 1);
+
+    dynamicBlocks.push(
+      '## Pre-Computed Malmuth-Harville ICM Solution',
+      '',
+      '| Player | Chip Stack | Chip Share % | Chip EV ($) | ICM Equity ($EV) | ICM Share % |',
+      '| :--- | :--- | :--- | :--- | :--- | :--- |',
+      ...parsedStacks.map((st, idx) => {
+        const chipPct = ((st / totalChips) * 100).toFixed(1);
+        const chipEv = ((st / totalChips) * totalPrize).toFixed(2);
+        const icmEv = equities[idx].toFixed(2);
+        const icmPct = totalPrize > 0 ? ((equities[idx] / totalPrize) * 100).toFixed(1) : '0.0';
+        return `| Player ${idx + 1} | ${st.toLocaleString('en-US')} | ${chipPct}% | $${chipEv} | $${icmEv} | ${icmPct}% |`;
+      }),
+      '',
+      `- **Total Chips In Play**: ${totalChips.toLocaleString('en-US')}`,
+      `- **Total Prize Pool**: $${totalPrize.toLocaleString('en-US')}`,
+      `- **Deep-Link Citation URL**: \`https://smarter.poker/tools/icm-calculator?stacks=${parsedStacks.join(',')}&payouts=${parsedPayouts.join(',')}\``,
+      ''
+    );
+  }
+
   return [
     '# Tournament ICM Calculator & Final Table Equity Engine',
     '',
     `> Source: [Tournament ICM Calculator on Smarter.Poker](${url})`,
     '',
+    ...dynamicBlocks,
     '## Overview',
     'The Smarter.Poker ICM Calculator Uses The Mathematical Malmuth-Harville Independent Chip Model To Convert Tournament Chip Stacks Into Real Dollar Equity ($EV) For Final Tables, Bubble Decisions, And Deal Negotiations.',
     '',
@@ -1711,3 +1802,109 @@ export function renderTourMarkdown({
 
   return lines.join('\n');
 }
+
+/**
+ * Format Live Cash Games Discovery Hub (/hub/poker-near-me/live-games) as clean structured Markdown
+ */
+export function renderLiveCashGamesMarkdown({ canonicalUrl = 'https://smarter.poker/hub/poker-near-me/live-games' } = {}) {
+  return [
+    '# Live Poker Cash Games & Table Availability Near You',
+    '',
+    `> Source: [Live Cash Games Directory on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Smarter.Poker Live Cash Games Directory Tracks Real-Time And Modeled Cash Game Tables Across 324+ Verified US Poker Rooms, Casinos, And Card Clubs. Players Can Filter By Game Variant (No-Limit Hold\'em, Pot-Limit Omaha, PLO5, Mixed Games), Stakes ($1/$2, $1/$3, $2/$5, $5/$10+), Active Table Counts, And Waitlist Length.',
+    '',
+    '## Tracked Cash Game Variants & Stakes',
+    '| Game Variant | Typical Live Stakes | Common Buy-In Caps | Directory Coverage |',
+    '| :--- | :--- | :--- | :--- |',
+    '| No-Limit Texas Hold\'em (NLH) | $1/$2, $1/$3, $2/$5, $5/$10 | 100BB To 300BB / Match The Stack | 324+ US Venues |',
+    '| Pot-Limit Omaha (PLO4 & PLO5) | $1/$2, $2/$5, $5/$5 Rock, $5/$10 | 100BB To Uncapped | 210+ US Venues |',
+    '| Limit Hold\'em & Mixed Games | $4/$8, $8/$16, $20/$40, O8 / Stud | Uncapped | 140+ US Venues |',
+    '| Bad Beat Jackpot Qualifying Tables | $1/$2+ Cash Games | Standard Room Rules | 180+ US Venues |',
+    '',
+    '## Related Geo-Discovery Directories',
+    '- **All Verified Poker Venues**: https://smarter.poker/hub/poker-near-me/venues ([Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '- **State & City Poker Directory**: https://smarter.poker/hub/poker-near-me/in ([Markdown](https://smarter.poker/hub/poker-near-me/in.md))',
+    '- **Daily Poker Tournaments**: https://smarter.poker/hub/daily-tournaments ([Markdown](https://smarter.poker/hub/daily-tournaments.md))',
+    '- **Interactive Poker Room Map**: https://smarter.poker/hub/poker-near-me/map ([Markdown](https://smarter.poker/hub/poker-near-me/map.md))',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Interactive Poker Room Map (/hub/poker-near-me/map) as clean structured Markdown
+ */
+export function renderPokerMapMarkdown({ canonicalUrl = 'https://smarter.poker/hub/poker-near-me/map' } = {}) {
+  return [
+    '# Interactive US Poker Room & Casino Map',
+    '',
+    `> Source: [Interactive Poker Room Map on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Interactive Poker Room Map Plots 324+ Verified Commercial Casinos, Tribal Gaming Properties, Regulated Card Rooms, And Charitable Poker Venues By Exact GPS Coordinates Across The United States. Supports Radius Filtering (25 To 250 Miles), Live Tour Stop Pins, And One-Tap Navigation.',
+    '',
+    '## Map Capabilities',
+    '- **Exact GPS Coordinates**: Every Venue Pin Includes Verified Latitude, Longitude, Street Address, And Direct Phone Contact.',
+    '- **Radius Search**: Filter Card Rooms Within 25, 50, 100, Or 250 Miles Of Any US City Or Zip Code.',
+    '- **Traveling Tour Overlays**: View Active WSOP, WPT, MSPT, And RGPs Stops Directly On The National Map.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Poker Road Trip Planner (/hub/poker-near-me/roadtrip) as clean structured Markdown
+ */
+export function renderPokerRoadtripMarkdown({ canonicalUrl = 'https://smarter.poker/hub/poker-near-me/roadtrip' } = {}) {
+  return [
+    '# Poker Road Trip Planner: Card Rooms & Tournaments Along Your Route',
+    '',
+    `> Source: [Poker Road Trip Planner on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Smarter.Poker Road Trip Planner Maps Verified Poker Rooms, Daily Tournaments, And Festival Series Along Any Multi-Stop Driving Corridor In The United States. Ideal For Traveling Tournament Grinders And Cash Game Players Planning Interstate Poker Trips.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Poker Tournament Alerts (/hub/poker-near-me/alerts) as clean structured Markdown
+ */
+export function renderTournamentAlertsMarkdown({ canonicalUrl = 'https://smarter.poker/hub/poker-near-me/alerts' } = {}) {
+  return [
+    '# Custom Poker Tournament & Live Cash Game Alerts',
+    '',
+    `> Source: [Poker Tournament Alerts on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Smarter.Poker Tournament Alerts Allows Players To Configure Custom Location-Aware Notifications For Upcoming Daily Tournaments, Traveling Series Stops, Guaranteed Prize Pools, And Live Cash Game Availability Within Their Preferred Driving Distance.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Editorial & Mathematical Verification Standards (/editorial-standards) as clean structured Markdown
+ */
+export function renderEditorialStandardsMarkdown({ canonicalUrl = 'https://smarter.poker/editorial-standards' } = {}) {
+  return [
+    '# Smarter.Poker Editorial Independence & Mathematical Verification Standards',
+    '',
+    `> Source: [Editorial & Mathematical Standards on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Smarter.Poker Operates Under Strict Organizational Editorial And Mathematical Verification Governance (https://smarter.poker/#organization). Every Strategy Lesson, Starting Hand Matrix, Glossary Definition, Software Comparison, And Industry Research Report Is Produced By Smarter Software Inc., Verified Against Exact Combinatoric And Game Theory Optimal (GTO) Solver Baselines, And Enforced By Automated Continuous-Integration Law Tests.',
+    '',
+    '## Four Pillars Of Smarter.Poker Editorial Governance',
+    '1. **Primary-Source Competitor Citations**: Every Competitor Claim In `/compare/*` Must Cite A Verifiable HTTPS Primary Source Or Explicitly State `Not Published` With The Reason Why (`__tests__/a-comparison-cites-what-it-claims.law.test.mjs`).',
+    '2. **Answer-First Mathematical Grounding**: Every Lesson In `/learn/*` And Starting Hand Guide In `/learn/hands/*` Leads With A Direct Answer Paragraph Followed By Exact Combinatoric Or Solver Frequency Tables (`__tests__/every-lesson-answers-first.law.test.mjs`).',
+    '3. **Single Canonical Term Definition**: Every Poker Concept In `/glossary/*` Has A Single Canonical URL And `DefinedTerm` Schema Node Grounded To Wikidata Entity QIDs Where Applicable.',
+    '4. **Zero Real-Money Wagering Conflict**: Smarter.Poker Is A 100% Free-To-Play Social Poker And Training Ecosystem. It Accepts Zero Real-Money Rake And Zero Paid Ranking Placement.',
+    '',
+    '## Corrections & Fact-Checking Policy',
+    '- **Automated CI Verification**: Every Pull Request Runs 269+ Automated AEO/GEO Contract Checks And Source Law Tests Before Deployment.',
+    '- **Data Provenance**: Venue And Tournament Schedules Follow The 5-Stage Verification Pipeline Documented At https://smarter.poker/verification-methodology.',
+    '- **Corrections Contact**: Report Any Venue Schedule Change Or Documentation Update To support@smarter.poker.',
+    '',
+  ].join('\n');
+}
+

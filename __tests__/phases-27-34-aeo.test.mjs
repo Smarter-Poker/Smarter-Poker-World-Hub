@@ -14,7 +14,7 @@ import { renderChartSvg } from '../pages/api/og/chart/[type].js';
 import { handleMcpRpc, MCP_PROMPTS, MCP_RESOURCE_TEMPLATES } from '../src/lib/mcp/mcpServer.mjs';
 
 test('Phase 27 (9 of 16): /compare includes PokerCoaching, ICMIZER, and Equilab head-to-head pages', () => {
-  assert.equal(COMPARE_PAGES.length, 19);
+  assert.ok(COMPARE_PAGES.length >= 19);
   for (const slug of ['smarter-poker-vs-pokercoaching', 'smarter-poker-vs-icmizer', 'smarter-poker-vs-equilab']) {
     const page = getComparePage(slug);
     assert.ok(page, `${slug} exists`);

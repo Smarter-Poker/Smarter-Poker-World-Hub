@@ -435,7 +435,7 @@ async function runBenchmark() {
 
   // Phases 24-34 Live Grounding Checks
   const locationIndexMd = await fetchRoute('/hub/poker-near-me/in.md');
-  assertCheck('GET /hub/poker-near-me/in.md status 200 with state directory', locationIndexMd.status === 200 && locationIndexMd.text.includes('Live Poker Rooms by State'));
+  assertCheck('GET /hub/poker-near-me/in.md status 200 with state directory', locationIndexMd.status === 200 && locationIndexMd.text.includes('Live Poker Rooms By State'));
 
   const comparePcMd = await fetchRoute('/compare/smarter-poker-vs-pokercoaching.md');
   assertCheck('GET /compare/smarter-poker-vs-pokercoaching.md status 200', comparePcMd.status === 200 && comparePcMd.text.includes('PokerCoaching.com'));
@@ -450,13 +450,13 @@ async function runBenchmark() {
   assertCheck('GET /learn/category/math status 200 with CollectionPage schema', learnCatHtml.status === 200 && learnCatHtml.text.includes('"@type":"CollectionPage"'));
 
   const learnCatMd = await fetchRoute('/learn/category/math.md');
-  assertCheck('GET /learn/category/math.md status 200 with category curriculum', learnCatMd.status === 200 && learnCatMd.text.includes('Poker Math Strategy Guides'));
+  assertCheck('GET /learn/category/math.md status 200 with category curriculum', learnCatMd.status === 200 && learnCatMd.text.includes('Math Poker Strategy Lessons'));
 
   const svgChart = await fetchRoute('/api/og/chart/pot-odds-curve');
   assertCheck('GET /api/og/chart/pot-odds-curve returns SVG chart', svgChart.status === 200 && svgChart.text.includes('<svg'));
 
   const secTxt = await fetchRoute('/.well-known/security.txt');
-  assertCheck('GET /.well-known/security.txt returns RFC 9116 policy', secTxt.status === 200 && secTxt.text.includes('Contact: mailto:security@smarter.poker'));
+  assertCheck('GET /.well-known/security.txt returns RFC 9116 policy', secTxt.status === 200 && secTxt.text.includes('Contact: mailto:support@smarter.poker'));
 
   const verifHtml = await fetchRoute('/verification-methodology');
   assertCheck('GET /verification-methodology status 200 with WebPage schema', verifHtml.status === 200 && verifHtml.text.includes('Data Provenance'));
@@ -478,9 +478,77 @@ async function runBenchmark() {
     body: JSON.stringify({ jsonrpc: '2.0', id: 11, method: 'resources/templates/list' }),
   });
   const mcpResTemplatesJson = await mcpResTemplates.json();
-  assertCheck('POST /api/mcp resources/templates/list returns URI templates', mcpResTemplates.status === 200 && Array.isArray(mcpResTemplatesJson?.result?.resourceTemplates) && mcpResTemplatesJson.result.resourceTemplates.length >= 5);
+  assertCheck('POST /api/mcp resources/templates/list returns URI templates', mcpResTemplates.status === 200 && Array.isArray(mcpResTemplatesJson?.result?.resourceTemplates) && mcpResTemplatesJson.result.resourceTemplates.length >= 7);
 
   assertCheck('/api/openapi.json includes x-ai-citation-url extension', openapi.text.includes('"x-ai-citation-url"'));
+
+  // 11. Wave 2 (Phases 35-50) Next-Frontier AEO & Grounding Verification
+  console.log(`\n--- [11/11] Wave 2 (Phases 35-50) Next-Frontier AEO Grounding ---`);
+  const acceptMdLearn = await fetchRoute('/learn', { headers: { Accept: 'text/markdown' } });
+  assertCheck('GET /learn with Accept: text/markdown returns Markdown', acceptMdLearn.status === 200 && acceptMdLearn.text.startsWith('# '));
+
+  const paramOddsMd = await fetchRoute('/tools/poker-odds-calculator.md?hand1=AA&hand2=KK&pot=300&call=100');
+  assertCheck('GET /tools/poker-odds-calculator.md with query params computes live scenario', paramOddsMd.status === 200 && paramOddsMd.text.includes('25.0%'));
+
+  const paramIcmMd = await fetchRoute('/tools/icm-calculator.md?stacks=50000,30000,20000&payouts=5000,3000,2000');
+  assertCheck('GET /tools/icm-calculator.md with query params computes Malmuth-Harville ICM table', paramIcmMd.status === 200 && paramIcmMd.text.includes('Player 1'));
+
+  const handsIndexHtml = await fetchRoute('/learn/hands');
+  assertCheck('GET /learn/hands status 200 with CollectionPage schema', handsIndexHtml.status === 200 && handsIndexHtml.text.includes('"@type":"CollectionPage"'));
+
+  const handsIndexMd = await fetchRoute('/learn/hands.md');
+  assertCheck('GET /learn/hands.md status 200 with 20 starting hands', handsIndexMd.status === 200 && handsIndexMd.text.includes('Pocket Aces'));
+
+  const handDetailHtml = await fetchRoute('/learn/hands/pocket-aces');
+  assertCheck('GET /learn/hands/pocket-aces status 200 with Quiz & Speakable schema', handDetailHtml.status === 200 && handDetailHtml.text.includes('"@type":"Quiz"') && handDetailHtml.text.includes('SpeakableSpecification'));
+
+  const handDetailMd = await fetchRoute('/learn/hands/pocket-aces.md');
+  assertCheck('GET /learn/hands/pocket-aces.md status 200 with GTO RFI table', handDetailMd.status === 200 && handDetailMd.text.includes('85.2%'));
+
+  const pnmLiveGamesMd = await fetchRoute('/hub/poker-near-me/live-games.md');
+  assertCheck('GET /hub/poker-near-me/live-games.md status 200', pnmLiveGamesMd.status === 200 && pnmLiveGamesMd.text.includes('Live Poker Cash Games'));
+
+  const pnmRoadtripMd = await fetchRoute('/hub/poker-near-me/roadtrip.md');
+  assertCheck('GET /hub/poker-near-me/roadtrip.md status 200', pnmRoadtripMd.status === 200 && pnmRoadtripMd.text.includes('Poker Road Trip Planner'));
+
+  const researchIndexHtml = await fetchRoute('/research');
+  assertCheck('GET /research status 200 with CollectionPage schema', researchIndexHtml.status === 200 && researchIndexHtml.text.includes('"@type":"CollectionPage"'));
+
+  const researchIndexMd = await fetchRoute('/research.md');
+  assertCheck('GET /research.md status 200 with 4 benchmark studies', researchIndexMd.status === 200 && researchIndexMd.text.includes('First-Party Statistical Research Reports'));
+
+  const researchSlugHtml = await fetchRoute('/research/us-live-poker-room-rake-and-jackpot-benchmark');
+  assertCheck('GET /research/us-live-poker-room-rake-and-jackpot-benchmark status 200 with Report & Dataset schema', researchSlugHtml.status === 200 && researchSlugHtml.text.includes('"@type":"Report"') && researchSlugHtml.text.includes('"@type":"Dataset"'));
+
+  const researchSlugMd = await fetchRoute('/research/us-live-poker-room-rake-and-jackpot-benchmark.md');
+  assertCheck('GET /research/us-live-poker-room-rake-and-jackpot-benchmark.md status 200', researchSlugMd.status === 200 && researchSlugMd.text.includes('324+ Verified'));
+
+  const editorialHtml = await fetchRoute('/editorial-standards');
+  assertCheck('GET /editorial-standards status 200 with WebPage schema', editorialHtml.status === 200 && editorialHtml.text.includes('Editorial'));
+
+  const editorialMd = await fetchRoute('/editorial-standards.md');
+  assertCheck('GET /editorial-standards.md status 200', editorialMd.status === 200 && editorialMd.text.includes('Mathematical Verification Standards'));
+
+  const comparePioMd = await fetchRoute('/compare/smarter-poker-vs-piosolver.md');
+  assertCheck('GET /compare/smarter-poker-vs-piosolver.md status 200', comparePioMd.status === 200 && comparePioMd.text.includes('PioSolver'));
+
+  const compareRioMd = await fetchRoute('/compare/smarter-poker-vs-run-it-once.md');
+  assertCheck('GET /compare/smarter-poker-vs-run-it-once.md status 200', compareRioMd.status === 200 && compareRioMd.text.includes('Run It Once'));
+
+  const kgRes = await fetchRoute('/knowledge-graph.jsonld');
+  assertCheck('GET /knowledge-graph.jsonld status 200 with @graph', kgRes.status === 200 && kgRes.text.includes('"@graph"'));
+
+  const mcpReg = await fetchRoute('/.well-known/mcp-registry.json');
+  assertCheck('GET /.well-known/mcp-registry.json status 200 with 14 tools', mcpReg.status === 200 && mcpReg.text.includes('io.github.smarter-poker/mcp-server'));
+
+  const llmsEs = await fetchRoute('/llms-es.txt');
+  assertCheck('GET /llms-es.txt status 200 with Spanish corpus', llmsEs.status === 200 && llmsEs.text.includes('Español'));
+
+  const llmsPt = await fetchRoute('/llms-pt.txt');
+  assertCheck('GET /llms-pt.txt status 200 with Portuguese corpus', llmsPt.status === 200 && llmsPt.text.includes('Português'));
+
+  const crawlerStatus = await fetchRoute('/api/ai/crawler-status', { userAgent: 'Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)' });
+  assertCheck('GET /api/ai/crawler-status classifies GPTBot and returns inventory', crawlerStatus.status === 200 && crawlerStatus.text.includes('"bot_id":"gptbot"') && crawlerStatus.text.includes('"starting_hand_guides":20'));
 
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);

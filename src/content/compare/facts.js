@@ -269,6 +269,36 @@ export const SOURCES = {
     kind: 'press',
     published: '2026-08',
   },
+  runItOnceSite: {
+    url: 'https://www.runitonce.com/',
+    title: 'Run It Once Poker Training Official Site',
+    kind: 'maker',
+  },
+  upswingSite: {
+    url: 'https://upswingpoker.com/',
+    title: 'Upswing Poker Training Official Site',
+    kind: 'maker',
+  },
+  pt4Site: {
+    url: 'https://www.pokertracker.com/',
+    title: 'PokerTracker 4 Official Site',
+    kind: 'maker',
+  },
+  hm3Site: {
+    url: 'https://www.holdemmanager.com/',
+    title: 'Holdem Manager 3 Official Site',
+    kind: 'maker',
+  },
+  piosolverSite: {
+    url: 'https://www.piosolver.com/',
+    title: 'PioSolver Postflop Equilibrium Solver Official Site',
+    kind: 'maker',
+  },
+  monkersolverSite: {
+    url: 'https://monkerware.com/',
+    title: 'MonkerSolver Multiway Solver Official Site',
+    kind: 'maker',
+  },
 
   // Smarter.Poker, read from the live site
   spHome: { url: 'https://smarter.poker/', title: 'Smarter.Poker Home Page', kind: 'own' },
@@ -693,6 +723,72 @@ export const PRODUCTS = {
       solver: fact("Hand Versus Hand And Range Versus Range Equity Calculator For Hold'em And Omaha", 'equilabSite'),
       handReview: fact('Scenario Analyser To Evaluate Postflop Turn And River Equity Cards', 'equilabSite'),
       platforms: fact('Windows Desktop Software', 'equilabSite'),
+    },
+  },
+  runItOnce: {
+    name: 'Run It Once',
+    facts: {
+      pricing: fact('Essential And Elite Monthly Or Annual Subscription Plans Plus Standalone Courses', 'runItOnceSite'),
+      freeTier: fact('Free Member Registration With Sample Training Videos', 'runItOnceSite'),
+      training: fact('Over 8,000 Strategy Videos From Touring Professionals Across NLH, PLO And Mixed Games', 'runItOnceSite'),
+      solver: fact('Vision GTO Trainer Add-On For Pot-Limit Omaha And No-Limit Hold\'em Study', 'runItOnceSite'),
+      handReview: fact('Community Hand Discussion Forums And Coach Hand History Breakdowns', 'runItOnceSite'),
+      platforms: fact('Web Browser', 'runItOnceSite'),
+    },
+  },
+  upswingPoker: {
+    name: 'Upswing Poker',
+    facts: {
+      pricing: fact('Upswing Lab Monthly Or Annual Subscription Plus Advanced Masterclasses', 'upswingSite'),
+      freeTier: fact('Free Preflop Charts And Introductory Strategy Articles', 'upswingSite'),
+      training: fact('Upswing Lab Core Strategy Modules, Play And Explain Videos And Quiz Drills', 'upswingSite'),
+      solver: fact('Lucid GTO Postflop Trainer And Advanced Solver Range Modules', 'upswingSite'),
+      handReview: fact('Member Group Hand Analysis And Instructor Session Reviews', 'upswingSite'),
+      platforms: fact('Web Browser And Mobile App', 'upswingSite'),
+    },
+  },
+  pokerTracker4: {
+    name: 'PokerTracker 4',
+    facts: {
+      pricing: fact('One-Time Desktop Software License Starting At $64.99 To $159.99 With Annual Maintenance', 'pt4Site'),
+      freeTier: fact('14-Day Free Trial On Windows And Mac', 'pt4Site'),
+      training: fact('LeakTracker Automated Statistical Analysis And Equity Calculator', 'pt4Site'),
+      solver: fact('ICM Quiz Generator And Preflop All-In Equity Modeling', 'pt4Site'),
+      handReview: fact('Local SQL Database Hand History Import, Heads-Up Display (HUD) And Visual Hand Replayer', 'pt4Site'),
+      platforms: fact('Windows And Mac Desktop Software', 'pt4Site'),
+    },
+  },
+  holdemManager3: {
+    name: 'Holdem Manager 3',
+    facts: {
+      pricing: fact('Small Stakes And All Stakes Licenses Starting At $60 To $160 With Annual Support', 'hm3Site'),
+      freeTier: fact('14-Day Free Trial', 'hm3Site'),
+      training: fact('Situational Views For 3-Bet Pots, C-Bets And Red-Line Non-Showdown Analysis', 'hm3Site'),
+      solver: fact('Integrated Equity Calculator And Tournament ICM Hand Replayer', 'hm3Site'),
+      handReview: fact('Real-Time Graphical HUD Overlay, Hand History Database And Opponent NoteCaddy Tagging', 'hm3Site'),
+      platforms: fact('Windows Desktop Software', 'hm3Site'),
+    },
+  },
+  piosolver: {
+    name: 'PioSolver',
+    facts: {
+      pricing: fact('Basic ($249), Pro ($475) And Edge ($1,099) Standalone Desktop Solver Licenses', 'piosolverSite'),
+      freeTier: fact('PioSolver Free Version Solves Selected Turn And River Trees', 'piosolverSite'),
+      training: fact('PioViewer Node-Locking Interface And Trainer Drill Mode', 'piosolverSite'),
+      solver: fact('Custom Postflop Game Tree Equilibrium Solver For Heads-Up No-Limit Hold\'em', 'piosolverSite'),
+      handReview: fact('Custom Scripted Game Tree Solving For Individual Hand Spots', 'piosolverSite'),
+      platforms: fact('Windows Desktop Software (High-RAM Multi-Core CPU Required)', 'piosolverSite'),
+    },
+  },
+  monkersolver: {
+    name: 'MonkerSolver',
+    facts: {
+      pricing: fact('Full Desktop Solver License At €499 Plus Optional Cloud Preflop Ranges', 'monkersolverSite'),
+      freeTier: fact('Free MonkerViewer For Browsing Saved Preflop Ranges', 'monkersolverSite'),
+      training: fact('Range Tree Explorer For Multiway Preflop And Postflop Equilibrium', 'monkersolverSite'),
+      solver: fact('Multiway Hold\'em And Pot-Limit Omaha (PLO4/PLO5) Abstraction Game Tree Solver', 'monkersolverSite'),
+      handReview: fact('Custom Multi-Street Tree Solving With ICM And Rake Configurations', 'monkersolverSite'),
+      platforms: fact('Windows And Mac Java Desktop Software', 'monkersolverSite'),
     },
   },
 

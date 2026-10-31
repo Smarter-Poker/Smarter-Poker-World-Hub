@@ -4,15 +4,25 @@ import {
   renderPokerToursMarkdown,
   renderPokerSeriesMarkdown,
   renderPokerNearMeMarkdown,
+  renderLiveCashGamesMarkdown,
+  renderPokerMapMarkdown,
+  renderPokerRoadtripMarkdown,
+  renderTournamentAlertsMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const RENDERERS = {
   'daily-tournaments': () => renderDailyTournamentsMarkdown(),
   'events-calendar': () => renderEventsCalendarMarkdown(),
   'poker-tours': () => renderPokerToursMarkdown(),
+  'tours': () => renderPokerToursMarkdown({ canonicalUrl: 'https://smarter.poker/hub/poker-near-me/tours' }),
   'poker-series': () => renderPokerSeriesMarkdown(),
+  'series': () => renderPokerSeriesMarkdown({ canonicalUrl: 'https://smarter.poker/hub/poker-near-me/series' }),
   'venues': () => renderPokerNearMeMarkdown({ canonicalUrl: 'https://smarter.poker/hub/poker-near-me/venues' }),
   'poker-near-me': () => renderPokerNearMeMarkdown({ canonicalUrl: 'https://smarter.poker/hub/poker-near-me' }),
+  'live-games': () => renderLiveCashGamesMarkdown(),
+  'map': () => renderPokerMapMarkdown(),
+  'roadtrip': () => renderPokerRoadtripMarkdown(),
+  'alerts': () => renderTournamentAlertsMarkdown(),
 };
 
 export default function handler(req, res) {

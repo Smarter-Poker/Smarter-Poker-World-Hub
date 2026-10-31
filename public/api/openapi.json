@@ -1408,6 +1408,117 @@
         "x-ai-citation-url": "https://smarter.poker/features/poker-messenger-video-calls",
         "x-ai-markdown-url": "https://smarter.poker/features/poker-messenger-video-calls.md"
       }
+    },
+    "/api/ai/knowledge-graph": {
+      "get": {
+        "operationId": "getKnowledgeGraph",
+        "summary": "Unified Schema.org JSON-LD Entity & Knowledge Graph",
+        "description": "Returns the complete interlinked Schema.org @graph for Smarter.Poker including Organization, WebSite, 15 SoftwareApplication verticals, Dataset directories, DefinedTermSet, CollectionPages, and Research Reports.",
+        "responses": {
+          "200": {
+            "description": "JSON-LD @graph document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Smarter.Poker Unified Knowledge Graph",
+                    "value": {
+                      "@context": "https://schema.org",
+                      "@graph": [
+                        {
+                          "@type": "Organization",
+                          "@id": "https://smarter.poker/#organization",
+                          "name": "Smarter.Poker"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/about",
+        "x-ai-markdown-url": "https://smarter.poker/about.md"
+      }
+    },
+    "/api/ai/corpus": {
+      "get": {
+        "operationId": "getMultilingualCorpus",
+        "summary": "Multilingual AI Grounding Corpus (EN, ES, PT, DE, FR)",
+        "description": "Returns localized summaries of all 15 Smarter.Poker verticals, tools, and directories in English, Spanish, Portuguese, German, and French.",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "ISO language code (en, es, pt, de, fr).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["en", "es", "pt", "de", "fr"],
+              "default": "en"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Localized AI grounding corpus.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Localized AI Grounding Corpus Response",
+                    "value": {
+                      "ok": true,
+                      "requested_language": "es",
+                      "available_languages": ["en", "es", "pt", "de", "fr"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features",
+        "x-ai-markdown-url": "https://smarter.poker/features.md"
+      }
+    },
+    "/api/ai/crawler-status": {
+      "get": {
+        "operationId": "getAiCrawlerStatus",
+        "summary": "AI Crawler Classification & Grounding Corpus Health",
+        "description": "Classifies incoming AI bot User-Agents and returns real-time counts of lessons, starting hands, glossary terms, comparisons, research reports, and MCP tools.",
+        "responses": {
+          "200": {
+            "description": "Crawler attribution and corpus inventory.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "AI Crawler Attribution & Health Response",
+                    "value": {
+                      "ok": true,
+                      "status": "healthy",
+                      "platform": "Smarter.Poker"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/verification-methodology",
+        "x-ai-markdown-url": "https://smarter.poker/verification-methodology.md"
+      }
     }
   },
   "components": {

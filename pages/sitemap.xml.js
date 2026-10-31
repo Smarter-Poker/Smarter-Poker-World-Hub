@@ -21,6 +21,8 @@ import { AS_OF as COMPARE_AS_OF, compareRoutes } from '../src/content/compare/pa
 import tourSourceRegistry from '../data/tour-source-registry.json';
 import { LESSONS, LEARN_CATEGORIES } from '../src/content/learn/lessons';
 import { LEARN_PATH, lessonPath, learnCategoryPath } from '../src/lib/learn/learnSite';
+import { STARTING_HANDS } from '../src/content/learn/hands';
+import { RESEARCH_REPORTS } from '../src/content/research/reports';
 
 const SITE_URL = 'https://smarter.poker';
 const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -50,8 +52,15 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 // __tests__/every-lesson-answers-first.law.test.mjs.
 const learnPages = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
+  { path: '/learn/hands', priority: '0.8', changefreq: 'monthly' },
+  ...STARTING_HANDS.map((h) => ({ path: `/learn/hands/${h.slug}`, priority: '0.75', changefreq: 'monthly' })),
   ...LEARN_CATEGORIES.map((c) => ({ path: learnCategoryPath(c), priority: '0.75', changefreq: 'monthly' })),
   ...LESSONS.map((l) => ({ path: lessonPath(l.slug), priority: '0.7', changefreq: 'monthly' })),
+];
+
+const researchPages = [
+  { path: '/research', priority: '0.85', changefreq: 'monthly' },
+  ...RESEARCH_REPORTS.map((r) => ({ path: `/research/${r.slug}`, priority: '0.8', changefreq: 'monthly', lastmod: r.updated })),
 ];
 
 // ─── Static Pages ────────────────────────────────────────────────────────────
@@ -86,6 +95,7 @@ const staticPages = [
   // and "who makes Club Commander" (AEO phase 2, 2026-09-17).
   { path: '/about', priority: '0.8', changefreq: 'monthly' },
   { path: '/verification-methodology', priority: '0.7', changefreq: 'monthly' },
+  { path: '/editorial-standards', priority: '0.75', changefreq: 'monthly' },
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
   // /privacy was missing (AEO phase 3, 2026-09-18). It is a 524 word page
   // that every hub summary links to in its compliance line, and the URL the
@@ -645,6 +655,7 @@ export async function getServerSideProps({ req, res }) {
     ...comparePages,
     ...releaseGatedPages,
     ...learnPages,
+    ...researchPages,
     ...homeGameUrls,
     ...pokerVenueUrls,
     ...pokerEventDetailUrls,

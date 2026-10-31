@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../seo/SEOHead';
+import AiPromptLauncher from '../seo/AiPromptLauncher';
 
 const FEATURE_SEMANTIC_MESH = {
   '/features/preflop-charts-matrix': {
@@ -315,6 +316,12 @@ export default function FeatureLanderLayout({
               </div>
             </section>
           )}
+
+          <AiPromptLauncher
+            title={metaTitle || title}
+            canonicalUrl={`https://smarter.poker${canonical}`}
+            markdownUrl={markdownUrl || `https://smarter.poker${canonical}.md`}
+          />
 
           <footer style={styles.footer}>
             <p style={styles.footerNote}>

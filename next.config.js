@@ -1231,6 +1231,22 @@ const nextConfig = {
           },
         ],
       },
+      // [AEO Phases 35 & 48] Explicit AI Snippet & Content-Negotiation Headers
+      // Guarantees max-snippet:-1, max-image-preview:large, max-video-preview:-1
+      // and Vary: Accept across all public AEO content and Markdown endpoints.
+      {
+        source: '/:path(learn|learn/.*|glossary|glossary/.*|compare|compare/.*|features|features/.*|research|research/.*|tools/.*|about|verification-methodology|editorial-standards|freerolls)',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1',
+          },
+          {
+            key: 'Vary',
+            value: 'Accept',
+          },
+        ],
+      },
     ];
   },
 
@@ -1339,10 +1355,87 @@ const nextConfig = {
       // afterFiles, not beforeFiles: a native Next.js page or public/ file
       // under /hub/club-arena/ would still win, and none is meant to exist -
       // tests/club-arena-is-a-rewrite.test.mjs pins that the tree is gone.
-      beforeFiles: [],
+      beforeFiles: [
+        /* [AEO Phase 35] Universal HTTP Accept: text/markdown Content Negotiation
+           Routes any AI agent sending `Accept: text/markdown` on static/ISR pages
+           directly to the clean Markdown renderer without touching middleware.ts. */
+        {
+          source: '/compare',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/compare-markdown?slug=index',
+        },
+        {
+          source: '/compare/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/compare-markdown?slug=:slug',
+        },
+        {
+          source: '/glossary',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/glossary-markdown?slug=index',
+        },
+        {
+          source: '/glossary/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/glossary-markdown?slug=:slug',
+        },
+        {
+          source: '/learn',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/learn-markdown?slug=index',
+        },
+        {
+          source: '/learn/hands',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/learn-markdown?hand=index',
+        },
+        {
+          source: '/learn/hands/:hand',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/learn-markdown?hand=:hand',
+        },
+        {
+          source: '/learn/category/:category',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/learn-markdown?category=:category',
+        },
+        {
+          source: '/learn/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/learn-markdown?slug=:slug',
+        },
+        {
+          source: '/hub/daily-tournaments',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/discovery-markdown?slug=daily-tournaments',
+        },
+        {
+          source: '/hub/events-calendar',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/discovery-markdown?slug=events-calendar',
+        },
+        {
+          source: '/hub/poker-tours',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/discovery-markdown?slug=poker-tours',
+        },
+        {
+          source: '/hub/poker-series',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/discovery-markdown?slug=poker-series',
+        },
+        {
+          source: '/hub/poker-near-me/venues',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/discovery-markdown?slug=venues',
+        },
+      ],
       afterFiles: [
-        /* Clean Root OpenAPI Alias for AI crawlers bypassing Disallow: /api/ */
+        /* Clean Root OpenAPI & Knowledge Graph Aliases for AI crawlers */
         { source: '/openapi.json', destination: '/api/openapi.json' },
+        { source: '/knowledge-graph.jsonld', destination: '/api/ai/knowledge-graph' },
+        { source: '/llms-es.txt', destination: '/api/ai/corpus?lang=es&format=md' },
+        { source: '/llms-pt.txt', destination: '/api/ai/corpus?lang=pt&format=md' },
         /* Clean Hub Freerolls Alias */
         { source: '/hub/freerolls', destination: '/freerolls' },
         /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
@@ -1492,12 +1585,32 @@ const nextConfig = {
           destination: '/api/learn-markdown?slug=index',
         },
         {
+          source: '/learn/hands.md',
+          destination: '/api/learn-markdown?hand=index',
+        },
+        {
+          source: '/learn/hands/:hand.md',
+          destination: '/api/learn-markdown?hand=:hand',
+        },
+        {
           source: '/learn/category/:category.md',
           destination: '/api/learn-markdown?category=:category',
         },
         {
           source: '/learn/:slug.md',
           destination: '/api/learn-markdown?slug=:slug',
+        },
+        {
+          source: '/research.md',
+          destination: '/research?format=md',
+        },
+        {
+          source: '/research/:slug.md',
+          destination: '/research/:slug?format=md',
+        },
+        {
+          source: '/editorial-standards.md',
+          destination: '/editorial-standards?format=md',
         },
         {
           source: '/about.md',
@@ -1626,6 +1739,30 @@ const nextConfig = {
         {
           source: '/hub/poker-near-me/poker-series.md',
           destination: '/api/discovery-markdown?slug=poker-series',
+        },
+        {
+          source: '/hub/poker-near-me/live-games.md',
+          destination: '/api/discovery-markdown?slug=live-games',
+        },
+        {
+          source: '/hub/poker-near-me/map.md',
+          destination: '/api/discovery-markdown?slug=map',
+        },
+        {
+          source: '/hub/poker-near-me/roadtrip.md',
+          destination: '/api/discovery-markdown?slug=roadtrip',
+        },
+        {
+          source: '/hub/poker-near-me/alerts.md',
+          destination: '/api/discovery-markdown?slug=alerts',
+        },
+        {
+          source: '/hub/poker-near-me/tours.md',
+          destination: '/api/discovery-markdown?slug=tours',
+        },
+        {
+          source: '/hub/poker-near-me/series.md',
+          destination: '/api/discovery-markdown?slug=series',
         },
         {
           source: '/.well-known/mcp.json',
