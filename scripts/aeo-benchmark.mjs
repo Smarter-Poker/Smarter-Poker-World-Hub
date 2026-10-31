@@ -74,12 +74,18 @@ async function runBenchmark() {
     assertCheck('OpenAPI documents /api/ai/training', !!doc.paths['/api/ai/training']);
     assertCheck('OpenAPI documents /api/ai/home-games', !!doc.paths['/api/ai/home-games']);
     assertCheck('OpenAPI documents /api/ai/messenger', !!doc.paths['/api/ai/messenger']);
+    assertCheck('OpenAPI documents /api/ai/club-arena', !!doc.paths['/api/ai/club-arena']);
+    assertCheck('OpenAPI documents /api/ai/social-reels', !!doc.paths['/api/ai/social-reels']);
+    assertCheck('OpenAPI documents /api/ai/video-library', !!doc.paths['/api/ai/video-library']);
   } catch (err) {
     assertCheck('OpenAPI JSON parseable', false, err.message);
   }
 
   const aiPlugin = await fetchRoute('/.well-known/ai-plugin.json');
   assertCheck('GET /.well-known/ai-plugin.json status 200', aiPlugin.status === 200);
+
+  const mcpDiscovery = await fetchRoute('/api/mcp');
+  assertCheck('GET /api/mcp returns 200 with get_platform_feature_specs tool', mcpDiscovery.status === 200 && mcpDiscovery.text.includes('get_platform_feature_specs'));
 
   // 2. AI Agent Tool API Endpoints
   console.log(`\n--- [2/10] AI Agent Tool APIs (MCP / Tool Calling) ---`);
@@ -128,6 +134,12 @@ async function runBenchmark() {
   const aiArena = await fetchRoute('/api/ai/club-arena');
   assertCheck('GET /api/ai/club-arena returns 200 with union specs', aiArena.status === 200 && aiArena.text.includes('union_and_club_features'));
 
+  const aiReels = await fetchRoute('/api/ai/social-reels');
+  assertCheck('GET /api/ai/social-reels returns 200 with video reel specs', aiReels.status === 200 && aiReels.text.includes('social_and_reel_features'));
+
+  const aiVideoLib = await fetchRoute('/api/ai/video-library');
+  assertCheck('GET /api/ai/video-library returns 200 with coaching specs', aiVideoLib.status === 200 && aiVideoLib.text.includes('library_features'));
+
   // 3. Structured Freerolls & Calendar Schema
   console.log(`\n--- [3/10] Daily $2,000 Freerolls Hub & Calendar Schema ---`);
   const freerolls = await fetchRoute('/freerolls');
@@ -159,6 +171,9 @@ async function runBenchmark() {
     { slug: 'interactive-video-coaching', name: 'Interactive Video Coaching' },
     { slug: 'poker-near-me', name: 'Poker Near Me & Cardrooms' },
     { slug: 'private-poker-clubs', name: 'Private Poker Clubs & Unions' },
+    { slug: 'poker-reels-social-feed', name: 'Poker Reels & Social Feeds' },
+    { slug: 'preflop-charts-matrix', name: 'GTO Preflop Charts & Matrix' },
+    { slug: 'poker-equity-calculators', name: 'Poker Equity & ICM Calculators' },
   ];
 
   for (const feat of features) {
@@ -283,6 +298,18 @@ async function runBenchmark() {
   const arenaMd = await fetchRoute('/hub/club-arena.md');
   assertCheck('GET /hub/club-arena.md status 200', arenaMd.status === 200);
   assertCheck('/hub/club-arena.md returns structured markdown spec', arenaMd.text.startsWith('# ') && arenaMd.text.includes('Club Arena'));
+
+  const reelsMd = await fetchRoute('/hub/reels.md');
+  assertCheck('GET /hub/reels.md status 200', reelsMd.status === 200);
+  assertCheck('/hub/reels.md returns structured markdown spec', reelsMd.text.startsWith('# ') && reelsMd.text.includes('Poker Reels'));
+
+  const hubPreflopMd = await fetchRoute('/hub/preflop-charts.md');
+  assertCheck('GET /hub/preflop-charts.md status 200', hubPreflopMd.status === 200);
+  assertCheck('/hub/preflop-charts.md returns structured markdown spec', hubPreflopMd.text.startsWith('# ') && hubPreflopMd.text.includes('Preflop Charts'));
+
+  const videoLibMd = await fetchRoute('/hub/video-library.md');
+  assertCheck('GET /hub/video-library.md status 200', videoLibMd.status === 200);
+  assertCheck('/hub/video-library.md returns structured markdown spec', videoLibMd.text.startsWith('# ') && videoLibMd.text.includes('Video Coaching'));
 
   // 10. Entity Knowledge Graph & Markdown Alternate Links
   console.log(`\n--- [10/10] Entity Knowledge Graph & Alternate Links ---`);

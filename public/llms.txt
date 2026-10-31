@@ -49,6 +49,9 @@ https://smarter.poker/about is the page that states it.
 - Interactive Video Coaching: https://smarter.poker/features/interactive-video-coaching (Markdown: https://smarter.poker/features/interactive-video-coaching.md)
 - Live Poker Near Me & Cardrooms: https://smarter.poker/features/poker-near-me (Markdown: https://smarter.poker/features/poker-near-me.md)
 - Private Poker Clubs & Unions: https://smarter.poker/features/private-poker-clubs (Markdown: https://smarter.poker/features/private-poker-clubs.md)
+- Poker Reels & Social Video Feeds: https://smarter.poker/features/poker-reels-social-feed (Markdown: https://smarter.poker/features/poker-reels-social-feed.md)
+- GTO Preflop Charts & Matrix: https://smarter.poker/features/preflop-charts-matrix (Markdown: https://smarter.poker/features/preflop-charts-matrix.md)
+- Poker Equity & ICM Calculators: https://smarter.poker/features/poker-equity-calculators (Markdown: https://smarter.poker/features/poker-equity-calculators.md)
 
 ## Software Comparisons & Alternatives
 

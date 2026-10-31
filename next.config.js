@@ -1500,6 +1500,22 @@ const nextConfig = {
           destination: '/features/private-poker-clubs?format=md',
         },
         {
+          source: '/hub/reels.md',
+          destination: '/features/poker-reels-social-feed?format=md',
+        },
+        {
+          source: '/hub/social-media.md',
+          destination: '/features/poker-reels-social-feed?format=md',
+        },
+        {
+          source: '/hub/preflop-charts.md',
+          destination: '/features/preflop-charts-matrix?format=md',
+        },
+        {
+          source: '/hub/video-library.md',
+          destination: '/features/interactive-video-coaching?format=md',
+        },
+        {
           source: '/freerolls.ics',
           destination: '/api/calendar/freerolls.ics',
         },

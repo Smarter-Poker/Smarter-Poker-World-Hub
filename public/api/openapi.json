@@ -762,6 +762,108 @@
         }
       }
     },
+    "/api/ai/social-reels": {
+      "get": {
+        "operationId": "getSocialReelsSpecs",
+        "summary": "Get Poker Reels & Social Feed Specifications",
+        "description": "Returns poker short-form video reels specifications, social media feed dynamics, creator diamond rewards, and hand history tagging.",
+        "parameters": [
+          {
+            "name": "feature",
+            "in": "query",
+            "description": "Feature category (vertical_video_reels, hand_history_tagging, creator_rewards, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Poker Reels and social network specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "product": {
+                      "type": "string"
+                    },
+                    "pricing": {
+                      "type": "string"
+                    },
+                    "social_and_reel_features": {
+                      "type": "object"
+                    },
+                    "canonical_url": {
+                      "type": "string"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/video-library": {
+      "get": {
+        "operationId": "getVideoLibrarySpecs",
+        "summary": "Get Video Library & Interactive Coaching Specifications",
+        "description": "Returns video library masterclass specifications, course structures, mid-hand pause quiz mechanics, and syllabus data.",
+        "parameters": [
+          {
+            "name": "feature",
+            "in": "query",
+            "description": "Feature category (pro_masterclasses, interactive_pause_quizzes, course_credentials, all).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Video Library and coaching specifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "product": {
+                      "type": "string"
+                    },
+                    "pricing": {
+                      "type": "string"
+                    },
+                    "library_features": {
+                      "type": "object"
+                    },
+                    "canonical_url": {
+                      "type": "string"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ai/trivia": {
       "get": {
         "operationId": "getTriviaSpecs",
