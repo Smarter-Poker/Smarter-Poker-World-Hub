@@ -57,3 +57,27 @@ three tiers: dispatch (outbox `sent`, subscription `last_used_at`), delivery
 banner) and accept (the iPhone's camera and microphone reach the partner).
 Cleanup removes only Apple push subscriptions the test account created at or
 after `device_since`.
+
+### Result: run 41239977778 (revision c09a45d8, 2026-10-31)
+
+| Playwright | WebKit | `?transport=` TURN URL | LiveKit's TURN URLs via setConfiguration | Call |
+|---|---|---|---|---|
+| 1.62.1 | 26.5 (r2336) | rejected: `SyntaxError: Invalid TURN URL query string` | rejected in all 6 regions tried | never joined |
+| 1.63.0 | 26.6 | accepted | accepted | connected; received 1280x720 video and audio |
+| 1.64.1 | 27.2 | accepted | accepted | connected; received 1280x720 video and audio |
+
+LiveKit Cloud returns `turn:...:3478?transport=udp` and
+`turns:...:443?transport=tcp`, so every join on the 26.5 build fails at
+`setConfiguration`. The app revision, accounts and LiveKit project were the
+same for all three builds. Conclusion: the BLOCKED case in run 41236048552 is
+solely WebKit bug 320931 in the test harness's WebKit; no product change.
+Playwright's WebKit is a trunk build, not a shipped Safari. The bug was
+reported against Safari Technology Preview 249. A physical iPhone is the
+evidence for shipped iOS Safari.
+
+Limits: Playwright WebKit on Linux cannot grant a camera or microphone
+(`NotAllowedError`), so these WebKit calls are receive-only. Sending from
+Safari is left to the physical-device test. Run 41239487494 (the first
+attempt) has the same connect/fail split but did not capture LiveKit's URLs,
+because they arrive through `setConfiguration`; the recorder was fixed before
+41239977778.
