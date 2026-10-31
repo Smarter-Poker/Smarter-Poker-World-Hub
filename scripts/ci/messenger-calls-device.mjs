@@ -38,7 +38,7 @@ const APPLE_PUSH = /^https:\/\/web\.push\.apple\.com\//;
 const RECEIPT_PREFIX = '[CALL_RECEIPT]';
 
 export const PROMPTS = {
-    hello: 'Call verification partner here. When this phone is signed in, installed on the Home Screen and notifications are on, reply READY.',
+    hello: 'Call verification partner here. Open the menu and tap Turn On Notifications (then Allow), come back to this chat and reply READY.',
     leave: 'Thanks. Now leave the app: go to the Home Screen or lock the phone. I will video-call in 30 seconds. When the banner appears, tap it, then tap Accept.',
     noPush: 'No push subscription from this phone was found, so the push step is skipped. Keep this chat open and reply CALL to be called now.',
     retry: 'The call was not answered. Open this chat and reply CALL to be called again while the app is open.',
@@ -68,7 +68,7 @@ async function main() {
     for (const name of ['TEST_USER_EMAIL', 'TEST_USER_PASSWORD', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'MESSENGER_EXPECTED_SHA', 'DEVICE_SINCE']) assert.ok(process.env[name]?.trim(), `${name} is required`);
     const since = new Date(process.env.DEVICE_SINCE);
     assert.ok(!Number.isNaN(since.getTime()) && since < new Date(), 'DEVICE_SINCE must be a past ISO time');
-    const waitMinutes = Math.min(Math.max(Number(process.env.DEVICE_WAIT_MINUTES) || 30, 5), 90);
+    const waitMinutes = Math.min(Math.max(Number(process.env.DEVICE_WAIT_MINUTES) || 30, 5), 300);
     mkdirSync(RESULT_DIR, { recursive: true });
 
     const report = { suite: 'messenger-calls-device', startedAt: new Date().toISOString(), since: since.toISOString(), checks: [], device: null, push: null, cleanup: null };
@@ -145,6 +145,8 @@ async function main() {
             check('Server dispatch: incoming-call push sent to the iPhone subscription', report.push.dispatch.outbox.some(r => r.status === 'sent') && report.push.dispatch.subscriptionLastUsedAdvanced, report.push.dispatch);
             check('Actual delivery: the iPhone service worker displayed the banner and confirmed receipt', report.push.delivery.lastReceiptAdvanced, report.push.delivery);
             check('Accept from the push: the iPhone opened the call and joined the room', Boolean(joined), report.push.accept);
+            const bell = ((await admin.from('notifications').select('id').eq('user_id', A).eq('type', 'incoming_call').gte('created_at', callStart)).data || []).length;
+            check('One incoming-call notification for the ringing call (bell row)', bell <= 1 && (outbox || []).length === 1, { bellRowsNow: bell, incomingCallPushes: (outbox || []).length });
             if (!joined) {
                 await until(async () => !(await callOpen(page)), { timeout: 30000 }).catch(() => {});
                 await sleep(3000);
@@ -191,6 +193,9 @@ async function main() {
             await sleep(6000);
             const receipts = await receiptsSince(callStart, B.id);
             check('Exactly one receipt for the answered call, written by the caller', receipts.length === 1 && receipts[0].sender === 'expected' && receipts[0].status === 'completed', { receipts });
+            const leftover = ((await admin.from('notifications').select('id').eq('user_id', A).eq('type', 'incoming_call').gte('created_at', callStart)).data || []).length;
+            const rawPush = ((await admin.from('push_outbox').select('id').eq('recipient_user_id', A).like('body', '%[CALL_RECEIPT]%').gte('created_at', callStart)).data || []).length;
+            check('The ringing notification is cleared and no raw receipt push reached the phone', leftover === 0 && rawPush === 0, { ringingRowsLeft: leftover, rawReceiptPushes: rawPush });
         }
 
         // ── 3. The iPhone calls the partner ───────────────────────────────
@@ -220,6 +225,7 @@ async function main() {
         report.cleanup = await cleanup(admin, created, async () => {
             const result = {};
             if (outboxIds.size) result.iphonePushOutbox = (await admin.from('push_outbox').delete().in('id', [...outboxIds])).error?.message || 'ok';
+            if (created.users.length) result.testAccountCallNotifications = (await admin.from('notifications').delete().in('actor_id', created.users)).error?.message || 'ok';
             if (iphoneSubscriptions.size) {
                 const ids = [...iphoneSubscriptions];
                 const { error } = await admin.from('push_subscriptions').delete().in('id', ids);

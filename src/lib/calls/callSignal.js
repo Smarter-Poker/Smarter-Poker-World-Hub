@@ -42,9 +42,17 @@ export function startCallSignal(client, userId) {
     stopCallSignal();
     let channel = client.channel(topicFor(userId));
     for (const event of EVENTS) channel = channel.on('broadcast', { event }, message => dispatch(event, message?.payload));
+    let joinedBefore = false;
     const ready = new Promise(resolve => {
         channel.subscribe(status => {
-            if (status === 'SUBSCRIBED') resolve(true);
+            if (status === 'SUBSCRIBED') {
+                // A second SUBSCRIBED is a rejoin after the socket dropped (a
+                // phone backgrounded, a network change). Anything broadcast in
+                // between is gone, so listeners re-check for a ringing call.
+                if (joinedBefore) dispatch('resubscribed', {});
+                joinedBefore = true;
+                resolve(true);
+            }
             else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                 console.warn('[callSignal] listener status:', status);
                 resolve(false);

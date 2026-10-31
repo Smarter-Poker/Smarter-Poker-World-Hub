@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device, messenger-calls-ring]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device, messenger-calls-ring, messenger-calls-notify, messenger-calls-upgrade]
         default: full
       reels_qa_setup_run:
         description: Exact private Reels QA setup run (successful for live checks, retained partial receipt for setup recovery)
@@ -87,9 +87,13 @@ on:
         type: string
         default: ''
       device_wait_minutes:
-        description: Minutes messenger-calls-device waits for READY from the phone (5-90)
+        description: Minutes messenger-calls-device waits for READY from the phone (5-300)
         type: string
         default: '30'
+      upgrade_wait_minutes:
+        description: Minutes messenger-calls-upgrade waits for the next production deployment (5-150)
+        type: string
+        default: '60'
 
 permissions:
   contents: read
@@ -865,7 +869,7 @@ jobs:
     # the test (at or after device_since).
     name: Published Messenger Calls Physical Device Conductor
     if: ${{ inputs.suite == 'messenger-calls-device' }}
-    timeout-minutes: 120
+    timeout-minutes: 330
     concurrency:
       group: messenger-calls-live
       cancel-in-progress: false
@@ -980,6 +984,122 @@ jobs:
         with:
           name: messenger-calls-ring-receipt
           path: test-results/messenger-calls-ring/
+          if-no-files-found: warn
+          retention-days: 30
+
+  messenger-calls-notify:
+    # Turn On Notifications states, the push chain and incoming-call
+    # notifications outside Messenger (navigation, network drop, frozen,
+    # missed, answered). Throwaway example.com users only.
+    name: Published Messenger Call Notifications Verification
+    if: ${{ inputs.suite == 'messenger-calls-notify' }}
+    timeout-minutes: 30
+    concurrency:
+      group: messenger-calls-notify
+      cancel-in-progress: false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Restore locked dependencies
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+      - name: Verify notify probe safety
+        run: |
+          node scripts/ci/messenger-calls-notify.mjs --self-test
+          node --test __tests__/messenger-calls-device-safety.test.mjs
+      - name: Install browsers
+        run: |
+          set -e
+          WITH_DEPS=--with-deps; if [ "${{ runner.environment }}" = "self-hosted" ]; then WITH_DEPS=; fi
+          npx playwright install $WITH_DEPS chromium webkit
+          if ! command -v google-chrome >/dev/null 2>&1; then npx playwright install $WITH_DEPS chrome; fi
+          google-chrome --version || true
+      - name: Verify call notifications and Turn On Notifications
+        run: node scripts/ci/messenger-calls-notify.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain notify verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: messenger-calls-notify-receipt
+          path: test-results/messenger-calls-notify/
+          if-no-files-found: warn
+          retention-days: 30
+
+  messenger-calls-upgrade:
+    # Watches a real old-to-new production upgrade from pages opened on the
+    # old build with the service worker in control. Throwaway users only.
+    name: Published Client Upgrade Observation
+    if: ${{ inputs.suite == 'messenger-calls-upgrade' }}
+    timeout-minutes: 180
+    concurrency:
+      group: messenger-calls-upgrade
+      cancel-in-progress: false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Restore locked dependencies
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+      - name: Verify upgrade probe safety
+        run: node scripts/ci/messenger-calls-upgrade.mjs --self-test
+      - name: Install browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Observe the next production upgrade from open pages
+        run: node scripts/ci/messenger-calls-upgrade.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          UPGRADE_WAIT_MINUTES: ${{ inputs.upgrade_wait_minutes }}
+      - name: Retain upgrade observation receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: messenger-calls-upgrade-receipt
+          path: test-results/messenger-calls-upgrade/
           if-no-files-found: warn
           retention-days: 30
 

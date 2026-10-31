@@ -29,6 +29,8 @@ import { openPageOverlay } from '../../stores/pageOverlayStore';
 import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
 import { getTutorialForPath, requestPageTutorial } from '../../tutorials';
 import { usePush } from '../../contexts/PushContext';
+import * as pushClient from '../../lib/push-client';
+import { pushMenuState, PUSH_MENU_DESTINATIONS } from '../../lib/pushMenuState.mjs';
 import { toast } from '../../stores/toastStore';
 import {
   sanitizeFallbackMenuConfig,
@@ -1103,29 +1105,38 @@ function HamburgerMenuContent({
   );
 
   // ── Turn On Notifications (Dan 2026-10-31, "ADDED BACK IN GLOBALLY") ──────
-  // One row in every hamburger menu for a signed-in user whose device is not
-  // receiving push yet. The tap calls enablePush() before anything else is
-  // awaited: iOS only honours the permission prompt inside the tap itself.
+  // One row in every hamburger menu for a signed-in user whose device can take
+  // push and is not receiving it yet (src/lib/pushMenuState.js). Re-read each
+  // time the menu opens: permission and the subscription change elsewhere.
   const push = usePush();
-  const pushOn = push.permission === 'granted' && push.isSubscribed;
+  const [pushRow, setPushRow] = useState(null);
+  useEffect(() => {
+    if (!isOpen || !getAuthUser()) { setPushRow(null); return undefined; }
+    let live = true;
+    pushMenuState(pushClient).then((state) => { if (live) setPushRow(state); }).catch(() => { if (live) setPushRow(null); });
+    return () => { live = false; };
+  }, [isOpen, push.isSubscribed, push.permission]);
   const turnOnNotifications = useCallback(() => {
-    if (push.permission === 'denied') {
+    if (pushRow !== 'ask') {
       if (typeof onClose === 'function') onClose();
-      router.push('/hub/settings/notifications');
+      router.push(PUSH_MENU_DESTINATIONS[pushRow] || '/hub/settings/notifications');
       return;
     }
+    // DELIBERATE: subscribe() calls enablePush() before anything is awaited.
+    // iOS only shows its permission prompt inside the tap itself.
     const pending = push.subscribe();
     if (typeof onClose === 'function') onClose();
     Promise.resolve(pending).then((result) => {
       if (result?.ok) toast.success('Notifications Are On For This Device');
+      else if (pushClient.notificationPermission() === 'denied') toast.error('Notifications Are Blocked. Allow Them In Your Browser Site Settings.');
       else toast.error(result?.error || 'Notifications Could Not Be Turned On. Try Settings, Notifications.');
     }).catch(() => toast.error('Notifications Could Not Be Turned On. Try Settings, Notifications.'));
-  }, [push, onClose, router]);
+  }, [push, pushRow, onClose, router]);
 
   // ── Bottom links (single source of truth for sign-out) ────────────────────
   const finalLinks = useMemo(() => {
     const links = [...(bottomLinks || [])];
-    if (getAuthUser() && !pushOn && !links.some((i) => matchesId(i, 'turn-on-notifications'))) {
+    if (pushRow && !links.some((i) => matchesId(i, 'turn-on-notifications'))) {
       links.unshift({
         id: 'turn-on-notifications',
         label: 'Turn On Notifications',
@@ -1185,7 +1196,7 @@ function HamburgerMenuContent({
       });
     }
     return links;
-  }, [bottomLinks, menuItems, handleLogout, router?.asPath, router?.pathname, onClose, pushOn, turnOnNotifications]);
+  }, [bottomLinks, menuItems, handleLogout, router?.asPath, router?.pathname, onClose, pushRow, turnOnNotifications]);
 
   const shortcutItems = useMemo(() => {
     if (shortcuts && shortcuts.length > 0) return shortcuts;
