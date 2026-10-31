@@ -174,11 +174,11 @@ Interactive poker training with 100+ scenario-based games covering MTT, Cash, Sp
 Live poker room and venue finder with real-time game information, tournament schedules, and interactive maps covering venues across the United States. Several hundred venue profiles, tournament series, and tour pages rendered on the server with schedules, locations, and structured data.
 - Lobby: https://smarter.poker/hub/poker-near-me/lobby
 - Rooms by state and city: https://smarter.poker/hub/poker-near-me/in
-- Venue directory: https://smarter.poker/hub/poker-near-me/venues
-- Poker tours and circuits: https://smarter.poker/hub/poker-tours
-- Tournament series: https://smarter.poker/hub/poker-near-me/series
-- Daily tournament schedules: https://smarter.poker/hub/daily-tournaments
-- Events calendar: https://smarter.poker/hub/events-calendar
+- Venue directory: https://smarter.poker/hub/poker-near-me/venues (Markdown: https://smarter.poker/hub/poker-near-me/venues.md)
+- Poker tours and circuits: https://smarter.poker/hub/poker-tours (Markdown: https://smarter.poker/hub/poker-tours.md)
+- Tournament series: https://smarter.poker/hub/poker-near-me/series (Markdown: https://smarter.poker/hub/poker-series.md)
+- Daily tournament schedules: https://smarter.poker/hub/daily-tournaments (Markdown: https://smarter.poker/hub/daily-tournaments.md)
+- Events calendar: https://smarter.poker/hub/events-calendar (Markdown: https://smarter.poker/hub/events-calendar.md)
 - Example venue profile: https://smarter.poker/hub/venues/1832
 - Example tour: https://smarter.poker/hub/tours/WSOP
 

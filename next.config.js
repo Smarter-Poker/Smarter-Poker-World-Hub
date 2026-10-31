@@ -1568,6 +1568,42 @@ const nextConfig = {
           destination: '/tools/poker-odds-calculator?format=md',
         },
         {
+          source: '/hub/daily-tournaments.md',
+          destination: '/api/discovery-markdown?slug=daily-tournaments',
+        },
+        {
+          source: '/hub/events-calendar.md',
+          destination: '/api/discovery-markdown?slug=events-calendar',
+        },
+        {
+          source: '/hub/poker-tours.md',
+          destination: '/api/discovery-markdown?slug=poker-tours',
+        },
+        {
+          source: '/hub/poker-series.md',
+          destination: '/api/discovery-markdown?slug=poker-series',
+        },
+        {
+          source: '/hub/poker-near-me/venues.md',
+          destination: '/api/discovery-markdown?slug=venues',
+        },
+        {
+          source: '/hub/poker-near-me/daily-tournaments.md',
+          destination: '/api/discovery-markdown?slug=daily-tournaments',
+        },
+        {
+          source: '/hub/poker-near-me/events-calendar.md',
+          destination: '/api/discovery-markdown?slug=events-calendar',
+        },
+        {
+          source: '/hub/poker-near-me/poker-tours.md',
+          destination: '/api/discovery-markdown?slug=poker-tours',
+        },
+        {
+          source: '/hub/poker-near-me/poker-series.md',
+          destination: '/api/discovery-markdown?slug=poker-series',
+        },
+        {
           source: '/.well-known/mcp.json',
           destination: '/api/mcp',
         },

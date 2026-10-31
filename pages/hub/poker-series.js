@@ -753,6 +753,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                 <title>Live Poker Series Directory | Smarter.Poker</title>
                 <meta name="description" content="Browse all live and upcoming poker tournament series. Filter by tour (WSOP, WPT, MSPT, RGPS), date, buy-in, and location." />
                 <link rel="canonical" href="https://smarter.poker/hub/poker-series" />
+                <link rel="alternate" type="text/markdown" title="Markdown" href="https://smarter.poker/hub/poker-series.md" />
                 <meta property="og:title" content="Poker Series Directory | Smarter.Poker" />
                 <meta property="og:description" content="Live and upcoming poker series tracked in real-time. Find your next big tournament." />
                 <meta property="og:url" content="https://smarter.poker/hub/poker-series" />

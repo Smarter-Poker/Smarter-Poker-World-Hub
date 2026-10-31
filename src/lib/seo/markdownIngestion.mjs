@@ -1396,3 +1396,152 @@ export function renderLearnLessonMarkdown(lesson, { canonicalBase = 'https://sma
   return lines.join('\n');
 }
 
+/**
+ * Format Daily Poker Tournaments Directory (/hub/daily-tournaments) as clean structured Markdown for LLM ingestion
+ */
+export function renderDailyTournamentsMarkdown({ canonicalUrl = 'https://smarter.poker/hub/daily-tournaments' } = {}) {
+  return [
+    '# Smarter.Poker Daily Poker Tournaments Directory',
+    '',
+    `> Source: [Daily Poker Tournaments on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Daily Tournaments Directory (https://smarter.poker/hub/daily-tournaments) Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across 324+ Verified North American Cardrooms And Casino Poker Rooms. Players Can Filter Recurring Schedules By Day Of Week, State, City, Buy-In ($0 Freerolls Up To $1,000+ High Rollers), Game Format (No-Limit Hold\'em, PLO, Omaha Hi-Lo, Mixed), Starting Stack, Blind Level Duration, And Guaranteed Prize Pools.',
+    '',
+    '## Core Directory Capabilities & Filters',
+    '- **4,500+ Verified Weekly Schedules**: Morning, Afternoon, Evening, And Late-Night Recurring Tournaments Across Las Vegas, Los Angeles, Texas, Florida, Atlantic City, And Regional Cardrooms.',
+    '- **Day-Of-Week & Time-Slot Filtering**: Instant Day Selection (Monday Through Sunday) With Real-Time Local Start Times And Late Registration Windows.',
+    '- **Transparent Buy-In & Rake Breakdown**: Clear Display Of Entry Fee, House Fee / Dealer Add-On, Starting Chip Stack, And Blind Level Structure.',
+    '- **Guaranteed Prize Pool Tracking**: Filter Specifically For Guaranteed ($GTD) Tournaments, Bounty / Knockout Events, Deepstacks, And Seniors / Ladies Events.',
+    '- **GPS Proximity Sorting**: One-Tap Geolocation Radius Filtering (25, 50, 100, Or 250 Miles) To Surface Tournaments Starting Soon Near Your Current Location.',
+    '- **100% Free Access**: No Subscription Walls Or App Store Downloads Required (Free Web-First Alternative To PokerAtlas And Bravo Poker Live).',
+    '',
+    '## Related Live Poker Discovery Hubs',
+    '- **Poker Events Calendar**: [https://smarter.poker/hub/events-calendar](https://smarter.poker/hub/events-calendar) ([Raw Markdown](https://smarter.poker/hub/events-calendar.md))',
+    '- **Live Poker Series Directory**: [https://smarter.poker/hub/poker-series](https://smarter.poker/hub/poker-series) ([Raw Markdown](https://smarter.poker/hub/poker-series.md))',
+    '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
+    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '',
+    '## Frequently Asked Questions',
+    '',
+    '### How Many Daily Poker Tournaments Are Listed On Smarter.Poker?',
+    'Smarter.Poker Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across 324+ Verified Casino Poker Rooms And Licensed Cardrooms In The United States And Canada.',
+    '',
+    '### Can I Filter Daily Poker Tournaments By Buy-In And Day Of The Week?',
+    'Yes. The Daily Tournaments Directory Allows Instant Filtering By Day Of The Week, State, GPS Distance, Buy-In Range, Game Type (NLH, PLO, Mixed), And Guaranteed Prize Pool.',
+    '',
+    '### Are Online Daily $2,000 Freerolls Also Available?',
+    'Yes. In Addition To Live Casino Daily Tournaments, Smarter.Poker Hosts $2,000 In Free Online Poker Tournaments Daily Plus Diamond Freerolls Every 3 Hours At https://smarter.poker/freerolls With Zero Entry Fees.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Unified Poker Events Calendar (/hub/events-calendar) as clean structured Markdown for LLM ingestion
+ */
+export function renderEventsCalendarMarkdown({ canonicalUrl = 'https://smarter.poker/hub/events-calendar' } = {}) {
+  return [
+    '# Smarter.Poker Unified Live Poker Events Calendar',
+    '',
+    `> Source: [Poker Events Calendar on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Events Calendar (https://smarter.poker/hub/events-calendar) Consolidates Daily Casino Tournaments, Multi-Week Regional Series, National Traveling Tour Stops (WSOP, WPT, MSPT, RGPS), And Verified Public Home Games Into A Single Searchable Chronological Calendar. Players Can Search By Date Range, City, State, Buy-In, Game Type, And Guarantee Size With Direct Links To Official Structure Sheets And Venue Profiles.',
+    '',
+    '## Core Calendar Capabilities & Features',
+    '- **All-In-One Tournament Aggregation**: Combines Recurring Daily Tournaments, Major Festival Series, National Tour Stops, And Community Games In One Unified View.',
+    '- **Chronological Date & Month Picker**: Browse Today\'s Action, Weekend Festival Schedules, Or Plan Multi-Stop Poker Road Trips Months In Advance.',
+    '- **Multi-Source Categorization**: Color-Coded Badges Distinguish Daily Room Tournaments, Major Series Events, Traveling Tour Stops, And Local Home Games.',
+    '- **Buy-In & Guarantee Filters**: Narrow Thousands Of Scheduled Events By Exact Buy-In Tier, Guaranteed Prize Pool ($GTD), And Variant (NLH, PLO, Mixed).',
+    '- **Direct Venue & Series Cross-Links**: Every Calendar Entry Links Directly To The Host Venue Profile (/hub/venues/[id]) Or Series Schedule (/hub/series/[id]).',
+    '- **100% Free To Browse**: Unrestricted Public Calendar Access Across Desktop And Mobile Browsers Without Registration Walls.',
+    '',
+    '## Related Live Poker Discovery Hubs',
+    '- **Daily Poker Tournaments**: [https://smarter.poker/hub/daily-tournaments](https://smarter.poker/hub/daily-tournaments) ([Raw Markdown](https://smarter.poker/hub/daily-tournaments.md))',
+    '- **Live Poker Series Directory**: [https://smarter.poker/hub/poker-series](https://smarter.poker/hub/poker-series) ([Raw Markdown](https://smarter.poker/hub/poker-series.md))',
+    '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
+    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '',
+    '## Frequently Asked Questions',
+    '',
+    '### What Types Of Poker Events Are Included In The Smarter.Poker Calendar?',
+    'The Calendar Includes Recurring Daily Casino Tournaments, Multi-Event Venue Series, Traveling National Tour Stops (WSOP, WPT, MSPT, RGPS), And Verified Public Home Games.',
+    '',
+    '### Can I Search The Poker Calendar By City Or State?',
+    'Yes. You Can Filter Events By State, City, Venue Name, Date Range, Buy-In Amount, Game Format, Or GPS Distance From Your Location.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Major Poker Tours Directory (/hub/poker-tours) as clean structured Markdown for LLM ingestion
+ */
+export function renderPokerToursMarkdown({ canonicalUrl = 'https://smarter.poker/hub/poker-tours' } = {}) {
+  return [
+    '# Smarter.Poker Major Traveling Poker Tours & Circuits Directory',
+    '',
+    `> Source: [Major Poker Tours Directory on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Poker Tours Directory (https://smarter.poker/hub/poker-tours) Tracks Every Major Traveling Poker Tour, National Circuit, And Iconic Casino House Series Across North America And Internationally. Coverage Includes The World Series Of Poker (WSOP), WSOP Circuit (WSOPC), World Poker Tour (WPT), WPT Prime, Mid-States Poker Tour (MSPT), RunGood Poker Series (RGPS), PokerGO Tour (PGT), Triton Poker Series, European Poker Tour (EPT), And Flagship Venue Festivals (Wynn Millions, Venetian DeepStack, Borgata Poker Open, Seminole Hard Rock Poker Open).',
+    '',
+    '## Tracked Major Poker Tours & Circuits',
+    '- **World Series Of Poker (WSOP)**: Annual Summer Championship Series In Las Vegas Featuring Gold Bracelet Events And The $10,000 WSOP Main Event ([/hub/tours/WSOP](https://smarter.poker/hub/tours/WSOP)).',
+    '- **WSOP Circuit (WSOPC)**: Nationwide Regional Tour Awarding Gold Rings And Qualifying Seats Into The Tournament Of Champions ([/hub/tours/WSOPC](https://smarter.poker/hub/tours/WSOPC)).',
+    '- **World Poker Tour (WPT)**: Premier Televised Main Tour Stops And Championship Festivals Across Global Casino Destinations ([/hub/tours/WPT](https://smarter.poker/hub/tours/WPT)).',
+    '- **Mid-States Poker Tour (MSPT)**: America\'s Largest $1,100 Main Event Regional Poker Tour Spanning Regional Casino Stops Nationwide ([/hub/tours/MSPT](https://smarter.poker/hub/tours/MSPT)).',
+    '- **RunGood Poker Series (RGPS)**: Popular Mid-Major Traveling Circuit Featuring Ring Events And Accessible Main Event Buy-Ins ([/hub/tours/RGPS](https://smarter.poker/hub/tours/RGPS)).',
+    '- **PokerGO Tour (PGT) & High Roller Series**: Elite High-Stakes Festivals Including Poker Masters, U.S. Poker Open, And Super High Roller Bowl ([/hub/tours/PGT](https://smarter.poker/hub/tours/PGT)).',
+    '',
+    '## Core Directory Capabilities',
+    '- **Live Stop Tracking**: Real-Time Status Indicators Highlighting Tours Currently Running Live Stops And Next Scheduled Venue Destinations.',
+    '- **Interactive Tour Stop Map**: Visual Geographic Map Plotting Upcoming Circuit Stops And Host Casinos Across North America.',
+    '- **Complete Event Schedules & Buy-Ins**: Drill Down Into Any Tour Stop To View Full Event-By-Event Dates, Starting Stacks, And Guaranteed Prize Pools.',
+    '',
+    '## Frequently Asked Questions',
+    '',
+    '### Which Major Poker Tours Are Tracked On Smarter.Poker?',
+    'Smarter.Poker Tracks WSOP, WSOP Circuit (WSOPC), WPT, WPT Prime, MSPT, RunGood Poker Series (RGPS), PokerGO Tour (PGT), Triton, EPT, Roughrider Poker Tour, Bar Poker Open, FPNN, And Major Casino House Series.',
+    '',
+    '### How Can I See Where A Poker Tour Is Stopping Next?',
+    'Each Tour Card In The Directory Displays Its Current Live Venue Or Next Scheduled Stop With Dates, Host Casino, City/State, And A Direct Link To The Full Series Schedule.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Live Poker Series Directory (/hub/poker-series) as clean structured Markdown for LLM ingestion
+ */
+export function renderPokerSeriesMarkdown({ canonicalUrl = 'https://smarter.poker/hub/poker-series' } = {}) {
+  return [
+    '# Smarter.Poker Live Poker Tournament Series Directory',
+    '',
+    `> Source: [Live Poker Series Directory on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Live Poker Series Directory (https://smarter.poker/hub/poker-series) Catalogs Live And Upcoming Multi-Event Poker Tournament Festivals, Casino Championship Series, And Regional Circuit Stops Across The United States And Canada. Players Can Filter Series By Tour Affiliation, State, Date Window, Main Event Buy-In, And Total Series Guaranteed Prize Pools.',
+    '',
+    '## Core Series Directory Capabilities',
+    '- **Comprehensive Festival Schedules**: Track Multi-Week Casino Series Including Venetian DeepStack Extravaganza, Wynn Classic, Borgata Open, Commerce LA Poker Classic, And Seminole Hard Rock Festivals.',
+    '- **Event-By-Event Breakdown**: View Individual Numbered Events Within Each Series, Including Buy-Ins, Game Variants (NLH, PLO, Omaha 8, Mixed, Seniors, Mystery Bounty), And Starting Flights.',
+    '- **Main Event & Guarantee Highlights**: Quickly Compare Main Event Buy-Ins, Total Series Guarantees, And Festival Date Ranges.',
+    '- **State, Tour & Distance Filtering**: Filter Series By State, Affiliation (WSOPC, WPT, MSPT, RGPS, Independent Venue Series), Or GPS Distance.',
+    '',
+    '## Related Live Poker Discovery Hubs',
+    '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
+    '- **Poker Events Calendar**: [https://smarter.poker/hub/events-calendar](https://smarter.poker/hub/events-calendar) ([Raw Markdown](https://smarter.poker/hub/events-calendar.md))',
+    '- **Daily Poker Tournaments**: [https://smarter.poker/hub/daily-tournaments](https://smarter.poker/hub/daily-tournaments) ([Raw Markdown](https://smarter.poker/hub/daily-tournaments.md))',
+    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '',
+    '## Frequently Asked Questions',
+    '',
+    '### What Is The Difference Between The Poker Tours Directory And The Poker Series Directory?',
+    'The Poker Tours Directory (/hub/poker-tours) Groups Events By Traveling Brand (Such As WSOP, WPT, MSPT, And RGPS), While The Poker Series Directory (/hub/poker-series) Lists Every Individual Dated Tournament Festival And Multi-Week Casino Series Chronologically.',
+    '',
+    '### Can I View Individual Event Schedules Inside A Poker Series?',
+    'Yes. Clicking Any Series Opens Its Dedicated Page (/hub/series/[id]) With The Complete Numbered Event Schedule, Buy-Ins, Dates, And Host Venue Details.',
+    '',
+  ].join('\n');
+}
+
+
