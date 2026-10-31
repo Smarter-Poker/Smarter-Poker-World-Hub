@@ -259,7 +259,11 @@ export default async function handler(req, res) {
           // or ambiguous send must not insert another bell item or push event.
           // Notification failures never change the persisted message outcome.
           try {
-              if (!rpcResult.replayed && otherIds.length > 0) {
+              // A call receipt is a record in the thread, not a message to
+              // announce: pushing it showed "[CALL_RECEIPT]{...}" on the lock
+              // screen. A missed call has its own notice.
+              const isCallReceipt = String(content || '').startsWith('[CALL_RECEIPT]');
+              if (!rpcResult.replayed && otherIds.length > 0 && !isCallReceipt) {
                   const { data: senderProfile } = await getSupabase()
                       .from('profiles')
                       .select('username, avatar_url')

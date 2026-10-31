@@ -28,6 +28,8 @@ import { getWorldMenuStyleVariables, resolveWorldMenu } from '../../config/world
 import { openPageOverlay } from '../../stores/pageOverlayStore';
 import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
 import { getTutorialForPath, requestPageTutorial } from '../../tutorials';
+import { usePush } from '../../contexts/PushContext';
+import { toast } from '../../stores/toastStore';
 import {
   sanitizeFallbackMenuConfig,
   sanitizeProvidedMenuConfig,
@@ -1100,9 +1102,43 @@ function HamburgerMenuContent({
     </div>
   );
 
+  // ── Turn On Notifications (Dan 2026-10-31, "ADDED BACK IN GLOBALLY") ──────
+  // One row in every hamburger menu for a signed-in user whose device is not
+  // receiving push yet. The tap calls enablePush() before anything else is
+  // awaited: iOS only honours the permission prompt inside the tap itself.
+  const push = usePush();
+  const pushOn = push.permission === 'granted' && push.isSubscribed;
+  const turnOnNotifications = useCallback(() => {
+    if (push.permission === 'denied') {
+      if (typeof onClose === 'function') onClose();
+      router.push('/hub/settings/notifications');
+      return;
+    }
+    const pending = push.subscribe();
+    if (typeof onClose === 'function') onClose();
+    Promise.resolve(pending).then((result) => {
+      if (result?.ok) toast.success('Notifications Are On For This Device');
+      else toast.error(result?.error || 'Notifications Could Not Be Turned On. Try Settings, Notifications.');
+    }).catch(() => toast.error('Notifications Could Not Be Turned On. Try Settings, Notifications.'));
+  }, [push, onClose, router]);
+
   // ── Bottom links (single source of truth for sign-out) ────────────────────
   const finalLinks = useMemo(() => {
     const links = [...(bottomLinks || [])];
+    if (getAuthUser() && !pushOn && !links.some((i) => matchesId(i, 'turn-on-notifications'))) {
+      links.unshift({
+        id: 'turn-on-notifications',
+        label: 'Turn On Notifications',
+        action: true,
+        onClick: turnOnNotifications,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        ),
+      });
+    }
     // Page tutorials (Dan 2026-09-03) are hidden by default, here: one row
     // above Log Out on every route that has a tour in src/tutorials.
     const pageTutorial = getTutorialForPath(router?.asPath || router?.pathname || '');
@@ -1149,7 +1185,7 @@ function HamburgerMenuContent({
       });
     }
     return links;
-  }, [bottomLinks, menuItems, handleLogout, router?.asPath, router?.pathname, onClose]);
+  }, [bottomLinks, menuItems, handleLogout, router?.asPath, router?.pathname, onClose, pushOn, turnOnNotifications]);
 
   const shortcutItems = useMemo(() => {
     if (shortcuts && shortcuts.length > 0) return shortcuts;

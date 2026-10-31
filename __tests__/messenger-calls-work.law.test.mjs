@@ -90,7 +90,8 @@ test('call creation authorises the conversation, honours its refusal and rings t
     assert.match(create, /authorizeCallConversation\(sb, \{ conversationId, userId: callerId \}\)/);
     assert.match(create, /authorization\.otherUserId !== calleeId/);
     assert.match(create, /parseCallRoomConversation\(roomName\) !== conversationId/);
-    assert.match(create, /enqueuePush\(sb,/);
+    // The ringing call is a bell row AND a push, from one notify() call.
+    assert.match(create, /await notify\(sb, \{\s*userId: calleeId,\s*type: 'incoming_call',/);
     // Production: CHECK (call_type IN ('voice','video')). 'audio' failed every voice call.
     assert.match(create, /call_type: callType === 'video' \? 'video' : 'voice'/);
     assert.doesNotMatch(create, /call_type: callType,/);
@@ -101,6 +102,27 @@ test('call creation authorises the conversation, honours its refusal and rings t
     assert.match(create, /event: 'incoming_call'/);
     const send = read('pages/api/notifications/send.js');
     assert.match(send, /There is no call to this person in progress/);
+});
+
+test('a ringing call notifies on every page, not only inside Messenger', () => {
+    const provider = read('src/components/calls/CallProvider.jsx');
+    // Second ring path: the incoming_call bell row on the notifications stream.
+    assert.match(provider, /channel\(`call-ring-notifications:\$\{user\.id\}`\)/);
+    assert.match(provider, /table: 'notifications', filter: `user_id=eq\.\$\{user\.id\}`/);
+    assert.match(provider, /if \(row\?\.type !== 'incoming_call'\) return;/);
+    assert.match(provider, /void verifyAndRing\(\{\s*roomName: data\.roomName/);
+    // CallProvider wraps every page, so both paths are live everywhere.
+    assert.match(read('pages/_app.js'), /<CallProvider>/);
+    // The ringing row is cleared once the call is handled.
+    const cancel = read('pages/api/calls/cancel.js');
+    assert.match(cancel, /\.eq\('type', 'incoming_call'\)\s*\.eq\('data->>roomName', roomName\)/);
+    assert.match(cancel, /user_id\.eq\.\$\{authenticatedUserId\},actor_id\.eq\.\$\{authenticatedUserId\}/);
+});
+
+test('a call receipt is never announced as a message', () => {
+    const send = read('pages/api/messenger/send-message.js');
+    assert.match(send, /const isCallReceipt = String\(content \|\| ''\)\.startsWith\('\[CALL_RECEIPT\]'\);/);
+    assert.match(send, /otherIds\.length > 0 && !isCallReceipt\)/);
 });
 
 test('sending a signal never creates, borrows or removes the user\'s own listener', () => {
@@ -195,4 +217,15 @@ test('Accept on the push notification answers the call', () => {
         const source = read(worker);
         assert.match(source, /event\.action === 'accept' && baseUrl\.indexOf\('incomingCall='\) !== -1/, worker);
     }
+});
+
+test('every hamburger menu offers Turn On Notifications until this device receives push', () => {
+    const menu = read('src/components/ui/HamburgerMenu.jsx');
+    assert.match(menu, /import \{ usePush \} from '\.\.\/\.\.\/contexts\/PushContext';/);
+    assert.match(menu, /const pushOn = push\.permission === 'granted' && push\.isSubscribed;/);
+    assert.match(menu, /if \(getAuthUser\(\) && !pushOn && !links\.some\(\(i\) => matchesId\(i, 'turn-on-notifications'\)\)\)/);
+    assert.match(menu, /label: 'Turn On Notifications',/);
+    // The permission prompt is requested inside the tap: nothing awaited first.
+    assert.match(menu, /const pending = push\.subscribe\(\);\n    if \(typeof onClose === 'function'\) onClose\(\);/);
+    assert.match(menu, /router\.push\('\/hub\/settings\/notifications'\)/);
 });
