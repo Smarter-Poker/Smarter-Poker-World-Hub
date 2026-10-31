@@ -60,7 +60,8 @@ const ICE_RECORDER = `(() => {
         for (const server of (config && config.iceServers) || []) {
             for (const u of [].concat(server.urls || server.url || [])) urls.push(sanitize(u));
         }
-        log.push({ at: Date.now(), urls, transportPolicy: config && config.iceTransportPolicy || 'all', ...outcome });
+        if (window.__iceMatrix) return; // the constructor matrix reports itself
+        log.push({ at: Date.now(), via: 'constructor', urls, transportPolicy: config && config.iceTransportPolicy || 'all', ...outcome });
     };
     function Wrapped(config, ...rest) {
         try { const pc = new Native(config, ...rest); record(config, { ok: true }); return pc; }
@@ -69,10 +70,17 @@ const ICE_RECORDER = `(() => {
     Wrapped.prototype = Native.prototype;
     Object.setPrototypeOf(Wrapped, Native);
     window.RTCPeerConnection = Wrapped;
+    // LiveKit constructs with no ICE servers and applies the join response's
+    // TURN servers through setConfiguration, so that is where they appear.
+    const nativeSet = Native.prototype.setConfiguration;
+    if (nativeSet) Native.prototype.setConfiguration = function (config) {
+        try { const result = nativeSet.call(this, config); record(config, { ok: true, via: 'setConfiguration' }); return result; }
+        catch (error) { record(config, { ok: false, via: 'setConfiguration', error: (error && error.name) + ': ' + String(error && error.message).slice(0, 160) }); throw error; }
+    };
 })();`;
 
 async function constructorMatrix(page) {
-    return page.evaluate(cases => cases.map(({ name, urls }) => {
+    return page.evaluate(cases => { window.__iceMatrix = true; try { return cases.map(({ name, urls }) => {
         try {
             const pc = new RTCPeerConnection({ iceServers: [{ urls, username: 'probe', credential: 'probe' }] });
             pc.close();
@@ -80,7 +88,7 @@ async function constructorMatrix(page) {
         } catch (error) {
             return { name, urls, accepted: false, error: `${error?.name}: ${String(error?.message).slice(0, 160)}` };
         }
-    }), TURN_CASES);
+    }); } finally { window.__iceMatrix = false; } }, TURN_CASES);
 }
 
 async function verifyBuild(build, ctx) {
@@ -136,7 +144,10 @@ async function verifyBuild(build, ctx) {
     const rejectsQuery = out.constructorMatrix.filter(c => /\?transport=/.test(c.urls)).some(c => !c.accepted);
     const plainAccepted = out.constructorMatrix.filter(c => !/\?/.test(c.urls)).every(c => c.accepted);
     out.carriesBug320931 = rejectsQuery && plainAccepted;
-    out.liveKitUrlsCarryTransportQuery = out.iceLog.some(entry => (entry.urls || []).some(u => /\?transport=/.test(u)));
+    const liveKitUrls = [...new Set(out.iceLog.flatMap(entry => (entry.urls || []).filter(u => !/\.example\.com/.test(u))))];
+    out.liveKitIceUrls = liveKitUrls;
+    out.liveKitUrlsCarryTransportQuery = liveKitUrls.some(u => /\?transport=/.test(u));
+    out.liveKitIceRejected = out.iceLog.filter(entry => !entry.ok).map(entry => entry.error);
     out.callConnected = Boolean(out.webkitReceivedVideo && out.webkitReceivedAudio?.peak > 0.01);
     return out;
 }
