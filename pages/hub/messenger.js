@@ -2982,6 +2982,9 @@ function MessengerPage() {
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.5)', zIndex: 2000,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    // Keep the card and its Close button below the phone's status bar.
+                    paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                    boxSizing: 'border-box',
                 }} onClick={() => setForwardingMessage(null)}>
                     <div
                       data-sp-skip-a11y="propagation guard, not a control" style={{
