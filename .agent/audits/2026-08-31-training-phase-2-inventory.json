@@ -36511,7 +36511,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 661,
+          "line": 662,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -36521,7 +36521,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 672,
+          "line": 673,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -36531,7 +36531,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 675,
+          "line": 676,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -36571,7 +36571,7 @@
       "functions": [
         {
           "name": "usesConsoleDress",
-          "line": 625,
+          "line": 626,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -36579,7 +36579,7 @@
         },
         {
           "name": "HubPageSummary",
-          "line": 630,
+          "line": 631,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -67630,11 +67630,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:661:1",
+      "id": "src/components/seo/HubPageSummary.js:662:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 661,
+      "line": 662,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -67643,11 +67643,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:672:2",
+      "id": "src/components/seo/HubPageSummary.js:673:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 672,
+      "line": 673,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -67656,11 +67656,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:675:3",
+      "id": "src/components/seo/HubPageSummary.js:676:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 675,
+      "line": 676,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -92448,7 +92448,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 630,
+        "line": 631,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -93444,6 +93444,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+          "pages/feed.xml.js",
           "pages/glossary/[term].js",
           "pages/glossary/index.js",
           "pages/hub/training/glossary.js",
@@ -101770,7 +101771,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 630,
+        "line": 631,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -102766,6 +102767,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+          "pages/feed.xml.js",
           "pages/glossary/[term].js",
           "pages/glossary/index.js",
           "pages/hub/training/glossary.js",

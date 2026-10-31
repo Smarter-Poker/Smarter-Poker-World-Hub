@@ -31,6 +31,7 @@ import {
   glossaryTermPath,
 } from '../../src/content/glossary/terms';
 import { LESSONS, lessonPath } from '../../src/content/learn/lessons';
+import { getGlossarySameAs } from '../../src/lib/seo/wikidataConcepts';
 
 /** Whole sentences of the definition, up to about a search snippet. */
 function metaDescription(definition) {
@@ -89,6 +90,7 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
       description: term.definition,
       url,
       termCode: term.slug,
+      sameAs: getGlossarySameAs(term.slug),
       inDefinedTermSet: {
         '@type': 'DefinedTermSet',
         '@id': GLOSSARY_SET_ID,
