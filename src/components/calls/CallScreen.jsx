@@ -201,8 +201,11 @@ function PortraitStage({ call, pulse }) {
 // A phone switching Wi-Fi to cellular briefly leaves the room and rejoins.
 const REMOTE_LEFT_GRACE_MS = 8000;
 // An answered call where the other side never arrives is ended, not left
-// on "Waiting For Them To Join..." forever.
+// on "Waiting For Them To Join..." forever. That is only the other person's
+// fault once THIS device is connected; a device still connecting (a slow or
+// blocked network) gets longer and is told the truth: it could not connect.
 const JOIN_TIMEOUT_MS = 25000;
+const CONNECT_TIMEOUT_MS = 40000;
 
 function RoomStage({ call, onHangup, onRemoteLeft, onJoinTimeout, onPermissionNote, minimized, onMinimize, onExpand }) {
     const room = useRoomContext();
@@ -226,11 +229,12 @@ function RoomStage({ call, onHangup, onRemoteLeft, onJoinTimeout, onPermissionNo
         return () => clearTimeout(timer);
     }, [remotes.length, onRemoteLeft]);
 
+    const connected = connection === ConnectionState.Connected || connection === 'connected';
     useEffect(() => {
         if (call.phase !== 'active' || remotes.length > 0 || hadRemote.current) return undefined;
-        const timer = setTimeout(() => onJoinTimeout(), JOIN_TIMEOUT_MS);
+        const timer = setTimeout(() => onJoinTimeout(connected), connected ? JOIN_TIMEOUT_MS : CONNECT_TIMEOUT_MS);
         return () => clearTimeout(timer);
-    }, [call.phase, remotes.length, onJoinTimeout]);
+    }, [call.phase, remotes.length, connected, onJoinTimeout]);
 
     useEffect(() => {
         let cancelled = false;
@@ -321,7 +325,9 @@ function RoomStage({ call, onHangup, onRemoteLeft, onJoinTimeout, onPermissionNo
 }
 
 export default function CallScreen({ call, selfName, onHangup, onRemoteLeft, onConnectionLost, onFatal, onNotice }) {
-    const handleJoinTimeout = useCallback(() => onFatal('They Did Not Join The Call'), [onFatal]);
+    const handleJoinTimeout = useCallback(connected => onFatal(connected
+        ? 'They Did Not Join The Call'
+        : 'Could Not Connect The Call. Check Your Connection And Try Again.'), [onFatal]);
     const [minimized, setMinimized] = useState(false);
     const minimize = useCallback(() => setMinimized(true), []);
     const expand = useCallback(() => setMinimized(false), []);

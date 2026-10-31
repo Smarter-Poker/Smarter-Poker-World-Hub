@@ -470,6 +470,9 @@ export async function run() {
             });
             await answering.page.goto(`${APP_ORIGIN}/hub/messenger?incomingCall=${encodeURIComponent(room)}&answer=1`, { waitUntil: 'domcontentloaded' });
             await until(() => callOpen(answering.page), { timeout: 30000, message: `${label}: push route did not open the call` });
+            // What the answering device itself shows, second by second.
+            const timeline = [];
+            const sampler = setInterval(() => { callStatus(answering.page).then(st => { if (timeline[timeline.length - 1] !== st) timeline.push(st); }).catch(() => {}); }, 1000);
             try {
                 const atA = await until(async () => { const st = await callStatus(a.page); return /^\d+:\d{2}$/.test(st || '') ? st : null; }, { timeout: 30000, message: `${label}: never joined the call (caller kept waiting)` });
                 outcome.answered = true;
@@ -483,7 +486,8 @@ export async function run() {
                     assert.ok(back.peak > 0.01, `${label}: caller heard nothing back`);
                 }
                 await shot(answering.page, `06-answered-from-push-${label.replace(/\W+/g, '-').toLowerCase()}`);
-                return { statusAtCaller: atA, receivedVideo: received, audioPeak: +heard.peak.toFixed(3), sentBack };
+                clearInterval(sampler);
+                return { statusAtCaller: atA, receivedVideo: received, audioPeak: +heard.peak.toFixed(3), sentBack, answeringTimeline: timeline };
             } catch (error) {
                 const answeringStatus = await callStatus(answering.page).catch(() => null);
                 await shot(answering.page, `fail-06-${label.replace(/\W+/g, '-').toLowerCase()}`);
@@ -493,7 +497,9 @@ export async function run() {
                     audioCodecs: (window.RTCRtpReceiver?.getCapabilities?.('audio')?.codecs || []).map(c => c.mimeType).filter((v, i, a) => a.indexOf(v) === i).slice(0, 6),
                     mediaDevices: !!navigator.mediaDevices?.getUserMedia,
                 })).catch(e => ({ error: String(e?.message || e).slice(0, 120) }));
-                throw new Error(`${error.message}; answered ${!!outcome.answered}; answering status ${JSON.stringify(answeringStatus)}; webrtc ${JSON.stringify(capability)}; console ${JSON.stringify(consoleErrors.slice(-12))}`);
+                clearInterval(sampler);
+                outcome.diagnostics = { answered: !!outcome.answered, answeringTimeline: timeline, answeringStatus, webrtc: capability, console: consoleErrors.slice(-15) };
+                throw new Error(`${error.message}; answered ${!!outcome.answered}; timeline ${JSON.stringify(timeline)}`);
             }
         };
         const endFromCaller = async (answering) => {
@@ -527,6 +533,7 @@ export async function run() {
                 await until(async () => (await callStatus(a.page)) !== 'Starting Call...' && !!(await pendingRoom()), { timeout: 15000 }).catch(() => {});
                 const wkOutcome = {};
                 await step('Mobile WebKit (iPhone 13 emulation) answers from the push route and receives the call', () => answerFromPush(safari, 'Mobile WebKit', false, wkOutcome));
+                if (wkOutcome.diagnostics) report.webkitDiagnostics = wkOutcome.diagnostics;
                 expectedReceipts.push(wkOutcome.answered ? 'completed' : 'cancelled');
                 if (!wkOutcome.answered) expectedMissedNotices += 1;
                 await endFromCaller(safari);

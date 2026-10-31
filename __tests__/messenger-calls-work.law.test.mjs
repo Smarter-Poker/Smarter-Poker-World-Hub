@@ -176,6 +176,9 @@ test('the call screen is phone-first', () => {
     assert.doesNotMatch(screen, /screenShare: true/);
     assert.match(screen, /REMOTE_LEFT_GRACE_MS = 8000/);
     assert.match(screen, /JOIN_TIMEOUT_MS = 25000/);
+    // Never blame the other person for this device's own failed connection.
+    assert.match(screen, /CONNECT_TIMEOUT_MS = 40000/);
+    assert.match(screen, /connected \? JOIN_TIMEOUT_MS : CONNECT_TIMEOUT_MS/);
     assert.match(screen, /if \(call\.creating\) return undefined;/);
     // Switching chats during a call: minimize keeps the room and audio mounted.
     assert.match(screen, /aria-label="Minimize Call"/);
