@@ -36,6 +36,8 @@ import {
 const RESULT_DIR = 'test-results/messenger-calls-notify';
 const MENU_BUTTON = '[aria-controls^="sp-world-command-menu"]';
 const ROW = 'Turn On Notifications';
+const PARTS = new Set((process.env.NOTIFY_PARTS || 'A,B,C').split(',').map(x => x.trim().toUpperCase()));
+const HEADED_PUSH = process.env.NOTIFY_HEADED_PUSH === '1';
 const FAKE_MEDIA = ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'];
 
 export const EMULATE_DENIED = `(() => {
@@ -113,8 +115,12 @@ async function main() {
         // ── Part A: Turn On Notifications ────────────────────────────────
         let pushContext = null;
         let subscriptionId = null;
-        try {
-            const pushBrowser = await chromium.launch({ channel: 'chrome', headless: true, args: FAKE_MEDIA });
+        if (PARTS.has('A')) try {
+            // Headless Chrome registers the worker but cannot reach Google's
+            // push service (run 41250392204); headed Chrome under a virtual
+            // display can, when NOTIFY_HEADED_PUSH=1.
+            const pushBrowser = await chromium.launch({ channel: 'chrome', headless: !HEADED_PUSH, args: FAKE_MEDIA });
+            report.pushBrowserMode = HEADED_PUSH ? 'headed Chrome (xvfb)' : 'headless Chrome';
             browsers.push(pushBrowser);
             report.browsers.chrome = pushBrowser.version();
             const eligible = await session(pushBrowser, C.session, { ...devices['Pixel 7'] }, { media: true });
@@ -127,7 +133,7 @@ async function main() {
             check('A', 'Eligible (Chrome, permission allowed, no subscription): the menu shows Turn On Notifications', shown > 0, { shown });
             if (shown) {
                 await row.first().click();
-                const toast = await toastText(eligible.page, /Notifications Are On For This Device|Notifications (Are Blocked|Could Not Be Turned On)[^\n]*/i, 30000);
+                const toast = await toastText(eligible.page, /Notifications Are On For This Device|[^\n]*(Notifications (Are Blocked|Could Not Be Turned On)|Push Service|Registration|Not Supported|Timed Out|Failed)[^\n]*/i, 50000);
                 const sub = await until(async () => (await admin.from('push_subscriptions').select('id, endpoint, transport, is_active, user_agent, created_at').eq('user_id', C.id).eq('is_active', true)).data?.[0], { timeout: 20000 }).catch(() => null);
                 subscriptionId = sub?.id || null;
                 const local = await eligible.page.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration('/push/'); const s = await r?.pushManager.getSubscription(); return { worker: r?.active?.scriptURL || null, endpointHost: s ? new URL(s.endpoint).host : null, permission: Notification.permission }; }).catch(error => ({ error: String(error?.message || error).slice(0, 120) }));
@@ -144,7 +150,7 @@ async function main() {
             check('A', 'Eligible enrolment in Google Chrome', false, { error: String(error?.message || error).slice(0, 200) }, { limitation: true });
         }
 
-        {
+        if (PARTS.has('A')) {
             const denied = await session(chrome, C.session, { ...devices['Pixel 7'] }, { initScript: EMULATE_DENIED });
             await denied.page.goto(`${APP_ORIGIN}/hub/friends`, { waitUntil: 'domcontentloaded' });
             await sleep(4000);
@@ -155,7 +161,7 @@ async function main() {
             check('A', 'Denied (emulated Notification.permission): the row opens Settings, Notifications', shown > 0 && Boolean(landed), { shown, landed }, { emulated: true });
             await denied.context.close();
         }
-        {
+        if (PARTS.has('A')) {
             const wk = await webkit.launch({ headless: true });
             browsers.push(wk);
             report.browsers.webkit = wk.version();
@@ -169,7 +175,7 @@ async function main() {
             check('A', 'Unsupported, iPhone Safari tab (WebKit with PushManager removed): the row opens Add To Home Screen steps', shown > 0 && Boolean(landed), { shown, landed }, { emulated: true });
             await ios.context.close();
         }
-        {
+        if (PARTS.has('A')) {
             const desk = await session(chrome, C.session, { viewport: { width: 1280, height: 800 } }, { initScript: EMULATE_NO_PUSH });
             await desk.page.goto(`${APP_ORIGIN}/hub/friends`, { waitUntil: 'domcontentloaded' });
             await sleep(4000);
@@ -182,6 +188,7 @@ async function main() {
         // Only one callee device may be open: close Part A's Chrome pages (its
         // service worker stays registered for Part C).
         if (pushContext) for (const p of pushContext.pages()) await p.close();
+        if (PARTS.has('B')) {
         const callee = await session(chrome, C.session, { ...devices['Pixel 7'] }, { media: true });
         const cdp = await callee.context.newCDPSession(callee.page);
         const ringCase = async (name, prepare, { during = null, answer = false } = {}) => {
@@ -252,9 +259,10 @@ async function main() {
                 { bellRowsWhileRinging: ringing.length, missedNotices: missed.map(m => m.title), bellRowsAfter: after.length, receipts: r, rawReceiptAlerts: raw, calleeStillRinging });
         }
         await callee.context.close();
+        }
 
         // ── Part C: push chain for the subscription Part A created ────────
-        if (pushContext && subscriptionId) {
+        if (!PARTS.has('C')) { /* not requested */ } else if (pushContext && subscriptionId) {
             const before = (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at').eq('id', subscriptionId).maybeSingle()).data;
             const t0 = await placeCall();
             const after = await until(async () => { const d = (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at, last_failure_reason').eq('id', subscriptionId).maybeSingle()).data; return d?.last_receipt_at && d.last_receipt_at !== before?.last_receipt_at ? d : null; }, { timeout: 15000 }).catch(async () => (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at, last_failure_reason').eq('id', subscriptionId).maybeSingle()).data);

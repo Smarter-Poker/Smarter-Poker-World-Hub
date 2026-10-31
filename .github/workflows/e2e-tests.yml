@@ -94,6 +94,10 @@ on:
         description: Minutes messenger-calls-upgrade waits for the next production deployment (5-150)
         type: string
         default: '60'
+      notify_parts:
+        description: Parts of messenger-calls-notify to run (A menu, B ringing, C push chain)
+        type: string
+        default: 'A,B,C'
 
 permissions:
   contents: read
@@ -1033,8 +1037,10 @@ jobs:
           if ! command -v google-chrome >/dev/null 2>&1; then npx playwright install $WITH_DEPS chrome; fi
           google-chrome --version || true
       - name: Verify call notifications and Turn On Notifications
-        run: node scripts/ci/messenger-calls-notify.mjs
+        run: xvfb-run -a node scripts/ci/messenger-calls-notify.mjs
         env:
+          NOTIFY_PARTS: ${{ inputs.notify_parts }}
+          NOTIFY_HEADED_PUSH: '1'
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
