@@ -1,0 +1,485 @@
+{
+  "observedAt": "2026-10-31T19:51:52.705Z",
+  "expectedSha": "c09a45d89e3453d8be45cd8ffdc0499e846ebe37",
+  "status": "passed-with-blocked-browser-cases",
+  "checks": [
+    {
+      "name": "Mobile chat header: phone, video, search and info on screen with a long name",
+      "ok": true,
+      "detail": {
+        "vw": 412,
+        "vh": 839,
+        "scrollWidth": 412,
+        "boxes": {
+          "Start Voice Call": {
+            "x": 280,
+            "right": 320,
+            "y": 52,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          },
+          "Start Video Call": {
+            "x": 322,
+            "right": 362,
+            "y": 52,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          },
+          "Search Messages": {
+            "x": 238,
+            "right": 278,
+            "y": 52,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          },
+          "User Info": {
+            "x": 364,
+            "right": 404,
+            "y": 52,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          },
+          "Back To Conversations": {
+            "x": 4,
+            "right": 44,
+            "y": 52,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Callee rings outside Messenger (/hub) and caller sees Ringing...",
+      "ok": true,
+      "detail": {
+        "status": "Ringing...",
+        "calleePath": "/hub/verify-phone"
+      }
+    },
+    {
+      "name": "Answered video call: two-way video and audio",
+      "ok": true,
+      "detail": {
+        "videoAtA": {
+          "total": 2,
+          "local": 1,
+          "remote": 1
+        },
+        "videoAtB": {
+          "total": 2,
+          "local": 1,
+          "remote": 1
+        },
+        "audioPeakAtA": 1.03,
+        "audioPeakAtB": 1.024,
+        "timer": "0:06"
+      }
+    },
+    {
+      "name": "Mute silences the caller for the callee; unmute restores it",
+      "ok": true,
+      "detail": {
+        "mutedPeak": 0,
+        "unmutedPeak": 1.022
+      }
+    },
+    {
+      "name": "Camera off removes the caller video for the callee; on restores it",
+      "ok": true,
+      "detail": {
+        "flipButtonShown": false
+      }
+    },
+    {
+      "name": "Minimize, switch chats and leave Messenger during the call; audio continues; return to call",
+      "ok": true,
+      "detail": {
+        "statusOnHub": "0:21"
+      }
+    },
+    {
+      "name": "Callee hangs up: caller screen closes; exactly one completed receipt from the caller",
+      "ok": true,
+      "detail": {
+        "receipt": {
+          "type": "video",
+          "duration": 25,
+          "status": "completed"
+        },
+        "rowsSeen": 1
+      }
+    },
+    {
+      "name": "Second incoming call rings without reloading (callee ended the previous call); decline closes the caller",
+      "ok": true,
+      "detail": {
+        "announced": "Incoming Voice Call From smarterpoker"
+      }
+    },
+    {
+      "name": "Floating chat shows phone and video buttons on a phone",
+      "ok": true,
+      "detail": {
+        "vw": 412,
+        "vh": 839,
+        "scrollWidth": 412,
+        "boxes": {
+          "Voice Call Call Probe Bartholomew Featherstonehaugh-Smythe The Third": {
+            "x": 190,
+            "right": 228,
+            "y": 100,
+            "w": 38,
+            "h": 44,
+            "inView": true
+          },
+          "Video Call Call Probe Bartholomew Featherstonehaugh-Smythe The Third": {
+            "x": 231,
+            "right": 269,
+            "y": 100,
+            "w": 38,
+            "h": 44,
+            "inView": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Unanswered call from the floating chat times out as No Answer and stops ringing for the callee",
+      "ok": true,
+      "detail": {
+        "waitedMs": 45110
+      }
+    },
+    {
+      "name": "Unrelated user cannot join, start or fake a call",
+      "ok": true,
+      "detail": {
+        "join": 403,
+        "start": 403,
+        "borrow": 403,
+        "ownConversation": 200,
+        "forgedRingDelivered": true,
+        "forgedRingShown": false
+      }
+    },
+    {
+      "name": "Caller reopens the conversation for the next call",
+      "ok": true
+    },
+    {
+      "name": "Offline callee with notifications off: caller sees Not Reachable Right Now and why",
+      "ok": true,
+      "detail": {
+        "status": "Not Reachable Right Now",
+        "pushAttempts": [
+          "skipped:no_subscription",
+          "skipped:no_subscription",
+          "skipped:no_subscription",
+          "skipped:no_subscription"
+        ]
+      }
+    },
+    {
+      "name": "Push Accept route answers the call with two-way media (mobile Chromium)",
+      "ok": true,
+      "detail": {
+        "statusAtCaller": "0:00",
+        "receivedVideo": {
+          "total": 2,
+          "local": 1,
+          "remote": 1
+        },
+        "audioPeak": 1.026,
+        "sentBack": {
+          "total": 2,
+          "local": 1,
+          "remote": 1
+        },
+        "answeringTimeline": [
+          "0:00",
+          "0:01",
+          "0:02",
+          "0:03",
+          "0:04",
+          "0:05"
+        ]
+      }
+    },
+    {
+      "name": "Mobile WebKit (iPhone 13 emulation) answers from the push route and receives the call",
+      "ok": false,
+      "detail": {
+        "error": "Mobile WebKit: received no video; answered true; timeline [\"Connecting...\",null]",
+        "devices": {
+          "A": {
+            "path": "/hub/messenger",
+            "dialogs": [
+              "Social Media Command Menu"
+            ],
+            "buttons": [
+              "Pin Menu Items To Favourites",
+              "Close Menu",
+              "Notifications",
+              "Read Receipts",
+              "Active Status",
+              "Message Sounds",
+              "Open Social Media Command Menu",
+              "Go Back",
+              "Go To The Hub",
+              "My Profile",
+              "Diamond Wallet",
+              "VIP Membership Active",
+              "Messages",
+              "Notifications",
+              "Back To Conversations",
+              "Search Messages",
+              "Start Voice Call",
+              "Start Video Call",
+              "User Info",
+              "Send Photo Or Video",
+              "Send GIF",
+              "Choose Emoji",
+              "Record Voice Message",
+              "Send Like"
+            ],
+            "dock": 0,
+            "alerts": [
+              ""
+            ],
+            "httpErrors": {
+              "400 /api/rewards/birthday-reward": 1
+            }
+          },
+          "B3": {
+            "path": "/hub/messenger",
+            "dialogs": [
+              "Social Media Command Menu"
+            ],
+            "buttons": [
+              "Pin Menu Items To Favourites",
+              "Close Menu",
+              "Notifications",
+              "Read Receipts",
+              "Active Status",
+              "Message Sounds",
+              "Open Social Media Command Menu",
+              "Go Back",
+              "Go To The Hub",
+              "My Profile",
+              "Diamond Wallet",
+              "VIP Membership Inactive",
+              "Messages",
+              "Notifications",
+              "Saved Messages",
+              "New Message"
+            ],
+            "dock": 0,
+            "alerts": [
+              ""
+            ],
+            "httpErrors": {}
+          }
+        }
+      },
+      "blocked": "WebKit bug 320931: this WebKit build rejects TURN URLs with ?transport= (fixed upstream); LiveKit signal join failed in every region"
+    },
+    {
+      "name": "Exactly one receipt per call and one missed-call notice",
+      "ok": true,
+      "detail": {
+        "receipts": [
+          "completed",
+          "declined",
+          "missed",
+          "completed",
+          "completed"
+        ],
+        "missedCallNotices": 1
+      }
+    },
+    {
+      "name": "320px: call buttons, composer and Send on screen; keyboard-height viewport keeps the composer",
+      "ok": true,
+      "detail": {
+        "header": {
+          "Start Voice Call": {
+            "x": 188,
+            "right": 228,
+            "y": 43,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          },
+          "Start Video Call": {
+            "x": 230,
+            "right": 270,
+            "y": 43,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          },
+          "User Info": {
+            "x": 272,
+            "right": 312,
+            "y": 43,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          }
+        },
+        "typed": {
+          "x": 272,
+          "right": 312,
+          "y": 471,
+          "w": 40,
+          "h": 40,
+          "inView": true
+        },
+        "keyboard": {
+          "Send Message": {
+            "x": 272,
+            "right": 312,
+            "y": 222,
+            "w": 40,
+            "h": 40,
+            "inView": true
+          },
+          "Message": {
+            "x": 106,
+            "right": 217,
+            "y": 142,
+            "w": 110,
+            "h": 120,
+            "inView": true
+          }
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Camera switching (front/back) needs a device with two cameras; the synthetic Chromium camera is single, so Flip Camera is correctly hidden and only camera on/off was exercised.",
+    "Mobile Safari: verified only as Playwright WebKit with iPhone 13 emulation on Linux, receive-only (no synthetic camera or microphone in WebKit). Safari on a physical iPhone was not available to this run.",
+    "The on-screen keyboard is emulated by shrinking the viewport to 300px; a real iOS/Android keyboard was not opened.",
+    "Real push notifications to a phone were not delivered: throwaway accounts have no push subscription (by design, so no real phone rings). The server push enqueue was read back and the Accept destination route was exercised instead."
+  ],
+  "devices": {
+    "A (Android Chrome emulation, test account)": {
+      "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Mobile Safari/537.36",
+      "viewport": {
+        "width": 412,
+        "height": 839
+      }
+    },
+    "B (desktop Chromium, throwaway)": {
+      "userAgent": "desktop-chromium",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      }
+    },
+    "B2 (Android Chrome emulation, throwaway)": {
+      "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Mobile Safari/537.36",
+      "viewport": {
+        "width": 412,
+        "height": 839
+      }
+    },
+    "B3 (WebKit iPhone 13 emulation, throwaway)": {
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "viewport": {
+        "width": 390,
+        "height": 664
+      }
+    },
+    "A narrow (320x568 Chromium)": {
+      "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Mobile Safari/537.36",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      }
+    }
+  },
+  "deploymentId": "dpl_XgFL37mdFf6MMdR9ZMg4nPjKUjrk",
+  "accountFingerprint": "9fec7638c003ad1c",
+  "webkitDiagnostics": {
+    "answered": true,
+    "answeringTimeline": [
+      "Connecting...",
+      null
+    ],
+    "answeringStatus": null,
+    "webrtc": {
+      "peerConnection": "function",
+      "videoCodecs": [
+        "video/VP8",
+        "video/rtx",
+        "video/VP9",
+        "video/H264",
+        "video/red",
+        "video/ulpfec",
+        "video/flexfec-03"
+      ],
+      "audioCodecs": [
+        "audio/opus",
+        "audio/red",
+        "audio/G722",
+        "audio/PCMU",
+        "audio/PCMA",
+        "audio/CN"
+      ],
+      "mediaDevices": true
+    },
+    "console": [
+      "info: Initial connection failed with ConnectionError: could not establish signal connection: Invalid TURN URL query string. Retrying with another region: https://smarter-poker-lovt9xq0.osanjose1a.production",
+      "info: signal connecting to wss://smarter-poker-lovt9xq0.osanjose1a.production.livekit.cloud/rtc/v1?access_token=%3Credacted%3E&join_request=CAESvg0fiwgAAAAAAAAD7Vvdbts2FEaKbSgCBFh71Uu-AGOR1C8LXyRxsgZoiqBJut",
+      "info: Initial connection failed with ConnectionError: could not establish signal connection: Invalid TURN URL query string. Retrying with another region: https://smarter-poker-lovt9xq0.oqueretaro1a.producti",
+      "info: signal connecting to wss://smarter-poker-lovt9xq0.oqueretaro1a.production.livekit.cloud/rtc/v1?access_token=%3Credacted%3E&join_request=CAESuw0fiwgAAAAAAAAD7Vvdbts2FEaKbSgCBFh71Uu-AGORlPXDwhep07QF2tRY",
+      "info: Initial connection failed with ConnectionError: could not establish signal connection: Invalid TURN URL query string. Retrying with another region: https://smarter-poker-lovt9xq0.ochicago1a.production",
+      "info: signal connecting to wss://smarter-poker-lovt9xq0.ochicago1a.production.livekit.cloud/rtc/v1?access_token=%3Credacted%3E&join_request=CAESvw0fiwgAAAAAAAAD7VvbbttGEIWDtggMGGjylMf9gbX2wusGepAvag0kqVDHCd",
+      "info: Initial connection failed with ConnectionError: could not establish signal connection: Invalid TURN URL query string. Retrying with another region: https://smarter-poker-lovt9xq0.otoronto1a.production",
+      "info: signal connecting to wss://smarter-poker-lovt9xq0.otoronto1a.production.livekit.cloud/rtc/v1?access_token=%3Credacted%3E&join_request=CAESxA0fiwgAAAAAAAAD7Vvdbts2FEaKbSgCBFh71Uu-AGOR1C8HXyR2shVrg2xpu2",
+      "info: Initial connection failed with ConnectionError: could not establish signal connection: Invalid TURN URL query string. Retrying with another region: https://smarter-poker-lovt9xq0.oashburn1b.production",
+      "info: disconnect from room {room: , roomID: undefined, participant: , participantID: }",
+      "warning: Abort connection attempt due to user initiated disconnect {room: , roomID: undefined, participant: , participantID: }",
+      "warning: ConnectionError: Client initiated disconnect",
+      "warning: [CallScreen] room error: Client initiated disconnect",
+      "info: connection state changed: connecting -> disconnected {room: , roomID: undefined, participant: , participantID: }",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  "pageErrors": {
+    "A": 0,
+    "narrow": 0
+  },
+  "httpErrors": {
+    "A": {},
+    "B": {
+      "400 /api/rewards/birthday-reward": 1
+    },
+    "B2": {},
+    "B3": {}
+  },
+  "blocked": [
+    {
+      "name": "Mobile WebKit (iPhone 13 emulation) answers from the push route and receives the call",
+      "reason": "WebKit bug 320931: this WebKit build rejects TURN URLs with ?transport= (fixed upstream); LiveKit signal join failed in every region"
+    }
+  ],
+  "finalCommit": "c09a45d89e3453d8be45cd8ffdc0499e846ebe37",
+  "cleanup": {
+    "messages": "ok",
+    "participants": "ok",
+    "conversations": "ok",
+    "pendingCalls": "ok",
+    "notifications": "ok",
+    "pushOutbox": "ok",
+    "user_b": "deleted",
+    "user_c": "deleted"
+  }
+}
