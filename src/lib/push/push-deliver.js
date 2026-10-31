@@ -12,7 +12,7 @@
  *   { attempted, accepted, expired, errors: [{ endpoint, error }] }
  */
 
-import { mayDeliverNotification } from '../notifications/deliveryPolicy.mjs';
+import { mayDeliverNotification, isRoutedToProductionAlerts } from '../notifications/deliveryPolicy.mjs';
 import { isPushConfigured } from './web-push';
 import { isFcmConfigured } from './fcm';
 import { sendPush, SUBSCRIPTION_COLUMNS } from './send-push';
@@ -33,6 +33,10 @@ export async function deliverPushNow(supabase, userId, payload, opts = {}) {
     }
     if (!mayDeliverNotification(userId, { ...payload, event: payload?.data?.event || payload?.event })) {
         result.errors.push({ endpoint: null, error: 'platform_alert_recipient_not_allowed' });
+        return result;
+    }
+    if (isRoutedToProductionAlerts({ ...payload, event: payload?.data?.event || payload?.event })) {
+        result.errors.push({ endpoint: null, error: 'routed_to_production_alerts' });
         return result;
     }
     // Either transport being configured is enough to try; a row whose own

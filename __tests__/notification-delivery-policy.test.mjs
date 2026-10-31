@@ -57,3 +57,21 @@ test('push-only seat alerts keep a real table destination through the legacy URL
  const table=redirects.find(row=>row.source==='/table/:id');
  assert.deepEqual(JSON.parse(JSON.stringify(table)),{source:'/table/:id',destination:'/hub/club-arena/table/:id',permanent:true});
 });
+
+test('operational alerts are routed to Production Alerts, never pushed to a phone (Dan 2026-10-09, 2026-10-31)', async () => {
+ const { isRoutedToProductionAlerts, DEVICE_HEALTH_PUSH_TITLES } = await import('../src/lib/notifications/deliveryPolicy.mjs');
+ for (const title of ['Money Check Failed','Engine Restart Storm','Tables Have Stopped Dealing','Production Alerts Has Stopped Reading','Tournament Schedule Active','Horse Fleet Alert: x'])
+  assert.equal(isRoutedToProductionAlerts({type:'system',title}),true,title);
+ for (const type of ['financial_incident','engine_break_failed','estate_digest']) assert.equal(isRoutedToProductionAlerts({type,title:'x'}),true,type);
+ for (const title of DEVICE_HEALTH_PUSH_TITLES) assert.equal(isRoutedToProductionAlerts({type:'system',title}),false,title);
+ for (const type of ['new_message','cashout_approved','tournament_start','tournament_blinding_off','accounting_invoice'])
+  assert.equal(isRoutedToProductionAlerts({type,title:'Money Check Failed'}),false,type);
+});
+
+test('the inline send path cannot deliver a routed operational alert', () => {
+ const deliver = readFileSync(new URL('../src/lib/push/push-deliver.js', import.meta.url), 'utf8');
+ const enqueue = readFileSync(new URL('../src/lib/push/push-enqueue.js', import.meta.url), 'utf8');
+ assert.match(deliver, /isRoutedToProductionAlerts\(/);
+ assert.match(enqueue, /isRoutedToProductionAlerts\(/);
+ assert.ok(enqueue.indexOf('isRoutedToProductionAlerts(') < enqueue.indexOf('deliverPushNow(supabase'), 'routing check runs before the inline send');
+});

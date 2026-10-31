@@ -1,4 +1,4 @@
-import { mayDeliverNotification } from '../src/lib/notifications/deliveryPolicy.mjs';
+import { mayDeliverNotification, isRoutedToProductionAlerts } from '../src/lib/notifications/deliveryPolicy.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -100,7 +100,7 @@ function recorder(options = {}) {
 // Load the actual entrypoint body, replacing only external imports. This
 // executes its branching/ordering, not a copied routing implementation.
 function entrypoint(path, exported, dependencies) {
-  dependencies = { mayDeliverNotification, ...dependencies };
+  dependencies = { mayDeliverNotification, isRoutedToProductionAlerts, ...dependencies };
   let source = readFileSync(new URL(path, import.meta.url), 'utf8');
   source = source.replace(/^import[^\n]+;\s*$/gm, '')
     .replace(/^export default[^\n]+;\s*$/gm, '').replace(/^export /gm, '');

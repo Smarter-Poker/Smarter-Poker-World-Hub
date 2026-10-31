@@ -17,7 +17,7 @@
  * CONTRACT: never throws. Returns { sent, outboxId, skipped, reason, accepted }.
  */
 
-import { mayDeliverNotification } from '../notifications/deliveryPolicy.mjs';
+import { mayDeliverNotification, isRoutedToProductionAlerts } from '../notifications/deliveryPolicy.mjs';
 import { deliverPushNow } from './push-deliver';
 import { loadGateContext, gateDecision, needsDailyCount, countSentToday } from './push-gate';
 import { isPushConfigured } from './web-push';
@@ -66,6 +66,26 @@ export async function enqueuePush(supabase, args = {}) {
     // reports a phone send for an operational-inbox receipt.
     if (isOwnerOperationalPush(userId, args)) {
         return enqueueOperationalPush(supabase, args);
+    }
+
+    // Operational alerts go to Production Alerts, never to a phone. Record the
+    // suppression (the DB guard would mark the row the same way) and return
+    // before the inline deliverPushNow below can send it.
+    if (isRoutedToProductionAlerts({ ...args, type: args.type || args.event })) {
+        try {
+            await supabase.from('push_outbox').insert({
+                recipient_user_id: userId,
+                title: String(args.title || '').slice(0, TITLE_MAX),
+                body: String(args.body || '').slice(0, BODY_MAX),
+                url: args.url || '/hub',
+                event: args.event || args.type || null,
+                tag: args.tag || null,
+                status: 'skipped',
+                failure_reason: 'routed_to_production_alerts',
+                related_entity_id: args.relatedEntityId || null,
+            });
+        } catch { /* the in-app notification is the delivery; this row is bookkeeping */ }
+        return { ...out, skipped: true, reason: 'routed_to_production_alerts' };
     }
 
     const title = String(args.title || 'Smarter Poker').slice(0, TITLE_MAX);

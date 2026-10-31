@@ -23,6 +23,18 @@ export function isPlatformAlertRecipient(userId) {
 export function mayDeliverNotification(userId, row) {
   return !isPlatformAlert(row) || isPlatformAlertRecipient(userId);
 }
+// Dan, 2026-10-09 and 2026-10-31: operational alerts go to Production Alerts and
+// are fixed automatically; they are never pushed to a phone. Only notices about
+// the recipient's own device still push. Mirrors the database guard
+// public.fn_platform_push_recipient_guard (failure_reason
+// 'routed_to_production_alerts'); this side stops the inline send that runs
+// after the queue insert.
+export const DEVICE_HEALTH_PUSH_TITLES = Object.freeze([
+  'Push Health Alert', 'Notifications May Not Be Reaching This Device', 'Push Notifications Are Off',
+]);
+export function isRoutedToProductionAlerts(row = {}) {
+  return isPlatformAlert(row) && !DEVICE_HEALTH_PUSH_TITLES.includes(row.title);
+}
 export function isPushOnlyNotification(row = {}) {
   return row.type === 'tournament_blinding_off' || row.event === 'tournament_blinding_off';
 }
