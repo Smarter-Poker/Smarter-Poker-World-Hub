@@ -177,6 +177,11 @@ test('the call screen is phone-first', () => {
     assert.match(screen, /REMOTE_LEFT_GRACE_MS = 8000/);
     assert.match(screen, /JOIN_TIMEOUT_MS = 25000/);
     assert.match(screen, /if \(call\.creating\) return undefined;/);
+    // Switching chats during a call: minimize keeps the room and audio mounted.
+    assert.match(screen, /aria-label="Minimize Call"/);
+    assert.match(screen, /aria-label="Return To Call"/);
+    assert.match(screen, /if \(minimized\) return <MiniBar/);
+    assert.match(screen, /extras=\{<>[\s\S]*<RoomAudioRenderer \/>/);
     for (const file of ['src/components/calls/CallScreen.jsx', 'src/components/calls/IncomingCallScreen.jsx', 'src/components/calls/CallProvider.jsx']) {
         assert.doesNotMatch(read(file), /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, `${file} must not contain emoji`);
     }
