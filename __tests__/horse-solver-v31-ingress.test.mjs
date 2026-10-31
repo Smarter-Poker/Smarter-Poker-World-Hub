@@ -483,3 +483,55 @@ test('heldout physics rejects malformed or mismatched SQL receipts and propagate
   assert.ok(refused.error);
   assert.equal(refused.calls.filter(c => c.name==='fn_gto_v31_prepare_heldout_public_physics').length,1);
 });
+
+function presealFixture() {
+  const {contract}=physicsFixture();
+  const payload={dataset_id:contract.dataset_id,phase:'prepare_cell',preparation_offset:0,
+    cell_key_checksum:HEX('1'),model_checksum:HEX('2'),template_checksum:HEX('3'),
+    training_provenance_checksum:HEX('4'),model_build_receipt_checksum:HEX('5')};
+  const receipt={format:'public215_preseal_cell_v1',dataset_id:contract.dataset_id,
+    preparation_offset:0,...Object.fromEntries(Object.entries(payload).filter(([k])=>k.endsWith('checksum'))),
+    receipt_checksum:HEX('6'),qualification_fingerprint:HEX('7'),status:'prepared'};
+  return {contract,payload,receipt};
+}
+async function callPreseal(f,{principal='COMPACTOR'}={}) {
+  const calls=[];
+  const supabase={rpc(name,args){calls.push({name,args});return {abortSignal:async()=>({
+    data:name==='fn_gto_v31_worker_contract'?f.contract:name==='fn_gto_v31_seal_build'?HEX('8'):f.receipt,
+    error:null,status:200})};}};
+  const signedProvenance=Object.fromEntries([...Object.keys(provenance()),'feature_contract_version','policy_export_schema'].map(k=>[k,f.contract[k]]));
+  try{return {result:await physicsDispatch()(supabase,{principal,operation:'seal_dataset',payload:f.payload,provenance:signedProvenance}),calls};}
+  catch(error){return {error,calls};}
+}
+test('bounded preparation and read-only status use existing signed seal operation; ordinary seal stays unchanged',async()=>{
+  for(const phase of ['prepare_cell','preparation_status']){
+    const f=presealFixture();f.payload.phase=phase;
+    const actual=await callPreseal(f);assert.equal(actual.error,undefined);assert.deepEqual(actual.result,f.receipt);
+    assert.deepEqual(actual.calls.map(x=>x.name),['fn_gto_v31_worker_contract',phase==='prepare_cell'?'fn_gto_v31_prepare_seal_cell':'fn_gto_v31_seal_cell_preparation_status']);
+    assert.deepEqual(actual.calls[1].args,{p_dataset_id:f.contract.dataset_id,p_cell_key_checksum:f.payload.cell_key_checksum});
+  }
+  const f=presealFixture();f.payload={dataset_id:f.contract.dataset_id};const actual=await callPreseal(f);
+  assert.deepEqual(actual.result,{dataset_checksum:HEX('8'),idempotent:false});
+  assert.equal(actual.calls[1].name,'fn_gto_v31_seal_build');
+});
+test('bounded preparation refuses malformed phases and M1/M2 before any preparation write',async()=>{
+  for(const mutate of [f=>f.payload.phase='other',f=>f.payload.extra=true,f=>delete f.payload.model_checksum,
+    f=>f.payload.preparation_offset=-0,f=>f.payload.preparation_offset=-1,f=>f.payload.preparation_offset=107,
+    f=>f.payload.preparation_offset=0.5,f=>f.payload.preparation_offset='0',f=>f.payload.model_checksum=HEX('0'),
+    f=>f.contract.state='active',f=>f.contract.feature_contract_version='holdem-board-relative-v2']){
+    const f=presealFixture();mutate(f);const actual=await callPreseal(f);assert.ok(actual.error);
+    assert.ok(!actual.calls.some(c=>c.name==='fn_gto_v31_prepare_seal_cell'));
+  }
+  for(const principal of ['M1','M2']){const actual=await callPreseal(presealFixture(),{principal});assert.equal(actual.error.status,403);assert.equal(actual.calls.length,1);}
+});
+test('bounded preparation rejects mismatched authoritative receipts and permits status-only missing/stale outcomes',async()=>{
+  for(const mutate of [f=>f.receipt.model_checksum=HEX('9'),f=>f.receipt.preparation_offset=1,
+    f=>f.receipt.receipt_checksum=HEX('0'),f=>f.receipt.qualification_fingerprint=HEX('0'),f=>f.receipt.extra=true,
+    f=>f.receipt.status='missing',f=>f.receipt=null]){
+    const f=presealFixture();mutate(f);const actual=await callPreseal(f);assert.equal(actual.error.status,409);
+    assert.equal(actual.calls.filter(c=>c.name==='fn_gto_v31_prepare_seal_cell').length,1);
+  }
+  for(const status of ['missing','stale']){const f=presealFixture();f.payload.phase='preparation_status';f.receipt.status=status;if(status==='missing')f.receipt.receipt_checksum=null;
+    const actual=await callPreseal(f);assert.equal(actual.error,undefined);assert.equal(actual.result.status,status);
+    assert.equal(actual.calls[1].name,'fn_gto_v31_seal_cell_preparation_status');}
+});

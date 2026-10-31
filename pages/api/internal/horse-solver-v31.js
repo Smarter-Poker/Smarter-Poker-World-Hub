@@ -363,6 +363,38 @@ async function dispatch(supabase, envelope) {
     );
     return { cell_key_checksum: cellChecksum };
   }
+  if (operation === 'seal_dataset' && Object.prototype.hasOwnProperty.call(payload, 'phase')) {
+    const keys = ['dataset_id','phase','preparation_offset','cell_key_checksum',
+      'model_checksum','template_checksum','training_provenance_checksum','model_build_receipt_checksum'];
+    if (principal !== 'COMPACTOR' || !exactKeys(payload, keys)
+        || !['prepare_cell','preparation_status'].includes(payload.phase)
+        || payload.dataset_id !== contract.dataset_id || contract.state !== 'building'
+        || v31FeatureContractVersion(contract) !== 'holdem-public-hist215-v1'
+        || !Number.isSafeInteger(payload.preparation_offset)
+        || Object.is(payload.preparation_offset, -0) || payload.preparation_offset < 0 || payload.preparation_offset >= 107
+        || !keys.filter(k=>k.endsWith('checksum')).every(k=>
+          typeof payload[k] === 'string' && /^[0-9a-f]{64}$/.test(payload[k]) && payload[k] !== '0'.repeat(64))) {
+      throw new GatewayError('Preseal cell phase is not authorized',409);
+    }
+    // Preparation/status RPC must select and validate actual approved frozen cell,
+    // exact canonical ordinal and four hashes server-side, not trust caller fields.
+    const value = await rpc(supabase,
+      payload.phase === 'prepare_cell' ? 'fn_gto_v31_prepare_seal_cell' : 'fn_gto_v31_seal_cell_preparation_status',
+      {p_dataset_id:payload.dataset_id,p_cell_key_checksum:payload.cell_key_checksum},LONG_DB_TIMEOUT_MS);
+    const replyKeys=['format','dataset_id','preparation_offset','cell_key_checksum','model_checksum',
+      'template_checksum','training_provenance_checksum','model_build_receipt_checksum',
+      'receipt_checksum','qualification_fingerprint','status'];
+    if (!exactKeys(value,replyKeys) || value.format !== 'public215_preseal_cell_v1'
+        || value.dataset_id !== payload.dataset_id || value.preparation_offset !== payload.preparation_offset
+        || !keys.filter(k=>k.endsWith('checksum')).every(k=>value[k]===payload[k])
+        || !(payload.phase === 'prepare_cell' ? value.status === 'prepared' : ['prepared','missing','stale'].includes(value.status))
+        || !(typeof value.qualification_fingerprint === 'string' && /^[0-9a-f]{64}$/.test(value.qualification_fingerprint) && value.qualification_fingerprint !== '0'.repeat(64))
+        || !(value.status === 'missing' ? value.receipt_checksum === null :
+          typeof value.receipt_checksum === 'string' && /^[0-9a-f]{64}$/.test(value.receipt_checksum) && value.receipt_checksum !== '0'.repeat(64))) {
+      throw new GatewayError('Preseal cell receipt differs',409);
+    }
+    return value;
+  }
   if (operation === 'seal_dataset') {
     if (!exactKeys(payload, ['dataset_id'])
         || payload.dataset_id !== contract.dataset_id) {
