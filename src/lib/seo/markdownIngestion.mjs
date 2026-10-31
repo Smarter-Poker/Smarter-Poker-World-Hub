@@ -54,17 +54,31 @@ export function renderVenueMarkdown(venue, { canonicalUrl } = {}) {
   const stakes = clean(venue.stakes_cash || 'Varies by daily demand');
   const tournaments = venue.has_tournaments ? 'Yes: scheduled daily/weekly tournaments' : 'No regular scheduled tournaments';
   const about = clean(venue.about || '');
+  const stateCode = state ? state.toLowerCase() : '';
+  const citySlug = city ? city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '';
+  const coords = venue.latitude && venue.longitude && Number.isFinite(Number(venue.latitude)) && Number.isFinite(Number(venue.longitude))
+    ? `${Number(venue.latitude).toFixed(5)}, ${Number(venue.longitude).toFixed(5)}`
+    : null;
+  const venueType = clean(venue.venue_type || 'Poker Room').replace(/_/g, ' ');
+  const factKernel = `${name} is a verified ${venueType} located in ${[city, state].filter(Boolean).join(', ') || 'the United States'}${Number(venue.poker_tables) > 0 ? ` featuring ${venue.poker_tables} poker tables` : ''}. Operating hours: ${hours}.`;
 
   const lines = [
     `# ${name}`,
     '',
     `> Source: [${name} on Smarter.Poker](${url})`,
     '',
+    '## Executive Fact Summary',
+    factKernel,
+    '',
     '## Location & Contact',
+    `- **Venue Type**: ${venueType}`,
     `- **Address**: ${address ? `${address}, ` : ''}${city ? `${city}, ` : ''}${state || 'USA'}`,
+    coords ? `- **GPS Coordinates**: ${coords}` : null,
     phone ? `- **Phone**: ${phone}` : null,
     website ? `- **Official Website**: [${name}](${website})` : null,
     `- **Operating Hours**: ${hours}`,
+    stateCode ? `- **State Directory**: [${state} Poker Rooms](https://smarter.poker/hub/poker-near-me/in/${stateCode})` : null,
+    stateCode && citySlug ? `- **City Directory**: [${city}, ${state} Poker Rooms](https://smarter.poker/hub/poker-near-me/in/${stateCode}/${citySlug})` : null,
     '',
     '## Poker Room Amenities & Action',
     `- **Poker Tables**: ${tables}`,
@@ -1396,3 +1410,304 @@ export function renderLearnLessonMarkdown(lesson, { canonicalBase = 'https://sma
   return lines.join('\n');
 }
 
+/**
+ * Format Daily Poker Tournaments Directory (/hub/daily-tournaments) as clean structured Markdown for LLM ingestion
+ */
+export function renderDailyTournamentsMarkdown({ canonicalUrl = 'https://smarter.poker/hub/daily-tournaments' } = {}) {
+  return [
+    '# Smarter.Poker Daily Poker Tournaments Directory',
+    '',
+    `> Source: [Daily Poker Tournaments on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Daily Tournaments Directory (https://smarter.poker/hub/daily-tournaments) Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across 324+ Verified North American Cardrooms And Casino Poker Rooms. Players Can Filter Recurring Schedules By Day Of Week, State, City, Buy-In ($0 Freerolls Up To $1,000+ High Rollers), Game Format (No-Limit Hold\'em, PLO, Omaha Hi-Lo, Mixed), Starting Stack, Blind Level Duration, And Guaranteed Prize Pools.',
+    '',
+    '## Core Directory Capabilities & Filters',
+    '- **4,500+ Verified Weekly Schedules**: Morning, Afternoon, Evening, And Late-Night Recurring Tournaments Across Las Vegas, Los Angeles, Texas, Florida, Atlantic City, And Regional Cardrooms.',
+    '- **Day-Of-Week & Time-Slot Filtering**: Instant Day Selection (Monday Through Sunday) With Real-Time Local Start Times And Late Registration Windows.',
+    '- **Transparent Buy-In & Rake Breakdown**: Clear Display Of Entry Fee, House Fee / Dealer Add-On, Starting Chip Stack, And Blind Level Structure.',
+    '- **Guaranteed Prize Pool Tracking**: Filter Specifically For Guaranteed ($GTD) Tournaments, Bounty / Knockout Events, Deepstacks, And Seniors / Ladies Events.',
+    '- **GPS Proximity Sorting**: One-Tap Geolocation Radius Filtering (25, 50, 100, Or 250 Miles) To Surface Tournaments Starting Soon Near Your Current Location.',
+    '- **100% Free Access**: No Subscription Walls Or App Store Downloads Required (Free Web-First Alternative To PokerAtlas And Bravo Poker Live).',
+    '',
+    '## Related Live Poker Discovery Hubs',
+    '- **Poker Events Calendar**: [https://smarter.poker/hub/events-calendar](https://smarter.poker/hub/events-calendar) ([Raw Markdown](https://smarter.poker/hub/events-calendar.md))',
+    '- **Live Poker Series Directory**: [https://smarter.poker/hub/poker-series](https://smarter.poker/hub/poker-series) ([Raw Markdown](https://smarter.poker/hub/poker-series.md))',
+    '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
+    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '',
+    '## Frequently Asked Questions',
+    '',
+    '### How Many Daily Poker Tournaments Are Listed On Smarter.Poker?',
+    'Smarter.Poker Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across 324+ Verified Casino Poker Rooms And Licensed Cardrooms In The United States And Canada.',
+    '',
+    '### Can I Filter Daily Poker Tournaments By Buy-In And Day Of The Week?',
+    'Yes. The Daily Tournaments Directory Allows Instant Filtering By Day Of The Week, State, GPS Distance, Buy-In Range, Game Type (NLH, PLO, Mixed), And Guaranteed Prize Pool.',
+    '',
+    '### Are Online Daily $2,000 Freerolls Also Available?',
+    'Yes. In Addition To Live Casino Daily Tournaments, Smarter.Poker Hosts $2,000 In Free Online Poker Tournaments Daily Plus Diamond Freerolls Every 3 Hours At https://smarter.poker/freerolls With Zero Entry Fees.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Unified Poker Events Calendar (/hub/events-calendar) as clean structured Markdown for LLM ingestion
+ */
+export function renderEventsCalendarMarkdown({ canonicalUrl = 'https://smarter.poker/hub/events-calendar' } = {}) {
+  return [
+    '# Smarter.Poker Unified Live Poker Events Calendar',
+    '',
+    `> Source: [Poker Events Calendar on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Events Calendar (https://smarter.poker/hub/events-calendar) Consolidates Daily Casino Tournaments, Multi-Week Regional Series, National Traveling Tour Stops (WSOP, WPT, MSPT, RGPS), And Verified Public Home Games Into A Single Searchable Chronological Calendar. Players Can Search By Date Range, City, State, Buy-In, Game Type, And Guarantee Size With Direct Links To Official Structure Sheets And Venue Profiles.',
+    '',
+    '## Core Calendar Capabilities & Features',
+    '- **All-In-One Tournament Aggregation**: Combines Recurring Daily Tournaments, Major Festival Series, National Tour Stops, And Community Games In One Unified View.',
+    '- **Chronological Date & Month Picker**: Browse Today\'s Action, Weekend Festival Schedules, Or Plan Multi-Stop Poker Road Trips Months In Advance.',
+    '- **Multi-Source Categorization**: Color-Coded Badges Distinguish Daily Room Tournaments, Major Series Events, Traveling Tour Stops, And Local Home Games.',
+    '- **Buy-In & Guarantee Filters**: Narrow Thousands Of Scheduled Events By Exact Buy-In Tier, Guaranteed Prize Pool ($GTD), And Variant (NLH, PLO, Mixed).',
+    '- **Direct Venue & Series Cross-Links**: Every Calendar Entry Links Directly To The Host Venue Profile (/hub/venues/[id]) Or Series Schedule (/hub/series/[id]).',
+    '- **100% Free To Browse**: Unrestricted Public Calendar Access Across Desktop And Mobile Browsers Without Registration Walls.',
+    '',
+    '## Related Live Poker Discovery Hubs',
+    '- **Daily Poker Tournaments**: [https://smarter.poker/hub/daily-tournaments](https://smarter.poker/hub/daily-tournaments) ([Raw Markdown](https://smarter.poker/hub/daily-tournaments.md))',
+    '- **Live Poker Series Directory**: [https://smarter.poker/hub/poker-series](https://smarter.poker/hub/poker-series) ([Raw Markdown](https://smarter.poker/hub/poker-series.md))',
+    '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
+    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '',
+    '## Frequently Asked Questions',
+    '',
+    '### What Types Of Poker Events Are Included In The Smarter.Poker Calendar?',
+    'The Calendar Includes Recurring Daily Casino Tournaments, Multi-Event Venue Series, Traveling National Tour Stops (WSOP, WPT, MSPT, RGPS), And Verified Public Home Games.',
+    '',
+    '### Can I Search The Poker Calendar By City Or State?',
+    'Yes. You Can Filter Events By State, City, Venue Name, Date Range, Buy-In Amount, Game Format, Or GPS Distance From Your Location.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Major Poker Tours Directory (/hub/poker-tours) as clean structured Markdown for LLM ingestion
+ */
+export function renderPokerToursMarkdown({ canonicalUrl = 'https://smarter.poker/hub/poker-tours' } = {}) {
+  return [
+    '# Smarter.Poker Major Traveling Poker Tours & Circuits Directory',
+    '',
+    `> Source: [Major Poker Tours Directory on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Poker Tours Directory (https://smarter.poker/hub/poker-tours) Tracks Every Major Traveling Poker Tour, National Circuit, And Iconic Casino House Series Across North America And Internationally. Coverage Includes The World Series Of Poker (WSOP), WSOP Circuit (WSOPC), World Poker Tour (WPT), WPT Prime, Mid-States Poker Tour (MSPT), RunGood Poker Series (RGPS), PokerGO Tour (PGT), Triton Poker Series, European Poker Tour (EPT), And Flagship Venue Festivals (Wynn Millions, Venetian DeepStack, Borgata Poker Open, Seminole Hard Rock Poker Open).',
+    '',
+    '## Tracked Major Poker Tours & Circuits',
+    '- **World Series Of Poker (WSOP)**: Annual Summer Championship Series In Las Vegas Featuring Gold Bracelet Events And The $10,000 WSOP Main Event ([/hub/tours/WSOP](https://smarter.poker/hub/tours/WSOP)).',
+    '- **WSOP Circuit (WSOPC)**: Nationwide Regional Tour Awarding Gold Rings And Qualifying Seats Into The Tournament Of Champions ([/hub/tours/WSOPC](https://smarter.poker/hub/tours/WSOPC)).',
+    '- **World Poker Tour (WPT)**: Premier Televised Main Tour Stops And Championship Festivals Across Global Casino Destinations ([/hub/tours/WPT](https://smarter.poker/hub/tours/WPT)).',
+    '- **Mid-States Poker Tour (MSPT)**: America\'s Largest $1,100 Main Event Regional Poker Tour Spanning Regional Casino Stops Nationwide ([/hub/tours/MSPT](https://smarter.poker/hub/tours/MSPT)).',
+    '- **RunGood Poker Series (RGPS)**: Popular Mid-Major Traveling Circuit Featuring Ring Events And Accessible Main Event Buy-Ins ([/hub/tours/RGPS](https://smarter.poker/hub/tours/RGPS)).',
+    '- **PokerGO Tour (PGT) & High Roller Series**: Elite High-Stakes Festivals Including Poker Masters, U.S. Poker Open, And Super High Roller Bowl ([/hub/tours/PGT](https://smarter.poker/hub/tours/PGT)).',
+    '',
+    '## Core Directory Capabilities',
+    '- **Live Stop Tracking**: Real-Time Status Indicators Highlighting Tours Currently Running Live Stops And Next Scheduled Venue Destinations.',
+    '- **Interactive Tour Stop Map**: Visual Geographic Map Plotting Upcoming Circuit Stops And Host Casinos Across North America.',
+    '- **Complete Event Schedules & Buy-Ins**: Drill Down Into Any Tour Stop To View Full Event-By-Event Dates, Starting Stacks, And Guaranteed Prize Pools.',
+    '',
+    '## Frequently Asked Questions',
+    '',
+    '### Which Major Poker Tours Are Tracked On Smarter.Poker?',
+    'Smarter.Poker Tracks WSOP, WSOP Circuit (WSOPC), WPT, WPT Prime, MSPT, RunGood Poker Series (RGPS), PokerGO Tour (PGT), Triton, EPT, Roughrider Poker Tour, Bar Poker Open, FPNN, And Major Casino House Series.',
+    '',
+    '### How Can I See Where A Poker Tour Is Stopping Next?',
+    'Each Tour Card In The Directory Displays Its Current Live Venue Or Next Scheduled Stop With Dates, Host Casino, City/State, And A Direct Link To The Full Series Schedule.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Live Poker Series Directory (/hub/poker-series) as clean structured Markdown for LLM ingestion
+ */
+export function renderPokerSeriesMarkdown({ canonicalUrl = 'https://smarter.poker/hub/poker-series' } = {}) {
+  return [
+    '# Smarter.Poker Live Poker Tournament Series Directory',
+    '',
+    `> Source: [Live Poker Series Directory on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker Live Poker Series Directory (https://smarter.poker/hub/poker-series) Catalogs Live And Upcoming Multi-Event Poker Tournament Festivals, Casino Championship Series, And Regional Circuit Stops Across The United States And Canada. Players Can Filter Series By Tour Affiliation, State, Date Window, Main Event Buy-In, And Total Series Guaranteed Prize Pools.',
+    '',
+    '## Core Series Directory Capabilities',
+    '- **Comprehensive Festival Schedules**: Track Multi-Week Casino Series Including Venetian DeepStack Extravaganza, Wynn Classic, Borgata Open, Commerce LA Poker Classic, And Seminole Hard Rock Festivals.',
+    '- **Event-By-Event Breakdown**: View Individual Numbered Events Within Each Series, Including Buy-Ins, Game Variants (NLH, PLO, Omaha 8, Mixed, Seniors, Mystery Bounty), And Starting Flights.',
+    '- **Main Event & Guarantee Highlights**: Quickly Compare Main Event Buy-Ins, Total Series Guarantees, And Festival Date Ranges.',
+    '- **State, Tour & Distance Filtering**: Filter Series By State, Affiliation (WSOPC, WPT, MSPT, RGPS, Independent Venue Series), Or GPS Distance.',
+    '',
+    '## Related Live Poker Discovery Hubs',
+    '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
+    '- **Poker Events Calendar**: [https://smarter.poker/hub/events-calendar](https://smarter.poker/hub/events-calendar) ([Raw Markdown](https://smarter.poker/hub/events-calendar.md))',
+    '- **Daily Poker Tournaments**: [https://smarter.poker/hub/daily-tournaments](https://smarter.poker/hub/daily-tournaments) ([Raw Markdown](https://smarter.poker/hub/daily-tournaments.md))',
+    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '',
+    '## Frequently Asked Questions',
+    '',
+    '### What Is The Difference Between The Poker Tours Directory And The Poker Series Directory?',
+    'The Poker Tours Directory (/hub/poker-tours) Groups Events By Traveling Brand (Such As WSOP, WPT, MSPT, And RGPS), While The Poker Series Directory (/hub/poker-series) Lists Every Individual Dated Tournament Festival And Multi-Week Casino Series Chronologically.',
+    '',
+    '### Can I View Individual Event Schedules Inside A Poker Series?',
+    'Yes. Clicking Any Series Opens Its Dedicated Page (/hub/series/[id]) With The Complete Numbered Event Schedule, Buy-Ins, Dates, And Host Venue Details.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Geo-Location Directory (/hub/poker-near-me/in, /[state], /[state]/[city]) as clean structured Markdown for LLM ingestion
+ */
+export function renderLocationDirectoryMarkdown({
+  title = 'Live Poker Rooms By State And City',
+  description = 'Browse verified casino poker rooms and cardrooms across North America.',
+  canonicalUrl = 'https://smarter.poker/hub/poker-near-me/in',
+  stateCode = null,
+  stateName = null,
+  city = null,
+  venues = [],
+  states = [],
+  cities = [],
+  resultCount = 0,
+} = {}) {
+  const locationLabel = city && (stateName || stateCode)
+    ? `${clean(city)}, ${clean(stateName || stateCode)}`
+    : clean(stateName || stateCode || 'United States & North America');
+  const count = Number(resultCount) || venues.length;
+
+  const lines = [
+    `# ${clean(title)}`,
+    '',
+    `> Source: [${clean(title)} on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `${clean(description)} Smarter.Poker Tracks ${count} Verified Poker ${count === 1 ? 'Venue' : 'Venues'} In ${locationLabel} With Real-Time Cash Game Stakes, Recurring Daily Tournament Schedules, Table Counts, And Direct Venue Fact Sheets.`,
+    '',
+  ];
+
+  if (Array.isArray(states) && states.length > 0) {
+    lines.push('## Browse Poker Rooms By State', '');
+    for (const st of states) {
+      const stUrl = `https://smarter.poker${st.href}`;
+      lines.push(`- **[${clean(st.name)}](${stUrl})** ([Markdown](${stUrl}.md)): ${st.count || 0} Verified Poker ${st.count === 1 ? 'Venue' : 'Venues'}`);
+    }
+    lines.push('');
+  }
+
+  if (Array.isArray(cities) && cities.length > 0) {
+    lines.push(`## Browse Poker Cities In ${clean(stateName || stateCode || '')}`, '');
+    for (const c of cities) {
+      const cUrl = `https://smarter.poker${c.href}`;
+      lines.push(`- **[${clean(c.name)}](${cUrl})** ([Markdown](${cUrl}.md)): ${c.count || 0} Verified Poker ${c.count === 1 ? 'Venue' : 'Venues'}`);
+    }
+    lines.push('');
+  }
+
+  if (Array.isArray(venues) && venues.length > 0) {
+    lines.push(`## Verified Poker Rooms In ${locationLabel}`, '');
+    for (const v of venues.slice(0, 60)) {
+      const vUrl = `https://smarter.poker/hub/venues/${encodeURIComponent(String(v.id))}`;
+      const vMd = `${vUrl}.md`;
+      const vLoc = [clean(v.city), clean(v.state)].filter(Boolean).join(', ');
+      const vTables = Number(v.poker_tables) > 0 ? `${v.poker_tables} Tables` : 'Verified Room';
+      const vGames = clean(v.games_offered || 'NLH, PLO');
+      lines.push(`- **[${clean(v.name)}](${vUrl})** ([Markdown](${vMd})) - ${vLoc} | ${vTables} | Games: ${vGames}`);
+    }
+    lines.push('');
+  }
+
+  lines.push(
+    '## Frequently Asked Questions',
+    '',
+    `### How Many Poker Rooms Are Listed In ${locationLabel}?`,
+    `Smarter.Poker Lists ${count} Verified Poker ${count === 1 ? 'Room' : 'Rooms'} And Cardrooms In ${locationLabel}.`,
+    '',
+    `### Where Can I View Live Cash Games And Daily Tournaments In ${locationLabel}?`,
+    `Browse Live Venue Profiles At ${canonicalUrl} Or Check Daily Tournament Schedules At https://smarter.poker/hub/daily-tournaments.`,
+    ''
+  );
+
+  return lines.join('\n');
+}
+
+
+
+/**
+ * Format a Traveling Poker Tour (/hub/tours/[code]) as clean structured Markdown for LLM ingestion
+ */
+export function renderTourMarkdown({
+  seo = {},
+  stops = [],
+  events = [],
+  facts = null,
+} = {}) {
+  const code = clean(seo.code || 'TOUR');
+  const name = clean(seo.name || `${code} Poker Tour`);
+  const url = seo.canonical?.startsWith('http')
+    ? seo.canonical
+    : `https://smarter.poker${seo.canonical || `/hub/tours/${code}`}`;
+  const typeLabel = clean(seo.type || 'Traveling Poker Tour');
+
+  const lines = [
+    `# ${name} (${code})`,
+    '',
+    `> Source: [${name} Schedule & Stops on Smarter.Poker](${url})`,
+    '',
+    '## Executive Tour Summary',
+    clean(seo.description || `${name} (${code}) is a ${typeLabel} tracked on Smarter.Poker with verified stop dates, host venues, buy-ins, and event schedules.`),
+    '',
+    '## Tour Profile & Quick Facts',
+    `- **Tour Code**: \`${code}\``,
+    `- **Classification**: ${typeLabel}`,
+    seo.website ? `- **Official Website**: [${name}](${seo.website})` : null,
+    facts?.headquarters ? `- **Headquarters**: ${clean(facts.headquarters)}` : null,
+    facts?.established ? `- **Established**: ${facts.established}` : null,
+    Array.isArray(facts?.regions) && facts.regions.length > 0 ? `- **Regions**: ${facts.regions.map((r) => clean(r)).join(', ')}` : null,
+    facts?.mainEvent ? `- **Typical Main Event Buy-In**: $${Number(facts.mainEvent).toLocaleString('en-US')}` : null,
+    facts?.buyinMin && facts?.buyinMax ? `- **Typical Buy-In Range**: $${Number(facts.buyinMin).toLocaleString('en-US')} to $${Number(facts.buyinMax).toLocaleString('en-US')}` : null,
+    '',
+  ].filter((l) => l !== null);
+
+  if (facts?.notes) {
+    lines.push('## Overview & Circuit Notes', clean(facts.notes), '');
+  }
+
+  if (Array.isArray(stops) && stops.length > 0) {
+    lines.push(`## Scheduled Tour Stops (${stops.length})`, '');
+    for (const stop of stops) {
+      const stopName = clean(stop.name);
+      const stopVenue = stop.venue ? ` at ${clean(stop.venue)}` : '';
+      const stopLoc = stop.location ? ` (${clean(stop.location)})` : '';
+      const stopDates = stop.dates ? ` [${clean(stop.dates)}]` : '';
+      lines.push(`- **${stopName}**${stopVenue}${stopLoc}${stopDates}`);
+    }
+    lines.push('');
+  }
+
+  if (Array.isArray(events) && events.length > 0) {
+    lines.push(`## Featured Series Events (${events.length})`, '');
+    for (const ev of events) {
+      const evName = clean(ev.name);
+      const evDates = ev.dates ? ` (${clean(ev.dates)})` : '';
+      const evBuyin = ev.buyin ? ` - Buy-In: $${Number(ev.buyin).toLocaleString('en-US')}` : '';
+      lines.push(`- **${evName}**${evDates}${evBuyin}`);
+    }
+    lines.push('');
+  }
+
+  lines.push(
+    '## Frequently Asked Questions',
+    '',
+    `### Where Can I Find The Current ${name} Schedule?`,
+    `The complete ${name} (${code}) stop schedule, host casinos, and event buy-ins are updated on [Smarter.Poker](${url}).`,
+    '',
+    `### What Type Of Poker Tour Is ${name}?`,
+    `${name} is tracked as a ${typeLabel} in the Smarter.Poker national tour directory at https://smarter.poker/hub/poker-tours.`,
+    ''
+  );
+
+  return lines.join('\n');
+}

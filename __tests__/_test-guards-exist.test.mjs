@@ -826,6 +826,14 @@ import './gsc-series5-phase5.test.mjs';
 import './gsc-series5-phase6.test.mjs';
 import './gsc-series5-phase7.test.mjs';
 import './gsc-series5-phase8.test.mjs';
+// AEO Phases 20-26: discovery hub Markdown, Dataset, FAQ/Speakable, calculator, location, venue and tour fact sheets.
+import './phase20-discovery-hub-markdown.test.mjs';
+import './phase21-dataset-schema.test.mjs';
+import './phase22-discovery-faq-speakable.test.mjs';
+import './phase23-calculator-schema.test.mjs';
+import './phase24-location-markdown.test.mjs';
+import './phase25-venue-fact-sheet-md.test.mjs';
+import './phase26-tour-fact-sheet-md.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

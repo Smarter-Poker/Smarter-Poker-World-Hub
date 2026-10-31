@@ -418,6 +418,21 @@ async function runBenchmark() {
   assertCheck('/feed.xml syndicates /features/* vertical landers', rssXml.text.includes('https://smarter.poker/features/bankroll-tax-tracker') && rssXml.text.includes('https://smarter.poker/features/poker-equity-calculators'));
   assertCheck('/feed.xml syndicates /glossary/* term definitions', rssXml.text.includes('https://smarter.poker/glossary/3-bet') && rssXml.text.includes('https://smarter.poker/glossary/icm'));
 
+  const dailyTournMd = await fetchRoute('/hub/daily-tournaments.md');
+  assertCheck('GET /hub/daily-tournaments.md status 200 with tournament directory spec', dailyTournMd.status === 200 && dailyTournMd.text.includes('Daily Poker Tournaments Directory'));
+
+  const eventsCalMd = await fetchRoute('/hub/events-calendar.md');
+  assertCheck('GET /hub/events-calendar.md status 200 with calendar spec', eventsCalMd.status === 200 && eventsCalMd.text.includes('Unified Live Poker Events Calendar'));
+
+  const pokerToursMd = await fetchRoute('/hub/poker-tours.md');
+  assertCheck('GET /hub/poker-tours.md status 200 with tours directory spec', pokerToursMd.status === 200 && pokerToursMd.text.includes('Major Traveling Poker Tours'));
+
+  const pokerSeriesMd = await fetchRoute('/hub/poker-series.md');
+  assertCheck('GET /hub/poker-series.md status 200 with series directory spec', pokerSeriesMd.status === 200 && pokerSeriesMd.text.includes('Live Poker Tournament Series Directory'));
+
+  const venuesMd = await fetchRoute('/hub/poker-near-me/venues.md');
+  assertCheck('GET /hub/poker-near-me/venues.md status 200 with venues directory spec', venuesMd.status === 200 && venuesMd.text.includes('Live Poker Near Me & Cardroom Directory'));
+
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);
   console.log(`  Total Checks: ${totalTests}`);

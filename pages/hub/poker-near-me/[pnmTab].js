@@ -18,6 +18,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { datasetSchema } from '../../../src/lib/seo/hubPageSchema';
 import HubPageSummary, { HUB_PAGE_SUMMARIES } from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -3747,6 +3748,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
           },
         })),
       },
+      datasetSchema({
+        path: `/hub/poker-near-me/${canonicalSlug}`,
+        name: routeMeta.title || 'Smarter.Poker Live Poker Rooms & Venues Directory Dataset',
+        description: routeMeta.description || 'Verified North American Live Poker Venues, Casino Cardrooms, Active Cash Game Stakes, And Weekly Tournament Schedules.',
+        keywords: ['Live Poker Rooms', 'Casino Cardrooms', 'Poker Near Me', 'United States Poker Venues', 'Cash Game Waitlists'],
+        variableMeasured: ['Active Poker Tables', 'Cash Game Stakes', 'Weekly Tournament Count', 'Room Amenities & Coordinates'],
+      }),
     ],
   };
   const snapshotGeneratedLabel = directorySnapshot?.generated_at
