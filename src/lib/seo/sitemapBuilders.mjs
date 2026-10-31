@@ -100,6 +100,9 @@ export const STATIC_PAGES = [
   { path: '/features/interactive-video-coaching', priority: '0.9', changefreq: 'weekly' },
   { path: '/features/poker-near-me', priority: '0.9', changefreq: 'weekly' },
   { path: '/features/private-poker-clubs', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/poker-reels-social-feed', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/preflop-charts-matrix', priority: '0.9', changefreq: 'weekly' },
+  { path: '/features/poker-equity-calculators', priority: '0.9', changefreq: 'weekly' },
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/freerolls', priority: '0.9', changefreq: 'daily' },
