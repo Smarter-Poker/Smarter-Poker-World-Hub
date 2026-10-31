@@ -105,8 +105,15 @@ export default function CallProvider({ children }) {
 
     const setCall = useCallback(next => {
         const value = typeof next === 'function' ? next(callRef.current) : next;
+        const wasActive = Boolean(callRef.current);
         callRef.current = value;
         setCallState(value);
+        // ServiceWorkerUpdater defers an update reload while this is set, and
+        // reloads on sp-call-idle, so a new build never drops a call.
+        if (typeof window !== 'undefined') {
+            window.__spCallActive = Boolean(value);
+            if (wasActive && !value) window.dispatchEvent(new Event('sp-call-idle'));
+        }
     }, []);
 
     // ── Identity ────────────────────────────────────────────────────────────

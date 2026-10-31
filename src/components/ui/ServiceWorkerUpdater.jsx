@@ -109,6 +109,7 @@ export default function ServiceWorkerUpdater() {
 
         let cancelled = false;
         let triviaReloadDeferred = false;
+        let callReloadDeferred = false;
 
         // Whether this document was already being served by a worker. Captured
         // BEFORE anything is promoted, because it is the only thing that
@@ -137,6 +138,12 @@ export default function ServiceWorkerUpdater() {
                 triviaReloadDeferred = true;
                 return;
             }
+            // Never reload under a ringing or connected call: it would drop
+            // it. CallProvider announces sp-call-idle when the call is over.
+            if (typeof window !== 'undefined' && window.__spCallActive) {
+                callReloadDeferred = true;
+                return;
+            }
             // A different worker is now in charge, so the HTML and chunks this
             // page is running came from the OLD one. Reload to pick up the new
             // build. Once per minute at most.
@@ -149,7 +156,33 @@ export default function ServiceWorkerUpdater() {
             reloadForUpdatedWorker();
         });
 
+        const onCallIdle = () => {
+            if (!callReloadDeferred) return;
+            callReloadDeferred = false;
+            reloadForUpdatedWorker();
+        };
+        window.addEventListener('sp-call-idle', onCallIdle);
+
         navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+
+        // A PAGE THAT STAYS OPEN STILL UPDATES (2026-10-31). The check below
+        // ran only when a page loaded, so an installed app resumed from the
+        // background kept running the build it first loaded until something
+        // forced a full reload. Look again whenever the page becomes visible,
+        // and every 15 minutes while it stays visible.
+        const recheck = async () => {
+            try {
+                const reg = await navigator.serviceWorker.getRegistration('/');
+                if (!reg || cancelled) return;
+                await reg.update();
+                promote(reg);
+                const installing = reg.installing;
+                if (installing) installing.addEventListener('statechange', () => { if (installing.state === 'installed') promote(reg); });
+            } catch { /* offline or refused; the next look will try again */ }
+        };
+        const onVisible = () => { if (document.visibilityState === 'visible') void recheck(); };
+        document.addEventListener('visibilitychange', onVisible);
+        const recheckTimer = setInterval(() => { if (document.visibilityState === 'visible') void recheck(); }, 15 * 60 * 1000);
 
         (async () => {
             try {
@@ -200,6 +233,9 @@ export default function ServiceWorkerUpdater() {
             cancelled = true;
             unsubscribeFromTriviaRuns();
             navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+            window.removeEventListener('sp-call-idle', onCallIdle);
+            document.removeEventListener('visibilitychange', onVisible);
+            clearInterval(recheckTimer);
         };
     }, []);
 

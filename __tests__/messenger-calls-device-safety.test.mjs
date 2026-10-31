@@ -53,3 +53,11 @@ test('prompts and helpers', () => {
   assert.equal(sceneChanges([]).length, 0);
   for (const prompt of Object.values(PROMPTS)) assert.doesNotMatch(prompt, /password|credential/i);
 });
+
+test('the notify suite uses throwaways only and labels emulated states', async () => {
+  const notify = read('../scripts/ci/messenger-calls-notify.mjs');
+  assert.doesNotMatch(notify, /TEST_USER_(EMAIL|PASSWORD)|signInTestAccount/);
+  assert.match(notify, /\{ emulated: true \}/);
+  assert.match(notify, /tier: 'worker-display'/);
+  assert.match(notify, /delete\(\)\.eq\('user_id', C\.id\)/);
+});

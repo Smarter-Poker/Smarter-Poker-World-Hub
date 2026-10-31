@@ -250,3 +250,14 @@ test('a call that rang while the page was frozen, offline or between sockets rin
     assert.match(provider, /window\.addEventListener\('pageshow', recheck\);/);
     assert.match(provider, /document\.addEventListener\('visibilitychange', visible\);/);
 });
+
+test('an open page picks up a new build, but never by reloading under a call', () => {
+    const updater = read('src/components/ui/ServiceWorkerUpdater.jsx');
+    assert.match(updater, /document\.addEventListener\('visibilitychange', onVisible\);/);
+    assert.match(updater, /setInterval\(\(\) => \{ if \(document\.visibilityState === 'visible'\) void recheck\(\); \}, 15 \* 60 \* 1000\)/);
+    assert.match(updater, /if \(typeof window !== 'undefined' && window\.__spCallActive\) \{\s*callReloadDeferred = true;\s*return;/);
+    assert.match(updater, /window\.addEventListener\('sp-call-idle', onCallIdle\);/);
+    const provider = read('src/components/calls/CallProvider.jsx');
+    assert.match(provider, /window\.__spCallActive = Boolean\(value\);/);
+    assert.match(provider, /if \(wasActive && !value\) window\.dispatchEvent\(new Event\('sp-call-idle'\)\);/);
+});
