@@ -5,6 +5,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { parseCallRoomConversation } from '../../../src/lib/calls/callRoom.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -69,6 +70,7 @@ export default async function handler(req, res) {
                   callerAvatar: pendingCall.caller_avatar,
                   callType: pendingCall.call_type,
                   roomName: pendingCall.room_name,
+                  conversationId: parseCallRoomConversation(pendingCall.room_name),
                   createdAt: pendingCall.created_at,
               } : null
           });

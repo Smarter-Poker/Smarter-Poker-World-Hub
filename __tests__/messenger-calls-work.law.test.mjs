@@ -1,0 +1,190 @@
+// MESSENGER CALLS WORK (2026-10-31).
+//
+// Dan: "THE PHONE AND VIDEO CALLING NEEDS TO BE FULLY AUDITED. ITS NOT
+// WORKING." and "I TRIED MAKING A CALL TO ART HARB (BURLS) THE OTHER DAY AND
+// IT SILENTLY FAILED." Each test below pins one root cause found in the audit.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import {
+    makeCallRoomName, parseCallRoomConversation, callReceiptContent, formatCallDuration,
+    CALL_RING_TIMEOUT_MS, normalizeCallType,
+} from '../src/lib/calls/callRoom.mjs';
+import { authorizeCallConversation } from '../src/lib/calls/callAuthorization.mjs';
+
+const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const CONVERSATION = '81550e58-5043-4eb6-ba54-b746bb83c306';
+const ME = '47965354-0e56-43ef-931c-ddaab82af765';
+const THEM = '7e616640-58dd-4d8d-a18e-2f37f057bcd9';
+
+test('a call room names its conversation and round-trips', () => {
+    const room = makeCallRoomName(CONVERSATION, 1793500000000, () => 0.5);
+    assert.match(room, /^sp-call-81550e58-5043-4eb6-ba54-b746bb83c306-[a-z0-9]+$/);
+    assert.equal(parseCallRoomConversation(room), CONVERSATION);
+    assert.equal(parseCallRoomConversation(room.toUpperCase()), CONVERSATION);
+    assert.equal(parseCallRoomConversation('smarter-poker-81550e58-1793500000000'), null);
+    assert.equal(parseCallRoomConversation(`sp-call-${CONVERSATION}`), null);
+    assert.equal(parseCallRoomConversation(`sp-call-${CONVERSATION}-x;drop`), null);
+    assert.equal(parseCallRoomConversation(null), null);
+    assert.throws(() => makeCallRoomName('not-a-conversation'));
+    assert.notEqual(makeCallRoomName(CONVERSATION), makeCallRoomName(CONVERSATION));
+});
+
+test('one receipt format, durations and types are normalised', () => {
+    assert.equal(callReceiptContent({ callType: 'video', status: 'completed', durationSeconds: 61.9 }), '[CALL_RECEIPT]{"type":"video","duration":61,"status":"completed"}');
+    assert.equal(callReceiptContent({ callType: 'voice', status: 'bogus' }), '[CALL_RECEIPT]{"type":"audio","duration":0,"status":"completed"}');
+    assert.equal(callReceiptContent({ callType: 'audio', status: 'missed', durationSeconds: -4 }), '[CALL_RECEIPT]{"type":"audio","duration":0,"status":"missed"}');
+    assert.equal(formatCallDuration(42), '0:42');
+    assert.equal(formatCallDuration(3725), '1:02:05');
+    assert.equal(normalizeCallType('video'), 'video');
+    assert.equal(normalizeCallType('anything'), 'audio');
+    assert.ok(CALL_RING_TIMEOUT_MS >= 30000 && CALL_RING_TIMEOUT_MS <= 60000);
+});
+
+function fakeSupabase({ conversation, participants, blocks = [], failOn = null }) {
+    return {
+        from(table) {
+            const state = { table };
+            const builder = {
+                select() { return builder; }, eq() { return builder; }, or() { return builder; }, limit() { return builder; },
+                maybeSingle: async () => (failOn === table ? { data: null, error: { message: 'down' } } : { data: conversation, error: null }),
+                then(resolve) {
+                    if (failOn === state.table) return resolve({ data: null, error: { message: 'down' } });
+                    if (state.table === 'social_conversation_participants') return resolve({ data: participants.map(user_id => ({ user_id })), error: null });
+                    if (state.table === 'messenger_blocked') return resolve({ data: blocks, error: null });
+                    return resolve({ data: [], error: null });
+                },
+            };
+            return builder;
+        },
+    };
+}
+
+test('the call conversation is authorised from the conversation itself', async () => {
+    const ok = await authorizeCallConversation(fakeSupabase({ conversation: { id: CONVERSATION, is_group: false, is_request: false }, participants: [ME, THEM] }), { conversationId: CONVERSATION, userId: ME });
+    assert.deepEqual(ok, { ok: true, otherUserId: THEM });
+    const outsider = await authorizeCallConversation(fakeSupabase({ conversation: { id: CONVERSATION, is_group: false, is_request: false }, participants: [ME, THEM] }), { conversationId: CONVERSATION, userId: '00000000-0000-4000-8000-000000000000' });
+    assert.equal(outsider.ok, false); assert.equal(outsider.status, 403);
+    const group = await authorizeCallConversation(fakeSupabase({ conversation: { id: CONVERSATION, is_group: true, is_request: false }, participants: [ME, THEM] }), { conversationId: CONVERSATION, userId: ME });
+    assert.equal(group.ok, false);
+    const request = await authorizeCallConversation(fakeSupabase({ conversation: { id: CONVERSATION, is_group: false, is_request: true }, participants: [ME, THEM] }), { conversationId: CONVERSATION, userId: ME });
+    assert.equal(request.ok, false); assert.match(request.error, /Message Request/);
+    const blocked = await authorizeCallConversation(fakeSupabase({ conversation: { id: CONVERSATION, is_group: false, is_request: false }, participants: [ME, THEM], blocks: [{ blocker_id: THEM }] }), { conversationId: CONVERSATION, userId: ME });
+    assert.equal(blocked.ok, false);
+    const down = await authorizeCallConversation(fakeSupabase({ conversation: null, participants: [], failOn: 'social_conversations' }), { conversationId: CONVERSATION, userId: ME });
+    assert.equal(down.ok, false); assert.equal(down.status, 503);
+    const missing = await authorizeCallConversation(fakeSupabase({ conversation: null, participants: [] }), { conversationId: 'nope', userId: ME });
+    assert.equal(missing.status, 400);
+});
+
+test('the LiveKit token authorises a call room by conversation, not by the pending row the answerer deletes', () => {
+    const token = read('pages/api/livekit/token.js');
+    assert.match(token, /parseCallRoomConversation\(roomName\)/);
+    assert.match(token, /authorizeCallConversation\(sb, \{ conversationId: callConversationId, userId: _authUser\.id \}\)/);
+    // The call-room branch decides before the legacy pending_calls lookup runs.
+    assert.ok(token.indexOf('authorizeCallConversation(') < token.indexOf(".from('pending_calls')"));
+});
+
+test('call creation authorises the conversation, honours its refusal and rings the phone server-side', () => {
+    const create = read('pages/api/calls/create.js');
+    assert.match(create, /authorizeCallConversation\(sb, \{ conversationId, userId: callerId \}\)/);
+    assert.match(create, /authorization\.otherUserId !== calleeId/);
+    assert.match(create, /parseCallRoomConversation\(roomName\) !== conversationId/);
+    assert.match(create, /enqueuePush\(sb,/);
+    // Production: CHECK (call_type IN ('voice','video')). 'audio' failed every voice call.
+    assert.match(create, /call_type: callType === 'video' \? 'video' : 'voice'/);
+    assert.doesNotMatch(create, /call_type: callType,/);
+    // Old-client rooms must look like old-client rooms, never a live-stream room.
+    assert.match(create, /\^smarter-poker-\[0-9a-f\]\{8\}-/);
+    assert.match(read('pages/api/livekit/token.js'), /authorized \|\| !legacyCallRoom \? \{ data: null \}/);
+    assert.match(read('pages/api/calls/cancel.js'), /query = query\.eq\('room_name', roomName\)/);
+    assert.match(create, /event: 'incoming_call'/);
+    const send = read('pages/api/notifications/send.js');
+    assert.match(send, /There is no call to this person in progress/);
+});
+
+test('sending a signal never creates, borrows or removes the user\'s own listener', () => {
+    const signal = read('src/lib/calls/callSignal.js');
+    assert.match(signal, /if \(toUserId === active\.userId\) return sendToOwnDevices\(event, body\);/);
+    assert.match(signal, /const existed = /);
+    assert.match(signal, /if \(!existed\) setTimeout\(\(\) => \{ try \{ client\.removeChannel\(channel\); \}/);
+    for (const event of ['incoming_call', 'call_ringing', 'call_accepted', 'call_declined', 'call_ended', 'call_handled']) assert.ok(signal.includes(`'${event}'`), event);
+});
+
+test('Messenger no longer runs its own call machinery', () => {
+    const page = read('pages/hub/messenger.js');
+    assert.doesNotMatch(page, /call-signal:/);
+    assert.doesNotMatch(page, /LiveKitCall|createRingTone|setIncomingCall|setShowCall|\/api\/calls\//);
+    assert.match(page, /const \{ startCall: startAppCall \} = useCall\(\);/);
+    assert.match(page, /aria-label="Start Voice Call"/);
+    assert.match(page, /aria-label="Start Video Call"/);
+    assert.match(page, /onCallBack=\{startCall\}/);
+    assert.equal(existsSync(new URL('../src/components/video/LiveKitCall.jsx', import.meta.url)), false);
+});
+
+test('the chat header keeps phone and video on a phone screen', () => {
+    const page = read('pages/hub/messenger.js');
+    const header = page.slice(page.indexOf('{/* Chat Header */}'), page.indexOf('{/* Message Search Bar */}'));
+    assert.match(header, /<div style=\{\{ flex: 1, minWidth: 0 \}\}>/);
+    assert.match(header, /textOverflow: 'ellipsis'/);
+    assert.match(header, /display: 'flex', gap: isMobile \? 2 : 8, flexShrink: 0/);
+    assert.match(header, /width: 40, height: 40, borderRadius: '50%', flexShrink: 0/);
+    assert.match(header, /!activeConversation\.is_group/);
+});
+
+test('every floating chat window has phone and video buttons and renders receipts as words', () => {
+    const chat = read('src/components/messenger/dock/MessengerChat.jsx');
+    assert.match(chat, /aria-label=\{`Voice Call \$\{name\}`\}/);
+    assert.match(chat, /aria-label=\{`Video Call \$\{name\}`\}/);
+    assert.match(chat, /requestCall\(\{ conversationId: id, otherUser: conversation\.otherUser/);
+    assert.match(chat, /startsWith\('\[CALL_RECEIPT\]'\) \? <span className="dock-call-receipt">/);
+});
+
+test('the call provider is app-wide and fixes the lifecycle bugs', () => {
+    const app = read('pages/_app.js');
+    assert.match(app, /<CallProvider>/);
+    const provider = read('src/components/calls/CallProvider.jsx');
+    // Caller timeout: an unanswered call ends as missed instead of ringing forever.
+    assert.match(provider, /finish\(current, \{ notifyPeer: true, unanswered: 'missed', missedNotice: true, message: 'No Answer' \}\)/);
+    // Exactly one receipt, written by the caller.
+    assert.match(provider, /if \(!c \|\| c\.role !== 'caller' \|\| !isConversationId\(c\.conversationId\)\) return;/);
+    // Hang-up goes to the person on the call, not whichever chat is open.
+    assert.match(provider, /sendCallSignal\(supabase, c\.peer\.id, 'call_ended'/);
+    // A refused call stops instead of leaving the caller alone in a room.
+    assert.match(provider, /if \(!created\.ok\) \{/);
+    // Reachability: the caller is told when nothing can ring.
+    assert.match(provider, /reach: 'unreachable'/);
+    assert.match(read('src/components/calls/CallScreen.jsx'), /Has Notifications Turned Off, So This Call Cannot Ring For Them/);
+    assert.match(provider, /'call_ringing'/);
+    // Calls that rang while the page was closed, and Accept from the push.
+    assert.match(provider, /\/api\/calls\/pending/);
+    assert.match(provider, /query\.answer === '1'/);
+    // A ring is only shown for a call the server created.
+    assert.match(provider, /const verifyAndRing = useCallback/);
+    // Both calling each other: the lower id keeps its call, the other answers it.
+    assert.match(provider, /if \(self < details\.callerId\) return;/);
+    // Busy: a second caller is told, not silently dropped.
+    assert.match(provider, /reason: 'busy'/);
+});
+
+test('the call screen is phone-first', () => {
+    const screen = read('src/components/calls/CallScreen.jsx');
+    assert.match(screen, /useAudioPlayback/);
+    assert.match(screen, /Tap To Turn On Sound/);
+    assert.match(screen, /safe-area-inset-bottom/);
+    assert.match(screen, /restartTrack\(\{ facingMode: next \}\)/);
+    assert.doesNotMatch(screen, /screenShare: true/);
+    assert.match(screen, /REMOTE_LEFT_GRACE_MS = 8000/);
+    assert.match(screen, /JOIN_TIMEOUT_MS = 25000/);
+    assert.match(screen, /if \(call\.creating\) return undefined;/);
+    for (const file of ['src/components/calls/CallScreen.jsx', 'src/components/calls/IncomingCallScreen.jsx', 'src/components/calls/CallProvider.jsx']) {
+        assert.doesNotMatch(read(file), /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, `${file} must not contain emoji`);
+    }
+});
+
+test('Accept on the push notification answers the call', () => {
+    for (const worker of ['public/push/sw.js', 'worker/index.js']) {
+        const source = read(worker);
+        assert.match(source, /event\.action === 'accept' && baseUrl\.indexOf\('incomingCall='\) !== -1/, worker);
+    }
+});

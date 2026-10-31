@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Minus, X, Maximize2, Send, ImagePlus, Reply, Smile, ThumbsUp } from './DockIcons';
+import { Minus, X, Maximize2, Send, ImagePlus, Reply, Smile, ThumbsUp, Phone, VideoCamera } from './DockIcons';
+import { requestCall } from '../../calls/CallProvider';
+import { messengerPreviewText } from '../../../lib/messengerPreview.mjs';
 import { dockName } from './messengerDock.mjs';
 import { visibleMessageBoundary, isMessageId, CONTINUITY_PREFIX } from './messengerContinuity.mjs';
 import { createMessengerSendOperation, restoreMessengerSendOperations, performMessengerSend,
@@ -218,10 +220,16 @@ export default function MessengerChat({ actorId, identity, conversation, service
     };
     const openFull = () => { onMinimize(); services.openMessenger(id); };
     const name = dockName(conversation);
+    // Phone and video in every floating chat (2026-10-31). Calls run in the
+    // app-wide CallProvider, so they keep working when this window closes.
+    const canCall = !!conversation.otherUser?.id && !conversation.is_group && !conversation.isRequest && !conversation.isAccounting;
+    const call = type => void requestCall({ conversationId: id, otherUser: conversation.otherUser, callType: type, isGroup: !!conversation.is_group, isRequest: !!conversation.isRequest });
     return <div className="dock-chat" data-dock-conversation={id} onFocusCapture={() => setEngaged(true)} onPointerDown={() => setEngaged(true)} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onMinimize(); } }}>
         <header className="dock-chat-header">
             {conversation.otherUser?.avatar_url ? <img className="dock-chat-avatar" src={conversation.otherUser.avatar_url} alt="" /> : <span className="dock-chat-avatar dock-initial">{name.slice(0, 1)}</span>}
             <button type="button" className="dock-chat-person" onClick={openFull}><strong>{name}</strong><small>{typing ? 'Typing...' : 'Messenger'}</small></button>
+            {canCall && <button type="button" className="dock-call" aria-label={`Voice Call ${name}`} title="Voice Call" onClick={() => call('audio')}><Phone size={19} /></button>}
+            {canCall && <button type="button" className="dock-call" aria-label={`Video Call ${name}`} title="Video Call" onClick={() => call('video')}><VideoCamera size={21} /></button>}
             <button type="button" aria-label="Expand Conversation" title="Open In Messenger" onClick={openFull}><Maximize2 size={17} /></button>
             <button type="button" aria-label="Minimize Conversation" onClick={onMinimize}><Minus size={20} /></button>
             <button type="button" aria-label="Close Conversation" onClick={onClose}><X size={20} /></button>
@@ -250,7 +258,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
                     <div className="dock-message-bubble" title={new Date(message.created_at).toLocaleString()}>
                         {message.is_deleted ? <em>Message Removed</em> : message.message_type === 'invoice' ? <button type="button" onClick={openFull}>Open Invoice In Messenger</button>
                             : media?.kind === 'image' || media?.kind === 'gif' ? <a href={media.url} target="_blank" rel="noreferrer"><img src={media.url} alt="Message Attachment" loading="lazy" /></a>
-                            : media?.kind === 'video' ? <video src={media.url} controls playsInline /> : media?.kind === 'audio' ? <audio src={media.url} controls /> : message.content}
+                            : media?.kind === 'video' ? <video src={media.url} controls playsInline /> : media?.kind === 'audio' ? <audio src={media.url} controls /> : String(message.content || '').startsWith('[CALL_RECEIPT]') ? <span className="dock-call-receipt">{messengerPreviewText(message.content, 0)}</span> : message.content}
                     </div>
                     {own && <small className="dock-message-status">{message.status === 'sending' ? 'Sending...' : message.status === 'failed' ? <button type="button" onClick={() => { const operation = ops.current.get(message.request_id); if (operation) void attempt(operation); }}>Not Sent. Retry</button> : message.is_read || message.status === 'read' ? 'Seen' : 'Sent'}</small>}
                     {!message.is_deleted && isMessageId(message.id) && <button type="button" className="dock-reply" aria-label="Reply To Message" onClick={() => { continuity.edit(id, 'draft', { text: draft.text, replyToId: message.id }); composer.current?.focus(); }}><Reply size={14} /></button>}

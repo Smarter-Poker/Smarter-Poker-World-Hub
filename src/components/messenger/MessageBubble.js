@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { defaultTheme } from './MessengerTheme';
 import { Avatar } from './Avatar';
+import { Phone, PhoneMissed, Video } from 'lucide-react';
 import AccountingInvoiceCard from './AccountingInvoiceCard';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
@@ -482,12 +483,17 @@ export function MessageBubble({
     const status = message?.status || 'sent';
     const longPressTimer = useRef(null);
     const touchMoved = useRef(false);
+    const longPressFired = useRef(false);
 
     const handleTouchStart = (e) => {
         touchMoved.current = false;
+        longPressFired.current = false;
         longPressTimer.current = setTimeout(() => {
             if (!touchMoved.current) {
+                longPressFired.current = true;
                 setShowReactions(true);
+                // A long-press must not also start iOS text selection.
+                try { window.getSelection()?.removeAllRanges(); } catch { /* unsupported */ }
                 if (navigator.vibrate) navigator.vibrate(30);
             }
         }, 400);
@@ -501,11 +507,14 @@ export function MessageBubble({
         }
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e) => {
         if (longPressTimer.current) {
             clearTimeout(longPressTimer.current);
             longPressTimer.current = null;
         }
+        // Lifting the finger after a long-press would otherwise send a click
+        // that the outside-click listener treats as "dismiss".
+        if (longPressFired.current && e?.cancelable) e.preventDefault();
     };
 
     useEffect(() => {
@@ -558,6 +567,7 @@ export function MessageBubble({
 
     return (
         <div
+            className="sp-message-row"
             style={{
                 display: 'flex',
                 flexDirection: isOwn ? 'row-reverse' : 'row',
@@ -568,6 +578,7 @@ export function MessageBubble({
                 paddingRight: isOwn ? 12 : 60,
                 opacity: status === 'sending' ? 0.7 : 1,
                 position: 'relative',
+                WebkitTouchCallout: 'none',
             }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -597,6 +608,11 @@ export function MessageBubble({
                         padding: '6px 8px',
                         boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
                         zIndex: 50,
+                        // Phones: stay on screen and scroll sideways instead of
+                        // pushing the More button out of reach.
+                        maxWidth: 'calc(100vw - 60px)',
+                        overflowX: 'auto',
+                        WebkitOverflowScrolling: 'touch',
                         animation: 'reactionPopIn 0.18s ease-out',
                     }}>
                         {REACTION_EMOJIS.map(emoji => (
@@ -621,14 +637,20 @@ export function MessageBubble({
                             <div style={{ width: 1, height: 24, background: C.border, margin: '0 2px' }} />
                             <button
                                 onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                                aria-label="More Message Actions"
                                 style={{
                                     border: 'none',
-                                    background: 'transparent',
+                                    background: C.card,
                                     cursor: 'pointer',
                                     fontSize: 16,
                                     padding: '4px 6px',
+                                    minWidth: 36,
+                                    minHeight: 36,
                                     color: C.textSec,
                                     borderRadius: 8,
+                                    position: 'sticky',
+                                    right: 0,
+                                    flexShrink: 0,
                                 }}
                             >⋯</button>
                         </>
@@ -638,9 +660,10 @@ export function MessageBubble({
                 {showMenu && (
                     <div style={{
                         position: 'absolute',
-                        [isOwn ? 'left' : 'right']: '100%',
+                        // Anchored to the bubble's own edge so it opens on screen.
+                        [isOwn ? 'right' : 'left']: 0,
                         top: '100%',
-                        marginLeft: isOwn ? 0 : 4,
+                        marginTop: 4,
                         background: C.card,
                         borderRadius: 8,
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -806,7 +829,7 @@ export function MessageBubble({
                     </div>
                 )}
 
-                <div style={{
+                <div data-user-content style={{
                     padding: '8px 12px',
                     borderRadius: 18,
                     background: isOwn ? C.ownBubble : (senderIsVip ? 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.03))' : C.otherBubble),
@@ -925,24 +948,29 @@ export function MessageBubble({
                                     : ` • ${callDuration}s`)
                                 : '';
 
-                            const icon = callType === 'video' ? '📹' : '📞';
+                            const icon = callStatus === 'missed' || callStatus === 'declined' || (!isOwn && callStatus === 'cancelled')
+                                ? <PhoneMissed size={22} aria-hidden="true" />
+                                : callType === 'video' ? <Video size={22} aria-hidden="true" /> : <Phone size={22} aria-hidden="true" />;
                             const title = callType === 'video' ? 'Video Call' : 'Voice Call';
+                            // The caller writes the receipt. To the person who was called,
+                            // an unanswered call the caller gave up on is a missed call.
+                            const missedForMe = !isOwn && (callStatus === 'missed' || callStatus === 'cancelled');
                             const statusText = callStatus === 'completed'
-                                ? 'Call ended'
-                                : callStatus === 'missed'
-                                    ? 'Missed call'
+                                ? 'Call Ended'
+                                : missedForMe || callStatus === 'missed'
+                                    ? (isOwn ? 'No Answer' : 'Missed Call')
                                     : callStatus === 'declined'
-                                        ? 'Declined call'
-                                        : 'Cancelled call';
+                                        ? 'Declined Call'
+                                        : 'Cancelled Call';
 
                             return (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
-                                    <span style={{ fontSize: 24 }}>{icon}</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '50%', background: 'rgba(127,127,127,0.18)', flexShrink: 0 }}>{icon}</span>
                                     <div>
                                         <div style={{ fontWeight: 600 }}>{legacyStr || title}</div>
                                         <div style={{ fontSize: 12, opacity: 0.8 }}>{legacyStr ? '' : statusText}{durationStr}</div>
                                     </div>
-                                    {callStatus === 'missed' && !isOwn && onCallBack && (
+                                    {missedForMe && onCallBack && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onCallBack(callType); }}
                                             style={{
@@ -955,6 +983,8 @@ export function MessageBubble({
                                                 fontSize: 12,
                                                 fontWeight: 600,
                                                 cursor: 'pointer',
+                                                whiteSpace: 'nowrap',
+                                                flexShrink: 0,
                                             }}
                                         >Call Back</button>
                                     )}

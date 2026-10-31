@@ -14,3 +14,5 @@ export const ImagePlus = icon(<><rect x="3" y="3" width="15" height="18" rx="2" 
 export const Reply = icon(<path d="m9 5-7 7 7 7M2 12h12a7 7 0 0 1 7 7" />);
 export const Smile = icon(<><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 3 4 3 4-3 4-3M8 8h.01M16 8h.01" /></>);
 export const ThumbsUp = icon(<><path d="M7 10v11H3V10h4zm0 0 5-8h2v7h5a2 2 0 0 1 2 2l-2 9H7" /></>);
+export const Phone = icon(<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />);
+export const VideoCamera = icon(<><path d="m22 8-6 4 6 4V8z" /><rect x="2" y="6" width="14" height="12" rx="2" /></>);

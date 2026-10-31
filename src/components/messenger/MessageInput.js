@@ -260,12 +260,13 @@ export function MessageInput({
 
     return (
         <div style={{
-            padding: '12px 16px',
+            padding: '8px clamp(6px, 2.5vw, 16px)',
+            paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))',
             background: C.card,
             borderTop: `1px solid ${C.border}`,
             display: 'flex',
             alignItems: 'flex-end',
-            gap: 8,
+            gap: 'clamp(2px, 1vw, 8px)',
             position: 'relative',
         }}>
             <input
@@ -288,8 +289,9 @@ export function MessageInput({
             <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
+                aria-label="Send Photo Or Video"
                 style={{
-                    width: 32, height: 32, borderRadius: '50%', border: 'none',
+                    width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: 'none',
                     background: 'transparent', cursor: uploading ? 'wait' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     opacity: uploading ? 0.5 : 1, padding: 0,
@@ -311,8 +313,9 @@ export function MessageInput({
 
             <button
                 onClick={handleGifToggle}
+                aria-label="Send GIF"
                 style={{
-                    width: 32, height: 32, borderRadius: '50%', border: 'none',
+                    width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: 'none',
                     background: showGifPicker ? C.bg : 'transparent', cursor: 'pointer', display: 'flex',
                     alignItems: 'center', justifyContent: 'center', padding: 0,
                 }}
@@ -382,8 +385,11 @@ export function MessageInput({
                 </div>
             )}
 
+            {/* minWidth 0: without it the textarea's default 20-column width
+                pushed the send button off a phone screen. */}
             <div style={{
                 flex: 1,
+                minWidth: 0,
                 display: 'flex',
                 alignItems: 'center',
                 background: C.bg,
@@ -404,6 +410,8 @@ export function MessageInput({
                     rows={1}
                     style={{
                         flex: 1,
+                        minWidth: 0,
+                        width: '100%',
                         border: 'none',
                         background: 'transparent',
                         padding: '10px 0',
@@ -413,7 +421,7 @@ export function MessageInput({
                         WebkitAppearance: 'none',
                         color: '#050505',
                         resize: 'none',
-                        overflow: 'hidden',
+                        overflowY: 'auto',
                         lineHeight: 1.4,
                         maxHeight: 120,
                         fontFamily: 'inherit',
@@ -426,11 +434,15 @@ export function MessageInput({
 
                 <button
                     onClick={() => { setShowEmoji(!showEmoji); setShowGifPicker(false); }}
+                    aria-label="Choose Emoji"
                     style={{
                         border: 'none',
                         background: 'transparent',
                         cursor: 'pointer',
-                        padding: 4,
+                        padding: 0,
+                        minWidth: 40,
+                        minHeight: 40,
+                        flexShrink: 0,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -523,8 +535,9 @@ export function MessageInput({
             ) : text.trim() ? (
                 <button
                     onClick={handleSend}
+                    aria-label="Send Message"
                     style={{
-                        width: 36, height: 36, borderRadius: '50%', border: 'none',
+                        width: 40, height: 40, borderRadius: '50%', border: 'none',
                         background: C.blue,
                         cursor: 'pointer',
                         display: 'flex',
@@ -544,8 +557,9 @@ export function MessageInput({
                     {onVoiceSend && (
                         <button
                             onClick={startRecording}
+                            aria-label="Record Voice Message"
                             style={{
-                                width: 32, height: 32, borderRadius: '50%', border: 'none',
+                                width: 40, height: 40, borderRadius: '50%', border: 'none',
                                 background: 'transparent', cursor: 'pointer', display: 'flex',
                                 alignItems: 'center', justifyContent: 'center', padding: 0,
                                 flexShrink: 0, transition: 'transform 0.15s',
@@ -574,9 +588,10 @@ export function MessageInput({
                             }, 400);
                         }}
                         onMouseUp={() => { if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}
+                        aria-label="Send Like"
                         style={{
-                            width: 36,
-                            height: 36,
+                            width: 40,
+                            height: 40,
                             borderRadius: '50%',
                             border: 'none',
                             background: 'transparent',
@@ -589,10 +604,10 @@ export function MessageInput({
                             fontSize: 22,
                             transition: 'transform 0.15s',
                         }}
-                        title="Tap to send 👍 - Hold for emoji picker"
+                        title="Tap To Send A Like - Hold For Emoji Picker"
                         onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}>
-                        👍
+                        {'\u{1F44D}'}
                     </button>
                 </div>
             )}
