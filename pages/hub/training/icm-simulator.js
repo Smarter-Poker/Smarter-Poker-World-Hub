@@ -11,7 +11,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-21 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
@@ -62,9 +63,11 @@ export default function IcmSimulatorPage() {
 
   return (
     <>
-      <Head>
-        <title>ICM Simulator | Smarter.Poker Training</title>
-      </Head>
+      <SEOHead
+        title="Tournament ICM Equity Simulator"
+        description="Calculate Malmuth-Harville Tournament Prize Pool Equity, Bubble Factors, And Risk Premiums Across Multi-Table Payout Structures On Smarter.Poker."
+        canonical="/hub/training/icm-simulator"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -415,6 +418,7 @@ export default function IcmSimulatorPage() {
           </div>
         </div>
       </div>
+      <HubPageSummary page="training-icm-simulator" />
     </>
   );
 }

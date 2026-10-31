@@ -12,7 +12,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-12 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
@@ -460,9 +461,11 @@ export default function FlashcardsPage() {
 
   return (
     <>
-      <Head>
-        <title>Flashcards | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="Spaced-Repetition GTO Flashcards"
+        description="Memorize GTO Preflop Ranges, Pot Odds Math, And Postflop Strategy Using SuperMemo SM-2 Spaced-Repetition Poker Flashcards On Smarter.Poker."
+        canonical="/hub/training/flashcards"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -800,6 +803,7 @@ export default function FlashcardsPage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-flashcards" />
     </>
   );
 }

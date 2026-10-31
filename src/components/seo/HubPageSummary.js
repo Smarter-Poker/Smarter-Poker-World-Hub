@@ -48,12 +48,15 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Arena', href: '/hub/club-arena', text: 'Private Online Poker Clubs With Chips, Tournaments And Hand Histories.' },
       { name: 'Club Commander', href: '/hub/commander', text: 'Live Poker Room Waitlists, Tournament Clocks And Seat Alerts.' },
       { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Scenario Games With Solver-Grade Hand Analysis.' },
+      { name: 'Personal Poker Assistant', href: '/hub/personal-assistant', text: 'Jarvis AI Coaching, Leak Finder And Priority Study Queue.' },
       { name: 'Poker Near Me', href: '/hub/poker-near-me/lobby', text: 'Live Poker Rooms And Card Rooms By State And City.' },
       { name: 'Home Games', href: '/hub/home-games', text: 'Find And Host Home Poker Games Near You.' },
       { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Sessions, Results And Bankroll With Exports.' },
       { name: 'Poker App Comparisons', href: '/compare', text: 'How These Products Compare With The Alternatives, With Sources.' },
       { name: 'Platform Features', href: '/features', text: 'All Fifteen Free Smarter.Poker Verticals And Plain-Text Markdown Specs.' },
+      { name: 'Original Poker Research', href: '/research', text: 'First-Party Benchmark Studies On Live Rake, Solver EV And Field Sizes.' },
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Free Poker Quiz Games With Leaderboards And Daily Runs.' },
+      { name: 'Install App Guide', href: '/hub/install', text: 'Add Smarter Poker To Your iPad, iPhone Or Android Home Screen.' },
     ],
   },
   'home-games': {
@@ -95,9 +98,26 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Jarvis Hand Review', href: '/hub/training/jarvis', text: 'Walk A Hand Back Street By Street With A Solver-Grade Second Opinion.' },
       { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Bring Real Sessions In And Have Them Read For Leaks.' },
       { name: 'Solutions Library', href: '/hub/training/solutions', text: 'Worked Spots And The Reasoning Behind Each Line.' },
-      { name: 'Poker Glossary', href: '/glossary', text: 'Plain Definitions For The Terms Used Across The Site.' },
+      { name: 'Weak Spot Autopilot', href: '/hub/training/autopilot', text: 'Stream Continuous Drills Targeting Your Lowest-Accuracy Positions.' },
+      { name: 'Guided Coach Mode', href: '/hub/training/coach-mode', text: 'Step-By-Step GTO Lessons Paired With Interactive Decision Quizzes.' },
+      { name: 'Solver Spot Study', href: '/hub/training/spot-trainer', text: 'Inspect Answer-Revealed Solver Policies At Your Own Pace.' },
+      { name: 'Tournament ICM Simulator', href: '/hub/training/icm-simulator', text: 'Calculate Malmuth-Harville Prize Pool Equity And Bubble Pressure.' },
+      { name: 'Final Table Simulator', href: '/hub/training/final-table-sim', text: 'Model 9-Handed To Heads-Up Pay Jumps And ICM Chop Numbers.' },
+      { name: 'Hand Lab Analyzer', href: '/hub/training/hand-lab', text: 'Run 10,000-Iteration Monte Carlo Board And Equity Breakdowns.' },
+      { name: 'Position Mastery Heatmap', href: '/hub/training/position-mastery', text: 'Track Solver Accuracy Across All Six Table Positions.' },
+      { name: 'Weakness Scanner', href: '/hub/training/weakness-scanner', text: 'Pinpoint Expected Value Leaks By Street And Scenario Category.' },
+      { name: 'Custom Drill Builder', href: '/hub/training/drill-builder', text: 'Assemble Filtered Practice Sessions By Position, Street And Stack.' },
+      { name: 'Spaced-Repetition Flashcards', href: '/hub/training/flashcards', text: 'Memorize GTO Frequencies With SuperMemo SM-2 Scheduling.' },
+      { name: '6-Max Preflop Browser', href: '/hub/training/preflop-charts', text: 'Compare 100BB Opening, 3-Bet And Defense Matrices.' },
+      { name: 'Multiway Preflop Ranges', href: '/hub/training/multiway-preflop', text: 'Explore 3-Way And 4-Way Cold-Calling And Squeeze Ranges.' },
+      { name: 'Interactive Range Builder', href: '/hub/training/range-builder', text: 'Paint And Drill Custom 13x13 Preflop Hand Matrices.' },
+      { name: 'Rake Cost Estimator', href: '/hub/training/custom-rake', text: 'Calculate Hourly And BB/100 Rake Impact Across Stakes.' },
+      { name: 'Rake Sensitivity Explorer', href: '/hub/training/rake-solutions', text: 'See How Pot Drop Shifts Preflop Opening And Defense Curves.' },
+      { name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },
+      { name: 'Poker Skill Tree', href: '/hub/training/skill-tree', text: 'Follow The Competency Map From Preflop Foundations To ICM.' },
       { name: 'Training Tournaments', href: '/hub/training/tournaments', text: 'Scheduled Training Events With Standings And Prizes.' },
       { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Opening And Defending Ranges By Position And Stack Depth.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Plain Definitions For The Terms Used Across The Site.' },
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Quiz Games On Rules, Odds And History, With Leaderboards.' },
       { name: 'Poker Strategy Lessons', href: '/learn', text: 'Forty Free Lessons That Answer The Question Before The Drill.' },
     ],
@@ -610,6 +630,408 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'GTO Training', href: '/hub/training', text: 'The Drills That Use These Baselines.' },
       { name: 'Preflop Range Lab', href: '/hub/preflop-charts', text: 'Practise The Preflop Ranges Directly.' },
       { name: 'Poker Glossary', href: '/glossary', text: 'Range Advantage, Squeeze, Polarised And 71 More.' },
+    ],
+  },
+  // Wave 3 (2026-10-31): Personal Assistant Suite, PWA Install & 36 Public Training Tools
+  'personal-assistant': {
+    heading: 'About Personal Poker Assistant And Jarvis AI',
+    lead:
+      'Personal Poker Assistant Is The Central Command Center For Jarvis Coaching, Deterministic Leak Detection, And Evidence-Backed Training Reviews On Smarter Poker. Review Recent Session History, Inspect Active Statistical Leaks Across Preflop And Postflop Streets, And Launch Signed Training Drills That Target Your Highest-Cost Expected Value Mistakes Without Leaving The Browser. Free To Open And Explore.',
+    links: [
+      { name: 'Leak Finder', href: '/hub/personal-assistant/leaks', text: 'Run Deterministic Post-Session Audits To Find Repeated EV Leaks.' },
+      { name: 'Scenario Archive', href: '/hub/personal-assistant/sandbox', text: 'Review The Verified Evidence Boundary And Open Signed Training.' },
+      { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Scenario Games Graded Against Solver Baselines.' },
+      { name: 'AI Coach Feature Guide', href: '/features/poker-ai-coach', text: 'How Jarvis And Leak Finder Work Together Across Smarter Poker.' },
+    ],
+  },
+  'personal-assistant-leaks': {
+    heading: 'About Leak Finder Post-Session Audit',
+    lead:
+      'Leak Finder Audits Your Recorded Poker Hands And Training Decisions To Surface Repeated, Statistically Significant Expected Value Leaks By Position, Street, And Action Line. Instead Of Flagging Isolated Single-Hand Variance, The Engine Groups Recurring Situations, Ranks Each Leak By Big Blind Bleed Rate, And Schedules Spaced-Repetition Corrective Drills Until The Mistake Is Resolved. Post-Session Review Only.',
+    links: [
+      { name: 'Personal Assistant', href: '/hub/personal-assistant', text: 'Return To The Jarvis Strategy Hub And Priority Queue.' },
+      { name: 'Weakness Scanner', href: '/hub/training/weakness-scanner', text: 'Inspect Position And Street Accuracy Across Training Drills.' },
+      { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Upload Hands From Major Sites For Street-By-Street Grading.' },
+    ],
+  },
+  'personal-assistant-sandbox': {
+    heading: 'About Scenario Analysis Evidence Gate',
+    lead:
+      'The Scenario Analysis Evidence Gate Explains Why Smarter Poker Retired Approximate Heuristic Hand Grading In Favor Of Provably Verified Solver Baselines. Every Graded Decision On The Platform Requires An Exact Node Match From A Signed Training Attempt Or Audited Spot Archive, Ensuring No Player Receives A Guessed Frequency Or Approximate Expected Value Score. Free To Read.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'Start A Signed Training Attempt With Verified Solver Grading.' },
+      { name: 'Solver Spot Study', href: '/hub/training/spot-trainer', text: 'Inspect Answer-Revealed Solver Nodes In An Ungraded Study Mode.' },
+      { name: 'Verification Methodology', href: '/verification-methodology', text: 'How Smarter Poker Audits Solver Baselines And Venue Records.' },
+    ],
+  },
+  install: {
+    heading: 'About Installing Smarter Poker On iPad, iPhone And Android',
+    lead:
+      'Install Smarter Poker Directly To Your iPad, iPhone, Or Android Home Screen As A Full-Screen Progressive Web Application Without Visiting An App Store Or Paying Any Download Fee. The Installed App Launches Instantly Without Browser Toolbars, Enables Real-Time Push Notifications For Club Commander Waitlists And Tournament Clocks, And Caches Core Training Tools For Offline Access.',
+    links: [
+      { name: 'World Hub', href: '/hub', text: 'Open The Main Smarter Poker World Hub Dashboard.' },
+      { name: 'Poker Near Me', href: '/hub/poker-near-me/lobby', text: 'Find Live Poker Rooms, Series And Waitlists Near Your Location.' },
+      { name: 'Offline GTO Preloader', href: '/hub/training/gto-preloader', text: 'Cache GTO Training Scenarios For Airplane And Offline Study.' },
+    ],
+  },
+  'training-autopilot': {
+    heading: 'About Weak Spot Autopilot Trainer',
+    lead:
+      'Weak Spot Autopilot Automatically Selects Poker Training Hands From The Positions, Streets, And Scenario Categories Where Your Historical Accuracy Trails The Solver Baseline Most. Instead Of Picking Drills Manually, Toggle Autopilot To Stream Continuous Corrective Hands With Instant Expected Value Feedback And Adaptive Difficulty Scaling Until Your Weakest Spots Match Equilibrium Frequencies. Free To Practice.',
+    links: [
+      { name: 'Weakness Scanner', href: '/hub/training/weakness-scanner', text: 'See Which Positions And Streets Autopilot Prioritizes.' },
+      { name: 'GTO Training', href: '/hub/training', text: 'Browse All 100+ Scenario Games In The Training Hub.' },
+      { name: 'Leak Finder', href: '/hub/personal-assistant/leaks', text: 'Audit Multi-Session Hand Histories For Recurring EV Leaks.' },
+    ],
+  },
+  'training-coach-mode': {
+    heading: 'About Guided GTO Coach Mode',
+    lead:
+      'Guided GTO Coach Mode Combines Structured Poker Strategy Lessons With Interactive Check-For-Understanding Quizzes On C-Betting, Three-Bet Pots, River Bluff Catching, And Independent Chip Model Pressure. Each Module Walks Through The Strategic Principles Behind Solver Frequencies Before Testing Your Execution On Curated Table Spots With Immediate Coaching Explanations. Free To Study On Smarter Poker.',
+    links: [
+      { name: 'Strategy Concept Tutorial', href: '/hub/training/scenario-demo', text: 'Learn How Solver Baselines, Frequencies And EV Loss Work.' },
+      { name: 'Poker Strategy Library', href: '/learn', text: 'Read Full Long-Form Guides On GTO And Exploitative Play.' },
+      { name: 'Jarvis AI Coach', href: '/hub/training/jarvis', text: 'Ask Natural-Language Questions About Any Training Hand.' },
+    ],
+  },
+  'training-community-leaderboard': {
+    heading: 'About The GTO Training Community Leaderboard',
+    lead:
+      'The GTO Training Community Leaderboard Ranks Smarter Poker Players Across Daily, Weekly, Monthly, And All-Time Windows By Solver Decision Accuracy, Hands Completed, And Streak Consistency. Every Entry Displays The Underlying Hand Sample Alongside The Accuracy Rating So Volume Grinders And High-Precision Specialists Can Benchmark Their Progress Fairly. Free To Compete And Free To View.',
+    links: [
+      { name: 'Training Leaderboard', href: '/hub/training/leaderboard', text: 'Compare Pure Solver Decision Accuracy Across All Drills.' },
+      { name: 'Community Training Feed', href: '/hub/training/training-feed', text: 'See Live Milestones, Streaks And High Scores From The Community.' },
+      { name: 'Daily Challenge', href: '/hub/training/daily-challenge', text: 'Play Today Featured Spot To Climb The Daily Standings.' },
+    ],
+  },
+  'training-custom-rake': {
+    heading: 'About The Poker Rake Cost Estimator',
+    lead:
+      'The Poker Rake Cost Estimator Calculates How Pot Percentage Rake, Maximum Dollar Caps, And No-Flop-No-Drop Rules Impact Your Hourly Win Rate And Big-Blind-Per-Hundred-Hands Bottom Line Across Cash Game Stakes. Compare Live Card Room Structures Against Online Poker Formats To See Which Games Remain Beatable And How Tighter Preflop Selection Offsets High Drop. Free Calculator.',
+    links: [
+      { name: 'Rake Sensitivity Explorer', href: '/hub/training/rake-solutions', text: 'See How Preflop Opening And Defending Ranges Shift Under High Rake.' },
+      { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Real Session Results, Expenses And Hourly Win Rates.' },
+      { name: 'Preflop Range Charts', href: '/hub/training/preflop-charts', text: 'Compare 6-Max Opening And Defense Matrices By Position.' },
+    ],
+  },
+  'training-custom-solve': {
+    heading: 'About Custom GTO Spot And Preflop Query',
+    lead:
+      'Custom GTO Spot And Preflop Query Lets You Configure Exact Table Parameters Including Game Format, Effective Stack Depth From Ten To Two Hundred Big Blinds, Hero Position, And Preflop Action Line To Inspect Matching Solver Reference Ranges. Instead Of Guessing How Stack Depth Alters Three-Bet Or Jamming Thresholds, Query The Audited Matrix Directly. Free Reference Tool.',
+    links: [
+      { name: 'Solutions Library', href: '/hub/training/solutions', text: 'Browse The Full Collection Of Audited Solver Baselines.' },
+      { name: 'Hand Lab Analyzer', href: '/hub/training/hand-lab', text: 'Break Down Specific Hole Cards And Flop Textures Street By Street.' },
+      { name: 'Preflop Charts Matrix', href: '/tools/preflop-ranges', text: 'Interactive Public 13x13 Preflop Range Viewer.' },
+    ],
+  },
+  'training-daily-challenge': {
+    heading: 'About The Daily Poker Hand Of The Day Challenge',
+    lead:
+      'The Daily Poker Hand Of The Day Challenge Presents One High-Leverage Cash Game Or Tournament Spot Every Twenty-Four Hours For The Entire Smarter Poker Community To Solve. Submit Your Action Before The Reveal To Earn Accuracy Points, Compare Your Choice Against The Exact Solver Frequency Distribution, And Extend Your Consecutive Daily Training Streak. Free Daily Entry.',
+    links: [
+      { name: 'Daily Challenges Hub', href: '/hub/training/challenges', text: 'Complete Personalized Multi-Hand Daily Challenge Sets.' },
+      { name: 'Community Leaderboard', href: '/hub/training/community-leaderboard', text: 'See How Your Daily Streak Ranks Against Other Players.' },
+      { name: 'GTO Training', href: '/hub/training', text: 'Continue Practicing In Over 100 Full Scenario Games.' },
+    ],
+  },
+  'training-drill-builder': {
+    heading: 'About The Custom Poker Drill Builder',
+    lead:
+      'The Custom Poker Drill Builder Lets You Assemble Targeted Practice Sessions By Filtering For Exact Hero Positions, Street Focus From Preflop Through River, Stack Depth Tiers, Pot Types, And Question Counts. Save Custom Drill Templates For Pre-Session Warmups Or Intense Leak Remediation So Every Practice Hand Matches The Exact Situations You Play Most. Free To Build.',
+    links: [
+      { name: 'Quiz Builder', href: '/hub/training/quiz-builder', text: 'Create Shareable Multi-Question GTO Strategy Quizzes.' },
+      { name: 'Range Builder', href: '/hub/training/range-builder', text: 'Construct And Drill Your Own 13x13 Preflop Hand Matrices.' },
+      { name: 'Weak Spot Autopilot', href: '/hub/training/autopilot', text: 'Let The Engine Automatically Queue Your Lowest-Accuracy Spots.' },
+    ],
+  },
+  'training-famous-finals': {
+    heading: 'About The Famous Finals Training Archive',
+    lead:
+      'The Famous Finals Training Archive Catalogs Historic Championship Final Table Concepts And High-Pressure Tournament Situations Alongside Their Modern Independent Chip Model And Game Theory Optimal Counterparts. Review How Pay Jumps, Chip Leader Leverage, And Short-Stack Survival Reshape Optimal Ranges At Major Final Tables, Then Practice The Equivalent Audited Training Scenarios Directly. Free Archive.',
+    links: [
+      { name: 'Final Table Simulator', href: '/hub/training/final-table-sim', text: 'Practice ICM Decisions Across 9-Handed To Heads-Up Final Tables.' },
+      { name: 'ICM Simulator', href: '/hub/training/icm-simulator', text: 'Model Tournament Prize Pool Equity And Bubble Factors.' },
+      { name: 'Poker Tours Directory', href: '/hub/poker-tours', text: 'Follow Current WSOP, WPT And Regional Championship Stops.' },
+    ],
+  },
+  'training-final-table-sim': {
+    heading: 'About The Final Table ICM And Deal Simulator',
+    lead:
+      'The Final Table ICM And Deal Simulator Models Multi-Way Tournament Prize Pool Equity, Bubble Factors, And Even-Chop Versus ICM-Chop Payout Numbers From Nine Players Down To Heads-Up. Adjust Payout Structures, Stack Distributions, And Risk Premiums To See How Pay Jumps Constrain Calling Ranges And When A Final Table Deal Increases Guaranteed Expected Value. Free Simulator.',
+    links: [
+      { name: 'ICM Calculator', href: '/tools/icm-calculator', text: 'Compute Instant Malmuth-Harville Tournament Equity Shares.' },
+      { name: 'Tournament ICM Simulator', href: '/hub/training/icm-simulator', text: 'Run Interactive Push-Fold And Pay-Jump Training Scenarios.' },
+      { name: 'Famous Finals Archive', href: '/hub/training/famous-finals', text: 'Study Historic Championship Final Table Situations.' },
+    ],
+  },
+  'training-flashcards': {
+    heading: 'About Spaced-Repetition GTO Poker Flashcards',
+    lead:
+      'Spaced-Repetition GTO Poker Flashcards Apply The SuperMemo SM-2 Memory Scheduling Algorithm To Preflop Opening Frequencies, Three-Bet Defense Thresholds, Pot Odds Math, And Postflop Heuristic Rules. Rate Your Recall Confidence On Each Card So Challenging Concepts Reappear Frequently While Mastered Ranges Schedule Further Out For Long-Term Retention At The Table. Free Study Tool.',
+    links: [
+      { name: 'Quick Warmup', href: '/hub/training/quick-warmup', text: 'Run A Five-Minute Speed Drill Before Sitting Down To Play.' },
+      { name: 'Preflop Reference Charts', href: '/hub/training/preflop-charts', text: 'Review The 6-Max 100BB Ranges Behind The Flashcards.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Definitions For Every Mathematical And GTO Term On The Cards.' },
+    ],
+  },
+  'training-focus-timer': {
+    heading: 'About The Poker Session Pomodoro Focus Timer',
+    lead:
+      'The Poker Session Pomodoro Focus Timer Structures Your Study Blocks And Live Grinding Sessions Into Timed High-Concentration Intervals Paired With Scheduled Mental Reset Breaks. Track Completed Study Pomodoros, Prevent Decision Fatigue During Long Multi-Table Sessions, And Pair Timed Intervals With Pre-Session Warmups And Tilt Guard Check-Ins To Protect Your A-Game. Free Utility.',
+    links: [
+      { name: 'Session Warmup Protocol', href: '/hub/training/session-warmup', text: 'Complete A Six-Step Mental Readiness Check Before Playing.' },
+      { name: 'Tilt Guard Coach', href: '/hub/training/tilt-guard', text: 'Monitor Emotional Baseline And Trigger Cooldown Protocols.' },
+      { name: 'Quick Warmup Drill', href: '/hub/training/quick-warmup', text: 'Calibrate Decision Speed In Five Minutes Before Your Timer Starts.' },
+    ],
+  },
+  'training-gto-news': {
+    heading: 'About GTO Strategy Tips And Training Articles',
+    lead:
+      'GTO Strategy Tips And Training Articles Delivers Bite-Sized Analytical Breakdowns On Range Advantage, Minimum Defense Frequency, Blocker Selection, ICM Bubble Adjustments, And Multi-Street Barrel Sizing. Each Digest Connects Directly To Interactive Smarter Poker Drills And Calculators So You Can Immediately Test New Theoretical Concepts Against Audited Solver Baselines. Free To Read.',
+    links: [
+      { name: 'Poker Strategy Library', href: '/learn', text: 'Deep-Dive Syllabus Lessons On Preflop, Postflop And ICM.' },
+      { name: 'Original Poker Research', href: '/research', text: 'First-Party Data Studies And Benchmark Reports From Smarter Poker.' },
+      { name: 'Poker News Feed', href: '/hub/news', text: 'Hourly Live Tournament Headlines And Industry Coverage.' },
+    ],
+  },
+  'training-gto-preloader': {
+    heading: 'About The Offline GTO Training Pack Preloader',
+    lead:
+      'The Offline GTO Training Pack Preloader Lets You Download And Cache Solved Scenario Packs, Preflop Range Matrices, And Flashcard Decks Directly Into Browser Storage Before Travelling Or Entering A Casino With Poor Reception. Verify Cached Storage Footprints And Practice Uninterrupted In Airplane Mode With Full Instant Grading. Free Offline Utility.',
+    links: [
+      { name: 'Install Smarter Poker App', href: '/hub/install', text: 'Add Smarter Poker To Your Home Screen For Full Offline Support.' },
+      { name: 'GTO Flashcards', href: '/hub/training/flashcards', text: 'Review Spaced-Repetition Strategy Decks Anywhere Offline.' },
+      { name: 'GTO Training Hub', href: '/hub/training', text: 'Launch Cached Scenario Games And Drills.' },
+    ],
+  },
+  'training-hand-comparison': {
+    heading: 'About The A/B Poker Hand Equity Comparison Tool',
+    lead:
+      'The A/B Poker Hand Equity Comparison Tool Evaluates Two Starting Hands Or Postflop Combos Side By Side Across Specific Board Textures, Measuring Raw Showdown Equity, Nut Advantage, Playability, And Postflop Realization Factors. Use It To Understand Why Suited Connectors And Ace-Wheel Blockers Outperform Dominated Offsuit Broadways In Deep-Stacked Pots. Free Analytical Tool.',
+    links: [
+      { name: 'Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Run Exact Multi-Hand Monte Carlo And Enumerated Equity Checks.' },
+      { name: 'Starting Hands Encyclopedia', href: '/learn/hands', text: 'Complete Strategic Profiles For All 169 Texas Holdem Starting Hands.' },
+      { name: 'Hand Lab Analyzer', href: '/hub/training/hand-lab', text: 'Inspect Street-By-Street Board Texture And Range Interactions.' },
+    ],
+  },
+  'training-hand-lab': {
+    heading: 'About The Interactive Poker Hand Lab And Board Analyzer',
+    lead:
+      'The Interactive Poker Hand Lab And Board Analyzer Breaks Down How Preflop Ranges Interact With Specific Flop, Turn, And River Runouts. Inspect Texture Classifications, Draw Density, Range Equity Splits, And Positional Nut Advantage So You Can Construct Balanced Continuation-Betting, Check-Raising, And Barrel Plans Grounded In Combinatorics. Free Strategy Lab.',
+    links: [
+      { name: 'Hand Comparison Tool', href: '/hub/training/hand-comparison', text: 'Compare Two Exact Starting Hands Across Different Boards.' },
+      { name: 'Custom Solve Query', href: '/hub/training/custom-solve', text: 'Look Up Audited Solver Reference Ranges By Position And Stack.' },
+      { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Upload Played Hands For Automated Street-By-Street Review.' },
+    ],
+  },
+  'training-icm-simulator': {
+    heading: 'About The Tournament ICM Equity Simulator',
+    lead:
+      'The Tournament ICM Equity Simulator Computes Exact Malmuth-Harville Prize Pool Equity, Risk Premiums, And Push-Fold Thresholds Across Money Bubbles, Final Table Pay Jumps, And Satellite Qualifiers. Compare Chip Expected Value Against Dollar Expected Value To See Why Survival Pressure Forces Tighter Calling Ranges Against Covering Stacks. Free Tournament Tool.',
+    links: [
+      { name: 'Public ICM Calculator', href: '/tools/icm-calculator', text: 'Calculate Instant Multi-Stack Tournament Payout Equities.' },
+      { name: 'Final Table Simulator', href: '/hub/training/final-table-sim', text: 'Model 9-Max Final Table Pay Jumps And Chop Negotiations.' },
+      { name: 'Tournament Prep Planner', href: '/hub/training/tournament-prep', text: 'Plan Blind Level Pacing, M-Ratios And Stack Targets.' },
+    ],
+  },
+  'training-multi-table': {
+    heading: 'About The Multi-Table GTO Practice Simulator',
+    lead:
+      'The Multi-Table GTO Practice Simulator Trains Your Visual Scanning Speed And Decision Accuracy Across Two To Four Simultaneous Poker Tables Running On Independent Action Clocks. Build The Cognitive Stamina Required For Online Grinding Or Fast-Paced Live Events Without Sacrificing Solver Precision Under Time Bank Pressure. Free Multi-Table Trainer.',
+    links: [
+      { name: 'Quick Warmup', href: '/hub/training/quick-warmup', text: 'Start With Single-Table High-Speed Decision Calibration.' },
+      { name: 'Focus Timer', href: '/hub/training/focus-timer', text: 'Structure Multi-Table Grinding Into Timed Pomodoro Blocks.' },
+      { name: 'GTO Training Hub', href: '/hub/training', text: 'Return To Single-Table Scenario Games And Deep Study.' },
+    ],
+  },
+  'training-multiway-preflop': {
+    heading: 'About The Multiway 3+ Player Preflop Range Viewer',
+    lead:
+      'The Multiway 3+ Player Preflop Range Viewer Illustrates How Optimal Cold-Calling, Squeezing, And Over-Calling Ranges Contract When Multiple Players Enter The Pot Before The Flop. Compare Heads-Up Single-Raised Pot Baselines Against Three-Way And Four-Way Configurations To Avoid Dominated Offsuit Traps And Multiway Reverse Implied Odds Mistakes. Free Reference Viewer.',
+    links: [
+      { name: 'Preflop Reference Charts', href: '/hub/training/preflop-charts', text: 'Compare Standard 6-Max 100BB Opening And 3-Bet Ranges.' },
+      { name: 'Public Preflop Range Matrix', href: '/tools/preflop-ranges', text: 'Explore 13x13 Positional Charts Across Stack Depths.' },
+      { name: 'Rake Sensitivity Explorer', href: '/hub/training/rake-solutions', text: 'See How Pot Rake Further Tightens Cold-Calling Ranges.' },
+    ],
+  },
+  'training-position-mastery': {
+    heading: 'About The Poker Table Position Mastery Heatmap',
+    lead:
+      'The Poker Table Position Mastery Heatmap Tracks Your Cumulative Solver Accuracy, Expected Value Retention, And Hand Volume Across All Six Seats From Under The Gun Through The Big Blind. Identify Whether Your Biggest Win-Rate Leaks Originate In Blind Defense, Small Blind Three-Bet Pots, Or Late-Position Button Steals, And Launch Seat-Specific Drills Instantly. Free Diagnostic Tool.',
+    links: [
+      { name: 'Weakness Scanner', href: '/hub/training/weakness-scanner', text: 'Scan Street-By-Street And Action-Line Accuracy Breakdowns.' },
+      { name: 'Preflop Reference Charts', href: '/hub/training/preflop-charts', text: 'Review Exact Opening Frequencies For Every Seat At The Table.' },
+      { name: 'Weak Spot Autopilot', href: '/hub/training/autopilot', text: 'Automatically Drill Your Lowest-Scoring Table Positions.' },
+    ],
+  },
+  'training-preflop-charts': {
+    heading: 'About The 6-Max 100BB Preflop Range Browser',
+    lead:
+      'The 6-Max 100BB Preflop Range Browser Displays Interactive 13x13 Starting Hand Matrices For Raise-First-In, Facing Open, Three-Bet, And Four-Bet Scenarios Across All Six Table Positions. Use Side-By-Side Comparison Mode To Contrast Early-Position Tightness With Cutoff And Button Expansion, Complete With Exact Combo Counts And Percentage Summaries. Free Reference Tool.',
+    links: [
+      { name: 'Preflop Range Lab', href: '/hub/preflop-charts', text: 'Test Your Range Memory In Interactive Preflop Drills.' },
+      { name: 'Multiway Preflop Viewer', href: '/hub/training/multiway-preflop', text: 'See How Ranges Adjust In Three-Way And Squeeze Pots.' },
+      { name: 'Range Builder', href: '/hub/training/range-builder', text: 'Paint And Practice Your Own Custom 13x13 Hand Matrices.' },
+    ],
+  },
+  'training-qre-explorer': {
+    heading: 'About The Quantal Response Equilibrium Explorer',
+    lead:
+      'The Quantal Response Equilibrium Explorer Models How Bounded Rationality And Softmax Noise Parameter Lambda Transform Sharp Nash Equilibrium Mixed Strategies Into Smooth Probability Distributions. Adjust Decision Precision And Payoff Sensitivity To Understand Why Human Opponents Deviate On Close-EV Indifference Nodes And How Modern Solvers Model Imperfect Execution. Free Game Theory Tool.',
+    links: [
+      { name: 'Strategy Concept Tutorial', href: '/hub/training/scenario-demo', text: 'Foundational Guide To Nash Equilibrium And EV Loss.' },
+      { name: 'Original Poker Research', href: '/research', text: 'Read First-Party Studies On Solver Benchmarks And Strategy.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Look Up Equilibrium, Indifference, Exploitability And More.' },
+    ],
+  },
+  'training-quick-warmup': {
+    heading: 'About The 5-Minute Pre-Session Poker Speed Warmup',
+    lead:
+      'The 5-Minute Pre-Session Poker Speed Warmup Runs A Fast Ten-Hand Calibration Sprint Covering Preflop Range Boundaries, Pot Odds Thresholds, And Standard Continuation-Betting Spots Before You Sit Down At A Real Table. Shake Off Rust, Measure Your Reaction Speed And Baseline Accuracy, And Catch Mental Fatigue Before Putting Your Bankroll In Play. Free Warmup Drill.',
+    links: [
+      { name: 'Session Warmup Protocol', href: '/hub/training/session-warmup', text: 'Pair Speed Drills With The Six-Step Mental Readiness Checklist.' },
+      { name: 'GTO Flashcards', href: '/hub/training/flashcards', text: 'Review Key Frequencies With Spaced-Repetition Cards.' },
+      { name: 'Daily Challenge', href: '/hub/training/daily-challenge', text: 'Solve Today Featured Community Hand After Warming Up.' },
+    ],
+  },
+  'training-quiz-builder': {
+    heading: 'About The Custom GTO Poker Quiz Builder',
+    lead:
+      'The Custom GTO Poker Quiz Builder Allows Coaches, Study Group Leaders, And Serious Players To Author Multi-Question Strategy Quizzes With Custom Board Textures, Stack Sizes, Action Options, And Detailed Solver Explanations. Share Quiz Packs With Study Partners Or Run Self-Graded Assessments To Verify Mastery Of Specific Tournament Or Cash Game Concepts. Free Authoring Tool.',
+    links: [
+      { name: 'Custom Drill Builder', href: '/hub/training/drill-builder', text: 'Assemble Filtered Practice Sets From Existing Solver Spots.' },
+      { name: 'Study Group Finder', href: '/hub/training/study-group-finder', text: 'Connect With Poker Study Partners To Share Custom Quizzes.' },
+      { name: 'Poker Trivia Hub', href: '/hub/trivia', text: 'Play Server-Scored Competitive Poker Knowledge Challenges.' },
+    ],
+  },
+  'training-rake-solutions': {
+    heading: 'About The Poker Rake Sensitivity Curve Explorer',
+    lead:
+      'The Poker Rake Sensitivity Curve Explorer Visualizes How Preflop Opening Frequencies, Cold-Calling Shares, And Three-Bet Ratios Shift Across Zero-Rake Tournament Environments, Low-Rake High Stakes, And High-Rake Micro Or Live Games. Inspect Why High Pot Drop Eliminates Marginal Flat Calls And Pushes Profitable Pre-Flop Strategy Toward Three-Bet-Or-Fold Constructions. Free Model Explorer.',
+    links: [
+      { name: 'Rake Cost Estimator', href: '/hub/training/custom-rake', text: 'Calculate Hourly And BB/100 Rake Costs For Your Exact Stake.' },
+      { name: 'Preflop Reference Charts', href: '/hub/training/preflop-charts', text: 'Browse Baseline 6-Max 100BB Opening And Defense Charts.' },
+      { name: 'Multiway Preflop Viewer', href: '/hub/training/multiway-preflop', text: 'See How Multiway Pots And Squeezes Interact With Rake.' },
+    ],
+  },
+  'training-range-builder': {
+    heading: 'About The Interactive 13x13 Preflop Range Builder',
+    lead:
+      'The Interactive 13x13 Preflop Range Builder Lets You Paint Raise, Call, Three-Bet, And Fold Frequencies Across Every Starting Hand Combination, Calculate Exact Combo Proportions, And Test Your Memory In Self-Graded Reconstruction Drills. Build Custom Exploitative Or Home-Game Ranges And Practice Reproducing Them From Blank Grids Until Recall Is Automatic. Free Range Tool.',
+    links: [
+      { name: 'Preflop Reference Charts', href: '/hub/training/preflop-charts', text: 'Compare Your Custom Grid Against Baseline 6-Max Charts.' },
+      { name: 'Starting Hands Guide', href: '/learn/hands', text: 'Read Detailed Strategy Profiles For All 169 Starting Hands.' },
+      { name: 'Custom Drill Builder', href: '/hub/training/drill-builder', text: 'Create Postflop Practice Sets Around Your Target Positions.' },
+    ],
+  },
+  'training-risk-analyzer': {
+    heading: 'About The Poker Risk Of Ruin And Variance Simulator',
+    lead:
+      'The Poker Risk Of Ruin And Variance Simulator Runs Thousands Of Monte Carlo Bankroll Trajectories Using Your True Win Rate In Big Blinds Per Hundred Hands, Format Standard Deviation, And Total Buy-In Cushion. Visualize Confidence Intervals, Downswing Probability Tables, And Required Bankroll Multipliers For Cash Games, Spin-And-Gos, And Large-Field Tournaments. Free Quantitative Calculator.',
+    links: [
+      { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Real Session Ledger Results, Buy-Ins And Net Profit.' },
+      { name: 'Rake Cost Estimator', href: '/hub/training/custom-rake', text: 'Measure How Rake Changes Your Net Win Rate Input.' },
+      { name: 'Bankroll Tax Tracker Guide', href: '/features/bankroll-tax-tracker', text: 'Learn How Smarter Poker Tracks Bankroll Health And Sessions.' },
+    ],
+  },
+  'training-scenario-demo': {
+    heading: 'About The Interactive GTO Strategy And Solver Tutorial',
+    lead:
+      'The Interactive GTO Strategy And Solver Tutorial Teaches New And Intermediate Players How Game Theory Optimal Solvers Compute Mixed Frequencies, Expected Value Loss In Big Blinds, Range Advantage, And Minimum Defense Thresholds. Walk Through Guided Interactive Examples Before Entering Timed Drills So Every Chart And Feedback Metric Makes Immediate Strategic Sense. Free Onboarding Guide.',
+    links: [
+      { name: 'Guided Coach Mode', href: '/hub/training/coach-mode', text: 'Continue With Structured Lessons And Check-For-Understanding Quizzes.' },
+      { name: 'Solver Spot Study', href: '/hub/training/spot-trainer', text: 'Explore Answer-Revealed Solver Nodes At Your Own Pace.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Look Up Every Solver And Strategy Term Defined In Plain English.' },
+    ],
+  },
+  'training-session-warmup': {
+    heading: 'About The 6-Step Pre-Session Poker Mental Readiness Protocol',
+    lead:
+      'The 6-Step Pre-Session Poker Mental Readiness Protocol Walks Players Through Physical Alertness Checks, Emotional Tilt Screening, Stop-Loss Commitment, Bankroll Verification, And Strategic Focus Goal-Setting Before Sitting Down At A Live Or Online Table. Completing The Protocol Generates A Readiness Score So You Never Start A Session Tired, Distracted, Or Chasing Losses. Free Mental Game Tool.',
+    links: [
+      { name: 'Tilt Guard Coach', href: '/hub/training/tilt-guard', text: 'Monitor Mid-Session Emotional Triggers And Cooldown Exercises.' },
+      { name: '5-Minute Quick Warmup', href: '/hub/training/quick-warmup', text: 'Run A Ten-Hand Tactical Speed Drill After Your Mental Check.' },
+      { name: 'Focus Timer', href: '/hub/training/focus-timer', text: 'Lock In Timed High-Concentration Grinding Intervals.' },
+    ],
+  },
+  'training-short-deck-trainer': {
+    heading: 'About The Short Deck 6+ Holdem Rules And Equity Trainer',
+    lead:
+      'The Short Deck 6+ Holdem Rules And Equity Trainer Covers The 36-Card Deck Format Where Twos Through Fives Are Removed, Flushes Outrank Full Houses, And Ace-Six-Seven-Eight-Nine Completes The Wheel Straight. Master The Shifted Draw Probabilities, Rule-Of-Three-And-Six Equity Multipliers, And Deep Ante-Only Preflop Jamming Ranges Unique To Six-Plus Holdem. Free Variant Trainer.',
+    links: [
+      { name: 'Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Compare Standard Holdem And Omaha Hand Equities.' },
+      { name: 'Hand Comparison Tool', href: '/hub/training/hand-comparison', text: 'Evaluate Starting Hand Playability And Nut Potential.' },
+      { name: 'GTO Training Hub', href: '/hub/training', text: 'Explore All Cash Game, Tournament And Variant Training Modes.' },
+    ],
+  },
+  'training-skill-tree': {
+    heading: 'About The Interactive Poker Skill Tree Progression Map',
+    lead:
+      'The Interactive Poker Skill Tree Progression Map Organizes Poker Mastery Into Connected Competency Branches Spanning Preflop Foundations, Continuation Betting, Three-Bet Pots, Turn Barrel Geometry, River Bluff Catching, And Tournament ICM. Track Which Nodes You Have Unlocked Through Verified Training Accuracy And Follow A Clear Prerequisite Roadmap From Beginner To Elite Solver Execution. Free Curriculum Map.',
+    links: [
+      { name: 'Guided Coach Mode', href: '/hub/training/coach-mode', text: 'Take Interactive Lessons Matched To Each Skill Tree Branch.' },
+      { name: 'Poker Strategy Syllabus', href: '/learn', text: 'Read The Complete Written Curriculum Behind Every Node.' },
+      { name: 'Position Mastery Heatmap', href: '/hub/training/position-mastery', text: 'Check Your Seat-By-Seat Accuracy Across The Table.' },
+    ],
+  },
+  'training-spot-trainer': {
+    heading: 'About The Answer-Revealed Solver Spot Study Utility',
+    lead:
+      'The Answer-Revealed Solver Spot Study Utility Lets You Inspect Audited Solver Scenarios With Full Action Frequencies, Expected Value Breakdowns, And Strategic Explanations Visible Up Front. Designed For Open-Book Study Rather Than Timed Grading, It Allows Players To Step Through Complex Preflop And Postflop Decision Trees Without Affecting Their Ranked Accuracy Score. Free Study Mode.',
+    links: [
+      { name: 'Solutions Library', href: '/hub/training/solutions', text: 'Browse The Master Index Of Solver Baselines And Ranges.' },
+      { name: 'Scenario Evidence Gate', href: '/hub/personal-assistant/sandbox', text: 'Learn How Smarter Poker Separates Open Study From Graded Attempts.' },
+      { name: 'GTO Training Hub', href: '/hub/training', text: 'Switch To Signed, Server-Graded Training Scenarios.' },
+    ],
+  },
+  'training-study-group-finder': {
+    heading: 'About The Poker Study Group Finder And Directory',
+    lead:
+      'The Poker Study Group Finder Connects Players Who Grind Similar Stakes, Formats, And Time Zones So They Can Review Hand Histories Together, Exchange Custom Quiz Packs, And Hold Weekly Accountability Sessions. Browse Public Study Groups For Cash Games, Multi-Table Tournaments, And Pot-Limit Omaha, Or Launch Your Own Focused Cohort On Smarter Poker. Free Community Directory.',
+    links: [
+      { name: 'Community Training Feed', href: '/hub/training/training-feed', text: 'See Active Players Completing Drills And Streaks Today.' },
+      { name: 'Custom Quiz Builder', href: '/hub/training/quiz-builder', text: 'Build Strategy Quizzes To Test Your Study Group.' },
+      { name: 'Poker Social Hub', href: '/hub/social-media', text: 'Discuss Hands And Strategy With The Wider Community.' },
+    ],
+  },
+  'training-tilt-guard': {
+    heading: 'About The Poker Tilt Guard And Emotional Intelligence Coach',
+    lead:
+      'The Poker Tilt Guard And Emotional Intelligence Coach Helps Players Recognize Early Behavioral Signals Of Revenge Tilt, Entitlement Tilt, And Winner Complacency Before They Destroy A Session Bankroll. Log Real-Time Emotional Check-Ins, Run Guided Breathing And Cognitive Reframing Resets, And Enforce Automatic Stop-Loss Cooldown Rules When Variance Runs Cold. Free Mental Game Coach.',
+    links: [
+      { name: 'Session Warmup Protocol', href: '/hub/training/session-warmup', text: 'Establish Stop-Loss Rules And Readiness Before You Play.' },
+      { name: 'Focus Timer', href: '/hub/training/focus-timer', text: 'Schedule Mandatory Breaks During Long Grinding Sessions.' },
+      { name: 'Responsible Gaming', href: '/hub/commander/responsible-gaming', text: 'Platform Tools For Limits, Cooling-Off Periods And Self-Exclusion.' },
+    ],
+  },
+  'training-tournament-prep': {
+    heading: 'About The Tournament Structure And M-Ratio Prep Planner',
+    lead:
+      'The Tournament Structure And M-Ratio Prep Planner Analyzes Blind Level Duration, Starting Stack Depth In Big Blinds, Ante Formats, And Late-Registration Cutoffs To Classify Any Event From Hyper-Turbo To Deep-Stack Championship. Calculate Harrington M-Ratio Zones And Plan Your Stack Accumulation Milestones Before Paying Your Tournament Buy-In. Free Tournament Planner.',
+    links: [
+      { name: 'Tournament ICM Simulator', href: '/hub/training/icm-simulator', text: 'Practice Bubble And Pay-Jump Decisions For Your Next Event.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Find Upcoming Live Poker Series And Daily Tournaments.' },
+      { name: 'Final Table Simulator', href: '/hub/training/final-table-sim', text: 'Model Final Table Payouts And Deal-Making Math.' },
+    ],
+  },
+  'training-training-feed': {
+    heading: 'About The Community Training Activity Feed',
+    lead:
+      'The Community Training Activity Feed Streams Verified Milestones, Perfect Drill Runs, Streak Achievements, And High-Accuracy Completions From Players Training Across Smarter Poker. Follow Top Performers, Discover Which Scenario Games The Community Is Grinding Most Today, And Jump Directly Into The Same Drill To Benchmark Your Own Solver Execution. Free Live Feed.',
+    links: [
+      { name: 'Community Leaderboard', href: '/hub/training/community-leaderboard', text: 'View Daily, Weekly And All-Time Training Standings.' },
+      { name: 'Daily Hand Challenge', href: '/hub/training/daily-challenge', text: 'Play Today Featured Community Spot.' },
+      { name: 'Study Group Finder', href: '/hub/training/study-group-finder', text: 'Join A Study Cohort With Active Grinders From The Feed.' },
+    ],
+  },
+  'training-weakness-scanner': {
+    heading: 'About The Automated Position And Street Leak Scanner',
+    lead:
+      'The Automated Position And Street Leak Scanner Aggregates Your Graded Training History To Pinpoint Where Your Decisions Lose The Most Expected Value Across Preflop, Flop, Turn, And River Nodes. Filter By Table Seat, Action Type, And Scenario Category To Uncover Systematic Blindspots, Then Launch Targeted Remediation Drills With One Click. Free Diagnostic Scanner.',
+    links: [
+      { name: 'Weak Spot Autopilot', href: '/hub/training/autopilot', text: 'Stream Continuous Drills Targeting Your Lowest-Rated Spots.' },
+      { name: 'Position Mastery Heatmap', href: '/hub/training/position-mastery', text: 'Compare Your Accuracy Across All Six Table Positions.' },
+      { name: 'Personal Assistant Leak Finder', href: '/hub/personal-assistant/leaks', text: 'Run Full Post-Session Hand Audits With Jarvis.' },
     ],
   },
 };

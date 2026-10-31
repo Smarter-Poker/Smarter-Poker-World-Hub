@@ -11,7 +11,8 @@
 // TRAIN-CSS-TOKENS-BATCH4-3 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
@@ -491,13 +492,11 @@ export default function CustomSolvePage() {
 
   return (
     <>
-      <Head>
-        <title>Custom Solve | Smarter.Poker GTO Training</title>
-        <meta
-          name="description"
-          content="Configure a cash spot and query an authored 100BB first-in reference or explicitly labelled postflop board data."
-        />
-      </Head>
+      <SEOHead
+        title="Custom GTO Spot & Preflop Reference"
+        description="Configure Poker Stack Depth, Table Positions, And Action Lines To Query Audited 100BB Preflop Reference Ranges And Postflop Board Data On Smarter.Poker."
+        canonical="/hub/training/custom-solve"
+      />
 
       <div
         style={{
@@ -793,6 +792,7 @@ export default function CustomSolvePage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-custom-solve" />
     </>
   );
 }

@@ -158,6 +158,7 @@ export default function StudyGroupRoom() {
     <PageTransition>
       <Head>
         <title>Study Group | Smarter.Poker</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <UniversalHeader pageDepth={2} hideLeftIcon />
 

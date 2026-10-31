@@ -12,7 +12,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-46 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -435,9 +436,11 @@ export default function SkillTreePage() {
 
   return (
     <>
-      <Head>
-        <title>Skill Tree | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="Interactive Poker Skill Tree Map"
+        description="Track Your Poker Mastery Across Connected Competency Branches From Preflop Foundations To River Bluff Catching And Tournament ICM On Smarter.Poker."
+        canonical="/hub/training/skill-tree"
+      />
       <div
         className="sp-training-journey sp-training-journey--skill-tree"
         style={{
@@ -689,6 +692,7 @@ export default function SkillTreePage() {
         </div>
       </div>
       <ConnectionToast />
+      <HubPageSummary page="training-skill-tree" />
     </>
   );
 }

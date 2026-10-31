@@ -11,7 +11,8 @@
 // TRAIN-CSS-TOKENS-BATCH5-39 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-32 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
@@ -194,13 +195,11 @@ export default function PreflopCharts() {
 
   return (
     <>
-      <Head>
-        <title>Preflop Reference Charts | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Browse the authored Smarter.Poker 6-max cash 100BB preflop reference corpus by position and supported scenario."
-        />
-      </Head>
+      <SEOHead
+        title="6-Max 100BB Preflop Range Browser"
+        description="Browse And Compare Authored 6-Max 100BB Cash Game Preflop Ranges By Table Position, Raise-First-In, And Three-Bet Scenario On Smarter.Poker."
+        canonical="/hub/training/preflop-charts"
+      />
 
       <div
         style={{
@@ -799,6 +798,7 @@ export default function PreflopCharts() {
         featureName="Advanced Preflop Charts"
       />
       <ConnectionToast />
+      <HubPageSummary page="training-preflop-charts" />
     </>
   );
 }

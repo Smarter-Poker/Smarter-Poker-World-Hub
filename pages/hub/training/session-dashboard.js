@@ -725,6 +725,7 @@ export default function SessionDashboard() {
       <Head>
         <title>Session Dashboard | Smarter.Poker Training</title>
         <meta name="description" content="Track sealed poker Training results, verified accuracy, measured solver EV, streaks, and per-game performance." />
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
 
       <div

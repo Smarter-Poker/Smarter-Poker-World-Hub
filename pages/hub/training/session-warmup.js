@@ -12,7 +12,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-44 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -199,13 +200,11 @@ export default function SessionWarmupPage() {
 
   return (
     <>
-      <Head>
-        <title>Session Warmup | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Prepare for your poker session with our interactive warmup protocol. Set goals and stop-losses before playing."
-        />
-      </Head>
+      <SEOHead
+        title="Pre-Session Mental Readiness Protocol"
+        description="Complete A 6-Step Pre-Session Poker Mental Readiness Check To Set Session Goals, Verify Bankroll Stop-Losses, And Screen For Tilt On Smarter.Poker."
+        canonical="/hub/training/session-warmup"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -594,6 +593,7 @@ export default function SessionWarmupPage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-session-warmup" />
     </>
   );
 }

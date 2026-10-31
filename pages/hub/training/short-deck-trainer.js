@@ -13,7 +13,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-45 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
@@ -225,13 +226,11 @@ export default function ShortDeckTrainerPage() {
 
   return (
     <>
-      <Head>
-        <title>Short Deck Trainer | Smarter.Poker</title>
-        <meta
-          name="description"
-          content="Practice one disclosed Short Deck ruleset and run hand-vs-hand Monte Carlo equity estimates."
-        />
-      </Head>
+      <SEOHead
+        title="Short Deck 6+ Holdem Equity Trainer"
+        description="Master Short Deck 6+ Holdem Rules, Adjusted Hand Rankings, 36-Card Draw Probabilities, And Hand-Vs-Hand Monte Carlo Equities On Smarter.Poker."
+        canonical="/hub/training/short-deck-trainer"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -631,6 +630,7 @@ export default function ShortDeckTrainerPage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-short-deck-trainer" />
     </>
   );
 }

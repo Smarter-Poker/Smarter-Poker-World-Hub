@@ -468,6 +468,7 @@ export default function MilestonesPage() {
     <>
       <Head>
         <title>Milestones | Smarter.Poker GTO Training</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div
         className="sp-training-journey sp-training-journey--milestones"

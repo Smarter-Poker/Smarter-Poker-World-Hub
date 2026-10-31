@@ -14,7 +14,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizAnswer';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken } from '../../../src/lib/authUtils';
@@ -245,13 +246,11 @@ export default function ScenarioDemoPage() {
 
   return (
     <>
-      <Head>
-        <title>Strategy Concept Tutorial | Smarter.Poker</title>
-        <meta
-          name="description"
-          content="Practice reading poker decisions and illustrative strategy charts without solver or EV claims."
-        />
-      </Head>
+      <SEOHead
+        title="Interactive GTO Strategy Tutorial"
+        description="Learn How To Read GTO Poker Strategy Charts, Mixed Action Frequencies, Range Advantage, And Expected Value Loss In Big Blinds On Smarter.Poker."
+        canonical="/hub/training/scenario-demo"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -601,6 +600,7 @@ export default function ScenarioDemoPage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-scenario-demo" />
     </>
   );
 }

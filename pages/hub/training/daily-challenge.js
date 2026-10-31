@@ -12,7 +12,8 @@
 // TRAIN-CSS-TOKENS-BATCH4-15 - hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-7 - gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -443,13 +444,11 @@ export default function DailyChallengePage() {
 
   return (
     <>
-      <Head>
-        <title>Daily Training Challenge | Smarter.Poker</title>
-        <meta
-          name="description"
-          content="A daily source-classified poker spot with signed delivery, server grading, and verified streak tracking."
-        />
-      </Head>
+      <SEOHead
+        title="Daily Poker Hand Challenge"
+        description="Solve The Daily Poker Hand Of The Day Challenge On Smarter.Poker With Signed Delivery, Server Solver Grading, And Verified Consecutive Streak Tracking."
+        canonical="/hub/training/daily-challenge"
+      />
 
       <main className={`sp-training-command sp-training-command--daily ${styles.shell}`}>
         <header className={`sp-command-header ${styles.marquee}`}>
@@ -732,6 +731,7 @@ export default function DailyChallengePage() {
         </div>
       </main>
       <ConnectionToast />
+      <HubPageSummary page="training-daily-challenge" />
     </>
   );
 }

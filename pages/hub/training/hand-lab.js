@@ -3,7 +3,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-19 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 // TRAIN-CSS-TOKENS-BATCH6-8 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -125,10 +126,13 @@ export default function HandLabV2() {
   };
 
   return (
+    <>
     <PageTransition>
-      <Head>
-        <title>Hand Lab V2 | Smarter.Poker</title>
-      </Head>
+      <SEOHead
+        title="Poker Hand Lab & Board Analyzer"
+        description="Analyze How Poker Hole Cards And Preflop Ranges Interact With Flop, Turn, And River Board Textures Using 10,000-Iteration Monte Carlo Equity On Smarter.Poker."
+        canonical="/hub/training/hand-lab"
+      />
       <UniversalHeader pageDepth={2} />
 
       <div style={styles.container}>
@@ -348,6 +352,8 @@ export default function HandLabV2() {
       </div>
       <ConnectionToast />
     </PageTransition>
+    <HubPageSummary page="training-hand-lab" />
+    </>
   );
 }
 

@@ -221,6 +221,7 @@ export default function MentalJournalPage() {
     <>
       <Head>
         <title>Mental Journal | Smarter.Poker Training</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div
         style={{

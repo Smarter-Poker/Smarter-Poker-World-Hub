@@ -14,7 +14,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-26 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
@@ -275,13 +276,11 @@ export default function MultiwayPreflopPage() {
 
   return (
     <>
-      <Head>
-        <title>Multiway Preflop Reference | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Explore authored examples of 3+ player preflop range interactions without solver or scoring claims."
-        />
-      </Head>
+      <SEOHead
+        title="Multiway 3+ Player Preflop Ranges"
+        description="Explore How Optimal Poker Cold-Calling, Squeezing, And Over-Calling Ranges Contract In 3-Way And 4-Way Multiway Preflop Pots On Smarter.Poker."
+        canonical="/hub/training/multiway-preflop"
+      />
 
       <div
         style={{
@@ -550,6 +549,7 @@ export default function MultiwayPreflopPage() {
           </div>
         </div>
       </div>
+      <HubPageSummary page="training-multiway-preflop" />
     </>
   );
 }

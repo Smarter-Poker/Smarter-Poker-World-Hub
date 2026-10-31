@@ -15,7 +15,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-38 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 // TRAIN-CSS-TOKENS-BATCH6-14 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -355,13 +356,11 @@ export default function RangeBuilder() {
 
   return (
     <>
-      <Head>
-        <title>Authored Range Practice | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Build a 6-max cash RFI range at 100BB and compare it with a clearly labeled authored practice reference."
-        />
-      </Head>
+      <SEOHead
+        title="Interactive 13x13 Range Builder"
+        description="Construct Custom 13x13 Preflop Poker Hand Ranges At 100BB And Grade Your Matrix Recall Accuracy Against Reference Baselines On Smarter.Poker."
+        canonical="/hub/training/range-builder"
+      />
 
       <div
         className="sp-training-tool sp-training-tool--range-builder"
@@ -855,6 +854,7 @@ export default function RangeBuilder() {
         </div>
       </div>
       <ConnectionToast />
+      <HubPageSummary page="training-range-builder" />
     </>
   );
 }

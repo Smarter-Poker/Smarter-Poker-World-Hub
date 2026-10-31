@@ -11,7 +11,8 @@
 // TRAIN-CSS-TOKENS-BATCH5-36 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-29 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -291,13 +292,11 @@ export default function PositionMasteryPage() {
 
   return (
     <>
-      <Head>
-        <title>Position Mastery | Smarter.Poker GTO Training</title>
-        <meta
-          name="description"
-          content="Track your GTO accuracy by position. See which seats you dominate and where you need work."
-        />
-      </Head>
+      <SEOHead
+        title="Poker Position Mastery Heatmap"
+        description="Track Your GTO Poker Decision Accuracy And EV Retention Across All Six Table Positions From Under The Gun To The Big Blind On Smarter.Poker."
+        canonical="/hub/training/position-mastery"
+      />
 
       <div
         style={{
@@ -751,6 +750,7 @@ export default function PositionMasteryPage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-position-mastery" />
     </>
   );
 }

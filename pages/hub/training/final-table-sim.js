@@ -1,7 +1,8 @@
 // TRAIN-CSS-TOKENS-BATCH5-14 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-11 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -105,9 +106,11 @@ export default function FinalTableSimulator() {
   return (
     <>
     <PageTransition>
-      <Head>
-        <title>Final Table Simulator | Smarter.Poker</title>
-      </Head>
+      <SEOHead
+        title="Final Table ICM & Deal Simulator"
+        description="Simulate Multi-Way Tournament Final Table Prize Pool Equity, Bubble Factors, And ICM Chop Numbers From 9-Handed To Heads-Up On Smarter.Poker."
+        canonical="/hub/training/final-table-sim"
+      />
       <UniversalHeader pageDepth={2} hideLeftIcon />
 
       <div style={styles.container}>
@@ -269,6 +272,7 @@ export default function FinalTableSimulator() {
       </div>
     </PageTransition>
     <ConnectionToast />
+      <HubPageSummary page="training-final-table-sim" />
     </>
   );
 }

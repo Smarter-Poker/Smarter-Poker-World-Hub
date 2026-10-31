@@ -10,7 +10,8 @@
 // TRAIN-CSS-TOKENS-BATCH5-10 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
@@ -302,9 +303,11 @@ export default function DrillBuilderPage() {
 
   return (
     <>
-      <Head>
-        <title>Drill Builder | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="Custom Poker Drill Builder"
+        description="Build Custom GTO Poker Practice Drills Filtered By Table Position, Street Focus, Stack Depth, And Pot Type To Target Specific Game Leaks On Smarter.Poker."
+        canonical="/hub/training/drill-builder"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -660,6 +663,7 @@ export default function DrillBuilderPage() {
         </div>
       </div>
       <ConnectionToast />
+      <HubPageSummary page="training-drill-builder" />
     </>
   );
 }

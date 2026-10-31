@@ -175,6 +175,7 @@ export default function MyPlaybookPage() {
     <>
       <Head>
         <title>My Playbook | Smarter.Poker Training</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div
         style={{

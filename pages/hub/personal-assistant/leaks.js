@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -2102,6 +2103,11 @@ export default function LeakFinderPage() {
   if (!mounted) {
     return (
       <div style={styles.page}>
+        <SEOHead
+          title="Leak Finder · Fix Your Game"
+          description="Identify And Fix Repeated Expected Value Leaks In Your Poker Game With Deterministic Solver Audits And Spaced-Repetition Drills On Smarter.Poker."
+          canonical="/hub/personal-assistant/leaks"
+        />
         <PAStyles />
         <div style={styles.shell} aria-busy="true">
           <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
@@ -2112,6 +2118,7 @@ export default function LeakFinderPage() {
             <Skeleton h={44} />
             {[0, 1, 2].map(i => <Skeleton key={i} h={132} />)}
           </div>
+          <HubPageSummary page="personal-assistant-leaks" />
         </div>
       </div>
     );
@@ -2137,7 +2144,7 @@ export default function LeakFinderPage() {
       <PersonalAssistantCopyPolicy />
       <SEOHead
         title="Leak Finder · Fix Your Game"
-        description="Identify And Fix Leaks In Your Poker Game With AI-powered Analysis From Jarvis."
+        description="Identify And Fix Repeated Expected Value Leaks In Your Poker Game With Deterministic Solver Audits And Spaced-Repetition Drills On Smarter.Poker."
         canonical="/hub/personal-assistant/leaks"
       />
 
@@ -2698,6 +2705,7 @@ export default function LeakFinderPage() {
               </LeakErrorBoundary>
             </section>
           )}
+          <HubPageSummary page="personal-assistant-leaks" />
         </main>
 
         {/* ── Review drill (the existing sandbox drill loop, not a second one) ── */}

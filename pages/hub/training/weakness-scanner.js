@@ -11,7 +11,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-53 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -99,9 +100,11 @@ export default function WeaknessScannerPage() {
 
   return (
     <>
-      <Head>
-        <title>Weakness Scanner | Smarter.Poker Training</title>
-      </Head>
+      <SEOHead
+        title="Position & Street Weakness Scanner"
+        description="Scan Your Graded Poker Training History By Table Seat, Street, And Scenario Category To Pinpoint And Fix Expected Value Leaks On Smarter.Poker."
+        canonical="/hub/training/weakness-scanner"
+      />
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-weakness"
         style={{
@@ -537,6 +540,7 @@ export default function WeaknessScannerPage() {
         </div>
       </div>
       <ConnectionToast />
+      <HubPageSummary page="training-weakness-scanner" />
     </>
   );
 }

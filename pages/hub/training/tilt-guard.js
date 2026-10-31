@@ -11,7 +11,8 @@
 // TRAIN-CSS-TOKENS-BATCH4-17 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -358,9 +359,11 @@ export default function TiltGuardPage() {
 
   return (
     <>
-      <Head>
-        <title>Tilt Guard | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="Poker Tilt Guard & Mindset Coach"
+        description="Monitor Mid-Session Emotional Triggers, Log Mental Game Check-Ins, And Run Guided Breathing And Stop-Loss Cooldown Protocols On Smarter.Poker."
+        canonical="/hub/training/tilt-guard"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -673,6 +676,7 @@ export default function TiltGuardPage() {
       </div>
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
       <ConnectionToast />
+      <HubPageSummary page="training-tilt-guard" />
     </>
   );
 }

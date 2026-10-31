@@ -11,7 +11,8 @@
 // TRAIN-CSS-TOKENS-BATCH5-41 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -133,9 +134,11 @@ export default function QREExplorerPage() {
 
   return (
     <>
-      <Head>
-        <title>QRE Explorer | Smarter.Poker Training</title>
-      </Head>
+      <SEOHead
+        title="Quantal Response Equilibrium Explorer"
+        description="Explore How Quantal Response Equilibrium And Softmax Noise Parameter Lambda Transform Sharp Nash Poker Strategies Into Smooth Distributions On Smarter.Poker."
+        canonical="/hub/training/qre-explorer"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -543,6 +546,7 @@ export default function QREExplorerPage() {
           </div>
         </div>
       </div>
+      <HubPageSummary page="training-qre-explorer" />
     </>
   );
 }

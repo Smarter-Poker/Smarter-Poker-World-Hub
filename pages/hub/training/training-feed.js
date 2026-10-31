@@ -11,7 +11,8 @@
 // TRAIN-CSS-TOKENS-BATCH5-62 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -300,9 +301,11 @@ export default function TrainingFeedPage() {
 
   return (
     <>
-      <Head>
-        <title>Training Feed | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="Community Training Activity Feed"
+        description="Follow Live GTO Training Milestones, High-Accuracy Sessions, And Consecutive Daily Streaks From Players Across The Community On Smarter.Poker."
+        canonical="/hub/training/training-feed"
+      />
       <div
         className="sp-training-command sp-training-command--feed"
         style={{
@@ -440,6 +443,7 @@ export default function TrainingFeedPage() {
         </div>
       </div>
       <ConnectionToast />
+      <HubPageSummary page="training-training-feed" />
     </>
   );
 }

@@ -9,7 +9,8 @@
  * shell and clamp-based responsive spacing below.
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
@@ -35,13 +36,11 @@ export default function FamousFinalsArchivePage() {
 
   return (
     <>
-      <Head>
-        <title>Famous Finals Archive | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="A truthful archive notice with links to verified poker training experiences."
-        />
-      </Head>
+      <SEOHead
+        title="Famous Finals Training Archive"
+        description="Explore The Famous Finals Poker Training Archive On Smarter.Poker With Links To Verified Final Table ICM Simulators And Championship Strategy Drills."
+        canonical="/hub/training/famous-finals"
+      />
 
       <main
         data-training-authority="archive-ungraded"
@@ -171,6 +170,7 @@ export default function FamousFinalsArchivePage() {
         </section>
       </main>
       <ConnectionToast />
+      <HubPageSummary page="training-famous-finals" />
     </>
   );
 }

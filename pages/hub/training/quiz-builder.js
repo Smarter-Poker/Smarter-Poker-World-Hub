@@ -12,7 +12,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-35 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -382,9 +383,11 @@ export default function QuizBuilderPage() {
 
   return (
     <>
-      <Head>
-        <title>Quiz Builder | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="Custom GTO Poker Quiz Builder"
+        description="Create, Save, And Practice Custom Multi-Question GTO Poker Strategy Quizzes With Custom Board Textures, Stack Sizes, And Explanations On Smarter.Poker."
+        canonical="/hub/training/quiz-builder"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -627,6 +630,7 @@ export default function QuizBuilderPage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-quiz-builder" />
     </>
   );
 }

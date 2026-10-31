@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -172,7 +173,14 @@ export default function CommunityLeaderboardPage() {
     />
   );
 
-  if (!mounted) return pageHead;
+  if (!mounted) {
+    return (
+      <>
+        {pageHead}
+        <HubPageSummary page="training-community-leaderboard" />
+      </>
+    );
+  }
 
   return (
     <>
@@ -474,6 +482,7 @@ export default function CommunityLeaderboardPage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-community-leaderboard" />
       <ConnectionToast />
     </>
   );
