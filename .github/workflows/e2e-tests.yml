@@ -87,7 +87,7 @@ on:
         type: string
         default: ''
       device_wait_minutes:
-        description: Minutes messenger-calls-device waits for READY from the phone (5-90)
+        description: Minutes messenger-calls-device waits for READY from the phone (5-300)
         type: string
         default: '30'
       upgrade_wait_minutes:
@@ -869,7 +869,7 @@ jobs:
     # the test (at or after device_since).
     name: Published Messenger Calls Physical Device Conductor
     if: ${{ inputs.suite == 'messenger-calls-device' }}
-    timeout-minutes: 120
+    timeout-minutes: 330
     concurrency:
       group: messenger-calls-live
       cancel-in-progress: false
