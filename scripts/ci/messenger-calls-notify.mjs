@@ -143,7 +143,7 @@ async function main() {
             eligiblePage.setDefaultTimeout(20000);
             const devtools = await pushContextPersistent.newCDPSession(eligiblePage);
             report.chromePushPermission = await devtools.send('Browser.setPermission', { permission: { name: 'push', userVisibleOnly: true }, setting: 'granted', origin: APP_ORIGIN }).then(() => 'granted through DevTools', error => `not granted: ${String(error?.message || error).slice(0, 120)}`);
-            report.browsers.chrome = await eligiblePage.evaluate(() => navigator.userAgent.match(/Chrome\/([\d.]+)/)?.[1] || null);
+            report.browsers.chrome = await devtools.send('Browser.getVersion').then(v => v.product, () => null);
             const eligible = { context: pushContextPersistent, page: eligiblePage };
             pushContext = eligible.context;
             await eligible.page.goto(`${APP_ORIGIN}/hub/friends`, { waitUntil: 'domcontentloaded' });
@@ -207,7 +207,10 @@ async function main() {
         // ── Part B: ringing outside Messenger ────────────────────────────
         // Only one callee device may be open: close Part A's Chrome pages (its
         // service worker stays registered for Part C).
-        if (pushContext) for (const p of pushContext.pages()) await p.close();
+        // Headed Chrome quits with its last window (run 41252155283), so the
+        // app page is left for about:blank: the app is closed, the browser and
+        // its push worker stay up.
+        if (pushContext) for (const p of pushContext.pages()) await p.goto('about:blank').catch(() => {});
         if (PARTS.has('B')) {
         const callee = await session(chrome, C.session, { ...devices['Pixel 7'] }, { media: true });
         const cdp = await callee.context.newCDPSession(callee.page);
