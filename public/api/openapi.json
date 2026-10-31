@@ -1418,7 +1418,7 @@
           "200": {
             "description": "JSON-LD @graph document.",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "type": "object"
                 },

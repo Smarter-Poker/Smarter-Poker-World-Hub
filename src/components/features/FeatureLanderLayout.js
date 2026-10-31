@@ -318,9 +318,9 @@ export default function FeatureLanderLayout({
           )}
 
           <AiPromptLauncher
-            title={h1 || title}
-            canonicalUrl={fullCanonical}
-            markdownUrl={`${fullCanonical}.md`}
+            title={metaTitle || title}
+            canonicalUrl={`https://smarter.poker${canonical}`}
+            markdownUrl={markdownUrl || `https://smarter.poker${canonical}.md`}
           />
 
           <footer style={styles.footer}>

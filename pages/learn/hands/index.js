@@ -66,7 +66,7 @@ export default function StartingHandsIndexPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Poker Starting Hand Encyclopedia And GTO Guide"
+        title="Poker Starting Hand Encyclopedia"
         description="Complete Texas Hold'em Starting Hand Encyclopedia: Combinatorics, Preflop Rank, Equity Vs. Random Hands, And 6-Max 100BB GTO Opening Strategy."
         canonical={HANDS_BASE_PATH}
         jsonLd={handsIndexSchema()}

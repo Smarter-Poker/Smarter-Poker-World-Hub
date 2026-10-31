@@ -67,7 +67,7 @@ export default function EditorialStandardsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Editorial Independence And Mathematical Standards"
+        title="Editorial And Mathematical Standards"
         description="Smarter.Poker Editorial Governance, Primary-Source Citation Laws, GTO Solver Verification Pipeline, And Corrections Policy."
         canonical="/editorial-standards"
         jsonLd={editorialSchema()}

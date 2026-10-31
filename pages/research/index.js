@@ -81,7 +81,7 @@ export default function ResearchIndexPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Poker Industry Research And Data Benchmark Reports"
+        title="Poker Industry Research And Benchmarks"
         description="Original Poker Industry Research And Statistical Benchmark Reports By Smarter.Poker: Live Room Rake Caps, Tournament Buy-In Indexes, And GTO Population Leak Studies."
         canonical={RESEARCH_BASE_PATH}
         jsonLd={researchIndexJsonLd()}
