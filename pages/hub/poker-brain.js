@@ -13,7 +13,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
-import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
 
 // Dynamic import: HUD uses canvas, video, Web Audio — no SSR
 const PokerBrainHUD = dynamic(
@@ -41,9 +41,9 @@ export default function PokerBrainPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session?.user) {
-          setUser(data.session.user);
+        const authUser = getAuthUser();
+        if (authUser) {
+          setUser(authUser);
         } else {
           // Not logged in — redirect to login
           router.replace('/hub?login=1');
@@ -58,11 +58,25 @@ export default function PokerBrainPage() {
   }, [router]);
 
   if (loading) {
-    return <HUDLoadingPlaceholder />;
+    return (
+      <>
+        <Head>
+          <title>Poker Brain | Smarter.Poker</title>
+          <meta name="description" content="Live poker HUD with GTO recommendations powered by Horse Brain AI" />
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <HUDLoadingPlaceholder />
+      </>
+    );
   }
 
   if (!user) {
-    return null; // Redirecting to login
+    return (
+      <Head>
+        <title>Poker Brain | Smarter.Poker</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Head>
+    );
   }
 
   return (
@@ -70,6 +84,7 @@ export default function PokerBrainPage() {
       <Head>
         <title>Poker Brain | Smarter.Poker</title>
         <meta name="description" content="Live poker HUD with GTO recommendations powered by Horse Brain AI" />
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <PokerBrainHUD
         initialMode="screen"

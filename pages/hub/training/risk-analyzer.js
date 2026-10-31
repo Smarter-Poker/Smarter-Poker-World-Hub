@@ -12,7 +12,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-40 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
@@ -89,9 +90,11 @@ export default function RiskAnalyzerPage() {
 
   return (
     <>
-      <Head>
-        <title>Risk Analyzer | Smarter.Poker Training</title>
-      </Head>
+      <SEOHead
+        title="Poker Risk Of Ruin & Variance Tool"
+        description="Simulate Thousands Of Monte Carlo Poker Bankroll Trajectories To Calculate Risk Of Ruin, Downswing Probabilities, And Variance Cushions On Smarter.Poker."
+        canonical="/hub/training/risk-analyzer"
+      />
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-risk"
         style={{
@@ -451,6 +454,7 @@ export default function RiskAnalyzerPage() {
         </div>
       </div>
       <ConnectionToast />
+      <HubPageSummary page="training-risk-analyzer" />
     </>
   );
 }

@@ -26,8 +26,10 @@ import {
 import bundledSeriesData from '../../../data/poker-tour-series-2026.json' with { type: 'json' };
 import { AS_OF as COMPARE_AS_OF, compareRoutes } from '../../content/compare/pages.js';
 import tourSourceRegistry from '../../../data/tour-source-registry.json' with { type: 'json' };
-import { LESSONS } from '../../content/learn/lessons.js';
-import { LEARN_PATH, lessonPath } from '../learn/learnSite.js';
+import { LESSONS, LEARN_CATEGORIES } from '../../content/learn/lessons.js';
+import { LEARN_PATH, lessonPath, learnCategoryPath } from '../learn/learnSite.js';
+import { STARTING_HANDS } from '../../content/learn/hands.js';
+import { RESEARCH_REPORTS } from '../../content/research/reports.js';
 
 export const SITE_URL = 'https://smarter.poker';
 export const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -46,12 +48,23 @@ export const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 
 export const LEARN_PAGES = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
+  { path: '/learn/hands', priority: '0.8', changefreq: 'monthly' },
+  ...STARTING_HANDS.map((h) => ({ path: `/learn/hands/${h.slug}`, priority: '0.75', changefreq: 'monthly' })),
+  ...LEARN_CATEGORIES.map((c) => ({ path: learnCategoryPath(c), priority: '0.75', changefreq: 'monthly' })),
   ...LESSONS.map((l) => ({ path: lessonPath(l.slug), priority: '0.7', changefreq: 'monthly' })),
+];
+
+export const RESEARCH_PAGES = [
+  { path: '/research', priority: '0.85', changefreq: 'monthly' },
+  ...RESEARCH_REPORTS.map((r) => ({ path: `/research/${r.slug}`, priority: '0.8', changefreq: 'monthly', lastmod: r.updated })),
 ];
 
 export const STATIC_PAGES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
   { path: '/about', priority: '0.8', changefreq: 'monthly' },
+  { path: '/verification-methodology', priority: '0.7', changefreq: 'monthly' },
+  { path: '/editorial-standards', priority: '0.75', changefreq: 'monthly' },
+  ...RESEARCH_PAGES,
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
   { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { path: '/legal/official-rules', priority: '0.3', changefreq: 'yearly' },
@@ -73,6 +86,11 @@ export const STATIC_PAGES = [
   { path: '/hub/vip-membership/gift/monthly', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/vip-membership/gift/yearly', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/vip-membership/gift/lifetime', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/vip-membership/compare', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/install', priority: '0.7', changefreq: 'monthly' },
+  { path: '/hub/personal-assistant', priority: '0.85', changefreq: 'weekly' },
+  { path: '/hub/personal-assistant/leaks', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/personal-assistant/sandbox', priority: '0.7', changefreq: 'monthly' },
   { path: '/hub/merch-store', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/smarter-rewards', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/club-shop', priority: '0.5', changefreq: 'weekly' },
@@ -141,6 +159,42 @@ export const STATIC_PAGES = [
   { path: '/hub/training/hand-history-upload', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/training/jarvis', priority: '0.6', changefreq: 'weekly' },
   { path: '/hub/training/solutions', priority: '0.6', changefreq: 'weekly' },
+  { path: '/hub/training/autopilot', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/training/coach-mode', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/community-leaderboard', priority: '0.65', changefreq: 'daily' },
+  { path: '/hub/training/custom-rake', priority: '0.75', changefreq: 'monthly' },
+  { path: '/hub/training/custom-solve', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/daily-challenge', priority: '0.75', changefreq: 'daily' },
+  { path: '/hub/training/drill-builder', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/training/famous-finals', priority: '0.65', changefreq: 'monthly' },
+  { path: '/hub/training/final-table-sim', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/flashcards', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/focus-timer', priority: '0.65', changefreq: 'monthly' },
+  { path: '/hub/training/gto-news', priority: '0.7', changefreq: 'daily' },
+  { path: '/hub/training/gto-preloader', priority: '0.65', changefreq: 'monthly' },
+  { path: '/hub/training/hand-comparison', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/hand-lab', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/icm-simulator', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/multi-table', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/training/multiway-preflop', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/position-mastery', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/training/preflop-charts', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/qre-explorer', priority: '0.7', changefreq: 'monthly' },
+  { path: '/hub/training/quick-warmup', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/training/quiz-builder', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/training/rake-solutions', priority: '0.75', changefreq: 'monthly' },
+  { path: '/hub/training/range-builder', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/risk-analyzer', priority: '0.75', changefreq: 'monthly' },
+  { path: '/hub/training/scenario-demo', priority: '0.7', changefreq: 'monthly' },
+  { path: '/hub/training/session-warmup', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/training/short-deck-trainer', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/skill-tree', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/spot-trainer', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/study-group-finder', priority: '0.65', changefreq: 'daily' },
+  { path: '/hub/training/tilt-guard', priority: '0.7', changefreq: 'weekly' },
+  { path: '/hub/training/tournament-prep', priority: '0.75', changefreq: 'weekly' },
+  { path: '/hub/training/training-feed', priority: '0.65', changefreq: 'daily' },
+  { path: '/hub/training/weakness-scanner', priority: '0.7', changefreq: 'weekly' },
 
   // Hub — Preflop Charts sub-pages
   { path: '/hub/preflop-charts/leaderboard', priority: '0.5', changefreq: 'daily' },

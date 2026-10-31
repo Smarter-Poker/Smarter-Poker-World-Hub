@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import Link from 'next/link';
 import { Smartphone, Tablet, ArrowRight, CheckCircle2 } from 'lucide-react';
 import {
@@ -276,6 +277,7 @@ export default function InstallPage() {
                         </p>
                     </div>
                 </div>
+                <HubPageSummary page="install" />
             </div>
         </>
     );

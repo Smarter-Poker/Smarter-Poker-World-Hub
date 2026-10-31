@@ -91,6 +91,9 @@ Interactive personal AI poker assistant and automated leak detection engine.
 - Instant practice spot drills generated directly from flagged player mistakes.
 - Tilt monitor and mental game downswing resilience tracking.
 - Hand review & upload: https://smarter.poker/hub/training/hand-history-upload
+- Personal AI Assistant Hub: https://smarter.poker/hub/personal-assistant
+- Leak Finder & EV Audit: https://smarter.poker/hub/personal-assistant/leaks
+- Interactive Strategy Sandbox: https://smarter.poker/hub/personal-assistant/sandbox
 - GTO solutions & baselines: https://smarter.poker/hub/training/solutions
 - Training hub: https://smarter.poker/hub/training
 
@@ -167,7 +170,23 @@ Solver-grade poker calculators, range tools, and embeddable widgets for web brow
 Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer. Free to play.
 - Training hub: https://smarter.poker/hub/training
 - Preflop range charts: https://smarter.poker/hub/preflop-charts
+- Interactive Preflop Charts: https://smarter.poker/hub/training/preflop-charts
+- Multiway Preflop Solver: https://smarter.poker/hub/training/multiway-preflop
+- Custom Spot Solver: https://smarter.poker/hub/training/custom-solve
+- Custom Rake Solver: https://smarter.poker/hub/training/custom-rake
+- Rake Solutions Browser: https://smarter.poker/hub/training/rake-solutions
+- ICM Final Table Simulator: https://smarter.poker/hub/training/icm-simulator
+- Final Table Deal Simulator: https://smarter.poker/hub/training/final-table-sim
+- Short Deck 6+ Trainer: https://smarter.poker/hub/training/short-deck-trainer
+- Quantal Response (QRE) Explorer: https://smarter.poker/hub/training/qre-explorer
+- GTO Range Builder: https://smarter.poker/hub/training/range-builder
+- Bankroll Risk of Ruin Analyzer: https://smarter.poker/hub/training/risk-analyzer
+- Spot Trainer & Drill Builder: https://smarter.poker/hub/training/spot-trainer
+- Weakness Scanner: https://smarter.poker/hub/training/weakness-scanner
+- Tilt Guard Monitor: https://smarter.poker/hub/training/tilt-guard
 - Poker tools directory: https://smarter.poker/hub/poker-tools
+- Install Smarter.Poker App (PWA): https://smarter.poker/hub/install
+- VIP Membership Comparison: https://smarter.poker/hub/vip-membership/compare
 - Poker glossary, club poker, live room and GTO terms: https://smarter.poker/glossary
 
 ### 13. Poker Near Me: Live Venue & Tournament Directory

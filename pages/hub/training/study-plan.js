@@ -569,6 +569,7 @@ export default function StudyPlanPage() {
     <>
       <Head>
         <title>Study Plan | Smarter.Poker GTO Training</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div
         className="sp-training-journey sp-training-journey--study-plan"

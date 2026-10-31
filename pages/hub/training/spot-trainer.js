@@ -11,7 +11,8 @@
  * while the signed Arena owns blind answers and persistent feedback.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { AnimatePresence, motion } from 'framer-motion';
 import Card from '../../../src/components/training/Card';
@@ -143,13 +144,11 @@ export default function SpotTrainerPage() {
 
   return (
     <>
-      <Head>
-        <title>Solver Spot Study | Smarter.Poker GTO Training</title>
-        <meta
-          name="description"
-          content="Review answer-revealed, solver-verified postflop policies without affecting Training scores, progress, or rewards."
-        />
-      </Head>
+      <SEOHead
+        title="Answer-Revealed Solver Spot Study"
+        description="Review Answer-Revealed, Provenance-Audited Postflop Solver Policies And Action Frequencies Without Affecting Your Ranked Training Score On Smarter.Poker."
+        canonical="/hub/training/spot-trainer"
+      />
 
       <main
         style={{
@@ -484,6 +483,7 @@ export default function SpotTrainerPage() {
           </section>
         </div>
       </main>
+      <HubPageSummary page="training-spot-trainer" />
     </>
   );
 }

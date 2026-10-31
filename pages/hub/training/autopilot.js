@@ -12,7 +12,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-3 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -354,24 +355,34 @@ export default function AutopilotPage() {
   // Active arena
   if (isPlaying && activeSpot && arenaUserId && autopilotRunId) {
     return (
-      <GodModeArena
-        key={`${autopilotRunId}:${currentSpotIdx}:${activeSpot.gameId}`}
-        userId={arenaUserId}
-        gameId={activeSpot.gameId}
-        gameName={`Autopilot: ${activeSpot.name}`}
-        level={1}
-        sessionId={`${autopilotRunId}-${currentSpotIdx}`}
-        initialConfig={AUTOPILOT_ARENA_CONFIG}
-        onComplete={handleArenaComplete}
-      />
+      <>
+        <SEOHead
+          title="Weak Spot Autopilot GTO Trainer"
+          description="Stream Continuous GTO Poker Drills Automatically Targeted At Your Lowest-Accuracy Table Positions, Streets, And Scenario Categories On Smarter.Poker."
+          canonical="/hub/training/autopilot"
+        />
+        <GodModeArena
+          key={`${autopilotRunId}:${currentSpotIdx}:${activeSpot.gameId}`}
+          userId={arenaUserId}
+          gameId={activeSpot.gameId}
+          gameName={`Autopilot: ${activeSpot.name}`}
+          level={1}
+          sessionId={`${autopilotRunId}-${currentSpotIdx}`}
+          initialConfig={AUTOPILOT_ARENA_CONFIG}
+          onComplete={handleArenaComplete}
+        />
+        <HubPageSummary page="training-autopilot" />
+      </>
     );
   }
 
   return (
     <>
-      <Head>
-        <title>Autopilot | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="Weak Spot Autopilot GTO Trainer"
+        description="Stream Continuous GTO Poker Drills Automatically Targeted At Your Lowest-Accuracy Table Positions, Streets, And Scenario Categories On Smarter.Poker."
+        canonical="/hub/training/autopilot"
+      />
       <div
         style={{
           minHeight: '100dvh',
@@ -721,6 +732,7 @@ export default function AutopilotPage() {
           )}
         </div>
       </div>
+      <HubPageSummary page="training-autopilot" />
       {UpgradePopup}
       <ConnectionToast />
     </>

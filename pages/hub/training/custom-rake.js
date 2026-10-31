@@ -9,7 +9,8 @@
 // TRAIN-CSS-TOKENS-BATCH5-8 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-3 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useMemo } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -157,13 +158,11 @@ export default function CustomRakePage() {
 
   return (
     <>
-      <Head>
-        <title>Rake Cost Estimator | Smarter.Poker</title>
-        <meta
-          name="description"
-          content="Explore a transparent teaching estimate of rake cost without solver or GTO claims"
-        />
-      </Head>
+      <SEOHead
+        title="Poker Rake Cost Estimator Calculator"
+        description="Calculate How Pot Percentage Rake, Dollar Caps, And No-Flop-No-Drop Rules Impact Your Hourly Poker Win Rate And BB/100 Bottom Line On Smarter.Poker."
+        canonical="/hub/training/custom-rake"
+      />
 
       <div
         style={{
@@ -459,6 +458,7 @@ export default function CustomRakePage() {
           </div>
         </div>
       </div>
+      <HubPageSummary page="training-custom-rake" />
     </>
   );
 }

@@ -11,7 +11,8 @@
 // TRAIN-CSS-TOKENS-BATCH5-45 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -167,9 +168,11 @@ export default function RakeSolutionsPage() {
 
   return (
     <>
-      <Head>
-        <title>Rake Sensitivity Model | Smarter.Poker Training</title>
-      </Head>
+      <SEOHead
+        title="Poker Rake Sensitivity Explorer"
+        description="Visualize How Pot Percentage Rake And Dollar Caps Shift Preflop Opening, Cold-Calling, And Three-Betting Sensitivity Curves On Smarter.Poker."
+        canonical="/hub/training/rake-solutions"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -484,6 +487,7 @@ export default function RakeSolutionsPage() {
           </div>
         </div>
       </div>
+      <HubPageSummary page="training-rake-solutions" />
     </>
   );
 }

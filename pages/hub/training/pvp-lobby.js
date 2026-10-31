@@ -21,6 +21,7 @@ export default function PvPLobbyPage() {
       <Head>
         <title>PvP Lobby | Smarter.Poker Training</title>
         <meta name="description" content="Competitive training status and verified heads-up practice." />
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <UniversalHeader pageDepth={2} />
       <main className="sp-training-command sp-training-command--pvp" style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 8%, #18394d 0, #060a11 44%, #020407 100%)', color: '#f7fbff' }}>

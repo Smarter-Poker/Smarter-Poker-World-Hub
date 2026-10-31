@@ -10,6 +10,7 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -56,7 +57,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
       <PersonalAssistantCopyPolicy />
       <SEOHead
         title="Scenario Analysis: Verified Evidence"
-        description="Approximate scenario grading is retired. Continue in an evidence-backed Smarter.Poker Training experience."
+        description="Approximate Scenario Grading Is Retired On Smarter.Poker. Continue In Our Evidence-Backed GTO Training And Audited Solver Spot Study Experiences."
         canonical="/hub/personal-assistant/sandbox"
       />
 
@@ -133,6 +134,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
             Back To Personal Assistant
           </button>
         </section>
+        <HubPageSummary page="personal-assistant-sandbox" />
       </main>
 
       <style jsx>{`

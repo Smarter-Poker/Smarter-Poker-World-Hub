@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -499,7 +500,7 @@ export default function PersonalAssistantPage() {
     <PageTransition disableInitialAnimation>
       <SEOHead
         title="Personal Poker Assistant - Jarvis AI"
-        description="Get Personalized Poker Coaching, Hand Analysis, And Strategy Advice From Jarvis, Your AI Poker Assistant."
+        description="Get Personalized Poker Coaching, Deterministic Leak Detection, And Evidence-Backed Training Reviews From Jarvis, Your AI Poker Strategy Assistant On Smarter.Poker."
         canonical="/hub/personal-assistant"
       />
       <Head>
@@ -821,6 +822,7 @@ export default function PersonalAssistantPage() {
           </section>
           </>
           )}
+          <HubPageSummary page="personal-assistant" />
         </main>
         </PullToRefresh>
       </div>

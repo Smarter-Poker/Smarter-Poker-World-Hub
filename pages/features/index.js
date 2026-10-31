@@ -155,6 +155,57 @@ export const ALL_FEATURES = [
   },
 ];
 
+export const WORLD_HUB_TOOLS_DIRECTORY = [
+  { name: 'Jarvis Personal Poker Assistant', href: '/hub/personal-assistant', category: 'AI Coaching & Leak Audits' },
+  { name: 'Leak Finder Post-Session Audit', href: '/hub/personal-assistant/leaks', category: 'AI Coaching & Leak Audits' },
+  { name: 'Scenario Analysis Evidence Gate', href: '/hub/personal-assistant/sandbox', category: 'AI Coaching & Leak Audits' },
+  { name: 'Jarvis Training Insights', href: '/hub/training/jarvis', category: 'AI Coaching & Leak Audits' },
+  { name: 'Hand History Upload & Solver Grader', href: '/hub/training/hand-history-upload', category: 'AI Coaching & Leak Audits' },
+  { name: 'Weakness Scanner By Position & Street', href: '/hub/training/weakness-scanner', category: 'AI Coaching & Leak Audits' },
+  { name: 'Weak Spot Autopilot Trainer', href: '/hub/training/autopilot', category: 'GTO Drills & Practice' },
+  { name: 'Guided GTO Coach Mode Lessons', href: '/hub/training/coach-mode', category: 'GTO Drills & Practice' },
+  { name: 'Answer-Revealed Solver Spot Study', href: '/hub/training/spot-trainer', category: 'GTO Drills & Practice' },
+  { name: 'Audited Solver Solutions Library', href: '/hub/training/solutions', category: 'GTO Drills & Practice' },
+  { name: 'Custom GTO Spot & Preflop Query', href: '/hub/training/custom-solve', category: 'GTO Drills & Practice' },
+  { name: 'Custom Poker Drill Builder', href: '/hub/training/drill-builder', category: 'GTO Drills & Practice' },
+  { name: 'Custom GTO Poker Quiz Builder', href: '/hub/training/quiz-builder', category: 'GTO Drills & Practice' },
+  { name: 'Spaced-Repetition GTO Flashcards', href: '/hub/training/flashcards', category: 'GTO Drills & Practice' },
+  { name: 'Multi-Table GTO Practice Simulator', href: '/hub/training/multi-table', category: 'GTO Drills & Practice' },
+  { name: 'Short Deck 6+ Holdem Equity Trainer', href: '/hub/training/short-deck-trainer', category: 'GTO Drills & Practice' },
+  { name: 'Interactive GTO Strategy Tutorial', href: '/hub/training/scenario-demo', category: 'GTO Drills & Practice' },
+  { name: 'Interactive Poker Skill Tree Map', href: '/hub/training/skill-tree', category: 'GTO Drills & Practice' },
+  { name: 'Poker Position Mastery Heatmap', href: '/hub/training/position-mastery', category: 'GTO Drills & Practice' },
+  { name: '6-Max 100BB Preflop Range Browser', href: '/hub/training/preflop-charts', category: 'Preflop & Postflop Labs' },
+  { name: 'Multiway 3+ Player Preflop Ranges', href: '/hub/training/multiway-preflop', category: 'Preflop & Postflop Labs' },
+  { name: 'Interactive 13x13 Range Builder', href: '/hub/training/range-builder', category: 'Preflop & Postflop Labs' },
+  { name: 'Poker Hand Lab & Board Analyzer', href: '/hub/training/hand-lab', category: 'Preflop & Postflop Labs' },
+  { name: 'A/B Poker Hand Equity Comparison', href: '/hub/training/hand-comparison', category: 'Preflop & Postflop Labs' },
+  { name: 'Starting Hands Strategy Encyclopedia', href: '/learn/hands', category: 'Preflop & Postflop Labs' },
+  { name: 'Tournament ICM Equity Simulator', href: '/hub/training/icm-simulator', category: 'Tournaments, ICM & Math' },
+  { name: 'Final Table ICM & Deal Simulator', href: '/hub/training/final-table-sim', category: 'Tournaments, ICM & Math' },
+  { name: 'Famous Finals Training Archive', href: '/hub/training/famous-finals', category: 'Tournaments, ICM & Math' },
+  { name: 'Tournament Structure & M-Ratio Planner', href: '/hub/training/tournament-prep', category: 'Tournaments, ICM & Math' },
+  { name: 'Poker Rake Cost Estimator Calculator', href: '/hub/training/custom-rake', category: 'Tournaments, ICM & Math' },
+  { name: 'Poker Rake Sensitivity Explorer', href: '/hub/training/rake-solutions', category: 'Tournaments, ICM & Math' },
+  { name: 'Poker Risk Of Ruin & Variance Tool', href: '/hub/training/risk-analyzer', category: 'Tournaments, ICM & Math' },
+  { name: 'Quantal Response Equilibrium Explorer', href: '/hub/training/qre-explorer', category: 'Tournaments, ICM & Math' },
+  { name: 'Original Poker Research & Benchmarks', href: '/research', category: 'Tournaments, ICM & Math' },
+  { name: '5-Minute Pre-Session Poker Warmup', href: '/hub/training/quick-warmup', category: 'Mental Game & Community' },
+  { name: 'Pre-Session Mental Readiness Protocol', href: '/hub/training/session-warmup', category: 'Mental Game & Community' },
+  { name: 'Poker Tilt Guard & Mindset Coach', href: '/hub/training/tilt-guard', category: 'Mental Game & Community' },
+  { name: 'Poker Session Pomodoro Focus Timer', href: '/hub/training/focus-timer', category: 'Mental Game & Community' },
+  { name: 'Daily Poker Hand Of The Day Challenge', href: '/hub/training/daily-challenge', category: 'Mental Game & Community' },
+  { name: 'GTO Training Community Leaderboard', href: '/hub/training/community-leaderboard', category: 'Mental Game & Community' },
+  { name: 'Community Training Activity Feed', href: '/hub/training/training-feed', category: 'Mental Game & Community' },
+  { name: 'Poker Study Group Finder Directory', href: '/hub/training/study-group-finder', category: 'Mental Game & Community' },
+  { name: 'GTO Strategy Tips & Training Feed', href: '/hub/training/gto-news', category: 'Mental Game & Community' },
+  { name: 'Offline GTO Training Pack Preloader', href: '/hub/training/gto-preloader', category: 'Mental Game & Community' },
+  { name: 'Install Smarter.Poker App (iOS & Android)', href: '/hub/install', category: 'Platform Utilities' },
+  { name: 'Compare VIP Membership Plans', href: '/hub/vip-membership/compare', category: 'Platform Utilities' },
+  { name: 'Verification Methodology', href: '/verification-methodology', category: 'Platform Utilities' },
+  { name: 'Editorial & Solver Standards', href: '/editorial-standards', category: 'Platform Utilities' },
+];
+
 export default function FeaturesIndexPage() {
   const collectionSchema = {
     '@context': 'https://schema.org',
@@ -262,6 +313,43 @@ export default function FeaturesIndexPage() {
             </article>
           ))}
         </main>
+
+        <section style={{ marginTop: 64, paddingTop: 48, borderTop: '1px solid #1F2937' }} aria-labelledby="world-hub-directory-heading">
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div style={styles.badge}>Complete World Hub Directory</div>
+            <h2 id="world-hub-directory-heading" style={{ fontSize: '2rem', fontWeight: 800, color: '#FFFFFF', marginBottom: 12 }}>
+              All Interactive Training Simulators, Calculators &amp; Hub Tools
+            </h2>
+            <p style={styles.subtitle}>
+              Direct Server-Rendered Index Of Every Public Training Utility, Solver Reference, ICM Simulator, And Personal Assistant Tool Inside The Smarter.Poker World Hub.
+            </p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+            {WORLD_HUB_TOOLS_DIRECTORY.map((tool) => (
+              <Link
+                key={tool.href}
+                href={tool.href}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  padding: '14px 16px',
+                  background: '#111827',
+                  border: '1px solid #1F2937',
+                  borderRadius: 10,
+                  textDecoration: 'none',
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#34D399', letterSpacing: '0.03em' }}>
+                  {tool.category}
+                </span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#60A5FA' }}>
+                  {tool.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
       </div>
     </>
   );

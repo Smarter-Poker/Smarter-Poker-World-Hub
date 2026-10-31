@@ -12,7 +12,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-34 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -223,6 +224,11 @@ export default function QuickWarmupPage() {
   if (phase === 'playing' && selectedGame && arenaUserId && arenaSessionId) {
     return (
       <div style={{ position: 'relative' }}>
+        <SEOHead
+          title="5-Minute Pre-Session Poker Warmup"
+          description="Calibrate Your Poker Decision Speed And Solver Accuracy Before Sitting Down At The Table With A Timed 5-Minute GTO Speed Warmup On Smarter.Poker."
+          canonical="/hub/training/quick-warmup"
+        />
         {/* Timer overlay */}
         <div
           style={{
@@ -264,15 +270,18 @@ export default function QuickWarmupPage() {
           initialConfig={WARMUP_ARENA_CONFIG}
           onComplete={handleArenaComplete}
         />
+        <HubPageSummary page="training-quick-warmup" />
       </div>
     );
   }
 
   return (
     <>
-      <Head>
-        <title>Quick Warmup | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="5-Minute Pre-Session Poker Warmup"
+        description="Calibrate Your Poker Decision Speed And Solver Accuracy Before Sitting Down At The Table With A Timed 5-Minute GTO Speed Warmup On Smarter.Poker."
+        canonical="/hub/training/quick-warmup"
+      />
       <div
         style={{
           minHeight: '100dvh',
@@ -556,6 +565,7 @@ export default function QuickWarmupPage() {
         </div>
       </div>
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSessions(); }} />}
+      <HubPageSummary page="training-quick-warmup" />
       <ConnectionToast />
     </>
   );

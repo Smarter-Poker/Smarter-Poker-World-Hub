@@ -248,6 +248,7 @@ export default function SessionNotesPage() {
     <>
       <Head>
         <title>Session Notes | Smarter.Poker GTO Training</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div
         style={{

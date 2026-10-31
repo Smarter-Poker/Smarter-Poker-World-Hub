@@ -20,6 +20,7 @@ export default function LiveHudSyncPage() {
       <Head>
         <title>Live HUD Sync | Smarter.Poker Training</title>
         <meta name="description" content="Live table integration status and supported hand import." />
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <UniversalHeader pageDepth={2} />
       <main style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 8%, #14394f 0, #060b12 43%, #020407 100%)', color: '#f7fbff' }}>

@@ -12,7 +12,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-6 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
@@ -421,9 +422,11 @@ export default function CoachModePage() {
 
     return (
       <>
-        <Head>
-          <title>{activeLesson.name} | Coach Mode</title>
-        </Head>
+        <SEOHead
+          title="Guided GTO Coach Mode Lessons"
+          description="Master Poker Strategy Through Guided GTO Coach Mode Lessons And Interactive Check-For-Understanding Quizzes On C-Betting, 3-Bet Pots, And ICM On Smarter.Poker."
+          canonical="/hub/training/coach-mode"
+        />
         <div className="sp-training-command sp-training-command--coach sp-coach-casino sp-coach-casino--lesson">
           <header className="sp-command-header sp-coach-lesson-header">
             <button
@@ -602,6 +605,7 @@ export default function CoachModePage() {
             )}
           </main>
         </div>
+        <HubPageSummary page="training-coach-mode" />
       </>
     );
   }
@@ -611,9 +615,11 @@ export default function CoachModePage() {
 
   return (
     <>
-      <Head>
-        <title>Coach Mode | Smarter.Poker GTO Training</title>
-      </Head>
+      <SEOHead
+        title="Guided GTO Coach Mode Lessons"
+        description="Master Poker Strategy Through Guided GTO Coach Mode Lessons And Interactive Check-For-Understanding Quizzes On C-Betting, 3-Bet Pots, And ICM On Smarter.Poker."
+        canonical="/hub/training/coach-mode"
+      />
       <div className="sp-training-command sp-training-command--coach sp-coach-casino">
         <main className="sp-command-main sp-coach-home">
           <section className="sp-command-header sp-coach-hero" aria-labelledby="coach-mode-title">
@@ -685,6 +691,7 @@ export default function CoachModePage() {
           </section>
         </main>
       </div>
+      <HubPageSummary page="training-coach-mode" />
     </>
   );
 }

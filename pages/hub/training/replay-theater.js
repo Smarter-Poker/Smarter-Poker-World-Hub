@@ -368,6 +368,7 @@ export default function ReplayTheaterPage() {
     <>
       <Head>
         <title>Replay Theater | Smarter.Poker GTO Training</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div
         style={{

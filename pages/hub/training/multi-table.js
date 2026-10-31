@@ -10,7 +10,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-24 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -367,13 +368,11 @@ export default function MultiTablePage() {
 
   return (
     <>
-      <Head>
-        <title>Multi-Table Practice | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Practice GTO decisions across 2-4 tables simultaneously. Build speed and accuracy under pressure."
-        />
-      </Head>
+      <SEOHead
+        title="Multi-Table GTO Practice Simulator"
+        description="Practice GTO Poker Decisions Across 2 To 4 Simultaneous Tables With Independent Action Clocks To Build Speed And Accuracy Under Pressure On Smarter.Poker."
+        canonical="/hub/training/multi-table"
+      />
 
       <div
         style={{
@@ -1005,6 +1004,7 @@ export default function MultiTablePage() {
         )}
       </div>
       <ConnectionToast />
+      <HubPageSummary page="training-multi-table" />
     </>
   );
 }

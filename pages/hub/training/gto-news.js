@@ -13,7 +13,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useSWR from 'swr';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
@@ -416,13 +417,11 @@ export default function GtoNewsPage() {
 
   return (
     <>
-      <Head>
-        <title>GTO News | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Stay sharp with daily GTO strategy tips covering preflop ranges, postflop play, poker math, and mental game."
-        />
-      </Head>
+      <SEOHead
+        title="GTO Strategy Tips & Training Feed"
+        description="Read Bite-Sized GTO Poker Strategy Breakdowns On Range Advantage, Minimum Defense Frequency, Blockers, And ICM Adjustments On Smarter.Poker."
+        canonical="/hub/training/gto-news"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -802,6 +801,7 @@ export default function GtoNewsPage() {
           ))}
         </div>
       </div>
+      <HubPageSummary page="training-gto-news" />
     </>
   );
 }

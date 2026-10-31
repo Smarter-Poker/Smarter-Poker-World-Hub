@@ -1,6 +1,7 @@
 // TRAIN-CSS-TOKENS-BATCH5-59 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useCallback, useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -135,9 +136,11 @@ export default function TournamentPrepPlanner() {
   return (
     <>
     <PageTransition>
-      <Head>
-        <title>Tournament Prep Planner | Smarter.Poker</title>
-      </Head>
+      <SEOHead
+        title="Tournament Structure & M-Ratio Planner"
+        description="Analyze Tournament Blind Level Duration, Starting Stack Depth, And Harrington M-Ratio Zones Before Registering For Your Next Event On Smarter.Poker."
+        canonical="/hub/training/tournament-prep"
+      />
       <UniversalHeader pageDepth={2} hideLeftIcon />
 
       <div className="sp-training-command sp-training-command--tournament" style={styles.container}>
@@ -422,6 +425,7 @@ export default function TournamentPrepPlanner() {
       </div>
     </PageTransition>
     <ConnectionToast />
+      <HubPageSummary page="training-tournament-prep" />
     </>
   );
 }

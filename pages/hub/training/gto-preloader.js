@@ -14,7 +14,8 @@
 // TRAIN-CSS-TOKENS-BATCH6-6 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
@@ -317,9 +318,11 @@ export default function GtoPreloaderPage() {
 
   return (
     <>
-      <Head>
-        <title>GTO Preloader | Smarter.Poker Training</title>
-      </Head>
+      <SEOHead
+        title="Offline GTO Training Pack Preloader"
+        description="Download And Cache Solved GTO Poker Scenario Packs And Preflop Range Matrices Into Browser Storage For Offline And Airplane Study On Smarter.Poker."
+        canonical="/hub/training/gto-preloader"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -614,6 +617,7 @@ export default function GtoPreloaderPage() {
           </div>
         </div>
       </div>
+      <HubPageSummary page="training-gto-preloader" />
     </>
   );
 }

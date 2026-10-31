@@ -222,6 +222,7 @@ export default function DailyGoalsPage() {
     <>
       <Head>
         <title>Daily Goals | Smarter.Poker Training</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div
         className={`sp-training-journey sp-training-journey--daily-goals ${casinoStyles.shell}`}

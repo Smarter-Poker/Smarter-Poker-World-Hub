@@ -19,7 +19,8 @@
 // TRAIN-CSS-MOBILE-ADOPT-10 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-17 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -495,13 +496,11 @@ export default function HandComparison() {
 
   return (
     <>
-      <Head>
-        <title>Hand Comparison | Smarter.Poker</title>
-        <meta
-          name="description"
-          content="Compare any two poker hands head-to-head on a custom board with equity analysis and run-outs."
-        />
-      </Head>
+      <SEOHead
+        title="A/B Poker Hand Equity Comparison"
+        description="Compare Any Two Poker Starting Hands Side By Side Across Custom Board Textures With Showdown Equity, Nut Advantage, And Runout Analysis On Smarter.Poker."
+        canonical="/hub/training/hand-comparison"
+      />
 
       <div className="sp-training-tool sp-training-tool--analysis sp-analysis-comparison" style={container}>
         <div className="sp-training-analysis-main" style={{ maxWidth: 680, margin: '0 auto' }}>
@@ -941,6 +940,7 @@ export default function HandComparison() {
           </AnimatePresence>
         </div>
       </div>
+      <HubPageSummary page="training-hand-comparison" />
     </>
   );
 }

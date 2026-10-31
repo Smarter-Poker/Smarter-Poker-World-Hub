@@ -213,6 +213,7 @@ export default function TrainingCalendarPage() {
     <>
       <Head>
         <title>Training Calendar | Smarter.Poker GTO Training</title>
+              <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div
         className="sp-training-journey sp-training-journey--calendar"

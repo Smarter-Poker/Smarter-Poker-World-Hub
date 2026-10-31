@@ -13,7 +13,8 @@
 // TRAIN-CSS-TOKENS-BATCH6-17 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
@@ -205,13 +206,11 @@ export default function StudyGroupFinderPage() {
 
   return (
     <>
-      <Head>
-        <title>Study Group Finder | Smarter.Poker</title>
-        <meta
-          name="description"
-          content="Find poker study partners by stakes, format, and timezone. Join or create a study group."
-        />
-      </Head>
+      <SEOHead
+        title="Poker Study Group Finder Directory"
+        description="Find Poker Study Partners And Accountability Cohorts By Stakes, Game Format, Skill Level, And Time Zone In The Study Group Directory On Smarter.Poker."
+        canonical="/hub/training/study-group-finder"
+      />
       <div
         className="sp-training-command sp-training-command--group-finder"
         style={{
@@ -632,6 +631,7 @@ export default function StudyGroupFinderPage() {
           </div>
         </div>
       </div>
+      <HubPageSummary page="training-study-group-finder" />
     </>
   );
 }
