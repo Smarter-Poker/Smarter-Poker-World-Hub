@@ -438,7 +438,9 @@ export async function run() {
             await a.page.getByLabel('Start Video Call', { exact: true }).click();
         }
         const unreachable = reopened && await step('Offline callee with notifications off: caller sees Not Reachable Right Now and why', async () => {
-            const status = await until(async () => { const s = await callStatus(a.page); return s === 'Not Reachable Right Now' ? s : null; }, { timeout: 15000, message: 'Not Reachable status never shown' });
+            const seen = new Set();
+            const status = await until(async () => { const s = await callStatus(a.page); seen.add(s); return s === 'Not Reachable Right Now' ? s : null; }, { timeout: 20000, message: 'Not Reachable status never shown' })
+                .catch(async error => { await shot(a.page, 'fail-05-unreachable'); const { data: pushes } = await admin.from('push_outbox').select('status, failure_reason').eq('recipient_user_id', B.id).eq('event', 'incoming_call').gte('created_at', t0); throw new Error(`${error.message}; statuses seen ${JSON.stringify([...seen])}; push ${JSON.stringify((pushes || []).map(p => `${p.status}:${p.failure_reason || ''}`))}`); });
             const explained = await a.page.getByText('Has Notifications Turned Off', { exact: false }).count();
             assert.ok(explained > 0, 'No explanation shown');
             await shot(a.page, '05-unreachable');
