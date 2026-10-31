@@ -55,6 +55,19 @@ export function fmtPct(part, whole) {
     return `${Math.round((p / w) * 100)}%`;
 }
 
+/** A 0 to 1 share as a whole percent ("42%"). */
+export function fmtShare(v) {
+    const n = num(v);
+    if (n === null) return '0%';
+    return `${Math.round(n * 100)}%`;
+}
+
+/**
+ * Shown for a Phase 4 metric that an older day's metrics JSON does not carry.
+ * Not an em dash: the owner bans em dashes in user-visible text (AGENT-PLAYBOOK).
+ */
+export const MISSING = 'n/a';
+
 export function get(obj, path) {
     return path.split('.').reduce((o, k) => (o === null || o === undefined ? undefined : o[k]), obj);
 }
@@ -193,16 +206,25 @@ const SECTION_DEFS = [
         title: 'Platform Health',
         rows: [
             { label: 'Engine Breaks Passed', path: 'health.breaks.passed', fmt: fmtInt, extraRaw: 'health.breaks.total', of: true },
+            { label: 'Breaks Restartable', path: 'health.breaks.gate_opened', fmt: fmtInt, extraRaw: 'health.breaks.total', of: true, naIfMissing: true },
+            { label: 'Engine Restarts Outside A Break', path: 'health.engine_restarts_outside_break', fmt: fmtInt, naIfMissing: true, redIf: (v) => Number(v) > 0 },
             { label: 'Engine Deploys Shipped', path: 'health.deploys.shipped', fmt: fmtInt, extraRaw: 'health.deploys.attempted', of: true },
             { label: 'New Critical Alerts', path: 'health.alerts_new.critical', fmt: fmtInt, series: 'critical_alerts' },
+            { label: '- Distinct Critical Alerts', path: 'health.alerts_new.critical_distinct', fmt: fmtInt, naIfMissing: true },
             { label: 'New Warning Alerts', path: 'health.alerts_new.warning', fmt: fmtInt },
             { label: 'Alerts Verified Fixed', path: 'health.alerts_fixed', fmt: fmtInt },
             { label: 'Open Financial Alerts', path: 'health.financial_alerts_open', fmt: fmtInt },
+            { label: '- Actionable', path: 'health.financial_alerts_open_actionable', fmt: fmtInt, naIfMissing: true },
+            { label: 'Tournaments Stuck Running', path: 'health.tournaments_stuck_running', fmt: fmtInt, naIfMissing: true, redIf: (v) => Number(v) > 0 },
+            { label: 'Tournaments Past Start Still Registering', path: 'health.tournaments_past_start_registering', fmt: fmtInt, naIfMissing: true, redIf: (v) => Number(v) > 0 },
             { label: 'Open Drift Incidents', path: 'health.drift_open', fmt: fmtInt },
             { label: '- Past Deadline', path: 'health.drift_past_deadline', fmt: fmtInt, redIf: (v) => Number(v) > 0 },
+            { label: '- Needing Manual Repair', path: 'health.drift_open_manual_needed', fmt: fmtInt, naIfMissing: true },
             { label: 'Ledger Invariant Findings', path: 'health.ledger_findings', fmt: fmtInt, redIf: (v) => Number(v) > 0 },
             { label: 'Diamond Incidents (Warning+)', path: 'health.diamond_incidents_new', fmt: fmtInt },
             { label: 'Client Errors', path: 'health.client_errors', fmt: fmtInt, series: 'client_errors' },
+            { label: '- Distinct Users Affected', path: 'health.client_errors_distinct_users', fmt: fmtInt, naIfMissing: true },
+            { label: '- Share From The Top Error', path: 'health.client_errors_top_share', fmt: fmtShare, naIfMissing: true },
             { label: '- Database Timeouts', path: 'health.db_timeouts', fmt: fmtInt },
             { label: 'App Crashes', path: 'health.crashes', fmt: fmtInt, redIf: (v) => Number(v) > 0 },
             { label: 'Signup Errors', path: 'health.signup_errors', fmt: fmtInt, redIf: (v) => Number(v) > 0 },
@@ -229,6 +251,9 @@ const SECTION_DEFS = [
             { label: 'Signup Abuse Hits', path: 'security.signup_abuse_hits', fmt: fmtInt },
             { label: 'Player Accounts Deleted', path: 'security.accounts_deleted', fmt: fmtInt },
             { label: 'Login Probe Failures', path: 'security.login_probe_failures', fmt: fmtInt, redIf: (v) => Number(v) > 0 },
+            { label: 'Recovery Probe Failures', path: 'security.recovery_probe_failures', fmt: fmtInt, naIfMissing: true, redIf: (v) => Number(v) > 0 },
+            { label: 'Signup Probe Failures', path: 'security.signup_probe_failures', fmt: fmtInt, naIfMissing: true, redIf: (v) => Number(v) > 0 },
+            { label: 'Trigger Audit Failures', path: 'security.trigger_audit_failures', fmt: fmtInt, naIfMissing: true, redIf: (v) => Number(v) > 0 },
             { label: 'Admin Accounts', path: 'security.admin_ids.length', fmt: fmtInt },
         ],
     },
@@ -283,9 +308,17 @@ export function sectionRows(def, digest) {
     return def.rows.map((r) => {
         let raw = get(m, r.path);
         if (r.path.endsWith('.length')) raw = (get(m, r.path.replace(/\.length$/, '')) || []).length;
+        // Phase 4 rows: a day computed before the key existed shows MISSING,
+        // never a made-up 0 and never a red flag.
+        if (r.naIfMissing && num(raw) === null) {
+            return { label: r.label, value: MISSING, sub: '', red: false, quiet: !!r.quiet, bars: '' };
+        }
         let value = r.fmt(raw);
         if (r.extra) value += ` (${fmtUsd(get(m, r.extra))})`;
-        if (r.extraRaw) value += r.of ? ` of ${fmtInt(get(m, r.extraRaw))}` : ` / ${fmtInt(get(m, r.extraRaw))}`;
+        if (r.extraRaw) {
+            const extraVal = r.naIfMissing && num(get(m, r.extraRaw)) === null ? MISSING : fmtInt(get(m, r.extraRaw));
+            value += r.of ? ` of ${extraVal}` : ` / ${extraVal}`;
+        }
         const parts = [];
         if (p) {
             const prevRaw = r.path.endsWith('.length') ? (get(p, r.path.replace(/\.length$/, '')) || []).length : get(p, r.path);

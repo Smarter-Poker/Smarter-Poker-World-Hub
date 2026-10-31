@@ -71,6 +71,26 @@ function isRateLimit(err) {
     return msg.includes('rate limit') || msg.includes('too many requests') || msg.includes('email rate limit');
 }
 
+/**
+ * "Signups not allowed for otp": GoTrue's answer to signInWithOtp with
+ * shouldCreateUser:false when it does not find a user for the address (or
+ * when OTP signups are disabled project-wide). The endpoint is up and
+ * answering; what is wrong is the probe account or the OTP config, so it is
+ * DEGRADED, not a dead magic-link flow (Phase 4, 2026-10-31).
+ */
+export function isOtpSignupRefusal(err) {
+    return !!err && /signups not allowed for otp/i.test(err.message || '');
+}
+
+/**
+ * probe_heartbeats_status_check allows only ok | failed | partial | skipped
+ * (supabase/migrations/20261019101300_probe_heartbeats_record_a_skipped_run.sql).
+ * A degraded run is written as 'partial' with details.degraded = true; a
+ * literal 'degraded' (or the old 'ok_rate_limited') violates the CHECK and the
+ * heartbeat row is silently lost.
+ */
+export const HEARTBEAT_STATUS_DEGRADED = 'partial';
+
 export const config = { maxDuration: 30 };
 
 async function handler(req, res) {
@@ -121,30 +141,49 @@ async function handler(req, res) {
             },
         });
         const mlRateLimit = isRateLimit(mle);
+        const mlRefused = !mlRateLimit && isOtpSignupRefusal(mle);
         flows.magic_link = {
             ok: !mle || mlRateLimit,
             rate_limited: mlRateLimit,
+            degraded: mlRefused,
             error: (mle && !mlRateLimit) ? mle?.message : null,
             note: mlRateLimit
                 ? 'Rate-limited (429) - API is alive, throttling duplicate sends'
-                : 'API accepted the request - actual delivery requires a real inbox',
+                : mlRefused
+                    ? 'Degraded: GoTrue refused the magic link with "Signups not allowed for otp" even with shouldCreateUser:false. '
+                        + 'The endpoint answered; check that PROBE_RECOVERY_EMAIL still exists in auth.users and that email OTP is enabled.'
+                    : 'API accepted the request - actual delivery requires a real inbox',
         };
 
-        // Only count real failures (not rate-limits) as probe failures
-        const failures = Object.entries(flows).filter(([_, v]) => !v.ok);
+        // Only count real failures (not rate-limits, not degraded) as probe failures
+        const failures = Object.entries(flows).filter(([_, v]) => !v.ok && !v.degraded);
+        const degraded = Object.entries(flows).filter(([_, v]) => v.degraded);
         const rateLimited = Object.entries(flows).filter(([_, v]) => v.rate_limited);
-        const status = failures.length === 0
-            ? (rateLimited.length > 0 ? 'ok_rate_limited' : 'ok')
-            : 'failed';
+        const status = failures.length > 0
+            ? 'failed'
+            : degraded.length > 0
+                ? 'degraded'
+                : (rateLimited.length > 0 ? 'ok_rate_limited' : 'ok');
+        const heartbeatStatus = status === 'failed' ? 'failed' : status === 'degraded' ? HEARTBEAT_STATUS_DEGRADED : 'ok';
 
-        // Heartbeat
+        // Heartbeat (best-effort). The builder resolves { error } rather than
+        // throwing, so the error is read and logged instead of swallowed.
         try {
-            await admin.from('probe_heartbeats').insert({
+            const { error: hbErr } = await admin.from('probe_heartbeats').insert({
                 probe_name: 'recovery-probe',
-                status,
+                status: heartbeatStatus,
                 duration_ms: Date.now() - startedAt,
-                details: { flows, failure_count: failures.length, rate_limited_count: rateLimited.length },
+                details: {
+                    flows,
+                    probe_status: status,
+                    degraded: degraded.length > 0,
+                    degraded_note: degraded.length > 0 ? degraded.map(([k, v]) => `${k}: ${v.note}`).join(' | ') : null,
+                    failure_count: failures.length,
+                    degraded_count: degraded.length,
+                    rate_limited_count: rateLimited.length,
+                },
             });
+            if (hbErr) console.warn('[recovery-probe] heartbeat write failed:', hbErr.message);
         } catch (_) { /* heartbeat is best-effort */ }
 
         return res.status(failures.length > 0 ? 503 : 200).json({
