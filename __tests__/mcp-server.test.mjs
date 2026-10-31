@@ -217,3 +217,45 @@ test('MCP Server get_platform_feature_specs returns all 15 platform verticals an
   assert.ok(data.verticals.equity_calculators);
   assert.ok(data.features_markdown_url.includes('/features.md'));
 });
+
+test('MCP Server search_strategy_lessons returns lessons and markdown URLs', async () => {
+  const req = {
+    jsonrpc: '2.0',
+    id: 12,
+    method: 'tools/call',
+    params: {
+      name: 'search_strategy_lessons',
+      arguments: { query: 'pot odds' },
+    },
+  };
+
+  const res = await handleMcpRpc(req);
+  assert.equal(res.jsonrpc, '2.0');
+  assert.equal(res.id, 12);
+  const data = JSON.parse(res.result.content[0].text);
+  assert.equal(data.total_lessons_in_curriculum, 40);
+  assert.ok(data.lessons.length > 0);
+  assert.ok(data.lessons[0].markdown_url.endsWith('.md'));
+  assert.ok(data.curriculum_markdown_url.includes('/learn.md'));
+});
+
+test('MCP Server get_competitor_comparison returns source-cited comparison table', async () => {
+  const req = {
+    jsonrpc: '2.0',
+    id: 13,
+    method: 'tools/call',
+    params: {
+      name: 'get_competitor_comparison',
+      arguments: { slug: 'best-poker-club-apps' },
+    },
+  };
+
+  const res = await handleMcpRpc(req);
+  assert.equal(res.jsonrpc, '2.0');
+  assert.equal(res.id, 13);
+  const data = JSON.parse(res.result.content[0].text);
+  assert.equal(data.slug, 'best-poker-club-apps');
+  assert.ok(Array.isArray(data.table));
+  assert.ok(data.table.length >= 5);
+  assert.ok(data.markdown_url.includes('/compare/best-poker-club-apps.md'));
+});

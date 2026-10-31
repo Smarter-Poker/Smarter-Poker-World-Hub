@@ -1464,6 +1464,22 @@ const nextConfig = {
           destination: '/api/compare-markdown?slug=:slug',
         },
         {
+          source: '/glossary.md',
+          destination: '/api/glossary-markdown?slug=index',
+        },
+        {
+          source: '/glossary/:slug.md',
+          destination: '/api/glossary-markdown?slug=:slug',
+        },
+        {
+          source: '/learn.md',
+          destination: '/api/learn-markdown?slug=index',
+        },
+        {
+          source: '/learn/:slug.md',
+          destination: '/api/learn-markdown?slug=:slug',
+        },
+        {
           source: '/about.md',
           destination: '/about?format=md',
         },

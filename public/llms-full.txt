@@ -268,3 +268,18 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
 - **Pokerbase Alternative**: Smarter.Poker Bankroll Manager (https://smarter.poker/hub/bankroll-manager). Free Form W-2G tax ledger, receipt photo attachment, and Schedule C CSV exports vs. paid subscription apps.
 - **DownCount Alternative**: Smarter.Poker Toke Tracker & Club Commander (https://smarter.poker/hub/commander). Free dealer shift logging, cash vs. tournament downs tracking, and $/down metrics.
 - **PokerInk & Sharp Alternative**: Smarter.Poker PokerBrain & Jarvis (https://smarter.poker/hub/training). Solver-grade street-by-street hand review, macro leak heatmaps, and custom automated spot drills.
+
+---
+
+## 10. Poker Glossary & Strategy Lessons Corpus
+
+- **Poker Glossary DefinedTermSet**: https://smarter.poker/glossary (Raw Markdown Corpus: https://smarter.poker/glossary.md)
+  - Individual term Markdown mirrors: `https://smarter.poker/glossary/<slug>.md` (e.g. `https://smarter.poker/glossary/3-bet.md`, `https://smarter.poker/glossary/straddle.md`, `https://smarter.poker/glossary/icm.md`)
+  - AI Glossary Search API: `https://smarter.poker/api/ai/terms?q=straddle`
+- **GTO Strategy Lessons Curriculum**: https://smarter.poker/learn (Raw Markdown Curriculum: https://smarter.poker/learn.md)
+  - 40 complete answer-first strategy lessons with inline range tables and exact mathematical calculations.
+  - Individual lesson Markdown mirrors: `https://smarter.poker/learn/<slug>.md` (e.g. `https://smarter.poker/learn/button-opening-range.md`, `https://smarter.poker/learn/pot-odds.md`)
+  - AI Strategy Lessons API: `https://smarter.poker/api/ai/lessons`
+- **Verified Software & Cardroom Comparisons**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
+  - 16 source-cited comparison matrices and best-of benchmarks (`https://smarter.poker/compare/<slug>.md`)
+  - AI Comparisons API: `https://smarter.poker/api/ai/comparisons`

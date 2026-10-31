@@ -40,14 +40,25 @@ export default function SEOHead(props) {
   // Auto-resolve markdownUrl for known routes that serve clean .md representations
   let resolvedMarkdownUrl = markdownUrl;
   if (!resolvedMarkdownUrl && typeof pathname === 'string') {
+    const cleanCanon = typeof props.canonical === 'string'
+      ? (props.canonical.startsWith('http') ? props.canonical : `https://smarter.poker${props.canonical}`)
+      : null;
     if (pathname.startsWith('/features/')) {
-      resolvedMarkdownUrl = `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/features') {
       resolvedMarkdownUrl = 'https://smarter.poker/features.md';
     } else if (pathname.startsWith('/compare/')) {
-      resolvedMarkdownUrl = `https://smarter.poker${pathname}.md`;
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/compare') {
       resolvedMarkdownUrl = 'https://smarter.poker/compare.md';
+    } else if (pathname.startsWith('/glossary/')) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+    } else if (pathname === '/glossary') {
+      resolvedMarkdownUrl = 'https://smarter.poker/glossary.md';
+    } else if (pathname.startsWith('/learn/')) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+    } else if (pathname === '/learn') {
+      resolvedMarkdownUrl = 'https://smarter.poker/learn.md';
     } else if (pathname === '/tools/embeds') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/embeds.md';
     } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {

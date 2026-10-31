@@ -23,6 +23,15 @@ import { calculateEquity, makeCard } from '../poker/pokerOddsEngine.js';
 import { calculateICM } from '../../engines/ICMCalculator.js';
 import { RFI } from '../../config/solverRanges.js';
 import { GLOSSARY_TERMS } from '../../content/glossary/terms.js';
+import { LESSONS, LEARN_CATEGORIES, trainingCta } from '../../content/learn/lessons.js';
+import {
+  AS_OF,
+  COMPARE_PAGES,
+  PRODUCTS,
+  cellFor,
+  getComparePage,
+  pageSources,
+} from '../../content/compare/pages.js';
 
 export function parseCardToken(str) {
   const match = String(str || '').trim().match(/^(10|[2-9TJQKA])([shdc])$/i);
@@ -269,6 +278,37 @@ export const MCP_TOOLS = [
           ],
           description: 'Specific vertical to inspect, or "all" for the complete 15-vertical directory.',
           default: 'all',
+        },
+      },
+    },
+  },
+  {
+    name: 'search_strategy_lessons',
+    description: 'Search and retrieve complete GTO poker strategy lessons, answer-first summaries, mathematical tables, and training tool recommendations from the 40-lesson Smarter.Poker curriculum.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search keyword or lesson slug (e.g. "pot odds", "3-bet", "icm", "button-opening-range", "c-bet").',
+        },
+        category: {
+          type: 'string',
+          enum: ['Preflop', 'Postflop', 'Math', 'Tournaments', 'Cash', 'Bankroll', 'Mental Game', 'Theory'],
+          description: 'Optional strategy category filter.',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_competitor_comparison',
+    description: 'Retrieve verified, source-cited side-by-side comparison matrices and best-of benchmarks between Smarter.Poker and competitors (PokerBros, PPPoker, ClubGG, Bravo Poker Live, TableCaptain, GTO Wizard, DTO, Sharp Poker, Pokerbase, DownCount, Bellagio, Aria, Commerce, The Lodge).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Comparison slug (e.g. "best-poker-club-apps", "best-gto-poker-trainers", "best-poker-bankroll-trackers", "best-poker-room-management-software", "club-commander-vs-bravo-poker-live") or omit to list all 16 verified comparisons.',
         },
       },
     },
@@ -901,6 +941,158 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 features_directory_url: `${base}/features`,
                 features_markdown_url: `${base}/features.md`,
                 verticals: selected,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'search_strategy_lessons': {
+      const rawQuery = String(args?.query || '').trim().toLowerCase();
+      const rawCategory = String(args?.category || '').trim().toLowerCase();
+
+      let pool = LESSONS;
+      if (rawCategory) {
+        pool = pool.filter((l) => l.category.toLowerCase() === rawCategory);
+      }
+
+      let matches = pool;
+      if (rawQuery) {
+        const normalized = rawQuery.replace(/[^a-z0-9]/g, '');
+        matches = pool.filter((l) => {
+          const slugNorm = l.slug.replace(/[^a-z0-9]/g, '');
+          const titleNorm = l.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return slugNorm === normalized || titleNorm === normalized;
+        });
+
+        if (matches.length === 0) {
+          matches = pool.filter(
+            (l) =>
+              l.title.toLowerCase().includes(rawQuery) ||
+              l.slug.includes(rawQuery) ||
+              l.summary.toLowerCase().includes(rawQuery) ||
+              l.category.toLowerCase().includes(rawQuery)
+          );
+        }
+      }
+
+      const results = matches.slice(0, 8).map((l) => {
+        const cta = trainingCta(l);
+        return {
+          slug: l.slug,
+          title: l.title,
+          category: l.category,
+          summary: l.summary,
+          canonical_url: `${base}/learn/${l.slug}`,
+          markdown_url: `${base}/learn/${l.slug}.md`,
+          practice_game_url: cta.game ? `${base}${cta.game.href}` : null,
+          tool_url: cta.tool ? `${base}${cta.tool.href}` : null,
+        };
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                total_lessons_in_curriculum: LESSONS.length,
+                categories: LEARN_CATEGORIES,
+                matched_count: matches.length,
+                lessons: results,
+                curriculum_url: `${base}/learn`,
+                curriculum_markdown_url: `${base}/learn.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_competitor_comparison': {
+      const rawSlug = String(args?.slug || '').trim().toLowerCase();
+      if (rawSlug) {
+        const page = getComparePage(rawSlug);
+        if (!page) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: `Comparison slug "${rawSlug}" not found`,
+                    available_slugs: COMPARE_PAGES.map((p) => p.slug),
+                    comparisons_url: `${base}/compare`,
+                    markdown_url: `${base}/compare.md`,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        const rows = page.table
+          ? page.table.products.map((productId) => {
+              const prod = PRODUCTS[productId];
+              const attrs = {};
+              for (const col of page.table.columns) {
+                attrs[col.label] = cellFor(productId, col.key)?.value || 'Not Published';
+              }
+              return {
+                product: prod ? prod.name : productId,
+                smarter_poker_product: Boolean(prod?.own),
+                ...attrs,
+              };
+            })
+          : [];
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  slug: page.slug,
+                  title: page.title,
+                  summary: page.summary?.text || '',
+                  checked_as_of: AS_OF,
+                  table: rows,
+                  sources: pageSources(page).map((s) => ({ title: s.title, url: s.url })),
+                  canonical_url: `${base}/compare/${page.slug}`,
+                  markdown_url: `${base}/compare/${page.slug}.md`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                checked_as_of: AS_OF,
+                total_comparisons: COMPARE_PAGES.length,
+                comparisons: COMPARE_PAGES.map((p) => ({
+                  slug: p.slug,
+                  kind: p.kind,
+                  title: p.title,
+                  canonical_url: `${base}/compare/${p.slug}`,
+                  markdown_url: `${base}/compare/${p.slug}.md`,
+                })),
+                comparisons_url: `${base}/compare`,
+                markdown_url: `${base}/compare.md`,
               },
               null,
               2
