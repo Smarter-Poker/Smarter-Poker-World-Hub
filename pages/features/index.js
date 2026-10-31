@@ -123,6 +123,36 @@ export const ALL_FEATURES = [
     mdHref: '/features/private-poker-clubs.md',
     competitors: 'Free Modern Alternative To PokerBros, PPPoker & ClubGG',
   },
+  {
+    slug: 'poker-reels-social-feed',
+    title: 'Poker Reels & Social Video Feed Network',
+    badge: 'Dedicated Poker Feed',
+    description: 'Stream Short-Form Video Reels Of Hero Calls And Bad Beats, Attach Replay Links, And Earn Diamond Creator Rewards.',
+    href: '/features/poker-reels-social-feed',
+    appHref: '/hub/reels',
+    mdHref: '/features/poker-reels-social-feed.md',
+    competitors: 'Free Alternative To Instagram Reels & TikTok For Poker',
+  },
+  {
+    slug: 'preflop-charts-matrix',
+    title: 'GTO Preflop Charts & Range Matrix',
+    badge: '169-Hand GTO Grids',
+    description: 'Solver-Grade 169-Hand Preflop Range Matrices Across 15BB To 100BB Stack Depths With Color-Coded Mixed Action Frequencies.',
+    href: '/features/preflop-charts-matrix',
+    appHref: '/hub/preflop-charts',
+    mdHref: '/features/preflop-charts-matrix.md',
+    competitors: 'Free Alternative To Upswing Poker & Jonathan Little PokerCoaching',
+  },
+  {
+    slug: 'poker-equity-calculators',
+    title: 'Poker Equity & Tournament ICM Calculator Suite',
+    badge: 'Six-Game Odds Engine',
+    description: 'High-Precision Multiway Equity Engine Supporting Six Games (Holdem, PLO4/5/6, Stud, Razz) And Malmuth-Harville ICM Payout Solvers.',
+    href: '/features/poker-equity-calculators',
+    appHref: '/tools/poker-odds-calculator',
+    mdHref: '/features/poker-equity-calculators.md',
+    competitors: 'Free Alternative To Equilab, PokerStove & ICMIZER 3',
+  },
 ];
 
 export default function FeaturesIndexPage() {
