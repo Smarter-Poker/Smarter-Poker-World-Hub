@@ -72,6 +72,7 @@ export default async function handler(req, res) {
         jsonrpc: `${origin}/api/mcp`,
         sse: `${origin}/api/mcp?transport=sse`,
         well_known: `${origin}/.well-known/mcp.json`,
+        registry: `${origin}/.well-known/mcp-registry.json`,
       },
       tools_available: MCP_TOOLS.map((t) => t.name),
       tools: MCP_TOOLS,

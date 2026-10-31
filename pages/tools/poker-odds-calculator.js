@@ -16,7 +16,12 @@ export async function getServerSideProps({ req, res, query }) {
         req?.url?.includes('format=md');
     if (isMarkdownRequested) {
         const { renderPokerOddsCalculatorMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
-        const mdContent = renderPokerOddsCalculatorMarkdown();
+        const mdContent = renderPokerOddsCalculatorMarkdown({
+            hand1: query?.hand1 || query?.h1 || '',
+            hand2: query?.hand2 || query?.h2 || '',
+            pot: query?.pot || '',
+            call: query?.call || '',
+        });
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
         res.setHeader('Vary', 'Accept');
         res.write(mdContent);

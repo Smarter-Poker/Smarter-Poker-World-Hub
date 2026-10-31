@@ -1,0 +1,527 @@
+/**
+ * Smarter.Poker Starting Hand Encyclopedia Corpus (/learn/hands & /learn/hands/[hand])
+ * ====================================================================================
+ * Twenty canonical Texas Hold'em starting hand guides with exact combinatoric data,
+ * preflop percentile rankings, 6-Max 100BB GTO opening frequencies by position,
+ * 3-bet response frequencies, head-to-head equity matchups, and postflop playbooks.
+ *
+ * House style: Title Case, zero em dashes.
+ */
+
+export const HANDS_BASE_PATH = '/learn/hands';
+
+export function handPath(slug) {
+  return `${HANDS_BASE_PATH}/${slug}`;
+}
+
+export const STARTING_HANDS = [
+  {
+    slug: 'pocket-aces',
+    code: 'AA',
+    name: 'Pocket Aces',
+    nickname: 'Pocket Rockets And Bullets',
+    category: 'Premium Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '1 Of 169',
+    vsRandomEquity: '85.2%',
+    summary:
+      'Pocket Aces (AA) Is The Strongest Starting Hand In No-Limit Texas Hold\'em, Winning 85.2% Of Pots Against A Random Hand And Opening Or 4-Betting At 100% Frequency From Every Table Position.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: '100% 4-Bet Value From Out Of Position; 85% 4-Bet And 15% Trap Call In Position At 100BB.',
+    postflopPlaybook:
+      'Build The Pot Across Three Streets On Dry And Disconnected Boards. On Monotone Or Four-To-A-Straight Boards, Check Back Or Bet Small When You Do Not Hold The Nut Suit Blocker.',
+    matchups: [
+      { villain: 'KK (Pocket Kings)', heroEquity: '81.9%', villainEquity: '17.6%', tie: '0.5%' },
+      { villain: 'AKs (Ace-King Suited)', heroEquity: '87.9%', villainEquity: '11.6%', tie: '0.5%' },
+      { villain: 'JTs (Jack-Ten Suited)', heroEquity: '79.6%', villainEquity: '20.0%', tie: '0.4%' },
+    ],
+  },
+  {
+    slug: 'pocket-kings',
+    code: 'KK',
+    name: 'Pocket Kings',
+    nickname: 'Cowboys',
+    category: 'Premium Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '2 Of 169',
+    vsRandomEquity: '82.4%',
+    summary:
+      'Pocket Kings (KK) Is The Second-Best Starting Hand In Texas Hold\'em With 82.4% Equity Against A Random Hand, Playing As A Pure Open-Raise, 3-Bet, And 4-Bet Value Hand Across 100BB Stacks.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: '100% 4-Bet Value Across Standard 100BB 6-Max Configurations.',
+    postflopPlaybook:
+      'Value Bet Aggressively On King-High And Under-Card Flops. When An Ace Falls On The Flop (Approximately 22.6% Of The Time), Shift To Pot Control And Check-Call Against Uncapped Ranges.',
+    matchups: [
+      { villain: 'AA (Pocket Aces)', heroEquity: '17.6%', villainEquity: '81.9%', tie: '0.5%' },
+      { villain: 'QQ (Pocket Queens)', heroEquity: '81.8%', villainEquity: '17.7%', tie: '0.5%' },
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '69.9%', villainEquity: '29.3%', tie: '0.8%' },
+    ],
+  },
+  {
+    slug: 'pocket-queens',
+    code: 'QQ',
+    name: 'Pocket Queens',
+    nickname: 'Ladies',
+    category: 'Premium Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '3 Of 169',
+    vsRandomEquity: '79.9%',
+    summary:
+      'Pocket Queens (QQ) Ranks Third Among All 169 Hold\'em Starting Hands With 79.9% Heads-Up Equity Vs. A Random Hand And A 53.5% Edge In Classic Coinflips Against Ace-King Suited.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Mix 65% 4-Bet And 35% Call Vs. Early Position 3-Bets; 100% 4-Bet Value Vs. Button And Blind 3-Bets.',
+    postflopPlaybook:
+      'Push Equity On Low And Medium Boards Before Overcards Arrive. Exercise Caution Facing Multiple Barrels On Ace-High Or King-High Textures.',
+    matchups: [
+      { villain: 'AKs (Ace-King Suited)', heroEquity: '53.5%', villainEquity: '46.1%', tie: '0.4%' },
+      { villain: 'JJ (Pocket Jacks)', heroEquity: '81.7%', villainEquity: '17.8%', tie: '0.5%' },
+      { villain: 'AQs (Ace-Queen Suited)', heroEquity: '65.9%', villainEquity: '33.4%', tie: '0.7%' },
+    ],
+  },
+  {
+    slug: 'pocket-jacks',
+    code: 'JJ',
+    name: 'Pocket Jacks',
+    nickname: 'Hooks And Fishhooks',
+    category: 'Premium Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '4 Of 169',
+    vsRandomEquity: '77.5%',
+    summary:
+      'Pocket Jacks (JJ) Is The Fourth-Ranked Starting Hand In Texas Hold\'em, Opening 100% From Every Position While Mixing Calls And 3-Bets Against Tight Early-Position Opens.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call 70% And 4-Bet 30% In Position; Call Or 4-Bet Depending On Villain 3-Bet Frequency Out Of Position.',
+    postflopPlaybook:
+      'Overcards (Q, K, Or A) Appear On The Flop 57% Of The Time. Bet For Value And Protection When JJ Remains An Overpair, And Use Suit Blockers To Guide Bluff-Catching On Overcard Boards.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '56.8%', villainEquity: '42.8%', tie: '0.4%' },
+      { villain: 'TT (Pocket Tens)', heroEquity: '81.7%', villainEquity: '17.8%', tie: '0.5%' },
+      { villain: 'KQs (King-Queen Suited)', heroEquity: '53.2%', villainEquity: '46.3%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'pocket-tens',
+    code: 'TT',
+    name: 'Pocket Tens',
+    nickname: 'Dimes',
+    category: 'Strong Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '5 Of 169',
+    vsRandomEquity: '75.1%',
+    summary:
+      'Pocket Tens (TT) Bridges The Gap Between Premium Overpairs And Set-Mining Medium Pairs, Winning 75.1% Against A Random Hand And Opening 100% Across All 6-Max Positions.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Primarily Call 3-Bets In Position To Retain Dominated Broadways; Mix 4-Bet All-In At 25BB To 40BB Tournament Stacks.',
+    postflopPlaybook:
+      'Play As A Strong Value Overpair On Nine-High And Lower Flops, While Using Ten Blockers To Straight Combinations On Broadway Textures.',
+    matchups: [
+      { villain: 'AKs (Ace-King Suited)', heroEquity: '53.9%', villainEquity: '45.7%', tie: '0.4%' },
+      { villain: '99 (Pocket Nines)', heroEquity: '81.5%', villainEquity: '18.0%', tie: '0.5%' },
+      { villain: 'AJs (Ace-Jack Suited)', heroEquity: '53.6%', villainEquity: '46.0%', tie: '0.4%' },
+    ],
+  },
+  {
+    slug: 'ace-king-suited',
+    code: 'AKs',
+    name: 'Ace-King Suited',
+    nickname: 'Big Slick Suited',
+    category: 'Premium Broadway Suited',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '6 Of 169',
+    vsRandomEquity: '67.0%',
+    summary:
+      'Ace-King Suited (AKs) Is The Strongest Non-Paired Hand In Texas Hold\'em, Combining Top-Pair Nut Kicker Strength With Nut Flush And Royal Flush Potential Plus Key AA And KK Card Removal.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: '100% 4-Bet Or Call Mix; Ideal 4-Bet Jam Hand Because It Blocks Half Of Villain\'s AA And KK Combinations.',
+    postflopPlaybook:
+      'Continuation Bet High Cards And Backdoor Nut Flush Draws Aggressively. When Hitting Top Pair Top Kicker, Extract Three Streets Of Value Against Worse Top Pairs.',
+    matchups: [
+      { villain: 'QQ (Pocket Queens)', heroEquity: '46.1%', villainEquity: '53.5%', tie: '0.4%' },
+      { villain: 'AQo (Ace-Queen Offsuit)', heroEquity: '74.8%', villainEquity: '20.9%', tie: '4.3%' },
+      { villain: 'KQs (King-Queen Suited)', heroEquity: '74.1%', villainEquity: '25.1%', tie: '0.8%' },
+    ],
+  },
+  {
+    slug: 'ace-king-offsuit',
+    code: 'AKo',
+    name: 'Ace-King Offsuit',
+    nickname: 'Big Slick Offsuit',
+    category: 'Premium Broadway Offsuit',
+    combinations: 12,
+    probability: '0.90% (110 To 1 Against)',
+    preflopRank: '7 Of 169',
+    vsRandomEquity: '65.3%',
+    summary:
+      'Ace-King Offsuit (AKo) Accounts For 12 Combinations (Three Times As Frequent As AKs) And Serves As The Primary High-Volume 3-Bet And 4-Bet Value/Bluff-Blocker Hand In GTO Ranges.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'High-Frequency 4-Bet Because Realizing Equity Out Of Position Unimproved Is Harder Than Pushing Fold Equity Preflop.',
+    postflopPlaybook:
+      'Dominates Single-Raised And 3-Bet Pots When Hitting An Ace Or King. Unimproved On Low Connected Boards, Prefer Checking Or Using Nut Blockers Selectively.',
+    matchups: [
+      { villain: 'JJ (Pocket Jacks)', heroEquity: '42.8%', villainEquity: '56.8%', tie: '0.4%' },
+      { villain: 'AQs (Ace-Queen Suited)', heroEquity: '70.3%', villainEquity: '25.5%', tie: '4.2%' },
+      { villain: '22 (Pocket Deuces)', heroEquity: '47.9%', villainEquity: '51.6%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'ace-queen-suited',
+    code: 'AQs',
+    name: 'Ace-Queen Suited',
+    nickname: 'Little Slick Suited',
+    category: 'Premium Broadway Suited',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '8 Of 169',
+    vsRandomEquity: '66.2%',
+    summary:
+      'Ace-Queen Suited (AQs) Opens 100% From Every Position And Functions As A Core 3-Bet Value Hand From Middle And Late Positions With Strong Postflop Playability.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call 75% And 4-Bet 25% In Position; Call Or Fold Vs. Tight Early-Position 4-Bets.',
+    postflopPlaybook:
+      'Value Bet Two Streets Comfortably On Ace-High And Queen-High Flops While Utilizing Nut Flush Draws For Semi-Bluff Check-Raises.',
+    matchups: [
+      { villain: 'TT (Pocket Tens)', heroEquity: '46.2%', villainEquity: '53.4%', tie: '0.4%' },
+      { villain: 'AJs (Ace-Jack Suited)', heroEquity: '71.0%', villainEquity: '24.8%', tie: '4.2%' },
+      { villain: 'KQs (King-Queen Suited)', heroEquity: '70.5%', villainEquity: '28.7%', tie: '0.8%' },
+    ],
+  },
+  {
+    slug: 'ace-queen-offsuit',
+    code: 'AQo',
+    name: 'Ace-Queen Offsuit',
+    nickname: 'Big Chick Offsuit',
+    category: 'Strong Broadway Offsuit',
+    combinations: 12,
+    probability: '0.90% (110 To 1 Against)',
+    preflopRank: '12 Of 169',
+    vsRandomEquity: '64.5%',
+    summary:
+      'Ace-Queen Offsuit (AQo) Is A 100% Open-Raise Across All 6-Max Positions That Requires Disciplined 3-Bet Defense To Avoid Reverse Implied Odds Against AK And AA/KK/QQ.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Fold Or Call Mix Vs. Early Position 3-Bets; Call Or 4-Bet Bluff Vs. Wide Late-Position 3-Bets.',
+    postflopPlaybook:
+      'Extract Value From Worse Aces (AJ, AT) In Single-Raised Pots, And Control Pot Size When Facing Heavy Action In 3-Bet Pots.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '21.6%', villainEquity: '73.5%', tie: '4.9%' },
+      { villain: '99 (Pocket Nines)', heroEquity: '42.9%', villainEquity: '56.7%', tie: '0.4%' },
+      { villain: 'KQo (King-Queen Offsuit)', heroEquity: '73.9%', villainEquity: '25.1%', tie: '1.0%' },
+    ],
+  },
+  {
+    slug: 'ace-jack-suited',
+    code: 'AJs',
+    name: 'Ace-Jack Suited',
+    nickname: 'Ajax Suited',
+    category: 'Strong Broadway Suited',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '9 Of 169',
+    vsRandomEquity: '65.4%',
+    summary:
+      'Ace-Jack Suited (AJs) Opens 100% From Every 6-Max Seat And Provides High Nut-Flush And Broadway Straight Playability In Both Single-Raised And 3-Bet Pots.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call In Position To Realize Suited Nut Equity; Mix Fold And Call Out Of Position Against Tight 3-Bets.',
+    postflopPlaybook:
+      'Leverage Backdoor And Direct Nut Flush Draws As Aggressive Semi-Bluffs While Pot-Controlling One-Pair Hands On Wet Boards.',
+    matchups: [
+      { villain: 'TT (Pocket Tens)', heroEquity: '46.0%', villainEquity: '53.6%', tie: '0.4%' },
+      { villain: 'ATs (Ace-Ten Suited)', heroEquity: '70.7%', villainEquity: '25.0%', tie: '4.3%' },
+      { villain: 'KQs (King-Queen Suited)', heroEquity: '60.4%', villainEquity: '39.0%', tie: '0.6%' },
+    ],
+  },
+  {
+    slug: 'ace-five-suited',
+    code: 'A5s',
+    name: 'Ace-Five Suited',
+    nickname: 'Wheel Ace Suited',
+    category: 'Suited Wheel Ace',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '24 Of 169',
+    vsRandomEquity: '59.9%',
+    summary:
+      'Ace-Five Suited (A5s) Is The Premier GTO 3-Bet And 4-Bet Bluff Hand In Modern Poker Because It Blocks Pocket Aces While Retaining Nut Flush And Wheel Straight (A-2-3-4-5) Equity When Called.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Primary 4-Bet Bluff Candidate Against Cutoff And Button 3-Bets Due To Ace Card Removal And Playability.',
+    postflopPlaybook:
+      'Barrel Aggressively With Nut Flush Draws And Wheel Gutshots. Avoid Calling Multiple Streets With Weak Top Pair No Kicker.',
+    matchups: [
+      { villain: 'KK (Pocket Kings)', heroEquity: '31.9%', villainEquity: '67.7%', tie: '0.4%' },
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '29.2%', villainEquity: '65.7%', tie: '5.1%' },
+      { villain: 'KQs (King-Queen Suited)', heroEquity: '55.8%', villainEquity: '43.6%', tie: '0.6%' },
+    ],
+  },
+  {
+    slug: 'king-queen-suited',
+    code: 'KQs',
+    name: 'King-Queen Suited',
+    nickname: 'Royal Marriage',
+    category: 'Strong Broadway Suited',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '10 Of 169',
+    vsRandomEquity: '63.4%',
+    summary:
+      'King-Queen Suited (KQs) Opens 100% From Every Position And Flops Top Pair, Flush Draws, Or Open-Ended Straight Draws At One Of The Highest Rates In The Deck.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'High-Frequency Call In Position; Mix Call And 4-Bet Bluff Out Of Position.',
+    postflopPlaybook:
+      'Dominates KJs, KTs, QJs, And QTs When Hitting Top Pair. Apply Maximum Pressure With Royal And Broadway Combo Draws.',
+    matchups: [
+      { villain: 'JJ (Pocket Jacks)', heroEquity: '46.3%', villainEquity: '53.2%', tie: '0.5%' },
+      { villain: 'AJo (Ace-Jack Offsuit)', heroEquity: '42.4%', villainEquity: '57.0%', tie: '0.6%' },
+      { villain: 'QJs (Queen-Jack Suited)', heroEquity: '71.9%', villainEquity: '26.5%', tie: '1.6%' },
+    ],
+  },
+  {
+    slug: 'queen-jack-suited',
+    code: 'QJs',
+    name: 'Queen-Jack Suited',
+    nickname: 'Maverick Suited',
+    category: 'Suited Broadway Connector',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '15 Of 169',
+    vsRandomEquity: '60.3%',
+    summary:
+      'Queen-Jack Suited (QJs) Is A Premier Suited Broadway Connector Opening 100% Across All 6-Max Positions With Exceptional Multiway And Single-Raised Postflop Playability.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call In Position When Deep-Stacked (100BB+) Because Suited Connected Hands Realize Equity Above Raw All-In Percentages.',
+    postflopPlaybook:
+      'Attack Broadway-Heavy And Middling Connected Boards Using Straight And Flush Draw Equity.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '39.6%', villainEquity: '59.9%', tie: '0.5%' },
+      { villain: '99 (Pocket Nines)', heroEquity: '46.9%', villainEquity: '52.5%', tie: '0.6%' },
+      { villain: 'JTs (Jack-Ten Suited)', heroEquity: '69.8%', villainEquity: '28.5%', tie: '1.7%' },
+    ],
+  },
+  {
+    slug: 'jack-ten-suited',
+    code: 'JTs',
+    name: 'Jack-Ten Suited',
+    nickname: 'Ultimate Suited Connector',
+    category: 'Suited Broadway Connector',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '16 Of 169',
+    vsRandomEquity: '57.5%',
+    summary:
+      'Jack-Ten Suited (JTs) Can Make Four Distinct Nut Straights (8-9-T-J-Q Through T-J-Q-K-A), Making It The Highest-Playability Suited Connector In Deep-Stack No-Limit Hold\'em.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Profitable Call In Position At 100BB+; Mix Polarized 3-Bets From The Button And Blinds.',
+    postflopPlaybook:
+      'Semi-Bluff Relentlessly When Flopping 12+ Out Combo Draws (Flush Draw Plus Open-Ended Straight Draw Holds Over 54% Equity Vs. Overpairs).',
+    matchups: [
+      { villain: 'AA (Pocket Aces)', heroEquity: '20.0%', villainEquity: '79.6%', tie: '0.4%' },
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '40.8%', villainEquity: '58.7%', tie: '0.5%' },
+      { villain: '88 (Pocket Eights)', heroEquity: '47.5%', villainEquity: '51.9%', tie: '0.6%' },
+    ],
+  },
+  {
+    slug: 'ten-nine-suited',
+    code: 'T9s',
+    name: 'Ten-Nine Suited',
+    nickname: 'Prime Suited Connector',
+    category: 'Suited Connector',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '23 Of 169',
+    vsRandomEquity: '54.3%',
+    summary:
+      'Ten-Nine Suited (T9s) Opens At High Frequency Across All 6-Max Positions And Excels At Cracking Big Overpairs By Flopping Disguised Two-Pairs, Trips, Straights, And Flushes.',
+    rfiByPosition: { UTG: '75% Mixed Open', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call In Position When Effective Stacks Offer Sufficient Implied Odds (100BB+).',
+    postflopPlaybook:
+      'Prioritize Aggressive Check-Raises And Turn Barrels When Picking Up Double-Gutter Or Open-Ended Straight Plus Flush Draws.',
+    matchups: [
+      { villain: 'AA (Pocket Aces)', heroEquity: '21.2%', villainEquity: '78.4%', tie: '0.4%' },
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '39.4%', villainEquity: '60.1%', tie: '0.5%' },
+      { villain: '77 (Pocket Sevens)', heroEquity: '47.9%', villainEquity: '51.5%', tie: '0.6%' },
+    ],
+  },
+  {
+    slug: 'pocket-nines',
+    code: '99',
+    name: 'Pocket Nines',
+    nickname: 'Wayne Gretzky',
+    category: 'Medium Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '11 Of 169',
+    vsRandomEquity: '72.1%',
+    summary:
+      'Pocket Nines (99) Wins 72.1% Against A Random Hand, Opens 100% From All 6-Max Positions, And Is A Slight Favorite Over Two Overcards Like AKo (54.3% Vs. 45.3%).',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call In Position For Set Value And Mid-Board Showdown Equity; High-EV 20BB-30BB Tournament Reshove Hand.',
+    postflopPlaybook:
+      'Bet For Value And Protection On Low Disconnected Boards, And Transition To Set-Mining And Bluff-Catching On Broadway-Heavy Textures.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '54.3%', villainEquity: '45.3%', tie: '0.4%' },
+      { villain: '88 (Pocket Eights)', heroEquity: '81.3%', villainEquity: '18.2%', tie: '0.5%' },
+      { villain: 'QJs (Queen-Jack Suited)', heroEquity: '52.5%', villainEquity: '46.9%', tie: '0.6%' },
+    ],
+  },
+  {
+    slug: 'pocket-eights',
+    code: '88',
+    name: 'Pocket Eights',
+    nickname: 'Snowmen',
+    category: 'Medium Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '14 Of 169',
+    vsRandomEquity: '69.1%',
+    summary:
+      'Pocket Eights (88) Opens 100% From Every 6-Max Seat At 100BB And Flops A Set Approximately 11.8% Of The Time (7.5 To 1 Against) With Strong Implied Odds Against Overpairs.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call When Implied Odds Satisfy The Set-Mining Threshold (Call <= 7% To 10% Of Effective Stack).',
+    postflopPlaybook:
+      'Fast-Play Flopped Sets On Wet Boards To Deny Equity And Charge Overpairs Maximum Chips.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '54.6%', villainEquity: '45.0%', tie: '0.4%' },
+      { villain: 'JTs (Jack-Ten Suited)', heroEquity: '51.9%', villainEquity: '47.5%', tie: '0.6%' },
+      { villain: '77 (Pocket Sevens)', heroEquity: '81.2%', villainEquity: '18.3%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'pocket-sevens',
+    code: '77',
+    name: 'Pocket Sevens',
+    nickname: 'Walking Sticks',
+    category: 'Medium Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '19 Of 169',
+    vsRandomEquity: '66.2%',
+    summary:
+      'Pocket Sevens (77) Marks The Bottom Of The Pure 100% UTG Opening Pocket Pairs In 6-Max 100BB GTO Solutions, Combining 66.2% Raw Equity With Disguised Set-Mining Value.',
+    rfiByPosition: { UTG: '100% Open Raise', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Set-Mine In Position When Stacks Are Deep; Fold Out Of Position Against Large 3-Bet Sizing.',
+    postflopPlaybook:
+      'Check-Call Single Small Bets On Dry High-Card Flops And Pile Chips In When Turning Or Flopping Three Of A Kind.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '54.6%', villainEquity: '45.0%', tie: '0.4%' },
+      { villain: 'T9s (Ten-Nine Suited)', heroEquity: '51.5%', villainEquity: '47.9%', tie: '0.6%' },
+      { villain: '66 (Pocket Sixes)', heroEquity: '81.1%', villainEquity: '18.4%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'pocket-deuces',
+    code: '22',
+    name: 'Pocket Deuces',
+    nickname: 'Ducks',
+    category: 'Small Pocket Pair',
+    combinations: 6,
+    probability: '0.45% (220 To 1 Against)',
+    preflopRank: '50 Of 169',
+    vsRandomEquity: '50.3%',
+    summary:
+      'Pocket Deuces (22) Is A 51.6% Favorite Preflop Against Unpaired Overcards Like Ace-King Offsuit, But Requires Set-Mining Discipline Postflop Because Every Board Card Is An Overcard.',
+    rfiByPosition: { UTG: '0% Fold (Or 25% Low-Freq Mix)', HJ: '50% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Fold Unless Deep-Stacked In Position With At Least 15-To-1 Implied Odds.',
+    postflopPlaybook:
+      'Follow The "No Set, No Bet" Baseline In Multiway Pots While Disguising Bottom Set On Ace-High And King-High Boards.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '51.6%', villainEquity: '47.9%', tie: '0.5%' },
+      { villain: 'JTs (Jack-Ten Suited)', heroEquity: '49.2%', villainEquity: '50.1%', tie: '0.7%' },
+      { villain: 'AA (Pocket Aces)', heroEquity: '18.0%', villainEquity: '81.6%', tie: '0.4%' },
+    ],
+  },
+  {
+    slug: 'seven-deuce-offsuit',
+    code: '72o',
+    name: 'Seven-Deuce Offsuit',
+    nickname: 'The Hammer',
+    category: 'Worst Starting Hand',
+    combinations: 12,
+    probability: '0.90% (110 To 1 Against)',
+    preflopRank: '169 Of 169',
+    vsRandomEquity: '34.6%',
+    summary:
+      'Seven-Deuce Offsuit (72o) Is Mathematically The Worst Starting Hand In Texas Hold\'em (Rank 169 Of 169, 34.6% Equity Vs. Random) Because It Cannot Make A Single Five-Card Straight Using Both Hole Cards And Has Zero Flush Potential.',
+    rfiByPosition: { UTG: '0% Pure Fold', HJ: '0% Pure Fold', CO: '0% Pure Fold', BTN: '0% Pure Fold', SB: '0% Pure Fold' },
+    vs3Bet: '100% Pure Fold Unless Playing A Special Seven-Deuce Bounty Prop Game With Sufficient Table Bounty Overlay.',
+    postflopPlaybook:
+      'In Standard Games, Fold Preflop 100% Of The Time. In Seven-Deuce Bounty Games, Calculate The Total Table Bounty Pool Relative To The Effective Stack Before Attempting Pre-Flop Or Flop Bluffs.',
+    matchups: [
+      { villain: 'AA (Pocket Aces)', heroEquity: '11.8%', villainEquity: '87.8%', tie: '0.4%' },
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '32.3%', villainEquity: '67.1%', tie: '0.6%' },
+      { villain: '83o (Eight-Three Offsuit)', heroEquity: '40.5%', villainEquity: '58.4%', tie: '1.1%' },
+    ],
+  },
+];
+
+export function getStartingHand(slug) {
+  const s = String(slug || '').trim().toLowerCase();
+  return STARTING_HANDS.find((h) => h.slug === s || h.code.toLowerCase() === s) || null;
+}
+
+export const findStartingHand = getStartingHand;
+
+export function renderStartingHandsIndexMarkdown({ canonicalUrl = 'https://smarter.poker/learn/hands' } = {}) {
+  const lines = [
+    '# Smarter.Poker Texas Hold\'em Starting Hand Encyclopedia & GTO Matrix Guide',
+    '',
+    `> Source: [Poker Starting Hand Encyclopedia on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Complete Combinatoric Reference And 6-Max 100BB GTO Playbook For The ${STARTING_HANDS.length} Most-Searched Texas Hold'em Starting Hands. Includes Exact Deal Probabilities, Preflop Rank (Out Of 169), Equity Vs. Random Hands, Position-By-Position Opening Frequencies, And Key Head-To-Head Matchup Percentages.`,
+    '',
+    '## Starting Hand Comparison Table',
+    '| Hand | Code | Nickname | Rank | Combos | Equity Vs Random | UTG Action | BTN Action |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...STARTING_HANDS.map(
+      (h) =>
+        `| [${h.name}](https://smarter.poker${handPath(h.slug)}) ([.md](https://smarter.poker${handPath(h.slug)}.md)) | \`${h.code}\` | ${h.nickname} | ${h.preflopRank} | ${h.combinations} | ${h.vsRandomEquity} | ${h.rfiByPosition.UTG} | ${h.rfiByPosition.BTN} |`
+    ),
+    '',
+  ];
+  return lines.join('\n');
+}
+
+export function renderStartingHandMarkdown(hand, { canonicalBase = 'https://smarter.poker/learn/hands' } = {}) {
+  if (!hand) return '';
+  const url = `${canonicalBase}/${hand.slug}`;
+  return [
+    `# How To Play ${hand.name} (${hand.code}) In Texas Hold'em`,
+    '',
+    `> Source: [${hand.name} (${hand.code}) Strategy Guide on Smarter.Poker](${url})`,
+    '',
+    '## Executive Answer Summary',
+    hand.summary,
+    '',
+    '## Combinatoric Fact Sheet',
+    `- **Hand Notation**: \`${hand.code}\``,
+    `- **Common Nickname**: ${hand.nickname}`,
+    `- **Hand Category**: ${hand.category}`,
+    `- **Deck Combinations**: ${hand.combinations} Out Of 1,326 (${hand.probability})`,
+    `- **Preflop Rank**: ${hand.preflopRank}`,
+    `- **Equity Vs. Random Hand**: ${hand.vsRandomEquity}`,
+    '',
+    '## 6-Max 100BB GTO Opening Strategy By Position',
+    '| Position | Recommended Action |',
+    '| :--- | :--- |',
+    ...Object.entries(hand.rfiByPosition).map(([pos, act]) => `| ${pos} | ${act} |`),
+    '',
+    '## Facing A 3-Bet & Postflop Playbook',
+    `- **Facing A 3-Bet**: ${hand.vs3Bet}`,
+    `- **Postflop Execution**: ${hand.postflopPlaybook}`,
+    '',
+    '## Head-To-Head Preflop Equity Matchups',
+    '| Villain Hand | Hero Equity | Villain Equity | Tie % |',
+    '| :--- | :--- | :--- | :--- |',
+    ...hand.matchups.map((m) => `| ${m.villain} | ${m.heroEquity} | ${m.villainEquity} | ${m.tie} |`),
+    '',
+    '## Interactive Smarter.Poker Tools For This Hand',
+    `- **Simulate ${hand.code} Equity**: [Poker Odds Calculator](https://smarter.poker/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)})`,
+    `- **View Full 13x13 Preflop Grid**: [GTO Preflop Range Matrix](https://smarter.poker/tools/preflop-ranges)`,
+    `- **All Starting Hands**: [Starting Hand Encyclopedia](https://smarter.poker/learn/hands)`,
+    '',
+  ].join('\n');
+}

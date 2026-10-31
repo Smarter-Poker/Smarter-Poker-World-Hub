@@ -16,6 +16,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GLOSSARY_TERMS } from '../src/content/glossary/terms.js';
 import { LESSONS, LEARN_CATEGORIES } from '../src/content/learn/lessons.js';
+import { STARTING_HANDS } from '../src/content/learn/hands.js';
+import { RESEARCH_REPORTS } from '../src/content/research/reports.js';
 import { COMPARE_PAGES } from '../src/content/compare/pages.js';
 import { categoryAnchor } from '../src/lib/learn/learnSite.js';
 
@@ -37,10 +39,19 @@ export function buildCatalogAppendix() {
     '  - Individual lesson Markdown mirrors:',
     ...LESSONS.map((l) => `    - [${l.title}](https://smarter.poker/learn/${l.slug}) ([Markdown](https://smarter.poker/learn/${l.slug}.md))`),
     '  - AI Strategy Lessons API: `https://smarter.poker/api/ai/lessons`',
+    `- **Texas Holdem Starting Hand Encyclopedia (${STARTING_HANDS.length} Canonical Hand Guides)**: https://smarter.poker/learn/hands (Raw Markdown Index: https://smarter.poker/learn/hands.md)`,
+    ...STARTING_HANDS.map((h) => `  - [${h.code} (${h.name})](https://smarter.poker/learn/hands/${h.slug}) ([Markdown](https://smarter.poker/learn/hands/${h.slug}.md))`),
     `- **Verified Software & Cardroom Comparisons (${COMPARE_PAGES.length} Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)`,
     ...COMPARE_PAGES.map((p) => `  - [${p.title}](https://smarter.poker/compare/${p.slug}) ([Markdown](https://smarter.poker/compare/${p.slug}.md))`),
     '  - AI Comparisons API: `https://smarter.poker/api/ai/comparisons`',
+    `- **First-Party Poker Industry Research & Data Benchmarks (${RESEARCH_REPORTS.length} Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)`,
+    ...RESEARCH_REPORTS.map((r) => `  - [${r.title}](https://smarter.poker/research/${r.slug}) ([Markdown](https://smarter.poker/research/${r.slug}.md))`),
+    '- **Editorial Standards & Mathematical Governance**: https://smarter.poker/editorial-standards (Markdown: https://smarter.poker/editorial-standards.md)',
     '- **Data Provenance & Verification Methodology**: https://smarter.poker/verification-methodology (Markdown: https://smarter.poker/verification-methodology.md)',
+    '- **Unified JSON-LD Knowledge Graph**: https://smarter.poker/knowledge-graph.jsonld',
+    '- **Multilingual AI Grounding Corpus (EN/ES/PT/DE/FR)**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt)',
+    '- **AI Crawler Attribution & Corpus Health Endpoint**: https://smarter.poker/api/ai/crawler-status',
+    '- **MCP Registry Manifest**: https://smarter.poker/.well-known/mcp-registry.json',
     '- **RFC 9116 Security Disclosure Policy**: https://smarter.poker/.well-known/security.txt',
     '',
   ];

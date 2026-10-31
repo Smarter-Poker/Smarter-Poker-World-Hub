@@ -161,6 +161,9 @@ export const schemas = {
             contactType: 'customer support',
             email: 'support@smarter.poker',
         },
+        publishingPrinciples: 'https://smarter.poker/editorial-standards',
+        verificationFactCheckingPolicy: 'https://smarter.poker/verification-methodology',
+        correctionsPolicy: 'https://smarter.poker/editorial-standards#corrections',
         description: 'The Ultimate Poker Platform for GTO Training, Live Venue Discovery, Bankroll Tracking, and Community.',
         knowsAbout: [
             'Texas Hold\'em',

@@ -1183,6 +1183,301 @@ export const COMPARE_PAGES = [
     productLinks: ['smarterTraining'],
     glossary: ['Equity', 'Pot Odds', 'Range'],
   },
+
+  // 20 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-run-it-once',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs Run It Once',
+    h1: 'Smarter.Poker Vs Run It Once',
+    description:
+      'Smarter.Poker And Run It Once Compared On Poker Coaching Videos, Interactive GTO Drills, Preflop Ranges, Pricing And Supported Platforms.',
+    summary: p(
+      'Run It Once Is Phil Galfond\'s Poker Training Site Featuring Over 8,000 Strategy Videos, Standalone Courses And The Vision GTO Trainer Under Monthly Subscription Plans. Smarter.Poker Offers A Free Browser-Based GTO Training Suite With 107 Interactive Drills, A Preflop Solver Library, Interactive Video Coaching And Free Hand History Upload.',
+      ['runItOnceSite', 'spTraining', 'spSolutions', 'spHandHistory', 'spHome']
+    ),
+    intro: p(
+      'Players Comparing Video-First Subscription Sites With Interactive Browser Trainers Frequently Evaluate Run It Once And Smarter.Poker. Every Fact Below Is Read Directly From Each Platform.',
+      ['runItOnceSite', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker And Run It Once, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'runItOnce'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Run It Once Stands Out',
+        bullets: [
+          p('Run It Once Publishes An Archive Of Over 8,000 Coaching Videos Across No-Limit Hold\'em, Pot-Limit Omaha And Mixed Games Taught By High-Stakes Professionals.', ['runItOnceSite']),
+          p('Run It Once Offers The Vision GTO Trainer Add-On Specifically Known For Pot-Limit Omaha Study.', ['runItOnceSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker GTO Training Is Free To Play With 107 Scenario Drills, Interactive Video Quizzes And A Browsable Preflop Solutions Library.', ['spTraining', 'spSolutions', 'spHome']),
+          p('Smarter.Poker Includes Free Hand History Upload And Jarvis Coaching Insights Alongside Live Tournament Discovery And Bankroll Tracking.', ['spHandHistory', 'spBankroll', 'spPokerNearMe']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How Does Smarter.Poker Compare With Run It Once On Price?',
+        a: p('Run It Once Uses Essential And Elite Monthly Subscriptions Plus Standalone Course Purchases, Whereas Smarter.Poker GTO Training, Preflop Charts And Hand History Review Are Free To Play.', ['runItOnceSite', 'spTraining', 'spSolutions', 'spHome']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-upswing-poker', 'smarter-poker-vs-pokercoaching'],
+    productLinks: ['smarterTraining'],
+    glossary: ['GTO', 'Range', 'EV (Expected Value)'],
+  },
+
+  // 21 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-upswing-poker',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs Upswing Poker',
+    h1: 'Smarter.Poker Vs Upswing Poker',
+    description:
+      'Smarter.Poker And Upswing Poker Compared Side By Side On Structured Curriculums, GTO Trainers, Preflop Charts, Pricing And Hand History Analysis.',
+    summary: p(
+      'Upswing Poker Offers The Upswing Lab Subscription Curriculum, Specialist Masterclasses And The Lucid GTO Trainer Founded By Doug Polk And Ryan Fee. Smarter.Poker Provides A Free Web-Based GTO Training Platform With 107 Interactive Drills, A 40-Lesson Answer-First Strategy Curriculum, Solver Ranges And Free Hand History Upload.',
+      ['upswingSite', 'spTraining', 'spSolutions', 'spHandHistory', 'spHome']
+    ),
+    intro: p(
+      'Structured Poker Curriculums Help Players Build Preflop And Postflop Fundamentals. Here Is How Smarter.Poker And Upswing Poker Compare On Published Features And Access.',
+      ['upswingSite', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker And Upswing Poker, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'upswingPoker'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Upswing Poker Stands Out',
+        bullets: [
+          p('Upswing Poker Features The Upswing Lab Step-By-Step Learning Modules And Play-And-Explain Video Series Created By Touring Pros.', ['upswingSite']),
+          p('Upswing Poker Offers Dedicated High-Stakes Masterclasses And The Lucid GTO Postflop Trainer.', ['upswingSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Provides 107 Interactive GTO Drills, Preflop Charts And A Complete Strategy Curriculum Free In The Browser.', ['spTraining', 'spSolutions', 'spHome']),
+          p('Smarter.Poker Connects Training Directly To Free Hand History Upload, Multiway Equity Calculators And Live Poker Room Discovery.', ['spHandHistory', 'spOddsCalculator', 'spPokerNearMe']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Does Smarter.Poker Include Free Preflop Charts Like Upswing Poker?',
+        a: p('Yes. Smarter.Poker Provides Interactive 100BB 6-Max GTO Preflop Charts Plus A Full Solutions Browser Free Of Charge In Any Web Browser.', ['upswingSite', 'spSolutions', 'spHome']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-run-it-once', 'smarter-poker-vs-pokercoaching'],
+    productLinks: ['smarterTraining'],
+    glossary: ['GTO', 'Range', '3-Bet'],
+  },
+
+  // 22 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-pokertracker-4',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs PokerTracker 4',
+    h1: 'Smarter.Poker Vs PokerTracker 4',
+    description:
+      'Smarter.Poker And PokerTracker 4 Compared On Hand History Review, Leak Detection, Equity Calculation, Bankroll Tracking And Desktop Vs Web Access.',
+    summary: p(
+      'PokerTracker 4 Is A Desktop SQL Hand History Database And Real-Time Heads-Up Display (HUD) For Windows And Mac With One-Time License Tiers. Smarter.Poker Is A Free Web-Based Poker Ecosystem Offering Cloud TXT Hand History Upload, Jarvis Leak Analysis, 107 Interactive GTO Drills And A Full Bankroll And Tax Ledger.',
+      ['pt4Site', 'spHandHistory', 'spTraining', 'spBankroll', 'spHome']
+    ),
+    intro: p(
+      'Hand History Review And Leak Detection Can Be Done Through A Local Desktop Database Or A Cloud Web Trainer. Here Is How Smarter.Poker And PokerTracker 4 Compare.',
+      ['pt4Site', 'spHandHistory', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker And PokerTracker 4, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'pokerTracker4'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where PokerTracker 4 Stands Out',
+        bullets: [
+          p('PokerTracker 4 Runs A Local PostgreSQL Database That Renders Real-Time Heads-Up Display (HUD) Statistics On Supported Desktop Poker Sites.', ['pt4Site']),
+          p('PokerTracker 4 Includes Custom Report Filters, LeakTracker Statistical Benchmarks And An Integrated ICM Quiz Tool.', ['pt4Site']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Requires Zero Local Database Setup And Runs On Mobile Or Desktop Browsers With Free TXT Hand History Upload For Major Rooms.', ['spHandHistory', 'spHome']),
+          p('Smarter.Poker Pairs Hand Review With 107 Interactive GTO Training Drills, A Free Bankroll Manager And Live Venue Tracking.', ['spTraining', 'spBankroll', 'spPokerNearMe']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Do I Need To Install PostgreSQL To Review Hands On Smarter.Poker?',
+        a: p('No. Unlike PokerTracker 4 Which Uses A Local Desktop SQL Database, Smarter.Poker Parses Uploaded Hand Histories Directly In The Cloud Through Your Web Browser.', ['pt4Site', 'spHandHistory']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-holdem-manager-3', 'best-poker-bankroll-trackers'],
+    productLinks: ['smarterTraining', 'bankrollManager'],
+    glossary: ['VPIP', 'Range', 'EV (Expected Value)'],
+  },
+
+  // 23 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-holdem-manager-3',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs Holdem Manager 3',
+    h1: 'Smarter.Poker Vs Holdem Manager 3',
+    description:
+      'Smarter.Poker And Holdem Manager 3 Compared On Hand History Review, Situational Leak Analysis, GTO Training Drills, Pricing And Supported Devices.',
+    summary: p(
+      'Holdem Manager 3 Is A Windows Desktop Hand Tracking Database And Graphical HUD Offering Situational Views For 3-Bet Pots And C-Bets Under Paid License Tiers. Smarter.Poker Provides Free Browser-Based Hand History Upload, Jarvis Coaching Feedback, 107 GTO Training Drills And Cloud Bankroll Accounting On Any OS.',
+      ['hm3Site', 'spHandHistory', 'spTraining', 'spBankroll', 'spHome']
+    ),
+    intro: p(
+      'Players Reviewing Online Sessions Often Compare Windows HUD Trackers Like Holdem Manager 3 Against Cloud Training Suites Like Smarter.Poker.',
+      ['hm3Site', 'spHandHistory', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker And Holdem Manager 3, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'holdemManager3'],
+      columns: [
+        { key: 'pricing', label: 'Published Pricing' },
+        { key: 'freeTier', label: 'Free Tier' },
+        { key: 'training', label: 'Drills And Analysis' },
+        { key: 'solver', label: 'Calculators And Ranges' },
+        { key: 'handReview', label: 'Hand History Review' },
+        { key: 'platforms', label: 'Platforms' },
+      ],
+    },
+    sections: [
+      {
+        heading: 'Where Holdem Manager 3 Stands Out',
+        bullets: [
+          p('Holdem Manager 3 Provides A Live Graphical HUD Overlay, Situational Statistical Views And Optional NoteCaddy Automated Player Profiling On Windows.', ['hm3Site']),
+          p('Holdem Manager 3 Tracks Millions Of Locally Stored Hands With Red-Line Non-Showdown Winning Graphs.', ['hm3Site']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Works Natively On Mac, iPhone, iPad, Android And Windows Browsers Without Requiring Windows Desktop Installation.', ['spTraining', 'spHandHistory']),
+          p('Smarter.Poker Combines Free Hand History Review With 107 Active GTO Decision Drills And A Complete Live And Online Bankroll Ledger.', ['spTraining', 'spHandHistory', 'spBankroll']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Can Mac Or Mobile Players Use Smarter.Poker For Hand Review?',
+        a: p('Yes. Holdem Manager 3 Is Built For Windows Desktop, While Smarter.Poker Hand History Upload And GTO Training Run In Any Modern Web Browser On Mac, iPhone, iPad And Android.', ['hm3Site', 'spHandHistory', 'spTraining']),
+      },
+    ],
+    related: ['smarter-poker-vs-pokertracker-4', 'best-gto-poker-trainers', 'best-poker-bankroll-trackers'],
+    productLinks: ['smarterTraining', 'bankrollManager'],
+    glossary: ['VPIP', 'Range', 'C-Bet (Continuation Bet)'],
+  },
+
+  // 24 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-piosolver',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs PioSolver',
+    h1: 'Smarter.Poker Vs PioSolver',
+    description:
+      'Smarter.Poker And PioSolver Compared On Postflop GTO Equilibrium Solving, Pre-Solved Range Browsing, Hardware Requirements, Pricing And Drills.',
+    summary: p(
+      'PioSolver Is A Standalone Windows Postflop Game Tree Equilibrium Solver With Licenses From $249 To $1,099 Requiring Dedicated Multi-Core CPU And RAM Hardware. Smarter.Poker Provides Instant Cloud-Solved GTO Baselines, 107 Interactive Training Drills, Preflop Matrices And Multiway Equity Simulators Free In Any Web Browser.',
+      ['piosolverSite', 'spSolutions', 'spTraining', 'spOddsCalculator', 'spHome']
+    ),
+    intro: p(
+      'Building Custom Game Trees From Scratch And Studying Pre-Solved GTO Baselines Serve Different Study Needs. Here Is How Smarter.Poker And PioSolver Compare.',
+      ['piosolverSite', 'spSolutions', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker And PioSolver, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'piosolver'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where PioSolver Stands Out',
+        bullets: [
+          p('PioSolver Solves Custom Heads-Up Postflop Game Trees From Scratch With Arbitrary Bet Sizes, Stack Depths And Node-Locking On Windows Workstations.', ['piosolverSite']),
+          p('PioSolver Pro And Edge Support Scripting To Batch-Solve Hundreds Of Flop Textures Locally.', ['piosolverSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Delivers Instant Pre-Solved GTO Solutions And 107 Interactive Drills In The Browser With Zero Solver Compute Time Or Hardware Requirements.', ['spSolutions', 'spTraining', 'spHome']),
+          p('Smarter.Poker Is Free To Play On Mobile And Desktop And Includes Multiway Equity Simulation And Free Hand History Upload.', ['spOddsCalculator', 'spHandHistory', 'spHome']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Do I Need A High-RAM Windows PC To Study GTO On Smarter.Poker?',
+        a: p('No. Unlike PioSolver Which Computes Game Trees Locally On Windows Hardware, Smarter.Poker Serves Pre-Solved GTO Baselines And Drills Directly In Your Browser On Any Device.', ['piosolverSite', 'spSolutions', 'spTraining']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-monkersolver', 'smarter-poker-vs-equilab'],
+    productLinks: ['smarterTraining'],
+    glossary: ['GTO', 'Nash Equilibrium', 'Range'],
+  },
+
+  // 25 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-monkersolver',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs MonkerSolver',
+    h1: 'Smarter.Poker Vs MonkerSolver',
+    description:
+      'Smarter.Poker And MonkerSolver Compared On Multiway Holdem And Pot-Limit Omaha Solving, Preflop Ranges, Hardware Requirements And Free Web Access.',
+    summary: p(
+      'MonkerSolver Is A Desktop Java Equilibrium Solver (€499) Designed To Compute Multiway Hold\'em And Pot-Limit Omaha (PLO4 And PLO5) Game Trees On High-Memory Workstations. Smarter.Poker Offers Free Instant Browser-Based 6-Max Preflop Charts, Multiway Hold\'em And PLO4/PLO5/PLO6 Equity Calculators And 107 GTO Drills.',
+      ['monkersolverSite', 'spSolutions', 'spOddsCalculator', 'spTraining', 'spHome']
+    ),
+    intro: p(
+      'Multiway Preflop Ranges And Pot-Limit Omaha Equities Are Computationally Intensive. Here Is How Smarter.Poker And MonkerSolver Compare Across Published Capabilities.',
+      ['monkersolverSite', 'spSolutions', 'spOddsCalculator']
+    ),
+    table: {
+      caption: 'Smarter.Poker And MonkerSolver, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'monkersolver'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where MonkerSolver Stands Out',
+        bullets: [
+          p('MonkerSolver Solves Custom Multiway Preflop And Postflop Game Trees For Both No-Limit Hold\'em And Pot-Limit Omaha With Custom Rake And ICM Settings.', ['monkersolverSite']),
+          p('MonkerSolver Includes MonkerViewer For Inspecting Saved Preflop Range Trees Locally.', ['monkersolverSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Provides Instant Browser-Based 6-Max 100BB GTO Preflop Ranges And 107 Interactive Training Drills Free Of Charge.', ['spSolutions', 'spTraining', 'spHome']),
+          p('Smarter.Poker Includes A Free Multiway Odds Calculator Supporting Hold\'em, PLO4, PLO5 And PLO6 On Any Mobile Or Desktop Browser.', ['spOddsCalculator', 'spHome']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Does Smarter.Poker Support 5-Card And 6-Card PLO Equity Calculations?',
+        a: p('Yes. While MonkerSolver Solves Custom Abstraction Trees On Desktop, Smarter.Poker Provides A Free Instant Browser Equity Calculator For Hold\'em, PLO4, PLO5 And PLO6.', ['monkersolverSite', 'spOddsCalculator']),
+      },
+    ],
+    related: ['smarter-poker-vs-piosolver', 'best-gto-poker-trainers', 'smarter-poker-vs-equilab'],
+    productLinks: ['smarterTraining'],
+    glossary: ['GTO', 'Equity', 'Range'],
+  },
 ];
 
 /**

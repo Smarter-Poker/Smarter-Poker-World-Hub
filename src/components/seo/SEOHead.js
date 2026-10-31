@@ -67,6 +67,14 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : undefined;
     } else if (pathname === '/hub/series/[id]' || /^\/hub\/series\/[^/]+$/.test(pathname)) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : undefined;
+    } else if (pathname === '/hub/tours/[code]' || /^\/hub\/tours\/[^/]+$/.test(pathname)) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : undefined;
+    } else if (pathname === '/research' || pathname.startsWith('/research/')) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
+    } else if (pathname === '/editorial-standards') {
+      resolvedMarkdownUrl = 'https://smarter.poker/editorial-standards.md';
+    } else if (pathname === '/verification-methodology') {
+      resolvedMarkdownUrl = 'https://smarter.poker/verification-methodology.md';
     } else if (pathname === '/tools/icm-calculator' || pathname === '/hub/training/icm-calculator') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/icm-calculator.md';
     } else if (pathname === '/tools/preflop-ranges' || pathname === '/tools/preflop-ranges/index') {
@@ -118,10 +126,18 @@ export default function SEOHead(props) {
         resolvedMarkdownUrl = 'https://smarter.poker/hub/daily-tournaments.md';
       } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/events-calendar') {
         resolvedMarkdownUrl = 'https://smarter.poker/hub/events-calendar.md';
-      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/poker-tours') {
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/poker-tours' || cleanCanon === 'https://smarter.poker/hub/poker-near-me/tours') {
         resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-tours.md';
-      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/poker-series') {
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/poker-series' || cleanCanon === 'https://smarter.poker/hub/poker-near-me/series') {
         resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-series.md';
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/live-games') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me/live-games.md';
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/map') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me/map.md';
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/roadtrip') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me/roadtrip.md';
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/alerts') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me/alerts.md';
       } else {
         resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me.md';
       }

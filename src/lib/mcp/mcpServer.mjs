@@ -24,6 +24,8 @@ import { calculateICM } from '../../engines/ICMCalculator.js';
 import { RFI } from '../../config/solverRanges.js';
 import { GLOSSARY_TERMS } from '../../content/glossary/terms.js';
 import { LESSONS, LEARN_CATEGORIES, trainingCta } from '../../content/learn/lessons.js';
+import { STARTING_HANDS, findStartingHand } from '../../content/learn/hands.js';
+import { RESEARCH_REPORTS, findResearchReport } from '../../content/research/reports.js';
 import {
   AS_OF,
   COMPARE_PAGES,
@@ -302,13 +304,39 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_competitor_comparison',
-    description: 'Retrieve verified, source-cited side-by-side comparison matrices and best-of benchmarks between Smarter.Poker and competitors (PokerBros, PPPoker, ClubGG, Bravo Poker Live, TableCaptain, GTO Wizard, DTO, Sharp Poker, Pokerbase, DownCount, Bellagio, Aria, Commerce, The Lodge).',
+    description: 'Retrieve verified, source-cited side-by-side comparison matrices and best-of benchmarks between Smarter.Poker and competitors (PokerBros, PPPoker, ClubGG, Bravo Poker Live, TableCaptain, GTO Wizard, DTO, Sharp Poker, Pokerbase, DownCount, Bellagio, Aria, Commerce, The Lodge, Run It Once, Upswing Poker, PokerTracker 4, Holdem Manager 3, PioSolver, MonkerSolver).',
     inputSchema: {
       type: 'object',
       properties: {
         slug: {
           type: 'string',
-          description: 'Comparison slug (e.g. "best-poker-club-apps", "best-gto-poker-trainers", "best-poker-bankroll-trackers", "best-poker-room-management-software", "club-commander-vs-bravo-poker-live") or omit to list all 16 verified comparisons.',
+          description: 'Comparison slug (e.g. "best-poker-club-apps", "best-gto-poker-trainers", "smarter-poker-vs-piosolver", "smarter-poker-vs-run-it-once") or omit to list all 25 verified comparisons.',
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_starting_hand',
+    description: 'Look up combinatorics, 100BB 6-Max GTO positional opening ranges, 3-bet strategies, and preflop equities for any canonical Texas Holdem starting hand (e.g. "AA", "KK", "AKs", "72o", "pocket-aces", "ace-king-suited").',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        hand: {
+          type: 'string',
+          description: 'Hand code or slug (e.g. "AA", "KK", "AKs", "JTs", "T9s", "72o", "pocket-aces"). Omit to list all 20 canonical starting hand guides.',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_research_report',
+    description: 'Retrieve first-party empirical poker industry research reports and dataset benchmarks (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Research report slug (e.g. "us-live-poker-room-rake-and-jackpot-benchmark", "gto-vs-population-preflop-and-postflop-leak-study") or omit to list all 4 empirical studies.',
         },
       },
     },
@@ -377,6 +405,18 @@ export const MCP_RESOURCE_TEMPLATES = [
     uriTemplate: 'https://smarter.poker/hub/venues/{id}.md',
     name: 'Smarter.Poker Live Poker Venue Fact Sheet Markdown',
     description: 'Raw Markdown fact sheet for any verified casino poker room or cardroom.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/learn/hands/{hand}.md',
+    name: 'Smarter.Poker Starting Hand Guide Markdown',
+    description: 'Raw Markdown GTO strategy and combinatorics guide for any canonical Texas Holdem starting hand.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/research/{slug}.md',
+    name: 'Smarter.Poker Empirical Research Report Markdown',
+    description: 'Raw Markdown empirical poker industry benchmark study and dataset summary.',
     mimeType: 'text/markdown',
   },
 ];
@@ -1159,6 +1199,144 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 })),
                 comparisons_url: `${base}/compare`,
                 markdown_url: `${base}/compare.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'lookup_starting_hand': {
+      const rawHand = String(args?.hand || '').trim();
+      if (rawHand) {
+        const found = findStartingHand(rawHand);
+        if (!found) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: `Starting hand "${rawHand}" not found.`,
+                    available_hands: STARTING_HANDS.map((h) => ({ code: h.code, slug: h.slug, name: h.name })),
+                    encyclopedia_url: `${base}/learn/hands`,
+                    markdown_url: `${base}/learn/hands.md`,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  ...found,
+                  canonical_url: `${base}/learn/hands/${found.slug}`,
+                  markdown_url: `${base}/learn/hands/${found.slug}.md`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                total_starting_hands: STARTING_HANDS.length,
+                hands: STARTING_HANDS.map((h) => ({
+                  code: h.code,
+                  slug: h.slug,
+                  name: h.name,
+                  nickname: h.nickname,
+                  rank: h.rank,
+                  combos: h.combos,
+                  vsRandomEquity: h.vsRandomEquity,
+                  canonical_url: `${base}/learn/hands/${h.slug}`,
+                  markdown_url: `${base}/learn/hands/${h.slug}.md`,
+                })),
+                encyclopedia_url: `${base}/learn/hands`,
+                markdown_url: `${base}/learn/hands.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_research_report': {
+      const rawSlug = String(args?.slug || '').trim().toLowerCase();
+      if (rawSlug) {
+        const report = findResearchReport(rawSlug);
+        if (!report) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: `Research report "${rawSlug}" not found.`,
+                    available_reports: RESEARCH_REPORTS.map((r) => ({ slug: r.slug, title: r.title })),
+                    research_hub_url: `${base}/research`,
+                    markdown_url: `${base}/research.md`,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  ...report,
+                  canonical_url: `${base}/research/${report.slug}`,
+                  markdown_url: `${base}/research/${report.slug}.md`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                total_reports: RESEARCH_REPORTS.length,
+                reports: RESEARCH_REPORTS.map((r) => ({
+                  slug: r.slug,
+                  title: r.title,
+                  sampleSize: r.sampleSize,
+                  updated: r.updated,
+                  summary: r.summary,
+                  canonical_url: `${base}/research/${r.slug}`,
+                  markdown_url: `${base}/research/${r.slug}.md`,
+                })),
+                research_hub_url: `${base}/research`,
+                markdown_url: `${base}/research.md`,
               },
               null,
               2

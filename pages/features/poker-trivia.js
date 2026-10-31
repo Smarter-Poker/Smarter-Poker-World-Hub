@@ -72,6 +72,36 @@ export default function PokerTriviaPage() {
     },
   ];
 
+  const quizJsonLd = [
+    {
+      '@type': 'Quiz',
+      '@id': 'https://smarter.poker/features/poker-trivia#quiz',
+      name: 'Smarter.Poker GTO Math & Poker Lore Trivia Challenge',
+      description: 'Interactive Poker Strategy, Combinatorics And WSOP History Assessment Questions.',
+      educationalLevel: 'Intermediate To Advanced',
+      hasPart: [
+        {
+          '@type': 'Question',
+          eduQuestionType: 'Multiple choice',
+          name: 'How Many Unique 2-Card Starting Hand Combinations Exist In A Standard 52-Card Texas Holdem Deck?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: '1,326 Total Combinations (78 Pocket Pair Combos, 312 Suited Combos And 936 Offsuit Combos Across 169 Distinct Starting Hands).',
+          },
+        },
+        {
+          '@type': 'Question',
+          eduQuestionType: 'Multiple choice',
+          name: 'What Minimum Equity Is Required To Call A Half-Pot Bet On The River With Zero Implied Odds?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: '25.0% Required Equity (Risking 0.50 Pot To Win A Total Final Pot Of 2.00 Pots).',
+          },
+        },
+      ],
+    },
+  ];
+
   return (
     <FeatureLanderLayout
       title="Multiplayer Poker Trivia & Brain Training Games"
@@ -88,6 +118,7 @@ export default function PokerTriviaPage() {
       comparison={comparison}
       howItWorks={howItWorks}
       faqs={faqs}
+      jsonLd={quizJsonLd}
     />
   );
 }

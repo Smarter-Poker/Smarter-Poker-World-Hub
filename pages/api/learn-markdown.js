@@ -1,6 +1,11 @@
 import { getLesson, LEARN_CATEGORIES, CATEGORY_INTROS, LESSONS } from '../../src/content/learn/lessons.js';
 import { categoryAnchor, learnCategoryPath, lessonPath } from '../../src/lib/learn/learnSite.js';
 import {
+  getStartingHand,
+  renderStartingHandsIndexMarkdown,
+  renderStartingHandMarkdown,
+} from '../../src/content/learn/hands.js';
+import {
   renderLearnIndexMarkdown,
   renderLearnLessonMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -43,7 +48,23 @@ export function renderLearnCategoryMarkdown(categorySlug) {
 }
 
 export default function handler(req, res) {
-  const { slug, category } = req.query;
+  const { slug, category, hand } = req.query;
+
+  if (hand) {
+    const cleanHand = String(hand || '').trim().toLowerCase();
+    const md =
+      cleanHand === 'index'
+        ? renderStartingHandsIndexMarkdown()
+        : renderStartingHandMarkdown(getStartingHand(cleanHand));
+    if (!md) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.status(404).send('Starting hand guide not found');
+    }
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Vary', 'Accept');
+    return res.status(200).send(md);
+  }
 
   if (category) {
     const md = renderLearnCategoryMarkdown(category);

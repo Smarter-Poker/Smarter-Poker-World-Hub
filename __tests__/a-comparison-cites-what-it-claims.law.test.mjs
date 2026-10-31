@@ -82,6 +82,12 @@ const EXPECTED_SLUGS = [
   'smarter-poker-vs-pokercoaching',
   'smarter-poker-vs-icmizer',
   'smarter-poker-vs-equilab',
+  'smarter-poker-vs-run-it-once',
+  'smarter-poker-vs-upswing-poker',
+  'smarter-poker-vs-pokertracker-4',
+  'smarter-poker-vs-holdem-manager-3',
+  'smarter-poker-vs-piosolver',
+  'smarter-poker-vs-monkersolver',
 ];
 
 /** Other names a product goes by in running copy. */
