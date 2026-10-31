@@ -11,11 +11,11 @@ import os
 from pathlib import Path
 import re
 import sys
-DATASET = '2f9499d5-64de-456c-bbd7-97369cc6f48b'
-MANIFEST = '8aa268a7b929672fa49b9b914b4d2f226f9af016aa12e63ee897ea58cb4cf51f'
-INDEX = 'fdafe80bc08a69a737c8d242a3bb2aa5dc2b59be43e22f096d770d8b8dcdea6f'
-PRODUCER = 'c6341c31eb9ba3530aabe3f923079a53fe4c5aa7'
-CAPTURE = 'c48596cd53b634a8c33c88d37e45a53f3eb7fe70437f1c9ec5c061d3fc042188'
+DATASET = '187815b1-3701-46c8-8514-93db3cdb6d07'
+MANIFEST = 'eb30f11bfdccf8f017270c7e808c56fcc96a47781e52c3ee6d74a6efdcb04a4c'
+INDEX = '43f3874cdb19fe36a5d01422983f15b515c559ba0c24eaf1ee9aafa257f31cff'
+PRODUCER = '291a8e5658b6a706066b39fba6c75a714f578695'
+CAPTURE = '817cb3e77af1b8337f504d84ce6976d4d5e3b63e77f86891373264ef36c32e35'
 FIELDS = ('model_checksum','template_checksum','training_provenance_checksum','model_build_receipt_checksum')
 CONFIG = {'format','dataset_id','pipeline_root','input_root','manifest','model_index','snapshot','worker_completion','output'}
 class Refusal(ValueError):
@@ -140,7 +140,7 @@ def admit(config):
     terminal_pin=completion['original_terminal']
     need(isinstance(terminal_pin,dict) and terminal_pin.get('path')==str(task/'capture-M2-once'/'terminal.json'),'ORIGINAL_NATIVE_TERMINAL_PATH_REQUIRED')
     terminal=strict_json(pinned(terminal_pin,limit=16*1024),bom=True)
-    need(isinstance(terminal,dict) and terminal.get('contract')=='smarter-poker.r7-official-M2-capture-terminal.v1' and terminal.get('dataset_id')==DATASET and terminal.get('manifest_checksum')==MANIFEST and type(terminal.get('launcher_exit_code')) is int and terminal['launcher_exit_code']==0 and terminal.get('source_completeness_verified') is False and terminal.get('certified') is False,'ORIGINAL_NATIVE_LAUNCHER_ZERO_REQUIRED')
+    need(isinstance(terminal,dict) and terminal.get('contract')=='smarter-poker.r7-corrected-M2-capture-terminal.v1' and terminal.get('dataset_id')==DATASET and terminal.get('manifest_checksum')==MANIFEST and type(terminal.get('launcher_exit_code')) is int and terminal['launcher_exit_code']==0 and terminal.get('source_completeness_verified') is False and terminal.get('certified') is False,'ORIGINAL_NATIVE_LAUNCHER_ZERO_REQUIRED')
     output=Path(config['output']);need(output.parent==task and output.name.startswith('public215-qualify-once-') and not output.exists(),'NEW_OFFICIAL_OUTPUT_REQUIRED')
     client=replace(modules['gateway'].GatewayClient.from_environment('COMPACTOR',manifest.provenance),attempts=1)
     verify_authority(client,codec,manifest.raw,models,snapshot)

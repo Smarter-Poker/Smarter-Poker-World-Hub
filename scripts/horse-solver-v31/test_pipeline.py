@@ -2149,6 +2149,25 @@ class R7QualifyOnceTests(unittest.TestCase):
         with self.assertRaises(q.Refusal):q.verify_authority(reader,codec,{},models,stale)
         self.assertEqual(len(reader.calls),1)
 
+    def test_prior_r7_dataset_capture_and_file_pins_are_refused_before_io(self):
+        q,c,plan,snapshot,client=self.fixture()
+        models={q.canonical(x['entry']['context']):x['entry'] for x in plan}
+        evidence={**snapshot,'dataset_id':q.DATASET,'state':'building','source_capture_checksum':q.CAPTURE,'m1_nodes':6099,'m2_nodes':856,'headers_valid':True,'selection_complete':True,'contexts':[{'context':x['entry']['context'],'cell_key_checksum':x['cell_key_checksum'],**{k:x['entry'][k] for k in q.FIELDS},'m1_nodes':57,'m2_nodes':8,'headers_valid':True} for x in plan]}
+        completed={'format':'public215_r7_m2_completion_readback_v1','original_terminal':{'path':'fixture','sha256':'f'*64},'completed_heartbeat':{'run_id':'11111111-1111-1111-1111-111111111111','sequence':42,'received_at':snapshot['observed_at'],'state':'completed'},'dataset_id':q.DATASET,'machine_id':'M2','native_launcher_exit_code':0,'done':856,'written':856,'planned':856,'invalid':0,'selection_receipt_checksum':'a'*64,'source_capture_checksum':q.CAPTURE}
+        self.assertEqual(len(q.validate_evidence(evidence,completed,models)),107)
+        for key,legacy in [('dataset_id','2f9499d5-64de-456c-bbd7-97369cc6f48b'),
+                           ('source_capture_checksum','c48596cd53b634a8c33c88d37e45a53f3eb7fe70437f1c9ec5c061d3fc042188')]:
+            with self.subTest(legacy_field=key):
+                with self.assertRaisesRegex(q.Refusal,'COMPLETE_INDEPENDENT_SOURCES_REQUIRED'):
+                    q.validate_evidence({**evidence,key:legacy},{**completed,key:legacy},models)
+        for legacy,expected in [('8aa268a7b929672fa49b9b914b4d2f226f9af016aa12e63ee897ea58cb4cf51f',q.MANIFEST),
+                                ('fdafe80bc08a69a737c8d242a3bb2aa5dc2b59be43e22f096d770d8b8dcdea6f',q.INDEX)]:
+            with self.subTest(legacy_file_pin=legacy), mock.patch.object(q,'regular',side_effect=AssertionError('old pins must be refused before file access')) as regular:
+                with self.assertRaisesRegex(q.Refusal,'ORIGINAL_PIN_REQUIRED'):
+                    q.pinned({'path':'unused-legacy-file','sha256':legacy},expected)
+                regular.assert_not_called()
+        self.assertEqual(client.calls,[])
+
     def test_evidence_requires_complete_independent_exact_binding(self):
         q,c,plan,snapshot,client=self.fixture();models={q.canonical(x['entry']['context']):x['entry'] for x in plan}
         evidence={**snapshot,'dataset_id':q.DATASET,'state':'building','source_capture_checksum':q.CAPTURE,'m1_nodes':6099,'m2_nodes':856,'headers_valid':True,'selection_complete':True,'contexts':[{'context':x['entry']['context'],'cell_key_checksum':x['cell_key_checksum'],**{k:x['entry'][k] for k in q.FIELDS},'m1_nodes':57,'m2_nodes':8,'headers_valid':True} for x in plan]}
