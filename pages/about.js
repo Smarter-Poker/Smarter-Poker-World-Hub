@@ -30,6 +30,24 @@ const ABOUT_PAGE_SCHEMA = {
   name: 'About Smarter Poker',
   mainEntity: { '@id': 'https://smarter.poker/#organization' },
   isPartOf: { '@id': 'https://smarter.poker/#website' },
+  breadcrumb: {
+    '@type': 'BreadcrumbList',
+    '@id': 'https://smarter.poker/about#breadcrumb',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://smarter.poker/',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'About Smarter.Poker',
+        item: 'https://smarter.poker/about',
+      },
+    ],
+  },
   speakable: {
     '@type': 'SpeakableSpecification',
     cssSelector: ['h1', 'p'],

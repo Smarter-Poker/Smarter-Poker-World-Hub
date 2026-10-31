@@ -325,6 +325,42 @@ async function runBenchmark() {
   assertCheck('GET /hub/video-library.md status 200', videoLibMd.status === 200);
   assertCheck('/hub/video-library.md returns structured markdown spec', videoLibMd.text.startsWith('# ') && videoLibMd.text.includes('Video Coaching'));
 
+  const hubMd = await fetchRoute('/hub.md');
+  assertCheck('GET /hub.md status 200', hubMd.status === 200);
+  assertCheck('/hub.md returns master platform catalog', hubMd.text.startsWith('# ') && hubMd.text.includes('## Complete Feature Landing Guides'));
+
+  const hubBankrollMd = await fetchRoute('/hub/bankroll-manager.md');
+  assertCheck('GET /hub/bankroll-manager.md status 200', hubBankrollMd.status === 200);
+  assertCheck('/hub/bankroll-manager.md returns bankroll spec', hubBankrollMd.text.startsWith('# ') && hubBankrollMd.text.includes('Form W-2G'));
+
+  const hubCommanderMd = await fetchRoute('/hub/commander.md');
+  assertCheck('GET /hub/commander.md status 200', hubCommanderMd.status === 200);
+  assertCheck('/hub/commander.md returns Club Commander spec', hubCommanderMd.text.startsWith('# ') && hubCommanderMd.text.includes('Club Commander'));
+
+  const hubTrainingMd = await fetchRoute('/hub/training.md');
+  assertCheck('GET /hub/training.md status 200', hubTrainingMd.status === 200);
+  assertCheck('/hub/training.md returns GTO training spec', hubTrainingMd.text.startsWith('# ') && hubTrainingMd.text.includes('GTO'));
+
+  const hubTriviaMd = await fetchRoute('/hub/trivia.md');
+  assertCheck('GET /hub/trivia.md status 200', hubTriviaMd.status === 200);
+  assertCheck('/hub/trivia.md returns poker trivia spec', hubTriviaMd.text.startsWith('# ') && hubTriviaMd.text.includes('Trivia'));
+
+  const hubToolsMd = await fetchRoute('/hub/poker-tools.md');
+  assertCheck('GET /hub/poker-tools.md status 200', hubToolsMd.status === 200);
+  assertCheck('/hub/poker-tools.md returns calculators spec', hubToolsMd.text.startsWith('# ') && hubToolsMd.text.includes('Calculator'));
+
+  const hubJarvisMd = await fetchRoute('/hub/training/jarvis.md');
+  assertCheck('GET /hub/training/jarvis.md status 200', hubJarvisMd.status === 200);
+  assertCheck('/hub/training/jarvis.md returns AI coach spec', hubJarvisMd.text.startsWith('# ') && hubJarvisMd.text.includes('PokerBrain'));
+
+  const hubIcmMd = await fetchRoute('/hub/training/icm-calculator.md');
+  assertCheck('GET /hub/training/icm-calculator.md status 200', hubIcmMd.status === 200);
+  assertCheck('/hub/training/icm-calculator.md returns ICM spec', hubIcmMd.text.startsWith('# ') && hubIcmMd.text.includes('Malmuth-Harville'));
+
+  const hubEqMd = await fetchRoute('/hub/training/equity-calculator.md');
+  assertCheck('GET /hub/training/equity-calculator.md status 200', hubEqMd.status === 200);
+  assertCheck('/hub/training/equity-calculator.md returns odds spec', hubEqMd.text.startsWith('# ') && hubEqMd.text.includes('Monte Carlo'));
+
   // 10. Entity Knowledge Graph & Markdown Alternate Links
   console.log(`\n--- [10/10] Entity Knowledge Graph & Alternate Links ---`);
   const homeHtml = await fetchRoute('/');
@@ -362,6 +398,12 @@ async function runBenchmark() {
 
   const sitemapXml = await fetchRoute('/sitemap.xml');
   assertCheck('GET /sitemap.xml status 200 with /features/* routes', sitemapXml.status === 200 && sitemapXml.text.includes('https://smarter.poker/features/bankroll-tax-tracker') && sitemapXml.text.includes('https://smarter.poker/features/poker-equity-calculators'));
+
+  const aboutHtml = await fetchRoute('/about');
+  assertCheck('/about contains AboutPage and BreadcrumbList schema', aboutHtml.text.includes('"@type":"AboutPage"') && aboutHtml.text.includes('"@type":"BreadcrumbList"'));
+
+  const aboutMd = await fetchRoute('/about.md');
+  assertCheck('GET /about.md status 200 with corporate entity spec', aboutMd.status === 200 && aboutMd.text.includes('Smarter Software Inc.'));
 
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);

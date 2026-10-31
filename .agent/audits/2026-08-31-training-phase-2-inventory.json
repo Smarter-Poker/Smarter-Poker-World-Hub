@@ -36598,7 +36598,10 @@
         "src/lib/seo/shareImageMetadata.mjs"
       ],
       "links": [
-        "/hub/training/icm-calculator"
+        "/hub/training",
+        "/hub/training/equity-calculator",
+        "/hub/training/icm-calculator",
+        "/hub/training/jarvis"
       ],
       "apiReferences": [],
       "apiReferencePrefixes": [],
