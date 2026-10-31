@@ -315,6 +315,72 @@ export const MCP_TOOLS = [
   },
 ];
 
+export const MCP_PROMPTS = [
+  {
+    name: 'find_live_poker_near_city',
+    description: 'Search verified live poker rooms, cash game stakes, and daily tournament schedules in a target city or state.',
+    arguments: [
+      { name: 'city', description: 'City name (e.g. "Las Vegas", "Austin")', required: false },
+      { name: 'state', description: 'Two-letter state code (e.g. "NV", "TX")', required: true },
+    ],
+  },
+  {
+    name: 'analyze_icm_final_table',
+    description: 'Compute Malmuth-Harville ICM tournament equity and bubble pressure for a final table stack and payout distribution.',
+    arguments: [
+      { name: 'stacks', description: 'Comma-separated chip stacks (e.g. "50000,30000,20000")', required: true },
+      { name: 'payouts', description: 'Comma-separated prize payouts (e.g. "5000,3000,2000")', required: true },
+    ],
+  },
+  {
+    name: 'explain_poker_strategy_concept',
+    description: 'Explain a poker strategy concept or GTO preflop range using the Smarter.Poker curriculum and glossary.',
+    arguments: [
+      { name: 'topic', description: 'Strategy topic or glossary term (e.g. "pot-odds", "icm", "button-opening-range")', required: true },
+    ],
+  },
+  {
+    name: 'compare_poker_software',
+    description: 'Compare poker training software, bankroll trackers, or club management apps using verified primary-source citations.',
+    arguments: [
+      { name: 'slug', description: 'Comparison slug (e.g. "best-gto-poker-trainers", "smarter-poker-vs-icmizer")', required: false },
+    ],
+  },
+];
+
+export const MCP_RESOURCE_TEMPLATES = [
+  {
+    uriTemplate: 'https://smarter.poker/learn/{slug}.md',
+    name: 'Smarter.Poker Strategy Lesson Markdown',
+    description: 'Raw Markdown edition of any of the 40 poker strategy lessons on Smarter.Poker.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/learn/category/{category}.md',
+    name: 'Smarter.Poker Strategy Category Pillar Markdown',
+    description: 'Raw Markdown topic cluster guide for Preflop, Postflop, Math, Tournaments, Cash, Bankroll, Mental Game, or Theory.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/glossary/{term}.md',
+    name: 'Smarter.Poker Glossary Definition Markdown',
+    description: 'Raw Markdown definition of any official poker glossary term.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/compare/{slug}.md',
+    name: 'Smarter.Poker Competitor Comparison Markdown',
+    description: 'Raw Markdown side-by-side comparison table and primary source citations.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/hub/venues/{id}.md',
+    name: 'Smarter.Poker Live Poker Venue Fact Sheet Markdown',
+    description: 'Raw Markdown fact sheet for any verified casino poker room or cardroom.',
+    mimeType: 'text/markdown',
+  },
+];
+
 /**
  * Executes an MCP tool call and returns the standardized tool response content.
  */
@@ -1142,8 +1208,61 @@ export async function handleMcpRpc(requestBody, { origin = SITE_ORIGIN } = {}) {
             protocolVersion: '2024-11-05',
             capabilities: {
               tools: { listChanged: false },
+              prompts: { listChanged: false },
+              resources: { subscribe: false, listChanged: false },
             },
             serverInfo: MCP_SERVER_INFO,
+          },
+        });
+        break;
+
+      case 'prompts/list':
+        responses.push({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            prompts: MCP_PROMPTS,
+          },
+        });
+        break;
+
+      case 'prompts/get': {
+        const promptName = String(params?.name || '');
+        const promptArgs = params?.arguments || {};
+        const promptDef = MCP_PROMPTS.find((p) => p.name === promptName);
+        if (!promptDef) {
+          responses.push({
+            jsonrpc: '2.0',
+            id,
+            error: { code: -32602, message: `Unknown prompt: ${promptName}` },
+          });
+          break;
+        }
+        responses.push({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            description: promptDef.description,
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `Use the Smarter.Poker MCP tools to ${promptDef.description} Parameters: ${JSON.stringify(promptArgs)}`,
+                },
+              },
+            ],
+          },
+        });
+        break;
+      }
+
+      case 'resources/templates/list':
+        responses.push({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            resourceTemplates: MCP_RESOURCE_TEMPLATES,
           },
         });
         break;

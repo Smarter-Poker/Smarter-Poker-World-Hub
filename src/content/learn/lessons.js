@@ -106,6 +106,18 @@ export const TRAINING_TOOLS = {
 /** Jarvis, the training assistant every lesson also points to. */
 export const JARVIS = { href: '/hub/training/jarvis', name: 'Jarvis Training Insights' };
 
+/** Category-to-Feature Lander mapping for semantic cross-linking. */
+export const CATEGORY_FEATURE_GUIDES = {
+  Preflop: { href: '/features/preflop-charts-matrix', name: 'GTO Preflop Charts And Range Matrix Guide' },
+  Postflop: { href: '/features/poker-training-games', name: 'GTO Poker Training Games Guide' },
+  Math: { href: '/features/poker-equity-calculators', name: 'Poker Equity And ICM Calculators Guide' },
+  Tournaments: { href: '/features/poker-equity-calculators', name: 'Tournament ICM And Equity Calculators Guide' },
+  Cash: { href: '/features/poker-near-me', name: 'Live Poker Near Me And Cardroom Guide' },
+  Bankroll: { href: '/features/bankroll-tax-tracker', name: 'Poker Bankroll And Tax Tracker Guide' },
+  'Mental Game': { href: '/features/poker-ai-coach', name: 'Jarvis And PokerBrain AI Coaching Guide' },
+  Theory: { href: '/features/virtual-poker-sandbox', name: 'Virtual Poker Table Sandbox Guide' },
+};
+
 /** Keys whose values are identifiers or data, never copy. */
 const NOT_COPY = new Set(['slug', 'related', 'glossary', 'train', 'source', 'key', 'hand', 'percent', 'reach', 'played', 'ranks', 'rank', 'category']);
 
@@ -155,9 +167,11 @@ export function lessonsByCategory() {
 export function trainingCta(lesson) {
   const game = getGameById(lesson.train?.game);
   const tool = lesson.train?.tool;
+  const feature = CATEGORY_FEATURE_GUIDES[lesson.category] || null;
   return {
     game: game ? { id: game.id, name: game.name, href: trainingGamePath(game.id) } : null,
     tool: tool && TRAINING_TOOLS[tool] ? { href: tool, name: TRAINING_TOOLS[tool] } : null,
+    feature,
     jarvis: JARVIS,
   };
 }

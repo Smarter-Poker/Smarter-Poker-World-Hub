@@ -73,11 +73,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VenueSearchResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker searchVenues response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/hub/poker-near-me/venues",
+                      "markdown_url": "https://smarter.poker/hub/poker-near-me/venues.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/hub/poker-near-me/venues",
+        "x-ai-markdown-url": "https://smarter.poker/hub/poker-near-me/venues.md"
       }
     },
     "/api/ai/venues/{id}": {
@@ -103,6 +116,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VenueDetailResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getVenueDetails response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/hub/venues/2499",
+                      "markdown_url": "https://smarter.poker/hub/venues/2499.md"
+                    }
+                  }
                 }
               }
             }
@@ -110,7 +134,9 @@
           "404": {
             "description": "Venue not found."
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/hub/venues/2499",
+        "x-ai-markdown-url": "https://smarter.poker/hub/venues/2499.md"
       }
     },
     "/api/ai/series": {
@@ -156,11 +182,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SeriesSearchResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker searchSeries response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/hub/poker-series",
+                      "markdown_url": "https://smarter.poker/hub/poker-series.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/hub/poker-series",
+        "x-ai-markdown-url": "https://smarter.poker/hub/poker-series.md"
       }
     },
     "/api/mcp": {
@@ -206,11 +245,24 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker callMcpRpc response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/api/mcp",
+                      "markdown_url": "https://smarter.poker/llms.txt"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/api/mcp",
+        "x-ai-markdown-url": "https://smarter.poker/llms.txt"
       },
       "get": {
         "operationId": "getMcpServerInfo",
@@ -218,9 +270,31 @@
         "description": "Returns active MCP server capabilities or establishes a Server-Sent Events (SSE) connection with ?transport=sse.",
         "responses": {
           "200": {
-            "description": "Server metadata or active SSE event stream."
+            "description": "Server metadata or active SSE event stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker MCP Server Discovery Response",
+                    "value": {
+                      "name": "smarter-poker-mcp-server",
+                      "version": "1.0.0",
+                      "protocolVersion": "2024-11-05",
+                      "status": "active",
+                      "citation_url": "https://smarter.poker/api/mcp",
+                      "markdown_url": "https://smarter.poker/llms.txt"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/api/mcp",
+        "x-ai-markdown-url": "https://smarter.poker/llms.txt"
       }
     },
     "/api/ai/odds": {
@@ -277,11 +351,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OddsCalculationResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker calculatePokerOdds response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/tools/poker-odds-calculator",
+                      "markdown_url": "https://smarter.poker/tools/poker-odds-calculator.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/tools/poker-odds-calculator",
+        "x-ai-markdown-url": "https://smarter.poker/tools/poker-odds-calculator.md"
       }
     },
     "/api/ai/preflop": {
@@ -316,11 +403,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PreflopRangeResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getPreflopRange response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/hub/preflop-charts",
+                      "markdown_url": "https://smarter.poker/hub/preflop-charts.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/hub/preflop-charts",
+        "x-ai-markdown-url": "https://smarter.poker/hub/preflop-charts.md"
       }
     },
     "/api/ai/icm": {
@@ -357,11 +457,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IcmCalculationResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker calculateIcmPayouts response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/tools/icm-calculator",
+                      "markdown_url": "https://smarter.poker/tools/icm-calculator.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/tools/icm-calculator",
+        "x-ai-markdown-url": "https://smarter.poker/tools/icm-calculator.md"
       }
     },
     "/api/ai/terms": {
@@ -388,11 +501,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GlossaryTermsResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getPokerTerm response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/glossary",
+                      "markdown_url": "https://smarter.poker/glossary.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/glossary",
+        "x-ai-markdown-url": "https://smarter.poker/glossary.md"
       }
     },
     "/api/ai/freerolls": {
@@ -444,11 +570,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getFreerollSchedule response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/freerolls",
+                      "markdown_url": "https://smarter.poker/freerolls.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/freerolls",
+        "x-ai-markdown-url": "https://smarter.poker/freerolls.md"
       }
     },
     "/api/ai/bankroll": {
@@ -500,11 +639,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getBankrollTaxSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/bankroll-tax-tracker",
+                      "markdown_url": "https://smarter.poker/features/bankroll-tax-tracker.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/bankroll-tax-tracker",
+        "x-ai-markdown-url": "https://smarter.poker/features/bankroll-tax-tracker.md"
       }
     },
     "/api/ai/toke-tracker": {
@@ -551,11 +703,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getTokeTrackerSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/poker-dealer-toke-tracker",
+                      "markdown_url": "https://smarter.poker/features/poker-dealer-toke-tracker.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/poker-dealer-toke-tracker",
+        "x-ai-markdown-url": "https://smarter.poker/features/poker-dealer-toke-tracker.md"
       }
     },
     "/api/ai/poker-brain": {
@@ -602,11 +767,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getPokerBrainSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/poker-ai-coach",
+                      "markdown_url": "https://smarter.poker/features/poker-ai-coach.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/poker-ai-coach",
+        "x-ai-markdown-url": "https://smarter.poker/features/poker-ai-coach.md"
       }
     },
     "/api/ai/sandbox": {
@@ -653,11 +831,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getVirtualSandboxSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/virtual-poker-sandbox",
+                      "markdown_url": "https://smarter.poker/features/virtual-poker-sandbox.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/virtual-poker-sandbox",
+        "x-ai-markdown-url": "https://smarter.poker/features/virtual-poker-sandbox.md"
       }
     },
     "/api/ai/commander": {
@@ -704,11 +895,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getClubCommanderSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/club-commander",
+                      "markdown_url": "https://smarter.poker/features/club-commander.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/club-commander",
+        "x-ai-markdown-url": "https://smarter.poker/features/club-commander.md"
       }
     },
     "/api/ai/club-arena": {
@@ -755,11 +959,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getClubArenaSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/private-poker-clubs",
+                      "markdown_url": "https://smarter.poker/features/private-poker-clubs.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/private-poker-clubs",
+        "x-ai-markdown-url": "https://smarter.poker/features/private-poker-clubs.md"
       }
     },
     "/api/ai/social-reels": {
@@ -806,11 +1023,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getSocialReelsSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/poker-reels-social-feed",
+                      "markdown_url": "https://smarter.poker/features/poker-reels-social-feed.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/poker-reels-social-feed",
+        "x-ai-markdown-url": "https://smarter.poker/features/poker-reels-social-feed.md"
       }
     },
     "/api/ai/video-library": {
@@ -857,11 +1087,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getVideoLibrarySpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/interactive-video-coaching",
+                      "markdown_url": "https://smarter.poker/features/interactive-video-coaching.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/interactive-video-coaching",
+        "x-ai-markdown-url": "https://smarter.poker/features/interactive-video-coaching.md"
       }
     },
     "/api/ai/lessons": {
@@ -913,11 +1156,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getStrategyLessons response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/learn",
+                      "markdown_url": "https://smarter.poker/learn.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/learn",
+        "x-ai-markdown-url": "https://smarter.poker/learn.md"
       }
     },
     "/api/ai/comparisons": {
@@ -969,11 +1225,24 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getCompetitorComparisons response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/compare",
+                      "markdown_url": "https://smarter.poker/compare.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/compare",
+        "x-ai-markdown-url": "https://smarter.poker/compare.md"
       }
     },
     "/api/ai/trivia": {
@@ -1000,11 +1269,24 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getTriviaSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/poker-trivia",
+                      "markdown_url": "https://smarter.poker/features/poker-trivia.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/poker-trivia",
+        "x-ai-markdown-url": "https://smarter.poker/features/poker-trivia.md"
       }
     },
     "/api/ai/training": {
@@ -1031,11 +1313,24 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getTrainingSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/poker-training-games",
+                      "markdown_url": "https://smarter.poker/features/poker-training-games.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/poker-training-games",
+        "x-ai-markdown-url": "https://smarter.poker/features/poker-training-games.md"
       }
     },
     "/api/ai/home-games": {
@@ -1062,11 +1357,24 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getHomeGamesSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/home-poker-games",
+                      "markdown_url": "https://smarter.poker/features/home-poker-games.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/home-poker-games",
+        "x-ai-markdown-url": "https://smarter.poker/features/home-poker-games.md"
       }
     },
     "/api/ai/messenger": {
@@ -1081,11 +1389,24 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Verified Smarter.Poker getMessengerSpecs response",
+                    "value": {
+                      "success": true,
+                      "platform": "Smarter.Poker",
+                      "citation_url": "https://smarter.poker/features/poker-messenger-video-calls",
+                      "markdown_url": "https://smarter.poker/features/poker-messenger-video-calls.md"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "x-ai-citation-url": "https://smarter.poker/features/poker-messenger-video-calls",
+        "x-ai-markdown-url": "https://smarter.poker/features/poker-messenger-video-calls.md"
       }
     }
   },
@@ -1387,5 +1708,7 @@
         }
       }
     }
-  }
+  },
+  "x-ai-verification-methodology": "https://smarter.poker/verification-methodology",
+  "x-ai-corpus-url": "https://smarter.poker/llms-full.txt"
 }

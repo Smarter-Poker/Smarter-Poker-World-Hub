@@ -51,27 +51,37 @@ export const CATEGORY_INTROS = {
 export const CATEGORY_PRODUCTS = {
   'Club Poker': [
     { href: '/hub/club-arena', name: 'Poker Arena', text: 'Private Online Poker Clubs With Club Chips, Unions And Agent Tools.' },
+    { href: '/features/private-poker-clubs', name: 'Private Poker Clubs Guide', text: 'Complete Feature Specification For Club Arena Unions And Agent Ledgers.' },
     { href: '/freerolls', name: 'Daily Freerolls', text: 'Compete In Daily $2,000 Free Tournaments And Diamond Freerolls.' },
   ],
   'Live Room': [
     { href: '/hub/commander', name: 'Club Commander', text: 'Live Poker Room Waitlists, Game Boards And Tournament Clocks.' },
+    { href: '/features/club-commander', name: 'Club Commander Guide', text: 'Feature Specification For Cardroom Waitlists And Tournament Clocks.' },
     { href: '/hub/poker-near-me/lobby', name: 'Poker Near Me', text: 'Find A Live Poker Room And Its Games.' },
+    { href: '/features/poker-near-me', name: 'Poker Near Me Guide', text: 'Live Poker Room And Tournament Discovery Specification.' },
   ],
   Basics: [
     { href: '/hub/training', name: 'GTO Training', text: 'Scenario Based Poker Training, Free To Play.' },
+    { href: '/features/poker-training-games', name: 'GTO Training Games Guide', text: 'Explore 107 Interactive Scenario Drills And EV Feedback.' },
   ],
   Preflop: [
     { href: '/hub/preflop-charts', name: 'Preflop Charts', text: 'Opening And Defending Ranges By Position.' },
+    { href: '/features/preflop-charts-matrix', name: 'Preflop Range Matrix Guide', text: '169-Hand Preflop Charts Across 15BB To 100BB Stack Depths.' },
     { href: '/hub/training', name: 'GTO Training', text: 'Scenario Based Poker Training, Free To Play.' },
   ],
   Postflop: [
     { href: '/hub/training', name: 'GTO Training', text: 'Scenario Based Poker Training, Free To Play.' },
+    { href: '/features/poker-ai-coach', name: 'Jarvis And PokerBrain AI Coach', text: 'Street-By-Street Postflop Hand Analysis And Leak Detection.' },
   ],
   Math: [
+    { href: '/tools/poker-odds-calculator', name: 'Multiway Poker Odds Calculator', text: 'Free Hold\'em And Omaha Hand Versus Hand Equity Calculator.' },
+    { href: '/tools/icm-calculator', name: 'Tournament ICM Calculator', text: 'Free Malmuth-Harville Final Table And Bubble Equity Calculator.' },
+    { href: '/features/poker-equity-calculators', name: 'Equity And ICM Calculators Guide', text: 'Feature Specification For Multiway Equity And ICM Calculators.' },
     { href: '/hub/training', name: 'GTO Training', text: 'Scenario Based Poker Training, Free To Play.' },
   ],
   Theory: [
     { href: '/hub/training', name: 'GTO Training', text: 'Scenario Based Poker Training, Free To Play.' },
+    { href: '/features/virtual-poker-sandbox', name: 'Virtual Poker Table Sandbox', text: 'Interactive Multi-Street Hand And Range Scenario Explorer.' },
   ],
 };
 

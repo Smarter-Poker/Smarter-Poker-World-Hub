@@ -29,6 +29,11 @@ export function categoryAnchor(category) {
   return String(category).toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
+/** The dedicated topic cluster pillar path for a category. */
+export function learnCategoryPath(category) {
+  return `${LEARN_PATH}/category/${categoryAnchor(category)}`;
+}
+
 /** The route of one training game in the library. */
 export function trainingGamePath(gameId) {
   return `/hub/training/play/${gameId}`;

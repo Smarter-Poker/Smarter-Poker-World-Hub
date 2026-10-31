@@ -211,6 +211,21 @@ export const SOURCES = {
     title: 'Sharp Poker AI Training And Hand Analysis',
     kind: 'maker',
   },
+  pokercoachingSite: {
+    url: 'https://pokercoaching.com',
+    title: 'PokerCoaching Official Site',
+    kind: 'maker',
+  },
+  icmizerSite: {
+    url: 'https://www.icmpoker.com/icmizer/',
+    title: 'ICMIZER Official Site',
+    kind: 'maker',
+  },
+  equilabSite: {
+    url: 'https://www.pokerstrategy.com/poker-software-tools/equilab-holdem/',
+    title: 'PokerStrategy.com Equilab Official Page',
+    kind: 'maker',
+  },
 
   // Venues and cardrooms
   bellagioSite: {
@@ -284,6 +299,16 @@ export const SOURCES = {
   spBankroll: {
     url: 'https://smarter.poker/hub/bankroll-manager',
     title: 'Smarter.Poker Bankroll Manager',
+    kind: 'own',
+  },
+  spOddsCalculator: {
+    url: 'https://smarter.poker/tools/poker-odds-calculator',
+    title: 'Smarter.Poker Multiway Poker Odds Calculator',
+    kind: 'own',
+  },
+  spIcmCalculator: {
+    url: 'https://smarter.poker/tools/icm-calculator',
+    title: 'Smarter.Poker Tournament ICM Calculator',
     kind: 'own',
   },
 };
@@ -635,6 +660,39 @@ export const PRODUCTS = {
       solver: fact('Preflop And Postflop AI Neural Solver Recommendations', 'sharpSite'),
       handReview: fact('Automated Hand History Import And Leak Detection Feedback', 'sharpSite'),
       platforms: fact('Apple App Store (iPhone, iPad And Mac With Apple Silicon) And Google Play', 'sharpSite'),
+    },
+  },
+  pokercoaching: {
+    name: 'PokerCoaching',
+    facts: {
+      pricing: fact('Monthly And Annual Premium Membership Tiers On PokerCoaching.com', 'pokercoachingSite'),
+      freeTier: fact('Free Trial Access With Sample Quizzes And Preflop Charts', 'pokercoachingSite'),
+      training: fact('Interactive Hand Quizzes, Video Courses, Webinars And Coaching Homework By Jonathan Little And Pros', 'pokercoachingSite'),
+      solver: fact('Preflop And Postflop GTO Charts And Range Viewer', 'pokercoachingSite'),
+      handReview: fact('Community And Coach Hand History Review Webinars', 'pokercoachingSite'),
+      platforms: fact('Web Browser And Mobile App', 'pokercoachingSite'),
+    },
+  },
+  icmizer: {
+    name: 'ICMIZER',
+    facts: {
+      pricing: fact('Monthly And Annual Subscription Plans For ICMIZER Basic And Pro', 'icmizerSite'),
+      freeTier: fact('Limited Daily Free ICM Calculations', 'icmizerSite'),
+      training: fact('SNG Coach Push Or Fold Quiz Trainer For Tournament Spots', 'icmizerSite'),
+      solver: fact('Preflop ICM, Chip EV And FGS (Future Game Simulation) Nash Equilibrium Calculator', 'icmizerSite'),
+      handReview: fact('Automated Tournament Hand History Review And Push Or Fold Spot Analysis', 'icmizerSite'),
+      platforms: fact('Web Browser And Desktop Application', 'icmizerSite'),
+    },
+  },
+  equilab: {
+    name: 'PokerStrategy.com Equilab',
+    facts: {
+      pricing: fact('Free Download', 'equilabSite'),
+      freeTier: fact('Full Desktop Equity Calculator Free To Use', 'equilabSite'),
+      training: fact('Equity Trainer Quiz Tool To Estimate Range Versus Range Equity', 'equilabSite'),
+      solver: fact("Hand Versus Hand And Range Versus Range Equity Calculator For Hold'em And Omaha", 'equilabSite'),
+      handReview: fact('Scenario Analyser To Evaluate Postflop Turn And River Equity Cards', 'equilabSite'),
+      platforms: fact('Windows Desktop Software', 'equilabSite'),
     },
   },
 

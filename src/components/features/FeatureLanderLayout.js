@@ -2,6 +2,75 @@ import React from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../seo/SEOHead';
 
+const FEATURE_SEMANTIC_MESH = {
+  '/features/preflop-charts-matrix': {
+    learnHref: '/learn/category/preflop',
+    learnLabel: 'Preflop Strategy Lessons',
+    lessons: [
+      { href: '/learn/utg-opening-range', label: 'UTG Opening Range In 6-Max' },
+      { href: '/learn/button-opening-range', label: 'Button Opening Range In 6-Max' },
+      { href: '/learn/big-blind-defense', label: 'Big Blind Defense Versus A Raise' },
+    ],
+    glossary: [
+      { href: '/glossary/rfi', label: 'RFI (Raise First In)' },
+      { href: '/glossary/3-bet', label: '3-Bet' },
+      { href: '/glossary/range', label: 'Range' },
+    ],
+  },
+  '/features/poker-equity-calculators': {
+    learnHref: '/learn/category/math',
+    learnLabel: 'Poker Math And ICM Lessons',
+    lessons: [
+      { href: '/learn/pot-odds', label: 'How To Calculate Pot Odds' },
+      { href: '/learn/icm-basics', label: 'How ICM Works In Poker Tournaments' },
+      { href: '/learn/expected-value', label: 'Expected Value (EV) In Poker' },
+    ],
+    glossary: [
+      { href: '/glossary/equity', label: 'Equity' },
+      { href: '/glossary/icm', label: 'ICM' },
+      { href: '/glossary/pot-odds', label: 'Pot Odds' },
+    ],
+  },
+  '/features/bankroll-tax-tracker': {
+    learnHref: '/learn/category/bankroll',
+    learnLabel: 'Bankroll Management Lessons',
+    lessons: [
+      { href: '/learn/cash-game-bankroll', label: 'Cash Game Bankroll Rules' },
+      { href: '/learn/tournament-bankroll', label: 'Tournament Bankroll Requirements' },
+      { href: '/learn/risk-of-ruin', label: 'Risk Of Ruin In Poker' },
+    ],
+    glossary: [
+      { href: '/glossary/variance', label: 'Variance' },
+      { href: '/glossary/win-rate', label: 'Win Rate' },
+    ],
+  },
+  '/features/poker-training-games': {
+    learnHref: '/learn/category/postflop',
+    learnLabel: 'Postflop And GTO Strategy Lessons',
+    lessons: [
+      { href: '/learn/continuation-betting', label: 'Continuation Betting On The Flop' },
+      { href: '/learn/minimum-defense-frequency', label: 'Minimum Defense Frequency (MDF)' },
+    ],
+    glossary: [
+      { href: '/glossary/gto', label: 'GTO (Game Theory Optimal)' },
+      { href: '/glossary/c-bet', label: 'Continuation Bet' },
+    ],
+  },
+  '/features/poker-near-me': {
+    learnHref: '/learn/category/cash',
+    learnLabel: 'Live Cash Game Strategy Lessons',
+    lessons: [
+      { href: '/learn/live-poker-rake', label: 'How Rake Changes Preflop Ranges' },
+      { href: '/learn/playing-the-straddle', label: 'How A Straddle Changes Stack Depth' },
+    ],
+    glossary: [
+      { href: '/glossary/waitlist', label: 'Waitlist' },
+      { href: '/glossary/straddle', label: 'Straddle' },
+      { href: '/glossary/rake', label: 'Rake' },
+    ],
+  },
+};
+
 export default function FeatureLanderLayout({
   title,
   metaTitle,
@@ -221,6 +290,27 @@ export default function FeatureLanderLayout({
                     <h3 style={styles.faqQuestion}>{faq.question}</h3>
                     <p style={styles.faqAnswer}>{faq.answer}</p>
                   </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {FEATURE_SEMANTIC_MESH[canonical] && (
+            <section style={styles.section}>
+              <h2 style={styles.h2}>Related Strategy Lessons & Glossary Definitions</h2>
+              <div style={styles.footerLinks}>
+                <Link href={FEATURE_SEMANTIC_MESH[canonical].learnHref} style={styles.footerLink}>
+                  {FEATURE_SEMANTIC_MESH[canonical].learnLabel}
+                </Link>
+                {FEATURE_SEMANTIC_MESH[canonical].lessons.map((l) => (
+                  <Link key={l.href} href={l.href} style={styles.footerLink}>
+                    {l.label}
+                  </Link>
+                ))}
+                {FEATURE_SEMANTIC_MESH[canonical].glossary.map((g) => (
+                  <Link key={g.href} href={g.href} style={styles.footerLink}>
+                    {g.label} Definition
+                  </Link>
                 ))}
               </div>
             </section>

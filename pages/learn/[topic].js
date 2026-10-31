@@ -36,6 +36,7 @@ import {
   LEARN_MODIFIED,
   lessonPath,
   categoryAnchor,
+  learnCategoryPath,
   glossaryTermPath,
 } from '../../src/lib/learn/learnSite.js';
 import { LESSONS, getLesson, trainingCta } from '../../src/content/learn/lessons.js';
@@ -66,9 +67,17 @@ export async function getStaticProps({ params }) {
   };
 }
 
+function lessonChartType(lesson) {
+  if (lesson.category === 'Preflop') return 'rfi-by-position';
+  if (lesson.category === 'Tournaments') return 'icm-bubble-factor';
+  return 'pot-odds-curve';
+}
+
 /** A lesson's JSON-LD: the Article and its breadcrumb trail. */
 function lessonSchema(lesson) {
   const url = `${SITE_URL}${lessonPath(lesson.slug)}`;
+  const chartType = lessonChartType(lesson);
+  const imageUrl = `${SITE_URL}/api/og/chart/${chartType}`;
   return [
     {
       '@type': 'Article',
@@ -86,6 +95,14 @@ function lessonSchema(lesson) {
       teaches: lesson.title,
       about: getLessonAboutThing(lesson),
       isAccessibleForFree: true,
+      image: {
+        '@type': 'ImageObject',
+        '@id': `${url}#chart-image`,
+        url: imageUrl,
+        contentUrl: imageUrl,
+        encodingFormat: 'image/svg+xml',
+        caption: `${lesson.title} Reference Chart On Smarter.Poker`,
+      },
       speakable: {
         '@type': 'SpeakableSpecification',
         cssSelector: ['h1', 'article p:first-of-type'],
@@ -230,7 +247,7 @@ export default function LessonPage({ lesson, related, glossary, cta }) {
           <p style={styles.lead}>{lesson.summary}</p>
 
           <p style={styles.meta}>
-            <Link href={`${LEARN_PATH}#${categoryAnchor(lesson.category)}`} style={styles.inlineLink}>
+            <Link href={learnCategoryPath(lesson.category)} style={styles.inlineLink}>
               {lesson.category}
             </Link>{' '}
             Lesson From Smarter.Poker, Updated <time dateTime={LEARN_MODIFIED}>{LEARN_MODIFIED}</time>
@@ -299,6 +316,13 @@ export default function LessonPage({ lesson, related, glossary, cta }) {
                 <li>
                   <Link href={cta.tool.href} style={styles.ctaLink}>
                     Open The {cta.tool.name}
+                  </Link>
+                </li>
+              )}
+              {cta.feature && (
+                <li>
+                  <Link href={cta.feature.href} style={styles.ctaLink}>
+                    Read The {cta.feature.name}
                   </Link>
                 </li>
               )}

@@ -1039,6 +1039,150 @@ export const COMPARE_PAGES = [
     productLinks: ['clubCommander'],
     glossary: ['Rake', 'Waitlist', 'Comp'],
   },
+
+  // 17 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-pokercoaching',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs PokerCoaching',
+    h1: 'Smarter.Poker Vs PokerCoaching',
+    description:
+      'Smarter.Poker GTO Training And PokerCoaching Compared Side By Side On Pricing, Free Access, Interactive Drills, Preflop Charts And Hand History Review.',
+    summary: p(
+      'PokerCoaching Is Jonathan Little\'s Coaching Site Offering Interactive Hand Quizzes, Video Courses, Live Webinars And Downloadable GTO Preflop Charts Across Monthly And Annual Membership Tiers. Smarter.Poker GTO Training Is Free To Play On The Web With 107 Interactive Training Games, A Browsable Solver Baseline Library, Free Hand History Upload And Jarvis Coaching Insights.',
+      ['pokercoachingSite', 'spTraining', 'spSolutions', 'spHandHistory', 'spHome']
+    ),
+    intro: p(
+      'This Page Compares Smarter.Poker GTO Training And PokerCoaching Using Facts Published On PokerCoaching.com And The Live Smarter.Poker Training Pages.',
+      ['pokercoachingSite', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker GTO Training And PokerCoaching, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'pokercoaching'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where PokerCoaching Stands Out',
+        bullets: [
+          p('PokerCoaching Features Structured Video Courses, Live Group Webinars And Homework Assignments Led By Jonathan Little And Touring Coaches.', ['pokercoachingSite']),
+          p('PokerCoaching Offers Dedicated Mobile Apps Alongside Its Web Browser Portal.', ['pokercoachingSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker GTO Training Is Free To Play With 107 Scenario Drills Across Cash Games, Tournaments And Spins.', ['spTraining', 'spHome']),
+          p('Smarter.Poker Includes Free TXT Hand History Upload For PokerStars, GGPoker, 888 And ACR Alongside A Free Preflop Solutions Library.', ['spHandHistory', 'spSolutions']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How Do Smarter.Poker And PokerCoaching Differ In Pricing?',
+        a: p('PokerCoaching Offers A Free Trial With Paid Monthly And Annual Premium Tiers, While Smarter.Poker GTO Training And Its Solutions Library Are Free To Play.', ['pokercoachingSite', 'spHome', 'spSolutions']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-icmizer', 'smarter-poker-vs-equilab'],
+    productLinks: ['smarterTraining'],
+    glossary: ['GTO', 'Range', 'EV (Expected Value)'],
+  },
+
+  // 18 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-icmizer',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs ICMIZER',
+    h1: 'Smarter.Poker Vs ICMIZER',
+    description:
+      'Smarter.Poker And ICMIZER Compared On Tournament ICM Calculations, Push Or Fold Training, Pricing, Free Access, Solver Depth And Supported Platforms.',
+    summary: p(
+      'ICMIZER Is A Dedicated Tournament Preflop ICM And Nash Equilibrium Calculator With Push Or Fold Quizzes Under Monthly And Annual Subscription Plans. Smarter.Poker Provides A Free Browser-Based Malmuth-Harville Tournament ICM Calculator Alongside 107 Free GTO Training Games, Solver Baselines And Multiway Equity Tools With No Subscription Required.',
+      ['icmizerSite', 'spIcmCalculator', 'spTraining', 'spSolutions', 'spHome']
+    ),
+    intro: p(
+      'Final Table Deal Making And Bubble Play Require Accurate Independent Chip Model Math. Here Is How Smarter.Poker And ICMIZER Compare Across Tournament Study Features.',
+      ['icmizerSite', 'spIcmCalculator', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker And ICMIZER, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'icmizer'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where ICMIZER Stands Out',
+        bullets: [
+          p('ICMIZER Solves Custom Preflop Push Or Fold Nash Equilibrium Ranges Using Future Game Simulation (FGS) And Chip EV Models.', ['icmizerSite']),
+          p('ICMIZER Automatically Reviews Uploaded Tournament Hand Histories To Flag Preflop Push Or Fold Mistakes.', ['icmizerSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Offers A Free Instant Malmuth-Harville ICM Payout Calculator Directly In The Web Browser With Zero Daily Limits.', ['spIcmCalculator', 'spHome']),
+          p('Smarter.Poker Combines Tournament ICM Study With 107 Interactive Training Games, Multiway Equity Calculators And Live Tournament Discovery.', ['spTraining', 'spOddsCalculator', 'spPokerNearMe']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Does Smarter.Poker Have A Free ICM Calculator?',
+        a: p('Yes. Smarter.Poker Provides A Free Web-Based Malmuth-Harville ICM Calculator For Tournament Stacks And Payout Structures At Smarter.Poker/Tools/Icm-Calculator.', ['spIcmCalculator', 'spHome']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-pokercoaching', 'smarter-poker-vs-equilab'],
+    productLinks: ['smarterTraining'],
+    glossary: ['ICM', 'Nash Equilibrium', 'EV (Expected Value)'],
+  },
+
+  // 19 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-equilab',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs Equilab',
+    h1: 'Smarter.Poker Vs Equilab',
+    description:
+      'Smarter.Poker And PokerStrategy.com Equilab Compared On Hand Versus Range Equity Calculation, Supported Poker Variants, Operating Systems And Training.',
+    summary: p(
+      'PokerStrategy.com Equilab Is A Classic Free Windows Desktop Equity Calculator For Hold\'em And Omaha Range Analysis. Smarter.Poker Provides A Free Browser-Based Multiway Poker Odds Calculator Supporting Hold\'em, PLO4, PLO5 And PLO6 On Any Desktop Or Mobile Device Without Installing Windows Software, Plus 107 GTO Training Games.',
+      ['equilabSite', 'spOddsCalculator', 'spTraining', 'spHome']
+    ),
+    intro: p(
+      'Equity Calculators Let Players Measure Exact Win And Tie Probabilities Across Preflop And Postflop Runouts. Here Is How Smarter.Poker And PokerStrategy.com Equilab Compare.',
+      ['equilabSite', 'spOddsCalculator']
+    ),
+    table: {
+      caption: 'Smarter.Poker And PokerStrategy.com Equilab, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'equilab'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where PokerStrategy.com Equilab Stands Out',
+        bullets: [
+          p('PokerStrategy.com Equilab Includes A Dedicated Range Versus Range Equity Trainer And Postflop Scenario Analyser On Windows Desktop.', ['equilabSite']),
+          p('PokerStrategy.com Equilab Runs Offline As A Standalone Native Windows Application.', ['equilabSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Runs Directly In Any Web Browser On Mac, iPhone, iPad, Android And Windows With No Download Required.', ['spOddsCalculator', 'spTraining']),
+          p('Smarter.Poker Calculates Exact And Monte Carlo Equities Across Hold\'em, 4-Card PLO, 5-Card PLO And 6-Card PLO Alongside Interactive GTO Drills.', ['spOddsCalculator', 'spTraining']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Can I Run Smarter.Poker Equity Calculators On Mac And Mobile?',
+        a: p('Yes. Unlike PokerStrategy.com Equilab Which Requires Windows Desktop, The Smarter.Poker Odds And ICM Calculators Run In Any Mobile Or Desktop Browser.', ['equilabSite', 'spOddsCalculator']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-pokercoaching', 'smarter-poker-vs-icmizer'],
+    productLinks: ['smarterTraining'],
+    glossary: ['Equity', 'Pot Odds', 'Range'],
+  },
 ];
 
 /**

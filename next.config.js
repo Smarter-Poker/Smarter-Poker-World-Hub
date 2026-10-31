@@ -1492,12 +1492,20 @@ const nextConfig = {
           destination: '/api/learn-markdown?slug=index',
         },
         {
+          source: '/learn/category/:category.md',
+          destination: '/api/learn-markdown?category=:category',
+        },
+        {
           source: '/learn/:slug.md',
           destination: '/api/learn-markdown?slug=:slug',
         },
         {
           source: '/about.md',
           destination: '/about?format=md',
+        },
+        {
+          source: '/verification-methodology.md',
+          destination: '/verification-methodology?format=md',
         },
         {
           source: '/features.md',
