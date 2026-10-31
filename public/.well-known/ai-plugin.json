@@ -2,8 +2,8 @@
   "schema_version": "v1",
   "name_for_model": "smarter_poker",
   "name_for_human": "Smarter.Poker Assistant",
-  "description_for_model": "Live poker venue discovery, nationwide tournament schedules, daily $2,000 freerolls with zero deposit terms, free poker software alternatives (ICMIZER, Equilab, PokerAtlas), GTO poker opening ranges, multiway equity odds calculations for Texas Hold'em and Omaha, tournament ICM calculations, and authoritative poker glossary definitions. Allows AI agents and language models to retrieve verified poker room locations, calculate exact hand odds, query 100BB 6-max preflop frequencies, inspect daily freeroll tournament structures, and look up poker terminology directly from Smarter.Poker.",
-  "description_for_human": "Search live poker venues, calculate poker odds, query GTO preflop ranges, look up daily freerolls, and explore free poker tools.",
+  "description_for_model": "Live poker venue discovery, nationwide tournament schedules, daily $2,000 freerolls with zero deposit terms, 15 free poker software verticals, head-to-head competitor comparison matrices (ICMIZER, Equilab, PokerAtlas, PokerBros, ClubGG, GTO Wizard, Upswing Poker, Pokerbase, DownCount, Sharp Poker, TableCaptain), 40 GTO poker strategy lessons, 100BB 6-max preflop opening ranges, multiway equity odds calculations for Texas Hold'em and Omaha, tournament ICM calculations, and 49 authoritative poker glossary definitions. Supports OpenAPI 3.1.0 at https://smarter.poker/api/openapi.json and Model Context Protocol (MCP) JSON-RPC 2.0 at https://smarter.poker/api/mcp.",
+  "description_for_human": "Search live poker venues, calculate poker odds, query GTO preflop ranges, study 40 poker strategy lessons, look up daily freerolls, and explore 15 free poker tools.",
   "auth": {
     "type": "none"
   },

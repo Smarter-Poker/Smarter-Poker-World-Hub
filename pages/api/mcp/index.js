@@ -59,14 +59,18 @@ export default async function handler(req, res) {
     return res.status(200).json({
       name: MCP_SERVER_INFO.name,
       version: MCP_SERVER_INFO.version,
+      protocolVersion: '2024-11-05',
       status: 'active',
       transport: ['http-jsonrpc', 'sse'],
       endpoints: {
         jsonrpc: `${origin}/api/mcp`,
         sse: `${origin}/api/mcp?transport=sse`,
+        well_known: `${origin}/.well-known/mcp.json`,
       },
       tools_available: MCP_TOOLS.map((t) => t.name),
+      tools: MCP_TOOLS,
       documentation: `${origin}/llms.txt`,
+      openapi: `${origin}/api/openapi.json`,
     });
   }
 

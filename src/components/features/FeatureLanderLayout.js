@@ -47,9 +47,53 @@ export default function FeatureLanderLayout({
       },
       description,
       url: `https://smarter.poker${canonical}`,
+      ...(Array.isArray(features) && features.length > 0
+        ? { featureList: features.map((f) => `${f.title}: ${f.description}`) }
+        : {}),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `https://smarter.poker${canonical}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://smarter.poker/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Features',
+          item: 'https://smarter.poker/features',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: title,
+          item: `https://smarter.poker${canonical}`,
+        },
+      ],
     },
     ...jsonLd,
   ];
+
+  if (Array.isArray(howItWorks) && howItWorks.length > 0) {
+    schemaList.push({
+      '@type': 'HowTo',
+      '@id': `https://smarter.poker${canonical}#howto`,
+      name: `How To Use ${title}`,
+      description,
+      totalTime: 'PT2M',
+      step: howItWorks.map((step, idx) => ({
+        '@type': 'HowToStep',
+        position: idx + 1,
+        name: step.title,
+        text: step.description,
+        url: `https://smarter.poker${canonical}#step-${idx + 1}`,
+      })),
+    });
+  }
 
   if (Array.isArray(faqs) && faqs.length > 0) {
     schemaList.push({
@@ -84,8 +128,8 @@ export default function FeatureLanderLayout({
               Home
             </Link>
             <span style={styles.breadcrumbSeparator}>/</span>
-            <Link href="/hub" style={styles.breadcrumbLink}>
-              Hub
+            <Link href="/features" style={styles.breadcrumbLink}>
+              Features
             </Link>
             <span style={styles.breadcrumbSeparator}>/</span>
             <span style={styles.breadcrumbCurrent}>{title}</span>
@@ -156,7 +200,7 @@ export default function FeatureLanderLayout({
               <h2 style={styles.h2}>How It Works</h2>
               <ol style={styles.stepList}>
                 {howItWorks.map((step, idx) => (
-                  <li key={idx} style={styles.stepItem}>
+                  <li key={idx} id={`step-${idx + 1}`} style={styles.stepItem}>
                     <span style={styles.stepNumber}>{idx + 1}</span>
                     <div>
                       <h3 style={styles.stepTitle}>{step.title}</h3>
