@@ -1440,6 +1440,22 @@ const nextConfig = {
           destination: '/hub/series/:id?format=md',
         },
         {
+          source: '/hub/tours/:code.md',
+          destination: '/hub/tours/:code?format=md',
+        },
+        {
+          source: '/hub/poker-near-me/in.md',
+          destination: '/hub/poker-near-me/in?format=md',
+        },
+        {
+          source: '/hub/poker-near-me/in/:state.md',
+          destination: '/hub/poker-near-me/in/:state?format=md',
+        },
+        {
+          source: '/hub/poker-near-me/in/:state/:city.md',
+          destination: '/hub/poker-near-me/in/:state/:city?format=md',
+        },
+        {
           source: '/tools/poker-odds-calculator.md',
           destination: '/tools/poker-odds-calculator?format=md',
         },

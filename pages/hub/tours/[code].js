@@ -138,8 +138,9 @@ function getBuyInTier(amount) {
  * events are resolved here and rendered on the server. What lives only in
  * Supabase still arrives over SWR, unchanged.
  */
-export async function getServerSideProps({ params, res }) {
-  const code = String(params?.code || '').trim().toUpperCase();
+export async function getServerSideProps({ params, req, res, query }) {
+  const rawCode = String(params?.code || '').trim().replace(/\.md$/i, '');
+  const code = rawCode.toUpperCase();
   if (!/^[A-Z0-9_-]{1,32}$/.test(code)) return { notFound: true };
 
   const registryEntry = tourSourceRegistry?.tours?.[code] || null;
@@ -269,6 +270,22 @@ export async function getServerSideProps({ params, res }) {
     buyinMax: Number.isFinite(buyins?.max) ? buyins.max : null,
     mainEvent: Number.isFinite(buyins?.main_event) ? buyins.main_event : null,
   };
+
+  const acceptHeader = String(req?.headers?.accept || '');
+  const isMarkdownRequested =
+    acceptHeader.includes('text/markdown') ||
+    query?.format === 'md' ||
+    String(params?.code || '').endsWith('.md') ||
+    req?.url?.includes('format=md');
+  if (isMarkdownRequested) {
+    const { renderTourMarkdown } = await import('../../../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderTourMarkdown({ seo, stops, events, facts });
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
 
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
   return { props: { seo, stops, events, facts } };
@@ -546,6 +563,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
       description={seo.description}
       canonical={seo.canonical}
       jsonLd={tourSchema({ ...seo, stops })}
+      markdownUrl={seo?.canonical ? `https://smarter.poker${seo.canonical}.md` : undefined}
     />
   );
   const seoSummary = (

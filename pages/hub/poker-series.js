@@ -29,6 +29,23 @@ import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../src/compone
  */
 const SERIES_PANEL_LIMIT = 12;
 import { buildSeriesDirectorySchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
+import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
+import { faqSchema } from '../../src/lib/seo/hubPageSchema';
+
+const POKER_SERIES_FAQS = [
+    {
+        question: 'What Is Included In The Smarter.Poker Live Poker Series Directory?',
+        answer: 'The Live Poker Series Directory Catalogs Multi-Event Tournament Festivals, Casino Championship Series, And Regional Circuit Stops Across The United States And Canada.',
+    },
+    {
+        question: 'How Can I Filter Upcoming Poker Series?',
+        answer: 'Players Can Filter Poker Series By Tour Affiliation (WSOP, WPT, MSPT, RGPS, Independent), State, Date Window, Status (Live Now Or Upcoming), And GPS Distance.',
+    },
+    {
+        question: 'Does Each Series Include Its Full Event-By-Event Schedule?',
+        answer: 'Yes. Selecting Any Series Opens Its Dedicated Page (/hub/series/[id]) Featuring Individual Event Dates, Buy-Ins, Starting Stacks, And Guaranteed Prize Pools.',
+    },
+];
 
 // ─── Lazy-load components ───
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
@@ -758,6 +775,17 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                 <meta property="og:description" content="Live and upcoming poker series tracked in real-time. Find your next big tournament." />
                 <meta property="og:url" content="https://smarter.poker/hub/poker-series" />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(directorySchema) }} />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
+                    '@context': 'https://schema.org',
+                    ...datasetSchema({
+                        path: '/hub/poker-series',
+                        name: 'Smarter.Poker Live Poker Tournament Series Directory Dataset',
+                        description: 'Live And Upcoming Multi-Event Poker Tournament Series, Casino Festivals, And Regional Circuit Stops Across North America.',
+                        keywords: ['Live Poker Series', 'Poker Tournament Festivals', 'WSOP Circuit Series', 'WPT Series Schedules'],
+                        variableMeasured: ['Series Date Range', 'Main Event Buy-In', 'Total Series Guarantee', 'Event Count'],
+                    }),
+                    ...faqSchema(POKER_SERIES_FAQS, '/hub/poker-series'),
+                }) }} />
             </Head>
 
             <div className="pnm-page pnm-map-directory">

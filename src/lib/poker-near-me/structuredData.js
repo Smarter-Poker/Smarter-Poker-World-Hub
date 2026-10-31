@@ -186,6 +186,10 @@ export function buildSeriesDirectorySchema(series = [], totalCount = 0) {
     url: canonical,
     name: 'Poker Series - Live Tournament Series Directory',
     description: 'Browse live and upcoming poker tournament series by tour, date, buy-in, and location.',
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'p'],
+    },
     mainEntity: {
       '@type': 'ItemList',
       numberOfItems: Number(totalCount) || series.length,
@@ -274,6 +278,10 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
     name: pageName,
     description: pageDescription,
     dateModified: generatedAt || undefined,
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'p'],
+    },
     mainEntity: {
       '@type': 'ItemList',
       numberOfItems: tournaments.length,

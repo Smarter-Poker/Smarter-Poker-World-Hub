@@ -54,17 +54,31 @@ export function renderVenueMarkdown(venue, { canonicalUrl } = {}) {
   const stakes = clean(venue.stakes_cash || 'Varies by daily demand');
   const tournaments = venue.has_tournaments ? 'Yes: scheduled daily/weekly tournaments' : 'No regular scheduled tournaments';
   const about = clean(venue.about || '');
+  const stateCode = state ? state.toLowerCase() : '';
+  const citySlug = city ? city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '';
+  const coords = venue.latitude && venue.longitude && Number.isFinite(Number(venue.latitude)) && Number.isFinite(Number(venue.longitude))
+    ? `${Number(venue.latitude).toFixed(5)}, ${Number(venue.longitude).toFixed(5)}`
+    : null;
+  const venueType = clean(venue.venue_type || 'Poker Room').replace(/_/g, ' ');
+  const factKernel = `${name} is a verified ${venueType} located in ${[city, state].filter(Boolean).join(', ') || 'the United States'}${Number(venue.poker_tables) > 0 ? ` featuring ${venue.poker_tables} poker tables` : ''}. Operating hours: ${hours}.`;
 
   const lines = [
     `# ${name}`,
     '',
     `> Source: [${name} on Smarter.Poker](${url})`,
     '',
+    '## Executive Fact Summary',
+    factKernel,
+    '',
     '## Location & Contact',
+    `- **Venue Type**: ${venueType}`,
     `- **Address**: ${address ? `${address}, ` : ''}${city ? `${city}, ` : ''}${state || 'USA'}`,
+    coords ? `- **GPS Coordinates**: ${coords}` : null,
     phone ? `- **Phone**: ${phone}` : null,
     website ? `- **Official Website**: [${name}](${website})` : null,
     `- **Operating Hours**: ${hours}`,
+    stateCode ? `- **State Directory**: [${state} Poker Rooms](https://smarter.poker/hub/poker-near-me/in/${stateCode})` : null,
+    stateCode && citySlug ? `- **City Directory**: [${city}, ${state} Poker Rooms](https://smarter.poker/hub/poker-near-me/in/${stateCode}/${citySlug})` : null,
     '',
     '## Poker Room Amenities & Action',
     `- **Poker Tables**: ${tables}`,
@@ -1544,4 +1558,156 @@ export function renderPokerSeriesMarkdown({ canonicalUrl = 'https://smarter.poke
   ].join('\n');
 }
 
+/**
+ * Format Geo-Location Directory (/hub/poker-near-me/in, /[state], /[state]/[city]) as clean structured Markdown for LLM ingestion
+ */
+export function renderLocationDirectoryMarkdown({
+  title = 'Live Poker Rooms By State And City',
+  description = 'Browse verified casino poker rooms and cardrooms across North America.',
+  canonicalUrl = 'https://smarter.poker/hub/poker-near-me/in',
+  stateCode = null,
+  stateName = null,
+  city = null,
+  venues = [],
+  states = [],
+  cities = [],
+  resultCount = 0,
+} = {}) {
+  const locationLabel = city && (stateName || stateCode)
+    ? `${clean(city)}, ${clean(stateName || stateCode)}`
+    : clean(stateName || stateCode || 'United States & North America');
+  const count = Number(resultCount) || venues.length;
 
+  const lines = [
+    `# ${clean(title)}`,
+    '',
+    `> Source: [${clean(title)} on Smarter.Poker](${canonicalUrl})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `${clean(description)} Smarter.Poker Tracks ${count} Verified Poker ${count === 1 ? 'Venue' : 'Venues'} In ${locationLabel} With Real-Time Cash Game Stakes, Recurring Daily Tournament Schedules, Table Counts, And Direct Venue Fact Sheets.`,
+    '',
+  ];
+
+  if (Array.isArray(states) && states.length > 0) {
+    lines.push('## Browse Poker Rooms By State', '');
+    for (const st of states) {
+      const stUrl = `https://smarter.poker${st.href}`;
+      lines.push(`- **[${clean(st.name)}](${stUrl})** ([Markdown](${stUrl}.md)): ${st.count || 0} Verified Poker ${st.count === 1 ? 'Venue' : 'Venues'}`);
+    }
+    lines.push('');
+  }
+
+  if (Array.isArray(cities) && cities.length > 0) {
+    lines.push(`## Browse Poker Cities In ${clean(stateName || stateCode || '')}`, '');
+    for (const c of cities) {
+      const cUrl = `https://smarter.poker${c.href}`;
+      lines.push(`- **[${clean(c.name)}](${cUrl})** ([Markdown](${cUrl}.md)): ${c.count || 0} Verified Poker ${c.count === 1 ? 'Venue' : 'Venues'}`);
+    }
+    lines.push('');
+  }
+
+  if (Array.isArray(venues) && venues.length > 0) {
+    lines.push(`## Verified Poker Rooms In ${locationLabel}`, '');
+    for (const v of venues.slice(0, 60)) {
+      const vUrl = `https://smarter.poker/hub/venues/${encodeURIComponent(String(v.id))}`;
+      const vMd = `${vUrl}.md`;
+      const vLoc = [clean(v.city), clean(v.state)].filter(Boolean).join(', ');
+      const vTables = Number(v.poker_tables) > 0 ? `${v.poker_tables} Tables` : 'Verified Room';
+      const vGames = clean(v.games_offered || 'NLH, PLO');
+      lines.push(`- **[${clean(v.name)}](${vUrl})** ([Markdown](${vMd})) - ${vLoc} | ${vTables} | Games: ${vGames}`);
+    }
+    lines.push('');
+  }
+
+  lines.push(
+    '## Frequently Asked Questions',
+    '',
+    `### How Many Poker Rooms Are Listed In ${locationLabel}?`,
+    `Smarter.Poker Lists ${count} Verified Poker ${count === 1 ? 'Room' : 'Rooms'} And Cardrooms In ${locationLabel}.`,
+    '',
+    `### Where Can I View Live Cash Games And Daily Tournaments In ${locationLabel}?`,
+    `Browse Live Venue Profiles At ${canonicalUrl} Or Check Daily Tournament Schedules At https://smarter.poker/hub/daily-tournaments.`,
+    ''
+  );
+
+  return lines.join('\n');
+}
+
+
+
+/**
+ * Format a Traveling Poker Tour (/hub/tours/[code]) as clean structured Markdown for LLM ingestion
+ */
+export function renderTourMarkdown({
+  seo = {},
+  stops = [],
+  events = [],
+  facts = null,
+} = {}) {
+  const code = clean(seo.code || 'TOUR');
+  const name = clean(seo.name || `${code} Poker Tour`);
+  const url = seo.canonical?.startsWith('http')
+    ? seo.canonical
+    : `https://smarter.poker${seo.canonical || `/hub/tours/${code}`}`;
+  const typeLabel = clean(seo.type || 'Traveling Poker Tour');
+
+  const lines = [
+    `# ${name} (${code})`,
+    '',
+    `> Source: [${name} Schedule & Stops on Smarter.Poker](${url})`,
+    '',
+    '## Executive Tour Summary',
+    clean(seo.description || `${name} (${code}) is a ${typeLabel} tracked on Smarter.Poker with verified stop dates, host venues, buy-ins, and event schedules.`),
+    '',
+    '## Tour Profile & Quick Facts',
+    `- **Tour Code**: \`${code}\``,
+    `- **Classification**: ${typeLabel}`,
+    seo.website ? `- **Official Website**: [${name}](${seo.website})` : null,
+    facts?.headquarters ? `- **Headquarters**: ${clean(facts.headquarters)}` : null,
+    facts?.established ? `- **Established**: ${facts.established}` : null,
+    Array.isArray(facts?.regions) && facts.regions.length > 0 ? `- **Regions**: ${facts.regions.map((r) => clean(r)).join(', ')}` : null,
+    facts?.mainEvent ? `- **Typical Main Event Buy-In**: $${Number(facts.mainEvent).toLocaleString('en-US')}` : null,
+    facts?.buyinMin && facts?.buyinMax ? `- **Typical Buy-In Range**: $${Number(facts.buyinMin).toLocaleString('en-US')} to $${Number(facts.buyinMax).toLocaleString('en-US')}` : null,
+    '',
+  ].filter((l) => l !== null);
+
+  if (facts?.notes) {
+    lines.push('## Overview & Circuit Notes', clean(facts.notes), '');
+  }
+
+  if (Array.isArray(stops) && stops.length > 0) {
+    lines.push(`## Scheduled Tour Stops (${stops.length})`, '');
+    for (const stop of stops) {
+      const stopName = clean(stop.name);
+      const stopVenue = stop.venue ? ` at ${clean(stop.venue)}` : '';
+      const stopLoc = stop.location ? ` (${clean(stop.location)})` : '';
+      const stopDates = stop.dates ? ` [${clean(stop.dates)}]` : '';
+      lines.push(`- **${stopName}**${stopVenue}${stopLoc}${stopDates}`);
+    }
+    lines.push('');
+  }
+
+  if (Array.isArray(events) && events.length > 0) {
+    lines.push(`## Featured Series Events (${events.length})`, '');
+    for (const ev of events) {
+      const evName = clean(ev.name);
+      const evDates = ev.dates ? ` (${clean(ev.dates)})` : '';
+      const evBuyin = ev.buyin ? ` - Buy-In: $${Number(ev.buyin).toLocaleString('en-US')}` : '';
+      lines.push(`- **${evName}**${evDates}${evBuyin}`);
+    }
+    lines.push('');
+  }
+
+  lines.push(
+    '## Frequently Asked Questions',
+    '',
+    `### Where Can I Find The Current ${name} Schedule?`,
+    `The complete ${name} (${code}) stop schedule, host casinos, and event buy-ins are updated on [Smarter.Poker](${url}).`,
+    '',
+    `### What Type Of Poker Tour Is ${name}?`,
+    `${name} is tracked as a ${typeLabel} in the Smarter.Poker national tour directory at https://smarter.poker/hub/poker-tours.`,
+    ''
+  );
+
+  return lines.join('\n');
+}

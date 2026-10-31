@@ -40,6 +40,20 @@ const EVENTS_SCHEMA = hubCollectionSchema({
   description:
     'Live Poker Tournaments, Series, Tour Stops And Public Home Games By Date, Location, Buy In And Game Type, In One Calendar.',
   trail: [['Hub', '/hub'], ['Events Calendar', '/hub/events-calendar']],
+  faqs: [
+    {
+      question: 'What Types Of Poker Events Are Included In The Smarter.Poker Calendar?',
+      answer: 'The Smarter.Poker Events Calendar Aggregates Recurring Daily Casino Tournaments, Multi-Event Venue Series, National Traveling Tour Stops (WSOP, WPT, MSPT, RGPS), And Verified Public Home Games In One Searchable Directory.',
+    },
+    {
+      question: 'Can I Search The Poker Events Calendar By City, State, Or Buy-In?',
+      answer: 'Yes. Players Can Filter Live Poker Tournaments By State, City, Date Range, Buy-In Tier, Guaranteed Prize Pool ($GTD), Game Type (NLH, PLO, Mixed), And GPS Distance.',
+    },
+    {
+      question: 'Is The Smarter.Poker Events Calendar Free To Use?',
+      answer: 'Yes. Browsing All Live Tournament Schedules, Series Dates, And Venue Structure Links On Smarter.Poker Is 100% Free With Zero Subscription Paywalls.',
+    },
+  ],
 });
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => m.default || m), { ssr: false });
 
