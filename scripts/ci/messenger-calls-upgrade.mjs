@@ -45,7 +45,9 @@ async function snapshot(page) {
         // 2026-10-31: build-TfctsWXpff2fKS on 037dcf17 and on 1e8650c8), so the
         // loaded _app chunk URL identifies the build and timeOrigin identifies
         // a real document load (a reload changes it, a client route does not).
-        const app = [...document.scripts].map(x => x.src).find(src => /\/pages\/_app-[^/]+\.js$/.test(src)) || null;
+        // Next 16 loads _app through the runtime, not a <script src>, so read
+        // the chunk the document actually fetched (run 41250843386 read null).
+        const app = performance.getEntriesByType('resource').map(e => e.name).find(n => /\/pages\/_app-[^/]+\.js$/.test(n)) || null;
         return {
             appChunk: app ? app.split('/').pop() : null,
             timeOrigin: Math.round(performance.timeOrigin),
