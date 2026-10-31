@@ -218,3 +218,14 @@ test('Accept on the push notification answers the call', () => {
         assert.match(source, /event\.action === 'accept' && baseUrl\.indexOf\('incomingCall='\) !== -1/, worker);
     }
 });
+
+test('every hamburger menu offers Turn On Notifications until this device receives push', () => {
+    const menu = read('src/components/ui/HamburgerMenu.jsx');
+    assert.match(menu, /import \{ usePush \} from '\.\.\/\.\.\/contexts\/PushContext';/);
+    assert.match(menu, /const pushOn = push\.permission === 'granted' && push\.isSubscribed;/);
+    assert.match(menu, /if \(getAuthUser\(\) && !pushOn && !links\.some\(\(i\) => matchesId\(i, 'turn-on-notifications'\)\)\)/);
+    assert.match(menu, /label: 'Turn On Notifications',/);
+    // The permission prompt is requested inside the tap: nothing awaited first.
+    assert.match(menu, /const pending = push\.subscribe\(\);\n    if \(typeof onClose === 'function'\) onClose\(\);/);
+    assert.match(menu, /router\.push\('\/hub\/settings\/notifications'\)/);
+});
