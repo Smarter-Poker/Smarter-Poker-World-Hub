@@ -8,7 +8,7 @@ R3_CONFIG='96be7ebeaebd5f509e84a114c84731eaa4abd760f8ed2dc9b3845e7171ac12e0'
 RAW='e40d152c54213821165dc88ed5b86549c6e53ca30bbf683ff23a05d7752139c4'
 NATIVE='3bdfb1888b18adb1b0254e26958069c7e0210fce02d1f67929d0af5a1a9a6f92'
 TERMINAL='790e67a34724f461d9a91c9ae5e2cbeb7c7d24a48d1af1bd9d26926c842a85f5'
-FUNCTIONS={'fn_gto_v31_seal_build(uuid)','fn_gto_v31_public215_model_canonical_fast(jsonb)','fn_gto_v31_public215_canonical(jsonb)','fn_gto_v31_public215_model_valid(jsonb)','fn_gto_v31_cell_payload_checksum(jsonb)'}
+FUNCTIONS={'fn_gto_v31_seal_build(uuid)','fn_gto_v31_public215_model_canonical_fast(jsonb)','fn_gto_v31_public215_canonical(jsonb)','fn_gto_v31_public215_model_valid(jsonb)','fn_gto_v31_cell_payload_checksum(jsonb)','fn_gto_v31_source_node_v3_valid(jsonb)','fn_gto_v31_source_node_v4_valid(jsonb)','fn_gto_v31_source_node_v3_fields_valid(jsonb)'}
 Q=None;C=None
 
 def exact(q,v,keys):q.need(isinstance(v,dict) and set(v)==set(keys),'SEAL_EXACT_KEYS')
@@ -59,7 +59,7 @@ def proof(q,c,value,fix,plan,snapshot,closed):
  exact(q,fix,{'format','protected_commit','migration_version','migration_sha256','function_hashes','installed_history_verified','qualified_native','physics_checksum','encoding_checksum'})
  q.need(fix['format']=='public215_r7_installed_seal_fix_v1' and re.fullmatch('[0-9a-f]{40}',fix['protected_commit']) is not None and re.fullmatch('[0-9]{14}',fix['migration_version']) is not None and q.sha(fix['migration_sha256']) and fix['installed_history_verified'] is True and fix['qualified_native'] is True,'ACTUAL_QUALIFIED_INSTALLED_SEAL_FIX_REQUIRED')
  for catalog in (value['function_hashes'],fix['function_hashes']):
-  exact(q,catalog,FUNCTIONS);q.need(all(isinstance(v,str) and re.fullmatch('[0-9a-f]{32}',v) is not None and v!='0'*32 for v in catalog.values()),'EXACT_FIVE_FUNCTION_HASHES')
+  exact(q,catalog,FUNCTIONS);q.need(all(isinstance(v,str) and re.fullmatch('[0-9a-f]{32}',v) is not None and v!='0'*32 for v in catalog.values()),'EXACT_EIGHT_FUNCTION_HASHES')
  q.need(value['function_hashes']==fix['function_hashes'],'INSTALLED_FUNCTION_CATALOG_DIFFERS')
  q.need(all(x['physics_checksum']==c.PHYSICS_IMPLEMENTATION and x['encoding_checksum']==c.ENCODING for x in (value,fix)),'UNCHANGED_MATH_REQUIRED')
  cells=value['cells'];audits=value['audits'];q.need(isinstance(cells,list) and len(cells)==107 and isinstance(audits,list) and len(audits)==856,'FULL107_856_PROOF')
