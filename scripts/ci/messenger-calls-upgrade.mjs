@@ -41,7 +41,14 @@ export const VISIBILITY_SHIM = `(() => {
 async function snapshot(page) {
     return page.evaluate(async () => {
         const reg = await navigator.serviceWorker.getRegistration('/').catch(() => null);
+        // __NEXT_DATA__.buildId is the same string on every release (measured
+        // 2026-10-31: build-TfctsWXpff2fKS on 037dcf17 and on 1e8650c8), so the
+        // loaded _app chunk URL identifies the build and timeOrigin identifies
+        // a real document load (a reload changes it, a client route does not).
+        const app = [...document.scripts].map(x => x.src).find(src => /\/pages\/_app-[^/]+\.js$/.test(src)) || null;
         return {
+            appChunk: app ? app.split('/').pop() : null,
+            timeOrigin: Math.round(performance.timeOrigin),
             buildId: window.__NEXT_DATA__?.buildId || null,
             controlled: Boolean(navigator.serviceWorker.controller),
             worker: { active: reg?.active?.state || null, waiting: Boolean(reg?.waiting), installing: Boolean(reg?.installing) },
@@ -109,12 +116,13 @@ async function main() {
         }
         report.newSha = newSha;
         if (!newSha) throw new Error(`No new production revision within ${waitMinutes} minutes`);
-        const freshBuildId = await (async () => { const html = await (await fetch(`${APP_ORIGIN}/hub/friends`, { cache: 'no-store' })).text(); return /"buildId":"([^"]+)"/.exec(html)?.[1] || null; })();
+        const freshBuildId = await (async () => { const html = await (await fetch(`${APP_ORIGIN}/hub/friends`, { cache: 'no-store' })).text(); return /\/pages\/_app-([^/"]+)\.js/.exec(html) ? `_app-${/\/pages\/_app-([^/"]+)\.js/.exec(html)[1]}.js` : null; })();
         report.newBuildId = freshBuildId;
+        report.oldAppChunk = report.pages.idle.before.appChunk;
         log('deployed', { newSha, newBuildId: freshBuildId });
 
         // Observe four minutes; the resumed page is hidden and shown each minute.
-        for (let minute = 0; minute < 4; minute++) {
+        for (let minute = 0; minute < 6; minute++) {
             await resumed.evaluate(() => window.__spSetVisibility('hidden')).catch(() => {});
             await sleep(3000);
             await resumed.evaluate(() => window.__spSetVisibility('visible')).catch(() => {});
@@ -125,7 +133,8 @@ async function main() {
             const after = await snapshot(page);
             report.pages[label].after = after;
             report.pages[label].reloads = reloads[label];
-            report.pages[label].runsNewBuild = Boolean(freshBuildId) && after.buildId === freshBuildId;
+            report.pages[label].runsNewBuild = Boolean(freshBuildId) && after.appChunk === freshBuildId;
+            report.pages[label].documentReloaded = after.timeOrigin !== report.pages[label].before.timeOrigin;
         }
 
         // Does a call still ring on each open page, whatever build it runs?
@@ -151,7 +160,7 @@ async function main() {
         await fresh.goto(`${APP_ORIGIN}/hub/friends`, { waitUntil: 'domcontentloaded' });
         await sleep(5000);
         report.freshPage = await snapshot(fresh);
-        report.freshPage.runsNewBuild = report.freshPage.buildId === freshBuildId;
+        report.freshPage.runsNewBuild = report.freshPage.appChunk === freshBuildId;
         log('done', { idle: report.pages.idle, resumed: report.pages.resumed, fresh: report.freshPage });
     } catch (error) {
         report.error = String(error?.message || error).slice(0, 300);
