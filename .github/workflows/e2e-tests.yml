@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device]
         default: full
       reels_qa_setup_run:
         description: Exact private Reels QA setup run (successful for live checks, retained partial receipt for setup recovery)
@@ -82,6 +82,14 @@ on:
         description: Exact parent-owned first unread message UUID for messenger-continuity-live
         type: string
         default: ''
+      device_since:
+        description: ISO time the physical-device test began (messenger-calls-device); only Apple push subscriptions created at or after it are used and removed
+        type: string
+        default: ''
+      device_wait_minutes:
+        description: Minutes messenger-calls-device waits for READY from the phone (5-90)
+        type: string
+        default: '30'
 
 permissions:
   contents: read
@@ -784,6 +792,133 @@ jobs:
           path: test-results/messenger-calls-live/
           if-no-files-found: warn
           retention-days: 7
+
+  messenger-calls-webkit:
+    # WebKit-only attribution of the mobile WebKit TURN failure: the repo's
+    # Playwright WebKit and two newer builds, constructor matrix plus a call
+    # between two throwaway example.com users. No test account, no contact.
+    name: Published Messenger Calls WebKit Build Verification
+    if: ${{ inputs.suite == 'messenger-calls-webkit' }}
+    timeout-minutes: 25
+    concurrency:
+      group: messenger-calls-live
+      cancel-in-progress: false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Restore locked dependencies
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+      - name: Verify call probe safety
+        run: |
+          node scripts/ci/messenger-calls-webkit.mjs --self-test
+          node --test __tests__/messenger-calls-device-safety.test.mjs
+      - name: Install the WebKit builds under test
+        run: |
+          set -e
+          WITH_DEPS=--with-deps; if [ "${{ runner.environment }}" = "self-hosted" ]; then WITH_DEPS=; fi
+          npx playwright install $WITH_DEPS chromium webkit
+          for v in 1.63.0 1.64.1; do
+            mkdir -p "$RUNNER_TEMP/pw-$v"
+            npm install --prefix "$RUNNER_TEMP/pw-$v" --no-save --ignore-scripts --registry=https://registry.npmjs.org "playwright@$v"
+            node "$RUNNER_TEMP/pw-$v/node_modules/playwright/cli.js" install $WITH_DEPS webkit
+          done
+          echo "PLAYWRIGHT_WEBKIT_BUILDS=[{\"label\":\"pw-1.62.1\",\"module\":\"$PWD/node_modules/playwright/index.mjs\"},{\"label\":\"pw-1.63.0\",\"module\":\"$RUNNER_TEMP/pw-1.63.0/node_modules/playwright/index.mjs\"},{\"label\":\"pw-1.64.1\",\"module\":\"$RUNNER_TEMP/pw-1.64.1/node_modules/playwright/index.mjs\"}]" >> "$GITHUB_ENV"
+      - name: Verify calls on each WebKit build
+        run: node scripts/ci/messenger-calls-webkit.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain sanitized WebKit verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: messenger-calls-webkit-receipt
+          path: test-results/messenger-calls-webkit/
+          if-no-files-found: warn
+          retention-days: 30
+
+  messenger-calls-device:
+    # Physical-device conductor: the test account is signed in by its owner on
+    # an iPhone; this job runs ONE throwaway partner and posts each step into
+    # the shared chat. It removes only the Apple push subscription created for
+    # the test (at or after device_since).
+    name: Published Messenger Calls Physical Device Conductor
+    if: ${{ inputs.suite == 'messenger-calls-device' }}
+    timeout-minutes: 120
+    concurrency:
+      group: messenger-calls-live
+      cancel-in-progress: false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Restore locked dependencies
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+      - name: Verify conductor safety
+        run: |
+          node scripts/ci/messenger-calls-device.mjs --self-test
+          node --test __tests__/messenger-calls-device-safety.test.mjs
+      - name: Install partner browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Conduct the physical-device call test
+        run: node scripts/ci/messenger-calls-device.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          DEVICE_SINCE: ${{ inputs.device_since }}
+          DEVICE_WAIT_MINUTES: ${{ inputs.device_wait_minutes }}
+      - name: Retain sanitized device verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: messenger-calls-device-receipt
+          path: test-results/messenger-calls-device/
+          if-no-files-found: warn
+          retention-days: 30
 
   reels-live:
     name: Published Reels Test Account Verification
