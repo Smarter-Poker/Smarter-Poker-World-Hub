@@ -29,7 +29,7 @@ https://smarter.poker/about is the page that states it.
 - Free Poker Alternatives & Comparisons: https://smarter.poker/compare (Markdown Hub: https://smarter.poker/compare.md)
 - Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
 - Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue, series, tools, freerolls, and about routes, e.g. https://smarter.poker/freerolls.md or https://smarter.poker/tools/poker-odds-calculator.md)
-- Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Supports JSON-RPC 2.0 via POST, SSE via GET /api/mcp?transport=sse)
+- Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Discovery Manifest: https://smarter.poker/.well-known/mcp.json; supports JSON-RPC 2.0 via POST and SSE via GET /api/mcp?transport=sse)
 - Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json (Clean Root Alias: https://smarter.poker/openapi.json)
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
 - Public Freerolls Calendar Feed (RFC 5545 iCal): https://smarter.poker/freerolls.ics

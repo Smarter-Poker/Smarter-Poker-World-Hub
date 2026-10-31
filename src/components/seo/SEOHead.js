@@ -85,6 +85,20 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/preflop-charts.md';
     } else if (pathname === '/hub/video-library') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/video-library.md';
+    } else if (pathname === '/hub') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub.md';
+    } else if (pathname === '/hub/bankroll-manager') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/bankroll-manager.md';
+    } else if (pathname === '/hub/commander') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/commander.md';
+    } else if (pathname === '/hub/training') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/training.md';
+    } else if (pathname === '/hub/trivia') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/trivia.md';
+    } else if (pathname === '/hub/training/jarvis') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/training/jarvis.md';
+    } else if (pathname === '/hub/training/equity-calculator') {
+      resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
     }
   }
 

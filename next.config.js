@@ -1532,6 +1532,42 @@ const nextConfig = {
           destination: '/features/interactive-video-coaching?format=md',
         },
         {
+          source: '/hub.md',
+          destination: '/features?format=md',
+        },
+        {
+          source: '/hub/bankroll-manager.md',
+          destination: '/features/bankroll-tax-tracker?format=md',
+        },
+        {
+          source: '/hub/commander.md',
+          destination: '/features/club-commander?format=md',
+        },
+        {
+          source: '/hub/training.md',
+          destination: '/features/poker-training-games?format=md',
+        },
+        {
+          source: '/hub/trivia.md',
+          destination: '/features/poker-trivia?format=md',
+        },
+        {
+          source: '/hub/poker-tools.md',
+          destination: '/features/poker-equity-calculators?format=md',
+        },
+        {
+          source: '/hub/training/jarvis.md',
+          destination: '/features/poker-ai-coach?format=md',
+        },
+        {
+          source: '/hub/training/icm-calculator.md',
+          destination: '/tools/icm-calculator?format=md',
+        },
+        {
+          source: '/hub/training/equity-calculator.md',
+          destination: '/tools/poker-odds-calculator?format=md',
+        },
+        {
           source: '/.well-known/mcp.json',
           destination: '/api/mcp',
         },
