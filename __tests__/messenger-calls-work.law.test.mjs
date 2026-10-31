@@ -219,13 +219,34 @@ test('Accept on the push notification answers the call', () => {
     }
 });
 
-test('every hamburger menu offers Turn On Notifications until this device receives push', () => {
+test('every hamburger menu offers Turn On Notifications until this device receives push', async () => {
     const menu = read('src/components/ui/HamburgerMenu.jsx');
-    assert.match(menu, /import \{ usePush \} from '\.\.\/\.\.\/contexts\/PushContext';/);
-    assert.match(menu, /const pushOn = push\.permission === 'granted' && push\.isSubscribed;/);
-    assert.match(menu, /if \(getAuthUser\(\) && !pushOn && !links\.some\(\(i\) => matchesId\(i, 'turn-on-notifications'\)\)\)/);
+    assert.match(menu, /import \{ pushMenuState, PUSH_MENU_DESTINATIONS \} from '\.\.\/\.\.\/lib\/pushMenuState\.mjs';/);
+    assert.match(menu, /if \(!isOpen \|\| !getAuthUser\(\)\) \{ setPushRow\(null\); return undefined; \}/);
+    assert.match(menu, /if \(pushRow && !links\.some\(\(i\) => matchesId\(i, 'turn-on-notifications'\)\)\)/);
     assert.match(menu, /label: 'Turn On Notifications',/);
     // The permission prompt is requested inside the tap: nothing awaited first.
     assert.match(menu, /const pending = push\.subscribe\(\);\n    if \(typeof onClose === 'function'\) onClose\(\);/);
-    assert.match(menu, /router\.push\('\/hub\/settings\/notifications'\)/);
+    assert.match(menu, /router\.push\(PUSH_MENU_DESTINATIONS\[pushRow\]/);
+
+    const { pushMenuState, PUSH_MENU_DESTINATIONS } = await import('../src/lib/pushMenuState.mjs');
+    const client = (o = {}) => ({ isWebPushSupported: () => true, isIos: () => false, isIosStandalonePwa: () => false, notificationPermission: () => 'default', hasLocalSubscription: async () => false, ...o });
+    assert.equal(await pushMenuState(client()), 'ask', 'eligible');
+    assert.equal(await pushMenuState(client({ notificationPermission: () => 'granted', hasLocalSubscription: async () => true })), null, 'already enabled');
+    assert.equal(await pushMenuState(client({ notificationPermission: () => 'granted' })), 'ask', 'granted without a subscription');
+    assert.equal(await pushMenuState(client({ notificationPermission: () => 'denied' })), 'blocked', 'denied');
+    assert.equal(await pushMenuState(client({ isWebPushSupported: () => false, isIos: () => true })), 'install', 'iOS Safari tab');
+    assert.equal(await pushMenuState(client({ isWebPushSupported: () => false })), null, 'unsupported browser');
+    assert.equal(await pushMenuState(client({ hasLocalSubscription: async () => { throw new Error('x'); } })), 'ask', 'lookup failed');
+    assert.deepEqual(PUSH_MENU_DESTINATIONS, { install: '/hub/install', blocked: '/hub/settings/notifications' });
+});
+
+test('a call that rang while the page was frozen, offline or between sockets rings on reconnect', () => {
+    const signal = read('src/lib/calls/callSignal.js');
+    assert.match(signal, /if \(joinedBefore\) dispatch\('resubscribed', \{\}\);/);
+    const provider = read('src/components/calls/CallProvider.jsx');
+    assert.match(provider, /onCallSignal\(event => \{ if \(event === 'resubscribed'\) recheck\(\); \}\)/);
+    assert.match(provider, /window\.addEventListener\('online', recheck\);/);
+    assert.match(provider, /window\.addEventListener\('pageshow', recheck\);/);
+    assert.match(provider, /document\.addEventListener\('visibilitychange', visible\);/);
 });

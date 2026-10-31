@@ -461,8 +461,22 @@ export default function CallProvider({ children }) {
         const visible = () => {
             if (document.visibilityState === 'visible' && Date.now() - lastPendingCheck.current > 5000) void checkPending();
         };
+        // RECONNECT (2026-10-31). A call that rang while this page was frozen,
+        // offline or between sockets left no broadcast and no notification
+        // event behind. Re-check when the realtime listener rejoins, when the
+        // network comes back and when the page is restored from the back/forward
+        // cache, not only when it becomes visible.
+        const recheck = () => { if (Date.now() - lastPendingCheck.current > 2000) void checkPending(); };
+        const stopRejoin = onCallSignal(event => { if (event === 'resubscribed') recheck(); });
         document.addEventListener('visibilitychange', visible);
-        return () => document.removeEventListener('visibilitychange', visible);
+        window.addEventListener('online', recheck);
+        window.addEventListener('pageshow', recheck);
+        return () => {
+            document.removeEventListener('visibilitychange', visible);
+            window.removeEventListener('online', recheck);
+            window.removeEventListener('pageshow', recheck);
+            stopRejoin();
+        };
     }, [user?.id, router?.query?.incomingCall]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Closing the page mid-call ───────────────────────────────────────────
