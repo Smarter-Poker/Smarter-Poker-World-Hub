@@ -31,6 +31,7 @@ for (const suite of [
   'scripts/horse-solver-v31/test_compile_inputs.py',
   'scripts/horse-solver-v31/test_public_hist215.py',
   'scripts/horse-solver-v31/test_final_public215_training.py',
+  'scripts/horse-solver-v31/test_continue_r7_once.py',
   'scripts/ci/test-provision-horse-v31-hmac.py',
 ]) {
   test(`V31 commissioning prerequisite ${suite} passes`, () => {
