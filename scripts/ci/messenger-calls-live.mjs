@@ -124,7 +124,10 @@ async function videos(page) {
 async function callStatus(page) {
     return page.evaluate(() => {
         const host = document.querySelector('[role="dialog"][aria-label*="Call With"], [role="region"][aria-label^="Call With"]');
-        return host?.querySelector('[role="status"]')?.textContent?.trim() || null;
+        // The header status line is the short one; an unreachable call also
+        // shows an explanatory paragraph with role=status before it.
+        const all = [...(host?.querySelectorAll('[role="status"]') || [])].map(el => el.textContent?.trim() || '').filter(Boolean);
+        return all.sort((x, y) => x.length - y.length)[0] || null;
     });
 }
 const callOpen = page => page.locator('[role="dialog"][aria-label*="Call With"]').count().then(n => n > 0);
