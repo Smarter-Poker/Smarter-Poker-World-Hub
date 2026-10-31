@@ -93392,6 +93392,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+          "pages/api/glossary-markdown.js",
           "pages/glossary/[term].js"
         ]
       },
@@ -93407,7 +93408,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/glossary/[term].js"
+          "pages/glossary/[term].js",
+          "src/lib/seo/markdownIngestion.mjs"
         ]
       },
       {
@@ -93422,7 +93424,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/glossary/index.js"
+          "pages/glossary/index.js",
+          "src/lib/seo/markdownIngestion.mjs"
         ]
       },
       {
@@ -93443,6 +93446,7 @@
           "pages/hub/training/glossary.js",
           "pages/sitemap.xml.js",
           "src/content/compare/pages.js",
+          "src/lib/seo/markdownIngestion.mjs",
           "src/lib/seo/sitemapBuilders.mjs"
         ]
       },
@@ -102710,6 +102714,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+          "pages/api/glossary-markdown.js",
           "pages/glossary/[term].js"
         ]
       },
@@ -102725,7 +102730,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/glossary/[term].js"
+          "pages/glossary/[term].js",
+          "src/lib/seo/markdownIngestion.mjs"
         ]
       },
       {
@@ -102740,7 +102746,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/glossary/index.js"
+          "pages/glossary/index.js",
+          "src/lib/seo/markdownIngestion.mjs"
         ]
       },
       {
@@ -102761,6 +102768,7 @@
           "pages/hub/training/glossary.js",
           "pages/sitemap.xml.js",
           "src/content/compare/pages.js",
+          "src/lib/seo/markdownIngestion.mjs",
           "src/lib/seo/sitemapBuilders.mjs"
         ]
       },
