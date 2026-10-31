@@ -1532,6 +1532,10 @@ const nextConfig = {
           destination: '/features/interactive-video-coaching?format=md',
         },
         {
+          source: '/.well-known/mcp.json',
+          destination: '/api/mcp',
+        },
+        {
           source: '/freerolls.ics',
           destination: '/api/calendar/freerolls.ics',
         },

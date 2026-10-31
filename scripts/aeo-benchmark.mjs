@@ -91,6 +91,9 @@ async function runBenchmark() {
   assertCheck('GET /api/mcp includes search_strategy_lessons tool', mcpDiscovery.text.includes('search_strategy_lessons'));
   assertCheck('GET /api/mcp includes get_competitor_comparison tool', mcpDiscovery.text.includes('get_competitor_comparison'));
 
+  const mcpWellKnown = await fetchRoute('/.well-known/mcp.json');
+  assertCheck('GET /.well-known/mcp.json status 200 with full MCP tool schemas', mcpWellKnown.status === 200 && mcpWellKnown.text.includes('inputSchema'));
+
   // 2. AI Agent Tool API Endpoints
   console.log(`\n--- [2/10] AI Agent Tool APIs (MCP / Tool Calling) ---`);
   const aiOdds = await fetchRoute('/api/ai/odds?hands=AhAs,KhKd&board=QhJhTh');
@@ -190,6 +193,7 @@ async function runBenchmark() {
     const htmlRes = await fetchRoute(`/features/${feat.slug}`);
     assertCheck(`GET /features/${feat.slug} status 200`, htmlRes.status === 200);
     assertCheck(`/features/${feat.slug} contains SoftwareApplication schema`, htmlRes.text.includes('"@type":"SoftwareApplication"'));
+    assertCheck(`/features/${feat.slug} contains HowTo and BreadcrumbList schema`, htmlRes.text.includes('"@type":"HowTo"') && htmlRes.text.includes('"@type":"BreadcrumbList"'));
     assertCheck(`/features/${feat.slug} contains FAQPage schema`, htmlRes.text.includes('"@type":"FAQPage"'));
 
     const mdRes = await fetchRoute(`/features/${feat.slug}.md`);
@@ -355,6 +359,9 @@ async function runBenchmark() {
 
   const learnHtml = await fetchRoute('/learn');
   assertCheck('/learn includes alternate text/markdown link', learnHtml.text.includes('rel="alternate"') && learnHtml.text.includes('type="text/markdown"'));
+
+  const sitemapXml = await fetchRoute('/sitemap.xml');
+  assertCheck('GET /sitemap.xml status 200 with /features/* routes', sitemapXml.status === 200 && sitemapXml.text.includes('https://smarter.poker/features/bankroll-tax-tracker') && sitemapXml.text.includes('https://smarter.poker/features/poker-equity-calculators'));
 
   console.log(`\n======================================================`);
   console.log(`  BENCHMARK SUMMARY`);
