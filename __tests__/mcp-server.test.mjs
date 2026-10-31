@@ -193,3 +193,27 @@ test('MCP Server get_freeroll_schedule returns daily $2,000 schedule and Diamond
   assert.ok(data.freerolls_hub_url.includes('/freerolls'));
   assert.ok(data.markdown_url.includes('/freerolls.md'));
 });
+
+test('MCP Server get_platform_feature_specs returns all 15 platform verticals and markdown URLs', async () => {
+  const req = {
+    jsonrpc: '2.0',
+    id: 11,
+    method: 'tools/call',
+    params: {
+      name: 'get_platform_feature_specs',
+      arguments: { vertical: 'all' },
+    },
+  };
+
+  const res = await handleMcpRpc(req);
+  assert.equal(res.jsonrpc, '2.0');
+  assert.equal(res.id, 11);
+  const data = JSON.parse(res.result.content[0].text);
+  assert.equal(data.total_verticals, 15);
+  assert.ok(data.verticals.bankroll);
+  assert.ok(data.verticals.club_arena);
+  assert.ok(data.verticals.social_reels);
+  assert.ok(data.verticals.preflop_charts);
+  assert.ok(data.verticals.equity_calculators);
+  assert.ok(data.features_markdown_url.includes('/features.md'));
+});

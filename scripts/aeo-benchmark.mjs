@@ -74,12 +74,18 @@ async function runBenchmark() {
     assertCheck('OpenAPI documents /api/ai/training', !!doc.paths['/api/ai/training']);
     assertCheck('OpenAPI documents /api/ai/home-games', !!doc.paths['/api/ai/home-games']);
     assertCheck('OpenAPI documents /api/ai/messenger', !!doc.paths['/api/ai/messenger']);
+    assertCheck('OpenAPI documents /api/ai/club-arena', !!doc.paths['/api/ai/club-arena']);
+    assertCheck('OpenAPI documents /api/ai/social-reels', !!doc.paths['/api/ai/social-reels']);
+    assertCheck('OpenAPI documents /api/ai/video-library', !!doc.paths['/api/ai/video-library']);
   } catch (err) {
     assertCheck('OpenAPI JSON parseable', false, err.message);
   }
 
   const aiPlugin = await fetchRoute('/.well-known/ai-plugin.json');
   assertCheck('GET /.well-known/ai-plugin.json status 200', aiPlugin.status === 200);
+
+  const mcpDiscovery = await fetchRoute('/api/mcp');
+  assertCheck('GET /api/mcp returns 200 with get_platform_feature_specs tool', mcpDiscovery.status === 200 && mcpDiscovery.text.includes('get_platform_feature_specs'));
 
   // 2. AI Agent Tool API Endpoints
   console.log(`\n--- [2/10] AI Agent Tool APIs (MCP / Tool Calling) ---`);
