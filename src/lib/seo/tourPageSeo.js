@@ -148,6 +148,10 @@ export function tourSchema({ code, name, type, website, stops }) {
       isPartOf: { '@id': `${site}/#website` },
       about: { '@id': `${site}${path}#tour` },
       breadcrumb: { '@id': `${site}${path}#breadcrumb` },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'p'],
+      },
       ...(stopNodes.length ? { hasPart: stopNodes } : {}),
     },
     {
@@ -167,6 +171,30 @@ export function tourSchema({ code, name, type, website, stops }) {
         name: itemName,
         item: `${site}${itemPath}`,
       })),
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${site}${path}#faq`,
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: `Where Can I Find The ${label} Schedule?`,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: `The complete ${label} (${safeCode}) stop schedule, host casinos, buy-ins, and event dates are tracked on Smarter.Poker at ${site}${path}.`,
+          },
+        },
+        {
+          '@type': 'Question',
+          name: `How Many Upcoming Stops Are Listed For ${label}?`,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: Array.isArray(stops) && stops.length > 0
+              ? `Smarter.Poker currently lists ${stops.length} scheduled tour ${stops.length === 1 ? 'stop' : 'stops'} for ${label}.`
+              : `Smarter.Poker tracks official stop announcements and series schedules for ${label} as they are released.`,
+          },
+        },
+      ],
     },
   ];
   return nodes;

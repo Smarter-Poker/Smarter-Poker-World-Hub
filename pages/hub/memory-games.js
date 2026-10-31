@@ -64,6 +64,28 @@ const PREFLOP_SCHEMA = hubProductSchema({
         'A push/fold chart provides mathematically solved Nash equilibrium ranges for whether to go all-in or fold preflop when your stack depth falls below 15 big blinds, eliminating postflop disadvantage.',
     },
   ],
+  howTo: {
+    name: 'How To Practice And Memorize GTO Preflop Ranges In The Range Lab',
+    description: 'Step-by-step instructions for drilling solver-backed preflop ranges across table positions and stack depths in the Smarter.Poker Preflop Range Lab.',
+    steps: [
+      {
+        name: 'Select A Training Drill Mode And Level',
+        text: 'Choose from Range Reconstruction, Quick-Fire Action Drills, or Positional Speed Challenges across 7 progressive difficulty levels.',
+      },
+      {
+        name: 'Review Table Position And Stack Depth',
+        text: 'Read the active scenario prompt indicating your seat (UTG through BB), effective stack depth (15BB to 100BB), and prior action.',
+      },
+      {
+        name: 'Paint Your Preflop Range On The 13x13 Grid',
+        text: 'Drag or tap starting hand cells across the 169-hand matrix to assign Raise, Call, or Fold actions matching the GTO reference range.',
+      },
+      {
+        name: 'Submit And Inspect Cell-By-Cell Accuracy',
+        text: 'Submit your painted matrix to compare against the authored solver baseline, review missed combos, and build streak multipliers.',
+      },
+    ],
+  },
 });
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 // confetti loaded lazily on first use

@@ -243,6 +243,7 @@ export function hubCollectionSchema({
   trail,
   image = `${SITE}/images/og-card.jpg`,
   dataset = null,
+  faqs = null,
 }) {
   const url = absolute(path);
   const imageNode = licensableImageSchema({
@@ -281,6 +282,11 @@ export function hubCollectionSchema({
         ...(typeof dataset === 'object' ? dataset : {}),
       })
     );
+  }
+
+  if (Array.isArray(faqs) && faqs.length > 0) {
+    const faqNode = faqSchema(faqs, path);
+    if (faqNode) nodes.push(faqNode);
   }
 
   return nodes;

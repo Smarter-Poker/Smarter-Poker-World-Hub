@@ -30,7 +30,7 @@ import {
     useTracks,
 } from '@livekit/components-react';
 import { ConnectionState, DisconnectReason, Track, VideoPresets } from 'livekit-client';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Volume2, ChevronDown, Maximize2 } from 'lucide-react';
 import { authedFetch } from '../../lib/authUtils';
 import { formatCallDuration } from '../../lib/calls/callRoom.mjs';
 
@@ -105,7 +105,48 @@ function statusText({ call, connection, remoteCount, elapsed, tokenError }) {
     return formatCallDuration(elapsed);
 }
 
-function Shell({ call, status, children, controls }) {
+/*
+ * Minimized (2026-10-31): the call shrinks to a bar under the status bar so
+ * the user can switch chats or leave Messenger while it continues. The room,
+ * its audio and the call state stay mounted; only the full-screen media and
+ * controls are hidden. Tapping the bar brings the call back.
+ */
+function MiniBar({ call, status, onExpand, onHangup, extras }) {
+    return (
+        <>
+            <div role="region" aria-label={`Call With ${call.peer.name}`} style={{
+                // Below the site header, right-aligned, so the menu, back
+                // button and bottom navigation all stay usable.
+                position: 'fixed', zIndex: 10050, right: 8, width: 'min(320px, calc(100vw - 16px))',
+                top: 'calc(var(--sp-header-height, 54px) + env(safe-area-inset-top, 0px) + 6px)',
+                display: 'flex', alignItems: 'center', gap: 10, padding: '6px 6px 6px 8px', minHeight: 56,
+                borderRadius: 28, background: '#16a34a', color: 'white', boxShadow: '0 6px 24px rgba(0,0,0,0.35)',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+            }}>
+                <button type="button" aria-label="Return To Call" onClick={onExpand} style={{
+                    flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, minHeight: 44,
+                    background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left', padding: 0,
+                    touchAction: 'manipulation',
+                }}>
+                    <PeerPortrait peer={call.peer} size={40} />
+                    <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{call.peer.name}</span>
+                        <span role="status" aria-live="polite" style={{ fontSize: 13, opacity: 0.92 }}>{status}</span>
+                    </span>
+                    <Maximize2 size={18} aria-hidden="true" style={{ marginLeft: 'auto', flexShrink: 0 }} />
+                </button>
+                <button type="button" aria-label="End Call" onClick={onHangup} style={{
+                    width: 44, height: 44, borderRadius: '50%', border: 'none', background: RED, color: 'white', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation',
+                }}><PhoneOff size={22} /></button>
+            </div>
+            {extras}
+        </>
+    );
+}
+
+function Shell({ call, status, children, controls, minimized = false, onMinimize, onExpand, onHangup, extras = null }) {
+    if (minimized) return <MiniBar call={call} status={status} onExpand={onExpand} onHangup={onHangup} extras={extras} />;
     return (
         <div role="dialog" aria-modal="true" aria-label={`${call.callType === 'video' ? 'Video' : 'Voice'} Call With ${call.peer.name}`} style={{
             position: 'fixed', inset: 0, zIndex: 10050, background: '#0b0d12', color: 'white',
@@ -114,9 +155,17 @@ function Shell({ call, status, children, controls }) {
         }}>
             <style>{`@keyframes sp-call-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }`}</style>
             {children}
+            {extras}
+            {onMinimize && (
+                <button type="button" aria-label="Minimize Call" title="Minimize Call" onClick={onMinimize} style={{
+                    position: 'absolute', zIndex: 4, left: 8, top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+                    width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.16)', color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation',
+                }}><ChevronDown size={26} /></button>
+            )}
             <div style={{
                 position: 'absolute', top: 0, left: 0, right: 0, zIndex: 3,
-                padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                padding: '12px 60px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
                 background: 'linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%)',
                 textAlign: 'center', pointerEvents: 'none',
             }}>
@@ -155,7 +204,7 @@ const REMOTE_LEFT_GRACE_MS = 8000;
 // on "Waiting For Them To Join..." forever.
 const JOIN_TIMEOUT_MS = 25000;
 
-function RoomStage({ call, onHangup, onRemoteLeft, onJoinTimeout, onPermissionNote }) {
+function RoomStage({ call, onHangup, onRemoteLeft, onJoinTimeout, onPermissionNote, minimized, onMinimize, onExpand }) {
     const room = useRoomContext();
     const connection = useConnectionState();
     const remotes = useRemoteParticipants();
@@ -221,6 +270,22 @@ function RoomStage({ call, onHangup, onRemoteLeft, onJoinTimeout, onPermissionNo
         <Shell
             call={call}
             status={status}
+            minimized={minimized}
+            onMinimize={onMinimize}
+            onExpand={onExpand}
+            onHangup={onHangup}
+            extras={<>
+                {!canPlayAudio && (
+                    <button type="button" onClick={() => startAudio()} style={{
+                        position: 'fixed', zIndex: 10051, left: '50%', transform: 'translateX(-50%)',
+                        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)',
+                        display: 'flex', alignItems: 'center', gap: 8, minHeight: 48, padding: '0 20px',
+                        borderRadius: 24, border: 'none', background: '#1877F2', color: 'white', fontSize: 16, fontWeight: 700,
+                        cursor: 'pointer', touchAction: 'manipulation',
+                    }}><Volume2 size={20} /> Tap To Turn On Sound</button>
+                )}
+                <RoomAudioRenderer />
+            </>}
             controls={<>
                 <RoundButton label={isMicrophoneEnabled ? 'Mute' : 'Unmute'} active={isMicrophoneEnabled} onClick={toggleMic}>
                     {isMicrophoneEnabled ? <Mic size={26} /> : <MicOff size={26} />}
@@ -251,22 +316,15 @@ function RoomStage({ call, onHangup, onRemoteLeft, onJoinTimeout, onPermissionNo
                     <VideoTrack trackRef={localVideo} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: facing === 'user' ? 'scaleX(-1)' : 'none' }} />
                 </div>
             )}
-            {!canPlayAudio && (
-                <button type="button" onClick={() => startAudio()} style={{
-                    position: 'absolute', zIndex: 5, left: '50%', transform: 'translateX(-50%)',
-                    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)',
-                    display: 'flex', alignItems: 'center', gap: 8, minHeight: 48, padding: '0 20px',
-                    borderRadius: 24, border: 'none', background: '#1877F2', color: 'white', fontSize: 16, fontWeight: 700,
-                    cursor: 'pointer', touchAction: 'manipulation',
-                }}><Volume2 size={20} /> Tap To Turn On Sound</button>
-            )}
-            <RoomAudioRenderer />
         </Shell>
     );
 }
 
 export default function CallScreen({ call, selfName, onHangup, onRemoteLeft, onConnectionLost, onFatal, onNotice }) {
     const handleJoinTimeout = useCallback(() => onFatal('They Did Not Join The Call'), [onFatal]);
+    const [minimized, setMinimized] = useState(false);
+    const minimize = useCallback(() => setMinimized(true), []);
+    const expand = useCallback(() => setMinimized(false), []);
     const [connection, setConnection] = useState({ token: null, url: null, error: null });
     const lostRef = useRef(false);
     const isVideo = call.callType === 'video';
@@ -324,6 +382,10 @@ export default function CallScreen({ call, selfName, onHangup, onRemoteLeft, onC
             <Shell
                 call={call}
                 status={statusText({ call, connection: 'connecting', remoteCount: 0, elapsed: 0, tokenError: connection.error })}
+                minimized={minimized}
+                onMinimize={minimize}
+                onExpand={expand}
+                onHangup={onHangup}
                 controls={<RoundButton label="End Call" danger onClick={onHangup}><PhoneOff size={28} /></RoundButton>}
             >
                 <PortraitStage call={call} pulse={call.phase === 'outgoing'} />
@@ -343,9 +405,12 @@ export default function CallScreen({ call, selfName, onHangup, onRemoteLeft, onC
             onDisconnected={handleDisconnected}
             onMediaDeviceFailure={handleMediaFailure}
             onError={error => console.warn('[CallScreen] room error:', error?.message || error)}
-            style={{ position: 'fixed', inset: 0, zIndex: 10050 }}
+            /* Minimized, the room's own box must not cover the page; its
+               fixed-position children (the bar, the audio) still render. */
+            style={minimized ? { position: 'fixed', top: 0, left: 0, width: 0, height: 0, overflow: 'visible', zIndex: 10050 } : { position: 'fixed', inset: 0, zIndex: 10050 }}
         >
-            <RoomStage call={call} onHangup={onHangup} onRemoteLeft={onRemoteLeft} onJoinTimeout={handleJoinTimeout} onPermissionNote={onNotice} />
+            <RoomStage call={call} onHangup={onHangup} onRemoteLeft={onRemoteLeft} onJoinTimeout={handleJoinTimeout} onPermissionNote={onNotice}
+                minimized={minimized} onMinimize={minimize} onExpand={expand} />
         </LiveKitRoom>
     );
 }

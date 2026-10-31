@@ -308,6 +308,7 @@ export default function PokerNearMeLocationPage({
         noindex={directoryCount === 0}
         geoRegion={geoRegion}
         geoPlacename={geoPlacename}
+        markdownUrl={canonical ? (canonical.startsWith('http') ? `${canonical}.md` : `https://smarter.poker${canonical}.md`) : undefined}
       />
       <Head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(structuredData) }} />

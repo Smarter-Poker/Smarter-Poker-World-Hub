@@ -92,7 +92,7 @@ test('every link it gives is ours, and every one of them is https', () => {
   const discovery = read('src/lib/poker-near-me/sitemapRoutes.js');
   for (const url of urls) {
     const p = new URL(url).pathname;
-    if (!p.startsWith('/hub') || p.endsWith('.xml')) continue;
+    if (!p.startsWith('/hub') || p.endsWith('.xml') || p.endsWith('.md')) continue;
     if (p.startsWith('/hub/club-arena')) continue; // served by the arena build
     const listed = sitemap.includes(`path: '${p}'`) || discovery.includes(`'${p}'`);
     // An example URL out of a generated family: the sitemap builds these

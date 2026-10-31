@@ -13,6 +13,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -748,59 +749,54 @@ export default function EquityCalculatorPage() {
   }, [canCalculate, hands, numPlayers, boardCards]);
 
   const pageUrl = 'https://smarter.poker/hub/training/equity-calculator';
-  const equityJsonLd = [
-    {
-      '@type': 'WebApplication',
-      '@id': `${pageUrl}#app`,
-      name: 'Poker Equity Calculator',
-      description: 'Free Texas Hold\'em and Omaha Monte Carlo equity calculator. Compare pre-flop and post-flop hand equities across multi-way pots.',
-      url: pageUrl,
-      applicationCategory: 'UtilitiesApplication',
-      operatingSystem: 'All',
-      browserRequirements: 'Requires JavaScript',
-      isAccessibleForFree: true,
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
+  const equityJsonLd = hubProductSchema({
+    path: '/hub/training/equity-calculator',
+    name: 'Smarter.Poker Monte Carlo Poker Equity Calculator',
+    description: 'Free Texas Hold\'em And Omaha Monte Carlo Equity Calculator. Compare Pre-Flop And Post-Flop Hand Equities Across Multi-Way Pots.',
+    applicationCategory: 'GameApplication',
+    applicationSubCategory: 'Poker',
+    trail: [
+      ['Hub', '/hub'],
+      ['GTO Training', '/hub/training'],
+      ['Equity Calculator', '/hub/training/equity-calculator'],
+    ],
+    faqs: [
+      {
+        question: 'What Is Poker Equity?',
+        answer: 'Poker Equity Represents Your Expected Share Of The Pot Based On Your Mathematical Probability Of Winning Or Tying At Showdown.',
       },
-    },
-    {
-      '@type': 'FAQPage',
-      '@id': `${pageUrl}#faq`,
-      mainEntity: [
+      {
+        question: 'How Does A Monte Carlo Equity Calculator Work?',
+        answer: 'A Monte Carlo Equity Calculator Simulates Thousands Of Random Unrevealed Community Board Runouts To Calculate Exact Win, Tie, And Loss Frequencies.',
+      },
+      {
+        question: 'How Many Players Can Be Compared Simultaneously?',
+        answer: 'This Tool Supports Comparing Equities For Up To 4 Active Players Simultaneously Pre-Flop, On The Flop, Or On The Turn.',
+      },
+    ],
+    howTo: {
+      name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',
+      description: 'Step-by-step instructions for comparing multi-way hole card equities across preflop, flop, and turn board textures.',
+      steps: [
         {
-          '@type': 'Question',
-          name: 'What Is Poker Equity?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'Poker equity represents your expected share of the pot based on your mathematical probability of winning or tying at showdown.',
-          },
+          name: 'Select Active Player Count Or Matchup Preset',
+          text: 'Choose between 2, 3, or 4 active players, or pick a classic preflop/postflop cooler preset such as AA vs KK or Set vs Flush Draw.',
         },
         {
-          '@type': 'Question',
-          name: 'How Does A Monte Carlo Equity Calculator Work?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'A Monte Carlo equity calculator simulates thousands of random unrevealed community board runouts to calculate exact win, tie, and loss frequencies.',
-          },
+          name: 'Assign Hole Cards To Each Player',
+          text: 'Click each player card slot and pick exact rank and suit combinations from the 52-card selector.',
         },
         {
-          '@type': 'Question',
-          name: 'How Many Players Can Be Compared Simultaneously?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'This tool supports comparing equities for up to 4 active players simultaneously pre-flop, on the flop, or on the turn.',
-          },
+          name: 'Configure Optional Flop Or Turn Board Cards',
+          text: 'Add 3 flop cards or 4 turn cards to evaluate postflop equity shifts, or leave the board empty for preflop all-in equity.',
+        },
+        {
+          name: 'Run Monte Carlo Equity Simulation',
+          text: 'Click Calculate Equity to run server-side Monte Carlo iterations and inspect exact Win %, Tie %, and total Pot Equity bars for every hand.',
         },
       ],
     },
-    {
-      '@type': 'SpeakableSpecification',
-      '@id': `${pageUrl}#speakable`,
-      cssSelector: ['.sp-equity-aeo-kernel', '.sp-equity-faq-section'],
-    },
-  ];
+  });
 
   return (
     <>

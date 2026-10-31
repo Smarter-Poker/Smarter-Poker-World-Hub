@@ -23,6 +23,23 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PokerIdentityMark from '../../src/components/poker-near-me/PokerIdentityMark';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
 import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
+import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
+import { faqSchema } from '../../src/lib/seo/hubPageSchema';
+
+const DAILY_TOURNAMENTS_FAQS = [
+    {
+        question: 'How Many Daily Poker Tournaments Are Tracked On Smarter.Poker?',
+        answer: 'Smarter.Poker Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across 324+ Verified Casino Poker Rooms And Licensed Cardrooms In North America.',
+    },
+    {
+        question: 'Can I Filter Daily Poker Tournaments By Day Of Week And Buy-In?',
+        answer: 'Yes. You Can Filter Daily Tournaments By Day Of The Week, State, GPS Distance, Buy-In Range, Game Variant (NLH, PLO, Mixed), And Guaranteed Prize Pool.',
+    },
+    {
+        question: 'Does Smarter.Poker Also Offer Free Online Daily Tournaments?',
+        answer: 'Yes. Smarter.Poker Hosts $2,000 In Free Online Poker Tournaments Every Day Plus Diamond Freerolls Every 3 Hours With Zero Entry Fees At Smarter.Poker/Freerolls.',
+    },
+];
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -402,6 +419,17 @@ export default function DailyTournaments() {
 
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(scheduleSchema) }} />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
+                    '@context': 'https://schema.org',
+                    ...datasetSchema({
+                        path: '/hub/daily-tournaments',
+                        name: 'Smarter.Poker Daily Live Poker Tournaments Directory Dataset',
+                        description: 'Recurring Weekly Live Poker Tournament Schedules Across 324+ North American Cardrooms Including Buy-Ins, Starting Stacks, Blind Levels, And Guarantees.',
+                        keywords: ['Daily Poker Tournaments', 'Live Poker Schedules', 'Casino Poker Tournaments', 'Guaranteed Poker Prize Pools'],
+                        variableMeasured: ['Tournament Buy-In', 'Guaranteed Prize Pool', 'Starting Chip Stack', 'Blind Level Duration'],
+                    }),
+                    ...faqSchema(DAILY_TOURNAMENTS_FAQS, '/hub/daily-tournaments'),
+                }) }} />
 
             </SEOHead>
 

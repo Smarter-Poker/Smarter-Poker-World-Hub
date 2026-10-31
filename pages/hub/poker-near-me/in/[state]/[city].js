@@ -9,10 +9,11 @@ import { firstThatFits } from '../../../../../src/lib/seo/titleFit';
 // a result cut it. The state name steps down to its code rather than the
 // city being lost.
 
-export async function getServerSideProps({ params, req, res }) {
+export async function getServerSideProps({ params, req, res, query }) {
   const state = resolveStateSlug(params?.state);
   if (!state) return { notFound: true };
-  const requestedCity = citySlugToTitle(params?.city);
+  const rawCitySlug = String(params?.city || '').replace(/\.md$/i, '');
+  const requestedCity = citySlugToTitle(rawCitySlug);
   if (!requestedCity) return { notFound: true };
 
   try {
@@ -20,8 +21,32 @@ export async function getServerSideProps({ params, req, res }) {
     if (!result.venues.length && !result.degraded) return { notFound: true };
     const canonicalCity = result.venues[0]?.city || requestedCity;
     const canonicalPath = `/hub/poker-near-me/in/${state.slug}/${cityTitleToSlug(canonicalCity)}`;
-    if (`/hub/poker-near-me/in/${params.state}/${params.city}` !== canonicalPath) {
+    if (`/hub/poker-near-me/in/${params.state}/${rawCitySlug}` !== canonicalPath) {
       return { redirect: { destination: canonicalPath, permanent: true } };
+    }
+    const acceptHeader = String(req?.headers?.accept || '');
+    const isMarkdownRequested =
+      acceptHeader.includes('text/markdown') ||
+      query?.format === 'md' ||
+      String(params?.city || '').endsWith('.md') ||
+      req?.url?.includes('format=md');
+    if (isMarkdownRequested) {
+      const { renderLocationDirectoryMarkdown } = await import('../../../../../src/lib/seo/markdownIngestion.mjs');
+      const mdContent = renderLocationDirectoryMarkdown({
+        title: `Poker Rooms In ${canonicalCity}, ${state.name}`,
+        description: `Find Casino Poker Rooms And Cardrooms In ${canonicalCity}, ${state.name}. Compare Venue Profiles, Schedules, Room Details, And Current Discovery Signals.`,
+        canonicalUrl: venueLocationCanonical(state.code, canonicalCity),
+        stateCode: state.code,
+        stateName: state.name,
+        city: canonicalCity,
+        venues: result.venues,
+        resultCount: result.venues.length,
+      });
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.write(mdContent);
+      res.end();
+      return { props: {} };
     }
     res.setHeader('Cache-Control', result.degraded ? 'no-store' : 'public, s-maxage=300, stale-while-revalidate=1800');
     return { props: { ...result, state, city: canonicalCity } };

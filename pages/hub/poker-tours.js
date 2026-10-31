@@ -14,7 +14,25 @@ import TourCard from '../../src/components/poker-series/TourCard';
 import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
+import { faqSchema } from '../../src/lib/seo/hubPageSchema';
+import { serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
 import { tourCanonical } from '../../src/lib/seo/tourPageSeo';
+
+const POKER_TOURS_FAQS = [
+    {
+        question: 'Which Major Poker Tours Are Tracked On Smarter.Poker?',
+        answer: 'Smarter.Poker Tracks The World Series Of Poker (WSOP), WSOP Circuit (WSOPC), World Poker Tour (WPT), Mid-States Poker Tour (MSPT), RunGood Poker Series (RGPS), PokerGO Tour (PGT), Triton, EPT, And Iconic Casino House Series.',
+    },
+    {
+        question: 'How Can I See Where A Traveling Poker Tour Is Stopping Next?',
+        answer: 'Each Tour Card Displays Its Current Live Stop Or Next Scheduled Venue Destination Along With Dates, Host Casino, City/State, And A Direct Link To The Full Series Schedule.',
+    },
+    {
+        question: 'Does The Poker Tours Directory Include An Interactive Stop Map?',
+        answer: 'Yes. The Directory Includes An Interactive Geographic Map Plotting Current And Upcoming Tour Stops Across North America.',
+    },
+];
 import { parseCalendarDate, parseStopDates, pokerCalendarStart } from '../../src/utils/tourGeoUtils';
 
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
@@ -764,6 +782,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                 <title>Poker Tours: Series And Circuits | Smarter.Poker</title>
                 <meta name="description" content="Browse all major poker tours including WSOP, WPT, MSPT, RGPS and more. Find upcoming series, tour stops, and schedules." />
                 <link rel="canonical" href="https://smarter.poker/hub/poker-tours" />
+                <link rel="alternate" type="text/markdown" title="Markdown" href="https://smarter.poker/hub/poker-tours.md" />
                 <meta property="og:title" content="Poker Tours Directory | Smarter.Poker" />
                 <meta property="og:description" content="Browse traveling poker tours, upcoming stops, and tournament circuits in one national directory." />
                 <meta property="og:url" content="https://smarter.poker/hub/poker-tours" />
@@ -783,6 +802,30 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             }
                         }))
                 })}} />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
+                    '@context': 'https://schema.org',
+                    ...datasetSchema({
+                        path: '/hub/poker-tours',
+                        name: 'Smarter.Poker Major Traveling Poker Tours & Circuits Dataset',
+                        description: 'National Directory Of Major Traveling Poker Tours, Circuit Stops, And Championship Festivals Including WSOP, WPT, MSPT, RGPS, And PokerGO Tour.',
+                        keywords: ['Poker Tours', 'WSOP Circuit', 'World Poker Tour', 'Mid-States Poker Tour', 'RunGood Poker Series'],
+                        variableMeasured: ['Tour Stop Dates', 'Host Venue Location', 'Main Event Buy-In', 'Series Schedule'],
+                    }),
+                    '@graph': [
+                        {
+                            '@type': 'CollectionPage',
+                            '@id': 'https://smarter.poker/hub/poker-tours#page',
+                            url: 'https://smarter.poker/hub/poker-tours',
+                            name: 'Poker Tours Directory | Smarter.Poker',
+                            description: 'Browse traveling poker tours, upcoming stops, and tournament circuits in one national directory.',
+                            speakable: {
+                                '@type': 'SpeakableSpecification',
+                                cssSelector: ['h1', 'p'],
+                            },
+                        },
+                        faqSchema(POKER_TOURS_FAQS, '/hub/poker-tours'),
+                    ],
+                }) }} />
 </Head>
 
             <div className="pnm-page pnm-map-directory">

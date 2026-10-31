@@ -63,6 +63,10 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/embeds.md';
     } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
+    } else if (pathname === '/hub/venues/[id]' || /^\/hub\/venues\/[^/]+$/.test(pathname)) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : undefined;
+    } else if (pathname === '/hub/series/[id]' || /^\/hub\/series\/[^/]+$/.test(pathname)) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : undefined;
     } else if (pathname === '/tools/icm-calculator' || pathname === '/hub/training/icm-calculator') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/icm-calculator.md';
     } else if (pathname === '/tools/preflop-ranges' || pathname === '/tools/preflop-ranges/index') {
@@ -99,6 +103,30 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/training/jarvis.md';
     } else if (pathname === '/hub/training/equity-calculator') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
+    } else if (pathname === '/hub/daily-tournaments') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/daily-tournaments.md';
+    } else if (pathname === '/hub/events-calendar') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/events-calendar.md';
+    } else if (pathname === '/hub/poker-tours') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-tours.md';
+    } else if (pathname === '/hub/poker-series') {
+      resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-series.md';
+    } else if (pathname === '/hub/poker-near-me/[pnmTab]') {
+      if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/venues') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me/venues.md';
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/daily-tournaments') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/daily-tournaments.md';
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/events-calendar') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/events-calendar.md';
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/poker-tours') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-tours.md';
+      } else if (cleanCanon === 'https://smarter.poker/hub/poker-near-me/poker-series') {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-series.md';
+      } else {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/poker-near-me.md';
+      }
+    } else if (pathname === '/hub/poker-near-me/in' || pathname.startsWith('/hub/poker-near-me/in/')) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     }
   }
 

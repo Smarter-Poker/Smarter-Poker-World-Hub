@@ -1440,6 +1440,22 @@ const nextConfig = {
           destination: '/hub/series/:id?format=md',
         },
         {
+          source: '/hub/tours/:code.md',
+          destination: '/hub/tours/:code?format=md',
+        },
+        {
+          source: '/hub/poker-near-me/in.md',
+          destination: '/hub/poker-near-me/in?format=md',
+        },
+        {
+          source: '/hub/poker-near-me/in/:state.md',
+          destination: '/hub/poker-near-me/in/:state?format=md',
+        },
+        {
+          source: '/hub/poker-near-me/in/:state/:city.md',
+          destination: '/hub/poker-near-me/in/:state/:city?format=md',
+        },
+        {
           source: '/tools/poker-odds-calculator.md',
           destination: '/tools/poker-odds-calculator?format=md',
         },
@@ -1574,6 +1590,42 @@ const nextConfig = {
         {
           source: '/hub/training/equity-calculator.md',
           destination: '/tools/poker-odds-calculator?format=md',
+        },
+        {
+          source: '/hub/daily-tournaments.md',
+          destination: '/api/discovery-markdown?slug=daily-tournaments',
+        },
+        {
+          source: '/hub/events-calendar.md',
+          destination: '/api/discovery-markdown?slug=events-calendar',
+        },
+        {
+          source: '/hub/poker-tours.md',
+          destination: '/api/discovery-markdown?slug=poker-tours',
+        },
+        {
+          source: '/hub/poker-series.md',
+          destination: '/api/discovery-markdown?slug=poker-series',
+        },
+        {
+          source: '/hub/poker-near-me/venues.md',
+          destination: '/api/discovery-markdown?slug=venues',
+        },
+        {
+          source: '/hub/poker-near-me/daily-tournaments.md',
+          destination: '/api/discovery-markdown?slug=daily-tournaments',
+        },
+        {
+          source: '/hub/poker-near-me/events-calendar.md',
+          destination: '/api/discovery-markdown?slug=events-calendar',
+        },
+        {
+          source: '/hub/poker-near-me/poker-tours.md',
+          destination: '/api/discovery-markdown?slug=poker-tours',
+        },
+        {
+          source: '/hub/poker-near-me/poker-series.md',
+          destination: '/api/discovery-markdown?slug=poker-series',
         },
         {
           source: '/.well-known/mcp.json',

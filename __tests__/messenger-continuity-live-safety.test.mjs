@@ -76,7 +76,7 @@ test('history proof rejects duplicate, unrelated, unlabeled or unbounded rows', 
 
 test('hosted continuity mode preserves defaults and reads only owning credential store', () => {
   const source = readFileSync('.github/workflows/e2e-tests.yml', 'utf8');
-  assert.match(source, /options: \[full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live\]/);
+  assert.match(source, /options: \[full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live\]/);
   assert.match(source, /default: full/);
   assert.match(source, /if: \$\{\{ inputs\.suite == 'full' \|\| inputs\.suite == '' \}\}/);
   assert.match(source, /run: node scripts\/ci\/messenger-continuity-live\.mjs/);
