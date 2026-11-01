@@ -13,6 +13,7 @@
 
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -207,6 +208,12 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
               </li>
             </ul>
           </section>
+
+          <AiPromptLauncher
+            title={`${category} Poker Strategy Lessons`}
+            canonicalUrl={`${SITE_URL}${path}`}
+            markdownUrl={`${SITE_URL}${path}.md`}
+          />
 
           <p style={styles.compliance}>
             Free To Play. 18+. No Real Money Gambling. Chips And Diamonds Have No Cash Value.

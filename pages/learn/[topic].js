@@ -25,6 +25,7 @@
 
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import { firstThatFits } from '../../src/lib/seo/titleFit.js';
 import {
   LEARN_PATH,
@@ -334,6 +335,12 @@ export default function LessonPage({ lesson, related, glossary, cta }) {
               </li>
             </ul>
           </section>
+
+          <AiPromptLauncher
+            title={lesson.title}
+            canonicalUrl={`${SITE_URL}${lessonPath(lesson.slug)}`}
+            markdownUrl={`${SITE_URL}${lessonPath(lesson.slug)}.md`}
+          />
 
           <p style={styles.back}>
             <Link href={LEARN_PATH} style={styles.inlineLink}>

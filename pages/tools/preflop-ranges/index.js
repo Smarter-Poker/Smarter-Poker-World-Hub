@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
 import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
@@ -615,6 +616,12 @@ export default function PreflopRangeMatrixHub({
               </Link>
             </div>
           </div>
+
+          <AiPromptLauncher
+            title={`GTO Preflop Range Matrix: ${posData.name} (${posData.abbrev})`}
+            canonicalUrl={`https://smarter.poker${canonicalPath}`}
+            markdownUrl={`https://smarter.poker${markdownPath}`}
+          />
 
         </div>
       </div>

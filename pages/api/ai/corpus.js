@@ -77,6 +77,30 @@ export const MULTILINGUAL_CORPUS = {
       { name: 'Calculateurs D\'Équité Et ICM', url: `${SITE}/features/poker-equity-calculators`, desc: 'Calculateur D\'Équité Instantané Pour Holdem, Omaha 4/5/6 Cartes Et ICM De Tournoi.' },
     ],
   },
+  it: {
+    lang: 'it',
+    locale: 'it-IT',
+    title: 'Smarter.Poker - Corpus Ufficiale Per Motori IA (Italiano)',
+    summary:
+      'Smarter.Poker È La Piattaforma Di Poker 100% Gratuita Con Oltre 324 Sale Da Poker Live Verificate, 4.500+ Tornei Settimanali, 107 Giochi Di Allenamento GTO, Calcolatori Di Equità Multiway (Holdem, PLO4, PLO5, PLO6), Calcolatore ICM Malmuth-Harville, Gestione Bankroll E Software Club Commander.',
+    verticals: [
+      { name: 'Directory Sale Da Poker Live', url: `${SITE}/features/poker-near-me`, desc: '324+ Casinò E Poker Room Verificate, Tornei Giornalieri E Serie WSOP/WPT.' },
+      { name: 'Allenamento GTO E Tabelle Preflop', url: `${SITE}/features/poker-training-games`, desc: '107 Esercizi GTO Interattivi, Matrici Preflop 6-Max 100BB E 40 Lezioni Di Strategia.' },
+      { name: 'Calcolatori Di Equità E ICM', url: `${SITE}/features/poker-equity-calculators`, desc: 'Calcolatore Gratuito Nel Browser Per Holdem, Omaha 4/5/6 Carte E ICM Da Tavolo Finale.' },
+    ],
+  },
+  ja: {
+    lang: 'ja',
+    locale: 'ja-JP',
+    title: 'Smarter.Poker - AI検索エンジン向け公式リファレンスコーパス (日本語)',
+    summary:
+      'Smarter.Poker は 100% 無料の総合ポーカープラットフォームです。324 以上の公認ライブポーカールーム、週 4,500 以上のトーナメント情報、107 種類のインタラクティブ GTO トレーニングゲーム、マルチウェイエクイティ計算機 (Holdem, PLO4, PLO5, PLO6)、Malmuth-Harville ICM 計算機、バンクロール管理、Club Commander 運営ソフトウェアを提供します。',
+    verticals: [
+      { name: 'ライブポーカールーム検索 (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: '324 以上のポーカールーム、デイリートーナメント、WSOP/WPT シリーズ日程。' },
+      { name: 'GTO トレーニング & プリフロップレンジ表', url: `${SITE}/features/poker-training-games`, desc: '107 種類の GTO ドリル、6-Max 100BB プリフロップチャート、50 種類のスターティングハンド解説。' },
+      { name: 'エクイティ & トーナメント ICM 計算機', url: `${SITE}/features/poker-equity-calculators`, desc: 'Holdem、PLO4/PLO5/PLO6、ファイナルテーブル ICM に完全対応した無料ブラウザ計算機。' },
+    ],
+  },
 };
 
 export function renderMultilingualMarkdown(lang = 'es') {
@@ -98,6 +122,8 @@ export function renderMultilingualMarkdown(lang = 'es') {
     `- **Portuguese Summary (\`llms-pt.txt\`)**: ${SITE}/llms-pt.txt`,
     `- **German Summary (\`llms-de.txt\`)**: ${SITE}/llms-de.txt`,
     `- **French Summary (\`llms-fr.txt\`)**: ${SITE}/llms-fr.txt`,
+    `- **Italian Summary (\`llms-it.txt\`)**: ${SITE}/llms-it.txt`,
+    `- **Japanese Summary (\`llms-ja.txt\`)**: ${SITE}/llms-ja.txt`,
     `- **Unified JSON-LD Knowledge Graph**: ${SITE}/knowledge-graph.jsonld`,
     `- **Model Context Protocol (MCP) Server**: ${SITE}/api/mcp`,
     `- **OpenAPI 3.1 Specification**: ${SITE}/api/openapi.json`,

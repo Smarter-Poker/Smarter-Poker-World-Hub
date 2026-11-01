@@ -19,6 +19,7 @@
 
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import { firstThatFits } from '../../src/lib/seo/titleFit.js';
 import {
   GLOSSARY_TERMS,
@@ -220,6 +221,12 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
               </ul>
             </>
           )}
+
+          <AiPromptLauncher
+            title={term.term}
+            canonicalUrl={url}
+            markdownUrl={`${url}.md`}
+          />
 
           <p style={styles.back}>
             <Link href={GLOSSARY_PATH} style={styles.inlineLink}>

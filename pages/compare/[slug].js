@@ -19,6 +19,7 @@
 
 import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import { COMPARE_CSS } from '../../src/components/compare/CompareStyles';
 import {
   CHECKED_LABEL,
@@ -214,6 +215,12 @@ export default function ComparePage({ slug }) {
               </li>
             ))}
           </ol>
+
+          <AiPromptLauncher
+            title={page.h1}
+            canonicalUrl={`https://smarter.poker${comparePath(page.slug)}`}
+            markdownUrl={`https://smarter.poker${comparePath(page.slug)}.md`}
+          />
 
           <p className="cmp-compliance">Free To Play. 18+. Diamonds And Chips Have No Cash Value.</p>
         </article>

@@ -1,7 +1,7 @@
 /**
  * Smarter.Poker Starting Hand Encyclopedia Corpus (/learn/hands & /learn/hands/[hand])
  * ====================================================================================
- * Twenty canonical Texas Hold'em starting hand guides with exact combinatoric data,
+ * Fifty canonical Texas Hold'em starting hand guides with exact combinatoric data,
  * preflop percentile rankings, 6-Max 100BB GTO opening frequencies by position,
  * 3-bet response frequencies, head-to-head equity matchups, and postflop playbooks.
  *
@@ -893,6 +893,226 @@ export const STARTING_HANDS = [
       { villain: 'KK (Pocket Kings)', heroEquity: '22.4%', villainEquity: '77.2%', tie: '0.4%' },
       { villain: 'AKo (Ace-King Offsuit)', heroEquity: '40.8%', villainEquity: '58.8%', tie: '0.4%' },
       { villain: '54s (Five-Four Suited)', heroEquity: '53.0%', villainEquity: '42.4%', tie: '4.6%' },
+    ],
+  },
+  {
+    slug: 'ace-eight-suited',
+    code: 'A8s',
+    name: 'Ace-Eight Suited',
+    nickname: 'Dead Man Hand Suited',
+    category: 'Suited Ace',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '23 Of 169',
+    vsRandomEquity: '60.9%',
+    summary:
+      'Ace-Eight Suited (A8s) Is A Middle Suited Ace (60.9% Equity Vs. Random) That Opens Profitably From Hijack Through Small Blind And Realizes Strong Nut-Flush Equity Across Multiway And Heads-Up Pots.',
+    rfiByPosition: { UTG: '22% Mixed Open', HJ: '100% Open Raise', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call In Position Against Cutoff And Button 3-Bets Or Mix As A Blocker 4-Bet Bluff.',
+    postflopPlaybook:
+      'Play Pot-Controlled One-Street Or Two-Street Value When Flopping Top Pair Weak Kicker, And Barrel Aggressively When Turning Or Flopping Nut Flush Draws.',
+    matchups: [
+      { villain: '88 (Pocket Eights)', heroEquity: '32.7%', villainEquity: '66.6%', tie: '0.7%' },
+      { villain: 'KQs (King-Queen Suited)', heroEquity: '56.1%', villainEquity: '43.4%', tie: '0.5%' },
+      { villain: 'A7s (Ace-Seven Suited)', heroEquity: '67.4%', villainEquity: '24.5%', tie: '8.1%' },
+    ],
+  },
+  {
+    slug: 'ace-seven-suited',
+    code: 'A7s',
+    name: 'Ace-Seven Suited',
+    nickname: 'Lucky Seven Ace Suited',
+    category: 'Suited Ace',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '26 Of 169',
+    vsRandomEquity: '59.9%',
+    summary:
+      'Ace-Seven Suited (A7s) Is A Flexible Suited Ace (59.9% Equity Vs. Random) That Combines Top-Of-Deck Ace Blockers With Nut Flush Draw Potential And Backdoor Straight Connectivity Across 6-Max Ranges.',
+    rfiByPosition: { UTG: '18% Mixed Open', HJ: '85% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Defend In Position Versus Late-Position 3-Bets And Fold Against Tight Early-Position 3-Bet Ranges.',
+    postflopPlaybook:
+      'Check Back Ace-High Flops In Position To Prevent Self-Isolation Against Stronger Aces, While Semibluffing Relentlessly With Four-Flush Boards.',
+    matchups: [
+      { villain: 'KK (Pocket Kings)', heroEquity: '31.9%', villainEquity: '67.6%', tie: '0.5%' },
+      { villain: 'QJs (Queen-Jack Suited)', heroEquity: '57.6%', villainEquity: '41.9%', tie: '0.5%' },
+      { villain: '77 (Pocket Sevens)', heroEquity: '32.5%', villainEquity: '66.8%', tie: '0.7%' },
+    ],
+  },
+  {
+    slug: 'ace-six-suited',
+    code: 'A6s',
+    name: 'Ace-Six Suited',
+    nickname: 'Mile High Ace Suited',
+    category: 'Suited Ace',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '30 Of 169',
+    vsRandomEquity: '58.9%',
+    summary:
+      'Ace-Six Suited (A6s) Is The Bridge Between Middle And Wheel Suited Aces (58.9% Equity Vs. Random), Opening Standard From Cutoff, Button, And Small Blind While Mixing From Early Seats.',
+    rfiByPosition: { UTG: '12% Mixed Open', HJ: '65% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Fold Out Of Position Against Linear 3-Bets; Mix Call And Polarized 4-Bet Bluffs In Late Position.',
+    postflopPlaybook:
+      'Focus On Realizing Nut Flush Equity And Picking Up Low-Board Backdoor Straight Draws On 5-4-X And 7-5-X Textures.',
+    matchups: [
+      { villain: 'AKs (Ace-King Suited)', heroEquity: '25.8%', villainEquity: '70.3%', tie: '3.9%' },
+      { villain: 'JTs (Jack-Ten Suited)', heroEquity: '56.4%', villainEquity: '43.1%', tie: '0.5%' },
+      { villain: '55 (Pocket Fives)', heroEquity: '46.7%', villainEquity: '52.8%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'ace-ten-offsuit',
+    code: 'ATo',
+    name: 'Ace-Ten Offsuit',
+    nickname: 'Johnny Moss Offsuit',
+    category: 'Offsuit Broadway',
+    combinations: 12,
+    probability: '0.90% (110 To 1 Against)',
+    preflopRank: '27 Of 169',
+    vsRandomEquity: '63.5%',
+    summary:
+      'Ace-Ten Offsuit (ATo) Is A High-Card Offsuit Broadway Holding (63.5% Equity Vs. Random Across 12 Combinations) That Dominates Late-Position Stealing Ranges And Short-Stack Push-Fold Spots.',
+    rfiByPosition: { UTG: '0% Fold', HJ: '58% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Fold Against Early And Middle Position 3-Bets; Mix Call Or 4-Bet Bluff Only In Wide Button Vs. Blind Battles.',
+    postflopPlaybook:
+      'Extract Thin Value Against Worse One-Pair Hands In Late-Position Pots While Avoiding Three-Street Stacks Off On Single-Pair Ace Boards.',
+    matchups: [
+      { villain: 'A9o (Ace-Nine Offsuit)', heroEquity: '72.4%', villainEquity: '21.3%', tie: '6.3%' },
+      { villain: 'KQo (King-Queen Offsuit)', heroEquity: '58.4%', villainEquity: '41.0%', tie: '0.6%' },
+      { villain: '99 (Pocket Nines)', heroEquity: '43.1%', villainEquity: '56.5%', tie: '0.4%' },
+    ],
+  },
+  {
+    slug: 'king-jack-offsuit',
+    code: 'KJo',
+    name: 'King-Jack Offsuit',
+    nickname: 'Kojak Offsuit',
+    category: 'Offsuit Broadway',
+    combinations: 12,
+    probability: '0.90% (110 To 1 Against)',
+    preflopRank: '31 Of 169',
+    vsRandomEquity: '60.4%',
+    summary:
+      'King-Jack Offsuit (KJo) Is A Staple Late-Position Offsuit Broadway Hand (60.4% Equity Vs. Random) That Opens Pure From Cutoff, Button, And Small Blind But Requires Discipline Against 3-Bets.',
+    rfiByPosition: { UTG: '0% Fold', HJ: '45% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Primarily Fold Facing 3-Bets Due To Reverse Implied Odds Against AK, AQ, AJ, And KQ.',
+    postflopPlaybook:
+      'Bet For Value On King-High And Jack-High Textures In Single-Raised Pots, And Use Broadway Blockers To Bluff River Runouts When Draws Miss.',
+    matchups: [
+      { villain: 'QJo (Queen-Jack Offsuit)', heroEquity: '73.1%', villainEquity: '24.1%', tie: '2.8%' },
+      { villain: 'A8s (Ace-Eight Suited)', heroEquity: '41.8%', villainEquity: '57.7%', tie: '0.5%' },
+      { villain: '88 (Pocket Eights)', heroEquity: '45.0%', villainEquity: '54.5%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'queen-jack-offsuit',
+    code: 'QJo',
+    name: 'Queen-Jack Offsuit',
+    nickname: 'Maverick Offsuit',
+    category: 'Offsuit Broadway',
+    combinations: 12,
+    probability: '0.90% (110 To 1 Against)',
+    preflopRank: '35 Of 169',
+    vsRandomEquity: '58.2%',
+    summary:
+      'Queen-Jack Offsuit (QJo) Is A Connected Offsuit Broadway Hand (58.2% Equity Vs. Random) That Flops Frequent Open-Ended Straight Draws And Top Pairs In Late-Position Steal Scenarios.',
+    rfiByPosition: { UTG: '0% Fold', HJ: '22% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Fold Facing 3-Bets Out Of Position And Against Tight Opponents; Defend Selectively In Big Blind Single-Raised Pots.',
+    postflopPlaybook:
+      'Play Straight Draws Aggressively On Ten-Nine-X And King-Ten-X Boards While Pot-Controlling Vulnerable Top Pair Jack-Kicker Hands.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '35.8%', villainEquity: '63.7%', tie: '0.5%' },
+      { villain: 'JTo (Jack-Ten Offsuit)', heroEquity: '71.8%', villainEquity: '25.0%', tie: '3.2%' },
+      { villain: '77 (Pocket Sevens)', heroEquity: '45.6%', villainEquity: '53.9%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'jack-ten-offsuit',
+    code: 'JTo',
+    name: 'Jack-Ten Offsuit',
+    nickname: 'Dime Store Broadway',
+    category: 'Offsuit Broadway',
+    combinations: 12,
+    probability: '0.90% (110 To 1 Against)',
+    preflopRank: '39 Of 169',
+    vsRandomEquity: '55.4%',
+    summary:
+      'Jack-Ten Offsuit (JTo) Boasts The Highest Straight Connectivity Of Any Offsuit Hand (55.4% Equity Vs. Random), Making Four Different Nut Straights Across 8-9-Q, 9-Q-K, And Q-K-A Runouts.',
+    rfiByPosition: { UTG: '0% Fold', HJ: '10% Mixed Open', CO: '88% Mixed Open', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Fold To 3-Bets Outside Of Deep-Stacked Button Vs. Blind Configurations.',
+    postflopPlaybook:
+      'Prioritize High-Equity Straight Draws Over Weak One-Pair Showdown Value, And Leverage Nut Straight Advantage On Queen-Nine-Eight Textures.',
+    matchups: [
+      { villain: 'AA (Pocket Aces)', heroEquity: '16.5%', villainEquity: '83.0%', tie: '0.5%' },
+      { villain: 'AKs (Ace-King Suited)', heroEquity: '36.6%', villainEquity: '62.9%', tie: '0.5%' },
+      { villain: '66 (Pocket Sixes)', heroEquity: '46.3%', villainEquity: '53.2%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'king-nine-suited',
+    code: 'K9s',
+    name: 'King-Nine Suited',
+    nickname: 'Canine Suited',
+    category: 'Suited Gapper',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '29 Of 169',
+    vsRandomEquity: '59.5%',
+    summary:
+      'King-Nine Suited (K9s) Is A High-Card Suited One-Gapper (59.5% Equity Vs. Random) That Opens Standard From Hijack Through Small Blind And Defends Profitably In The Big Blind.',
+    rfiByPosition: { UTG: '12% Mixed Open', HJ: '78% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call In Position Against Wide Late-Position 3-Bets And Fold Against Early-Position 3-Bets.',
+    postflopPlaybook:
+      'Capitalize On Second-Nut Flush Draws And Jack-Ten-X Straight Draws While Checking Back Medium-Strength Top Pairs On Wet Boards.',
+    matchups: [
+      { villain: 'A9o (Ace-Nine Offsuit)', heroEquity: '31.2%', villainEquity: '65.3%', tie: '3.5%' },
+      { villain: 'Q9s (Queen-Nine Suited)', heroEquity: '70.3%', villainEquity: '26.7%', tie: '3.0%' },
+      { villain: '55 (Pocket Fives)', heroEquity: '47.9%', villainEquity: '51.6%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'queen-nine-suited',
+    code: 'Q9s',
+    name: 'Queen-Nine Suited',
+    nickname: 'Quinine Suited',
+    category: 'Suited Gapper',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '33 Of 169',
+    vsRandomEquity: '57.9%',
+    summary:
+      'Queen-Nine Suited (Q9s) Is A Versatile Suited One-Gapper (57.9% Equity Vs. Random) That Connects Strongly With Middle-And-High Flops (J-T-8, K-J-T) And Realizes Flush Equity Efficiently.',
+    rfiByPosition: { UTG: '0% Fold', HJ: '55% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call In Position At 100BB Against Aggressive Button And Blind 3-Bettors.',
+    postflopPlaybook:
+      'Semi-Bluff Combo Draws And Double-Gutshots Aggressively While Using Queen Blockers To Catch Bluffs On Brick Rivers.',
+    matchups: [
+      { villain: 'AKo (Ace-King Offsuit)', heroEquity: '38.4%', villainEquity: '61.2%', tie: '0.4%' },
+      { villain: 'J9s (Jack-Nine Suited)', heroEquity: '69.2%', villainEquity: '27.8%', tie: '3.0%' },
+      { villain: '66 (Pocket Sixes)', heroEquity: '47.1%', villainEquity: '52.4%', tie: '0.5%' },
+    ],
+  },
+  {
+    slug: 'jack-nine-suited',
+    code: 'J9s',
+    name: 'Jack-Nine Suited',
+    nickname: 'TJ Cloutier Suited',
+    category: 'Suited Gapper',
+    combinations: 4,
+    probability: '0.30% (331 To 1 Against)',
+    preflopRank: '34 Of 169',
+    vsRandomEquity: '56.4%',
+    summary:
+      'Jack-Nine Suited (J9s) Is One Of The Highest-Realization Suited One-Gappers In Hold\'em (56.4% Equity Vs. Random), Famous For Flopping Disguised Straights On Q-T-8, T-8-7, And K-Q-T Boards.',
+    rfiByPosition: { UTG: '0% Fold', HJ: '52% Mixed Open', CO: '100% Open Raise', BTN: '100% Open Raise', SB: '100% Open Raise' },
+    vs3Bet: 'Call In Position At 100BB Stack Depth Because Of Uncapped Straight And Flush Potential.',
+    postflopPlaybook:
+      'Apply Maximum Pressure When Flopping Open-Ended Or Double-Belly-Buster Straight Draws Paired With Backdoor Or Live Flush Equity.',
+    matchups: [
+      { villain: 'AA (Pocket Aces)', heroEquity: '20.4%', villainEquity: '79.2%', tie: '0.4%' },
+      { villain: 'T9s (Ten-Nine Suited)', heroEquity: '68.1%', villainEquity: '28.5%', tie: '3.4%' },
+      { villain: '77 (Pocket Sevens)', heroEquity: '47.6%', villainEquity: '51.9%', tie: '0.5%' },
     ],
   },
 ];
