@@ -68,7 +68,7 @@ async function main() {
         const { chromium, devices } = await import('playwright');
 
         // ── 1. Turn On Notifications from Club Arena's menu ──────────────
-        {
+        try {
             const profile = mkdtempSync(`${tmpdir()}/sp-ca-push-`);
             const ctx = await chromium.launchPersistentContext(profile, { channel: 'chrome', headless: process.env.NOTIFY_HEADED_PUSH !== '1', args: FAKE_MEDIA, ignoreDefaultArgs: ['--disable-background-networking'], ...devices['Pixel 7'] });
             browsers.push(ctx);
@@ -92,6 +92,11 @@ async function main() {
                 check('Club Arena menu hides the row once the device is enrolled', (await row.count()) === 0, null);
             }
             await ctx.close();
+        } catch (error) {
+            const page = browsers.at(-1)?.pages?.()[0];
+            const where = page ? { url: page.url(), text: (await page.evaluate(() => (document.body?.innerText || '').slice(0, 400)).catch(() => null)) } : null;
+            if (page) await page.screenshot({ path: `${RESULT_DIR}/menu-failure.png` }).catch(() => {});
+            check('Club Arena menu step completed', false, { error: String(error?.message || error).split('\n')[0].slice(0, 200), where });
         }
 
         // ── 2. Call while observing a live table ─────────────────────────
@@ -111,6 +116,8 @@ async function main() {
         arena.setDefaultTimeout(20000);
         await arena.goto(`${CA}/table/${table.id}`, { waitUntil: 'domcontentloaded' });
         await until(async () => (await liveTables(arena)) >= 1, { timeout: 60000 }).catch(() => {});
+        report.tablePage = { url: arena.url() };
+        await arena.screenshot({ path: `${RESULT_DIR}/arena-table.png` }).catch(() => {});
         const fp1 = await tableFingerprint(arena);
         await sleep(15000);
         const fp2 = await tableFingerprint(arena);
