@@ -134,7 +134,13 @@ async function main() {
         report.health = await assertLiveRevision();
         const build = await (await fetch(`${CA}/build-info.json`, { cache: 'no-store' })).json();
         report.clubArena = build;
-        assert.equal(build.ca_sha, process.env.CLUB_ARENA_EXPECTED_SHA, 'Club Arena revision differs from the expected published revision');
+        // Club Arena publishes many times an hour, so the published revision is
+        // accepted when it is the expected one or a descendant of it.
+        if (build.ca_sha !== process.env.CLUB_ARENA_EXPECTED_SHA) {
+            const cmp = await (await fetch(`https://api.github.com/repos/Smarter-Software-PIQ/Smarter-Poker-Club-Arena/compare/${process.env.CLUB_ARENA_EXPECTED_SHA}...${build.ca_sha}`, { headers: { accept: 'application/vnd.github+json' } })).json().catch(() => ({}));
+            report.clubArenaContainsExpected = cmp.status || null;
+            assert.ok(['ahead', 'identical'].includes(cmp.status), `Published Club Arena ${build.ca_sha} does not contain ${process.env.CLUB_ARENA_EXPECTED_SHA} (${cmp.status || cmp.message || 'unknown'})`);
+        }
 
         const C = await createProbeUser(sb, created, 'cac', 'Arena Notifications Verification');
         const session = C.session;
