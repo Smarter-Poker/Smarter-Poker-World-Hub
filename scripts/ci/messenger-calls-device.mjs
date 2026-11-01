@@ -2,33 +2,40 @@
 /*
  * Physical-device call verification conductor (suite messenger-calls-device).
  *
- * The designated test account is signed in by its owner on a physical iPhone
- * (Safari, added to the Home Screen, notifications allowed). This script never
- * signs a device in as that account and never sees its password on a device:
- * it only resolves the account's id. It creates ONE throwaway partner
+ * The person holding the device signs in, on that device, to an ORDINARY
+ * account they created and control (role user or player, created in the last
+ * 30 days, not a horse). The script is given only that account's email
+ * (DEVICE_USER_EMAIL), resolves its id, and never signs in as it or sees its
+ * password. It refuses any elevated account, including the god-mode service
+ * identity: nothing in this test needs more than a member's permissions.
+ * DEVICE_KIND (iphone or ipad) keeps each device's evidence separate; iPadOS
+ * Safari reports a Mac user agent, so the kind is stated, not guessed. It creates ONE throwaway partner
  * ("Call Verification Partner", example.com, hard-deleted at the end), drives
  * that partner in headless Chromium with a synthetic camera and microphone,
  * and posts each next step into the shared chat so the person holding the
  * phone can follow along.
  *
  * Evidence is kept in three separate tiers, never merged:
- *   dispatch  - push_outbox row for the call is `sent` and the iPhone
- *               subscription's last_used_at advanced (our server handed the
- *               push to Apple's push service);
- *   delivery  - that subscription's last_receipt_at advanced (the iPhone's
- *               service worker displayed the banner and reported it);
- *   accept    - the iPhone joined the call room (the partner receives its
- *               camera and microphone).
+ *   dispatch  - push_outbox row for the call is `sent` and the device
+ *               subscription's last_used_at advanced (Apple's push service
+ *               accepted it from our server);
+ *   delivery  - that subscription's last_receipt_at advanced (the device's
+ *               service worker handled the push and reported it);
+ *   accept    - the device joined the call room (the partner receives its
+ *               camera and microphone);
+ *   banner    - the person's own report of whether the call banner appeared
+ *               on the device screen. Only this records a visible banner:
+ *               dispatch, a worker receipt and joining the room do not.
  *
  * Cleanup removes the partner, the thread, its call rows and notifications,
  * the push_outbox rows for these calls, and ONLY the Apple push subscription
- * the test account created for this test (created at or after DEVICE_SINCE).
+ * the account created for this test (created at or after DEVICE_SINCE).
  */
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import {
-    APP_ORIGIN, sleep, until, clients, assertLiveRevision, signInTestAccount, createProbeUser,
+    APP_ORIGIN, sleep, until, clients, assertLiveRevision, createProbeUser,
     createConversation, cleanup, cleanupFailed, audioPeak, videos, remoteFrameSignature,
     signatureDistance, callOpen, incomingOpen, openDevice,
 } from './messenger-calls-lib.mjs';
@@ -39,12 +46,32 @@ const RECEIPT_PREFIX = '[CALL_RECEIPT]';
 
 export const PROMPTS = {
     hello: 'Call verification partner here. Open the menu and tap Turn On Notifications (then Allow), come back to this chat and reply READY.',
-    leave: 'Thanks. Now leave the app: go to the Home Screen or lock the phone. I will video-call in 30 seconds. When the banner appears, tap it, then tap Accept.',
-    noPush: 'No push subscription from this phone was found, so the push step is skipped. Keep this chat open and reply CALL to be called now.',
+    leave: 'Thanks. Now leave the app: go to the Home Screen or lock the screen. I will video-call in 30 seconds. If a call banner appears, tap it, then tap Accept.',
+    banner: 'Did a call banner appear on the Home Screen or Lock Screen when I called? Reply BANNER YES or BANNER NO.',
+    noPush: 'No push subscription from this device was found, so the push step is skipped. Keep this chat open and reply CALL to be called now.',
     retry: 'The call was not answered. Open this chat and reply CALL to be called again while the app is open.',
     callBack: 'Last step: tap the video camera icon at the top of this chat to call me. I will answer and hang up after about 20 seconds.',
     done: 'Verification finished. Thank you. You can close the app.',
 };
+
+export const DEVICE_KINDS = { iphone: 'iPhone', ipad: 'iPad' };
+const ELEVATED = new Set(['god', 'admin', 'venue_owner']);
+
+/** Only an ordinary, recently created account the person controls may be the callee. */
+export function deviceAccountRefusal(profile, now = Date.now()) {
+    if (!profile) return 'No account with that email';
+    if (ELEVATED.has(profile.role) || !['user', 'player'].includes(profile.role)) return `Refused: role ${profile.role} is elevated; use an ordinary account you created for this test`;
+    if (profile.is_horse) return 'Refused: a horse account cannot hold a device';
+    if (/@call-probe\.example\.com$/i.test(profile.email || '')) return 'Refused: a probe account cannot hold a device';
+    if (!profile.created_at || now - new Date(profile.created_at).getTime() > 30 * 86400000) return 'Refused: use an account created for this test in the last 30 days';
+    return null;
+}
+
+/** Parse the person's own report of the banner. */
+export function bannerAnswer(text) {
+    const m = /\bbanner\s+(yes|no)\b/i.exec(text || '');
+    return m ? m[1].toLowerCase() : null;
+}
 
 export function iosVersion(userAgent) {
     const match = /(?:iPhone|CPU) OS (\d+)_(\d+)(?:_(\d+))?/.exec(userAgent || '');
@@ -101,16 +128,18 @@ async function removeStalePartners(admin) {
 }
 
 async function main() {
-    for (const name of ['TEST_USER_EMAIL', 'TEST_USER_PASSWORD', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'MESSENGER_EXPECTED_SHA', 'DEVICE_SINCE']) assert.ok(process.env[name]?.trim(), `${name} is required`);
+    for (const name of ['DEVICE_USER_EMAIL', 'DEVICE_KIND', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'MESSENGER_EXPECTED_SHA', 'DEVICE_SINCE']) assert.ok(process.env[name]?.trim(), `${name} is required`);
+    const D = DEVICE_KINDS[process.env.DEVICE_KIND.trim().toLowerCase()];
+    assert.ok(D, 'DEVICE_KIND must be iphone or ipad');
     const since = new Date(process.env.DEVICE_SINCE);
     assert.ok(!Number.isNaN(since.getTime()) && since < new Date(), 'DEVICE_SINCE must be a past ISO time');
     const waitMinutes = Math.min(Math.max(Number(process.env.DEVICE_WAIT_MINUTES) || 30, 5), 300);
     mkdirSync(RESULT_DIR, { recursive: true });
 
-    const report = { suite: 'messenger-calls-device', startedAt: new Date().toISOString(), since: since.toISOString(), checks: [], device: null, push: null, cleanup: null };
+    const report = { suite: 'messenger-calls-device', deviceKind: D, startedAt: new Date().toISOString(), since: since.toISOString(), checks: [], device: null, push: null, cleanup: null };
     const check = (name, ok, evidence) => { report.checks.push({ name, ok: Boolean(ok), evidence }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); };
     const created = { users: [], conversations: [] };
-    const iphoneSubscriptions = new Set();
+    const deviceSubscriptions = new Set();
     let othersBefore = [];
     const outboxIds = new Set();
     const sb = await clients();
@@ -126,13 +155,13 @@ async function main() {
         await chrome?.close().catch(() => {});
         report.cleanup = await cleanup(admin, created, async () => {
             const result = {};
-            if (outboxIds.size) result.iphonePushOutbox = (await admin.from('push_outbox').delete().in('id', [...outboxIds])).error?.message || 'ok';
+            if (outboxIds.size) result.devicePushOutbox = (await admin.from('push_outbox').delete().in('id', [...outboxIds])).error?.message || 'ok';
             if (created.users.length) result.testAccountCallNotifications = (await admin.from('notifications').delete().in('actor_id', created.users)).error?.message || 'ok';
-            if (iphoneSubscriptions.size) {
-                const ids = [...iphoneSubscriptions];
+            if (deviceSubscriptions.size) {
+                const ids = [...deviceSubscriptions];
                 const { error } = await admin.from('push_subscriptions').delete().in('id', ids);
                 const { data: left } = await admin.from('push_subscriptions').select('id').in('id', ids);
-                result.iphoneSubscription = !error && !(left || []).length ? 'ok' : `NOT REMOVED: ${error?.message || 'still present'}`;
+                result.deviceSubscription = !error && !(left || []).length ? 'ok' : `NOT REMOVED: ${error?.message || 'still present'}`;
             }
             // Put back any other account's subscription the test switched off.
             // Only rows on the test enrolment's own endpoint: those are the ones
@@ -163,7 +192,12 @@ async function main() {
     process.once('SIGTERM', onSignal);
     try {
         report.health = await assertLiveRevision();
-        const A = (await signInTestAccount(sb.anon)).user.id;
+        const email = process.env.DEVICE_USER_EMAIL.trim().toLowerCase();
+        const { data: profile } = await admin.from('profiles').select('id, role, is_horse, email, created_at').ilike('email', email).maybeSingle();
+        const refusal = deviceAccountRefusal(profile);
+        if (refusal) throw new Error(refusal);
+        const A = profile.id;
+        report.account = { role: profile.role, createdAt: profile.created_at };
         // Every other account's live Apple subscription, so the test can prove
         // it changed none of them (one account per endpoint: if a second Home
         // Screen icon shared the device endpoint, enrolling the test account
@@ -179,10 +213,10 @@ async function main() {
         };
         const messagesFromA = async after => (await admin.from('social_messages').select('content, created_at').eq('conversation_id', conversationId).eq('sender_id', A).gt('created_at', after).order('created_at')).data || [];
         const waitForReply = async (pattern, after, minutes) => until(async () => (await messagesFromA(after)).find(m => pattern.test(m.content || '')), { timeout: minutes * 60000, interval: 2000, message: `No reply matching ${pattern} within ${minutes} minutes` });
-        const iphoneSubscription = async () => {
+        const deviceSubscription = async () => {
             const { data } = await admin.from('push_subscriptions').select('id, endpoint, user_agent, device_label, platform, is_active, created_at, last_used_at, last_receipt_at').eq('user_id', A).eq('is_active', true).gte('created_at', since.toISOString()).order('created_at', { ascending: false });
             const rows = (data || []).filter(row => APPLE_PUSH.test(row.endpoint || ''));
-            rows.forEach(row => iphoneSubscriptions.add(row.id));
+            rows.forEach(row => deviceSubscriptions.add(row.id));
             return rows[0] || null;
         };
 
@@ -196,22 +230,22 @@ async function main() {
         // ── 0. Ready ──────────────────────────────────────────────────────
         const helloAt = new Date().toISOString();
         await post(PROMPTS.hello);
-        console.log(`Waiting up to ${waitMinutes} minutes for READY from the iPhone`);
+        console.log(`Waiting up to ${waitMinutes} minutes for READY from the ${D}`);
         const ready = await waitForReply(/\bready\b/i, helloAt, waitMinutes);
-        check('Real keyboard outside a call: message typed on the iPhone reached the partner', true, { at: ready.created_at });
+        check(`${D}: real keyboard outside a call, message typed on the device reached the partner`, true, { at: ready.created_at });
 
-        const sub = await iphoneSubscription();
+        const sub = await deviceSubscription();
         report.device = sub ? { subscriptionId: sub.id, endpoint: sub.endpoint, userAgent: sub.user_agent, label: sub.device_label, platform: sub.platform, ...iosVersion(sub.user_agent), enrolledAt: sub.created_at } : null;
         if (sub) {
             const stillActive = new Set(((await admin.from('push_subscriptions').select('id').in('id', othersBefore.map(o => o.id)).eq('is_active', true)).data || []).map(r => r.id));
             const switchedOff = othersBefore.filter(o => !stillActive.has(o.id));
             const sharedEndpoint = othersBefore.some(o => o.endpoint === sub.endpoint);
             report.isolation = { otherAppleSubscriptions: othersBefore.length, switchedOff: switchedOff.length, sharedEndpoint };
-            check('Separate Home Screen icon: its own push endpoint, and no other account\'s subscription was switched off', !sharedEndpoint && switchedOff.length === 0, report.isolation);
+            check(`${D}: separate Home Screen icon has its own push endpoint and no other account's subscription was switched off`, !sharedEndpoint && switchedOff.length === 0, report.isolation);
         }
 
         const receiptsSince = async (after, senderId) => ((await admin.from('social_messages').select('sender_id, content').eq('conversation_id', conversationId).like('content', `${RECEIPT_PREFIX}%`).gt('created_at', after)).data || [])
-            .map(r => ({ sender: r.sender_id === senderId ? 'expected' : r.sender_id === A ? 'iphone' : 'partner', status: JSON.parse(r.content.slice(RECEIPT_PREFIX.length)).status }));
+            .map(r => ({ sender: r.sender_id === senderId ? 'expected' : r.sender_id === A ? 'device' : 'partner', status: JSON.parse(r.content.slice(RECEIPT_PREFIX.length)).status }));
 
         const placeCall = async () => {
             await page.getByLabel('Start Video Call', { exact: true }).click();
@@ -225,7 +259,7 @@ async function main() {
         if (sub) {
             await post(PROMPTS.leave);
             await sleep(30000);
-            const before = await iphoneSubscription();
+            const before = await deviceSubscription();
             callStart = await placeCall();
             joined = await connected(55000);
             const after = (await admin.from('push_subscriptions').select('last_used_at, last_receipt_at, last_failure_reason').eq('id', sub.id).maybeSingle()).data;
@@ -235,11 +269,11 @@ async function main() {
             report.push = {
                 dispatch: { outbox: (outbox || []).map(r => ({ status: r.status, failure: r.failure_reason, sentAt: r.sent_at })), subscriptionLastUsedAdvanced: advanced(before?.last_used_at, after?.last_used_at), lastFailure: after?.last_failure_reason || null },
                 delivery: { lastReceiptAdvanced: advanced(before?.last_receipt_at, after?.last_receipt_at), lastReceiptAt: after?.last_receipt_at || null },
-                accept: { iphoneJoined: Boolean(joined), partnerView: joined },
+                accept: { deviceJoined: Boolean(joined), partnerView: joined },
             };
-            check('Server dispatch: incoming-call push sent to the iPhone subscription', report.push.dispatch.outbox.some(r => r.status === 'sent') && report.push.dispatch.subscriptionLastUsedAdvanced, report.push.dispatch);
-            check('Actual delivery: the iPhone service worker displayed the banner and confirmed receipt', report.push.delivery.lastReceiptAdvanced, report.push.delivery);
-            check('Accept from the push: the iPhone opened the call and joined the room', Boolean(joined), report.push.accept);
+            check(`${D} server acceptance: incoming-call push sent to its subscription (not proof of a banner)`, report.push.dispatch.outbox.some(r => r.status === 'sent') && report.push.dispatch.subscriptionLastUsedAdvanced, report.push.dispatch);
+            check(`${D} worker receipt: the service worker handled the push and reported it (not proof of a visible banner)`, report.push.delivery.lastReceiptAdvanced, report.push.delivery);
+            check(`${D} accept: the device opened the call and joined the room (not proof of a visible banner)`, Boolean(joined), report.push.accept);
             const bell = ((await admin.from('notifications').select('id').eq('user_id', A).eq('type', 'incoming_call').gte('created_at', callStart)).data || []).length;
             check('One incoming-call notification for the ringing call (bell row)', bell <= 1 && (outbox || []).length === 1, { bellRowsNow: bell, incomingCallPushes: (outbox || []).length });
             if (!joined) {
@@ -255,7 +289,7 @@ async function main() {
             await sleep(3000);
             callStart = await placeCall();
             joined = await connected(60000);
-            check('Foreground call: the iPhone answered from the ringing screen', Boolean(joined), joined);
+            check(`${D} foreground call: answered from the ringing screen`, Boolean(joined), joined);
         }
 
         // ── 2. Media, camera switch, minimize + keyboard, restore, hang up ─
@@ -279,12 +313,12 @@ async function main() {
             const firstTyped = typedDuringCall[0];
             const afterTyped = firstTyped ? samples.filter(s => s.t >= firstTyped.atSecond - 10) : [];
             report.media = { seconds: samples.at(-1)?.t || 0, samples: samples.map(({ signature, ...rest }) => rest), sceneChanges: flips, typedDuringCall, endedByIphone };
-            check('Two-way media: the partner received the iPhone camera', samples.some(s => s.remoteVideo >= 1 && s.size), { sizes: [...new Set(samples.map(s => s.size).filter(Boolean))] });
-            check('Two-way media: the partner heard the iPhone microphone', audible > 0, { audibleSeconds: audible, maxPeak: Math.max(0, ...samples.map(s => s.peak)) });
-            check('Camera switch: the partner saw the scene change when the camera flipped', flips.length >= 1, { sceneChanges: flips });
-            check('Minimized call with the real keyboard: a message typed during the call reached the partner', Boolean(firstTyped), { typedDuringCall });
-            check('Minimize and restore kept the call: audio and video stayed connected from typing to hang-up', afterTyped.length > 0 && afterTyped.every(s => s.audioStreams >= 1 && s.remoteVideo >= 1), { samplesAfterTyping: afterTyped.length, gaps: afterTyped.filter(s => !(s.audioStreams >= 1 && s.remoteVideo >= 1)).map(s => s.t) });
-            check('Hang-up from the iPhone closed the partner call screen', endedByIphone, null);
+            check(`${D} two-way media: the partner received the device camera`, samples.some(s => s.remoteVideo >= 1 && s.size), { sizes: [...new Set(samples.map(s => s.size).filter(Boolean))] });
+            check(`${D} two-way media: the partner heard the device microphone`, audible > 0, { audibleSeconds: audible, maxPeak: Math.max(0, ...samples.map(s => s.peak)) });
+            check(`${D} camera switch:`+' the partner saw the scene change when the camera flipped', flips.length >= 1, { sceneChanges: flips });
+            check(`${D} minimized call with the real keyboard:`+' a message typed during the call reached the partner', Boolean(firstTyped), { typedDuringCall });
+            check(`${D} minimize and restore kept the call:`+' audio and video stayed connected from typing to hang-up', afterTyped.length > 0 && afterTyped.every(s => s.audioStreams >= 1 && s.remoteVideo >= 1), { samplesAfterTyping: afterTyped.length, gaps: afterTyped.filter(s => !(s.audioStreams >= 1 && s.remoteVideo >= 1)).map(s => s.t) });
+            check(`${D} hang-up closed the partner call screen`, endedByIphone, null);
             await sleep(6000);
             const receipts = await receiptsSince(callStart, B.id);
             check('Exactly one receipt for the answered call, written by the caller', receipts.length === 1 && receipts[0].sender === 'expected' && receipts[0].status === 'completed', { receipts });
@@ -293,22 +327,32 @@ async function main() {
             check('The ringing notification is cleared and no raw receipt push reached the phone', leftover === 0 && rawPush === 0, { ringingRowsLeft: leftover, rawReceiptPushes: rawPush });
         }
 
-        // ── 3. The iPhone calls the partner ───────────────────────────────
+        // ── 2b. What the person actually saw ─────────────────────────────
+        if (sub) {
+            const bannerAskedAt = new Date().toISOString();
+            await post(PROMPTS.banner);
+            const reply = await waitForReply(/\bbanner\s+(yes|no)\b/i, bannerAskedAt, 10).catch(() => null);
+            const seen = reply ? bannerAnswer(reply.content) : null;
+            report.push.visibleBanner = { observedBy: 'person holding the device', answer: seen || 'no answer', at: reply?.created_at || null };
+            check(`${D} visible banner: the person reports the call banner appeared on screen`, seen === 'yes', report.push.visibleBanner);
+        }
+
+        // ── 3. The device calls the partner ───────────────────────────────
         const askedAt = new Date().toISOString();
         await post(PROMPTS.callBack);
         const rang = await until(() => incomingOpen(page), { timeout: 10 * 60000, interval: 1000 }).then(() => true, () => false);
-        check('iPhone as caller: the partner rang', rang, null);
+        check(`${D} as caller: the partner rang`, rang, null);
         if (rang) {
             await page.getByRole('button', { name: 'Accept Call', exact: true }).click();
             const view = await connected(40000);
             const audio = view ? await audioPeak(page, 3000) : null;
-            check('iPhone as caller: the partner received the iPhone camera and microphone', Boolean(view) && audio?.streams >= 1, { view, audio });
+            check(`${D} as caller: the partner received the device camera and microphone`, Boolean(view) && audio?.streams >= 1, { view, audio });
             await sleep(15000);
             const end = page.getByLabel('End Call', { exact: true });
             if (await end.count()) await end.first().click().catch(() => {});
             await sleep(6000);
             const receipts = await receiptsSince(askedAt, A);
-            check('Exactly one receipt for the iPhone call, written by the iPhone', receipts.length === 1 && receipts[0].sender === 'expected' && receipts[0].status === 'completed', { receipts });
+            check(`Exactly one receipt for the ${D} call, written by the ${D}`, receipts.length === 1 && receipts[0].sender === 'expected' && receipts[0].status === 'completed', { receipts });
         }
         await post(PROMPTS.done);
         await sleep(2000);
@@ -333,6 +377,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         assert.equal(isStalePartner({ email: 'messenger-call-probe-dev-1-ab@call-probe.example.com', user_metadata: { messenger_call_probe: true }, created_at: new Date().toISOString() }), false);
         assert.equal(isStalePartner({ email: 'daniel@smarter.poker', user_metadata: { messenger_call_probe: true }, created_at: old }), false);
         assert.equal(isStalePartner({ email: 'messenger-call-probe-ntc-1-ab@call-probe.example.com', user_metadata: { messenger_call_probe: true }, created_at: old }), false);
+        const recent = new Date().toISOString();
+        assert.equal(deviceAccountRefusal({ role: 'user', is_horse: false, email: 'me+calltest@example.org', created_at: recent }), null);
+        assert.match(deviceAccountRefusal({ role: 'god', is_horse: false, email: 'x@example.org', created_at: recent }), /elevated/);
+        assert.match(deviceAccountRefusal({ role: 'admin', is_horse: false, email: 'x@example.org', created_at: recent }), /elevated/);
+        assert.match(deviceAccountRefusal({ role: 'user', is_horse: true, email: 'x@example.org', created_at: recent }), /horse/);
+        assert.match(deviceAccountRefusal({ role: 'user', is_horse: false, email: 'x@example.org', created_at: '2025-01-01T00:00:00Z' }), /30 days/);
+        assert.match(deviceAccountRefusal(null), /No account/);
+        assert.equal(bannerAnswer('banner yes'), 'yes');
+        assert.equal(bannerAnswer('BANNER NO thanks'), 'no');
+        assert.equal(bannerAnswer('ready'), null);
         console.log('messenger-calls-device self-test passed');
     } else {
         await main();

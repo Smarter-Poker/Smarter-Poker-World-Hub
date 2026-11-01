@@ -48,14 +48,22 @@ and the builds that accept it connect.
 
 ## Physical-device test
 
-Suite `messenger-calls-device` conducts the iPhone test. The designated test
-account is signed in on the iPhone by its owner; CI never opens a browser
-as that account. One throwaway partner (Chromium, synthetic camera and
+Suite `messenger-calls-device` conducts the device test, one device per run
+(`device_kind` iphone or ipad, each with its own receipt). Since 2026-11-01
+the person signs in on the device to an ordinary account they created for
+the test (`device_user_email`; role user or player, created in the last 30
+days); the conductor resolves only its id, never signs in as it, and refuses
+elevated accounts, including the god-mode service identity, because nothing
+in this test needs more than a member's permissions. CI never opens a
+browser as that account. A visible banner is recorded only from the
+person's own BANNER YES / BANNER NO reply; server acceptance, the worker
+receipt and joining the room are each reported separately and none of them
+counts as a banner. One throwaway partner (Chromium, synthetic camera and
 microphone) posts each step into the shared chat. Push evidence is kept in
 three tiers: dispatch (outbox `sent`, subscription `last_used_at`), delivery
-(`last_receipt_at`, written only after the service worker displays the
-banner) and accept (the iPhone's camera and microphone reach the partner).
-Cleanup removes only Apple push subscriptions the test account created at or
+(`last_receipt_at`, written by the service worker after it handles the
+push) and accept (the iPhone's camera and microphone reach the partner).
+Cleanup removes only Apple push subscriptions the device account created at or
 after `device_since`.
 
 ### Result: run 41239977778 (revision c09a45d8, 2026-10-31)

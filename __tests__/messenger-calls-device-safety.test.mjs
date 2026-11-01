@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { probeEmail, PROBE_DOMAIN } from '../scripts/ci/messenger-calls-lib.mjs';
 import { sanitizeIceUrl, attribute } from '../scripts/ci/messenger-calls-webkit.mjs';
-import { iosVersion, sceneChanges, PROMPTS } from '../scripts/ci/messenger-calls-device.mjs';
+import { iosVersion, sceneChanges, PROMPTS, deviceAccountRefusal, bannerAnswer, DEVICE_KINDS } from '../scripts/ci/messenger-calls-device.mjs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const lib = read('../scripts/ci/messenger-calls-lib.mjs');
@@ -33,7 +33,25 @@ test('ICE URLs are recorded without credentials', () => {
 test('the device conductor opens a browser only as the throwaway partner', () => {
   const opens = [...device.matchAll(/openDevice\(chrome, ([A-Za-z.]+),/g)].map(m => m[1]);
   assert.deepEqual(opens, ['B.session']);
-  assert.match(device, /const A = \(await signInTestAccount\(sb\.anon\)\)\.user\.id;/);
+  // The device account is resolved by email and never signed in to here, and
+  // the god-mode service identity is not used at all.
+  assert.match(device, /const A = profile\.id;/);
+  assert.doesNotMatch(device, /signInTestAccount|TEST_USER_PASSWORD|TEST_USER_EMAIL/);
+});
+
+test('the device account must be ordinary and recent; elevated roles are refused', () => {
+  const recent = new Date().toISOString();
+  assert.equal(deviceAccountRefusal({ role: 'user', is_horse: false, email: 'a@example.org', created_at: recent }), null);
+  for (const role of ['god', 'admin', 'venue_owner']) assert.match(deviceAccountRefusal({ role, is_horse: false, email: 'a@example.org', created_at: recent }), /elevated/);
+  assert.match(deviceAccountRefusal({ role: 'user', is_horse: false, email: 'a@example.org', created_at: '2024-01-01T00:00:00Z' }), /30 days/);
+});
+
+test('a visible banner is recorded only from the person, separate from the other tiers', () => {
+  assert.match(device, /visibleBanner = \{ observedBy: 'person holding the device'/);
+  assert.equal(bannerAnswer('Banner yes'), 'yes');
+  assert.equal(bannerAnswer('yes'), null);
+  assert.match(device, /not proof of a visible banner/);
+  assert.deepEqual(Object.values(DEVICE_KINDS), ['iPhone', 'iPad']);
 });
 
 test('the device conductor removes only Apple subscriptions created for the test', () => {
