@@ -45,20 +45,6 @@ export default function PokerTablePage() {
     };
     getUser();
   }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-
-  if (!router.isReady) return null;
-
-    if (!tableId) return;
-    const _ch = supabase
-      .channel(`poker-table:${tableId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` }, () => {
-        console.warn('[PokerTable] Received real-time update for tables');
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [tableId]);
 
   if (!tableId || !userId) {
     return (

@@ -124,3 +124,13 @@ test('Phase 5: Secondary Hub surfaces isolate channels, protect shared typing/so
     assert.match(diamondModalSrc, /diamond-wallet-\$\{user\.id\}-\$\{instanceSuffix\}/, 'DiamondWalletModal must isolate diamond-wallet channel per instance');
     assert.match(noticeBoardSrc, /club-notice-board:\$\{club\.id\}:\$\{userId\}:\$\{instanceSuffix\}/, 'NoticeBoard must isolate club-notice-board channel per instance');
 });
+
+test('Phase 6: PokerTablePage removes dead no-op tables WAL listener and MyTournaments fixes swrData stale closure with isolated channels', () => {
+    const pokerTablePageSrc = readRepoFile('pages/hub/poker/table/[tableId].js');
+    const myTournamentsSrc = readRepoFile('pages/hub/my-tournaments.js');
+
+    assert.doesNotMatch(pokerTablePageSrc, /poker-table:\$\{tableId\}/, 'PokerTablePage must not open a redundant no-op poker-table WAL subscription');
+    assert.match(myTournamentsSrc, /const swrDataRef\s*=\s*useRef\(swrData\)/, 'MyTournaments must maintain swrDataRef so tournament status updates do not read stale swrData');
+    assert.match(myTournamentsSrc, /my-tournaments:\$\{authUser\.id\}:\$\{instanceSuffix\}/, 'MyTournaments must isolate my-tournaments registration channel per instance');
+    assert.match(myTournamentsSrc, /my-tournaments-status:\$\{authUser\.id\}:\$\{instanceSuffix\}/, 'MyTournaments must isolate my-tournaments-status channel per instance');
+});
