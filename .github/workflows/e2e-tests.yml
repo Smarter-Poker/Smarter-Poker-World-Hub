@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device, messenger-calls-ring, messenger-calls-notify, messenger-calls-upgrade]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device, messenger-calls-ring, messenger-calls-notify, messenger-calls-upgrade, messenger-calls-clubarena]
         default: full
       reels_qa_setup_run:
         description: Exact private Reels QA setup run (successful for live checks, retained partial receipt for setup recovery)
@@ -98,6 +98,10 @@ on:
         description: Parts of messenger-calls-notify to run (A menu, B ringing, C push chain)
         type: string
         default: 'A,B,C'
+      club_arena_sha:
+        description: Full published Club Arena revision expected at /hub/club-arena/build-info.json (messenger-calls-clubarena)
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -1106,6 +1110,68 @@ jobs:
         with:
           name: messenger-calls-upgrade-receipt
           path: test-results/messenger-calls-upgrade/
+          if-no-files-found: warn
+          retention-days: 30
+
+  messenger-calls-clubarena:
+    # Turn On Notifications in Club Arena's menu and an incoming call while the
+    # test account observes a live table (never seated). Throwaways otherwise.
+    name: Published Club Arena Call And Notification Verification
+    if: ${{ inputs.suite == 'messenger-calls-clubarena' }}
+    timeout-minutes: 25
+    concurrency:
+      group: messenger-calls-clubarena
+      cancel-in-progress: false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Restore locked dependencies
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+      - name: Verify probe safety
+        run: |
+          node scripts/ci/messenger-calls-clubarena.mjs --self-test
+          node --test __tests__/messenger-calls-device-safety.test.mjs
+      - name: Install browsers
+        run: |
+          WITH_DEPS=--with-deps; if [ "${{ runner.environment }}" = "self-hosted" ]; then WITH_DEPS=; fi
+          npx playwright install $WITH_DEPS chromium
+          if ! command -v google-chrome >/dev/null 2>&1; then npx playwright install $WITH_DEPS chrome; fi
+      - name: Verify Club Arena calls and notifications
+        run: xvfb-run -a node scripts/ci/messenger-calls-clubarena.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          CLUB_ARENA_EXPECTED_SHA: ${{ inputs.club_arena_sha }}
+          NOTIFY_HEADED_PUSH: '1'
+      - name: Retain Club Arena verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: messenger-calls-clubarena-receipt
+          path: test-results/messenger-calls-clubarena/
           if-no-files-found: warn
           retention-days: 30
 
