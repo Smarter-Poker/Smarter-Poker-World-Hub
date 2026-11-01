@@ -212,3 +212,11 @@ test('Phase 50+: Static HUB_PAGE_SUMMARIES export and 100% World Hub surface Mar
     assert.ok(md && md.includes('# '), `renderHubToolMarkdown(${route}) returns valid Markdown`);
   }
 });
+
+test('every faqSchema call passes the page path (a missing path broke the production build on 2026-11-01)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const page = readFileSync(new URL('../pages/hub/tournaments/this-weekend.js', import.meta.url), 'utf8');
+  assert.match(page, /faqSchema\(WEEKEND_TOURNAMENTS_FAQS, '\/hub\/tournaments\/this-weekend'\)/);
+  const { faqSchema } = await import('../src/lib/seo/hubPageSchema.js');
+  assert.equal(faqSchema([{ question: 'Q', answer: 'A' }], '/hub/tournaments/this-weekend')['@id'], 'https://smarter.poker/hub/tournaments/this-weekend#faq');
+});
