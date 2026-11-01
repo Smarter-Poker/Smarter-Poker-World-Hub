@@ -1573,6 +1573,18 @@ const nextConfig = {
           destination: '/tools/embeds?format=md',
         },
         {
+          source: '/tools/pot-odds-calculator.md',
+          destination: '/tools/pot-odds-calculator?format=md',
+        },
+        {
+          source: '/tools/bankroll-calculator.md',
+          destination: '/tools/bankroll-calculator?format=md',
+        },
+        {
+          source: '/openapi.json',
+          destination: '/api/openapi',
+        },
+        {
           source: '/compare.md',
           destination: '/api/compare-markdown?slug=index',
         },

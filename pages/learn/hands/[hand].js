@@ -160,6 +160,7 @@ export default function StartingHandDetailPage({ hand }) {
               <tr style={{ borderBottom: '1px solid #1e293b', color: '#38bdf8', textAlign: 'left' }}>
                 <th scope="col" style={{ padding: '10px 14px' }}>Table Position</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>100BB GTO Action</th>
+                <th scope="col" style={{ padding: '10px 14px' }}>Positional Range Chart</th>
               </tr>
             </thead>
             <tbody>
@@ -167,6 +168,14 @@ export default function StartingHandDetailPage({ hand }) {
                 <tr key={pos} style={{ borderBottom: '1px solid #1e293b' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#f8fafc' }}>{pos}</td>
                   <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{act}</td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <Link
+                      href={`/tools/preflop-ranges/${pos.toLowerCase()}`}
+                      style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}
+                    >
+                      View {pos} 13x13 GTO Chart
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -235,7 +244,13 @@ export default function StartingHandDetailPage({ hand }) {
               href="/learn/hands"
               style={{ padding: '10px 16px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
             >
-              Browse All 20 Starting Hands
+              Browse All {STARTING_HANDS.length} Starting Hands
+            </Link>
+            <Link
+              href="/tools/pot-odds-calculator"
+              style={{ padding: '10px 16px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+            >
+              Pot Odds &amp; MDF Calculator
             </Link>
           </div>
         </section>

@@ -2,8 +2,8 @@
   "schema_version": "v1",
   "name_for_model": "smarter_poker",
   "name_for_human": "Smarter.Poker Assistant",
-  "description_for_model": "Live poker venue discovery, nationwide tournament schedules, daily $2,000 freerolls with zero deposit terms, 15 free poker software verticals, head-to-head competitor comparison matrices (ICMIZER, Equilab, PokerAtlas, PokerBros, ClubGG, GTO Wizard, Upswing Poker, Pokerbase, DownCount, Sharp Poker, TableCaptain), 40 GTO poker strategy lessons, 100BB 6-max preflop opening ranges, multiway equity odds calculations for Texas Hold'em and Omaha, tournament ICM calculations, and 49 authoritative poker glossary definitions. Supports OpenAPI 3.1.0 at https://smarter.poker/api/openapi.json and Model Context Protocol (MCP) JSON-RPC 2.0 at https://smarter.poker/api/mcp.",
-  "description_for_human": "Search live poker venues, calculate poker odds, query GTO preflop ranges, study 40 poker strategy lessons, look up daily freerolls, and explore 15 free poker tools.",
+  "description_for_model": "Live poker venue discovery, nationwide tournament schedules, daily $2,000 freerolls with zero deposit terms, 15 free poker software verticals, head-to-head competitor comparison matrices (ICMIZER, Equilab, PokerAtlas, PokerBros, ClubGG, GTO Wizard, Upswing Poker, Pokerbase, DownCount, Sharp Poker, TableCaptain, Holdem Manager 3, PokerTracker 4, Pokerrrr 2, Flopzilla, HRC), 45 GTO poker strategy lessons, 65 canonical Texas Hold'em starting hand guides, 100BB 6-max preflop opening ranges, multiway equity odds calculations, Pot Odds & MDF calculator, Bankroll & Risk of Ruin calculator, tournament ICM calculations, 10 empirical research benchmarks, and 60 authoritative poker glossary definitions. Supports OpenAPI 3.1.0 at https://smarter.poker/openapi.json (and https://smarter.poker/api/openapi.json) and Model Context Protocol (MCP) JSON-RPC 2.0 at https://smarter.poker/api/mcp.",
+  "description_for_human": "Search live poker venues, calculate poker odds & MDF, query GTO preflop ranges, study 45 poker strategy lessons and 65 starting hand guides, and explore 15 free poker tools.",
   "auth": {
     "type": "none"
   },

@@ -43995,7 +43995,7 @@
       "functions": [
         {
           "name": "getGlossaryTerm",
-          "line": 686,
+          "line": 734,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -44003,7 +44003,7 @@
         },
         {
           "name": "relatedGlossaryTerms",
-          "line": 691,
+          "line": 739,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -44011,7 +44011,7 @@
         },
         {
           "name": "glossaryByCategory",
-          "line": 696,
+          "line": 744,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -44019,7 +44019,7 @@
         },
         {
           "name": "glossaryTermPath",
-          "line": 704,
+          "line": 752,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -95797,7 +95797,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "getGlossaryTerm",
-        "line": 686,
+        "line": 734,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95814,7 +95814,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "relatedGlossaryTerms",
-        "line": 691,
+        "line": 739,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95830,7 +95830,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryByCategory",
-        "line": 696,
+        "line": 744,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95846,7 +95846,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryTermPath",
-        "line": 704,
+        "line": 752,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96788,7 +96788,9 @@
           "pages/hub/training/equity-calculator.js",
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
+          "pages/tools/bankroll-calculator.js",
           "pages/tools/embeds.js",
+          "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges/index.js",
           "src/lib/seo/summarySchema.js"
         ]
@@ -105268,7 +105270,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "getGlossaryTerm",
-        "line": 686,
+        "line": 734,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105285,7 +105287,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "relatedGlossaryTerms",
-        "line": 691,
+        "line": 739,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105301,7 +105303,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryByCategory",
-        "line": 696,
+        "line": 744,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105317,7 +105319,7 @@
       {
         "file": "src/content/glossary/terms.js",
         "name": "glossaryTermPath",
-        "line": 704,
+        "line": 752,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106259,7 +106261,9 @@
           "pages/hub/training/equity-calculator.js",
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
+          "pages/tools/bankroll-calculator.js",
           "pages/tools/embeds.js",
+          "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges/index.js",
           "src/lib/seo/summarySchema.js"
         ]

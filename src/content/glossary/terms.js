@@ -678,6 +678,54 @@ export const GLOSSARY_TERMS = [
       'A Bad Beat Jackpot Is A Progressive Prize Paid When A Very Strong Hand, Such As Four Jacks Or Better, Loses At Showdown To An Even Stronger Hand. The Losing Player Usually Takes The Largest Share, With The Winner And The Rest Of The Table Splitting The Remainder. It Is Funded By A Small Drop Taken From Each Qualifying Pot.',
     related: ['high-hand-promotion', 'showdown', 'comp', 'tilt'],
   },
+  {
+    slug: 'mystery-bounty',
+    term: 'Mystery Bounty',
+    category: 'Live Room',
+    definition:
+      'A Mystery Bounty Is A Tournament Format Where Knocking Out An Opponent After The Bounty Phase Begins Awards A Sealed Envelope Or Random Prize Draw Instead Of A Fixed Cash Amount. Prizes Range From One Minimum Bounty Up To A Jackpot Worth Ten Percent Or More Of The Total Prize Pool, Dramatically Increasing Late-Stage Shoving And Calling Incentives.',
+    related: ['icm', 'equity', 'expected-value', 'effective-stack'],
+  },
+  {
+    slug: 'progressive-knockout',
+    term: 'Progressive Knockout (PKO)',
+    category: 'Live Room',
+    definition:
+      'A Progressive Knockout, Or PKO, Is A Bounty Tournament Where Half Of An Eliminated Player\'s Bounty Is Awarded Immediately To The Winner Of The Pot And The Other Half Is Added Onto The Winner\'s Own Head. As The Tournament Reaches The Final Table, Surviving Players Carry Enormous Bounties That Outweigh Standard Ladder Payout Jumps.',
+    related: ['mystery-bounty', 'icm', 'expected-value', 'pot-odds'],
+  },
+  {
+    slug: 'block-bet',
+    term: 'Block Bet',
+    category: 'Postflop',
+    definition:
+      'A Block Bet Is A Small Out-Of-Position Bet, Typically Twenty To Thirty Percent Of The Pot, Made On The Turn Or River With A Medium-Strength Hand To Set Your Own Price For Showdown And Prevent The In-Position Opponent From Betting A Much Larger Amount. To Stay Unexploitable, Players Balance Block Bets With A Few Nutted Traps And Bluffs.',
+    related: ['value-bet', 'out-of-position', 'c-bet', 'spr'],
+  },
+  {
+    slug: 'double-board-bomb-pot',
+    term: 'Double-Board Bomb Pot',
+    category: 'Live Room',
+    definition:
+      'A Double-Board Bomb Pot Is A Live And Club Game Variant Where Every Seated Player Posts An Agreed Ante Before The Deal, Preflop Betting Is Skipped, And Two Separate Flops, Turns And Rivers Are Dealt Simultaneously. Half The Pot Is Awarded To The Best Hand On The Top Board And Half To The Bottom Board.',
+    related: ['bomb-pot', 'straddle', 'nut-advantage', 'equity'],
+  },
+  {
+    slug: 'capped-range',
+    term: 'Capped Range',
+    category: 'Theory',
+    definition:
+      'A Capped Range Is A Range Of Hands That Contains No Nutted Or Very Strong Holdings Because The Player Previously Passed Up An Opportunity To Raise Or Three-Bet. When A Player Calls Preflop And Check-Calls Twice On A Dry Board, Their Range Is Usually Capped At One Pair, Making Them Vulnerable To Large Polarized River Overbets.',
+    related: ['nut-advantage', 'polarized-range', 'range-advantage', 'range'],
+  },
+  {
+    slug: 'geometric-sizing',
+    term: 'Geometric Sizing',
+    category: 'Postflop',
+    definition:
+      'Geometric Sizing, Often Called Equal-Percentage Betting, Is Calculating The Exact Bet Percentage Of The Pot Needed Across The Remaining Streets So That All Remaining Effective Chips Go In On The River Using The Same Fraction Each Street. Solvers Frequently Select Geometric Sizings When Pressing A Strong Nut Advantage With Polarized Value And Bluff Ranges.',
+    related: ['spr', 'nut-advantage', 'polarized-range', 'value-bet'],
+  },
 ];
 
 const BY_SLUG = new Map(GLOSSARY_TERMS.map((t) => [t.slug, t]));

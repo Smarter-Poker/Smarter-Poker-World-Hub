@@ -47,6 +47,8 @@ export function buildCatalogAppendix() {
     `- **First-Party Poker Industry Research & Data Benchmarks (${RESEARCH_REPORTS.length} Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)`,
     ...RESEARCH_REPORTS.map((r) => `  - [${r.title}](https://smarter.poker/research/${r.slug}) ([Markdown](https://smarter.poker/research/${r.slug}.md))`),
     '- **World Hub Interactive Simulators, Solvers & Training Utilities (with Raw Markdown Mirrors)**:',
+    '  - Pot Odds, Required Equity & MDF Calculator: https://smarter.poker/tools/pot-odds-calculator ([Markdown](https://smarter.poker/tools/pot-odds-calculator.md))',
+    '  - Poker Bankroll & Risk Of Ruin Calculator: https://smarter.poker/tools/bankroll-calculator ([Markdown](https://smarter.poker/tools/bankroll-calculator.md))',
     '  - Personal AI Assistant Hub: https://smarter.poker/hub/personal-assistant ([Markdown](https://smarter.poker/hub/personal-assistant.md))',
     '  - Leak Finder & EV Audit: https://smarter.poker/hub/personal-assistant/leaks ([Markdown](https://smarter.poker/hub/personal-assistant/leaks.md))',
     '  - Interactive Strategy Sandbox: https://smarter.poker/hub/personal-assistant/sandbox ([Markdown](https://smarter.poker/hub/personal-assistant/sandbox.md))',

@@ -1448,17 +1448,17 @@
     "/api/ai/corpus": {
       "get": {
         "operationId": "getMultilingualCorpus",
-        "summary": "Multilingual AI Grounding Corpus (EN, ES, PT, DE, FR)",
-        "description": "Returns localized summaries of all 15 Smarter.Poker verticals, tools, and directories in English, Spanish, Portuguese, German, and French.",
+        "summary": "Multilingual AI Grounding Corpus (EN, ES, PT, DE, FR, IT, JA)",
+        "description": "Returns localized summaries of all 15 Smarter.Poker verticals, tools, and directories in English, Spanish, Portuguese, German, French, Italian, and Japanese.",
         "parameters": [
           {
             "name": "lang",
             "in": "query",
-            "description": "ISO language code (en, es, pt, de, fr).",
+            "description": "ISO language code (en, es, pt, de, fr, it, ja).",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["en", "es", "pt", "de", "fr"],
+              "enum": ["en", "es", "pt", "de", "fr", "it", "ja"],
               "default": "en"
             }
           }
@@ -1477,7 +1477,7 @@
                     "value": {
                       "ok": true,
                       "requested_language": "es",
-                      "available_languages": ["en", "es", "pt", "de", "fr"]
+                      "available_languages": ["en", "es", "pt", "de", "fr", "it", "ja"]
                     }
                   }
                 }
