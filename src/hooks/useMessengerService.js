@@ -442,8 +442,13 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             if (err_messenger_call_signals_bwfvf) console.warn('[Supabase] Silent mutation failed in messenger_call_signals:', err_messenger_call_signals_bwfvf.message);
 
             // Listen for answer + ICE candidates from callee
+            if (callSignalChannelRef.current) {
+                supabase.removeChannel(callSignalChannelRef.current);
+                callSignalChannelRef.current = null;
+            }
+            const signalChannelSuffix = Math.random().toString(36).slice(2, 8);
             const signalChannel = supabase
-                .channel(`call_signals:${conversationId}`)
+                .channel(`call_signals:${conversationId}:${signalChannelSuffix}`)
                 .on('postgres_changes', {
                     event: 'INSERT',
                     schema: 'public',

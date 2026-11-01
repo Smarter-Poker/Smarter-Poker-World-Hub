@@ -46,8 +46,10 @@ export function useProControls({
         if (!enabled) return;
 
         // Ignore if typing in an input field
-        const target = event.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+        const target = event.target as HTMLElement | null;
+        const tag = target?.tagName?.toUpperCase();
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (typeof event.key !== 'string') return;
 
         const key = event.key.toLowerCase();
 

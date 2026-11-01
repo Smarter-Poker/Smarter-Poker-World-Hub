@@ -85,6 +85,7 @@ export default function useMiniStatePoller() {
       console.warn('[useMiniStatePoller] ⚠️ WebSocket unhealthy - falling back to HTTP polling');
       fallbackInterval = setInterval(() => {
         if (!mountedRef.current) return;
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
         const ids = Array.from(visibleIds.current);
         if (ids.length > 0) fetchMiniStates(ids);
       }, 4000);
@@ -98,7 +99,11 @@ export default function useMiniStatePoller() {
       }
     };
 
-    const channel = supabase.channel('lobby', {
+    const existingChannel = typeof supabase.getChannels === 'function'
+      ? supabase.getChannels().find((ch) => ch.topic === 'realtime:lobby' || ch.topic === 'lobby')
+      : null;
+    const ownsChannel = !existingChannel;
+    const channel = existingChannel || supabase.channel('lobby', {
       config: { presence: { key: '' } }
     });
 
@@ -182,7 +187,7 @@ export default function useMiniStatePoller() {
       mountedRef.current = false;
       if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
       stopFallbackPolling();
-      supabase.removeChannel(channel);
+      if (ownsChannel) supabase.removeChannel(channel);
     };
   }, [fetchMiniStates]);
 

@@ -381,8 +381,12 @@ export function ActiveIdentityProvider({ children }) {
     useEffect(() => {
         if (ownedPages.length === 0) return;
         let mounted = true;
+        let inFlight = false;
+        let missedWhileHidden = false;
 
         const refreshClubData = async () => {
+            if (inFlight) return;
+            inFlight = true;
             try {
                 // Fetch all owned pages to bulk-refresh
                 const authUser = getAuthUser();
@@ -426,14 +430,26 @@ export function ActiveIdentityProvider({ children }) {
                     console.debug('[ActiveIdentity] Club data refreshed');
                 }
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            finally { inFlight = false; }
         };
 
         // Refresh on tab focus
-        const handleVisibility = () => { if (document.visibilityState === 'visible') refreshClubData(); };
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                missedWhileHidden = false;
+                refreshClubData();
+            }
+        };
         document.addEventListener('visibilitychange', handleVisibility);
 
-        // Periodic refresh every 5 minutes
-        const interval = setInterval(refreshClubData, 5 * 60 * 1000);
+        // Periodic refresh every 5 minutes (skip while hidden)
+        const interval = setInterval(() => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                missedWhileHidden = true;
+                return;
+            }
+            refreshClubData();
+        }, 5 * 60 * 1000);
 
         return () => {
             mounted = false;

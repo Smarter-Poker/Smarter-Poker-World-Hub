@@ -119,7 +119,10 @@ class RealtimeSync {
     // Wire ActionTimer broadcasts
     this._wireTimerEvents();
     
-    // Start heartbeat checker
+    // Start heartbeat checker (clear any existing interval first)
+    if (this._heartbeatChecker) {
+      clearInterval(this._heartbeatChecker);
+    }
     this._heartbeatChecker = setInterval(() => {
       this._checkHeartbeats();
     }, HEARTBEAT_INTERVAL_MS);
@@ -524,7 +527,11 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
         payload: { playerId },
       });
       
-      // Start heartbeat
+      // Start heartbeat (clear any existing interval from a prior SUBSCRIBED state first)
+      if (channel._heartbeatInterval) {
+        clearInterval(channel._heartbeatInterval);
+        channel._heartbeatInterval = null;
+      }
       const heartbeat = setInterval(() => {
         channel.send({
           type: 'broadcast',
@@ -537,6 +544,11 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       channel._heartbeatInterval = heartbeat;
       
       if (callbacks.onConnected) callbacks.onConnected();
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      if (channel._heartbeatInterval) {
+        clearInterval(channel._heartbeatInterval);
+        channel._heartbeatInterval = null;
+      }
     }
   });
   

@@ -71,7 +71,9 @@ export default function useAdminShortcuts({ onAction, isAdmin, activeModal }) {
 
             // Direct shortcuts (only when no modal is open)
             if (!activeModal && !paletteOpen) {
-                const shortcut = SHORTCUTS.find(s => s.key === e.key.toLowerCase());
+                const key = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+                if (!key) return;
+                const shortcut = SHORTCUTS.find(s => s.key === key);
                 if (shortcut) {
                     e.preventDefault();
                     handleAction(shortcut.action);

@@ -155,7 +155,7 @@ export default function MessengerDock({ services }) {
         })).then(() => { if (identity.current === actorId && generation.current === epoch) { loadedActor.current = actorId; setHydrated(actorId); } });
         void refresh(true);
 
-        const channel = supabase.channel(`messenger-dock:${actorId}`)
+        const channel = supabase.channel(`messenger-dock:${actorId}:${Math.random().toString(36).slice(2, 8)}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_messages' }, payload => {
                 const message = payload.new;
                 if (identity.current !== actorId || generation.current !== epoch || message.sender_id === actorId || !dockId(message.id)) return;
@@ -170,7 +170,15 @@ export default function MessengerDock({ services }) {
         const stop = listenBroadcast('smarter_poker_unread_sync', message => {
             if (message === 'refresh_unread') void refresh();
         });
-        const visible = () => { if (document.visibilityState === 'visible') void refresh(true); };
+        let lastWakeRefreshAt = 0;
+        const visible = () => {
+            if (document.visibilityState === 'visible') {
+                const now = Date.now();
+                if (now - lastWakeRefreshAt < 1000) return;
+                lastWakeRefreshAt = now;
+                void refresh(true);
+            }
+        };
         const online = () => void refresh(true);
         document.addEventListener('visibilitychange', visible);
         window.addEventListener('online', online);

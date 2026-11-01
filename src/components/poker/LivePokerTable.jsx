@@ -6299,10 +6299,11 @@ function LivePokerTable({
       }
     })();
 
-    // Realtime Postgres sync for live chip movements
+    // Realtime Postgres sync for live chip movements (isolated per table instance)
     let channel;
     if (typeof supabase?.channel === 'function') {
-      channel = supabase.channel(`live-table-balance-${tableState.clubId}-${userId}`)
+      const instanceSuffix = Math.random().toString(36).slice(2, 8);
+      channel = supabase.channel(`live-table-balance:${tableId || 't'}:${tableState.clubId}:${userId}:${instanceSuffix}`)
         .on('postgres_changes', {
            event: 'UPDATE', 
            schema: 'public', 
@@ -6312,6 +6313,9 @@ function LivePokerTable({
            if (payload.new?.club_id === tableState.clubId && isMounted) {
               setClubChipBalance(payload.new.chip_balance || 0);
            }
+           if (payload.new?.chip_balance !== undefined && isMounted) {
+              eventBus.emit('WALLET_REFRESHED', { balance: payload.new.chip_balance });
+           }
         }).subscribe();
     }
 
@@ -6319,7 +6323,7 @@ function LivePokerTable({
       isMounted = false;
       if (channel) supabase.removeChannel(channel).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     };
-  }, [tableState?.clubId, userId, supabase]);
+  }, [tableId, tableState?.clubId, userId, supabase]);
 
   // Derived state — use String() coercion to match engine convention
   const isSitting = tableState?.seats.some(
@@ -6708,23 +6712,9 @@ function LivePokerTable({
   }, [result, seats, positions]);
 
   // ═══ WAVE I14: REALTIME CHIP BALANCE SUPABASE SYNC ═══
-  useEffect(() => {
-    if (!supabase || !tableState?.clubId || !userId) return;
-    const channel = supabase
-      .channel(`chip_balance_${userId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'club_members',
-        filter: `user_id=eq.${userId}`,
-      }, (payload) => {
-        if (payload.new?.chip_balance !== undefined) {
-          eventBus.emit('WALLET_REFRESHED', { balance: payload.new.chip_balance });
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [supabase, tableState?.clubId, userId]);
+  // Consolidated into the per-table instance `live-table-balance` subscription above
+  // so multi-table instances do not open duplicate `club_members` channels or tear
+  // down sibling tables' `chip_balance_${userId}` channels on unmount.
 
 
 
@@ -7041,7 +7031,9 @@ function LivePokerTable({
   useEffect(() => {
     const onKeyDown = (e) => {
       if (!isActive) return;
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const tag = e.target?.tagName?.toUpperCase();
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (typeof e.key !== 'string') return;
 
       const key = e.key.toLowerCase();
 

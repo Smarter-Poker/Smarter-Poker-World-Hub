@@ -107,8 +107,9 @@ export function UnreadProvider({ children }) {
 
             let notifChannel = null;
             try {
+                const notifSuffix = Math.random().toString(36).slice(2, 8);
                 notifChannel = supabase
-                    .channel(`unread-notifications:${userId}`)
+                    .channel(`unread-notifications:${userId}:${notifSuffix}`)
                     .on('postgres_changes', {
                         event: 'INSERT',
                         schema: 'public',

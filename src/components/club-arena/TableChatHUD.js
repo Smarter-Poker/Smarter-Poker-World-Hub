@@ -26,9 +26,15 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
         return () => window.removeEventListener('ca_mute_updated', loadMutes);
     }, []);
 
+    const isOpenRef = useRef(isOpen);
+    useEffect(() => {
+        isOpenRef.current = isOpen;
+    }, [isOpen]);
+
     // Load recent messages
     useEffect(() => {
         if (!tableId) return;
+        let isMounted = true;
 
         const loadMessages = async () => {
             const { data } = await supabase
@@ -38,20 +44,22 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
                 .order('created_at', { ascending: false })
                 .limit(50);
 
-            if (data) setMessages(data.reverse());
+            if (data && isMounted) setMessages(data.reverse());
         };
 
         loadMessages();
 
-        // Subscribe to real-time chat
+        // Subscribe to real-time chat (isolated per HUD instance)
+        const instanceId = Math.random().toString(36).slice(2, 8);
         const channel = supabase
-            .channel(`table_chat:${tableId}`)
+            .channel(`table_chat:${tableId}:${instanceId}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'table_chat',
                 filter: `table_id=eq.${tableId}`
             }, (payload) => {
+                if (!isMounted) return;
                 const msg = payload.new;
                 setMessages(prev => [...prev.slice(-49), msg]);
 
@@ -59,7 +67,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
                 try { eventBus.emit('chat_message_received', { tableId: msg.table_id || tableId }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                 // Trigger haptic and show unread if closed
-                if (!isOpen) {
+                if (!isOpenRef.current) {
                     setUnreadCount(c => c + 1);
                     if (msg.message_type === 'dealer' || msg.message_type === 'system') {
                         haptic('notification');
@@ -77,8 +85,11 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
             })
             .subscribe();
 
-        return () => { supabase.removeChannel(channel); };
-    }, [tableId, isOpen]);
+        return () => {
+            isMounted = false;
+            supabase.removeChannel(channel);
+        };
+    }, [tableId]);
 
     // Scroll to bottom when opening
     useEffect(() => {
