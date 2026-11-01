@@ -1026,6 +1026,7 @@ export default function MemoryGamesPage() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (mode !== 'game' || gradeResult || preferences.keyboardShortcuts === false) return;
+      if (typeof e.key !== 'string') return;
       const target = e.target instanceof Element ? e.target : null;
       // The matrix is a focusable grid that owns Enter / Space itself.
       const isInteractiveTarget = target?.closest(

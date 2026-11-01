@@ -529,7 +529,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
             }
 
             // R = Toggle Range/Heatmap
-            if (e.key.toLowerCase() === 'r' && state.showFeedbackCard) {
+            if (typeof e.key === 'string' && e.key.toLowerCase() === 'r' && state.showFeedbackCard) {
                 toggleHeatmap();
             }
         };

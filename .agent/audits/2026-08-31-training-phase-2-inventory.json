@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 79,
     "realtimeFiles": 6,
-    "tests": 171,
+    "tests": 172,
     "markerCandidates": 341,
     "possibleUnwiredFunctions": 397,
     "routeStateCells": 752,
@@ -44085,7 +44085,7 @@
         },
         {
           "name": "useActiveIdentity",
-          "line": 464,
+          "line": 480,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -44133,7 +44133,7 @@
         },
         {
           "name": "refreshClubData",
-          "line": 385,
+          "line": 387,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44141,7 +44141,7 @@
         },
         {
           "name": "handleVisibility",
-          "line": 432,
+          "line": 437,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48518,7 +48518,7 @@
         },
         {
           "name": "useUnreadCount",
-          "line": 240,
+          "line": 241,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -48558,7 +48558,7 @@
         },
         {
           "name": "tick",
-          "line": 182,
+          "line": 183,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -48566,7 +48566,7 @@
         },
         {
           "name": "onVisibility",
-          "line": 192,
+          "line": 193,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48574,7 +48574,7 @@
         },
         {
           "name": "setAndBroadcastUnreadCount",
-          "line": 213,
+          "line": 214,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -65379,6 +65379,7 @@
     "__tests__/training-verified-leaderboard.test.mjs",
     "__tests__/training-verified-report-authority.test.mjs",
     "__tests__/world-command-navigation-state.test.mjs",
+    "__tests__/world-hub-connection-hardening.test.mjs",
     "__tests__/world-menu-mobile-phase3.test.mjs",
     "e2e/014-cron-health.spec.ts",
     "e2e/020-hamburger.spec.ts",
@@ -86350,7 +86351,9 @@
         }
       ],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/world-hub-connection-hardening.test.mjs"
+      ]
     },
     {
       "file": "src/contexts/AvatarContext.jsx",
@@ -87482,7 +87485,9 @@
           }
         }
       ],
-      "tests": []
+      "tests": [
+        "__tests__/world-hub-connection-hardening.test.mjs"
+      ]
     },
     {
       "file": "src/hooks/useVIP.js",

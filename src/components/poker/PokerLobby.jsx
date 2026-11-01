@@ -390,9 +390,13 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
   // Fetch tables via HTTP + subscribe to Realtime for live updates
   useEffect(() => {
     let pollTimer;
+    let fetchInFlight = false;
+    let missedWhileHidden = false;
 
     // HTTP fetch (primary source)
     const fetchTables = async () => {
+      if (fetchInFlight) return;
+      fetchInFlight = true;
       try {
         const res = await fetch('/api/poker/engine/tables');
         const data = await res.json();
@@ -402,26 +406,62 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
         }
       } catch (err) {
         console.warn('[Lobby] HTTP fetch failed:', err.message);
+      } finally {
+        fetchInFlight = false;
       }
     };
 
     fetchTables();
-    pollTimer = setInterval(fetchTables, 8000); // Poll every 8s as fallback
+    pollTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        missedWhileHidden = true;
+        return;
+      }
+      fetchTables();
+    }, 8000); // Poll every 8s as fallback
+
+    const handleVisibilityOrOnline = () => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        if (missedWhileHidden) {
+          missedWhileHidden = false;
+          fetchTables();
+        }
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityOrOnline);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleVisibilityOrOnline);
+    }
 
     // Realtime supplement (instant updates when available)
     let channel;
+    let ownsChannel = false;
     if (supabase) {
-      channel = supabase.channel('lobby');
+      const existing = typeof supabase.getChannels === 'function'
+        ? supabase.getChannels().find(c => c.topic === 'realtime:lobby' || c.topic === 'lobby')
+        : null;
+      ownsChannel = !existing;
+      channel = existing || supabase.channel('lobby');
       channel.on('broadcast', { event: 'lobby_update' }, (payload) => {
         setTables(payload.payload.tables || []);
         setTotalPlayers(payload.payload.totalPlayers || 0);
       });
-      channel.subscribe();
+      if (ownsChannel) {
+        channel.subscribe();
+      }
     }
 
     return () => {
       if (pollTimer) clearInterval(pollTimer);
-      if (channel && supabase) supabase.removeChannel(channel);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityOrOnline);
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleVisibilityOrOnline);
+      }
+      if (channel && supabase && ownsChannel) supabase.removeChannel(channel);
     };
   }, [supabase]);
 
@@ -432,7 +472,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
     if (filterOpenOnly) list = list.filter(t => t.playerCount < t.maxSeats);
     if (search) {
       const s = search.toLowerCase();
-      list = list.filter(t => (t.tableName || t.name || t.tableId).toLowerCase().includes(s));
+      list = list.filter(t => String(t.tableName || t.name || t.tableId || '').toLowerCase().includes(s));
     }
     return list;
   }, [tables, filterVariant, filterOpenOnly, search]);

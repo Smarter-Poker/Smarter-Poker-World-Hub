@@ -84,6 +84,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
   const channelRef = useRef(null);
   const resultTimeoutRef = useRef(null);
   const heartbeatRef = useRef(null);
+  const heartbeatInFlightRef = useRef(false);
   const reconnectTimeoutRef = useRef(null);
   const tokenRef = useRef(null);
 
@@ -541,7 +542,30 @@ export function useTableConnection({ supabase, tableId, userId }) {
 
     channel.on('presence', { event: 'sync' }, () => { });
 
+    let cancelled = false;
+    const sendHeartbeatOnce = () => {
+      if (cancelled || heartbeatInFlightRef.current) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      heartbeatInFlightRef.current = true;
+      getGPSLocation(2000)
+        .then(gps =>
+          _post('connect', {
+            tableId, playerId: userId, type: 'heartbeat',
+            latitude: gps?.lat || null,
+            longitude: gps?.lng || null,
+          })
+        )
+        .catch(() =>
+          _post('connect', { tableId, playerId: userId, type: 'heartbeat' })
+        )
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e))
+        .finally(() => {
+          heartbeatInFlightRef.current = false;
+        });
+    };
+
     channel.subscribe(async (status) => {
+      if (cancelled) return;
       if (status === 'SUBSCRIBED') {
         setConnected(true);
         await channel.track({ user_id: userId, online_at: new Date().toISOString() });
@@ -568,37 +592,57 @@ export function useTableConnection({ supabase, tableId, userId }) {
             }
           }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        heartbeatRef.current = setInterval(() => {
-          // Send GPS on every heartbeat — feeds the anti-cheat background
-          // monitor for continuous proximity scanning. Fully automated.
-          getGPSLocation(2000).then(gps => {
-            _post('connect', {
-              tableId, playerId: userId, type: 'heartbeat',
-              latitude: gps?.lat || null,
-              longitude: gps?.lng || null,
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-          }).catch(() => {
-            _post('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-          });
-        }, HEARTBEAT_MS);
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+          heartbeatRef.current = null;
+        }
+        heartbeatRef.current = setInterval(sendHeartbeatOnce, HEARTBEAT_MS);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         // Connection dropped mid-session — mark disconnected and try state recovery
         setConnected(false);
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+          heartbeatRef.current = null;
+        }
         console.warn(`[useTableConnection] Channel ${status} - will auto-reconnect`);
         // Supabase client auto-reconnects channels, but refresh state when it does
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = setTimeout(() => {
           reconnectTimeoutRef.current = null;
-          requestState();
+          if (!cancelled) requestState();
         }, 2000);
       }
     });
 
+    const handleWakeOrOnline = () => {
+      if (cancelled) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      requestState();
+      sendHeartbeatOnce();
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleWakeOrOnline);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleWakeOrOnline);
+    }
+
     channelRef.current = channel;
 
     return () => {
+      cancelled = true;
       setConnected(false);
-      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleWakeOrOnline);
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleWakeOrOnline);
+      }
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+      heartbeatInFlightRef.current = false;
       if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       _post('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));

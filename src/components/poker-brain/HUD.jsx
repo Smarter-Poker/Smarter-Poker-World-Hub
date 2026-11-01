@@ -679,7 +679,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   useEffect(() => {
     const handler = (e) => {
       // Don't capture when user is typing in an input/select
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+      const tag = e.target?.tagName?.toUpperCase();
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (typeof e.key !== 'string') return;
 
       switch (e.key.toLowerCase()) {
         case 'm': // Toggle mute

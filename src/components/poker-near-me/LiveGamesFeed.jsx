@@ -518,10 +518,31 @@ function LiveGamesFeed({
     // setState updater, which React may double-invoke under StrictMode, firing
     // duplicate refreshes. A plain interval at the real refresh period does the job.
     useEffect(() => {
+        let missedWhileHidden = false;
         countdownRef.current = setInterval(() => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                missedWhileHidden = true;
+                return;
+            }
             fetchGlobalLiveData(true);
         }, LIVE_REFRESH_MS);
-        return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+
+        const handleVisibilityChange = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible' && missedWhileHidden) {
+                missedWhileHidden = false;
+                fetchGlobalLiveData(true);
+            }
+        };
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        return () => {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }
+        };
     }, [fetchGlobalLiveData]);
 
     useEffect(() => {

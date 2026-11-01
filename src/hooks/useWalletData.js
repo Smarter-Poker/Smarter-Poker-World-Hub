@@ -134,6 +134,8 @@ export default function useWalletData({ supabase, userId, clubId }) {
   // ── Role-gated Realtime subscriptions ───────────────────────────────
   useEffect(() => {
     if (!supabase || !userId || !clubId) return;
+    let isMounted = true;
+    const instanceSuffix = Math.random().toString(36).slice(2, 8);
 
     // 1. Club member chip/promo balance changes (all roles need this).
     //    COST-FIX: filter on user_id=eq.${userId} so Supabase only delivers
@@ -142,11 +144,12 @@ export default function useWalletData({ supabase, userId, clubId }) {
     //    supports exactly ONE filter expression — '&'-joined compound filters
     //    silently break delivery — so club_id is guarded client-side.
     const memberCh = supabase
-      .channel(`wallet-member:${clubId}:${userId}`)
+      .channel(`wallet-member:${clubId}:${userId}:${instanceSuffix}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'club_members',
         filter: `user_id=eq.${userId}`,
       }, (payload) => {
+        if (!isMounted) return;
         // Client-side guard: scope to this club (and re-check user_id).
         if (payload.new?.user_id === userId && payload.new?.club_id === clubId) {
           if (payload.new.chip_balance !== undefined) setChipBalance(payload.new.chip_balance);
@@ -171,9 +174,18 @@ export default function useWalletData({ supabase, userId, clubId }) {
        twenty-four hours, measured on production, decoded and pushed to every
        open tab to keep a wallet figure current. Phase 3.2 took every Club
        Arena surface off it; this is the last of the World Hub's three. */
+    let bbjInFlight = false;
+    let bbjMissedWhileHidden = false;
     const readBbjPool = async () => {
+      if (!isMounted || bbjInFlight) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        bbjMissedWhileHidden = true;
+        return;
+      }
+      bbjInFlight = true;
       try {
         const { data } = await supabase.rpc('fn_bbj_pool_for_club', { p_club_id: clubId });
+        if (!isMounted) return;
         const row = Array.isArray(data) ? data[0] : data;
         const amt = Number(row?.main_balance || 0);
         if (!Number.isFinite(amt) || amt === bbjAmountRef.current) return;
@@ -184,21 +196,33 @@ export default function useWalletData({ supabase, userId, clubId }) {
         bbjTimeoutRef.current = setTimeout(() => setBbjAnimating(false), 800);
       } catch {
         /* Leave the last known figure up rather than zeroing it. */
+      } finally {
+        bbjInFlight = false;
       }
     };
     const bbjTimer = setInterval(readBbjPool, 30000);
+    const onBbjVisibility = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && bbjMissedWhileHidden) {
+        bbjMissedWhileHidden = false;
+        void readBbjPool();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onBbjVisibility);
+    }
 
     // 3. Agent balance changes — ROLE-GATED: only open for agents
     let agentCh = null;
     if (roleRef.current === 'agent') {
       agentCh = supabase
-        .channel(`wallet-agent:${clubId}:${userId}`)
+        .channel(`wallet-agent:${clubId}:${userId}:${instanceSuffix}`)
         .on('postgres_changes', {
           event: 'UPDATE', schema: 'public', table: 'agents',
           // Filter on user_id so other agents' business_balance rows are never
           // delivered to this client; club_id is guarded client-side.
           filter: `user_id=eq.${userId}`,
         }, (payload) => {
+          if (!isMounted) return;
           if (payload.new?.user_id === userId && payload.new?.club_id === clubId) {
             setAgentBalance(payload.new.business_balance || 0);
           }
@@ -210,11 +234,12 @@ export default function useWalletData({ supabase, userId, clubId }) {
     let clubCh = null;
     if (['owner', 'admin'].includes(roleRef.current)) {
       clubCh = supabase
-        .channel(`wallet-treasury:${clubId}`)
+        .channel(`wallet-treasury:${clubId}:${instanceSuffix}`)
         .on('postgres_changes', {
           event: 'UPDATE', schema: 'public', table: 'clubs',
           filter: `id=eq.${clubId}`,
         }, (payload) => {
+          if (!isMounted) return;
           if (payload.new?.chip_treasury !== undefined) {
             setClubBankBalance(payload.new.chip_treasury);
           }
@@ -223,8 +248,12 @@ export default function useWalletData({ supabase, userId, clubId }) {
     }
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(memberCh);
       clearInterval(bbjTimer);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onBbjVisibility);
+      }
       if (agentCh) supabase.removeChannel(agentCh);
       if (clubCh) supabase.removeChannel(clubCh);
       if (bbjTimeoutRef.current) clearTimeout(bbjTimeoutRef.current);
