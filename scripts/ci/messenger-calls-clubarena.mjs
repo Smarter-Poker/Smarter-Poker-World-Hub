@@ -4,16 +4,20 @@
  * (suite messenger-calls-clubarena).
  *
  *   1. Menu: Club Arena's hamburger offers Turn On Notifications; a throwaway
- *      in a persistent Google Chrome profile enrols through it and the
+ *      callee (an ordinary role-user account this run creates) in a
+ *      persistent Google Chrome profile enrols through it and the
  *      subscription is stored server-side.
- *   2. Call at a live table: the designated test account observes a running
- *      cash table (no seat, no chips). A throwaway calls it. Club Arena must
- *      show the "Tap To Answer" alert; tapping it must answer the call in a
- *      "+" hub tab while the table tab stays open and connected; after the
- *      call the alert is gone and the table still updates.
+ *   2. Call at a live table: the same throwaway observes a running cash table
+ *      (no seat, no chips) with that table open. A second throwaway calls it.
+ *      Club Arena must show the "Tap To Answer" alert; tapping it must answer
+ *      the call in a "+" hub tab while the table tab stays open and
+ *      connected; after the call the alert is gone and the table still
+ *      updates.
  *
- * No real contact is called. The test account is the callee and the menu
- * enroller, never sits down, and only the subscription made here is removed. Throwaways are example.com and hard-deleted.
+ * No real contact is called and no elevated account is used. A brand-new
+ * account meets Club Arena's Terms, age and analytics prompts; the throwaway
+ * answers them for itself (it is created and hard-deleted by this run), and
+ * the receipt lists each one. Throwaways are example.com and hard-deleted.
  */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -21,7 +25,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import {
-    APP_ORIGIN, sleep, until, clients, assertLiveRevision, signInTestAccount, createProbeUser, createConversation,
+    APP_ORIGIN, sleep, until, clients, assertLiveRevision, createProbeUser, createConversation,
     cleanup, cleanupFailed, callOpen, videos,
 } from './messenger-calls-lib.mjs';
 
@@ -39,13 +43,50 @@ async function signIn(context, session) {
 
 /** A coarse fingerprint of what the table shows; it changes as hands play. */
 const tableFingerprint = page => page.evaluate(() => (document.body?.innerText || '').slice(0, 4000)).then(t => createHash('sha1').update(t).digest('hex').slice(0, 12)).catch(() => null);
+/**
+ * A new account's first visit meets Club Arena's Terms, age and analytics
+ * prompts. The throwaway answers them for itself; each one is recorded.
+ */
+export const PROBE_BIRTHDAY = '1990-01-01';
+async function passArenaGates(page, seen) {
+    const deadline = Date.now() + 60000;
+    while (Date.now() < deadline) {
+        const agree = page.getByText('I Have Read And Agree To The Terms Of Service And Privacy Policy');
+        if (await agree.isVisible().catch(() => false)) {
+            await agree.click();
+            await page.getByRole('button', { name: 'Accept & Continue', exact: true }).click();
+            seen.push('terms accepted by the throwaway');
+            await sleep(2000);
+            continue;
+        }
+        const age = page.locator('#age-gate-birthday');
+        if (await age.isVisible().catch(() => false)) {
+            await age.fill(PROBE_BIRTHDAY);
+            await page.getByRole('button', { name: 'Continue', exact: true }).click();
+            seen.push('age gate answered by the throwaway');
+            await sleep(2000);
+            continue;
+        }
+        const notNow = page.locator('.ca-consent').getByRole('button', { name: 'Not Now', exact: true });
+        if (await notNow.isVisible().catch(() => false)) {
+            await notNow.click();
+            seen.push('analytics prompt declined');
+            await sleep(1000);
+            continue;
+        }
+        if (await page.locator('[aria-label="Open Menu"]').first().isVisible().catch(() => false)) return true;
+        await sleep(1000);
+    }
+    return false;
+}
+
 const liveTables = page => page.evaluate(() => Number(document.body?.dataset.caLiveTables || '0')).catch(() => 0);
 const reconnecting = page => page.evaluate(() => /Reconnecting To The Table/i.test(document.body?.innerText || '')).catch(() => false);
 
 async function main() {
-    for (const name of ['TEST_USER_EMAIL', 'TEST_USER_PASSWORD', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'MESSENGER_EXPECTED_SHA', 'CLUB_ARENA_EXPECTED_SHA']) assert.ok(process.env[name]?.trim(), `${name} is required`);
+    for (const name of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'MESSENGER_EXPECTED_SHA', 'CLUB_ARENA_EXPECTED_SHA']) assert.ok(process.env[name]?.trim(), `${name} is required`);
     mkdirSync(RESULT_DIR, { recursive: true });
-    const report = { suite: 'messenger-calls-clubarena', startedAt: new Date().toISOString(), checks: [], cleanup: null };
+    const report = { suite: 'messenger-calls-clubarena', startedAt: new Date().toISOString(), checks: [], probeGates: [], cleanup: null };
     const check = (name, ok, evidence) => { report.checks.push({ name, ok: Boolean(ok), evidence }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); };
     const created = { users: [], conversations: [] };
     const sb = await clients();
@@ -59,8 +100,10 @@ async function main() {
         report.clubArena = build;
         assert.equal(build.ca_sha, process.env.CLUB_ARENA_EXPECTED_SHA, 'Club Arena revision differs from the expected published revision');
 
-        const session = await signInTestAccount(sb.anon);
-        A = session.user.id;
+        const C = await createProbeUser(sb, created, 'cac', 'Arena Call Verification Callee');
+        const session = C.session;
+        A = C.id;
+        report.callee = { role: ((await admin.from('profiles').select('role').eq('id', A).maybeSingle()).data || {}).role || null, throwaway: true };
         const B = await createProbeUser(sb, created, 'cab', 'Arena Call Verification Caller');
         const conversationId = await createConversation(admin, created, B.id, A, { senderId: B.id, content: 'Club Arena Call Verification' });
         const t0 = new Date().toISOString();
@@ -72,16 +115,14 @@ async function main() {
             const profile = mkdtempSync(`${tmpdir()}/sp-ca-push-`);
             const ctx = await chromium.launchPersistentContext(profile, { channel: 'chrome', headless: process.env.NOTIFY_HEADED_PUSH !== '1', args: FAKE_MEDIA, ignoreDefaultArgs: ['--disable-background-networking'], ...devices['Pixel 7'] });
             browsers.push(ctx);
-            // A brand-new account meets Club Arena's Terms of Service gate first
-            // (run 41261469643), and accepting terms is not something this
-            // test does on anyone's behalf. The designated test account has
-            // already passed it; only the subscription made here is removed.
             await signIn(ctx, session);
             await ctx.grantPermissions(['notifications'], { origin: APP_ORIGIN });
             const page = ctx.pages()[0] || await ctx.newPage();
             const devtools = await ctx.newCDPSession(page);
             await devtools.send('Browser.setPermission', { permission: { name: 'push', userVisibleOnly: true }, setting: 'granted', origin: APP_ORIGIN }).catch(() => {});
             await page.goto(`${CA}/`, { waitUntil: 'domcontentloaded' });
+            const ready = await passArenaGates(page, report.probeGates);
+            check('The throwaway passes Club Arena\'s first-visit prompts and reaches the lobby', ready, { prompts: report.probeGates });
             await page.locator('[aria-label="Open Menu"]').first().click({ timeout: 60000 });
             const row = page.getByRole('button', { name: /^Turn On Notifications$/i });
             const shown = await row.waitFor({ timeout: 15000 }).then(() => true, () => false);
@@ -120,6 +161,8 @@ async function main() {
         const arena = await actx.newPage();
         arena.setDefaultTimeout(20000);
         await arena.goto(`${CA}/table/${table.id}`, { waitUntil: 'domcontentloaded' });
+        await passArenaGates(arena, report.probeGates).catch(() => false);
+        if (!/\/table\//.test(new URL(arena.url()).pathname)) await arena.goto(`${CA}/table/${table.id}`, { waitUntil: 'domcontentloaded' });
         await until(async () => (await liveTables(arena)) >= 1, { timeout: 60000 }).catch(() => {});
         report.tablePage = { url: arena.url() };
         await arena.screenshot({ path: `${RESULT_DIR}/arena-table.png` }).catch(() => {});
@@ -127,7 +170,7 @@ async function main() {
         await sleep(15000);
         const fp2 = await tableFingerprint(arena);
         const before = { liveTables: await liveTables(arena), changing: fp1 !== fp2, reconnecting: await reconnecting(arena) };
-        check('The test account is observing a live table that updates (no seat taken)', before.liveTables >= 1 && before.changing && !before.reconnecting, before);
+        check('The callee is observing a live table that updates (no seat taken)', before.liveTables >= 1 && before.changing && !before.reconnecting, before);
 
         const bctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
         await bctx.grantPermissions(['camera', 'microphone'], { origin: APP_ORIGIN });
@@ -170,12 +213,11 @@ async function main() {
         for (const b of browsers) await b.close().catch(() => {});
         report.cleanup = await cleanup(admin, created, async () => {
             const result = {};
-            if (A && created.users.length) result.testAccountCallNotifications = (await admin.from('notifications').delete().eq('user_id', A).in('actor_id', created.users)).error?.message || 'ok';
             if (enrolled.size) {
                 const ids = [...enrolled];
                 const { error } = await admin.from('push_subscriptions').delete().in('id', ids);
                 const { data: left } = await admin.from('push_subscriptions').select('id').in('id', ids);
-                result.testAccountSubscriptionMadeHere = !error && !(left || []).length ? 'ok' : `NOT REMOVED: ${error?.message || 'still present'}`;
+                result.calleeSubscription = !error && !(left || []).length ? 'ok' : `NOT REMOVED: ${error?.message || 'still present'}`;
             }
             return result;
         });
@@ -189,6 +231,8 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
     if (process.argv.includes('--self-test')) {
+        const src = (await import('node:fs')).readFileSync(new URL(import.meta.url), 'utf8');
+        assert.doesNotMatch(src.replace(/^.*the suite uses throwaways only.*$/m, ''), new RegExp(['signInTest' + 'Account', 'TEST_USER_' + 'PASSWORD'].join('|')), 'the suite uses throwaways only');
         console.log('messenger-calls-clubarena self-test passed');
     } else {
         await main();
