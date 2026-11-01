@@ -261,3 +261,19 @@ test('an open page picks up a new build, but never by reloading under a call', (
     assert.match(provider, /window\.__spCallActive = Boolean\(value\);/);
     assert.match(provider, /if \(wasActive && !value\) window\.dispatchEvent\(new Event\('sp-call-idle'\)\);/);
 });
+
+test('a version update never wipes unsent text, and waits for it to clear', async () => {
+    const updater = read('src/components/ui/ServiceWorkerUpdater.jsx');
+    assert.match(updater, /if \(hasUnsentText\(document\)\) \{\s*if \(!draftTimer\)/);
+    assert.match(updater, /if \(cancelled \|\| hasUnsentText\(document\) \|\| window\.__spCallActive \|\| hasActiveTriviaRun\(\)\) return;/);
+    const { hasUnsentText } = await import('../src/lib/pwa/unsentText.mjs');
+    const el = (tagName, props = {}) => ({ tagName, getAttribute: k => props.attrs?.[k] ?? null, closest: () => props.safe ? {} : null, ...props });
+    const doc = list => ({ querySelectorAll: () => list });
+    assert.equal(hasUnsentText(doc([el('TEXTAREA', { value: 'hello' })])), true, 'typed message');
+    assert.equal(hasUnsentText(doc([el('TEXTAREA', { value: '   ' })])), false, 'blank box');
+    assert.equal(hasUnsentText(doc([el('INPUT', { value: 'poker', attrs: { type: 'search' } })])), false, 'search is not a draft');
+    assert.equal(hasUnsentText(doc([el('INPUT', { value: 'hi', attrs: { type: 'text' } })])), true, 'text input');
+    assert.equal(hasUnsentText(doc([el('DIV', { textContent: 'draft post' })])), true, 'contenteditable');
+    assert.equal(hasUnsentText(doc([el('TEXTAREA', { value: 'x', safe: true })])), false, 'opted out');
+    assert.equal(hasUnsentText(doc([el('TEXTAREA', { value: 'x', disabled: true })])), false, 'disabled');
+});

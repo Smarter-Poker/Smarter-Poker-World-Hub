@@ -9,12 +9,15 @@
  * those pages open while the next production deployment lands, and records
  * what each open page does:
  *
- *   idle      - a controlled page nobody touches;
- *   resumed   - a controlled page that is hidden and shown again every minute
- *               (what an installed phone app does when it is backgrounded);
- *   after the deploy: the build each page runs, service worker updates,
- *   reloads, a client-side navigation, a fresh page load, and whether a call
- *   still rings on each open page.
+ *   idle  - a controlled page; hidden and shown once after the deploy, which
+ *           is what makes it look for the new worker;
+ *   draft - Messenger with a typed, unsent reply in the composer;
+ *   call  - a page in a connected call with a throwaway caller.
+ *
+ * Passes only if the idle page takes the update, the draft and call pages do
+ * NOT reload while the text or the call exists (and the call stays connected),
+ * each reloads once its text is cleared or its call ends, and a call still
+ * rings afterwards. Every deploy that lands during the run is logged.
  *
  * Throwaway example.com users only. Read-only towards production apart from
  * the throwaway call it places.
@@ -77,93 +80,102 @@ async function main() {
         const conversationId = await createConversation(sb.admin, created, B.id, C.id, { senderId: C.id, content: 'Upgrade Verification Thread' });
 
         const { chromium, devices } = await import('playwright');
-        browser = await chromium.launch({ headless: true, args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+        browser = await chromium.launch({ headless: true, args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'] });
         const ctx = await browser.newContext({ ...devices['Pixel 7'] });
+        await ctx.grantPermissions(['camera', 'microphone'], { origin: APP_ORIGIN });
         await ctx.addInitScript(({ s }) => {
             localStorage.setItem('smarter-poker-auth', JSON.stringify(s));
             localStorage.setItem(`sp_firstrun_notif_v2_${s.user.id}`, String(Date.now()));
             sessionStorage.setItem('social-intro-seen', 'true');
         }, { s: C.session });
         await ctx.addInitScript(VISIBILITY_SHIM);
-        const reloads = { idle: 0, resumed: 0 };
+
+        // Every production deploy during the run, not only the first
+        // (run 41252779970 missed ae604417 landing four minutes after 9461f04f).
+        let lastSha = oldSha;
+        report.deploys = [];
+        const deployWatch = setInterval(async () => {
+            const sha = await health().catch(() => null);
+            if (sha && sha !== lastSha) { lastSha = sha; report.deploys.push({ at: new Date().toISOString(), sha }); log('deploy', { sha }); }
+        }, 15000);
+
+        const reloads = {};
         const open = async (label, path) => {
             const page = await ctx.newPage();
             page.setDefaultTimeout(20000);
             await page.goto(`${APP_ORIGIN}${path}`, { waitUntil: 'domcontentloaded' });
             await until(async () => (await snapshot(page)).worker?.active === 'activated', { timeout: 60000 }).catch(() => {});
-            // Reload once so the page is controlled, as an installed app is.
             await page.reload({ waitUntil: 'domcontentloaded' });
             await until(async () => (await snapshot(page)).controlled, { timeout: 30000 }).catch(() => {});
+            reloads[label] = 0;
             page.on('framenavigated', frame => { if (frame === page.mainFrame()) { reloads[label] += 1; log('navigated', { page: label, url: frame.url() }); } });
             report.pages[label] = { before: await snapshot(page) };
             return page;
         };
-        const idle = await open('idle', '/hub/friends');
-        const resumed = await open('resumed', '/hub/leaderboards');
-        log('opened', { idle: report.pages.idle.before, resumed: report.pages.resumed.before });
+        const idle = await open('idle', '/hub/leaderboards');
+        const draft = await open('draft', `/hub/messenger?conversation=${conversationId}`);
+        const callPage = await open('call', '/hub/friends');
+        const composer = draft.locator('textarea').first();
+        await composer.waitFor({ timeout: 60000 });
+        await composer.fill('Half written reply that must survive an update');
+        log('opened', { pages: Object.keys(report.pages) });
 
-        // Wait for the next production deployment, cycling the resumed page.
-        let newSha = null;
-        const deadline = Date.now() + waitMinutes * 60000;
-        let cycles = 0;
-        while (Date.now() < deadline) {
-            const sha = await health().catch(() => null);
-            if (sha && sha !== oldSha) { newSha = sha; break; }
-            if (++cycles % 3 === 0) {
-                await resumed.evaluate(() => window.__spSetVisibility('hidden')).catch(() => {});
-                await sleep(2000);
-                await resumed.evaluate(() => window.__spSetVisibility('visible')).catch(() => {});
-            }
-            await sleep(20000);
-        }
-        report.newSha = newSha;
-        if (!newSha) throw new Error(`No new production revision within ${waitMinutes} minutes`);
-        const freshBuildId = await (async () => { const html = await (await fetch(`${APP_ORIGIN}/hub/friends`, { cache: 'no-store' })).text(); return /\/pages\/_app-([^/"]+)\.js/.exec(html) ? `_app-${/\/pages\/_app-([^/"]+)\.js/.exec(html)[1]}.js` : null; })();
-        report.newBuildId = freshBuildId;
-        report.oldAppChunk = report.pages.idle.before.appChunk;
-        log('deployed', { newSha, newBuildId: freshBuildId });
-
-        // Observe four minutes; the resumed page is hidden and shown each minute.
-        for (let minute = 0; minute < 6; minute++) {
-            await resumed.evaluate(() => window.__spSetVisibility('hidden')).catch(() => {});
-            await sleep(3000);
-            await resumed.evaluate(() => window.__spSetVisibility('visible')).catch(() => {});
-            await sleep(57000);
-            log('minute', { minute: minute + 1, idle: await snapshot(idle), resumed: await snapshot(resumed) });
-        }
-        for (const [label, page] of Object.entries({ idle, resumed })) {
-            const after = await snapshot(page);
-            report.pages[label].after = after;
-            report.pages[label].reloads = reloads[label];
-            report.pages[label].runsNewBuild = Boolean(freshBuildId) && after.appChunk === freshBuildId;
-            report.pages[label].documentReloaded = after.timeOrigin !== report.pages[label].before.timeOrigin;
-        }
-
-        // Does a call still ring on each open page, whatever build it runs?
+        // Caller in its own context places a call the call page answers.
         const callerCtx = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
         await callerCtx.grantPermissions(['camera', 'microphone'], { origin: APP_ORIGIN });
         await callerCtx.addInitScript(({ s }) => { localStorage.setItem('smarter-poker-auth', JSON.stringify(s)); localStorage.setItem(`sp_firstrun_notif_v2_${s.user.id}`, String(Date.now())); }, { s: B.session });
         const caller = await callerCtx.newPage();
         await caller.goto(`${APP_ORIGIN}/hub/messenger?conversation=${conversationId}`, { waitUntil: 'domcontentloaded' });
         await caller.getByLabel('Start Video Call', { exact: true }).waitFor({ timeout: 60000 });
-        await caller.getByLabel('Start Video Call', { exact: true }).click();
-        const rang = {};
-        for (const [label, page] of Object.entries({ idle, resumed })) rang[label] = await until(() => incomingOpen(page), { timeout: 20000 }).then(() => true, () => false);
-        report.ringAfterDeploy = rang;
-        log('ring', rang);
-        await caller.getByLabel('End Call', { exact: true }).first().click().catch(() => {});
-        await until(async () => !(await callOpen(caller)), { timeout: 20000 }).catch(() => {});
 
-        // Client-side navigation on the idle page, then a fresh page.
-        await idle.evaluate(() => window.next?.router?.push('/hub/settings')).catch(() => {});
+        // Wait for the next production deployment.
+        const deadline = Date.now() + waitMinutes * 60000;
+        while (Date.now() < deadline && !report.deploys.length) await sleep(10000);
+        if (!report.deploys.length) throw new Error(`No new production revision within ${waitMinutes} minutes`);
+        report.newSha = report.deploys[0].sha;
+
+        // Put the call page into a live call, then let the idle page find the
+        // new worker by being hidden and shown (the visibility re-check).
+        await caller.getByLabel('Start Video Call', { exact: true }).click();
+        await until(() => incomingOpen(callPage), { timeout: 30000 });
+        await callPage.getByRole('button', { name: 'Accept Call', exact: true }).click();
+        await until(async () => (await callPage.locator('[role="dialog"][aria-label*="Call With"]').count()) > 0, { timeout: 30000 });
         await sleep(8000);
-        report.pages.idle.afterClientNavigation = await snapshot(idle);
-        const fresh = await ctx.newPage();
-        await fresh.goto(`${APP_ORIGIN}/hub/friends`, { waitUntil: 'domcontentloaded' });
-        await sleep(5000);
-        report.freshPage = await snapshot(fresh);
-        report.freshPage.runsNewBuild = report.freshPage.appChunk === freshBuildId;
-        log('done', { idle: report.pages.idle, resumed: report.pages.resumed, fresh: report.freshPage });
+        const t = label => report.pages[label].before.timeOrigin;
+        const origin = async page => (await snapshot(page)).timeOrigin;
+        await idle.evaluate(() => window.__spSetVisibility('hidden'));
+        await sleep(2000);
+        await idle.evaluate(() => window.__spSetVisibility('visible'));
+        const idleReloaded = await until(async () => (await origin(idle)) !== t('idle'), { timeout: 60000 }).then(() => true, () => false);
+        await sleep(20000);
+        report.whileHeld = {
+            idleReloaded,
+            draftKept: (await origin(draft)) === t('draft') && (await composer.inputValue().catch(() => null)) === 'Half written reply that must survive an update',
+            callKept: (await origin(callPage)) === t('call') && (await callPage.locator('[role="dialog"][aria-label*="Call With"]').count()) > 0,
+            callerStillConnected: await callOpen(caller),
+        };
+        log('held', report.whileHeld);
+
+        // End the call: the call page should now take the update.
+        await caller.getByLabel('End Call', { exact: true }).first().click().catch(() => {});
+        report.callPageReloadedAfterHangUp = await until(async () => (await origin(callPage)) !== t('call'), { timeout: 40000 }).then(() => true, () => false);
+        // Clear the draft: the draft page should now take the update.
+        await composer.fill('');
+        report.draftPageReloadedAfterClearing = await until(async () => (await origin(draft)) !== t('draft'), { timeout: 40000 }).then(() => true, () => false);
+        report.ringAfterUpdate = await (async () => {
+            await caller.getByLabel('Start Video Call', { exact: true }).click().catch(() => {});
+            const rang = await until(() => incomingOpen(callPage), { timeout: 30000 }).then(() => true, () => false);
+            await caller.getByLabel('End Call', { exact: true }).first().click().catch(() => {});
+            return rang;
+        })();
+        for (const [label, page] of Object.entries({ idle, draft, call: callPage })) {
+            report.pages[label].after = await snapshot(page);
+            report.pages[label].reloads = reloads[label];
+        }
+        clearInterval(deployWatch);
+        report.status = report.whileHeld.idleReloaded && report.whileHeld.draftKept && report.whileHeld.callKept && report.whileHeld.callerStillConnected
+            && report.callPageReloadedAfterHangUp && report.draftPageReloadedAfterClearing && report.ringAfterUpdate ? 'passed' : 'failed';
+        log('done', { status: report.status, callPageReloadedAfterHangUp: report.callPageReloadedAfterHangUp, draftPageReloadedAfterClearing: report.draftPageReloadedAfterClearing, ringAfterUpdate: report.ringAfterUpdate });
     } catch (error) {
         report.error = String(error?.message || error).slice(0, 300);
         console.log(`ERROR ${report.error}`);
@@ -173,7 +185,7 @@ async function main() {
         report.finishedAt = new Date().toISOString();
         writeFileSync(`${RESULT_DIR}/result.json`, JSON.stringify(report, null, 2));
     }
-    if (report.error || cleanupFailed(report.cleanup)) process.exitCode = 1;
+    if (report.error || report.status !== 'passed' || cleanupFailed(report.cleanup)) process.exitCode = 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
