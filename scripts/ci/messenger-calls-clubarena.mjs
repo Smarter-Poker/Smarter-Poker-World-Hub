@@ -104,7 +104,13 @@ function watchRealtime(page) {
         ws.on('framesent', f => { const t = String(f.payload || ''); if (/phx_join/.test(t) && /"table":"notifications"/.test(t)) seen.notificationJoins += 1; });
         ws.on('framereceived', f => {
             const t = String(f.payload || '');
-            if (/postgres_changes/.test(t) && /"table":"notifications"/.test(t)) seen.notificationEvents += 1;
+            if (/postgres_changes/.test(t) && /"table":"notifications"/.test(t)) {
+                seen.notificationEvents += 1;
+                const topic = (/"topic":"([^"]+)"/.exec(t) || [])[1] || '';
+                const kind = (/"type":"(INSERT|UPDATE|DELETE)"/.exec(t) || [])[1] || null;
+                const recType = (/"record":\{[^}]*?"type":"([a-z_]+)"/.exec(t) || [])[1] || null;
+                (seen.notificationFrames ||= []).push({ topic: topic.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '<id>'), kind, recType });
+            }
             if (/"status":"error"|phx_error|Unable to subscribe/.test(t)) {
                 const topic = (/"topic":"([^"]+)"/.exec(t) || [])[1] || null;
                 const params = (/connect parameters: \[([^\]]*)\]/.exec(t) || [])[1] || null;
@@ -157,10 +163,12 @@ async function main() {
             const ctx = await chromium.launchPersistentContext(profile, { channel: 'chrome', headless: process.env.NOTIFY_HEADED_PUSH !== '1', args: FAKE_MEDIA, ignoreDefaultArgs: ['--disable-background-networking'], ...devices['Pixel 7'] });
             browsers.push(ctx);
             await signIn(ctx, session);
-            await ctx.grantPermissions(['notifications'], { origin: APP_ORIGIN });
+            // Permission stays at "ask" until the row is tapped, as on a real
+            // device. Granting it up front let the app subscribe on its own
+            // before the menu opened, so the row correctly hid (runs
+            // 41278838906, 41279469210).
             const page = ctx.pages()[0] || await ctx.newPage();
             const devtools = await ctx.newCDPSession(page);
-            await devtools.send('Browser.setPermission', { permission: { name: 'push', userVisibleOnly: true }, setting: 'granted', origin: APP_ORIGIN }).catch(() => {});
             await page.goto(`${CA}/`, { waitUntil: 'domcontentloaded' });
             const ready = await passArenaGates(page, report.probeGates);
             check('The throwaway passes Club Arena\'s first-visit prompts and reaches the lobby', ready, { prompts: report.probeGates });
@@ -170,7 +178,11 @@ async function main() {
             const menuText = shown ? null : await page.evaluate(() => (document.querySelector('[role="dialog"], nav, aside')?.innerText || document.body.innerText || '').slice(0, 500)).catch(() => null);
             if (!shown) await page.screenshot({ path: `${RESULT_DIR}/menu-without-row.png` }).catch(() => {});
             check('Club Arena menu offers Turn On Notifications to a device without push', shown, shown ? null : { menuText });
+            report.beforeTap = { permission: await page.evaluate(() => Notification.permission).catch(() => null), subscriptionsBeforeTap: ((await admin.from('push_subscriptions').select('id').eq('user_id', A)).data || []).length };
             if (shown) {
+                // The tap is the gesture that grants permission on a device.
+                await ctx.grantPermissions(['notifications'], { origin: APP_ORIGIN });
+                await devtools.send('Browser.setPermission', { permission: { name: 'push', userVisibleOnly: true }, setting: 'granted', origin: APP_ORIGIN }).catch(() => {});
                 await row.click();
                 const sub = await until(async () => (await admin.from('push_subscriptions').select('id, endpoint, transport').eq('user_id', A).eq('is_active', true).gte('created_at', t0)).data?.[0], { timeout: 45000 }).catch(() => null);
                 if (sub) enrolled.add(sub.id);
