@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 79,
     "realtimeFiles": 6,
-    "tests": 170,
+    "tests": 171,
     "markerCandidates": 341,
     "possibleUnwiredFunctions": 397,
     "routeStateCells": 752,
@@ -9686,6 +9686,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/leak-engine-wiring.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-analysis-suite-phase-8.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-request-deadline.test.mjs"
@@ -9704,6 +9705,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/leak-engine-wiring.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-analysis-suite-phase-8.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-request-deadline.test.mjs"
@@ -9720,6 +9722,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/leak-engine-wiring.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-analysis-suite-phase-8.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-request-deadline.test.mjs"
@@ -9735,6 +9738,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/leak-engine-wiring.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-analysis-suite-phase-8.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-request-deadline.test.mjs"
@@ -9751,6 +9755,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/leak-engine-wiring.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-analysis-suite-phase-8.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-request-deadline.test.mjs"
@@ -9766,6 +9771,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/leak-engine-wiring.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-analysis-suite-phase-8.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-request-deadline.test.mjs"
@@ -9779,6 +9785,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/leak-engine-wiring.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-analysis-suite-phase-8.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-request-deadline.test.mjs"
@@ -9794,6 +9801,7 @@
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/leak-engine-wiring.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-analysis-suite-phase-8.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-request-deadline.test.mjs"
@@ -9803,6 +9811,7 @@
       "existingTests": [
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/leak-engine-wiring.test.mjs",
+        "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/training-analysis-suite-phase-8.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-request-deadline.test.mjs"
@@ -10366,7 +10375,9 @@
           "evidence": [
             "src/lib/authUtils.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs"
+          ]
         },
         "empty": {
           "status": "implemented-or-detected",
@@ -10374,7 +10385,9 @@
             "src/components/seo/HubPageSummary.js",
             "src/lib/seo/hubPageSchema.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs"
+          ]
         },
         "error": {
           "status": "implemented-or-detected",
@@ -10384,7 +10397,9 @@
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs"
+          ]
         },
         "retry": {
           "status": "implemented-or-detected",
@@ -10392,7 +10407,9 @@
             "src/lib/authUtils.js",
             "src/lib/training/boundedTrainingFetch.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs"
+          ]
         },
         "success": {
           "status": "implemented-or-detected",
@@ -10400,7 +10417,9 @@
             "pages/hub/training/icm-simulator.js",
             "src/lib/authUtils.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs"
+          ]
         },
         "stale": {
           "status": "implemented-or-detected",
@@ -10408,14 +10427,18 @@
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs"
+          ]
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -10424,10 +10447,14 @@
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs"
+          ]
         }
       },
-      "existingTests": [],
+      "existingTests": [
+        "__tests__/phases-35-50-aeo.test.mjs"
+      ],
       "uncoveredStates": []
     },
     {
@@ -12836,6 +12863,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12848,6 +12876,7 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12861,6 +12890,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12873,6 +12903,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12884,6 +12915,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12895,6 +12927,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12905,6 +12938,7 @@
             "src/components/seo/HubPageSummary.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12919,12 +12953,14 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         }
       },
       "existingTests": [
+        "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ],
@@ -15085,6 +15121,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -15099,6 +15136,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -15117,6 +15155,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -15133,6 +15172,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -15148,6 +15188,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -15163,6 +15204,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -15176,6 +15218,7 @@
             "src/components/training/ConnectionToast.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -15191,6 +15234,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -15200,6 +15244,7 @@
         }
       },
       "existingTests": [
+        "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -16257,6 +16302,7 @@
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -16273,6 +16319,7 @@
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -16290,6 +16337,7 @@
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -16305,6 +16353,7 @@
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -16319,6 +16368,7 @@
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -16334,6 +16384,7 @@
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -16347,6 +16398,7 @@
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -16362,6 +16414,7 @@
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
+            "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-question-integrity.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -16371,6 +16424,7 @@
       },
       "existingTests": [
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
+        "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/training-question-integrity.test.mjs",
         "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -65186,6 +65240,7 @@
     "__tests__/no-slide-to-see.law.test.mjs",
     "__tests__/page-tutorials.test.mjs",
     "__tests__/phase23-calculator-schema.test.mjs",
+    "__tests__/phases-35-50-aeo.test.mjs",
     "__tests__/poker-near-me-phase-6.test.mjs",
     "__tests__/robots-crawler-policy.law.test.mjs",
     "__tests__/scroll-lock.test.mjs",
@@ -81049,6 +81104,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -84216,6 +84272,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs"
       ]
     },

@@ -1721,6 +1721,110 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?section=vip-membership&slug=compare',
         },
         {
+          source: '/hub/vip-membership.md',
+          destination: '/api/hub-tool-markdown?path=/hub/vip-membership',
+        },
+        {
+          source: '/hub/vip-membership/gift/:plan.md',
+          destination: '/api/hub-tool-markdown?path=/hub/vip-membership/gift/:plan',
+        },
+        {
+          source: '/hub/vip-membership/:plan.md',
+          destination: '/api/hub-tool-markdown?path=/hub/vip-membership/:plan',
+        },
+        {
+          source: '/hub/diamond-store.md',
+          destination: '/api/hub-tool-markdown?path=/hub/diamond-store',
+        },
+        {
+          source: '/hub/smarter-rewards.md',
+          destination: '/api/hub-tool-markdown?path=/hub/smarter-rewards',
+        },
+        {
+          source: '/hub/merch-store.md',
+          destination: '/api/hub-tool-markdown?path=/hub/merch-store',
+        },
+        {
+          source: '/hub/club-shop.md',
+          destination: '/api/hub-tool-markdown?path=/hub/club-shop',
+        },
+        {
+          source: '/hub/tournaments/this-weekend.md',
+          destination: '/api/hub-tool-markdown?path=/hub/tournaments/this-weekend',
+        },
+        {
+          source: '/hub/preflop-charts/:slug.md',
+          destination: '/api/hub-tool-markdown?section=preflop-charts&slug=:slug',
+        },
+        {
+          source: '/hub/news.md',
+          destination: '/api/hub-tool-markdown?section=news',
+        },
+        {
+          source: '/hub/news/:slug.md',
+          destination: '/api/hub-tool-markdown?section=news&slug=:slug',
+        },
+        {
+          source: '/hub/leaderboards.md',
+          destination: '/api/hub-tool-markdown?section=leaderboards',
+        },
+        {
+          source: '/hub/promotions.md',
+          destination: '/api/hub-tool-markdown?section=promotions',
+        },
+        {
+          source: '/hub/lives.md',
+          destination: '/api/hub-tool-markdown?section=lives',
+        },
+        {
+          source: '/hub/help.md',
+          destination: '/api/hub-tool-markdown?section=help',
+        },
+        {
+          source: '/hub/pages.md',
+          destination: '/api/hub-tool-markdown?section=pages',
+        },
+        {
+          source: '/hub/social-pages.md',
+          destination: '/api/hub-tool-markdown?section=social-pages',
+        },
+        {
+          source: '/hub/social-media.md',
+          destination: '/api/hub-tool-markdown?section=social-media',
+        },
+        {
+          source: '/terms.md',
+          destination: '/api/hub-tool-markdown?path=/terms',
+        },
+        {
+          source: '/privacy.md',
+          destination: '/api/hub-tool-markdown?path=/privacy',
+        },
+        {
+          source: '/legal/official-rules.md',
+          destination: '/api/hub-tool-markdown?path=/legal/official-rules',
+        },
+        {
+          source: '/hub/home-games/in.md',
+          destination: '/api/hub-tool-markdown?path=/hub/home-games/in',
+        },
+        {
+          source: '/hub/home-games/near-me.md',
+          destination: '/api/hub-tool-markdown?path=/hub/home-games/near-me',
+        },
+        {
+          source: '/hub/home-games/in/:state/:city.md',
+          destination: '/api/hub-tool-markdown?path=/hub/home-games/in/:state/:city',
+        },
+        {
+          source: '/hub/home-games/in/:state.md',
+          destination: '/api/hub-tool-markdown?path=/hub/home-games/in/:state',
+        },
+        {
+          source: '/hub/home-games/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/hub/home-games/:slug',
+        },
+        {
           source: '/hub/training/:slug.md',
           destination: '/api/hub-tool-markdown?section=training&slug=:slug',
         },
