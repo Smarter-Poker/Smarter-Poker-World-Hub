@@ -58,12 +58,14 @@ const tableFingerprint = page => page.evaluate(() => (document.body?.innerText |
 export const PROBE_BIRTHDAY = '1990-01-01';
 async function passArenaGates(page, seen) {
     const deadline = Date.now() + 60000;
+    let clearSince = 0;
     while (Date.now() < deadline) {
         const agree = page.getByText('I Have Read And Agree To The Terms Of Service And Privacy Policy');
         if (await agree.isVisible().catch(() => false)) {
             await agree.click();
             await page.getByRole('button', { name: 'Accept & Continue', exact: true }).click();
             seen.push('terms accepted by the throwaway');
+            clearSince = 0;
             await sleep(2000);
             continue;
         }
@@ -72,6 +74,7 @@ async function passArenaGates(page, seen) {
             await age.fill(PROBE_BIRTHDAY);
             await page.getByRole('button', { name: 'Continue', exact: true }).click();
             seen.push('age gate answered by the throwaway');
+            clearSince = 0;
             await sleep(2000);
             continue;
         }
@@ -79,6 +82,7 @@ async function passArenaGates(page, seen) {
         if (await page.locator('#dbs-title').isVisible().catch(() => false) && await bonusClose.first().isVisible().catch(() => false)) {
             await bonusClose.first().click();
             seen.push('daily bonus sheet closed without claiming');
+            clearSince = 0;
             await sleep(1000);
             continue;
         }
@@ -89,7 +93,13 @@ async function passArenaGates(page, seen) {
             await sleep(1000);
             continue;
         }
-        if (await page.locator('[aria-label="Open Menu"]').first().isVisible().catch(() => false)) return true;
+        // The app renders under the Terms check while it is still asking, so
+        // the menu button alone is not "past the prompts" (run 41283946559).
+        // Require it visible on two checks three seconds apart with no prompt.
+        if (await page.locator('[aria-label="Open Menu"]').first().isVisible().catch(() => false)) {
+            if (clearSince && Date.now() - clearSince >= 3000) return true;
+            clearSince ||= Date.now();
+        } else clearSince = 0;
         await sleep(1000);
     }
     return false;
