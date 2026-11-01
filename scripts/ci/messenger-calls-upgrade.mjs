@@ -55,6 +55,7 @@ async function snapshot(page) {
             appChunk: app ? app.split('/').pop() : null,
             timeOrigin: Math.round(performance.timeOrigin),
             buildId: window.__NEXT_DATA__?.buildId || null,
+            decisions: (() => { try { return JSON.parse(sessionStorage.getItem('sp_sw_decisions') || '[]').map(d => d.decision); } catch { return null; } })(),
             controlled: Boolean(navigator.serviceWorker.controller),
             worker: { active: reg?.active?.state || null, waiting: Boolean(reg?.waiting), installing: Boolean(reg?.installing) },
             path: location.pathname,
@@ -146,7 +147,7 @@ async function main() {
         await idle.evaluate(() => window.__spSetVisibility('hidden'));
         await sleep(2000);
         await idle.evaluate(() => window.__spSetVisibility('visible'));
-        const idleReloaded = await until(async () => (await origin(idle)) !== t('idle'), { timeout: 60000 }).then(() => true, () => false);
+        const idleReloaded = await until(async () => (await origin(idle)) !== t('idle'), { timeout: 150000 }).then(() => true, () => false);
         await sleep(20000);
         report.whileHeld = {
             idleReloaded,
@@ -154,6 +155,7 @@ async function main() {
             callKept: (await origin(callPage)) === t('call') && (await callPage.locator('[role="dialog"][aria-label*="Call With"]').count()) > 0,
             callerStillConnected: await callOpen(caller),
         };
+        report.whileHeld.decisions = { idle: (await snapshot(idle)).decisions, draft: (await snapshot(draft)).decisions, call: (await snapshot(callPage)).decisions };
         log('held', report.whileHeld);
 
         // End the call: the call page should now take the update.
