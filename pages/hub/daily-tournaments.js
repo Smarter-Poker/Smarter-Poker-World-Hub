@@ -421,14 +421,16 @@ export default function DailyTournaments() {
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(scheduleSchema) }} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     '@context': 'https://schema.org',
-                    ...datasetSchema({
-                        path: '/hub/daily-tournaments',
-                        name: 'Smarter.Poker Daily Live Poker Tournaments Directory Dataset',
-                        description: 'Recurring Weekly Live Poker Tournament Schedules Across 324+ North American Cardrooms Including Buy-Ins, Starting Stacks, Blind Levels, And Guarantees.',
-                        keywords: ['Daily Poker Tournaments', 'Live Poker Schedules', 'Casino Poker Tournaments', 'Guaranteed Poker Prize Pools'],
-                        variableMeasured: ['Tournament Buy-In', 'Guaranteed Prize Pool', 'Starting Chip Stack', 'Blind Level Duration'],
-                    }),
-                    ...faqSchema(DAILY_TOURNAMENTS_FAQS, '/hub/daily-tournaments'),
+                    '@graph': [
+                        datasetSchema({
+                            path: '/hub/daily-tournaments',
+                            name: 'Smarter.Poker Daily Live Poker Tournaments Directory Dataset',
+                            description: 'Recurring Weekly Live Poker Tournament Schedules Across 324+ North American Cardrooms Including Buy-Ins, Starting Stacks, Blind Levels, And Guarantees.',
+                            keywords: ['Daily Poker Tournaments', 'Live Poker Schedules', 'Casino Poker Tournaments', 'Guaranteed Poker Prize Pools'],
+                            variableMeasured: ['Tournament Buy-In', 'Guaranteed Prize Pool', 'Starting Chip Stack', 'Blind Level Duration'],
+                        }),
+                        faqSchema(DAILY_TOURNAMENTS_FAQS, '/hub/daily-tournaments'),
+                    ].filter(Boolean),
                 }) }} />
 
             </SEOHead>

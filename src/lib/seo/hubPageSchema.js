@@ -29,7 +29,10 @@ export const WEBSITE_ID = `${SITE}/#website`;
 
 import { resolveToolWikidataLinks } from './wikidataRegistry.mjs';
 
-const absolute = (path) => `${SITE}${path.startsWith('/') ? '' : '/'}${path}`;
+const absolute = (path) => {
+  const safePath = typeof path === 'string' && path.length > 0 ? path : '/';
+  return `${SITE}${safePath.startsWith('/') ? '' : '/'}${safePath}`;
+};
 
 /**
  * A BreadcrumbList from an ordered trail of [name, path] pairs. The trail
