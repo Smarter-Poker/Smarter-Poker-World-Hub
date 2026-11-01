@@ -193,34 +193,33 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(
-              datasetSchema({
-                path: '/hub/tournaments/this-weekend',
-                name: 'Smarter.Poker Weekend Poker Tournaments Directory (Friday, Saturday & Sunday)',
-                description:
-                  'Live Friday, Saturday, And Sunday Poker Tournament Schedules, Buy-Ins, Starting Stacks, And Guaranteed Prize Pools Across 324+ Verified North American Poker Rooms.',
-                keywords: [
-                  'poker tournaments this weekend',
-                  'weekend poker tournaments near me',
-                  'saturday poker tournaments',
-                  'sunday poker tournaments',
-                  'guaranteed poker tournaments this weekend',
-                ],
-                variableMeasured: [
-                  'Buy-In Amount ($)',
-                  'Guaranteed Prize Pool ($)',
-                  'Weekend Day (Friday, Saturday, Sunday)',
-                  'Start Time & Registration Window',
-                  'Game Type (NLH, PLO, Mixed)',
-                ],
-                size: '1,800+ Recurring Weekend Tournament Schedules Across 324+ Verified Venues',
-              })
-            ),
+            __html: serializePokerJsonLd({
+              '@context': 'https://schema.org',
+              '@graph': [
+                datasetSchema({
+                  path: '/hub/tournaments/this-weekend',
+                  name: 'Smarter.Poker Weekend Poker Tournaments Directory (Friday, Saturday & Sunday)',
+                  description:
+                    'Live Friday, Saturday, And Sunday Poker Tournament Schedules, Buy-Ins, Starting Stacks, And Guaranteed Prize Pools Across 324+ Verified North American Poker Rooms.',
+                  keywords: [
+                    'poker tournaments this weekend',
+                    'weekend poker tournaments near me',
+                    'saturday poker tournaments',
+                    'sunday poker tournaments',
+                    'guaranteed poker tournaments this weekend',
+                  ],
+                  variableMeasured: [
+                    'Buy-In Amount ($)',
+                    'Guaranteed Prize Pool ($)',
+                    'Weekend Day (Friday, Saturday, Sunday)',
+                    'Start Time & Registration Window',
+                    'Game Type (NLH, PLO, Mixed)',
+                  ],
+                }),
+                faqSchema(WEEKEND_TOURNAMENTS_FAQS, '/hub/tournaments/this-weekend'),
+              ].filter(Boolean),
+            }),
           }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema(WEEKEND_TOURNAMENTS_FAQS)) }}
         />
       </SEOHead>
 

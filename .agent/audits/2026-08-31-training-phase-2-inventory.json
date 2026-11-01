@@ -50762,7 +50762,7 @@
       "functions": [
         {
           "name": "breadcrumbSchema",
-          "line": 39,
+          "line": 42,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -50770,7 +50770,7 @@
         },
         {
           "name": "faqSchema",
-          "line": 56,
+          "line": 59,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -50778,7 +50778,7 @@
         },
         {
           "name": "howToSchema",
-          "line": 76,
+          "line": 79,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -50786,7 +50786,7 @@
         },
         {
           "name": "licensableImageSchema",
-          "line": 107,
+          "line": 110,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -50794,7 +50794,7 @@
         },
         {
           "name": "hubProductSchema",
-          "line": 139,
+          "line": 142,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50802,7 +50802,7 @@
         },
         {
           "name": "hubCollectionSchema",
-          "line": 241,
+          "line": 244,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50810,7 +50810,7 @@
         },
         {
           "name": "datasetSchema",
-          "line": 301,
+          "line": 304,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50818,7 +50818,7 @@
         },
         {
           "name": "courseSchema",
-          "line": 345,
+          "line": 348,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50826,7 +50826,7 @@
         },
         {
           "name": "freerollEventSchema",
-          "line": 414,
+          "line": 417,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -88115,7 +88115,8 @@
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
-        "__tests__/gsc-series5-phase3.test.mjs"
+        "__tests__/gsc-series5-phase3.test.mjs",
+        "__tests__/phases-35-50-aeo.test.mjs"
       ]
     },
     {
@@ -96761,7 +96762,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubProductSchema",
-        "line": 139,
+        "line": 142,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96795,7 +96796,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 241,
+        "line": 244,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96821,7 +96822,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 414,
+        "line": 417,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106232,7 +106233,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubProductSchema",
-        "line": 139,
+        "line": 142,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106266,7 +106267,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 241,
+        "line": 244,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106292,7 +106293,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 414,
+        "line": 417,
         "references": 1,
         "exported": true,
         "defaultExport": false,

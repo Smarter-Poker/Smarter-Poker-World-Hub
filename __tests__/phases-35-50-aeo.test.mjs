@@ -211,4 +211,16 @@ test('Phase 50+: Static HUB_PAGE_SUMMARIES export and 100% World Hub surface Mar
     const md = renderHubToolMarkdown(route);
     assert.ok(md && md.includes('# '), `renderHubToolMarkdown(${route}) returns valid Markdown`);
   }
+
+  const { faqSchema, datasetSchema } = await import('../src/lib/seo/hubPageSchema.js');
+  const faqWithPath = faqSchema([{ question: 'Q?', answer: 'A.' }], '/hub/tournaments/this-weekend');
+  assert.equal(faqWithPath['@type'], 'FAQPage');
+  assert.equal(faqWithPath['@id'], 'https://smarter.poker/hub/tournaments/this-weekend#faq');
+
+  const faqWithoutPath = faqSchema([{ question: 'Q?', answer: 'A.' }]);
+  assert.equal(faqWithoutPath['@type'], 'FAQPage');
+  assert.equal(faqWithoutPath['@id'], 'https://smarter.poker/#faq');
+
+  const ds = datasetSchema({ path: '/hub/tournaments/this-weekend', name: 'Weekend', description: 'Desc' });
+  assert.equal(ds['@type'], 'Dataset');
 });
