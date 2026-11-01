@@ -12,8 +12,8 @@
  *      "+" hub tab while the table tab stays open and connected; after the
  *      call the alert is gone and the table still updates.
  *
- * No real contact is called. The test account is only the callee and never
- * sits down. Throwaways are example.com and hard-deleted.
+ * No real contact is called. The test account is the callee and the menu
+ * enroller, never sits down, and only the subscription made here is removed. Throwaways are example.com and hard-deleted.
  */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -52,6 +52,7 @@ async function main() {
     const { admin } = sb;
     const browsers = [];
     let A = null;
+    const enrolled = new Set();
     try {
         report.health = await assertLiveRevision();
         const build = await (await fetch(`${CA}/build-info.json`, { cache: 'no-store' })).json();
@@ -61,7 +62,6 @@ async function main() {
         const session = await signInTestAccount(sb.anon);
         A = session.user.id;
         const B = await createProbeUser(sb, created, 'cab', 'Arena Call Verification Caller');
-        const E = await createProbeUser(sb, created, 'cae', 'Arena Enrol Verification');
         const conversationId = await createConversation(admin, created, B.id, A, { senderId: B.id, content: 'Club Arena Call Verification' });
         const t0 = new Date().toISOString();
 
@@ -72,7 +72,11 @@ async function main() {
             const profile = mkdtempSync(`${tmpdir()}/sp-ca-push-`);
             const ctx = await chromium.launchPersistentContext(profile, { channel: 'chrome', headless: process.env.NOTIFY_HEADED_PUSH !== '1', args: FAKE_MEDIA, ignoreDefaultArgs: ['--disable-background-networking'], ...devices['Pixel 7'] });
             browsers.push(ctx);
-            await signIn(ctx, E.session);
+            // A brand-new account meets Club Arena's Terms of Service gate first
+            // (run 41261469643), and accepting terms is not something this
+            // test does on anyone's behalf. The designated test account has
+            // already passed it; only the subscription made here is removed.
+            await signIn(ctx, session);
             await ctx.grantPermissions(['notifications'], { origin: APP_ORIGIN });
             const page = ctx.pages()[0] || await ctx.newPage();
             const devtools = await ctx.newCDPSession(page);
@@ -84,7 +88,8 @@ async function main() {
             check('Club Arena menu offers Turn On Notifications to a device without push', shown, null);
             if (shown) {
                 await row.click();
-                const sub = await until(async () => (await admin.from('push_subscriptions').select('id, endpoint, transport').eq('user_id', E.id).eq('is_active', true)).data?.[0], { timeout: 45000 }).catch(() => null);
+                const sub = await until(async () => (await admin.from('push_subscriptions').select('id, endpoint, transport').eq('user_id', A).eq('is_active', true).gte('created_at', t0)).data?.[0], { timeout: 45000 }).catch(() => null);
+                if (sub) enrolled.add(sub.id);
                 check('Club Arena menu enrols the device: subscription stored server-side', Boolean(sub), sub ? { endpointHost: new URL(sub.endpoint).host, transport: sub.transport } : null);
                 await page.reload({ waitUntil: 'domcontentloaded' });
                 await page.locator('[aria-label="Open Menu"]').first().click({ timeout: 60000 });
@@ -166,7 +171,12 @@ async function main() {
         report.cleanup = await cleanup(admin, created, async () => {
             const result = {};
             if (A && created.users.length) result.testAccountCallNotifications = (await admin.from('notifications').delete().eq('user_id', A).in('actor_id', created.users)).error?.message || 'ok';
-            if (created.users.length) result.throwawaySubscriptions = (await admin.from('push_subscriptions').delete().in('user_id', created.users)).error?.message || 'ok';
+            if (enrolled.size) {
+                const ids = [...enrolled];
+                const { error } = await admin.from('push_subscriptions').delete().in('id', ids);
+                const { data: left } = await admin.from('push_subscriptions').select('id').in('id', ids);
+                result.testAccountSubscriptionMadeHere = !error && !(left || []).length ? 'ok' : `NOT REMOVED: ${error?.message || 'still present'}`;
+            }
             return result;
         });
         report.finishedAt = new Date().toISOString();
