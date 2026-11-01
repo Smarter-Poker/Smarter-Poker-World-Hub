@@ -85,6 +85,7 @@ export default function handler(req, res) {
       llms_ja_txt: `${SITE}/llms-ja.txt`,
       knowledge_graph_jsonld: `${SITE}/knowledge-graph.jsonld`,
       openapi_json: `${SITE}/api/openapi.json`,
+      openapi_root_json: `${SITE}/openapi.json`,
       mcp_endpoint: `${SITE}/api/mcp`,
       mcp_registry: `${SITE}/.well-known/mcp-registry.json`,
       editorial_standards: `${SITE}/editorial-standards`,

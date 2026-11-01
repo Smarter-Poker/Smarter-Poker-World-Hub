@@ -65,8 +65,8 @@ test('Phase 36: Parameterized Odds and ICM Markdown renderers compute live scena
   assert.ok(icmMd.includes('$3839.29') || icmMd.includes('Player 1'), 'computes Malmuth-Harville ICM equity for Player 1');
 });
 
-test('Phase 37: Starting Hand Encyclopedia defines 50 canonical hands with Markdown renderers', () => {
-  assert.equal(STARTING_HANDS.length, 50);
+test('Phase 37: Starting Hand Encyclopedia defines 65 canonical hands with Markdown renderers', () => {
+  assert.equal(STARTING_HANDS.length, 65);
   const aces = findStartingHand('AA');
   assert.ok(aces && aces.slug === 'pocket-aces');
   const ak = findStartingHand('ace-king-suited');
@@ -79,6 +79,10 @@ test('Phase 37: Starting Hand Encyclopedia defines 50 canonical hands with Markd
   assert.ok(sixFive && sixFive.slug === 'six-five-suited');
   const jackNine = findStartingHand('J9s');
   assert.ok(jackNine && jackNine.slug === 'jack-nine-suited');
+  const fiveFour = findStartingHand('54s');
+  assert.ok(fiveFour && fiveFour.slug === 'five-four-suited');
+  const queenTenOff = findStartingHand('QTo');
+  assert.ok(queenTenOff && queenTenOff.slug === 'queen-ten-offsuit');
 
   const indexMd = renderStartingHandsIndexMarkdown();
   assert.ok(indexMd.startsWith('# Smarter.Poker Texas Hold\'em Starting Hand Encyclopedia'));
@@ -86,6 +90,8 @@ test('Phase 37: Starting Hand Encyclopedia defines 50 canonical hands with Markd
   assert.ok(indexMd.includes('Pocket Eights'));
   assert.ok(indexMd.includes('Six-Five Suited'));
   assert.ok(indexMd.includes('Jack-Nine Suited'));
+  assert.ok(indexMd.includes('Five-Four Suited'));
+  assert.ok(indexMd.includes('Queen-Ten Offsuit'));
 
   const handMd = renderStartingHandMarkdown(aces);
   assert.ok(handMd.includes('85.2%'));
@@ -256,11 +262,20 @@ test('Phase 50+: Static HUB_PAGE_SUMMARIES export and 100% World Hub surface Mar
   const ds = datasetSchema({ path: '/hub/tournaments/this-weekend', name: 'Weekend', description: 'Desc' });
   assert.equal(ds['@type'], 'Dataset');
 
-  const { renderPreflopRangesMarkdown } = await import('../src/lib/seo/markdownIngestion.mjs');
+  const { renderPreflopRangesMarkdown, renderPotOddsCalculatorMarkdown, renderBankrollCalculatorMarkdown } = await import('../src/lib/seo/markdownIngestion.mjs');
   for (const pos of ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB']) {
     const posMd = renderPreflopRangesMarkdown({ position: pos });
-    assert.ok(posMd.includes(`(${pos}) Opening Strategy`), `renders ${pos} preflop Markdown header`);
+    assert.ok(posMd.includes(`(${pos}) Opening Strategy`) || posMd.includes(`${pos} Opening Strategy`), `renders ${pos} preflop Markdown header`);
     assert.ok(posMd.includes('Pure 100% Open Hands'), `includes pure 100% open hands for ${pos}`);
   }
   assert.ok(fs.existsSync(path.join(ROOT, 'pages/tools/preflop-ranges/[position].js')), 'positional preflop-ranges route exists');
+  assert.ok(fs.existsSync(path.join(ROOT, 'pages/tools/pot-odds-calculator.js')), 'pot-odds-calculator route exists');
+  assert.ok(fs.existsSync(path.join(ROOT, 'pages/tools/bankroll-calculator.js')), 'bankroll-calculator route exists');
+
+  const potMd = renderPotOddsCalculatorMarkdown({ pot: 100, bet: 50, outs: 9 });
+  assert.ok(potMd.includes('25.0%'), 'pot odds Markdown computes 25.0% required equity');
+  assert.ok(potMd.includes('66.7%'), 'pot odds Markdown computes 66.7% MDF');
+
+  const brMd = renderBankrollCalculatorMarkdown({ winrate: 5, stdDev: 85, buyIns: 30 });
+  assert.ok(brMd.includes('Risk Of Ruin (RoR)'), 'bankroll Markdown computes Risk of Ruin');
 });

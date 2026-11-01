@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
 import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
+import { STARTING_HANDS } from '../../../src/content/learn/hands';
 
 const POSITIONS = [
   { id: 'UTG', name: 'Under The Gun', abbrev: 'UTG', desc: 'Tightest opening range from first position at 6-max table.' },
@@ -534,6 +535,61 @@ export default function PreflopRangeMatrixHub({
             </div>
           </div>
 
+          {/* Starting Hand Encyclopedia Cross-Links */}
+          <div style={{
+            marginTop: 24,
+            background: '#161B22',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: 24,
+          }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px 0', color: '#FFFFFF' }}>
+              Starting Hand Strategy Guides In The {posData.abbrev} Opening Range
+            </h2>
+            <p style={{ fontSize: 13, color: '#8B949E', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+              Explore Detailed Combinatoric Breakdowns, 3-Bet Responses, And Head-To-Head Equity Matchups For Key Hands Opened From {posData.name} ({posData.abbrev}):
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {STARTING_HANDS.filter((h) => (rfiMap[h.code]?.raise || 0) > 0).slice(0, 24).map((h) => (
+                <Link
+                  key={h.slug}
+                  href={`/learn/hands/${h.slug}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '6px 10px',
+                    background: 'rgba(88, 166, 255, 0.08)',
+                    border: '1px solid rgba(88, 166, 255, 0.25)',
+                    borderRadius: 6,
+                    color: '#58A6FF',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  {h.code} ({h.name})
+                </Link>
+              ))}
+              <Link
+                href="/learn/hands"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  background: 'rgba(0, 230, 118, 0.12)',
+                  border: '1px solid rgba(0, 230, 118, 0.3)',
+                  borderRadius: 6,
+                  color: '#00E676',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                All {STARTING_HANDS.length} Starting Hand Guides
+              </Link>
+            </div>
+          </div>
+
           {/* Related Tools & Comparisons */}
           <div style={{
             marginTop: 24,
@@ -613,6 +669,40 @@ export default function PreflopRangeMatrixHub({
                 }}
               >
                 Tournament ICM Calculator
+              </Link>
+              <Link
+                href="/tools/pot-odds-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 6,
+                  color: '#E6EDF3',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Pot Odds &amp; MDF Calculator
+              </Link>
+              <Link
+                href="/tools/bankroll-calculator"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 6,
+                  color: '#E6EDF3',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Bankroll &amp; Risk Of Ruin Calculator
               </Link>
             </div>
           </div>

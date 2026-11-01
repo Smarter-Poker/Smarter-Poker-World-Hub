@@ -1941,3 +1941,103 @@ export function renderEditorialStandardsMarkdown({ canonicalUrl = 'https://smart
   ].join('\n');
 }
 
+/**
+ * Format Pot Odds, Required Equity & MDF Calculator (/tools/pot-odds-calculator) as clean structured Markdown
+ */
+export function renderPotOddsCalculatorMarkdown({ pot = 100, bet = 50, outs = 9 } = {}) {
+  const safePot = Math.max(1, Number(pot) || 100);
+  const safeBet = Math.max(1, Number(bet) || 50);
+  const safeOuts = Math.max(0, Math.min(25, Number(outs) || 9));
+  const totalBefore = safePot + safeBet;
+  const finalPot = safePot + safeBet * 2;
+  const reqEquity = ((safeBet / finalPot) * 100).toFixed(1);
+  const ratio = (totalBefore / safeBet).toFixed(2);
+  const mdf = ((safePot / totalBefore) * 100).toFixed(1);
+  const turnHit = ((safeOuts / 47) * 100).toFixed(1);
+  const twoCardHit = ((1 - ((47 - safeOuts) / 47) * ((46 - safeOuts) / 46)) * 100).toFixed(1);
+
+  return [
+    '# Poker Pot Odds, Required Equity & Minimum Defense Frequency (MDF) Calculator',
+    '',
+    '> Source: [Pot Odds & MDF Calculator on Smarter.Poker](https://smarter.poker/tools/pot-odds-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Pot Odds Measure The Ratio Of The Current Pot To The Cost Of A Call, Determining The Exact Break-Even Equity Required To Continue Profitably. For A Pot Of ${safePot} Facing A Bet Of ${safeBet}, The Pot Odds Ratio Is ${ratio} : 1, Requiring ${reqEquity}% Equity To Call And A ${mdf}% Minimum Defense Frequency (MDF) To Prevent Auto-Profit Bluffs.`,
+    '',
+    '## Live Scenario Calculation',
+    `- **Current Pot Before Bet**: ${safePot}`,
+    `- **Facing Bet / Call Size**: ${safeBet}`,
+    `- **Pot Odds Ratio**: ${ratio} : 1`,
+    `- **Required Break-Even Calling Equity**: ${reqEquity}%`,
+    `- **Minimum Defense Frequency (MDF)**: ${mdf}%`,
+    `- **Unseen Draw Outs Evaluated**: ${safeOuts} Outs (1-Card Equity: ${turnHit}% | 2-Card All-In Equity: ${twoCardHit}%)`,
+    '',
+    '## GTO Bet Sizing Cheat Sheet: Pot Odds, Required Equity & MDF',
+    '| Bet Size (% Of Pot) | Pot Odds Ratio | Required Equity | Minimum Defense Frequency (MDF) | Polarized River Bluff / Value Split |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| 20% Pot (Block Bet) | 6.0 : 1 | 14.3% | 83.3% | 16.7% Bluffs / 83.3% Value |',
+    '| 25% Pot (Quarter Pot) | 5.0 : 1 | 16.7% | 80.0% | 20.0% Bluffs / 80.0% Value |',
+    '| 33% Pot (Third Pot) | 4.0 : 1 | 20.0% | 75.0% | 25.0% Bluffs / 75.0% Value |',
+    '| 50% Pot (Half Pot) | 3.0 : 1 | 25.0% | 66.7% | 33.3% Bluffs / 66.7% Value |',
+    '| 66% Pot (Two-Thirds Pot) | 2.5 : 1 | 28.6% | 60.0% | 40.0% Bluffs / 60.0% Value |',
+    '| 75% Pot (Three-Quarters Pot) | 2.33 : 1 | 30.0% | 57.1% | 42.9% Bluffs / 57.1% Value |',
+    '| 100% Pot (Full Pot) | 2.0 : 1 | 33.3% | 50.0% | 50.0% Bluffs / 50.0% Value |',
+    '| 150% Pot (1.5x Overbet) | 1.67 : 1 | 37.5% | 40.0% | 60.0% Bluffs / 40.0% Value |',
+    '| 200% Pot (2x Overbet) | 1.5 : 1 | 40.0% | 33.3% | 66.7% Bluffs / 33.3% Value |',
+    '',
+    '## Common Poker Draw Outs & Rule Of 4 And 2 Probabilities',
+    '| Drawing Hand Type | Clean Outs | 1 Card (Flop To Turn) | 2 Cards (Flop To River All-In) | Rule Of 4 / Rule Of 2 |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| Open-Ended Straight + Flush Draw (Combo) | 15 Outs | 31.9% | 54.1% | 60% / 30% |',
+    '| Flush Draw + Gutshot Straight Draw | 12 Outs | 25.5% | 45.0% | 48% / 24% |',
+    '| Standard Nut Flush Draw | 9 Outs | 19.1% | 35.0% | 36% / 18% |',
+    '| Open-Ended Straight Draw (OESD) | 8 Outs | 17.0% | 31.5% | 32% / 16% |',
+    '| Two Overcards To Top Pair | 6 Outs | 12.8% | 24.1% | 24% / 12% |',
+    '| Gutshot Straight Draw (Inside Straight) | 4 Outs | 8.5% | 16.5% | 16% / 8% |',
+    '| Pocket Pair Drawing To Set | 2 Outs | 4.3% | 8.4% | 8% / 4% |',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Poker Bankroll Management & Risk of Ruin Calculator (/tools/bankroll-calculator) as clean structured Markdown
+ */
+export function renderBankrollCalculatorMarkdown({ winrate = 5, stdDev = 85, buyIns = 30 } = {}) {
+  const wr = Math.max(0.5, Number(winrate) || 5);
+  const sd = Math.max(20, Number(stdDev) || 85);
+  const bi = Math.max(5, Number(buyIns) || 30);
+  const bankrollBb = bi * 100;
+  const rorPct = Math.min(100, Math.max(0.01, Math.exp((-2 * wr * bankrollBb) / (sd * sd)) * 100)).toFixed(2);
+  const buyInsOnePct = Math.ceil((4.60517 * sd * sd) / (2 * wr * 100));
+  const buyInsFivePct = Math.ceil((2.99573 * sd * sd) / (2 * wr * 100));
+
+  return [
+    '# Poker Bankroll Management & Risk Of Ruin (RoR) Calculator',
+    '',
+    '> Source: [Bankroll & Risk Of Ruin Calculator on Smarter.Poker](https://smarter.poker/tools/bankroll-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Risk Of Ruin (RoR) Quantifies The Mathematical Probability Of Depleting A Poker Bankroll Given True Winrate (BB/100), Standard Deviation (BB/100), And Total Buy-Ins: RoR = exp(-2 * Winrate * Bankroll / Variance). For A Player With A ${wr} BB/100 Winrate, ${sd} BB/100 Standard Deviation, And ${bi} Buy-Ins, Risk Of Ruin Is ${rorPct}%, Requiring ${buyInsOnePct} Buy-Ins For A <1% Professional Threshold.`,
+    '',
+    '## Live Bankroll Scenario Output',
+    `- **True Winrate**: ${wr} BB/100`,
+    `- **Standard Deviation**: ${sd} BB/100`,
+    `- **Current Bankroll Depth**: ${bi} Buy-Ins (${bankrollBb} BB)`,
+    `- **Exact Risk Of Ruin (RoR)**: ${rorPct}%`,
+    `- **Buy-Ins For 5% Risk Of Ruin**: ${buyInsFivePct} Buy-Ins`,
+    `- **Buy-Ins For 1% Risk Of Ruin**: ${buyInsOnePct} Buy-Ins`,
+    '',
+    '## Standard Deviation & Buy-In Requirements By Poker Format',
+    '| Poker Format & Structure | Typical Standard Deviation | Benchmark Winrate / ROI | Conservative (<1% RoR) | Shot-Taking (5% RoR) |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| 6-Max Online No-Limit Hold\'em (100BB) | 85 BB/100 | 4.0 BB/100 | 45 Buy-Ins | 25 Buy-Ins |',
+    '| Full-Ring Live $1/$3 & $2/$5 NLH (100BB) | 70 BB/100 | 8.0 BB/100 | 25 Buy-Ins | 15 Buy-Ins |',
+    '| 6-Max Pot-Limit Omaha (PLO4 100BB) | 135 BB/100 | 4.5 BB/100 | 90 Buy-Ins | 50 Buy-Ins |',
+    '| 5-Card Pot-Limit Omaha (PLO5 Deep) | 165 BB/100 | 5.0 BB/100 | 120 Buy-Ins | 70 Buy-Ins |',
+    '| Large-Field Multi-Table Tournaments (MTT) | 180% ROI SD | 20% ROI | 150 Buy-Ins | 100 Buy-Ins |',
+    '| Small-Field Daily Live Tournaments (<150 Entries) | 110% ROI SD | 30% ROI | 75 Buy-Ins | 50 Buy-Ins |',
+    '',
+  ].join('\n');
+}
+
+

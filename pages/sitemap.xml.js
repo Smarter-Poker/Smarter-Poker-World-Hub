@@ -140,6 +140,8 @@ const staticPages = [
   { path: '/hub/training/equity-calculator', priority: '0.8', changefreq: 'weekly' },
   { path: '/tools/poker-odds-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/icm-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/pot-odds-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/bankroll-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
   { path: '/freerolls', priority: '0.9', changefreq: 'daily' },

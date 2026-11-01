@@ -273,7 +273,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
 
 ## 10. Poker Glossary & Strategy Lessons Corpus
 
-- **Poker Glossary DefinedTermSet (74 Terms)**: https://smarter.poker/glossary (Raw Markdown Corpus: https://smarter.poker/glossary.md)
+- **Poker Glossary DefinedTermSet (80 Terms)**: https://smarter.poker/glossary (Raw Markdown Corpus: https://smarter.poker/glossary.md)
   - Individual term Markdown mirrors: `https://smarter.poker/glossary/<slug>.md`
   - AI Glossary Search API: `https://smarter.poker/api/ai/terms?q=straddle`
 - **GTO Strategy Lessons Curriculum (40 Lessons Across 8 Topic Clusters)**: https://smarter.poker/learn (Raw Markdown Curriculum: https://smarter.poker/learn.md)
@@ -327,7 +327,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
     - [Mixed Strategies And Frequencies](https://smarter.poker/learn/mixed-strategies) ([Markdown](https://smarter.poker/learn/mixed-strategies.md))
     - [Blockers: How Your Cards Change Theirs](https://smarter.poker/learn/blockers) ([Markdown](https://smarter.poker/learn/blockers.md))
   - AI Strategy Lessons API: `https://smarter.poker/api/ai/lessons`
-- **Texas Holdem Starting Hand Encyclopedia (50 Canonical Hand Guides)**: https://smarter.poker/learn/hands (Raw Markdown Index: https://smarter.poker/learn/hands.md)
+- **Texas Holdem Starting Hand Encyclopedia (65 Canonical Hand Guides)**: https://smarter.poker/learn/hands (Raw Markdown Index: https://smarter.poker/learn/hands.md)
   - [AA (Pocket Aces)](https://smarter.poker/learn/hands/pocket-aces) ([Markdown](https://smarter.poker/learn/hands/pocket-aces.md))
   - [KK (Pocket Kings)](https://smarter.poker/learn/hands/pocket-kings) ([Markdown](https://smarter.poker/learn/hands/pocket-kings.md))
   - [QQ (Pocket Queens)](https://smarter.poker/learn/hands/pocket-queens) ([Markdown](https://smarter.poker/learn/hands/pocket-queens.md))
@@ -378,6 +378,21 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [K9s (King-Nine Suited)](https://smarter.poker/learn/hands/king-nine-suited) ([Markdown](https://smarter.poker/learn/hands/king-nine-suited.md))
   - [Q9s (Queen-Nine Suited)](https://smarter.poker/learn/hands/queen-nine-suited) ([Markdown](https://smarter.poker/learn/hands/queen-nine-suited.md))
   - [J9s (Jack-Nine Suited)](https://smarter.poker/learn/hands/jack-nine-suited) ([Markdown](https://smarter.poker/learn/hands/jack-nine-suited.md))
+  - [T8s (Ten-Eight Suited)](https://smarter.poker/learn/hands/ten-eight-suited) ([Markdown](https://smarter.poker/learn/hands/ten-eight-suited.md))
+  - [97s (Nine-Seven Suited)](https://smarter.poker/learn/hands/nine-seven-suited) ([Markdown](https://smarter.poker/learn/hands/nine-seven-suited.md))
+  - [86s (Eight-Six Suited)](https://smarter.poker/learn/hands/eight-six-suited) ([Markdown](https://smarter.poker/learn/hands/eight-six-suited.md))
+  - [75s (Seven-Five Suited)](https://smarter.poker/learn/hands/seven-five-suited) ([Markdown](https://smarter.poker/learn/hands/seven-five-suited.md))
+  - [54s (Five-Four Suited)](https://smarter.poker/learn/hands/five-four-suited) ([Markdown](https://smarter.poker/learn/hands/five-four-suited.md))
+  - [43s (Four-Three Suited)](https://smarter.poker/learn/hands/four-three-suited) ([Markdown](https://smarter.poker/learn/hands/four-three-suited.md))
+  - [K8s (King-Eight Suited)](https://smarter.poker/learn/hands/king-eight-suited) ([Markdown](https://smarter.poker/learn/hands/king-eight-suited.md))
+  - [K7s (King-Seven Suited)](https://smarter.poker/learn/hands/king-seven-suited) ([Markdown](https://smarter.poker/learn/hands/king-seven-suited.md))
+  - [K6s (King-Six Suited)](https://smarter.poker/learn/hands/king-six-suited) ([Markdown](https://smarter.poker/learn/hands/king-six-suited.md))
+  - [K5s (King-Five Suited)](https://smarter.poker/learn/hands/king-five-suited) ([Markdown](https://smarter.poker/learn/hands/king-five-suited.md))
+  - [Q8s (Queen-Eight Suited)](https://smarter.poker/learn/hands/queen-eight-suited) ([Markdown](https://smarter.poker/learn/hands/queen-eight-suited.md))
+  - [J8s (Jack-Eight Suited)](https://smarter.poker/learn/hands/jack-eight-suited) ([Markdown](https://smarter.poker/learn/hands/jack-eight-suited.md))
+  - [A9o (Ace-Nine Offsuit)](https://smarter.poker/learn/hands/ace-nine-offsuit) ([Markdown](https://smarter.poker/learn/hands/ace-nine-offsuit.md))
+  - [KTo (King-Ten Offsuit)](https://smarter.poker/learn/hands/king-ten-offsuit) ([Markdown](https://smarter.poker/learn/hands/king-ten-offsuit.md))
+  - [QTo (Queen-Ten Offsuit)](https://smarter.poker/learn/hands/queen-ten-offsuit) ([Markdown](https://smarter.poker/learn/hands/queen-ten-offsuit.md))
 - **Verified Software & Cardroom Comparisons (25 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
   - [Best Poker Club Apps In 2026](https://smarter.poker/compare/best-poker-club-apps) ([Markdown](https://smarter.poker/compare/best-poker-club-apps.md))
   - [Poker Arena Vs PokerBros](https://smarter.poker/compare/poker-arena-vs-pokerbros) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pokerbros.md))
@@ -417,6 +432,8 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [2026 Live Poker Room Waitlist Turnover, Call-In Conversion, And Table Utilization Benchmark](https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark) ([Markdown](https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark.md))
   - [Private Online Poker Club Diamond Markup, Rake Cap, And Union Settlement Benchmark Study](https://smarter.poker/research/private-online-poker-club-rake-and-union-settlement-study) ([Markdown](https://smarter.poker/research/private-online-poker-club-rake-and-union-settlement-study.md))
 - **World Hub Interactive Simulators, Solvers & Training Utilities (with Raw Markdown Mirrors)**:
+  - Pot Odds, Required Equity & MDF Calculator: https://smarter.poker/tools/pot-odds-calculator ([Markdown](https://smarter.poker/tools/pot-odds-calculator.md))
+  - Poker Bankroll & Risk Of Ruin Calculator: https://smarter.poker/tools/bankroll-calculator ([Markdown](https://smarter.poker/tools/bankroll-calculator.md))
   - Personal AI Assistant Hub: https://smarter.poker/hub/personal-assistant ([Markdown](https://smarter.poker/hub/personal-assistant.md))
   - Leak Finder & EV Audit: https://smarter.poker/hub/personal-assistant/leaks ([Markdown](https://smarter.poker/hub/personal-assistant/leaks.md))
   - Interactive Strategy Sandbox: https://smarter.poker/hub/personal-assistant/sandbox ([Markdown](https://smarter.poker/hub/personal-assistant/sandbox.md))
