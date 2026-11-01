@@ -59,7 +59,7 @@ export const ALL_FEATURES = [
     badge: 'WebRTC Video & Voice',
     description: 'Connect Over Encrypted Multi-Peer Video Table Calls, Spatial Voice Audio, Direct Messaging, And Instant Hand History Replay Links With Zero App Downloads.',
     href: '/features/poker-messenger-video-calls',
-    appHref: '/hub/messages',
+    appHref: '/hub/messenger',
     mdHref: '/features/poker-messenger-video-calls.md',
     competitors: 'Free Alternative To Pokerface, PokerUp & Poker Now',
   },

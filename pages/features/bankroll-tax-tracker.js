@@ -80,7 +80,7 @@ export default function BankrollTaxTrackerPage() {
       canonical="/features/bankroll-tax-tracker"
       badgeText="100% Free Poker Tax & Bankroll Tool"
       primaryCtaText="Open Bankroll Manager"
-      primaryCtaHref="/hub/bankroll"
+      primaryCtaHref="/hub/bankroll-manager"
       secondaryCtaText="View Plain-Text Spec"
       secondaryCtaHref="/features/bankroll-tax-tracker.md"
       markdownUrl="https://smarter.poker/features/bankroll-tax-tracker.md"

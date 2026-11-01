@@ -17,6 +17,11 @@ const FEATURE_SEMANTIC_MESH = {
       { href: '/glossary/3-bet', label: '3-Bet' },
       { href: '/glossary/range', label: 'Range' },
     ],
+    tools: [
+      { href: '/hub/training/preflop-charts', label: '6-Max 100BB Preflop Range Browser' },
+      { href: '/hub/training/range-builder', label: 'Interactive 13x13 Preflop Range Builder' },
+      { href: '/learn/hands', label: 'Starting Hand Encyclopedia' },
+    ],
   },
   '/features/poker-equity-calculators': {
     learnHref: '/learn/category/math',
@@ -31,6 +36,11 @@ const FEATURE_SEMANTIC_MESH = {
       { href: '/glossary/icm', label: 'ICM' },
       { href: '/glossary/pot-odds', label: 'Pot Odds' },
     ],
+    tools: [
+      { href: '/hub/training/icm-simulator', label: 'Tournament ICM Equity Simulator' },
+      { href: '/hub/training/hand-comparison', label: 'A/B Poker Hand Equity Comparison Tool' },
+      { href: '/hub/training/final-table-sim', label: 'Final Table ICM And Deal Simulator' },
+    ],
   },
   '/features/bankroll-tax-tracker': {
     learnHref: '/learn/category/bankroll',
@@ -42,7 +52,13 @@ const FEATURE_SEMANTIC_MESH = {
     ],
     glossary: [
       { href: '/glossary/variance', label: 'Variance' },
-      { href: '/glossary/win-rate', label: 'Win Rate' },
+      { href: '/glossary/effective-stack', label: 'Effective Stack' },
+      { href: '/glossary/rake', label: 'Rake' },
+    ],
+    tools: [
+      { href: '/hub/training/risk-analyzer', label: 'Poker Risk Of Ruin And Variance Simulator' },
+      { href: '/hub/training/custom-rake', label: 'Poker Rake Cost Estimator' },
+      { href: '/compare/best-poker-bankroll-trackers', label: 'Best Poker Bankroll Trackers Compared' },
     ],
   },
   '/features/poker-training-games': {
@@ -51,23 +67,217 @@ const FEATURE_SEMANTIC_MESH = {
     lessons: [
       { href: '/learn/continuation-betting', label: 'Continuation Betting On The Flop' },
       { href: '/learn/minimum-defense-frequency', label: 'Minimum Defense Frequency (MDF)' },
+      { href: '/learn/check-raising', label: 'How To Check-Raise In Poker' },
     ],
     glossary: [
       { href: '/glossary/gto', label: 'GTO (Game Theory Optimal)' },
       { href: '/glossary/c-bet', label: 'Continuation Bet' },
+      { href: '/glossary/mdf', label: 'MDF (Minimum Defense Frequency)' },
+    ],
+    tools: [
+      { href: '/hub/training/spot-trainer', label: 'Answer-Revealed Solver Spot Study' },
+      { href: '/hub/training/drill-builder', label: 'Custom Poker Drill Builder' },
+      { href: '/hub/training/skill-tree', label: 'Interactive Poker Skill Tree Map' },
     ],
   },
   '/features/poker-near-me': {
     learnHref: '/learn/category/cash',
     learnLabel: 'Live Cash Game Strategy Lessons',
     lessons: [
-      { href: '/learn/live-poker-rake', label: 'How Rake Changes Preflop Ranges' },
-      { href: '/learn/playing-the-straddle', label: 'How A Straddle Changes Stack Depth' },
+      { href: '/learn/rake-and-win-rate', label: 'How Rake Affects Your Win Rate' },
+      { href: '/learn/straddle-games', label: 'How To Play In Straddle Games' },
     ],
     glossary: [
       { href: '/glossary/waitlist', label: 'Waitlist' },
       { href: '/glossary/straddle', label: 'Straddle' },
       { href: '/glossary/rake', label: 'Rake' },
+    ],
+    tools: [
+      { href: '/hub/poker-near-me/venues', label: 'Live Poker Venue Directory' },
+      { href: '/hub/daily-tournaments', label: 'Daily Poker Tournaments Schedule' },
+      { href: '/research/us-live-poker-room-rake-and-jackpot-benchmark', label: 'US Live Poker Room Rake Benchmark' },
+    ],
+  },
+  '/features/poker-dealer-toke-tracker': {
+    learnHref: '/learn/category/bankroll',
+    learnLabel: 'Bankroll And Live Room Lessons',
+    lessons: [
+      { href: '/learn/rake-and-win-rate', label: 'How Live Room Rake And Drops Work' },
+      { href: '/learn/cash-game-bankroll', label: 'Managing Session Income And Variance' },
+    ],
+    glossary: [
+      { href: '/glossary/dealer-button', label: 'Dealer Button' },
+      { href: '/glossary/table-balancing', label: 'Table Balancing' },
+      { href: '/glossary/must-move-table', label: 'Must-Move Table' },
+    ],
+    tools: [
+      { href: '/hub/commander/venues', label: 'Club Commander Live Poker Rooms' },
+      { href: '/compare/smarter-poker-vs-downcount', label: 'Smarter.Poker Vs DownCount Comparison' },
+    ],
+  },
+  '/features/poker-ai-coach': {
+    learnHref: '/learn/category/theory',
+    learnLabel: 'Game Theory And Solver Lessons',
+    lessons: [
+      { href: '/learn/expected-value', label: 'Expected Value (EV) In Poker' },
+      { href: '/learn/minimum-defense-frequency', label: 'Minimum Defense Frequency (MDF)' },
+      { href: '/learn/board-texture', label: 'How To Read Board Texture' },
+    ],
+    glossary: [
+      { href: '/glossary/nash-equilibrium', label: 'Nash Equilibrium' },
+      { href: '/glossary/exploitative-play', label: 'Exploitative Play' },
+      { href: '/glossary/nodelocking', label: 'Nodelocking' },
+    ],
+    tools: [
+      { href: '/hub/personal-assistant', label: 'Jarvis Personal Poker Assistant' },
+      { href: '/hub/personal-assistant/leaks', label: 'Automated Leak Finder Audit' },
+      { href: '/hub/training/weakness-scanner', label: 'Position And Street Weakness Scanner' },
+    ],
+  },
+  '/features/virtual-poker-sandbox': {
+    learnHref: '/learn/category/postflop',
+    learnLabel: 'Postflop Combinatorics And SPR Lessons',
+    lessons: [
+      { href: '/learn/stack-to-pot-ratio', label: 'Stack To Pot Ratio (SPR) Explained' },
+      { href: '/learn/counting-combos', label: 'Counting Poker Hand Combinations' },
+      { href: '/learn/counting-outs', label: 'Counting Outs And The Rule Of 2 And 4' },
+    ],
+    glossary: [
+      { href: '/glossary/spr', label: 'SPR (Stack To Pot Ratio)' },
+      { href: '/glossary/combo', label: 'Combo' },
+      { href: '/glossary/board-texture', label: 'Board Texture' },
+    ],
+    tools: [
+      { href: '/hub/training/hand-lab', label: 'Interactive Poker Hand Lab And Board Analyzer' },
+      { href: '/hub/training/custom-solve', label: 'Custom GTO Spot And Preflop Query' },
+      { href: '/compare/smarter-poker-vs-piosolver', label: 'Smarter.Poker Vs PioSolver Comparison' },
+    ],
+  },
+  '/features/club-commander': {
+    learnHref: '/learn/category/cash',
+    learnLabel: 'Live Poker Room Operations And Cash Lessons',
+    lessons: [
+      { href: '/learn/rake-and-win-rate', label: 'How Rake Affects Player Win Rates' },
+      { href: '/learn/straddle-games', label: 'Straddle Games And Stack Depth' },
+    ],
+    glossary: [
+      { href: '/glossary/waitlist', label: 'Waitlist' },
+      { href: '/glossary/high-hand-promotion', label: 'High Hand Promotion' },
+      { href: '/glossary/bad-beat-jackpot', label: 'Bad Beat Jackpot' },
+    ],
+    tools: [
+      { href: '/hub/commander', label: 'Club Commander Player Hub' },
+      { href: '/hub/commander/tournaments', label: 'Club Commander Live Tournament Clocks' },
+      { href: '/compare/best-poker-room-management-software', label: 'Best Poker Room Software Compared' },
+    ],
+  },
+  '/features/poker-messenger-video-calls': {
+    learnHref: '/learn/category/theory',
+    learnLabel: 'Online Table Dynamics And Theory',
+    lessons: [
+      { href: '/learn/preflop-ranges-by-position', label: 'Preflop Opening Ranges By Position' },
+      { href: '/learn/tilt-control', label: 'How To Control Tilt At The Table' },
+    ],
+    glossary: [
+      { href: '/glossary/time-bank', label: 'Time Bank' },
+      { href: '/glossary/showdown', label: 'Showdown' },
+    ],
+    tools: [
+      { href: '/hub/messenger', label: 'Smarter.Poker Encrypted Messenger' },
+      { href: '/hub/training/study-group-finder', label: 'Poker Study Group Finder' },
+    ],
+  },
+  '/features/poker-trivia': {
+    learnHref: '/learn/category/math',
+    learnLabel: 'Poker Odds, Rules And Math Lessons',
+    lessons: [
+      { href: '/learn/pot-odds', label: 'Pot Odds: How To Know If A Call Pays' },
+      { href: '/learn/counting-outs', label: 'Counting Outs And The Rule Of 2 And 4' },
+      { href: '/learn/bluff-break-even-percentage', label: 'How Often A Bluff Must Work' },
+    ],
+    glossary: [
+      { href: '/glossary/outs', label: 'Outs' },
+      { href: '/glossary/implied-odds', label: 'Implied Odds' },
+      { href: '/glossary/fold-equity', label: 'Fold Equity' },
+    ],
+    tools: [
+      { href: '/hub/trivia/survival-game', label: 'Poker Trivia Survival Mode' },
+      { href: '/hub/training/flashcards', label: 'Spaced-Repetition GTO Flashcards' },
+      { href: '/hub/training/quiz-builder', label: 'Custom GTO Poker Quiz Builder' },
+    ],
+  },
+  '/features/home-poker-games': {
+    learnHref: '/learn/category/tournaments',
+    learnLabel: 'Home Game And Tournament Structure Lessons',
+    lessons: [
+      { href: '/learn/m-ratio-and-short-stacks', label: 'M Ratio And Blind Structure Pacing' },
+      { href: '/learn/straddle-games', label: 'How To Play In Straddle And Bomb Pot Games' },
+    ],
+    glossary: [
+      { href: '/glossary/bomb-pot', label: 'Bomb Pot' },
+      { href: '/glossary/chip-up', label: 'Chip-Up' },
+      { href: '/glossary/blinds', label: 'Blinds' },
+    ],
+    tools: [
+      { href: '/hub/home-games/in', label: 'Verified Home Games By State And City' },
+      { href: '/hub/commander/home-games', label: 'Club Commander Home Game Clocks And Waitlists' },
+      { href: '/hub/training/tournament-prep', label: 'Tournament Structure And M-Ratio Planner' },
+    ],
+  },
+  '/features/interactive-video-coaching': {
+    learnHref: '/learn/category/postflop',
+    learnLabel: 'Interactive Strategy Curriculum',
+    lessons: [
+      { href: '/learn/continuation-betting', label: 'Continuation Betting: When To C-Bet' },
+      { href: '/learn/facing-a-3-bet', label: 'What To Do When You Face A 3-Bet' },
+      { href: '/learn/final-table-icm', label: 'Final Table ICM Strategy' },
+    ],
+    glossary: [
+      { href: '/glossary/range-advantage', label: 'Range Advantage' },
+      { href: '/glossary/nut-advantage', label: 'Nut Advantage' },
+      { href: '/glossary/polarized-range', label: 'Polarized Range' },
+    ],
+    tools: [
+      { href: '/hub/training/coach-mode', label: 'Guided GTO Coach Mode' },
+      { href: '/hub/training/scenario-demo', label: 'Interactive GTO Strategy And Solver Tutorial' },
+      { href: '/compare/smarter-poker-vs-run-it-once', label: 'Smarter.Poker Vs Run It Once Comparison' },
+    ],
+  },
+  '/features/private-poker-clubs': {
+    learnHref: '/learn/category/cash',
+    learnLabel: 'Private Club And Cash Game Guides',
+    lessons: [
+      { href: '/learn/rake-and-win-rate', label: 'How Club Rake Affects Win Rate' },
+      { href: '/learn/cash-game-bankroll', label: 'Bankroll Rules For Club Cash Games' },
+    ],
+    glossary: [
+      { href: '/glossary/poker-union', label: 'Poker Union' },
+      { href: '/glossary/club-agent', label: 'Club Agent' },
+      { href: '/glossary/rakeback', label: 'Rakeback' },
+      { href: '/glossary/run-it-twice', label: 'Run It Twice' },
+    ],
+    tools: [
+      { href: '/hub/club-arena', label: 'Poker Arena Private Club Hub' },
+      { href: '/compare/best-poker-club-apps', label: 'Best Private Poker Club Apps Compared' },
+      { href: '/research/private-poker-club-and-cardroom-software-economics', label: 'Private Poker Club Economics Study' },
+    ],
+  },
+  '/features/poker-reels-social-feed': {
+    learnHref: '/learn/category/mental-game',
+    learnLabel: 'Mental Game And Community Strategy',
+    lessons: [
+      { href: '/learn/tilt-control', label: 'How To Control Tilt At The Poker Table' },
+      { href: '/learn/expected-value', label: 'Focusing On Expected Value Over Short-Term Results' },
+    ],
+    glossary: [
+      { href: '/glossary/tilt', label: 'Tilt' },
+      { href: '/glossary/variance', label: 'Variance' },
+      { href: '/glossary/villain', label: 'Villain' },
+    ],
+    tools: [
+      { href: '/hub/reels', label: 'Smarter.Poker Short-Video Reels' },
+      { href: '/hub/training/training-feed', label: 'Community Training Activity Feed' },
+      { href: '/hub/social-pages', label: 'Public Poker Community Pages' },
     ],
   },
 };
@@ -298,7 +508,7 @@ export default function FeatureLanderLayout({
 
           {FEATURE_SEMANTIC_MESH[canonical] && (
             <section style={styles.section}>
-              <h2 style={styles.h2}>Related Strategy Lessons & Glossary Definitions</h2>
+              <h2 style={styles.h2}>Related Strategy Lessons, Tools & Glossary Definitions</h2>
               <div style={styles.footerLinks}>
                 <Link href={FEATURE_SEMANTIC_MESH[canonical].learnHref} style={styles.footerLink}>
                   {FEATURE_SEMANTIC_MESH[canonical].learnLabel}
@@ -306,6 +516,11 @@ export default function FeatureLanderLayout({
                 {FEATURE_SEMANTIC_MESH[canonical].lessons.map((l) => (
                   <Link key={l.href} href={l.href} style={styles.footerLink}>
                     {l.label}
+                  </Link>
+                ))}
+                {(FEATURE_SEMANTIC_MESH[canonical].tools || []).map((t) => (
+                  <Link key={t.href} href={t.href} style={styles.footerLink}>
+                    {t.label}
                   </Link>
                 ))}
                 {FEATURE_SEMANTIC_MESH[canonical].glossary.map((g) => (

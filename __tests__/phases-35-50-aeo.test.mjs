@@ -111,9 +111,9 @@ test('Phase 41: Competitor Comparison Matrix includes 25 verified pages', () => 
   }
 });
 
-test('Phase 44: MCP Server exposes 14 tools and 7 resource templates plus .well-known/mcp-registry.json', async () => {
-  assert.equal(MCP_TOOLS.length, 14);
-  assert.equal(MCP_RESOURCE_TEMPLATES.length, 7);
+test('Phase 44: MCP Server exposes 15 tools and 8 resource templates plus .well-known/mcp-registry.json', async () => {
+  assert.equal(MCP_TOOLS.length, 15);
+  assert.equal(MCP_RESOURCE_TEMPLATES.length, 8);
 
   const handResult = await executeMcpTool('lookup_starting_hand', { hand: 'KK' });
   const handJson = JSON.parse(handResult.content[0].text);
@@ -125,9 +125,14 @@ test('Phase 44: MCP Server exposes 14 tools and 7 resource templates plus .well-
   const reportJson = JSON.parse(reportResult.content[0].text);
   assert.equal(reportJson.slug, 'gto-vs-population-preflop-and-postflop-leak-study');
 
+  const simResult = await executeMcpTool('search_training_simulators', { query: 'icm' });
+  const simJson = JSON.parse(simResult.content[0].text);
+  assert.ok(simJson.simulators_count > 0);
+  assert.ok(simJson.training_games_count > 0);
+
   const registry = JSON.parse(read('public/.well-known/mcp-registry.json'));
   assert.equal(registry.name, 'io.github.smarter-poker/mcp-server');
-  assert.equal(registry.tools_count, 14);
+  assert.equal(registry.tools_count, 15);
 });
 
 test('Phase 35, 42, 43, 47, 48, 49: next.config.js, knowledge-graph, corpus, and crawler-status routes exist', () => {

@@ -26,6 +26,9 @@ import { GLOSSARY_TERMS } from '../../content/glossary/terms.js';
 import { LESSONS, LEARN_CATEGORIES, trainingCta } from '../../content/learn/lessons.js';
 import { STARTING_HANDS, findStartingHand } from '../../content/learn/hands.js';
 import { RESEARCH_REPORTS, findResearchReport } from '../../content/research/reports.js';
+import { TRAINING_LIBRARY } from '../../data/TRAINING_LIBRARY.js';
+import { SCHEMA_ROUTES } from '../seo/summarySchema.js';
+import { getHubPageSummaries } from '../seo/hubPageSummariesData.js';
 import {
   AS_OF,
   COMPARE_PAGES,
@@ -341,6 +344,25 @@ export const MCP_TOOLS = [
       },
     },
   },
+  {
+    name: 'search_training_simulators',
+    description: 'Search and retrieve interactive Smarter.Poker World Hub tools, GTO solvers, ICM calculators, leak scanners, range builders, and all 107 scenario training games by skill topic, format, or slug.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Keyword or slug to search (e.g. "icm", "rake", "range builder", "leak", "autopilot", "short deck", "tilt", "warmup", "push/fold"). Omit to list the full simulator and training catalog.',
+        },
+        category: {
+          type: 'string',
+          enum: ['ALL', 'SIMULATORS', 'MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'],
+          description: 'Optional category filter.',
+          default: 'ALL',
+        },
+      },
+    },
+  },
 ];
 
 export const MCP_PROMPTS = [
@@ -417,6 +439,12 @@ export const MCP_RESOURCE_TEMPLATES = [
     uriTemplate: 'https://smarter.poker/research/{slug}.md',
     name: 'Smarter.Poker Empirical Research Report Markdown',
     description: 'Raw Markdown empirical poker industry benchmark study and dataset summary.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/hub/training/{tool}.md',
+    name: 'Smarter.Poker World Hub Simulator & Training Tool Markdown',
+    description: 'Raw Markdown specification and guide for any interactive World Hub poker simulator or training utility.',
     mimeType: 'text/markdown',
   },
 ];
@@ -1337,6 +1365,84 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 })),
                 research_hub_url: `${base}/research`,
                 markdown_url: `${base}/research.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'search_training_simulators': {
+      const q = String(args?.query || '').trim().toLowerCase();
+      const cat = String(args?.category || 'ALL').trim().toUpperCase();
+
+      const summaries = getHubPageSummaries();
+      const simulators = Object.entries(SCHEMA_ROUTES).map(([key, route]) => {
+        const entry = summaries[key];
+        const title = entry ? entry.heading.replace(/^About (The )?/i, '') : key;
+        return {
+          key,
+          title,
+          path: route.path,
+          canonical_url: `${base}${route.path}`,
+          markdown_url: `${base}${route.path}.md`,
+          category: route.category || 'GameApplication',
+          summary: entry?.lead || '',
+        };
+      });
+
+      const matchedSimulators =
+        cat !== 'ALL' && cat !== 'SIMULATORS'
+          ? []
+          : simulators.filter((s) => {
+              if (!q) return true;
+              return (
+                s.key.toLowerCase().includes(q) ||
+                s.title.toLowerCase().includes(q) ||
+                s.path.toLowerCase().includes(q) ||
+                s.summary.toLowerCase().includes(q)
+              );
+            });
+
+      const matchedGames =
+        cat === 'SIMULATORS'
+          ? []
+          : TRAINING_LIBRARY.filter((g) => {
+              if (cat !== 'ALL' && g.category !== cat) return false;
+              if (!q) return true;
+              return (
+                g.id.toLowerCase().includes(q) ||
+                g.name.toLowerCase().includes(q) ||
+                g.focus.toLowerCase().includes(q) ||
+                g.category.toLowerCase().includes(q) ||
+                (g.tags || []).some((t) => t.toLowerCase().includes(q))
+              );
+            }).map((g) => ({
+              id: g.id,
+              name: g.name,
+              focus: g.focus,
+              category: g.category,
+              difficulty: g.difficulty,
+              tags: g.tags || [],
+              launch_url: `${base}/hub/training?game=${g.id}`,
+            }));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                query: q || 'all',
+                category: cat,
+                simulators_count: matchedSimulators.length,
+                training_games_count: matchedGames.length,
+                simulators: matchedSimulators.slice(0, 45),
+                training_games: matchedGames.slice(0, 40),
+                training_hub_url: `${base}/hub/training`,
+                features_directory_url: `${base}/features`,
               },
               null,
               2

@@ -80,7 +80,7 @@ export default function PokerMessengerVideoCallsPage() {
       canonical="/features/poker-messenger-video-calls"
       badgeText="100% Free WebRTC Video & Audio Calling"
       primaryCtaText="Open Poker Messenger"
-      primaryCtaHref="/hub/messages"
+      primaryCtaHref="/hub/messenger"
       secondaryCtaText="View Plain-Text Spec"
       secondaryCtaHref="/features/poker-messenger-video-calls.md"
       markdownUrl="https://smarter.poker/features/poker-messenger-video-calls.md"

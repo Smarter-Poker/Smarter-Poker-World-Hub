@@ -1705,6 +1705,34 @@ const nextConfig = {
           destination: '/tools/poker-odds-calculator?format=md',
         },
         {
+          source: '/hub/personal-assistant.md',
+          destination: '/api/hub-tool-markdown?section=personal-assistant',
+        },
+        {
+          source: '/hub/personal-assistant/:slug.md',
+          destination: '/api/hub-tool-markdown?section=personal-assistant&slug=:slug',
+        },
+        {
+          source: '/hub/install.md',
+          destination: '/api/hub-tool-markdown?section=install',
+        },
+        {
+          source: '/hub/vip-membership/compare.md',
+          destination: '/api/hub-tool-markdown?section=vip-membership&slug=compare',
+        },
+        {
+          source: '/hub/training/:slug.md',
+          destination: '/api/hub-tool-markdown?section=training&slug=:slug',
+        },
+        {
+          source: '/hub/trivia/:slug.md',
+          destination: '/api/hub-tool-markdown?section=trivia&slug=:slug',
+        },
+        {
+          source: '/hub/commander/:slug.md',
+          destination: '/api/hub-tool-markdown?section=commander&slug=:slug',
+        },
+        {
           source: '/hub/daily-tournaments.md',
           destination: '/api/discovery-markdown?slug=daily-tournaments',
         },
