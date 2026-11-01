@@ -1581,6 +1581,18 @@ const nextConfig = {
           destination: '/tools/bankroll-calculator?format=md',
         },
         {
+          source: '/tools/push-fold-calculator.md',
+          destination: '/tools/push-fold-calculator?format=md',
+        },
+        {
+          source: '/tools/bounty-calculator.md',
+          destination: '/tools/bounty-calculator?format=md',
+        },
+        {
+          source: '/tools/poker-winrate-calculator.md',
+          destination: '/tools/poker-winrate-calculator?format=md',
+        },
+        {
           source: '/openapi.json',
           destination: '/api/openapi',
         },
