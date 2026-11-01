@@ -67,6 +67,13 @@ async function passArenaGates(page, seen) {
             await sleep(2000);
             continue;
         }
+        const bonusClose = page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true });
+        if (await page.locator('#dbs-title').isVisible().catch(() => false) && await bonusClose.first().isVisible().catch(() => false)) {
+            await bonusClose.first().click();
+            seen.push('daily bonus sheet closed without claiming');
+            await sleep(1000);
+            continue;
+        }
         const notNow = page.locator('.ca-consent').getByRole('button', { name: 'Not Now', exact: true });
         if (await notNow.isVisible().catch(() => false)) {
             await notNow.click();
@@ -148,10 +155,13 @@ async function main() {
         // ── 2. Call while observing a live table ─────────────────────────
         const { data: recent } = await admin.from('hand_history').select('table_id, created_at').gte('created_at', new Date(Date.now() - 120000).toISOString()).order('created_at', { ascending: false }).limit(200);
         const tableIds = [...new Set((recent || []).map(r => r.table_id))];
-        const { data: tables } = await admin.from('tables').select('id, name, status, tournament_id').in('id', tableIds.slice(0, 50)).is('tournament_id', null).eq('status', 'running');
-        const table = tables?.[0];
-        assert.ok(table, 'No running cash table with recent hands to observe');
-        report.table = { name: table.name };
+        const handCount = new Map();
+        for (const r of recent || []) handCount.set(r.table_id, (handCount.get(r.table_id) || 0) + 1);
+        const { data: tables } = await admin.from('tables').select('id, name, status, tournament_id').in('id', tableIds.slice(0, 100)).is('tournament_id', null).eq('status', 'running');
+        // Lightning tables are short-lived pools that close under an observer
+        // (run 41277527639 opened one as it closed); a classic cash table stays.
+        const candidates = (tables || []).filter(t => !/lightning/i.test(t.name || '')).sort((a, b) => (handCount.get(b.id) || 0) - (handCount.get(a.id) || 0));
+        assert.ok(candidates.length, 'No running classic cash table with recent hands to observe');
 
         const browser = await chromium.launch({ headless: true, args: FAKE_MEDIA });
         browsers.push(browser);
@@ -160,10 +170,25 @@ async function main() {
         await signIn(actx, session);
         const arena = await actx.newPage();
         arena.setDefaultTimeout(20000);
-        await arena.goto(`${CA}/table/${table.id}`, { waitUntil: 'domcontentloaded' });
-        await passArenaGates(arena, report.probeGates).catch(() => false);
-        if (!/\/table\//.test(new URL(arena.url()).pathname)) await arena.goto(`${CA}/table/${table.id}`, { waitUntil: 'domcontentloaded' });
-        await until(async () => (await liveTables(arena)) >= 1, { timeout: 60000 }).catch(() => {});
+        const consoleErrors = [];
+        arena.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)); });
+        // Record whether the call event reached this page, separately from the toast.
+        await actx.addInitScript(() => {
+            window.__caCallEvents = [];
+            window.addEventListener('ca:incoming-call', e => window.__caCallEvents.push({ t: Date.now(), type: e.detail?.type }));
+            window.addEventListener('ca:call-alert-cleared', () => window.__caCallEvents.push({ t: Date.now(), type: 'cleared' }));
+        });
+        let table = null;
+        for (const candidate of candidates.slice(0, 4)) {
+            await arena.goto(`${CA}/table/${candidate.id}`, { waitUntil: 'domcontentloaded' });
+            await passArenaGates(arena, report.probeGates).catch(() => false);
+            if (!/\/table\//.test(new URL(arena.url()).pathname)) await arena.goto(`${CA}/table/${candidate.id}`, { waitUntil: 'domcontentloaded' });
+            await until(async () => (await liveTables(arena)) >= 1, { timeout: 60000 }).catch(() => {});
+            await sleep(3000);
+            if (!(await arena.getByText(/Table Closed/i).count())) { table = candidate; break; }
+        }
+        assert.ok(table, 'Every candidate classic cash table closed under the observer');
+        report.table = { name: table.name, recentHands: handCount.get(table.id) || 0 };
         report.tablePage = { url: arena.url() };
         await arena.screenshot({ path: `${RESULT_DIR}/arena-table.png` }).catch(() => {});
         const fp1 = await tableFingerprint(arena);
@@ -182,9 +207,13 @@ async function main() {
         await caller.getByLabel('Start Video Call', { exact: true }).click();
 
         const alert = arena.getByText(/Tap To Answer/i).first();
+        const callRow = until(async () => ((await admin.from('notifications').select('id, type, data').eq('user_id', A).eq('type', 'incoming_call').gte('created_at', t0)).data || [])[0], { timeout: 20000 }).catch(() => null);
         const alerted = await alert.waitFor({ timeout: 25000 }).then(() => true, () => false);
+        const row = await callRow;
+        report.ring = { incomingCallRowWritten: Boolean(row), rowHasRoom: Boolean(row?.data?.roomName), eventsOnPage: await arena.evaluate(() => window.__caCallEvents || []).catch(() => null), consoleErrors: consoleErrors.slice(-8) };
+        if (!alerted) await arena.screenshot({ path: `${RESULT_DIR}/arena-during-ring.png` }).catch(() => {});
         const alertText = alerted ? (await alert.textContent())?.trim() : null;
-        check('Club Arena shows the incoming-call alert at the table', alerted, { alertText });
+        check('Club Arena shows the incoming-call alert at the table', alerted, { alertText, ...report.ring });
         if (alerted) {
             await alert.click();
             const media = await until(async () => { const v = await videos(caller); return v.remote >= 1 ? v : null; }, { timeout: 60000 }).catch(() => null);
