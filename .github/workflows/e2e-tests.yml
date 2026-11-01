@@ -90,6 +90,14 @@ on:
         description: Minutes messenger-calls-device waits for READY from the phone (5-300)
         type: string
         default: '30'
+      device_user_email:
+        description: Email of an ORDINARY account you created and signed in to on the device (messenger-calls-device); elevated accounts are refused
+        type: string
+        default: ''
+      device_kind:
+        description: Device under test for messenger-calls-device (iphone or ipad); each is a separate run and receipt
+        type: string
+        default: ''
       upgrade_wait_minutes:
         description: Minutes messenger-calls-upgrade waits for the next production deployment (5-150)
         type: string
@@ -871,8 +879,9 @@ jobs:
           retention-days: 30
 
   messenger-calls-device:
-    # Physical-device conductor: the test account is signed in by its owner on
-    # an iPhone; this job runs ONE throwaway partner and posts each step into
+    # Physical-device conductor: the person signs in on the device to an
+    # ordinary account they created (never an elevated one); this job runs ONE
+    # throwaway partner and posts each step into
     # the shared chat. It removes only the Apple push subscription created for
     # the test (at or after device_since).
     name: Published Messenger Calls Physical Device Conductor
@@ -915,8 +924,8 @@ jobs:
       - name: Conduct the physical-device call test
         run: node scripts/ci/messenger-calls-device.mjs
         env:
-          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          DEVICE_USER_EMAIL: ${{ inputs.device_user_email }}
+          DEVICE_KIND: ${{ inputs.device_kind }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
