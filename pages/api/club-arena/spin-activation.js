@@ -8,7 +8,7 @@
  * Actions:
  *   get_state   — everything the owner menu shows, in one read
  *   activate    — seed the wallet from a wallet the owner holds and open Spins
- *   deactivate  — stop offering Spins (moves no money)
+ *   deactivate  — stop offering Spins and return eligible outstanding seed
  *
  * WHY THIS ROUTE EXISTS AT ALL.
  * fn_spin_activate moves real money, so it is REVOKEd from anon and
@@ -73,13 +73,19 @@ async function authorise(token, clubId) {
    * become reachable by a data change nobody connected to this file.
    */
   const { data: unionRow } = await supabaseAdmin
-    .from('unions').select('id').eq('id', clubId).maybeSingle();
+    .from('unions')
+    .select('id')
+    .eq('id', clubId)
+    .maybeSingle();
   const ownerIsUnion = Boolean(unionRow) || Boolean(club.union_id);
   const unionId = unionRow?.id || club.union_id;
 
   // Platform admins can always act.
   const { data: profile } = await supabaseAdmin
-    .from('profiles').select('role').eq('id', user.id).maybeSingle();
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
   const isPlatformAdmin = ['admin', 'superadmin'].includes(profile?.role);
 
   if (ownerIsUnion) {
@@ -155,24 +161,35 @@ export default async function handler(req, res) {
       });
     }
 
+    const requestId = req.headers['x-idempotency-key'];
+    if (
+      typeof requestId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)
+    ) {
+      return res.status(400).json({ success: false, error: 'A UUID idempotency key is required' });
+    }
+
     if (action === 'activate') {
       const rawSeed = req.body.seedAmount;
       // Accept explicit numbers and existing numeric strings, never coercible
       // missing/blank values, booleans or containers as a zero contribution.
       const validSeedInput =
-        typeof rawSeed === 'number' ||
-        (typeof rawSeed === 'string' && rawSeed.trim() !== '');
+        typeof rawSeed === 'number' || (typeof rawSeed === 'string' && rawSeed.trim() !== '');
       const seed = validSeedInput ? Number(rawSeed) : NaN;
       const maxStake = Number(req.body.offeredMaxStake);
       const wallet = req.body.sourceWallet;
 
       if (!Number.isFinite(seed) || seed < 0) {
-        return res.status(400).json({ success: false, error: 'Seed must be a non-negative number' });
+        return res
+          .status(400)
+          .json({ success: false, error: 'Seed must be a non-negative number' });
       }
       // Whole chips only. The estate's buy-in rules are whole-dollar and a
       // fractional seed would round its way into the ledger.
       if (!Number.isInteger(seed)) {
-        return res.status(400).json({ success: false, error: 'Seed must be a whole number of chips' });
+        return res
+          .status(400)
+          .json({ success: false, error: 'Seed must be a whole number of chips' });
       }
       if (!BOARD_STAKES.includes(maxStake)) {
         return res.status(400).json({
@@ -188,7 +205,10 @@ export default async function handler(req, res) {
         });
       }
 
-      const { data, error } = await supabaseAdmin.rpc('fn_spin_activate', {
+      const { data, error } = await supabaseAdmin.rpc('fn_spin_owner_command', {
+        p_request_id: requestId,
+        p_owner_id: auth.ownerId,
+        p_action: 'activate',
         p_club_id: clubId,
         p_seed_amount: seed,
         p_offered_max_stake: maxStake,
@@ -199,20 +219,37 @@ export default async function handler(req, res) {
 
       // The function reports its own refusals in the payload rather than
       // throwing, so a refusal must not be reported to the owner as success.
-      if (!data?.ok) {
-        return res.status(400).json({ success: false, error: data?.reason || 'Activation refused', detail: data });
+      if (data?.ok !== true) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: data?.reason || 'Activation refused',
+            detail: data,
+            requestResolved: data?.ok === false,
+          });
       }
       return res.status(200).json({ success: true, result: data });
     }
 
     if (action === 'deactivate') {
-      const { data, error } = await supabaseAdmin.rpc('fn_spin_deactivate', {
+      const { data, error } = await supabaseAdmin.rpc('fn_spin_owner_command', {
+        p_request_id: requestId,
+        p_owner_id: auth.ownerId,
+        p_action: 'deactivate',
         p_club_id: clubId,
         p_actor: auth.user.id,
       });
       if (error) throw error;
-      if (!data?.ok) {
-        return res.status(400).json({ success: false, error: data?.reason || 'Deactivation refused' });
+      if (data?.ok !== true) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: data?.reason || 'Deactivation refused',
+            detail: data,
+            requestResolved: data?.ok === false,
+          });
       }
       return res.status(200).json({ success: true, result: data });
     }

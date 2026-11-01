@@ -90,7 +90,7 @@ test('the seed must be a whole non-negative number of chips', () => {
 test('a refusal from the function is NOT reported to the owner as success', () => {
   // fn_spin_activate reports its refusals in the payload rather than throwing,
   // so `if (error)` alone would show "activated" for a refused activation.
-  assert.match(code, /if \(!data\?\.ok\)/);
+  assert.match(code, /if \(data\?\.ok !== true\)/);
   assert.match(code, /400/);
 });
 
@@ -128,7 +128,7 @@ test('a union id passed as clubId is treated as a UNION, not a club', () => {
   // then testing clubs.owner_id would authorise club ownership where union
   // leadership is required - the exact hole this file exists to close. Asking
   // `unions` directly means a data change cannot open it.
-  assert.match(code, /from\('unions'\)\.select\('id'\)\.eq\('id', clubId\)/);
+  assert.match(code, /from\('unions'\)\s*\.select\('id'\)\s*\.eq\('id', clubId\)/);
   assert.match(code, /const ownerIsUnion = Boolean\(unionRow\) \|\| Boolean\(club\.union_id\)/);
   assert.match(code, /if \(ownerIsUnion\)/);
 });
@@ -236,7 +236,13 @@ async function invoke(body = {}, options = {}) {
   await handler(
     {
       method: options.method || 'POST',
-      headers: options.noToken ? {} : { authorization: 'Bearer token' },
+      headers: options.noToken
+        ? {}
+        : {
+            authorization: 'Bearer token',
+            'x-idempotency-key': 'a3000000-0000-4000-8000-000000000001',
+            ...options.headers,
+          },
       body: {
         action: 'activate',
         clubId: 'club',
@@ -266,8 +272,11 @@ for (const seed of [0, '0', ' 0 ', 20, '20', '2e1']) {
     assert.deepEqual(res.body, { success: true, result: reply });
     assert.deepEqual(calls, [
       {
-        name: 'fn_spin_activate',
+        name: 'fn_spin_owner_command',
         args: {
+          p_request_id: 'a3000000-0000-4000-8000-000000000001',
+          p_owner_id: 'club',
+          p_action: 'activate',
           p_club_id: 'club',
           p_seed_amount: Number(seed),
           p_offered_max_stake: 5,
@@ -324,11 +333,16 @@ for (const reason of [
       const { res, calls } = await invoke({ seedAmount }, { reply: { data } });
       assert.equal(calls.length, 1);
       assert.equal(res.code, 400);
-      assert.deepEqual(res.body, { success: false, error: reason, detail: data });
+      assert.deepEqual(res.body, {
+        success: false,
+        error: reason,
+        detail: data,
+        requestResolved: true,
+      });
     }
   });
 }
-for (const data of [null, {}, { ok: false }])
+for (const data of [null, {}, { ok: false }, { ok: 'true' }, { ok: 1 }])
   test(`actual handler refuses incomplete SQL response ${JSON.stringify(data)}`, async () => {
     const { res } = await invoke({}, { reply: { data } });
     assert.equal(res.code, 400);
@@ -443,5 +457,31 @@ test('actual handler preserves state read and deactivate behavior', async () => 
   assert.equal(result.calls[0].name, 'fn_spin_owner_state');
   const stopped = await invoke({ action: 'deactivate' });
   assert.equal(stopped.res.code, 200);
-  assert.equal(stopped.calls[0].name, 'fn_spin_deactivate');
+  assert.equal(stopped.calls[0].name, 'fn_spin_owner_command');
+  assert.equal(stopped.calls[0].args.p_action, 'deactivate');
+});
+
+for (const key of [undefined, '', 'not-a-uuid', ['a3000000-0000-4000-8000-000000000001']]) {
+  test(`financial request refuses invalid identity ${String(key)}`, async () => {
+    for (const action of ['activate', 'deactivate']) {
+      const { res, calls } = await invoke({ action }, { headers: { 'x-idempotency-key': key } });
+      assert.equal(res.code, 400);
+      assert.equal(calls.length, 0);
+    }
+    assert.equal(
+      (await invoke({ action: 'get_state' }, { headers: { 'x-idempotency-key': key } })).res.code,
+      200
+    );
+  });
+}
+test('each delayed replay forwards the original actor, owner, payload and request', async () => {
+  const first = await invoke();
+  const off = await invoke(
+    { action: 'deactivate' },
+    { headers: { 'x-idempotency-key': 'a3000000-0000-4000-8000-000000000002' } }
+  );
+  const replay = await invoke();
+  assert.deepEqual(first.calls, replay.calls);
+  assert.equal(off.calls[0].args.p_request_id, 'a3000000-0000-4000-8000-000000000002');
+  assert.equal(off.calls[0].args.p_action, 'deactivate');
 });
