@@ -117,9 +117,9 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/install.md';
     } else if (pathname === '/hub/vip-membership/compare') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/vip-membership/compare.md';
-    } else if (pathname.startsWith('/hub/training/') && !pathname.includes('[')) {
+    } else if (/^\/hub\/training\/[a-z0-9-]+$/.test(pathname)) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
-    } else if (pathname.startsWith('/hub/trivia/') && !pathname.includes('[')) {
+    } else if (/^\/hub\/trivia\/[a-z0-9-]+$/.test(pathname)) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     } else if (
       pathname === '/hub/commander/venues' ||

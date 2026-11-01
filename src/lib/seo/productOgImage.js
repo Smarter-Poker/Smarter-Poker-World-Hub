@@ -31,7 +31,7 @@ export const PRODUCT_OG_IMAGES = Object.freeze([
   },
   {
     prefix: '/hub/install',
-    image: 'https://smarter.poker/api/og/tool-card?tool=install&badge=PWA+APP+INSTALL&title=Install+Smarter.Poker+On+iOS+And+Android&subtitle=Full-Screen+Web+App+With+Live+Push+Alerts+And+Offline+GTO+Packs&statLabel=APP+DOWNLOAD&statValue=100%25+FREE',
+    image: 'https://smarter.poker/api/og/tool-card?tool=install&badge=PWA+APP+INSTALL&title=Install+Smarter.Poker+On+iOS+And+Android&subtitle=Full-Screen+Web+App+With+Live+Push+Alerts+And+Cached+GTO+Packs&statLabel=APP+DOWNLOAD&statValue=100%25+FREE',
   },
 ]);
 

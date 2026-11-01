@@ -50748,7 +50748,7 @@
         },
         {
           "name": "hubCollectionSchema",
-          "line": 239,
+          "line": 241,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50756,7 +50756,7 @@
         },
         {
           "name": "datasetSchema",
-          "line": 299,
+          "line": 301,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50764,7 +50764,7 @@
         },
         {
           "name": "courseSchema",
-          "line": 343,
+          "line": 345,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50772,7 +50772,7 @@
         },
         {
           "name": "freerollEventSchema",
-          "line": 412,
+          "line": 414,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50797,7 +50797,9 @@
     {
       "file": "src/lib/seo/productOgImage.js",
       "imports": [],
-      "links": [],
+      "links": [
+        "/hub/training"
+      ],
       "apiReferences": [],
       "apiReferencePrefixes": [],
       "ctas": [],
@@ -50833,7 +50835,7 @@
       "functions": [
         {
           "name": "productOgImage",
-          "line": 11,
+          "line": 39,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -96736,7 +96738,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 239,
+        "line": 241,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96762,7 +96764,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 412,
+        "line": 414,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96777,7 +96779,7 @@
       {
         "file": "src/lib/seo/productOgImage.js",
         "name": "productOgImage",
-        "line": 11,
+        "line": 39,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106207,7 +106209,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "hubCollectionSchema",
-        "line": 239,
+        "line": 241,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106233,7 +106235,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 412,
+        "line": 414,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106248,7 +106250,7 @@
       {
         "file": "src/lib/seo/productOgImage.js",
         "name": "productOgImage",
-        "line": 11,
+        "line": 39,
         "references": 1,
         "exported": true,
         "defaultExport": false,
