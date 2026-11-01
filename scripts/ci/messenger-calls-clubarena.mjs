@@ -105,7 +105,11 @@ function watchRealtime(page) {
         ws.on('framereceived', f => {
             const t = String(f.payload || '');
             if (/postgres_changes/.test(t) && /"table":"notifications"/.test(t)) seen.notificationEvents += 1;
-            if (/"status":"error"|phx_error/.test(t)) seen.errors.push(t.slice(0, 200));
+            if (/"status":"error"|phx_error|Unable to subscribe/.test(t)) {
+                const topic = (/"topic":"([^"]+)"/.exec(t) || [])[1] || null;
+                const params = (/connect parameters: \[([^\]]*)\]/.exec(t) || [])[1] || null;
+                seen.errors.push({ topic: topic && topic.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '<id>'), params });
+            }
         });
     });
     return seen;
@@ -156,8 +160,10 @@ async function main() {
             check('The throwaway passes Club Arena\'s first-visit prompts and reaches the lobby', ready, { prompts: report.probeGates });
             await page.locator('[aria-label="Open Menu"]').first().click({ timeout: 60000 });
             const row = page.getByRole('button', { name: /^Turn On Notifications$/i });
-            const shown = await row.waitFor({ timeout: 15000 }).then(() => true, () => false);
-            check('Club Arena menu offers Turn On Notifications to a device without push', shown, null);
+            const shown = await row.waitFor({ timeout: 30000 }).then(() => true, () => false);
+            const menuText = shown ? null : await page.evaluate(() => (document.querySelector('[role="dialog"], nav, aside')?.innerText || document.body.innerText || '').slice(0, 500)).catch(() => null);
+            if (!shown) await page.screenshot({ path: `${RESULT_DIR}/menu-without-row.png` }).catch(() => {});
+            check('Club Arena menu offers Turn On Notifications to a device without push', shown, shown ? null : { menuText });
             if (shown) {
                 await row.click();
                 const sub = await until(async () => (await admin.from('push_subscriptions').select('id, endpoint, transport').eq('user_id', A).eq('is_active', true).gte('created_at', t0)).data?.[0], { timeout: 45000 }).catch(() => null);
