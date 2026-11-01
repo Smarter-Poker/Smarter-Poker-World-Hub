@@ -125,9 +125,38 @@ export default function SEOHead(props) {
       pathname === '/hub/commander/venues' ||
       pathname === '/hub/commander/tournaments' ||
       pathname === '/hub/commander/home-games' ||
-      pathname === '/hub/commander/leagues'
+      pathname === '/hub/commander/leagues' ||
+      pathname === '/hub/commander/faq' ||
+      pathname === '/hub/commander/responsible-gaming'
     ) {
       resolvedMarkdownUrl = `https://smarter.poker${pathname}.md`;
+    } else if (
+      pathname === '/hub/vip-membership' ||
+      pathname.startsWith('/hub/vip-membership/') ||
+      pathname === '/hub/diamond-store' ||
+      pathname === '/hub/smarter-rewards' ||
+      pathname === '/hub/merch-store' ||
+      pathname === '/hub/club-shop' ||
+      pathname === '/hub/tournaments/this-weekend' ||
+      pathname === '/hub/preflop-charts/leaderboard' ||
+      pathname === '/hub/preflop-charts/tutorial' ||
+      pathname === '/hub/news' ||
+      pathname === '/hub/news/sources' ||
+      pathname === '/hub/leaderboards' ||
+      pathname === '/hub/promotions' ||
+      pathname === '/hub/lives' ||
+      pathname === '/hub/help' ||
+      pathname === '/hub/pages' ||
+      pathname === '/hub/social-pages' ||
+      pathname === '/terms' ||
+      pathname === '/privacy' ||
+      pathname === '/legal/official-rules' ||
+      pathname === '/hub/home-games/in' ||
+      pathname === '/hub/home-games/near-me' ||
+      pathname.startsWith('/hub/home-games/in/') ||
+      pathname === '/hub/home-games/[slug]'
+    ) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/hub/daily-tournaments') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/daily-tournaments.md';
     } else if (pathname === '/hub/events-calendar') {

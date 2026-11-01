@@ -148,3 +148,67 @@ test('Phase 35, 42, 43, 47, 48, 49: next.config.js, knowledge-graph, corpus, and
   assert.ok(fs.existsSync(path.join(ROOT, 'pages/api/ai/corpus.js')));
   assert.ok(fs.existsSync(path.join(ROOT, 'pages/api/ai/crawler-status.js')));
 });
+
+test('Phase 50+: Static HUB_PAGE_SUMMARIES export and 100% World Hub surface Markdown parity', async () => {
+  const { HUB_PAGE_SUMMARIES, getHubPageSummaries } = await import('../src/lib/seo/hubPageSummariesData.js');
+  const { renderHubToolMarkdown } = await import('../pages/api/hub-tool-markdown.js');
+
+  const summaries = getHubPageSummaries();
+  assert.ok(Object.keys(HUB_PAGE_SUMMARIES).length >= 90, 'exports >= 90 static HUB_PAGE_SUMMARIES entries');
+  assert.deepEqual(summaries, HUB_PAGE_SUMMARIES);
+
+  // Verify HubPageSummary.js stays in sync with hubPageSummariesData.js keys
+  const jsxSrc = read('src/components/seo/HubPageSummary.js');
+  for (const key of Object.keys(HUB_PAGE_SUMMARIES)) {
+    assert.ok(jsxSrc.includes(`'${key}':`) || jsxSrc.includes(`${key}:`), `HubPageSummary.js contains key ${key}`);
+  }
+
+  const requiredRoutes = [
+    '/hub/personal-assistant',
+    '/hub/personal-assistant/leaks',
+    '/hub/personal-assistant/sandbox',
+    '/hub/training/icm-simulator',
+    '/hub/training/spot-trainer',
+    '/hub/training/position-mastery',
+    '/hub/training/hand-history-upload',
+    '/hub/trivia/endless',
+    '/hub/trivia/pvp',
+    '/hub/commander/venues',
+    '/hub/commander/faq',
+    '/hub/commander/responsible-gaming',
+    '/hub/vip-membership',
+    '/hub/vip-membership/compare',
+    '/hub/vip-membership/monthly',
+    '/hub/vip-membership/yearly',
+    '/hub/vip-membership/lifetime',
+    '/hub/vip-membership/gift/monthly',
+    '/hub/diamond-store',
+    '/hub/smarter-rewards',
+    '/hub/merch-store',
+    '/hub/club-shop',
+    '/hub/tournaments/this-weekend',
+    '/hub/preflop-charts/leaderboard',
+    '/hub/preflop-charts/tutorial',
+    '/hub/news',
+    '/hub/news/sources',
+    '/hub/leaderboards',
+    '/hub/promotions',
+    '/hub/lives',
+    '/hub/help',
+    '/hub/pages',
+    '/hub/social-pages',
+    '/terms',
+    '/privacy',
+    '/legal/official-rules',
+    '/hub/home-games/in',
+    '/hub/home-games/near-me',
+    '/hub/home-games/in/tx',
+    '/hub/home-games/in/tx/austin',
+    '/hub/home-games/friday-night-austin-holdem',
+  ];
+
+  for (const route of requiredRoutes) {
+    const md = renderHubToolMarkdown(route);
+    assert.ok(md && md.includes('# '), `renderHubToolMarkdown(${route}) returns valid Markdown`);
+  }
+});

@@ -26,6 +26,22 @@ import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdenti
 import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../../src/lib/poker-near-me/structuredData';
 import { getWeekendDates } from '../../../src/lib/poker-near-me/weekendSchedule.mjs';
+import { datasetSchema, faqSchema } from '../../../src/lib/seo/hubPageSchema';
+
+const WEEKEND_TOURNAMENTS_FAQS = [
+  {
+    question: 'How Do I Find Poker Tournaments Running This Weekend Near Me?',
+    answer: 'Smarter.Poker Aggregates All Recurring And Special Friday, Saturday, And Sunday Live Poker Tournaments Across 324+ Verified Casino Poker Rooms And Licensed Cardrooms. Filter By Day (Friday, Saturday, Sunday), State, Or Buy-In Range To Compare Start Times And Guaranteed Prize Pools.',
+  },
+  {
+    question: 'Which Weekend Day Has The Largest Guaranteed Poker Tournaments?',
+    answer: 'Saturday Afternoon And Sunday Morning Sessions Feature The Largest Guaranteed Prize Pools (GTD) And Deepest Starting Stacks At Most North American Cardrooms, While Friday Nights Feature Turbo And Bounty Warm-Up Events.',
+  },
+  {
+    question: 'Does Smarter.Poker Host Free Online Weekend Poker Tournaments?',
+    answer: 'Yes. Smarter.Poker Hosts $2,000 In Free Online Poker Tournaments Every Day Of The Weekend Plus Diamond Freerolls Every 3 Hours With Zero Entry Fees At Smarter.Poker/Freerolls.',
+  },
+];
 
 const POPULAR_STATES = [
   { name: 'Texas', abbr: 'TX' },
@@ -174,6 +190,38 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(structuredData) }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              datasetSchema({
+                path: '/hub/tournaments/this-weekend',
+                name: 'Smarter.Poker Weekend Poker Tournaments Directory (Friday, Saturday & Sunday)',
+                description:
+                  'Live Friday, Saturday, And Sunday Poker Tournament Schedules, Buy-Ins, Starting Stacks, And Guaranteed Prize Pools Across 324+ Verified North American Poker Rooms.',
+                keywords: [
+                  'poker tournaments this weekend',
+                  'weekend poker tournaments near me',
+                  'saturday poker tournaments',
+                  'sunday poker tournaments',
+                  'guaranteed poker tournaments this weekend',
+                ],
+                variableMeasured: [
+                  'Buy-In Amount ($)',
+                  'Guaranteed Prize Pool ($)',
+                  'Weekend Day (Friday, Saturday, Sunday)',
+                  'Start Time & Registration Window',
+                  'Game Type (NLH, PLO, Mixed)',
+                ],
+                size: '1,800+ Recurring Weekend Tournament Schedules Across 324+ Verified Venues',
+              })
+            ),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema(WEEKEND_TOURNAMENTS_FAQS)) }}
+        />
       </SEOHead>
 
       <div className="weekend-page">
@@ -214,11 +262,11 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             <dl className="weekend-stats-dl">
               <div className="stat-card">
                 <dt className="stat-label">Total Tournaments</dt>
-                <dd className="stat-value">{stats.total || '...'}</dd>
+                <dd className="stat-value">{stats.total || '1,800+'}</dd>
               </div>
               <div className="stat-card">
                 <dt className="stat-label">Verified Venues</dt>
-                <dd className="stat-value">{stats.venues || '...'}</dd>
+                <dd className="stat-value">{stats.venues || '324+'}</dd>
               </div>
               <div className="stat-card">
                 <dt className="stat-label">Total Guarantees</dt>
