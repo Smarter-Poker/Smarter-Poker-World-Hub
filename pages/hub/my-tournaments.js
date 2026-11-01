@@ -7,7 +7,7 @@
  * Links to each tournament's public page for full details.
  * Requires authentication.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
@@ -41,14 +41,20 @@ export default function MyTournaments() {
             .then(json => json.success && json.data?.registrations ? json.data.registrations : [])
     );
 
+    const swrDataRef = useRef(swrData);
+    useEffect(() => {
+        swrDataRef.current = swrData;
+    }, [swrData]);
+
     // Realtime: revalidate SWR when my tournament registrations change status
     useEffect(() => {
         const authUser = getAuthUser();
         if (!authUser?.id) return;
+        const instanceSuffix = Math.random().toString(36).slice(2, 8);
 
         // Subscribe to tournament_registrations changes for this user
         const regChannel = supabase
-            .channel(`my-tournaments:${authUser.id}`)
+            .channel(`my-tournaments:${authUser.id}:${instanceSuffix}`)
             .on('postgres_changes', {
                 event: '*', schema: 'public', table: 'tournament_registrations',
                 filter: `user_id=eq.${authUser.id}`,
@@ -64,12 +70,12 @@ export default function MyTournaments() {
         // club_tournaments table (dead since 2026-03) to canonical tournaments -
         // status changes now happen there, so this channel fires again.
         const tournChannel = supabase
-            .channel(`my-tournaments-status:${authUser.id}`)
+            .channel(`my-tournaments-status:${authUser.id}:${instanceSuffix}`)
             .on('postgres_changes', {
                 event: 'UPDATE', schema: 'public', table: 'tournaments',
             }, (payload) => {
                 // Only revalidate if this tournament is in our list
-                const knownIds = (swrData || []).map(r => r.tournament_id);
+                const knownIds = (swrDataRef.current || []).map(r => r.tournament_id);
                 if (knownIds.includes(payload.new?.id)) mutate();
             })
             .subscribe();

@@ -18440,7 +18440,8 @@
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
-            "__tests__/training-tournaments-read-contract.test.mjs"
+            "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
         "empty": {
@@ -18473,7 +18474,8 @@
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
-            "__tests__/training-tournaments-read-contract.test.mjs"
+            "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
         "error": {
@@ -18510,7 +18512,8 @@
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
-            "__tests__/training-tournaments-read-contract.test.mjs"
+            "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
         "retry": {
@@ -18536,7 +18539,8 @@
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
-            "__tests__/training-tournaments-read-contract.test.mjs"
+            "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
         "success": {
@@ -18568,7 +18572,8 @@
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
-            "__tests__/training-tournaments-read-contract.test.mjs"
+            "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
         "stale": {
@@ -18604,7 +18609,8 @@
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
-            "__tests__/training-tournaments-read-contract.test.mjs"
+            "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
         "offline": {
@@ -18622,7 +18628,8 @@
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
-            "__tests__/training-tournaments-read-contract.test.mjs"
+            "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
         "authExpiry": {
@@ -18646,7 +18653,8 @@
             "__tests__/training-reference-is-public-c.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
-            "__tests__/training-tournaments-read-contract.test.mjs"
+            "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         }
       },
@@ -18657,7 +18665,8 @@
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
-        "__tests__/training-tournaments-read-contract.test.mjs"
+        "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/world-hub-connection-hardening.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -73827,7 +73836,8 @@
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
-        "__tests__/training-tournaments-read-contract.test.mjs"
+        "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/world-hub-connection-hardening.test.mjs"
       ]
     },
     {
@@ -83871,7 +83881,8 @@
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
-        "__tests__/training-tournaments-read-contract.test.mjs"
+        "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/world-hub-connection-hardening.test.mjs"
       ]
     },
     {
