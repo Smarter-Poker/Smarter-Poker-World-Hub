@@ -65,16 +65,21 @@ test('Phase 36: Parameterized Odds and ICM Markdown renderers compute live scena
   assert.ok(icmMd.includes('$3839.29') || icmMd.includes('Player 1'), 'computes Malmuth-Harville ICM equity for Player 1');
 });
 
-test('Phase 37: Starting Hand Encyclopedia defines 20 canonical hands with Markdown renderers', () => {
-  assert.equal(STARTING_HANDS.length, 20);
+test('Phase 37: Starting Hand Encyclopedia defines 30 canonical hands with Markdown renderers', () => {
+  assert.equal(STARTING_HANDS.length, 30);
   const aces = findStartingHand('AA');
   assert.ok(aces && aces.slug === 'pocket-aces');
   const ak = findStartingHand('ace-king-suited');
   assert.ok(ak && ak.code === 'AKs');
+  const eights = findStartingHand('88');
+  assert.ok(eights && eights.slug === 'pocket-eights');
+  const eightSeven = findStartingHand('87s');
+  assert.ok(eightSeven && eightSeven.slug === 'eight-seven-suited');
 
   const indexMd = renderStartingHandsIndexMarkdown();
   assert.ok(indexMd.startsWith('# Smarter.Poker Texas Hold\'em Starting Hand Encyclopedia'));
   assert.ok(indexMd.includes('Pocket Aces'));
+  assert.ok(indexMd.includes('Pocket Eights'));
 
   const handMd = renderStartingHandMarkdown(aces);
   assert.ok(handMd.includes('85.2%'));
@@ -89,11 +94,16 @@ test('Phase 38: Poker Near Me sub-hub Markdown renderers emit complete directori
 });
 
 test('Phase 39 & 40: First-party Research Reports and Editorial Standards render cleanly', () => {
-  assert.equal(RESEARCH_REPORTS.length, 4);
+  assert.equal(RESEARCH_REPORTS.length, 6);
   const rakeReport = findResearchReport('us-live-poker-room-rake-and-jackpot-benchmark');
   assert.ok(rakeReport);
+  const dealerReport = findResearchReport('poker-dealer-toke-and-hourly-rate-benchmark');
+  assert.ok(dealerReport);
+  const icmReport = findResearchReport('tournament-icm-bubble-factor-and-risk-premium-study');
+  assert.ok(icmReport);
   assert.ok(renderResearchIndexMarkdown().includes('First-Party Statistical Research Reports'));
   assert.ok(renderResearchReportMarkdown(rakeReport).includes('324+ Verified'));
+  assert.ok(renderResearchReportMarkdown(dealerReport).includes('Down'));
   assert.ok(renderEditorialStandardsMarkdown().includes('Mathematical Verification Standards'));
 });
 
@@ -140,6 +150,8 @@ test('Phase 35, 42, 43, 47, 48, 49: next.config.js, knowledge-graph, corpus, and
   assert.ok(nextConfig.includes("source: '/knowledge-graph.jsonld'"), 'rewrites /knowledge-graph.jsonld');
   assert.ok(nextConfig.includes("source: '/llms-es.txt'"), 'rewrites /llms-es.txt');
   assert.ok(nextConfig.includes("source: '/llms-pt.txt'"), 'rewrites /llms-pt.txt');
+  assert.ok(nextConfig.includes("source: '/llms-de.txt'"), 'rewrites /llms-de.txt');
+  assert.ok(nextConfig.includes("source: '/llms-fr.txt'"), 'rewrites /llms-fr.txt');
   assert.ok(nextConfig.includes("source: '/learn/hands.md'"), 'rewrites /learn/hands.md');
   assert.ok(nextConfig.includes("source: '/research.md'"), 'rewrites /research.md');
   assert.ok(nextConfig.includes('max-snippet:-1'), 'sets max-snippet:-1 header');

@@ -253,10 +253,10 @@ export function buildKnowledgeGraph() {
         '@type': 'Report',
         '@id': `${SITE}/research/${r.slug}#report`,
         headline: r.title,
-        description: r.description,
+        description: r.summary || r.description,
         url: `${SITE}/research/${r.slug}`,
-        datePublished: r.published,
-        dateModified: r.updated,
+        datePublished: r.publishedDate || r.published,
+        dateModified: r.modifiedDate || r.updated,
         publisher: { '@id': `${SITE}/#organization` },
       })),
       {

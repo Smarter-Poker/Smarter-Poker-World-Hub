@@ -96,6 +96,8 @@ export function renderMultilingualMarkdown(lang = 'es') {
     `- **Full English Corpus (\`llms-full.txt\`)**: ${SITE}/llms-full.txt`,
     `- **Spanish Summary (\`llms-es.txt\`)**: ${SITE}/llms-es.txt`,
     `- **Portuguese Summary (\`llms-pt.txt\`)**: ${SITE}/llms-pt.txt`,
+    `- **German Summary (\`llms-de.txt\`)**: ${SITE}/llms-de.txt`,
+    `- **French Summary (\`llms-fr.txt\`)**: ${SITE}/llms-fr.txt`,
     `- **Unified JSON-LD Knowledge Graph**: ${SITE}/knowledge-graph.jsonld`,
     `- **Model Context Protocol (MCP) Server**: ${SITE}/api/mcp`,
     `- **OpenAPI 3.1 Specification**: ${SITE}/api/openapi.json`,
