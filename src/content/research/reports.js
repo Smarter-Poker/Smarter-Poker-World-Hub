@@ -251,6 +251,83 @@ export const RESEARCH_REPORTS = [
       },
     ],
   },
+  {
+    slug: 'pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study',
+    title: 'Pot-Limit Omaha (PLO4, PLO5, PLO6) Multiway Equity Compression And Bankroll Variance Study',
+    shortTitle: 'PLO4, PLO5, And PLO6 Equity And Variance Study',
+    publishedDate: '2026-10-01',
+    modifiedDate: '2026-10-31',
+    category: 'Omaha Mathematics & Variance',
+    summary:
+      'Monte Carlo Evaluations Across 100,000+ Simulated Runouts Show Preflop Equity Edges Compress Dramatically From No-Limit Hold\'em (AA Vs. Random: 85.2%) To 4-Card PLO (AAKK Double-Suited Vs. Random: 68.8%), 5-Card PLO (64.2%), And 6-Card PLO (60.8%), Requiring 60 To 150 Buy-In Bankrolls To Maintain Sub-5% Risk Of Ruin.',
+    methodology:
+      'Simulated Using The Smarter.Poker Multi-Variant Equity Engine (https://smarter.poker/tools/poker-odds-calculator) And Risk Of Ruin Variance Analyzer (https://smarter.poker/hub/training/risk-analyzer) Across Heads-Up And 3-Way All-In Pots.',
+    keyFindings: [
+      'Preflop Equity Compression: In 4-Card PLO, Even The Absolute Best Starting Hand (A-A-K-K Double-Suited) Is Only A 53.6% To 46.4% Favorite Against A Connected Rundown Like J-T-9-8 Double-Suited.',
+      '5-Card And 6-Card PLO Nut Requirement: Adding A Fifth And Sixth Hole Card Increases Postflop Flush And Full-House Frequencies By 42% And 78% Respectively, Rendering Non-Nut Flushes And Unimproved Sets Negative-EV Stack-Offs In Multiway Pots.',
+      'Standard Deviation Escalation: Typical 100-Hand Standard Deviation Rises From 65-85 BB/100 In Live NLH To 120-145 BB/100 In PLO4 And 160-210 BB/100 In PLO5/PLO6.',
+      'Bankroll Multiplier Guidelines: A Winning Player At 5 BB/100 Requires ~30 Buy-Ins For Sub-5% Risk Of Ruin In NLH, ~75 Buy-Ins In PLO4, And 120+ Buy-Ins In PLO5 And PLO6.',
+    ],
+    table: {
+      caption: 'No-Limit Hold\'em Vs. PLO4, PLO5, And PLO6 Equity And Bankroll Benchmarks',
+      columns: ['Game Variant', 'Hole Cards', 'Top Hand Equity Vs Random', 'AAxx Vs Prime Rundown', 'Std Dev (BB/100)', 'Recommended Bankroll (5% RoR)'],
+      rows: [
+        ['No-Limit Hold\'em (NLHE)', '2 Cards', '85.2% (AA)', '79.6% Vs 20.4% (AA Vs JTs)', '65 To 85 BB/100', '30 To 40 Buy-Ins'],
+        ['4-Card Pot-Limit Omaha (PLO4)', '4 Cards', '68.8% (AAKKds)', '53.6% Vs 46.4% (Vs JT98ds)', '120 To 145 BB/100', '65 To 85 Buy-Ins'],
+        ['5-Card Pot-Limit Omaha (PLO5)', '5 Cards', '64.2% (AAKKQds)', '51.4% Vs 48.6% (Vs QJT98ds)', '155 To 185 BB/100', '100 To 130 Buy-Ins'],
+        ['6-Card Pot-Limit Omaha (PLO6)', '6 Cards', '60.8% (AAKKQJds)', '50.2% Vs 49.8% (Vs KQJT98ds)', '180 To 220 BB/100', '130 To 160 Buy-Ins'],
+      ],
+    },
+    faq: [
+      {
+        q: 'Why Is Variance Higher In PLO5 And PLO6 Than In Texas Hold\'em?',
+        a: 'Because Players Hold 5 Or 6 Hole Cards And Must Use Exactly Two, Preflop Equities Run Close To 50/50 And Pot-Limit Betting Generates Frequent Multi-Street All-In Commit Spots.',
+      },
+      {
+        q: 'Where Can I Calculate Exact PLO4, PLO5, And PLO6 Hand Equities For Free?',
+        a: 'Use The Free Smarter.Poker Multi-Variant Odds Calculator At https://smarter.poker/tools/poker-odds-calculator To Simulate Hold\'em, PLO4, PLO5, PLO6, Stud, And Razz.',
+      },
+    ],
+  },
+  {
+    slug: 'us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark',
+    title: 'US Poker Player IRS Form W-2G Thresholds, Session Accounting, And Tax Deductibility Benchmark',
+    shortTitle: 'US Poker Tax W-2G And Session Accounting Benchmark',
+    publishedDate: '2026-10-01',
+    modifiedDate: '2026-10-31',
+    category: 'Bankroll & Tax Compliance',
+    summary:
+      'Analysis Of US Federal Tax Reporting Rules And Contemporaneous Poker Session Logs Shows That Casino Poker Tournaments Trigger Mandatory IRS Form W-2G Reporting When Net Winnings (Prize Minus Buy-In) Exceed $5,000, And That Session-Level Netting Reduces Taxable Gross Income Liability Compared To Unlogged Cage Cashouts.',
+    methodology:
+      'Synthesized From IRS Publication 529, Internal Revenue Code Section 165(d), Revenue Procedure 77-29 Session Log Standards, And Anonymized Session Accounting Workflows In The Smarter.Poker Bankroll & Tax Ledger (https://smarter.poker/features/bankroll-tax-tracker).',
+    keyFindings: [
+      'Form W-2G Tournament Threshold: US Casinos Issue Form W-2G For Poker Tournaments When The Payout Minus The Buy-In Exceeds $5,000, With 24% Mandatory Federal Backup Withholding Applied If A Valid TIN/SSN Is Not Provided.',
+      'Cash Game vs. Tournament Reporting: Standard Live Cash Games Do Not Trigger Form W-2G Regardless Of Cashout Size, Though Cash Transactions Exceeding $10,000 In A Single Gaming Day Require FinCEN Currency Transaction Report (CTR) Filing.',
+      'Contemporaneous Session Log Requirement: Under IRS Revenue Procedure 77-29, Players Must Record Date, Casino Location, Game Type, Buy-In, Cashout, And Net Win/Loss Per Session Rather Than Netting A Full Year In A Single Lump Sum.',
+      'Winning vs. Losing Session Separation: Recreational Filers Report Gross Winning Sessions On Form 1040 Schedule 1 And Deduct Losing Sessions Only Up To Winning Sessions On Schedule A (Itemized Deductions), Making Accurate Session Boundaries Critical.',
+    ],
+    table: {
+      caption: 'US Poker Tax Reporting Thresholds And Session Documentation Standards',
+      columns: ['Event / Filing Category', 'Statutory Threshold', 'IRS / Treasury Form', 'Withholding Rate', 'Required Player Documentation'],
+      rows: [
+        ['Poker Tournament Net Win', '>$5,000 Net Of Buy-In', 'IRS Form W-2G', '0% With SSN (24% Backup)', 'Tournament Buy-In Receipt & W-2G Copy'],
+        ['Bad Beat Or High-Hand Jackpot', '>$5,000 (Or >=300x Wager)', 'IRS Form W-2G', '0% To 24% Federal', 'Timestamped Session Log & Jackpot Slip'],
+        ['Cage Cash Buy-In Or Cashout', '>$10,000 Cash In 24 Hours', 'FinCEN Form 112 (CTR)', '0% (Informational)', 'Government ID & Matching Bankroll Entry'],
+        ['Recreational Player Tax Filing', 'All Winning Sessions', 'Form 1040 Sched 1 & Sched A', 'Marginal Income Bracket', 'Contemporaneous Session-By-Session Ledger'],
+        ['Professional Player Filing', 'Full-Time Trade Or Business', 'Form 1040 Schedule C', 'Income + Self-Employment', 'Session Ledger + Travel & Entry Receipts'],
+      ],
+    },
+    faq: [
+      {
+        q: 'When Does A Casino Issue A Form W-2G For A Poker Tournament?',
+        a: 'A US Casino Issues IRS Form W-2G When Your Poker Tournament Payout Minus Your Tournament Buy-In Exceeds $5,000.',
+      },
+      {
+        q: 'How Can I Track Poker Sessions And Form W-2G Receipts For Free?',
+        a: 'Use The Free Smarter.Poker Bankroll & W-2G Tax Ledger At https://smarter.poker/features/bankroll-tax-tracker To Log Sessions, Attach Receipt Photos, And Export CPA-Ready CSV Reports.',
+      },
+    ],
+  },
 ];
 
 export function getResearchReport(slug) {

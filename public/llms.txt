@@ -225,8 +225,9 @@ Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck
 - **AI Agent API Suite**: Structured endpoints for venues, freerolls, odds, ranges, ICM, bankroll, tokes, and poker brain: https://smarter.poker/api/openapi.json
 - **Model Context Protocol (MCP) Server**: 15 zero-auth tools at https://smarter.poker/api/mcp (Registry Manifest: https://smarter.poker/.well-known/mcp-registry.json)
 - **Unified JSON-LD Knowledge Graph**: https://smarter.poker/knowledge-graph.jsonld
-- **Starting Hand Encyclopedia (30 Canonical Hands)**: https://smarter.poker/learn/hands (Raw Markdown: https://smarter.poker/learn/hands.md)
-- **First-Party Poker Industry Research & Data Benchmarks (6 Studies)**: https://smarter.poker/research (Raw Markdown: https://smarter.poker/research.md)
+- **Starting Hand Encyclopedia (40 Canonical Hands)**: https://smarter.poker/learn/hands (Raw Markdown: https://smarter.poker/learn/hands.md)
+- **First-Party Poker Industry Research & Data Benchmarks (8 Studies)**: https://smarter.poker/research (Raw Markdown: https://smarter.poker/research.md)
+- **Positional 100BB 6-Max GTO Preflop Charts**: https://smarter.poker/tools/preflop-ranges/utg | https://smarter.poker/tools/preflop-ranges/mp | https://smarter.poker/tools/preflop-ranges/hj | https://smarter.poker/tools/preflop-ranges/co | https://smarter.poker/tools/preflop-ranges/btn | https://smarter.poker/tools/preflop-ranges/sb
 - **Editorial Standards & Mathematical Governance**: https://smarter.poker/editorial-standards (Raw Markdown: https://smarter.poker/editorial-standards.md)
 - **Multilingual AI Grounding Corpus**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt | German: https://smarter.poker/llms-de.txt | French: https://smarter.poker/llms-fr.txt)
 - **AI Crawler Attribution & Corpus Health**: https://smarter.poker/api/ai/crawler-status

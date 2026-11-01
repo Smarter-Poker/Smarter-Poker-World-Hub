@@ -79,6 +79,8 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/icm-calculator.md';
     } else if (pathname === '/tools/preflop-ranges' || pathname === '/tools/preflop-ranges/index') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/preflop-ranges.md';
+    } else if (pathname === '/tools/preflop-ranges/[position]' || pathname.startsWith('/tools/preflop-ranges/')) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : 'https://smarter.poker/tools/preflop-ranges.md';
     } else if (pathname === '/about') {
       resolvedMarkdownUrl = 'https://smarter.poker/about.md';
     } else if (pathname === '/freerolls' || pathname === '/hub/freerolls') {

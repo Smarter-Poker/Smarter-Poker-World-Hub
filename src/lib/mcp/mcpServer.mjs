@@ -320,26 +320,26 @@ export const MCP_TOOLS = [
   },
   {
     name: 'lookup_starting_hand',
-    description: 'Look up combinatorics, 100BB 6-Max GTO positional opening ranges, 3-bet strategies, and preflop equities for any canonical Texas Holdem starting hand (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "72o", "pocket-aces", "ace-king-suited").',
+    description: 'Look up combinatorics, 100BB 6-Max GTO positional opening ranges, 3-bet strategies, and preflop equities for any canonical Texas Holdem starting hand (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "65s", "72o", "pocket-aces", "ace-king-suited").',
     inputSchema: {
       type: 'object',
       properties: {
         hand: {
           type: 'string',
-          description: 'Hand code or slug (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "72o", "pocket-aces"). Omit to list all 30 canonical starting hand guides.',
+          description: 'Hand code or slug (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "65s", "72o", "pocket-aces"). Omit to list all 40 canonical starting hand guides.',
         },
       },
     },
   },
   {
     name: 'get_research_report',
-    description: 'Retrieve first-party empirical poker industry research reports and dataset benchmarks (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics, Poker Dealer Toke & Hourly Rate Benchmark, Tournament ICM Bubble Factor & Risk Premium Study).',
+    description: 'Retrieve first-party empirical poker industry research reports and dataset benchmarks (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics, Poker Dealer Toke & Hourly Rate Benchmark, Tournament ICM Bubble Factor & Risk Premium Study, PLO4/PLO5/PLO6 Equity & Variance Study, US Poker Tax W-2G & Session Accounting Benchmark).',
     inputSchema: {
       type: 'object',
       properties: {
         slug: {
           type: 'string',
-          description: 'Research report slug (e.g. "us-live-poker-room-rake-and-jackpot-benchmark", "poker-dealer-toke-and-hourly-rate-benchmark", "tournament-icm-bubble-factor-and-risk-premium-study") or omit to list all 6 empirical studies.',
+          description: 'Research report slug (e.g. "us-live-poker-room-rake-and-jackpot-benchmark", "pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study", "us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark") or omit to list all 8 empirical studies.',
         },
       },
     },

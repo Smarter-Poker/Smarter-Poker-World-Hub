@@ -31,6 +31,8 @@ import {
   trainingCta,
   lessonPath,
 } from '../../content/learn/lessons.js';
+import { RFI } from '../../config/solverRanges.js';
+import { describeRange, combosFor } from './preflopReference.js';
 
 function clean(str) {
   return String(str || '').replace(/\s+/g, ' ').trim();
@@ -269,30 +271,61 @@ export function renderPokerOddsCalculatorMarkdown({ hand1 = '', hand2 = '', pot 
  * Format Preflop Range Matrix as clean structured Markdown for LLM ingestion
  */
 export function renderPreflopRangesMarkdown({ position = 'UTG' } = {}) {
-  const posUpper = String(position || 'UTG').toUpperCase();
+  const validPositions = {
+    UTG: 'Under The Gun',
+    MP: 'Middle Position (Lojack)',
+    HJ: 'Hijack',
+    CO: 'Cutoff',
+    BTN: 'Button',
+    SB: 'Small Blind',
+  };
+  const posUpper = validPositions[String(position || 'UTG').toUpperCase()]
+    ? String(position || 'UTG').toUpperCase()
+    : 'UTG';
+  const posName = validPositions[posUpper];
+  const rfiMap = RFI[posUpper] || RFI.UTG;
+  const stats = describeRange(rfiMap, 'raise');
   const url = `https://smarter.poker/tools/preflop-ranges/${posUpper.toLowerCase()}`;
+
+  const pureHandsList = stats.always.length > 0 ? stats.always.join(', ') : 'None';
+  const mixedRows = stats.mixed.map(
+    (m) => `| \`${m.hand}\` | ${combosFor(m.hand)} Combos | ${m.frequency}% Open Raise | ${100 - m.frequency}% Fold |`
+  );
+
   return [
-    `# GTO Preflop Range Matrix: ${posUpper} Opening Strategy`,
+    `# GTO Preflop Range Matrix: ${posUpper} Opening Strategy (${posName})`,
     '',
     `> Source: [GTO Preflop Ranges on Smarter.Poker](${url})`,
     '',
-    '## Overview',
-    `Interactive 13x13 Preflop Range Matrix For ${posUpper} Opening Strategy In 6-Max No-Limit Texas Hold'em At 100BB Stack Depth. Shows Exact Mixed-Strategy Frequencies For Raising, Calling, And Folding Across All 169 Starting Hand Combinations.`,
+    '## Overview & Position Metrics (6-Max 100BB)',
+    `Interactive 13x13 Preflop Range Matrix For ${posName} (${posUpper}) Opening Strategy In 6-Max No-Limit Texas Hold'em At 100BB Stack Depth. Shows Exact Mixed-Strategy Frequencies For Raising And Folding Across All 169 Starting Hand Combinations.`,
     '',
-    '## Positional Opening Guidelines (6-Max 100BB)',
-    '- **Under The Gun (UTG)**: Tightest Opening Range (~15% Frequency). Focuses On High Pocket Pairs (AA-77), Premium Broadways (AK, AQ, KQs), And Strong Suited Connectors.',
-    '- **Middle Position (MP / HJ)**: Expands To ~18-20% Of Hands, Adding Medium Pocket Pairs And Suited Broadways.',
-    '- **Cutoff (CO)**: Wide Stealing Range (~26-28% Frequency) Exploiting Position Over The Blinds.',
-    '- **Button (BTN)**: Widest Preflop Open (~40-45% Frequency) Leveraging Absolute Postflop Position.',
-    '- **Small Blind (SB)**: Aggressive Open-Raise Or Fold Strategy (~35-40% Frequency) Against The Big Blind.',
+    `- **Position**: ${posName} (\`${posUpper}\`)`,
+    `- **Weighted Opening Frequency**: ${stats.percent}% Of All 1,326 Card Combinations`,
+    `- **Total Combos Reached (>0% Frequency)**: ${stats.reach}% Of Combinations`,
+    `- **Pure 100% Open Hands (${stats.always.length} Hands)**: ${pureHandsList}`,
+    `- **Mixed-Frequency Open Hands**: ${stats.mixed.length} Hands`,
+    '',
+    `## ${posUpper} Mixed-Frequency Opening Hands Table`,
+    '| Hand | Deck Combos | Open-Raise Frequency | Fold Frequency |',
+    '| :--- | :--- | :--- | :--- |',
+    ...(mixedRows.length > 0 ? mixedRows : ['| None | 0 | 0% | 100% |']),
+    '',
+    '## Positional Opening Guidelines Across All 6-Max Seats (100BB)',
+    '- **Under The Gun (UTG)**: Tightest Opening Range ([/tools/preflop-ranges/utg](https://smarter.poker/tools/preflop-ranges/utg) | [.md](https://smarter.poker/tools/preflop-ranges/utg.md)). Focuses On High Pocket Pairs, Premium Broadways, And High-Equity Suited Connectors.',
+    '- **Middle Position (MP)**: Early-Middle Expansion ([/tools/preflop-ranges/mp](https://smarter.poker/tools/preflop-ranges/mp) | [.md](https://smarter.poker/tools/preflop-ranges/mp.md)). Adds Medium Pocket Pairs And Additional Suited Broadways.',
+    '- **Hijack (HJ)**: Two Off The Button ([/tools/preflop-ranges/hj](https://smarter.poker/tools/preflop-ranges/hj) | [.md](https://smarter.poker/tools/preflop-ranges/hj.md)). Opens Suited Wheel Aces, Suited Connectors, And Broadway Offsuit Hands.',
+    '- **Cutoff (CO)**: Late-Position Steal Seat ([/tools/preflop-ranges/co](https://smarter.poker/tools/preflop-ranges/co) | [.md](https://smarter.poker/tools/preflop-ranges/co.md)). Wide Opening Range Exploiting Position Over The Blinds.',
+    '- **Button (BTN)**: Most Profitable Seat ([/tools/preflop-ranges/btn](https://smarter.poker/tools/preflop-ranges/btn) | [.md](https://smarter.poker/tools/preflop-ranges/btn.md)). Widest Preflop Open Leveraging Guaranteed Postflop Position.',
+    '- **Small Blind (SB)**: Blind-Vs-Blind Dynamic ([/tools/preflop-ranges/sb](https://smarter.poker/tools/preflop-ranges/sb) | [.md](https://smarter.poker/tools/preflop-ranges/sb.md)). Aggressive Open-Raise Or Fold Strategy Against The Big Blind.',
     '',
     '## Frequently Asked Questions',
     '',
+    `### What Percentage Of Hands Does ${posUpper} Open In 6-Max 100BB Poker?`,
+    `In 100BB 6-Max Cash Games, ${posName} (${posUpper}) Opens ${stats.percent}% Of Hands Weighted By Action Frequency, Touching ${stats.reach}% Of All 1,326 Card Combinations.`,
+    '',
     '### Where Can I View Free GTO Preflop Charts?',
     'Smarter.Poker Offers Free Interactive 13x13 GTO Preflop Range Matrices And Printable PDF Charts For All Positions At https://smarter.poker/tools/preflop-ranges.',
-    '',
-    '### What Does UTG Open In 6-Max No-Limit Hold\'em?',
-    'UTG Opens Approximately 15% Of Starting Hands At 100BB: Pocket Pairs 77+, Suited Aces A2s-A5s (Wheel Bluffs) And ATs+, Suited Broadways KJs+, QJs, JTs, And Offsuit Broadways AKo, AQo, And AJo.',
     '',
     '### Can I Print Or Download PDF Preflop Charts?',
     'Yes. Smarter.Poker Includes A Dedicated "Print / Save PDF Chart" Feature With Formatted Print Stylesheets For Poker Players And Coaches.',

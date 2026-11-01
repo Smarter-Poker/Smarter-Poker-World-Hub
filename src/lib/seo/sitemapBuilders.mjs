@@ -102,6 +102,12 @@ export const STATIC_PAGES = [
   { path: '/tools/poker-odds-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/icm-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/preflop-ranges/utg', priority: '0.85', changefreq: 'monthly' },
+  { path: '/tools/preflop-ranges/mp', priority: '0.85', changefreq: 'monthly' },
+  { path: '/tools/preflop-ranges/hj', priority: '0.85', changefreq: 'monthly' },
+  { path: '/tools/preflop-ranges/co', priority: '0.85', changefreq: 'monthly' },
+  { path: '/tools/preflop-ranges/btn', priority: '0.85', changefreq: 'monthly' },
+  { path: '/tools/preflop-ranges/sb', priority: '0.85', changefreq: 'monthly' },
   { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
 
   // High-Intent Public Feature Landers (AEO Phase 3 & Vertical Expansion)

@@ -1563,6 +1563,10 @@ const nextConfig = {
           destination: '/tools/preflop-ranges?format=md',
         },
         {
+          source: '/tools/preflop-ranges/:position.md',
+          destination: '/tools/preflop-ranges/:position?format=md',
+        },
+        {
           source: '/tools/embeds.md',
           destination: '/tools/embeds?format=md',
         },
