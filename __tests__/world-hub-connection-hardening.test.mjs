@@ -98,3 +98,29 @@ test('Phase 4: All 6 keyboard shortcut listeners guard typeof key === "string" a
     assert.match(hudSrc, /e\.target\?\.tagName\?\.toUpperCase\(\)/, 'PokerBrain HUD must optional-chain e.target?.tagName');
     assert.match(memSrc, /typeof e\.key\s*!==\s*'string'/, 'memory-games must guard typeof e.key');
 });
+
+test('Phase 5: Secondary Hub surfaces isolate channels, protect shared typing/social-feed broadcast channels, and gate ClubArenaPanel hidden-tab refreshes', () => {
+    const socialSrc = readRepoFile('pages/hub/social-media/index.js');
+    const messengerPageSrc = readRepoFile('pages/hub/messenger.js');
+    const dockChatSrc = readRepoFile('src/components/messenger/dock/MessengerChat.jsx');
+    const caPanelSrc = readRepoFile('src/components/horses/ClubArenaPanel.jsx');
+    const bbjSrc = readRepoFile('src/components/club-arena/BBJDisplay.js');
+    const diamondModalSrc = readRepoFile('src/components/store/DiamondWalletModal.jsx');
+    const noticeBoardSrc = readRepoFile('src/components/messenger/NoticeBoard.jsx');
+
+    assert.match(socialSrc, /_typingSendChannel\.state\s*===\s*'closed'/, 'getTypingChannel must recreate _typingSendChannel if closed');
+    assert.match(socialSrc, /if\s*\(_typingSendChannel\s*===\s*typingChannel\)\s*\{\s*_typingSendChannel\s*=\s*null;\s*\}/, 'social-media cleanup must clear _typingSendChannel when removing shared channel');
+    assert.match(socialSrc, /notifications:\$\{user\.id\}:\$\{Math\.random\(\)\.toString\(36\)\.slice\(2,\s*8\)\}/, 'social-media notifications channel must use per-instance suffix');
+    assert.match(socialSrc, /social-media-realtime-\$\{user\.id\}-\$\{Math\.random\(\)\.toString\(36\)\.slice\(2,\s*8\)\}/, 'social-media-realtime channel must use per-instance suffix');
+
+    assert.match(messengerPageSrc, /conversation:\$\{activeConversation\.id\}:\$\{Math\.random\(\)\.toString\(36\)\.slice\(2,\s*8\)\}/, 'messenger.js conversation channel must use per-instance suffix');
+    assert.match(messengerPageSrc, /if\s*\(ownsTypingChannel\)\s*supabase\.removeChannel\(typingChannel\)/, 'messenger.js must only remove typingChannel when ownsTypingChannel is true');
+
+    assert.match(dockChatSrc, /dock-conversation:\$\{actorId\}:\$\{id\}:\$\{Math\.random\(\)\.toString\(36\)\.slice\(2,\s*8\)\}/, 'MessengerChat dock-conversation channel must use per-instance suffix');
+    assert.match(dockChatSrc, /if\s*\(ownsTyping\)\s*services\.supabase\.removeChannel\(live\)/, 'MessengerChat must only remove typing channel when ownsTyping is true');
+
+    assert.match(caPanelSrc, /document\.visibilityState\s*===\s*'hidden'/, 'ClubArenaPanel must skip table-change refreshes while tab is hidden');
+    assert.match(bbjSrc, /bbj_winners_live:\$\{clubId\}:\$\{instanceSuffix\}/, 'BBJDisplay must isolate bbj_winners_live channel per club and instance');
+    assert.match(diamondModalSrc, /diamond-wallet-\$\{user\.id\}-\$\{instanceSuffix\}/, 'DiamondWalletModal must isolate diamond-wallet channel per instance');
+    assert.match(noticeBoardSrc, /club-notice-board:\$\{club\.id\}:\$\{userId\}:\$\{instanceSuffix\}/, 'NoticeBoard must isolate club-notice-board channel per instance');
+});

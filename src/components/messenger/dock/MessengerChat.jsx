@@ -115,10 +115,14 @@ export default function MessengerChat({ actorId, identity, conversation, service
             const anchor = !nearBottom.current ? visibleMessageBoundary(scroll.current)?.first : null;
             refreshTimer = setTimeout(() => void load(null, anchor), 50);
         };
-        const realtime = services.supabase.channel(`dock-conversation:${actorId}:${id}`)
+        const realtime = services.supabase.channel(`dock-conversation:${actorId}:${id}:${Math.random().toString(36).slice(2, 8)}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'social_messages', filter: `conversation_id=eq.${id}` }, refresh)
             .subscribe(status => { if (status === 'SUBSCRIBED' && current()) void load(); });
-        const live = services.supabase.channel(`typing:${id}`)
+        const existingTyping = typeof services.supabase.getChannels === 'function'
+            ? services.supabase.getChannels().find(ch => ch.topic === `realtime:typing:${id}` || ch.topic === `typing:${id}`)
+            : null;
+        const ownsTyping = !existingTyping;
+        const live = (existingTyping || services.supabase.channel(`typing:${id}`))
             .on('broadcast', { event: 'typing' }, event => {
                 if (!current() || event.payload?.userId === actorId) return;
                 setTyping(true); clearTimeout(typingTimer.current);
@@ -128,7 +132,8 @@ export default function MessengerChat({ actorId, identity, conversation, service
                 if (!current() || payload?.readerId === actorId || payload?.conversationId !== id || !Number.isFinite(Date.parse(payload.readThrough))) return;
                 setMessages(previous => previous.map(message => message.sender_id === actorId && Date.parse(message.created_at) <= Date.parse(payload.readThrough)
                     ? { ...message, is_read: true, status: 'read' } : message));
-            }).subscribe();
+            });
+        if (ownsTyping) live.subscribe();
         channel.current = live;
         const returned = () => { if (document.visibilityState === 'visible') { void load(null, !nearBottom.current ? visibleMessageBoundary(scroll.current)?.first : null); void continuity.read(id); } };
         const stored = event => { if (event.key === `${CONTINUITY_PREFIX}${actorId}:${id}`) continuity.acceptLocal(id); };
@@ -142,7 +147,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
             clearTimeout(draftTimer.current); clearTimeout(positionTimer.current); void continuity.write(id, 'draft'); void continuity.write(id, 'position');
             mounted.current = false; ++sequence.current;
             clearTimeout(refreshTimer); clearTimeout(typingTimer.current); stop();
-            services.supabase.removeChannel(realtime); services.supabase.removeChannel(live);
+            services.supabase.removeChannel(realtime); if (ownsTyping) services.supabase.removeChannel(live);
             channel.current = null;
             document.removeEventListener('visibilitychange', returned); window.removeEventListener('online', returned); window.removeEventListener('storage', stored);
         };

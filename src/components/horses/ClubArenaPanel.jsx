@@ -618,19 +618,36 @@ export default function ClubArenaPanel({
 
   useEffect(() => {
     let timer = null;
+    let missedWhileHidden = false;
     const refresh = () => {
       if (!caLoadedRef.current || timer) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        missedWhileHidden = true;
+        return;
+      }
       timer = setTimeout(() => {
         timer = null;
         loadCaRef.current();
       }, 5000);
     };
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && missedWhileHidden) {
+        missedWhileHidden = false;
+        refresh();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
     const channel = supabase
       .channel('horses-club-arena-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, refresh)
       .subscribe();
     return () => {
       if (timer) clearTimeout(timer);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
       supabase.removeChannel(channel);
     };
   }, []);

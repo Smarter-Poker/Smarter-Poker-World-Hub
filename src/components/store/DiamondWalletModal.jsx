@@ -801,8 +801,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     let realtimeChannel = null;
     const user = getAuthUser();
     if (user && user.id) {
+      const instanceSuffix = Math.random().toString(36).slice(2, 8);
       realtimeChannel = supabase
-        .channel(`diamond-wallet-${user.id}`)
+        .channel(`diamond-wallet-${user.id}-${instanceSuffix}`)
         .on(
           'postgres_changes',
           {
