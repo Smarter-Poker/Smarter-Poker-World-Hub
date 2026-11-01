@@ -25,7 +25,11 @@ const POSITIONS = [
   { id: 'SB', name: 'Small Blind', abbrev: 'SB', desc: 'Blind vs blind dynamic; aggressive raise-or-fold strategy.' },
 ];
 
-export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
+export default function PreflopRangeMatrixHub({
+  initialPosition = 'UTG',
+  canonicalPath = '/tools/preflop-ranges',
+  markdownPath = '/tools/preflop-ranges.md',
+}) {
   const [activePos, setActivePos] = useState(initialPosition);
   const [selectedHand, setSelectedHand] = useState(null);
   const [hasCopiedRangeSpot, setHasCopiedRangeSpot] = useState(false);
@@ -86,11 +90,11 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
 
   const pageTitle = `GTO Preflop Ranges: ${posData.abbrev} Chart`;
   const pageDesc = `Interactive 13x13 GTO Preflop Range Matrix For ${posData.name} (${posData.abbrev}). Explore Exact Opening Frequencies, Combos, And Mixed Strategies In 100BB 6-Max Poker.`;
-  const canonicalUrl = `https://smarter.poker/tools/preflop-ranges`;
+  const canonicalUrl = `https://smarter.poker${canonicalPath}`;
 
   const schema = useMemo(() => {
     return hubProductSchema({
-      path: '/tools/preflop-ranges',
+      path: canonicalPath,
       name: `Smarter.Poker ${posData.abbrev} GTO Preflop Range Matrix`,
       description: pageDesc,
       applicationCategory: 'GameApplication',
@@ -149,7 +153,7 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
         ],
       },
     });
-  }, [posData, stats, pageDesc]);
+  }, [posData, stats, pageDesc, canonicalPath]);
 
   return (
     <>
@@ -248,10 +252,14 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
             {POSITIONS.map((p) => {
               const active = p.id === activePos;
               return (
-                <button
+                <Link
                   key={p.id}
-                  type="button"
-                  onClick={() => { setActivePos(p.id); setSelectedHand(null); }}
+                  href={`/tools/preflop-ranges/${p.id.toLowerCase()}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActivePos(p.id);
+                    setSelectedHand(null);
+                  }}
                   style={{
                     padding: '8px 16px',
                     borderRadius: 8,
@@ -262,10 +270,11 @@ export default function PreflopRangeMatrixHub({ initialPosition = 'UTG' }) {
                     color: active ? '#58A6FF' : '#C9D1D9',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
+                    textDecoration: 'none',
                   }}
                 >
                   {p.abbrev}
-                </button>
+                </Link>
               );
             })}
           </div>

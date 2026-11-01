@@ -65,8 +65,8 @@ test('Phase 36: Parameterized Odds and ICM Markdown renderers compute live scena
   assert.ok(icmMd.includes('$3839.29') || icmMd.includes('Player 1'), 'computes Malmuth-Harville ICM equity for Player 1');
 });
 
-test('Phase 37: Starting Hand Encyclopedia defines 30 canonical hands with Markdown renderers', () => {
-  assert.equal(STARTING_HANDS.length, 30);
+test('Phase 37: Starting Hand Encyclopedia defines 40 canonical hands with Markdown renderers', () => {
+  assert.equal(STARTING_HANDS.length, 40);
   const aces = findStartingHand('AA');
   assert.ok(aces && aces.slug === 'pocket-aces');
   const ak = findStartingHand('ace-king-suited');
@@ -75,11 +75,14 @@ test('Phase 37: Starting Hand Encyclopedia defines 30 canonical hands with Markd
   assert.ok(eights && eights.slug === 'pocket-eights');
   const eightSeven = findStartingHand('87s');
   assert.ok(eightSeven && eightSeven.slug === 'eight-seven-suited');
+  const sixFive = findStartingHand('65s');
+  assert.ok(sixFive && sixFive.slug === 'six-five-suited');
 
   const indexMd = renderStartingHandsIndexMarkdown();
   assert.ok(indexMd.startsWith('# Smarter.Poker Texas Hold\'em Starting Hand Encyclopedia'));
   assert.ok(indexMd.includes('Pocket Aces'));
   assert.ok(indexMd.includes('Pocket Eights'));
+  assert.ok(indexMd.includes('Six-Five Suited'));
 
   const handMd = renderStartingHandMarkdown(aces);
   assert.ok(handMd.includes('85.2%'));
@@ -94,16 +97,22 @@ test('Phase 38: Poker Near Me sub-hub Markdown renderers emit complete directori
 });
 
 test('Phase 39 & 40: First-party Research Reports and Editorial Standards render cleanly', () => {
-  assert.equal(RESEARCH_REPORTS.length, 6);
+  assert.equal(RESEARCH_REPORTS.length, 8);
   const rakeReport = findResearchReport('us-live-poker-room-rake-and-jackpot-benchmark');
   assert.ok(rakeReport);
   const dealerReport = findResearchReport('poker-dealer-toke-and-hourly-rate-benchmark');
   assert.ok(dealerReport);
   const icmReport = findResearchReport('tournament-icm-bubble-factor-and-risk-premium-study');
   assert.ok(icmReport);
+  const ploReport = findResearchReport('pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study');
+  assert.ok(ploReport);
+  const taxReport = findResearchReport('us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark');
+  assert.ok(taxReport);
   assert.ok(renderResearchIndexMarkdown().includes('First-Party Statistical Research Reports'));
   assert.ok(renderResearchReportMarkdown(rakeReport).includes('324+ Verified'));
   assert.ok(renderResearchReportMarkdown(dealerReport).includes('Down'));
+  assert.ok(renderResearchReportMarkdown(ploReport).includes('PLO4'));
+  assert.ok(renderResearchReportMarkdown(taxReport).includes('W-2G'));
   assert.ok(renderEditorialStandardsMarkdown().includes('Mathematical Verification Standards'));
 });
 
@@ -235,4 +244,12 @@ test('Phase 50+: Static HUB_PAGE_SUMMARIES export and 100% World Hub surface Mar
 
   const ds = datasetSchema({ path: '/hub/tournaments/this-weekend', name: 'Weekend', description: 'Desc' });
   assert.equal(ds['@type'], 'Dataset');
+
+  const { renderPreflopRangesMarkdown } = await import('../src/lib/seo/markdownIngestion.mjs');
+  for (const pos of ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB']) {
+    const posMd = renderPreflopRangesMarkdown({ position: pos });
+    assert.ok(posMd.includes(`(${pos}) Opening Strategy`), `renders ${pos} preflop Markdown header`);
+    assert.ok(posMd.includes('Pure 100% Open Hands'), `includes pure 100% open hands for ${pos}`);
+  }
+  assert.ok(fs.existsSync(path.join(ROOT, 'pages/tools/preflop-ranges/[position].js')), 'positional preflop-ranges route exists');
 });

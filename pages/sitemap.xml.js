@@ -50,9 +50,11 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 // to the module gets its URL here with no second edit, and the sitemap can
 // never offer a lesson that has no page. Pinned by
 // __tests__/every-lesson-answers-first.law.test.mjs.
+const PREFLOP_POSITIONS = ['utg', 'mp', 'hj', 'co', 'btn', 'sb'];
 const learnPages = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
   { path: '/learn/hands', priority: '0.8', changefreq: 'monthly' },
+  ...PREFLOP_POSITIONS.map((pos) => ({ path: `/tools/preflop-ranges/${pos}`, priority: '0.85', changefreq: 'monthly' })),
   ...STARTING_HANDS.map((h) => ({ path: `/learn/hands/${h.slug}`, priority: '0.75', changefreq: 'monthly' })),
   ...LEARN_CATEGORIES.map((c) => ({ path: learnCategoryPath(c), priority: '0.75', changefreq: 'monthly' })),
   ...LESSONS.map((l) => ({ path: lessonPath(l.slug), priority: '0.7', changefreq: 'monthly' })),

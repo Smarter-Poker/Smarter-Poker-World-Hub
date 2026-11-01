@@ -29,7 +29,7 @@ function handsIndexSchema() {
       '@id': `${PAGE_URL}#collection`,
       name: 'Poker Starting Hand Encyclopedia And GTO Matrix Guide',
       description:
-        'Thirty Canonical Texas Hold\'em Starting Hand Strategy Guides Covering Exact Deal Probabilities, Preflop Rankings, Positional GTO Actions, And Matchup Equities.',
+        'Forty Canonical Texas Hold\'em Starting Hand Strategy Guides Covering Exact Deal Probabilities, Preflop Rankings, Positional GTO Actions, And Matchup Equities.',
       url: PAGE_URL,
       inLanguage: 'en-US',
       dateModified: LEARN_MODIFIED,
@@ -86,7 +86,7 @@ export default function StartingHandsIndexPage() {
         </h1>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 24px 0' }}>
-          Explore Exact Combinatoric Probabilities, Preflop Percentile Rankings, 6-Max 100BB GTO Positional Opening Actions, And Head-To-Head Matchup Equities For The Thirty Most Important Starting Hands In No-Limit Texas Hold&apos;Em.
+          Explore Exact Combinatoric Probabilities, Preflop Percentile Rankings, 6-Max 100BB GTO Positional Opening Actions, And Head-To-Head Matchup Equities For The Forty Most Important Starting Hands In No-Limit Texas Hold&apos;Em.
         </p>
 
         <div style={{ overflowX: 'auto', marginBottom: 32 }}>
