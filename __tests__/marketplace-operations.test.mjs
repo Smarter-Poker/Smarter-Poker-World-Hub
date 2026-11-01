@@ -294,6 +294,43 @@ test('every partial Printful configuration is misconfigured instead of safe defe
   }
 });
 
+test('a rejected provider probe publishes the HTTP status it was refused with', async () => {
+  const client = marketplaceClient({
+    items: [{ id: 'printful', has_variants: false, metadata: { fulfillment_provider: 'printful', sync_variant_id: 99 } }],
+  });
+  const env = {
+    NEXT_PUBLIC_SUPABASE_URL: 'https://project.invalid',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+    STRIPE_SECRET_KEY: 'sk_test_secret',
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_public',
+    STRIPE_WEBHOOK_SECRET: 'whsec_marketplacefixture1234',
+    PRINTFUL_API_TOKEN: 'printful-secret',
+    PRINTFUL_AUTO_CONFIRM: 'true',
+    PRINTFUL_STORE_ID: '42',
+    PRINTFUL_WEBHOOK_SECRET: 'printful-webhook-secret',
+    PRINTFUL_WEBHOOK_PUBLIC_KEY: 'printful-public-key',
+  };
+  const result = await runMarketplaceReadiness({
+    env,
+    createClient: () => client,
+    fetchImpl: async (url) => (url.startsWith('https://api.printful.com/')
+      ? { ok: false, status: 403 }
+      : { ok: true, status: 200 }),
+    resolvePrintfulMapping: resolveMapping,
+    isPrintfulReady: () => true,
+  });
+
+  assert.equal(result.ready, false);
+  assert.equal(result.dependencies.printful.reason, 'provider_rejected_probe');
+  assert.equal(result.dependencies.printful.httpStatus, 403);
+  assert.equal(result.dependencies.stripe.httpStatus, 200);
+  assert.equal(result.dependencies.supabase.httpStatus, null);
+  const serialized = JSON.stringify(result);
+  for (const secret of Object.values(env).filter((value) => String(value).includes('secret'))) {
+    assert.doesNotMatch(serialized, new RegExp(secret));
+  }
+});
+
 test('a healthy Printful connection reports mixed mode while any active item remains manual', async () => {
   const client = marketplaceClient({
     items: [

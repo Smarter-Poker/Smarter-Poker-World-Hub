@@ -248,6 +248,12 @@ function publicDependency(result, configured) {
     reachable: configured && result?.reachable === true,
     reason: configured ? result?.reason || null : 'missing_configuration',
     latencyMs: Number.isFinite(result?.latencyMs) ? result.latencyMs : null,
+    // The provider's HTTP status is a bounded number, never a secret or a
+    // payload. Without it "provider_rejected_probe" cannot say whether the
+    // token was refused (401), lacks the scope (403), names the wrong store
+    // (400/404), or was throttled (429), and the probe alarmed for weeks with
+    // nothing in the payload to act on (2026-11-01).
+    httpStatus: Number.isSafeInteger(result?.status) && result.status > 0 ? result.status : null,
   };
 }
 
