@@ -152,8 +152,18 @@ async function main() {
             const shown = await row.count();
             check('A', 'Eligible (Chrome, permission allowed, no subscription): the menu shows Turn On Notifications', shown > 0, { shown });
             if (shown) {
+                // A toast can come and go between polls (run 41252778117 missed
+                // one), so record every text node added from the tap onward.
+                await eligible.page.evaluate(() => {
+                    window.__spAdded = [];
+                    new MutationObserver(records => records.forEach(r => r.addedNodes.forEach(n => {
+                        const t = (n.textContent || '').trim();
+                        if (t) window.__spAdded.push(t.slice(0, 200));
+                    }))).observe(document.body, { childList: true, subtree: true });
+                });
                 await row.first().click();
-                const toast = await toastText(eligible.page, /Notifications Are On For This Device|[^\n]*(Notifications (Are Blocked|Could Not Be Turned On)|Push Service|Registration|Not Supported|Timed Out|Failed)[^\n]*/i, 50000);
+                const seen = await until(async () => (await eligible.page.evaluate(() => window.__spAdded || [])).find(t => /Notifications Are On For This Device|Could Not Be Turned On|Are Blocked|Registration|Push Service/i.test(t)), { timeout: 50000, interval: 300 }).catch(() => null);
+                const toast = seen || await toastText(eligible.page, /Notifications Are On For This Device|[^\n]*(Notifications (Are Blocked|Could Not Be Turned On)|Push Service|Registration|Not Supported|Timed Out|Failed)[^\n]*/i, 50000);
                 const sub = await until(async () => (await admin.from('push_subscriptions').select('id, endpoint, transport, is_active, user_agent, created_at').eq('user_id', C.id).eq('is_active', true)).data?.[0], { timeout: 20000 }).catch(() => null);
                 subscriptionId = sub?.id || null;
                 const local = await eligible.page.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration('/push/'); const s = await r?.pushManager.getSubscription(); return { worker: r?.active?.scriptURL || null, endpointHost: s ? new URL(s.endpoint).host : null, permission: Notification.permission }; }).catch(error => ({ error: String(error?.message || error).slice(0, 120) }));
