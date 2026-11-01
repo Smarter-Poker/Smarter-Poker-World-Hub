@@ -255,25 +255,36 @@ test('an open page picks up a new build, but never by reloading under a call', (
     const updater = read('src/components/ui/ServiceWorkerUpdater.jsx');
     assert.match(updater, /document\.addEventListener\('visibilitychange', onVisible\);/);
     assert.match(updater, /setInterval\(\(\) => \{ if \(document\.visibilityState === 'visible'\) void recheck\(\); \}, 15 \* 60 \* 1000\)/);
-    assert.match(updater, /if \(typeof window !== 'undefined' && window\.__spCallActive\) \{\s*callReloadDeferred = true;\s*return;/);
+    assert.match(updater, /if \(typeof window !== 'undefined' && window\.__spCallActive\) \{\s*callReloadDeferred = true;\s*noteDecision\('held-call'\);\s*return;/);
     assert.match(updater, /window\.addEventListener\('sp-call-idle', onCallIdle\);/);
     const provider = read('src/components/calls/CallProvider.jsx');
     assert.match(provider, /window\.__spCallActive = Boolean\(value\);/);
     assert.match(provider, /if \(wasActive && !value\) window\.dispatchEvent\(new Event\('sp-call-idle'\)\);/);
 });
 
-test('a version update never wipes unsent text, and waits for it to clear', async () => {
+test('a version update never wipes text the person typed, and waits for it to clear', async () => {
     const updater = read('src/components/ui/ServiceWorkerUpdater.jsx');
-    assert.match(updater, /if \(hasUnsentText\(document\)\) \{\s*if \(!draftTimer\)/);
-    assert.match(updater, /if \(cancelled \|\| hasUnsentText\(document\) \|\| window\.__spCallActive \|\| hasActiveTriviaRun\(\)\) return;/);
-    const { hasUnsentText } = await import('../src/lib/pwa/unsentText.mjs');
-    const el = (tagName, props = {}) => ({ tagName, getAttribute: k => props.attrs?.[k] ?? null, closest: () => props.safe ? {} : null, ...props });
-    const doc = list => ({ querySelectorAll: () => list });
-    assert.equal(hasUnsentText(doc([el('TEXTAREA', { value: 'hello' })])), true, 'typed message');
-    assert.equal(hasUnsentText(doc([el('TEXTAREA', { value: '   ' })])), false, 'blank box');
-    assert.equal(hasUnsentText(doc([el('INPUT', { value: 'poker', attrs: { type: 'search' } })])), false, 'search is not a draft');
-    assert.equal(hasUnsentText(doc([el('INPUT', { value: 'hi', attrs: { type: 'text' } })])), true, 'text input');
-    assert.equal(hasUnsentText(doc([el('DIV', { textContent: 'draft post' })])), true, 'contenteditable');
-    assert.equal(hasUnsentText(doc([el('TEXTAREA', { value: 'x', safe: true })])), false, 'opted out');
-    assert.equal(hasUnsentText(doc([el('TEXTAREA', { value: 'x', disabled: true })])), false, 'disabled');
+    assert.match(updater, /const typing = trackTyping\(document\);/);
+    assert.match(updater, /if \(hasUnsentText\(typing\.typed\)\) \{\s*noteDecision\('held-draft'\);/);
+    assert.match(updater, /if \(cancelled \|\| hasUnsentText\(typing\.typed\) \|\| window\.__spCallActive \|\| hasActiveTriviaRun\(\)\) return;/);
+    // Every decision is recorded where it survives the reload it leads to.
+    for (const d of ['controllerchange', 'first-claim', 'held-call', 'held-draft', 'held-trivia', 'cooldown', 'reload']) assert.ok(updater.includes(`noteDecision('${d}')`), d);
+    const { hasUnsentText, trackTyping, isDraftField } = await import('../src/lib/pwa/unsentText.mjs');
+    const el = (tagName, props = {}) => ({ tagName, isConnected: true, getAttribute: k => props.attrs?.[k] ?? null, closest: () => (props.safe ? {} : null), ...props });
+    const listeners = {};
+    const doc = { addEventListener: (t, f) => { listeners[t] = f; }, removeEventListener: () => {} };
+    const { typed } = trackTyping(doc);
+    const box = el('TEXTAREA', { value: '' });
+    const prefilled = el('INPUT', { value: '100', attrs: { type: 'number' } });
+    assert.equal(hasUnsentText(typed), false, 'nothing typed yet, even with a pre-filled field on the page');
+    box.value = 'hello'; listeners.input({ target: box });
+    assert.equal(hasUnsentText(typed), true, 'typed message holds the update');
+    box.value = ''; assert.equal(hasUnsentText(typed), false, 'sent or cleared releases it');
+    const search = el('INPUT', { value: 'poker', attrs: { type: 'search' } }); listeners.input({ target: search });
+    assert.equal(hasUnsentText(typed), false, 'search is not a draft');
+    assert.equal(isDraftField(prefilled), true);
+    const safe = el('TEXTAREA', { value: 'x', safe: true }); listeners.input({ target: safe });
+    assert.equal(hasUnsentText(typed), false, 'opted out');
+    const gone = el('TEXTAREA', { value: 'x', isConnected: false }); typed.add(gone);
+    assert.equal(hasUnsentText(typed), false, 'removed from the page');
 });

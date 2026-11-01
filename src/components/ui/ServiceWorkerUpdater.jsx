@@ -62,7 +62,7 @@ import {
     hasActiveTriviaRun,
     subscribeToActiveTriviaRuns,
 } from '../../lib/trivia/activeRunSignal.mjs';
-import { hasUnsentText } from '../../lib/pwa/unsentText.mjs';
+import { hasUnsentText, trackTyping } from '../../lib/pwa/unsentText.mjs';
 
 const RELOAD_GUARD = 'sp_sw_reloaded_at';
 const RELOAD_COOLDOWN_MS = 60_000;
@@ -93,6 +93,20 @@ function recentlyReloaded() {
     }
 }
 
+/**
+ * The last decisions this tab's updater made, newest last, kept in
+ * sessionStorage so they survive the reload they lead to. Read by the upgrade
+ * test and by anyone asking why an open page did or did not take a build.
+ */
+const DECISION_LOG = 'sp_sw_decisions';
+function noteDecision(decision) {
+    try {
+        const log = JSON.parse(sessionStorage.getItem(DECISION_LOG) || '[]');
+        log.push({ at: Date.now(), decision });
+        sessionStorage.setItem(DECISION_LOG, JSON.stringify(log.slice(-20)));
+    } catch { /* storage unavailable */ }
+}
+
 function markReloaded() {
     try { sessionStorage.setItem(RELOAD_GUARD, String(Date.now())); } catch { /* ignore */ }
 }
@@ -112,6 +126,7 @@ export default function ServiceWorkerUpdater() {
         let triviaReloadDeferred = false;
         let callReloadDeferred = false;
         let draftTimer = null;
+        const typing = trackTyping(document);
 
         // Whether this document was already being served by a worker. Captured
         // BEFORE anything is promoted, because it is the only thing that
@@ -121,7 +136,8 @@ export default function ServiceWorkerUpdater() {
 
         const reloadForUpdatedWorker = () => {
             if (cancelled) return;
-            if (recentlyReloaded()) return;
+            if (recentlyReloaded()) { noteDecision('cooldown'); return; }
+            noteDecision('reload');
             markReloaded();
             window.location.reload();
         };
@@ -132,27 +148,32 @@ export default function ServiceWorkerUpdater() {
             // HTML and chunks came from the network and are already current.
             // Reloading here is the double load Dan reported and it corrects
             // nothing. The new worker serves the NEXT navigation either way.
+            noteDecision('controllerchange');
+            if (!hadControllerAtLoad) noteDecision('first-claim');
             if (!hadControllerAtLoad) return;
-            if (isLiveTrainingGameplaySession()) return;
+            if (isLiveTrainingGameplaySession()) { noteDecision('held-training'); return; }
             // A server-issued Trivia session is an actual live decision, not a
             // route guess. Let it settle or unmount before replacing its page.
             if (hasActiveTriviaRun()) {
                 triviaReloadDeferred = true;
+                noteDecision('held-trivia');
                 return;
             }
             // Never reload under a ringing or connected call: it would drop
             // it. CallProvider announces sp-call-idle when the call is over.
             if (typeof window !== 'undefined' && window.__spCallActive) {
                 callReloadDeferred = true;
+                noteDecision('held-call');
                 return;
             }
             // Never wipe text the person typed and has not sent. Look again
             // every five seconds and reload once every box is empty (sent or
             // cleared) and nothing else is holding the page.
-            if (hasUnsentText(document)) {
+            if (hasUnsentText(typing.typed)) {
+                noteDecision('held-draft');
                 if (!draftTimer) {
                     draftTimer = setInterval(() => {
-                        if (cancelled || hasUnsentText(document) || window.__spCallActive || hasActiveTriviaRun()) return;
+                        if (cancelled || hasUnsentText(typing.typed) || window.__spCallActive || hasActiveTriviaRun()) return;
                         clearInterval(draftTimer);
                         draftTimer = null;
                         reloadForUpdatedWorker();
@@ -176,7 +197,7 @@ export default function ServiceWorkerUpdater() {
             if (!callReloadDeferred) return;
             callReloadDeferred = false;
             // The call is over, but a typed reply still holds the page.
-            if (hasUnsentText(document)) { onControllerChange(); return; }
+            if (hasUnsentText(typing.typed)) { onControllerChange(); return; }
             reloadForUpdatedWorker();
         };
         window.addEventListener('sp-call-idle', onCallIdle);
@@ -193,9 +214,10 @@ export default function ServiceWorkerUpdater() {
                 const reg = await navigator.serviceWorker.getRegistration('/');
                 if (!reg || cancelled) return;
                 await reg.update();
+                noteDecision(reg.installing ? 'update-found' : reg.waiting ? 'update-waiting' : 'update-none');
                 promote(reg);
                 const installing = reg.installing;
-                if (installing) installing.addEventListener('statechange', () => { if (installing.state === 'installed') promote(reg); });
+                if (installing) installing.addEventListener('statechange', () => { noteDecision(`worker-${installing.state}`); if (installing.state === 'installed') promote(reg); });
             } catch { /* offline or refused; the next look will try again */ }
         };
         const onVisible = () => { if (document.visibilityState === 'visible') void recheck(); };
@@ -255,6 +277,7 @@ export default function ServiceWorkerUpdater() {
             document.removeEventListener('visibilitychange', onVisible);
             clearInterval(recheckTimer);
             if (draftTimer) clearInterval(draftTimer);
+            typing.stop();
         };
     }, []);
 
