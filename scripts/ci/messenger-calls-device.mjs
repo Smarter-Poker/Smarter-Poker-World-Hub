@@ -75,6 +75,7 @@ async function main() {
     const check = (name, ok, evidence) => { report.checks.push({ name, ok: Boolean(ok), evidence }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); };
     const created = { users: [], conversations: [] };
     const iphoneSubscriptions = new Set();
+    let othersBefore = [];
     const outboxIds = new Set();
     const sb = await clients();
     const { admin } = sb;
@@ -82,6 +83,11 @@ async function main() {
     try {
         report.health = await assertLiveRevision();
         const A = (await signInTestAccount(sb.anon)).user.id;
+        // Every other account's live Apple subscription, so the test can prove
+        // it changed none of them (one account per endpoint: if a second Home
+        // Screen icon shared the device endpoint, enrolling the test account
+        // would switch the owner's row off) and restore any it did.
+        othersBefore = ((await admin.from('push_subscriptions').select('id, user_id, endpoint').eq('is_active', true).neq('user_id', A).like('endpoint', 'https://web.push.apple.com/%')).data || []);
         const B = await createProbeUser(sb, created, 'dev', 'Call Verification Partner');
         const conversationId = await createConversation(admin, created, A, B.id);
         const post = async content => {
@@ -113,7 +119,14 @@ async function main() {
         check('Real keyboard outside a call: message typed on the iPhone reached the partner', true, { at: ready.created_at });
 
         const sub = await iphoneSubscription();
-        report.device = sub ? { subscriptionId: sub.id, userAgent: sub.user_agent, label: sub.device_label, platform: sub.platform, ...iosVersion(sub.user_agent), enrolledAt: sub.created_at } : null;
+        report.device = sub ? { subscriptionId: sub.id, endpoint: sub.endpoint, userAgent: sub.user_agent, label: sub.device_label, platform: sub.platform, ...iosVersion(sub.user_agent), enrolledAt: sub.created_at } : null;
+        if (sub) {
+            const stillActive = new Set(((await admin.from('push_subscriptions').select('id').in('id', othersBefore.map(o => o.id)).eq('is_active', true)).data || []).map(r => r.id));
+            const switchedOff = othersBefore.filter(o => !stillActive.has(o.id));
+            const sharedEndpoint = othersBefore.some(o => o.endpoint === sub.endpoint);
+            report.isolation = { otherAppleSubscriptions: othersBefore.length, switchedOff: switchedOff.length, sharedEndpoint };
+            check('Separate Home Screen icon: its own push endpoint, and no other account\'s subscription was switched off', !sharedEndpoint && switchedOff.length === 0, report.isolation);
+        }
 
         const receiptsSince = async (after, senderId) => ((await admin.from('social_messages').select('sender_id, content').eq('conversation_id', conversationId).like('content', `${RECEIPT_PREFIX}%`).gt('created_at', after)).data || [])
             .map(r => ({ sender: r.sender_id === senderId ? 'expected' : r.sender_id === A ? 'iphone' : 'partner', status: JSON.parse(r.content.slice(RECEIPT_PREFIX.length)).status }));
@@ -232,9 +245,23 @@ async function main() {
                 const { data: left } = await admin.from('push_subscriptions').select('id').in('id', ids);
                 result.iphoneSubscription = !error && !(left || []).length ? 'ok' : `NOT REMOVED: ${error?.message || 'still present'}`;
             }
+            // Put back any other account's subscription the test switched off.
+            // Only rows on the test enrolment's own endpoint: those are the ones
+            // the one-account-per-endpoint rule switched off because of us.
+            const ours = new Set(report.device?.endpoint ? [report.device.endpoint] : []);
+            const affected = othersBefore.filter(o => ours.has(o.endpoint));
+            if (affected.length) {
+                const { data: now } = await admin.from('push_subscriptions').select('id').in('id', affected.map(o => o.id)).eq('is_active', false);
+                const restore = (now || []).map(r => r.id);
+                if (restore.length) {
+                    const { error } = await admin.from('push_subscriptions').update({ is_active: true }).in('id', restore);
+                    result.restoredOtherSubscriptions = error ? `NOT RESTORED: ${error.message}` : 'ok';
+                }
+            }
             return result;
         });
         report.finishedAt = new Date().toISOString();
+        if (report.device) delete report.device.endpoint;
         writeFileSync(`${RESULT_DIR}/result.json`, JSON.stringify(report, null, 2));
         console.log(JSON.stringify({ device: report.device, push: report.push, checks: report.checks.map(c => `${c.ok ? 'PASS' : 'FAIL'} ${c.name}`), cleanup: report.cleanup, error: report.error }, null, 2));
     }

@@ -62,6 +62,7 @@ import {
     hasActiveTriviaRun,
     subscribeToActiveTriviaRuns,
 } from '../../lib/trivia/activeRunSignal.mjs';
+import { hasUnsentText } from '../../lib/pwa/unsentText.mjs';
 
 const RELOAD_GUARD = 'sp_sw_reloaded_at';
 const RELOAD_COOLDOWN_MS = 60_000;
@@ -110,6 +111,7 @@ export default function ServiceWorkerUpdater() {
         let cancelled = false;
         let triviaReloadDeferred = false;
         let callReloadDeferred = false;
+        let draftTimer = null;
 
         // Whether this document was already being served by a worker. Captured
         // BEFORE anything is promoted, because it is the only thing that
@@ -144,6 +146,20 @@ export default function ServiceWorkerUpdater() {
                 callReloadDeferred = true;
                 return;
             }
+            // Never wipe text the person typed and has not sent. Look again
+            // every five seconds and reload once every box is empty (sent or
+            // cleared) and nothing else is holding the page.
+            if (hasUnsentText(document)) {
+                if (!draftTimer) {
+                    draftTimer = setInterval(() => {
+                        if (cancelled || hasUnsentText(document) || window.__spCallActive || hasActiveTriviaRun()) return;
+                        clearInterval(draftTimer);
+                        draftTimer = null;
+                        reloadForUpdatedWorker();
+                    }, 5000);
+                }
+                return;
+            }
             // A different worker is now in charge, so the HTML and chunks this
             // page is running came from the OLD one. Reload to pick up the new
             // build. Once per minute at most.
@@ -159,6 +175,8 @@ export default function ServiceWorkerUpdater() {
         const onCallIdle = () => {
             if (!callReloadDeferred) return;
             callReloadDeferred = false;
+            // The call is over, but a typed reply still holds the page.
+            if (hasUnsentText(document)) { onControllerChange(); return; }
             reloadForUpdatedWorker();
         };
         window.addEventListener('sp-call-idle', onCallIdle);
@@ -236,6 +254,7 @@ export default function ServiceWorkerUpdater() {
             window.removeEventListener('sp-call-idle', onCallIdle);
             document.removeEventListener('visibilitychange', onVisible);
             clearInterval(recheckTimer);
+            if (draftTimer) clearInterval(draftTimer);
         };
     }, []);
 
