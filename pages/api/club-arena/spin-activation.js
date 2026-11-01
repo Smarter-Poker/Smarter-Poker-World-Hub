@@ -161,6 +161,10 @@ export default async function handler(req, res) {
       });
     }
 
+    if (req.body.expectedOwnerId !== undefined && req.body.expectedOwnerId !== auth.ownerId) {
+      return res.status(409).json({ success: false, error: 'The Spin Wallet Owner Has Changed. The Original Request Remains Unresolved.' });
+    }
+
     const requestId = req.headers['x-idempotency-key'];
     if (
       typeof requestId !== 'string' ||

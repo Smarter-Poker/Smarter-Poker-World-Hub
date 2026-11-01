@@ -485,3 +485,16 @@ test('each delayed replay forwards the original actor, owner, payload and reques
   assert.equal(off.calls[0].args.p_request_id, 'a3000000-0000-4000-8000-000000000002');
   assert.equal(off.calls[0].args.p_action, 'deactivate');
 });
+
+test('a saved owner mismatch cannot submit money or retire the original request', async () => {
+  const { res, calls } = await invoke({ expectedOwnerId: 'different-owner' });
+  assert.equal(res.code, 409);
+  assert.notEqual(res.body.requestResolved, true);
+  assert.equal(calls.length, 0);
+});
+
+test('a matching saved owner reaches the exact canonical command', async () => {
+  const { res, calls } = await invoke({ expectedOwnerId: 'club' });
+  assert.equal(res.code, 200);
+  assert.equal(calls[0].args.p_owner_id, 'club');
+});
