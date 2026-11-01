@@ -109,7 +109,10 @@ async function main() {
             await page.reload({ waitUntil: 'domcontentloaded' });
             await until(async () => (await snapshot(page)).controlled, { timeout: 30000 }).catch(() => {});
             reloads[label] = 0;
-            page.on('framenavigated', frame => { if (frame === page.mainFrame()) { reloads[label] += 1; log('navigated', { page: label, url: frame.url() }); } });
+            // A document load is a reload. framenavigated also fires for the
+            // router's same-document URL replaces, which run 41262339099
+            // recorded as three "navigations" within half a second of one load.
+            page.on('load', () => { reloads[label] += 1; log('reloaded', { page: label, url: page.url() }); });
             report.pages[label] = { before: await snapshot(page) };
             return page;
         };
