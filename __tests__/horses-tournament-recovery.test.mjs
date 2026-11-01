@@ -5,6 +5,12 @@ import vm from 'node:vm';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
+import { IDBFactory } from 'fake-indexeddb';
+import { cancellationIntent } from '../src/components/horses/tournamentCancellationIntent.mjs';
+const databases = new WeakMap();
+const pendingIntents = [];
+let readGate = null;
+const trackedIntent = (...args) => { const promise = readGate && args[1] === 'read' ? readGate.then(() => cancellationIntent(...args)) : cancellationIntent(...args); pendingIntents.push(promise.catch(() => {})); return promise; };
 const require = createRequire(import.meta.url);
 const React = require('react');
 const { create, act } = require('react-test-renderer');
@@ -13,7 +19,7 @@ const sourcePath = 'src/components/horses/TournamentCancellationControls.jsx';
 const source = process.env.STABLE_ADMIN_RECOVERY_BASELINE ? execFileSync('git', ['show', `HEAD:${sourcePath}`], { encoding: 'utf8' }) : fs.readFileSync(new URL(`../${sourcePath}`, import.meta.url), 'utf8');
 const compiled = transformSync(source, { filename: sourcePath, babelrc: false, configFile: false, presets: [require.resolve('next/babel')] }).code;
 const compiledModule = { exports: {} };
-vm.runInThisContext(`(function(require,module,exports){${compiled}\n})`)(name => name === 'react' ? React : name === './engineControlScope' ? { engineControlScope: (fetch, domain) => ({ storageKey: domain, options: { expectedOperatorId: fetch.actor }, isCurrent: () => true, assertCurrent() {} }) } : name.endsWith('.css') ? {} : require(name), compiledModule, compiledModule.exports);
+vm.runInThisContext(`(function(require,module,exports){${compiled}\n})`)(name => name === 'react' ? React : name === './engineControlScope' ? { engineControlScope: (fetch, domain) => ({ storageKey: domain, options: { expectedOperatorId: fetch.actor }, isCurrent: () => true, assertCurrent() {} }) } : name === './tournamentCancellationIntent.mjs' ? { cancellationIntent: trackedIntent } : name.endsWith('.css') ? {} : require(name), compiledModule, compiledModule.exports);
 const Controls = compiledModule.exports.default;
 const actor = '11111111-1111-4111-8111-111111111111', eventId = '22222222-2222-4222-8222-222222222222', opId = '33333333-3333-4333-8333-333333333333';
 const intent = { action: 'cancel_refund', tournamentId: eventId, opId, reason: 'Recorded operator review' };
@@ -25,19 +31,24 @@ const locks = { request(name, options, callback) {
  lockTails.set(name, result.catch(() => {}));
  return result;
 } };
-async function mounted({ stored = JSON.stringify(intent), writable = true, outcome = { state: 'pending', op_id: opId, tournament_id: eventId }, failure, postFailure, postOutcome, onPost, sharedValues, lockManager = locks } = {}) {
+async function mounted({ stored = JSON.stringify(intent), writable = true, outcome = { state: 'pending', op_id: opId, tournament_id: eventId }, failure, postFailure, postOutcome, onPost, sharedValues, lockManager = locks, pauseRead = false } = {}) {
+ let releaseRead;
+ if (pauseRead) readGate = new Promise(resolve => { releaseRead = resolve; });
  const values = sharedValues || new Map(stored === null ? [] : [[key, stored]]), calls = [];
+ if (!databases.has(values)) databases.set(values, new IDBFactory());
+ globalThis.indexedDB = databases.get(values);
  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { locks: lockManager } });
  globalThis.localStorage = { getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,v), removeItem: k => values.delete(k) };
- const authFetch = async (url, options = {}) => { calls.push({ url, options }); if (options.method === 'POST') { onPost?.(values, options); if (postFailure) throw postFailure; return { actorId: actor, operation: postOutcome || { pending: true, op_id: JSON.parse(options.body).opId, tournament_id: eventId } }; } if (url.includes('tournamentId=')) return { actorId: actor, writable, eligible: true }; if (failure) throw failure; return { actorId: actor, operation: await outcome }; }; authFetch.actor = actor;
+ const authFetch = async (url, options = {}) => { calls.push({ url, options }); if (options.method === 'POST') { await onPost?.(values, options); if (postFailure) throw postFailure; return { actorId: actor, operation: postOutcome || { pending: true, op_id: JSON.parse(options.body).opId, tournament_id: eventId } }; } if (url.includes('tournamentId=')) return { actorId: actor, writable, eligible: true }; if (failure) throw failure; return { actorId: actor, operation: await outcome }; }; authFetch.actor = actor;
  let view; await act(async () => { view = create(React.createElement(Controls, { authFetch, event: { id: eventId } })); });
+ if (!pauseRead) await act(async () => { await Promise.all(pendingIntents.splice(0)); });
  const button = label => view.root.findAllByType('button').find(b => b.children.join('') === label);
  const click = async label => { const b = button(label); assert.ok(b, `missing ${label}`); assert.equal(b.props.disabled, false, `${label} disabled`); await act(async () => { await b.props.onClick(); }); };
- return { view, values, calls, button, click, close: async () => act(async () => view.unmount()) };
+ return { view, values, calls, button, click, releaseRead: async () => { const release = releaseRead; readGate = null; await act(async () => { release(); await Promise.all(pendingIntents.splice(0)); }); }, close: async () => act(async () => view.unmount()) };
 }
 test('retained completed outcome can be read after write permission is revoked without POST', async () => {
  const m = await mounted({ writable: false, outcome: { state: 'completed', op_id: opId, tournament_id: eventId, result: { receipt: { fully_settled: true, tournament_id: eventId } } } });
- try { await m.click('Read Outcome'); assert.equal(m.values.has(key), false); assert.equal(m.calls.some(c => c.options.method === 'POST'), false); } finally { await m.close(); }
+ try { await m.click('Read Outcome'); assert.equal(await cancellationIntent(key, 'read', null, () => true), null); assert.equal(m.values.get(key), JSON.stringify(intent)); assert.equal(m.calls.some(c => c.options.method === 'POST'), false); } finally { await m.close(); }
 });
 test('retained pending outcome can be read but cannot retry without write permission', async () => {
  const m = await mounted({ writable: false }); try { await m.click('Read Outcome'); assert.equal(m.values.get(key), JSON.stringify(intent)); assert.equal(m.button('Retry Same Operation').props.disabled, true); assert.equal(m.calls.some(c => c.options.method === 'POST'), false); } finally { await m.close(); }
@@ -54,8 +65,8 @@ test('read pending then explicit retry reuses the original identity and persists
 
 test('fresh dispatch persists identity before POST and retains pending approval', async () => {
  let submitted;
- const m = await mounted({ stored: null, onPost: (values, options) => { submitted = JSON.parse(options.body); assert.deepEqual(JSON.parse(values.get(key)), submitted); } });
- try { await act(async () => m.view.root.findByType('input').props.onChange({ target: { value: intent.reason } })); await m.click('Cancel And Refund This Event'); assert.equal(submitted.tournamentId, eventId); assert.equal(JSON.parse(m.values.get(key)).opId, submitted.opId); assert.equal(m.button('Retry Same Operation').props.disabled, true); } finally { await m.close(); }
+ const m = await mounted({ stored: null, onPost: async (values, options) => { submitted = JSON.parse(options.body); assert.deepEqual(await cancellationIntent(key, 'read', null, () => true), submitted); } });
+ try { await act(async () => m.view.root.findByType('input').props.onChange({ target: { value: intent.reason } })); await m.click('Cancel And Refund This Event'); assert.equal(submitted.tournamentId, eventId); assert.equal((await cancellationIntent(key, 'read', null, () => true)).opId, submitted.opId); assert.equal(m.button('Retry Same Operation').props.disabled, true); } finally { await m.close(); }
 });
 for (const status of [400,403,503]) test(`POST ${status} preserves retained identity for outcome recovery`, async () => {
  const m = await mounted({ postFailure: Object.assign(new Error('Write Outcome Unknown'), { status }) });
@@ -104,9 +115,9 @@ test('a stale fresh mounted view cannot overwrite another mounted view request',
  try {
   for (const m of [a, b]) await act(async () => m.view.root.findByType('input').props.onChange({ target: { value: intent.reason } }));
   await b.click('Cancel And Refund This Event');
-  const retained = sharedValues.get(key);
+  const retained = await cancellationIntent(key, 'read', null, () => true);
   await a.click('Cancel And Refund This Event');
-  assert.equal(sharedValues.get(key), retained);
+  assert.deepEqual(await cancellationIntent(key, 'read', null, () => true), retained);
   assert.equal(a.calls.some(c => c.options.method === 'POST'), false);
   assert.equal(b.calls.filter(c => c.options.method === 'POST').length, 1);
  } finally { await a.close(); await b.close(); }
@@ -122,22 +133,36 @@ test('an old retry cannot overwrite another durable request before dispatch', as
   assert.equal(m.calls.some(c => c.options.method === 'POST'), false);
  } finally { await m.close(); }
 });
-test('unavailable cross-view lock refuses dispatch while preserving the original intent', async () => {
+test('unavailable transactional storage refuses dispatch while preserving the original intent', async () => {
  const m = await mounted({ lockManager: null });
  try {
   await m.click('Read Outcome');
+  globalThis.indexedDB = undefined;
   await m.click('Retry Same Operation');
   assert.equal(m.values.get(key), JSON.stringify(intent));
   assert.equal(m.calls.some(c => c.options.method === 'POST'), false);
  } finally { await m.close(); }
 });
-test('failed storage readback refuses a fresh financial dispatch', async () => {
+test('failed transactional storage refuses a fresh financial dispatch', async () => {
  const m = await mounted({ stored: null });
  try {
   await act(async () => m.view.root.findByType('input').props.onChange({ target: { value: intent.reason } }));
-  globalThis.localStorage.setItem = () => {};
+  globalThis.indexedDB = undefined;
   await m.click('Cancel And Refund This Event');
   assert.equal(m.calls.some(c => c.options.method === 'POST'), false);
   assert.equal(m.values.has(key), false);
+ } finally { await m.close(); }
+});
+
+test('initial authoritative storage read keeps dispatch disabled until its transaction resolves', async () => {
+ const m = await mounted({ stored: null, pauseRead: true });
+ try {
+  await act(async () => m.view.root.findByType('input').props.onChange({ target: { value: intent.reason } }));
+  assert.equal(m.button('Cancel And Refund This Event').props.disabled, true);
+  assert.equal(m.calls.length, 0);
+  await m.releaseRead();
+  assert.equal(m.button('Cancel And Refund This Event').props.disabled, false);
+  await m.click('Cancel And Refund This Event');
+  assert.equal(m.calls.filter(c => c.options.method === 'POST').length, 1);
  } finally { await m.close(); }
 });

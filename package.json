@@ -166,6 +166,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.26.0",
     "eslint-config-next": "16.2.4",
+    "fake-indexeddb": "^6.2.7",
     "husky": "^9.1.7",
     "pg": "^8.20.0",
     "playwright": "^1.59.1",
