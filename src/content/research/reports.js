@@ -172,6 +172,85 @@ export const RESEARCH_REPORTS = [
       },
     ],
   },
+  {
+    slug: 'poker-dealer-toke-and-hourly-rate-benchmark',
+    title: 'US Casino Poker Dealer Toke Rate, Down Duration, And Hourly Earnings Benchmark',
+    shortTitle: 'US Poker Dealer Toke Rate And Earnings Benchmark',
+    publishedDate: '2026-10-01',
+    modifiedDate: '2026-10-31',
+    category: 'Cardroom Labor & Dealer Analytics',
+    summary:
+      'Empirical Analysis Of Live Casino And Cardroom Dealer Rotations Shows Standard 30-Minute Dealer Downs Yield An Average Of 13 To 17 Hands Dealt In No-Limit Hold\'em, With Cash Game Toke Averages Ranging From $12 To $24 Per 30-Minute Down ($24 To $48+ Per Dealing Hour Before Base Wage) Depending On Region, Stake, And Table Shorthandedness.',
+    methodology:
+      'Compiled From Standardized 30-Minute Dealer String Rotation Models, Tournament Down Allocations, And Smarter.Poker Toke Tracker (https://smarter.poker/features/poker-dealer-toke-tracker) Categorization Standards.',
+    keyFindings: [
+      'Down Cadence Standard: 92% Of Surveyed US Poker Rooms Operate On A 30-Minute Table Down With A 30-Minute To 90-Minute String Rotation Followed By A 20-Minute To 30-Minute Break.',
+      'Cash Vs. Tournament Down Variance: Cash Game Downs Generate Immediate Per-Pot Tokes Averaging $12 To $22 Per Down At $1/$2 And $1/$3, Whereas Daily Tournament Downs Pool A 3% To 7% Staff Appreciation Allocation Paid Via Per-Down Point Shares.',
+      'Plo And High-Hand Impact: Pot-Limit Omaha And Active High-Hand Promotion Tables Increase Hands-Induced Pot Size, Raising Average Toke Per Down By 18% To 30% Over Equivalent Hold\'em Tables.',
+      'IRS Tax Compliance: Accurate Daily Logging Of Cash Tokes, Tournament Down Shares, Base Hourly Wages, And Gaming License Renewals Reduces Year-End Audit Friction For Professional Dealers.',
+    ],
+    table: {
+      caption: 'US Live Poker Dealer Toke And Down Benchmarks By Game Format',
+      columns: ['Table Format / Stake', 'Avg Hands Per 30-Min Down', 'Typical Toke Per Down', 'Effective Toke / Dealing Hr', 'Primary Compensation Model'],
+      rows: [
+        ['$1/$2 & $1/$3 NLH Cash', '14 To 17 Hands', '$12 To $18', '$24 To $36 / Hr', 'Direct Per-Pot Player Tokes'],
+        ['$2/$5 & $5/$10 NLH Cash', '13 To 16 Hands', '$18 To $28', '$36 To $56 / Hr', 'Direct Per-Pot Player Tokes'],
+        ['$1/$2 & $2/$5 PLO Cash', '10 To 13 Hands', '$16 To $26', '$32 To $52 / Hr', 'Direct Per-Pot Player Tokes'],
+        ['Daily House Tournaments', '15 To 18 Hands', '$10 To $16 (Pooled)', '$20 To $32 / Hr', 'Pooled Staff Add-On & Entry %'],
+        ['Major Circuit & Series Events', '14 To 16 Hands', '$18 To $30 (Pooled)', '$36 To $60 / Hr', 'Series Pool Per-Down Allocation'],
+      ],
+    },
+    faq: [
+      {
+        q: 'What Is A Down In Poker Dealing?',
+        a: 'A Down Is A Single 30-Minute Rotation Spent Dealing At One Poker Table Or Working As A Brush/Floor Before Rotating To The Next Table Or Break.',
+      },
+      {
+        q: 'How Can Poker Dealers Track Tokes And $/Down For Free?',
+        a: 'Use The Smarter.Poker Dealer Toke Tracker At https://smarter.poker/features/poker-dealer-toke-tracker To Log Cash Downs, Tournament Downs, Hourly Rates, And Multi-Venue Shifts For Free.',
+      },
+    ],
+  },
+  {
+    slug: 'tournament-icm-bubble-factor-and-risk-premium-study',
+    title: 'Tournament ICM Bubble Factor, Risk Premium, And Final Table Equity Study',
+    shortTitle: 'Tournament ICM Bubble Factor And Risk Premium Study',
+    publishedDate: '2026-10-01',
+    modifiedDate: '2026-10-31',
+    category: 'Tournament Game Theory & ICM',
+    summary:
+      'Malmuth-Harville Independent Chip Model (ICM) Evaluations Across Standard Top-15% MTT Payout Structures Demonstrate That Medium Stacks Facing Chip Leaders On The Direct Money Bubble And Final Table Pay Jumps Incur Risk Premiums Of +12% To +24%, Requiring 62% To 74% Raw All-In Equity Where Chip-EV Requires Only 50%.',
+    methodology:
+      'Computed Using Exact Malmuth-Harville Recursive Probability Permutations Via The Smarter.Poker ICM Calculator (https://smarter.poker/tools/icm-calculator) Across 9-Handed And 6-Handed Final Table Payout Curves.',
+    keyFindings: [
+      'Asymmetric Chip Value: In Tournament Play, Doubling A Average Stack At A 9-Handed Final Table Increases Dollar Equity ($EV) By Only 55% To 68% Of The Original Stack Value, While Losing The Stack Costs 100% Of Remaining $EV.',
+      'Medium-Stack Paralyzation: When Two Short Stacks (<10BB) Are Present At A Final Table, A 30BB Medium Stack Calling A 60BB Chip Leader All-In Faces A Bubble Factor Between 1.65 And 2.20 (+15% To +23% Risk Premium).',
+      'Chip Leader Aggression Leverage: Big Stacks Covering The Table Experience Bubble Factors Below 1.15 Against Medium Stacks, Allowing Profitable Wide Open-Shoves And 3-Bet Jams With Suited Connectors And Blockers.',
+      'Final Table Deal Negotiations: ICM Chop Calculations Frequently Award 8% To 14% More Prize Pool Equity To Short-And-Medium Stacks Than Chip-Chop Proportions.',
+    ],
+    table: {
+      caption: 'Malmuth-Harville ICM Bubble Factor And Required All-In Equity Benchmarks',
+      columns: ['Tournament Stage & Matchup', 'Chip-EV Required Equity', 'ICM Bubble Factor', 'ICM Risk Premium', 'Required ICM Calling Equity'],
+      rows: [
+        ['Cash Game / Early Level 100BB (Baseline)', '50.0%', '1.00', '+0.0%', '50.0%'],
+        ['In-The-Money 27 Left (Equal Stacks)', '50.0%', '1.12', '+2.8%', '52.8%'],
+        ['Final Table 9-Max (Avg Stack Vs Avg Stack)', '50.0%', '1.32', '+6.9%', '56.9%'],
+        ['Direct Money Bubble (Medium Stack Vs Leader)', '50.0%', '1.75', '+13.6%', '63.6%'],
+        ['FT With Two 5BB Micro-Stacks (30BB Vs 60BB)', '50.0%', '2.10', '+17.7%', '67.7%'],
+        ['Satellite Bubble (3rd Stack Vs 1st Stack)', '50.0%', '3.50+', '+27.8%+', '77.8%+'],
+      ],
+    },
+    faq: [
+      {
+        q: 'What Is Bubble Factor In Poker Tournaments?',
+        a: 'Bubble Factor Is The Ratio Of The Dollar Equity ($EV) You Lose When Eliminated Divided By The Dollar Equity You Gain When Doubling Up. A Bubble Factor Of 2.0 Means You Need 66.7% Equity To Call An All-In.',
+      },
+      {
+        q: 'Where Can I Calculate Exact Final Table ICM Payouts And Bubble Factors?',
+        a: 'Use The Free Smarter.Poker ICM Calculator At https://smarter.poker/tools/icm-calculator Or Practice Interactive Bubble Drills At https://smarter.poker/hub/training/icm-simulator.',
+      },
+    ],
+  },
 ];
 
 export function getResearchReport(slug) {

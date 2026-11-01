@@ -1436,6 +1436,8 @@ const nextConfig = {
         { source: '/knowledge-graph.jsonld', destination: '/api/ai/knowledge-graph' },
         { source: '/llms-es.txt', destination: '/api/ai/corpus?lang=es&format=md' },
         { source: '/llms-pt.txt', destination: '/api/ai/corpus?lang=pt&format=md' },
+        { source: '/llms-de.txt', destination: '/api/ai/corpus?lang=de&format=md' },
+        { source: '/llms-fr.txt', destination: '/api/ai/corpus?lang=fr&format=md' },
         /* Clean Hub Freerolls Alias */
         { source: '/hub/freerolls', destination: '/freerolls' },
         /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
@@ -1787,10 +1789,6 @@ const nextConfig = {
         {
           source: '/hub/social-pages.md',
           destination: '/api/hub-tool-markdown?section=social-pages',
-        },
-        {
-          source: '/hub/social-media.md',
-          destination: '/api/hub-tool-markdown?section=social-media',
         },
         {
           source: '/terms.md',
