@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { engineControlScope } from './engineControlScope';
+import { cancellationIntent } from './tournamentCancellationIntent.mjs';
 import styles from './shared.module.css';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -37,47 +38,29 @@ function AccountTournamentCancellationControls({ authFetch, event, onCompleted, 
     const active = ++epoch.current;
     setEligibility(null); setIntent(null); setReason(''); setError(''); setMessage(''); setBusy(false); storageKey.current = null;
     setRetryReady(false);
-    try {
-      const actorId = accountScope.options.expectedOperatorId;
-      if (!UUID.test(actorId || '')) throw new Error('actor_unknown');
-      const key = `stable-tournament-cancel:${actorId}:${event.id}`;
-      const stored = localStorage.getItem(key);
-      const prior = stored === null ? null : JSON.parse(stored);
-      if (stored !== null && !(prior?.tournamentId === event.id && UUID.test(prior.opId || '') && prior.action === 'cancel_refund' && typeof prior.reason === 'string' && prior.reason.trim().length >= 10 && prior.reason.length <= 500)) throw new Error('stored_operation_invalid');
-      // Publish dispatch state only after durable storage has been read safely.
-      storageKey.current = key;
-      if (prior) { setIntent(prior); setReason(prior.reason); setMessage('A Previous Operation Is Retained. Read Its Outcome Before Continuing.'); }
-    } catch {
-      setError('Durable Operation Storage Is Unavailable Or Invalid. Its Contents Are Preserved. No New Request Can Be Sent.');
-      return () => { epoch.current += 1; };
-    }
-    scopedFetch(`/api/horses/tournament-admin?tournamentId=${event.id}`).then((r) => {
-      if (current(active)) setEligibility(r);
-    }).catch(() => { if (current(active)) setError('Cancellation Eligibility Is Unavailable. Read Any Retained Outcome Before Retrying.'); });
+    setMessage('Reading Retained Cancellation Storage...');
+    (async () => {
+      try {
+        const actorId = accountScope.options.expectedOperatorId;
+        if (!UUID.test(actorId || '')) throw new Error('actor_unknown');
+        const key = `stable-tournament-cancel:${actorId}:${event.id}`;
+        const prior = await cancellationIntent(key, 'read', null, () => current(active));
+        if (!current(active)) return;
+        storageKey.current = key;
+        setMessage('');
+        if (prior) { setIntent(prior); setReason(prior.reason); setMessage('A Previous Operation Is Retained. Read Its Outcome Before Continuing.'); }
+        const result = await scopedFetch(`/api/horses/tournament-admin?tournamentId=${event.id}`);
+        if (current(active)) setEligibility(result);
+      } catch (failure) {
+        if (current(active)) { setMessage(''); setError(failure?.message || 'Durable Operation Storage Is Unavailable Or Invalid. Its Contents Are Preserved. No New Request Can Be Sent.'); }
+      }
+    })();
     return () => { epoch.current += 1; };
   }, [authFetch, event.id, accountScope]);
   const updateStoredIntent = async (request, retain, active) => {
-    const locks = globalThis.navigator?.locks;
-    if (typeof locks?.request !== 'function') throw new Error('Durable Cancellation Storage Lock Is Unavailable. Keep The Original Operation.');
-    await locks.request(storageKey.current, { mode: 'exclusive' }, () => {
-      accountScope.assertCurrent();
-      if (!current(active)) throw new Error('The Account Or View Changed. Read The Original Operation.');
-      const stored = localStorage.getItem(storageKey.current);
-      const saved = stored === null ? null : JSON.parse(stored);
-      // Both writers and late receipts own only their exact original request.
-      if (stored !== null && !['action', 'tournamentId', 'opId', 'reason'].every(field => saved?.[field] === request[field])) {
-        throw new Error('Another Cancellation Request Is Retained. Reload To Read Its Outcome.');
-      }
-      if (retain) {
-        const value = stored ?? JSON.stringify(request);
-        if (stored === null) localStorage.setItem(storageKey.current, value);
-        if (localStorage.getItem(storageKey.current) !== value) throw new Error('Cancellation Operation Could Not Be Retained. No Request Was Sent.');
-      } else if (stored !== null) {
-        localStorage.removeItem(storageKey.current);
-      }
-    });
+    const result = await cancellationIntent(storageKey.current, retain ? 'retain' : 'resolve', request, () => current(active));
     if (!current(active)) return false;
-    setIntent(retain ? request : null);
+    setIntent(result);
     return true;
   };
   const readOutcome = async () => {
