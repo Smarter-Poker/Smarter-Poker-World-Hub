@@ -101,7 +101,21 @@ function watchRealtime(page) {
     page.on('websocket', ws => {
         if (!/realtime/.test(ws.url())) return;
         seen.sockets += 1;
-        ws.on('framesent', f => { const t = String(f.payload || ''); if (/phx_join/.test(t) && /"table":"notifications"/.test(t)) seen.notificationJoins += 1; });
+        ws.on('framesent', f => {
+            const t = String(f.payload || '');
+            if (/phx_join/.test(t) && /"table":"notifications"/.test(t)) seen.notificationJoins += 1;
+            // Which identity the header channel joined (or re-authorised) as:
+            // only the token's role and whether it names a user are recorded.
+            if (/header-data-/.test(t) && /access_token/.test(t)) {
+                try {
+                    const msg = JSON.parse(t);
+                    const frame = Array.isArray(msg) ? { event: msg[3], payload: msg[4] } : msg;
+                    const token = frame.payload?.access_token || frame.payload?.config?.access_token || null;
+                    const claims = token && token.split('.').length === 3 ? JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) : null;
+                    (seen.headerAuth ||= []).push({ event: frame.event, role: claims?.role || (token ? 'unparsed' : 'none'), namesUser: Boolean(claims?.sub) });
+                } catch { (seen.headerAuth ||= []).push({ event: 'unparsed' }); }
+            }
+        });
         ws.on('framereceived', f => {
             const t = String(f.payload || '');
             if (/postgres_changes/.test(t) && /"table":"notifications"/.test(t)) {
