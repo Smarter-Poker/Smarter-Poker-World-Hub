@@ -68,3 +68,13 @@ test('the device conductor proves Home Screen isolation and restores only rows i
   assert.match(device, /const affected = othersBefore\.filter\(o => ours\.has\(o\.endpoint\)\);/);
   assert.match(device, /if \(report\.device\) delete report\.device\.endpoint;/);
 });
+
+test('a cancelled conductor still cleans up, and only earlier conductor partners are swept', async () => {
+  assert.match(device, /process\.once\('SIGINT', onSignal\);/);
+  assert.match(device, /finish\(\)\.finally\(\(\) => process\.exit\(1\)\)/);
+  const { isStalePartner } = await import('../scripts/ci/messenger-calls-device.mjs');
+  const old = new Date(Date.now() - 30 * 60000).toISOString();
+  assert.equal(isStalePartner({ email: 'messenger-call-probe-dev-9-ff@call-probe.example.com', user_metadata: { messenger_call_probe: true }, created_at: old }), true);
+  assert.equal(isStalePartner({ email: 'messenger-call-probe-dev-9-ff@call-probe.example.com', user_metadata: {}, created_at: old }), false);
+  assert.equal(isStalePartner({ email: 'someone@example.com', user_metadata: { messenger_call_probe: true }, created_at: old }), false);
+});
