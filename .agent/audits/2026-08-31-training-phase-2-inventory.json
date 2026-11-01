@@ -88115,7 +88115,8 @@
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
-        "__tests__/gsc-series5-phase3.test.mjs"
+        "__tests__/gsc-series5-phase3.test.mjs",
+        "__tests__/phases-35-50-aeo.test.mjs"
       ]
     },
     {
