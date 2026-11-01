@@ -56,7 +56,30 @@ function AccountTournamentCancellationControls({ authFetch, event, onCompleted, 
     }).catch(() => { if (current(active)) setError('Cancellation Eligibility Is Unavailable. Read Any Retained Outcome Before Retrying.'); });
     return () => { epoch.current += 1; };
   }, [authFetch, event.id, accountScope]);
-  const clear = () => { accountScope.assertCurrent(); if (!alive.current) return; localStorage.removeItem(storageKey.current); setIntent(null); };
+  const updateStoredIntent = async (request, retain, active) => {
+    const locks = globalThis.navigator?.locks;
+    if (typeof locks?.request !== 'function') throw new Error('Durable Cancellation Storage Lock Is Unavailable. Keep The Original Operation.');
+    await locks.request(storageKey.current, { mode: 'exclusive' }, () => {
+      accountScope.assertCurrent();
+      if (!current(active)) throw new Error('The Account Or View Changed. Read The Original Operation.');
+      const stored = localStorage.getItem(storageKey.current);
+      const saved = stored === null ? null : JSON.parse(stored);
+      // Both writers and late receipts own only their exact original request.
+      if (stored !== null && !['action', 'tournamentId', 'opId', 'reason'].every(field => saved?.[field] === request[field])) {
+        throw new Error('Another Cancellation Request Is Retained. Reload To Read Its Outcome.');
+      }
+      if (retain) {
+        const value = stored ?? JSON.stringify(request);
+        if (stored === null) localStorage.setItem(storageKey.current, value);
+        if (localStorage.getItem(storageKey.current) !== value) throw new Error('Cancellation Operation Could Not Be Retained. No Request Was Sent.');
+      } else if (stored !== null) {
+        localStorage.removeItem(storageKey.current);
+      }
+    });
+    if (!current(active)) return false;
+    setIntent(retain ? request : null);
+    return true;
+  };
   const readOutcome = async () => {
     if (busy || !intent || !storageKey.current || !accountScope.isCurrent() || !alive.current) return;
     const active = epoch.current;
@@ -68,7 +91,7 @@ function AccountTournamentCancellationControls({ authFetch, event, onCompleted, 
       if (operation && (operation.op_id !== intent.opId || operation.tournament_id !== event.id)) throw new Error('Stored Operation Identity Could Not Be Confirmed.');
       if (operation?.state === 'completed') {
         if (operation.result?.receipt?.fully_settled !== true || operation.result?.receipt?.tournament_id !== event.id) throw new Error('Stored Refund Evidence Could Not Be Confirmed. Keep This Operation ID.');
-        clear(); setMessage('Cancellation And Refunds Are Recorded. Event Evidence Has Been Refreshed.'); await onCompleted?.(); return;
+        if (!await updateStoredIntent(intent, false, active)) return; setMessage('Cancellation And Refunds Are Recorded. Event Evidence Has Been Refreshed.'); await onCompleted?.(); return;
       }
       if (operation !== null && operation?.state !== 'pending') throw new Error('Cancellation Outcome Is Unknown. Keep This Operation ID.');
       setRetryReady(true);
@@ -84,20 +107,20 @@ function AccountTournamentCancellationControls({ authFetch, event, onCompleted, 
     setBusy(true); setError(''); setRetryReady(false);
     try {
       // Persist before dispatch. Lost responses and a closed tab keep identity.
-      localStorage.setItem(storageKey.current, JSON.stringify(request)); setIntent(request);
+      if (!await updateStoredIntent(request, true, active)) return;
       const r = await scopedFetch('/api/horses/tournament-admin', { method: 'POST', body: JSON.stringify(request) });
       if (!current(active)) return;
       const operation = r.operation;
       if (operation?.op_id !== request.opId || operation?.tournament_id !== event.id) throw new Error('Cancellation Receipt Was Not Confirmed. Keep The Same Operation ID.');
       if (operation.pending === true) { setMessage(`Approval ${operation.approval_id} Is Pending. Decide It In Approvals, Then Return Here And Retry This Operation. No Refund Has Been Applied.`); return; }
       if (operation.state !== 'completed' || operation.receipt?.fully_settled !== true) throw new Error('Refund Evidence Is Unknown. Read The Same Operation Before Retrying.');
-      clear(); setMessage('Cancelled And Fully Refunded Through The Authoritative Receipt. Event Evidence Has Been Refreshed.'); await onCompleted?.();
+      if (!await updateStoredIntent(request, false, active)) return; setMessage('Cancelled And Fully Refunded Through The Authoritative Receipt. Event Evidence Has Been Refreshed.'); await onCompleted?.();
     } catch (failure) {
       if (!current(active)) return;
       if (['cancel_review_changed', 'cancel_operation_conflict', 'cancel_ineligible', 'cancel_approval_refused'].includes(failure?.code)) {
-        try { clear(); } catch { /* Preserve the old durable identity if storage fails. */ }
+        try { await updateStoredIntent(request, false, active); } catch { /* Preserve the old durable identity if storage fails. */ }
       }
-      setError(failure?.message || 'Cancellation Outcome Is Unknown. Read This Operation Before Retrying.');
+      if (current(active)) setError(failure?.message || 'Cancellation Outcome Is Unknown. Read This Operation Before Retrying.');
     } finally { if (current(active)) setBusy(false); }
   };
   return <section className={styles.opsEvidence} aria-labelledby="cancel-refund-title"><h4 id="cancel-refund-title" className={styles.opsEvidenceTitle}>Cancel And Refund Before Play</h4>
