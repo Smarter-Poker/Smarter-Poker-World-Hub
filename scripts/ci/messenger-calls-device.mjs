@@ -64,6 +64,42 @@ export function sceneChanges(samples, threshold = 35) {
     return changes;
 }
 
+/**
+ * A cancelled earlier run cannot clean up after itself, and its partner would
+ * sit in the test account's inbox beside the new one. Remove only earlier
+ * conductor partners: probe email domain, probe flag, partner name, created
+ * more than 20 minutes ago. Everything else is untouched.
+ */
+export const STALE_PARTNER_MS = 20 * 60000;
+export function isStalePartner(user, now = Date.now()) {
+    return Boolean(user?.email?.endsWith('@call-probe.example.com') && /^messenger-call-probe-dev-/.test(user.email)
+        && user.user_metadata?.messenger_call_probe === true && now - new Date(user.created_at).getTime() > STALE_PARTNER_MS);
+}
+async function removeStalePartners(admin) {
+    const removed = [];
+    for (let page = 1; page <= 20; page++) {
+        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error || !data?.users?.length) break;
+        for (const user of data.users.filter(u => isStalePartner(u))) {
+            const { data: parts } = await admin.from('social_conversation_participants').select('conversation_id').eq('user_id', user.id);
+            const convs = (parts || []).map(p => p.conversation_id);
+            if (convs.length) {
+                await admin.from('social_messages').delete().in('conversation_id', convs);
+                await admin.from('social_conversation_participants').delete().in('conversation_id', convs);
+                await admin.from('social_conversations').delete().in('id', convs);
+            }
+            await admin.from('pending_calls').delete().or(`caller_id.eq.${user.id},callee_id.eq.${user.id}`);
+            await admin.from('notifications').delete().or(`user_id.eq.${user.id},actor_id.eq.${user.id}`);
+            await admin.from('push_outbox').delete().eq('recipient_user_id', user.id);
+            const { error: delError } = await admin.auth.admin.deleteUser(user.id);
+            await admin.from('profiles').delete().eq('id', user.id);
+            removed.push({ created: user.created_at, threads: convs.length, deleted: !delError });
+        }
+        if (data.users.length < 1000) break;
+    }
+    return removed;
+}
+
 async function main() {
     for (const name of ['TEST_USER_EMAIL', 'TEST_USER_PASSWORD', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'MESSENGER_EXPECTED_SHA', 'DEVICE_SINCE']) assert.ok(process.env[name]?.trim(), `${name} is required`);
     const since = new Date(process.env.DEVICE_SINCE);
@@ -80,6 +116,51 @@ async function main() {
     const sb = await clients();
     const { admin } = sb;
     let chrome;
+    // GitHub cancels with SIGINT, then SIGTERM. Turn the first signal into an
+    // error inside the run so the finally block below still cleans up.
+    let cancelled = null;
+    let finished = false;
+    const finish = async () => {
+        if (finished) return;
+        finished = true;
+        await chrome?.close().catch(() => {});
+        report.cleanup = await cleanup(admin, created, async () => {
+            const result = {};
+            if (outboxIds.size) result.iphonePushOutbox = (await admin.from('push_outbox').delete().in('id', [...outboxIds])).error?.message || 'ok';
+            if (created.users.length) result.testAccountCallNotifications = (await admin.from('notifications').delete().in('actor_id', created.users)).error?.message || 'ok';
+            if (iphoneSubscriptions.size) {
+                const ids = [...iphoneSubscriptions];
+                const { error } = await admin.from('push_subscriptions').delete().in('id', ids);
+                const { data: left } = await admin.from('push_subscriptions').select('id').in('id', ids);
+                result.iphoneSubscription = !error && !(left || []).length ? 'ok' : `NOT REMOVED: ${error?.message || 'still present'}`;
+            }
+            // Put back any other account's subscription the test switched off.
+            // Only rows on the test enrolment's own endpoint: those are the ones
+            // the one-account-per-endpoint rule switched off because of us.
+            const ours = new Set(report.device?.endpoint ? [report.device.endpoint] : []);
+            const affected = othersBefore.filter(o => ours.has(o.endpoint));
+            if (affected.length) {
+                const { data: now } = await admin.from('push_subscriptions').select('id').in('id', affected.map(o => o.id)).eq('is_active', false);
+                const restore = (now || []).map(r => r.id);
+                if (restore.length) {
+                    const { error } = await admin.from('push_subscriptions').update({ is_active: true }).in('id', restore);
+                    result.restoredOtherSubscriptions = error ? `NOT RESTORED: ${error.message}` : 'ok';
+                }
+            }
+            return result;
+        });
+        report.finishedAt = new Date().toISOString();
+        if (report.device) delete report.device.endpoint;
+        writeFileSync(`${RESULT_DIR}/result.json`, JSON.stringify(report, null, 2));
+        console.log(JSON.stringify({ device: report.device, push: report.push, checks: report.checks.map(c => `${c.ok ? 'PASS' : 'FAIL'} ${c.name}`), cleanup: report.cleanup, error: report.error }, null, 2));
+        };
+    const onSignal = signal => {
+        cancelled = signal;
+        report.error = `Cancelled (${signal})`;
+        finish().finally(() => process.exit(1));
+    };
+    process.once('SIGINT', onSignal);
+    process.once('SIGTERM', onSignal);
     try {
         report.health = await assertLiveRevision();
         const A = (await signInTestAccount(sb.anon)).user.id;
@@ -88,6 +169,7 @@ async function main() {
         // Screen icon shared the device endpoint, enrolling the test account
         // would switch the owner's row off) and restore any it did.
         othersBefore = ((await admin.from('push_subscriptions').select('id, user_id, endpoint').eq('is_active', true).neq('user_id', A).like('endpoint', 'https://web.push.apple.com/%')).data || []);
+        report.stalePartnersRemoved = await removeStalePartners(admin);
         const B = await createProbeUser(sb, created, 'dev', 'Call Verification Partner');
         const conversationId = await createConversation(admin, created, A, B.id);
         const post = async content => {
@@ -231,39 +313,10 @@ async function main() {
         await post(PROMPTS.done);
         await sleep(2000);
     } catch (error) {
-        report.error = String(error?.message || error).slice(0, 300);
+        report.error = cancelled ? `Cancelled (${cancelled})` : String(error?.message || error).slice(0, 300);
         console.log(`ERROR ${report.error}`);
     } finally {
-        await chrome?.close().catch(() => {});
-        report.cleanup = await cleanup(admin, created, async () => {
-            const result = {};
-            if (outboxIds.size) result.iphonePushOutbox = (await admin.from('push_outbox').delete().in('id', [...outboxIds])).error?.message || 'ok';
-            if (created.users.length) result.testAccountCallNotifications = (await admin.from('notifications').delete().in('actor_id', created.users)).error?.message || 'ok';
-            if (iphoneSubscriptions.size) {
-                const ids = [...iphoneSubscriptions];
-                const { error } = await admin.from('push_subscriptions').delete().in('id', ids);
-                const { data: left } = await admin.from('push_subscriptions').select('id').in('id', ids);
-                result.iphoneSubscription = !error && !(left || []).length ? 'ok' : `NOT REMOVED: ${error?.message || 'still present'}`;
-            }
-            // Put back any other account's subscription the test switched off.
-            // Only rows on the test enrolment's own endpoint: those are the ones
-            // the one-account-per-endpoint rule switched off because of us.
-            const ours = new Set(report.device?.endpoint ? [report.device.endpoint] : []);
-            const affected = othersBefore.filter(o => ours.has(o.endpoint));
-            if (affected.length) {
-                const { data: now } = await admin.from('push_subscriptions').select('id').in('id', affected.map(o => o.id)).eq('is_active', false);
-                const restore = (now || []).map(r => r.id);
-                if (restore.length) {
-                    const { error } = await admin.from('push_subscriptions').update({ is_active: true }).in('id', restore);
-                    result.restoredOtherSubscriptions = error ? `NOT RESTORED: ${error.message}` : 'ok';
-                }
-            }
-            return result;
-        });
-        report.finishedAt = new Date().toISOString();
-        if (report.device) delete report.device.endpoint;
-        writeFileSync(`${RESULT_DIR}/result.json`, JSON.stringify(report, null, 2));
-        console.log(JSON.stringify({ device: report.device, push: report.push, checks: report.checks.map(c => `${c.ok ? 'PASS' : 'FAIL'} ${c.name}`), cleanup: report.cleanup, error: report.error }, null, 2));
+        await finish();
     }
     if (report.error || cleanupFailed(report.cleanup) || report.checks.some(c => !c.ok)) process.exitCode = 1;
 }
@@ -275,6 +328,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         const other = { size: '640x480', grid: Array(64).fill(20) };
         assert.equal(sceneChanges([{ t: 0, signature: flat }, { t: 2, signature: flat }, { t: 4, signature: other }]).length, 1);
         assert.ok(Object.values(PROMPTS).every(p => !/[\u{1F300}-\u{1FAFF}]/u.test(p)));
+        const old = new Date(Date.now() - 30 * 60000).toISOString();
+        assert.equal(isStalePartner({ email: 'messenger-call-probe-dev-1-ab@call-probe.example.com', user_metadata: { messenger_call_probe: true }, created_at: old }), true);
+        assert.equal(isStalePartner({ email: 'messenger-call-probe-dev-1-ab@call-probe.example.com', user_metadata: { messenger_call_probe: true }, created_at: new Date().toISOString() }), false);
+        assert.equal(isStalePartner({ email: 'daniel@smarter.poker', user_metadata: { messenger_call_probe: true }, created_at: old }), false);
+        assert.equal(isStalePartner({ email: 'messenger-call-probe-ntc-1-ab@call-probe.example.com', user_metadata: { messenger_call_probe: true }, created_at: old }), false);
         console.log('messenger-calls-device self-test passed');
     } else {
         await main();
