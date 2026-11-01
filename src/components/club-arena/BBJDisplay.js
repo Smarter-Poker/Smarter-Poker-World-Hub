@@ -312,7 +312,8 @@ export const BBJModal = ({ clubId, onClose }) => {
 
   useEffect(() => {
     if (!clubId) return;
-    const channel = supabase.channel('bbj_winners_live')
+    const instanceSuffix = Math.random().toString(36).slice(2, 8);
+    const channel = supabase.channel(`bbj_winners_live:${clubId}:${instanceSuffix}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bbj_winners', filter: `club_id=eq.${clubId}` }, (payload) => {
         /* THE MINI DOES NOT BUZZ EVERY PHONE IN THE CLUB (Club Arena BBJ phase 6,
            2026-09-07). This handler fires three heavy haptics, a two-second

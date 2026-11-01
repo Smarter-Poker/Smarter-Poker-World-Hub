@@ -105,7 +105,8 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
     }
     useEffect(() => {
         const s = state.current; s.alive = true; s.loading = false; s.epoch++;
-        const channel = supabase.channel(`club-notice-board:${club.id}:${userId}`)
+        const instanceSuffix = Math.random().toString(36).slice(2, 8);
+        const channel = supabase.channel(`club-notice-board:${club.id}:${userId}:${instanceSuffix}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board', filter: `club_id=eq.${club.id}` }, event => {
                 const row = event.new;
                 if (!s.alive || s.denied || row?.club_id !== club.id) return;

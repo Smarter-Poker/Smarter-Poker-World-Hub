@@ -181,7 +181,9 @@ const SOCIAL_SCHEMA = hubProductSchema({
 // typing events want.
 let _typingSendChannel = null;
 function getTypingChannel() {
-  if (!_typingSendChannel) _typingSendChannel = supabase.channel('social-feed');
+  if (!_typingSendChannel || _typingSendChannel.state === 'closed' || _typingSendChannel.state === 'errored') {
+    _typingSendChannel = supabase.channel('social-feed');
+  }
   return _typingSendChannel;
 }
 
@@ -4254,6 +4256,9 @@ function SocialMediaPage() {
     return () => {
       realtimeActive = false;
       supabase.removeChannel(feedChannel);
+      if (_typingSendChannel === typingChannel) {
+        _typingSendChannel = null;
+      }
       supabase.removeChannel(typingChannel);
       unsubMasterBus.forEach((unsub) => unsub());
     };
@@ -4364,7 +4369,7 @@ function SocialMediaPage() {
   useEffect(() => {
     if (!user?.id) return;
     const notifChannel = supabase
-      .channel(`notifications:${user.id}`)
+      .channel(`notifications:${user.id}:${Math.random().toString(36).slice(2, 8)}`)
       .on(
         'postgres_changes',
         {
@@ -6249,7 +6254,7 @@ function SocialMediaPage() {
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
-      .channel(`social-media-realtime-${user.id}`)
+      .channel(`social-media-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'social_messages' },

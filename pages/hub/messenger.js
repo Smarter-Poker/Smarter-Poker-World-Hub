@@ -1253,7 +1253,7 @@ function MessengerPage() {
 
         const requestScope = workspaceKey;
         const channel = supabase
-            .channel(`conversation:${activeConversation.id}`)
+            .channel(`conversation:${activeConversation.id}:${Math.random().toString(36).slice(2, 8)}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
@@ -1396,8 +1396,13 @@ function MessengerPage() {
         const requestScope = workspaceKey;
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === activeConversation.id;
 
-        const typingChannel = supabase
-            .channel(`typing:${activeConversation.id}`)
+        const existingTyping = typeof supabase.getChannels === 'function'
+            ? supabase.getChannels().find(ch => ch.topic === `realtime:typing:${activeConversation.id}` || ch.topic === `typing:${activeConversation.id}`)
+            : null;
+        const ownsTypingChannel = !existingTyping;
+        const typingChannel = existingTyping || supabase
+            .channel(`typing:${activeConversation.id}`);
+        typingChannel
             .on('broadcast', { event: 'typing' }, (payload) => {
                 // Someone else is typing
                 if (current() && payload.payload.userId !== user.id) {
@@ -1429,14 +1434,16 @@ function MessengerPage() {
                         return m;
                     }));
                 }
-            })
-            .subscribe();
+            });
+        if (ownsTypingChannel) {
+            typingChannel.subscribe();
+        }
             
         typingChannelRef.current = typingChannel;
 
         return () => {
             typingChannelRef.current = null;
-            supabase.removeChannel(typingChannel);
+            if (ownsTypingChannel) supabase.removeChannel(typingChannel);
             // Clean up any pending typing timeout on conversation switch
             if (typingTimerRef.current) {
                 clearTimeout(typingTimerRef.current);
