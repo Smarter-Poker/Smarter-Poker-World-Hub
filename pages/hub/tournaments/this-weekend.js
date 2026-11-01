@@ -220,7 +220,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema(WEEKEND_TOURNAMENTS_FAQS)) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema(WEEKEND_TOURNAMENTS_FAQS, '/hub/tournaments/this-weekend')) }}
         />
       </SEOHead>
 
