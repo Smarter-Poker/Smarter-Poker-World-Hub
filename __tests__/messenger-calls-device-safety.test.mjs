@@ -100,6 +100,8 @@ test('a cancelled conductor still cleans up, and only earlier conductor partners
 test('the Club Arena suite never seats the test account and calls no real contact', () => {
   const ca = read('../scripts/ci/messenger-calls-clubarena.mjs');
   assert.doesNotMatch(ca, /atomic_table_buyin|buyin|Join Game|Sit Down|take_seat/i);
-  assert.match(ca, /createConversation\(admin, created, B\.id, A,/);
+  // The caller is a throwaway; the callee is the club-member observer.
+  assert.match(ca, /createConversation\(admin, created, B\.id, O,/);
+  assert.match(ca, /const B = await createProbeUser/);
   assert.match(ca, /CLUB_ARENA_EXPECTED_SHA/);
 });

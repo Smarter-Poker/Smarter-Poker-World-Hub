@@ -14,7 +14,15 @@
  *      connected; after the call the alert is gone and the table still
  *      updates.
  *
- * No real contact is called and no elevated account is used. A brand-new
+ * Table step account (run 41277947387): Club Arena's row-level security shows
+ * a club's tables only to its members, so a throwaway sees every cash table as
+ * "Table Closed". Joining it to a real club would add a member to a production
+ * club and could trigger that club's welcome chips. The table step therefore
+ * uses the configured service identity, which is already a member: it only
+ * observes and receives the call, never sits, and moves no chips. Its god role
+ * is not exercised. The menu step uses an ordinary throwaway.
+ *
+ * No real contact is called. A brand-new
  * account meets Club Arena's Terms, age and analytics prompts; the throwaway
  * answers them for itself (it is created and hard-deleted by this run), and
  * the receipt lists each one. Throwaways are example.com and hard-deleted.
@@ -25,7 +33,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import {
-    APP_ORIGIN, sleep, until, clients, assertLiveRevision, createProbeUser, createConversation,
+    APP_ORIGIN, sleep, until, clients, assertLiveRevision, signInTestAccount, createProbeUser, createConversation,
     cleanup, cleanupFailed, callOpen, videos,
 } from './messenger-calls-lib.mjs';
 
@@ -67,6 +75,13 @@ async function passArenaGates(page, seen) {
             await sleep(2000);
             continue;
         }
+        const bonusClose = page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true });
+        if (await page.locator('#dbs-title').isVisible().catch(() => false) && await bonusClose.first().isVisible().catch(() => false)) {
+            await bonusClose.first().click();
+            seen.push('daily bonus sheet closed without claiming');
+            await sleep(1000);
+            continue;
+        }
         const notNow = page.locator('.ca-consent').getByRole('button', { name: 'Not Now', exact: true });
         if (await notNow.isVisible().catch(() => false)) {
             await notNow.click();
@@ -80,11 +95,51 @@ async function passArenaGates(page, seen) {
     return false;
 }
 
+/** Realtime frames that mention the notifications stream, for diagnosis. */
+function watchRealtime(page) {
+    const seen = { sockets: 0, notificationJoins: 0, notificationEvents: 0, errors: [] };
+    page.on('websocket', ws => {
+        if (!/realtime/.test(ws.url())) return;
+        seen.sockets += 1;
+        ws.on('framesent', f => {
+            const t = String(f.payload || '');
+            if (/phx_join/.test(t) && /"table":"notifications"/.test(t)) seen.notificationJoins += 1;
+            // Which identity the header channel joined (or re-authorised) as:
+            // only the token's role and whether it names a user are recorded.
+            if (/header-data-/.test(t) && /access_token/.test(t)) {
+                try {
+                    const msg = JSON.parse(t);
+                    const frame = Array.isArray(msg) ? { event: msg[3], payload: msg[4] } : msg;
+                    const token = frame.payload?.access_token || frame.payload?.config?.access_token || null;
+                    const claims = token && token.split('.').length === 3 ? JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) : null;
+                    (seen.headerAuth ||= []).push({ event: frame.event, role: claims?.role || (token ? 'unparsed' : 'none'), namesUser: Boolean(claims?.sub) });
+                } catch { (seen.headerAuth ||= []).push({ event: 'unparsed' }); }
+            }
+        });
+        ws.on('framereceived', f => {
+            const t = String(f.payload || '');
+            if (/postgres_changes/.test(t) && /"table":"notifications"/.test(t)) {
+                seen.notificationEvents += 1;
+                const topic = (/"topic":"([^"]+)"/.exec(t) || [])[1] || '';
+                const kind = (/"type":"(INSERT|UPDATE|DELETE)"/.exec(t) || [])[1] || null;
+                const recType = (/"record":\{[^}]*?"type":"([a-z_]+)"/.exec(t) || [])[1] || null;
+                (seen.notificationFrames ||= []).push({ topic: topic.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '<id>'), kind, recType });
+            }
+            if (/"status":"error"|phx_error|Unable to subscribe/.test(t)) {
+                const topic = (/"topic":"([^"]+)"/.exec(t) || [])[1] || null;
+                const params = (/connect parameters: \[([^\]]*)\]/.exec(t) || [])[1] || null;
+                seen.errors.push({ topic: topic && topic.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '<id>'), params });
+            }
+        });
+    });
+    return seen;
+}
+
 const liveTables = page => page.evaluate(() => Number(document.body?.dataset.caLiveTables || '0')).catch(() => 0);
 const reconnecting = page => page.evaluate(() => /Reconnecting To The Table/i.test(document.body?.innerText || '')).catch(() => false);
 
 async function main() {
-    for (const name of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'MESSENGER_EXPECTED_SHA', 'CLUB_ARENA_EXPECTED_SHA']) assert.ok(process.env[name]?.trim(), `${name} is required`);
+    for (const name of ['TEST_USER_EMAIL', 'TEST_USER_PASSWORD', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'MESSENGER_EXPECTED_SHA', 'CLUB_ARENA_EXPECTED_SHA']) assert.ok(process.env[name]?.trim(), `${name} is required`);
     mkdirSync(RESULT_DIR, { recursive: true });
     const report = { suite: 'messenger-calls-clubarena', startedAt: new Date().toISOString(), checks: [], probeGates: [], cleanup: null };
     const check = (name, ok, evidence) => { report.checks.push({ name, ok: Boolean(ok), evidence }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); };
@@ -93,19 +148,25 @@ async function main() {
     const { admin } = sb;
     const browsers = [];
     let A = null;
+    let callee = null;
     const enrolled = new Set();
     try {
         report.health = await assertLiveRevision();
         const build = await (await fetch(`${CA}/build-info.json`, { cache: 'no-store' })).json();
         report.clubArena = build;
-        assert.equal(build.ca_sha, process.env.CLUB_ARENA_EXPECTED_SHA, 'Club Arena revision differs from the expected published revision');
+        // Club Arena publishes many times an hour, so the published revision is
+        // accepted when it is the expected one or a descendant of it.
+        if (build.ca_sha !== process.env.CLUB_ARENA_EXPECTED_SHA) {
+            const cmp = await (await fetch(`https://api.github.com/repos/Smarter-Software-PIQ/Smarter-Poker-Club-Arena/compare/${process.env.CLUB_ARENA_EXPECTED_SHA}...${build.ca_sha}`, { headers: { accept: 'application/vnd.github+json', ...(process.env.GITHUB_TOKEN ? { authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) } })).json().catch(() => ({}));
+            report.clubArenaContainsExpected = cmp.status || null;
+            assert.ok(['ahead', 'identical'].includes(cmp.status), `Published Club Arena ${build.ca_sha} does not contain ${process.env.CLUB_ARENA_EXPECTED_SHA} (${cmp.status || cmp.message || 'unknown'})`);
+        }
 
-        const C = await createProbeUser(sb, created, 'cac', 'Arena Call Verification Callee');
+        const C = await createProbeUser(sb, created, 'cac', 'Arena Notifications Verification');
         const session = C.session;
         A = C.id;
-        report.callee = { role: ((await admin.from('profiles').select('role').eq('id', A).maybeSingle()).data || {}).role || null, throwaway: true };
+        report.enroller = { role: ((await admin.from('profiles').select('role').eq('id', A).maybeSingle()).data || {}).role || null, throwaway: true };
         const B = await createProbeUser(sb, created, 'cab', 'Arena Call Verification Caller');
-        const conversationId = await createConversation(admin, created, B.id, A, { senderId: B.id, content: 'Club Arena Call Verification' });
         const t0 = new Date().toISOString();
 
         const { chromium, devices } = await import('playwright');
@@ -116,18 +177,26 @@ async function main() {
             const ctx = await chromium.launchPersistentContext(profile, { channel: 'chrome', headless: process.env.NOTIFY_HEADED_PUSH !== '1', args: FAKE_MEDIA, ignoreDefaultArgs: ['--disable-background-networking'], ...devices['Pixel 7'] });
             browsers.push(ctx);
             await signIn(ctx, session);
-            await ctx.grantPermissions(['notifications'], { origin: APP_ORIGIN });
+            // Permission stays at "ask" until the row is tapped, as on a real
+            // device. Granting it up front let the app subscribe on its own
+            // before the menu opened, so the row correctly hid (runs
+            // 41278838906, 41279469210).
             const page = ctx.pages()[0] || await ctx.newPage();
             const devtools = await ctx.newCDPSession(page);
-            await devtools.send('Browser.setPermission', { permission: { name: 'push', userVisibleOnly: true }, setting: 'granted', origin: APP_ORIGIN }).catch(() => {});
             await page.goto(`${CA}/`, { waitUntil: 'domcontentloaded' });
             const ready = await passArenaGates(page, report.probeGates);
             check('The throwaway passes Club Arena\'s first-visit prompts and reaches the lobby', ready, { prompts: report.probeGates });
             await page.locator('[aria-label="Open Menu"]').first().click({ timeout: 60000 });
             const row = page.getByRole('button', { name: /^Turn On Notifications$/i });
-            const shown = await row.waitFor({ timeout: 15000 }).then(() => true, () => false);
-            check('Club Arena menu offers Turn On Notifications to a device without push', shown, null);
+            const shown = await row.waitFor({ timeout: 30000 }).then(() => true, () => false);
+            const menuText = shown ? null : await page.evaluate(() => (document.querySelector('[role="dialog"], nav, aside')?.innerText || document.body.innerText || '').slice(0, 500)).catch(() => null);
+            if (!shown) await page.screenshot({ path: `${RESULT_DIR}/menu-without-row.png` }).catch(() => {});
+            check('Club Arena menu offers Turn On Notifications to a device without push', shown, shown ? null : { menuText });
+            report.beforeTap = { permission: await page.evaluate(() => Notification.permission).catch(() => null), subscriptionsBeforeTap: ((await admin.from('push_subscriptions').select('id').eq('user_id', A)).data || []).length };
             if (shown) {
+                // The tap is the gesture that grants permission on a device.
+                await ctx.grantPermissions(['notifications'], { origin: APP_ORIGIN });
+                await devtools.send('Browser.setPermission', { permission: { name: 'push', userVisibleOnly: true }, setting: 'granted', origin: APP_ORIGIN }).catch(() => {});
                 await row.click();
                 const sub = await until(async () => (await admin.from('push_subscriptions').select('id, endpoint, transport').eq('user_id', A).eq('is_active', true).gte('created_at', t0)).data?.[0], { timeout: 45000 }).catch(() => null);
                 if (sub) enrolled.add(sub.id);
@@ -136,6 +205,34 @@ async function main() {
                 await page.locator('[aria-label="Open Menu"]').first().click({ timeout: 60000 });
                 await sleep(3000);
                 check('Club Arena menu hides the row once the device is enrolled', (await row.count()) === 0, null);
+            }
+            // Same throwaway, in the Club Arena lobby: does a ringing call reach a
+            // non-table page? Separates "no alert anywhere" from "no alert at a table".
+            try {
+                const lobbyRt = watchRealtime(page);
+                await page.goto(`${CA}/`, { waitUntil: 'domcontentloaded' });
+                await passArenaGates(page, report.probeGates).catch(() => false);
+                await page.evaluate(() => { window.__caCallEvents = []; window.addEventListener('ca:incoming-call', e => window.__caCallEvents.push(e.detail?.type)); });
+                await sleep(8000);
+                const lobbyConversation = await createConversation(admin, created, B.id, A, { senderId: B.id, content: 'Club Arena Lobby Call Verification' });
+                const lctx = await chromium.launch({ headless: true, args: FAKE_MEDIA });
+                browsers.push(lctx);
+                const lc = await lctx.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
+                await lc.grantPermissions(['camera', 'microphone'], { origin: APP_ORIGIN });
+                await signIn(lc, B.session);
+                const lcaller = await lc.newPage();
+                await lcaller.goto(`${APP_ORIGIN}/hub/messenger?conversation=${lobbyConversation}`, { waitUntil: 'domcontentloaded' });
+                await lcaller.getByLabel('Start Video Call', { exact: true }).waitFor({ timeout: 60000 });
+                await sleep(3000);
+                await lcaller.getByLabel('Start Video Call', { exact: true }).click();
+                const lobbyAlert = await page.getByText(/Tap To Answer/i).first().waitFor({ timeout: 25000 }).then(() => true, () => false);
+                report.lobbyRing = { alert: lobbyAlert, eventsOnPage: await page.evaluate(() => window.__caCallEvents || []).catch(() => null), realtime: lobbyRt };
+                check('Club Arena lobby shows the incoming-call alert (throwaway, no table)', lobbyAlert, report.lobbyRing);
+                await lcaller.getByLabel('End Call', { exact: true }).first().click().catch(() => {});
+                await sleep(4000);
+                await lctx.close();
+            } catch (error) {
+                check('Club Arena lobby call step completed', false, { error: String(error?.message || error).split('\n')[0].slice(0, 200) });
             }
             await ctx.close();
         } catch (error) {
@@ -146,31 +243,58 @@ async function main() {
         }
 
         // ── 2. Call while observing a live table ─────────────────────────
+        // Club membership is needed to see a table (see the header); the
+        // service identity is the configured account that holds one.
+        const observer = await signInTestAccount(sb.anon);
+        const O = observer.user.id;
+        callee = O;
+        report.tableObserver = { account: 'configured service identity (club member)', reason: 'club tables are visible only to members', seat: false, chips: false };
+        const conversationId = await createConversation(admin, created, B.id, O, { senderId: B.id, content: 'Club Arena Call Verification' });
+        const t1 = new Date().toISOString();
         const { data: recent } = await admin.from('hand_history').select('table_id, created_at').gte('created_at', new Date(Date.now() - 120000).toISOString()).order('created_at', { ascending: false }).limit(200);
         const tableIds = [...new Set((recent || []).map(r => r.table_id))];
-        const { data: tables } = await admin.from('tables').select('id, name, status, tournament_id').in('id', tableIds.slice(0, 50)).is('tournament_id', null).eq('status', 'running');
-        const table = tables?.[0];
-        assert.ok(table, 'No running cash table with recent hands to observe');
-        report.table = { name: table.name };
+        const handCount = new Map();
+        for (const r of recent || []) handCount.set(r.table_id, (handCount.get(r.table_id) || 0) + 1);
+        const { data: tables } = await admin.from('tables').select('id, name, status, tournament_id').in('id', tableIds.slice(0, 100)).is('tournament_id', null).eq('status', 'running');
+        // Lightning tables are short-lived pools that close under an observer
+        // (run 41277527639 opened one as it closed); a classic cash table stays.
+        const candidates = (tables || []).filter(t => !/lightning/i.test(t.name || '')).sort((a, b) => (handCount.get(b.id) || 0) - (handCount.get(a.id) || 0));
+        assert.ok(candidates.length, 'No running classic cash table with recent hands to observe');
 
         const browser = await chromium.launch({ headless: true, args: FAKE_MEDIA });
         browsers.push(browser);
         const actx = await browser.newContext({ ...devices['Pixel 7'] });
         await actx.grantPermissions(['camera', 'microphone'], { origin: APP_ORIGIN });
-        await signIn(actx, session);
+        await signIn(actx, observer);
         const arena = await actx.newPage();
         arena.setDefaultTimeout(20000);
-        await arena.goto(`${CA}/table/${table.id}`, { waitUntil: 'domcontentloaded' });
-        await passArenaGates(arena, report.probeGates).catch(() => false);
-        if (!/\/table\//.test(new URL(arena.url()).pathname)) await arena.goto(`${CA}/table/${table.id}`, { waitUntil: 'domcontentloaded' });
-        await until(async () => (await liveTables(arena)) >= 1, { timeout: 60000 }).catch(() => {});
+        const consoleErrors = [];
+        const tableRt = watchRealtime(arena);
+        arena.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)); });
+        // Record whether the call event reached this page, separately from the toast.
+        await actx.addInitScript(() => {
+            window.__caCallEvents = [];
+            window.addEventListener('ca:incoming-call', e => window.__caCallEvents.push({ t: Date.now(), type: e.detail?.type }));
+            window.addEventListener('ca:call-alert-cleared', () => window.__caCallEvents.push({ t: Date.now(), type: 'cleared' }));
+        });
+        let table = null;
+        for (const candidate of candidates.slice(0, 4)) {
+            await arena.goto(`${CA}/table/${candidate.id}`, { waitUntil: 'domcontentloaded' });
+            await passArenaGates(arena, report.probeGates).catch(() => false);
+            if (!/\/table\//.test(new URL(arena.url()).pathname)) await arena.goto(`${CA}/table/${candidate.id}`, { waitUntil: 'domcontentloaded' });
+            await until(async () => (await liveTables(arena)) >= 1, { timeout: 60000 }).catch(() => {});
+            await sleep(3000);
+            if (!(await arena.getByText(/Table Closed/i).count())) { table = candidate; break; }
+        }
+        assert.ok(table, 'Every candidate classic cash table closed under the observer');
+        report.table = { name: table.name, recentHands: handCount.get(table.id) || 0 };
         report.tablePage = { url: arena.url() };
         await arena.screenshot({ path: `${RESULT_DIR}/arena-table.png` }).catch(() => {});
         const fp1 = await tableFingerprint(arena);
         await sleep(15000);
         const fp2 = await tableFingerprint(arena);
         const before = { liveTables: await liveTables(arena), changing: fp1 !== fp2, reconnecting: await reconnecting(arena) };
-        check('The callee is observing a live table that updates (no seat taken)', before.liveTables >= 1 && before.changing && !before.reconnecting, before);
+        check('The callee (club member) is observing a live table that updates (no seat taken)', before.liveTables >= 1 && before.changing && !before.reconnecting, before);
 
         const bctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
         await bctx.grantPermissions(['camera', 'microphone'], { origin: APP_ORIGIN });
@@ -182,9 +306,13 @@ async function main() {
         await caller.getByLabel('Start Video Call', { exact: true }).click();
 
         const alert = arena.getByText(/Tap To Answer/i).first();
+        const callRow = until(async () => ((await admin.from('notifications').select('id, type, data').eq('user_id', O).eq('type', 'incoming_call').gte('created_at', t1)).data || [])[0], { timeout: 20000 }).catch(() => null);
         const alerted = await alert.waitFor({ timeout: 25000 }).then(() => true, () => false);
+        const row = await callRow;
+        report.ring = { incomingCallRowWritten: Boolean(row), rowHasRoom: Boolean(row?.data?.roomName), eventsOnPage: await arena.evaluate(() => window.__caCallEvents || []).catch(() => null), consoleErrors: consoleErrors.slice(-8), realtime: tableRt };
+        if (!alerted) await arena.screenshot({ path: `${RESULT_DIR}/arena-during-ring.png` }).catch(() => {});
         const alertText = alerted ? (await alert.textContent())?.trim() : null;
-        check('Club Arena shows the incoming-call alert at the table', alerted, { alertText });
+        check('Club Arena shows the incoming-call alert at the table', alerted, { alertText, ...report.ring });
         if (alerted) {
             await alert.click();
             const media = await until(async () => { const v = await videos(caller); return v.remote >= 1 ? v : null; }, { timeout: 60000 }).catch(() => null);
@@ -198,7 +326,7 @@ async function main() {
             await caller.getByLabel('End Call', { exact: true }).first().click().catch(() => {});
         }
         await sleep(6000);
-        const leftover = ((await admin.from('notifications').select('id').eq('user_id', A).eq('type', 'incoming_call').gte('created_at', t0)).data || []).length;
+        const leftover = ((await admin.from('notifications').select('id').eq('user_id', O).eq('type', 'incoming_call').gte('created_at', t1)).data || []).length;
         const alertGone = (await arena.getByText(/Tap To Answer/i).count()) === 0;
         const fp3 = await tableFingerprint(arena);
         await sleep(15000);
@@ -213,6 +341,7 @@ async function main() {
         for (const b of browsers) await b.close().catch(() => {});
         report.cleanup = await cleanup(admin, created, async () => {
             const result = {};
+            if (callee && created.users.length) result.observerCallNotifications = (await admin.from('notifications').delete().eq('user_id', callee).in('actor_id', created.users)).error?.message || 'ok';
             if (enrolled.size) {
                 const ids = [...enrolled];
                 const { error } = await admin.from('push_subscriptions').delete().in('id', ids);
@@ -231,8 +360,10 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
     if (process.argv.includes('--self-test')) {
-        const src = (await import('node:fs')).readFileSync(new URL(import.meta.url), 'utf8');
-        assert.doesNotMatch(src.replace(/^.*the suite uses throwaways only.*$/m, ''), new RegExp(['signInTest' + 'Account', 'TEST_USER_' + 'PASSWORD'].join('|')), 'the suite uses throwaways only');
+        const src = (await import('node:fs')).readFileSync(new URL(import.meta.url), 'utf8').split("process.argv.includes('--self-test')")[0];
+        // The service identity appears once, for the table step only.
+        assert.equal((src.match(/await signInTestAccount\(/g) || []).length, 1, 'service identity used once');
+        assert.ok(src.indexOf('await signInTestAccount(') > src.indexOf('2. Call while observing a live table'), 'service identity only in the table step');
         console.log('messenger-calls-clubarena self-test passed');
     } else {
         await main();
