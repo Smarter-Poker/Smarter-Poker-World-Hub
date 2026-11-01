@@ -328,6 +328,13 @@ async function main() {
         await sleep(6000);
         const leftover = ((await admin.from('notifications').select('id').eq('user_id', O).eq('type', 'incoming_call').gte('created_at', t1)).data || []).length;
         const alertGone = (await arena.getByText(/Tap To Answer/i).count()) === 0;
+        // Answering opened the call in a "+" hub tab; the player goes back to
+        // the table tab, which must still be live (run 41283609141 measured
+        // the hub tab and saw nothing change).
+        const stakes = (table.name.match(/\d+(?:\.\d+)?\/\d+(?:\.\d+)?/) || [])[0];
+        if (stakes) await arena.getByText(stakes, { exact: false }).first().click({ timeout: 10000 }).catch(() => {});
+        await sleep(3000);
+        report.backToTable = { path: new URL(arena.url()).pathname, tabLabel: stakes || null };
         const fp3 = await tableFingerprint(arena);
         await sleep(15000);
         const fp4 = await tableFingerprint(arena);
