@@ -137,7 +137,7 @@ async function main() {
         // Club Arena publishes many times an hour, so the published revision is
         // accepted when it is the expected one or a descendant of it.
         if (build.ca_sha !== process.env.CLUB_ARENA_EXPECTED_SHA) {
-            const cmp = await (await fetch(`https://api.github.com/repos/Smarter-Software-PIQ/Smarter-Poker-Club-Arena/compare/${process.env.CLUB_ARENA_EXPECTED_SHA}...${build.ca_sha}`, { headers: { accept: 'application/vnd.github+json' } })).json().catch(() => ({}));
+            const cmp = await (await fetch(`https://api.github.com/repos/Smarter-Software-PIQ/Smarter-Poker-Club-Arena/compare/${process.env.CLUB_ARENA_EXPECTED_SHA}...${build.ca_sha}`, { headers: { accept: 'application/vnd.github+json', ...(process.env.GITHUB_TOKEN ? { authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) } })).json().catch(() => ({}));
             report.clubArenaContainsExpected = cmp.status || null;
             assert.ok(['ahead', 'identical'].includes(cmp.status), `Published Club Arena ${build.ca_sha} does not contain ${process.env.CLUB_ARENA_EXPECTED_SHA} (${cmp.status || cmp.message || 'unknown'})`);
         }
