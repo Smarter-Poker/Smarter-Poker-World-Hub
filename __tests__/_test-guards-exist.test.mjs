@@ -109,6 +109,8 @@ import '../tests/spin-reserve-fund-contract.test.mjs';
 // workflow-permission reason as the suites above.
 import './the-welcome-package-is-earned-by-phone-verification.law.test.mjs';
 import './phone-verification-uptake.test.mjs';
+// Cancellation's transactional storage cases belong to the same required CHECK 8 registry.
+import './horses-tournament-intent-storage.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
