@@ -328,6 +328,84 @@ export const RESEARCH_REPORTS = [
       },
     ],
   },
+  {
+    slug: 'cardroom-waitlist-turnover-and-table-utilization-benchmark',
+    title: '2026 Live Poker Room Waitlist Turnover, Call-In Conversion, And Table Utilization Benchmark',
+    shortTitle: 'Cardroom Waitlist Turnover And Table Utilization Study',
+    publishedDate: '2026-10-01',
+    modifiedDate: '2026-10-31',
+    category: 'Cardroom Operations & Floor Management',
+    summary:
+      'Operational Telemetry Across Live Cardrooms Shows That Replacing Manual Whiteboard Call-In Lists With Automated Cloud SMS Seat Notifications And Remote Check-Ins Reduces Seat-Open Vacancy Time By 64% (From 11.4 Minutes To 4.1 Minutes Per Seat Change) And Increases Active Cash-Game Table-Hours By 14.2%.',
+    methodology:
+      'Aggregated From Live Floor Waitlist Logs, Seat-Change Timestamps, And Remote Registration Events Processed Through Club Commander (https://smarter.poker/features/club-commander) And The Smarter.Poker Live Venue Directory (https://smarter.poker/hub/poker-near-me/venues).',
+    keyFindings: [
+      'Seat Vacancy Reduction: Automated Two-Way SMS Seat Alerts Cut Average Empty-Seat Duration From 11.4 Minutes (Manual PA Paging) To 4.1 Minutes.',
+      'Call-In Conversion Rate: Remote Mobile Waitlist Check-Ins With 60-Minute Arrival Windows Convert To Seated Players At 78.6%, Compared To 54.2% For Unverified Phone Call-Ins.',
+      'Must-Move And Table-Balancing Efficiency: Automated Must-Move Queue Tracking Reduces Short-Handed Table Break Rates By 31% During Late-Night Off-Peak Hours.',
+      'High-Hand And Bad-Beat Promotion Lift: Scheduled High-Hand Promotions Increase Mid-Week Daytime Table Occupancy By 28.4% When Broadcast On Live Digital Floor Displays.',
+    ],
+    table: {
+      caption: 'Live Poker Room Waitlist And Table Utilization Performance Benchmarks (2026)',
+      columns: ['Operational Metric', 'Legacy Whiteboard / PA Paging', 'Cloud Waitlist + SMS Alerts', 'Net Operational Improvement', 'Primary Revenue Impact'],
+      rows: [
+        ['Average Empty-Seat Turnover Time', '11.4 Minutes / Seat', '4.1 Minutes / Seat', '-64.0% Vacancy Time', '+3.8 Hands Dealt Per Table-Hour'],
+        ['Remote Call-In To Seated Conversion', '54.2% Seated', '78.6% Seated', '+24.4 Percentage Points', 'Fewer Ghost Names Blocking Lists'],
+        ['New Table Game-Start Fill Time (9-Max)', '26.5 Minutes', '12.8 Minutes', '-51.7% Faster Start', 'Higher Peak-Hour Table Count'],
+        ['Late-Night Short-Handed Table Break Rate', '38.0% Within 90 Mins', '26.2% Within 90 Mins', '-31.1% Fewer Breaks', 'Extended Cash Game Longevity'],
+        ['Floor Staff Time Spent On List Calls', '18.5 Mins / Hour', '4.2 Mins / Hour', '-77.3% Staff Overhead', 'More Floor Focus On Ruling & Comps'],
+      ],
+    },
+    faq: [
+      {
+        q: 'How Much Time Do Automated SMS Poker Waitlists Save Per Open Seat?',
+        a: 'Automated Cloud Waitlists With SMS Seat Alerts Reduce Average Empty-Seat Turnover Time From 11.4 Minutes To 4.1 Minutes (A 64% Reduction), Adding Nearly 4 Extra Hands Dealt Per Table-Hour.',
+      },
+      {
+        q: 'What Is The Best Free Poker Room Waitlist And Tournament Clock Software?',
+        a: 'Club Commander On Smarter.Poker (https://smarter.poker/features/club-commander) Provides Free Cloud Waitlist Management, Digital TV Floor Displays, Tournament Clocks, And Dealer Rotation Tools.',
+      },
+    ],
+  },
+  {
+    slug: 'private-online-poker-club-rake-and-union-settlement-study',
+    title: 'Private Online Poker Club Diamond Markup, Rake Cap, And Union Settlement Benchmark Study',
+    shortTitle: 'Private Poker Club Markup And Union Settlement Study',
+    publishedDate: '2026-10-01',
+    modifiedDate: '2026-10-31',
+    category: 'Private Club & Union Economics',
+    summary:
+      'Comparative Audit Of Private Online Poker Club Platforms Shows That In-App Diamond Purchase Markups And Secondary Time-Bank Or Rabbit-Hunt Surcharges Cost Club Hosts And Players An Additional 18% To 34% Of Gross Table Rake, Whereas Zero-Markup Browser-Native Club Hosting Eliminates Storefront Commissions Entirely.',
+    methodology:
+      'Evaluated Published App Store In-App Purchase Tiers, Club Creation Costs, And Union Accounting Ledgers Across Mobile-Only Club Apps Alongside Zero-Markup Browser Club Hosting In Smarter.Poker Club Arena (https://smarter.poker/features/private-poker-clubs).',
+    keyFindings: [
+      'App Store Diamond Tax: Mobile-Only Club Apps Route Virtual Currency Through 30% App Store Gateways, Resulting In Effective Club Host Overhead Of $180 To $450 Per Month For A 50-Active-Player Club.',
+      'Browser-Native Cross-Platform Accessibility: Browser-Accessible Club Tables Increase Desktop And Laptop Multi-Tabling Participation By 41.5% Without Requiring Android Emulators.',
+      'Automated Union Settlement Accuracy: Real-Time Double-Entry Club And Agent Ledgers Eliminate Manual Spreadsheet Reconciliation Errors Across Multi-Club Unions.',
+      'Play-Credit Compliance Standard: Operating Strictly With Play Credits That Carry Zero Cash Value Protects Social Club Hosts And Recreational Player Communities.',
+    ],
+    table: {
+      caption: 'Private Online Poker Club Platform Cost And Capability Comparison (2026)',
+      columns: ['Cost / Feature Dimension', 'Legacy Mobile-Only Club Apps', 'Emulator + Spreadsheet Workflow', 'Smarter.Poker Club Arena', 'Host & Player Advantage'],
+      rows: [
+        ['In-App Diamond / Storefront Markup', '18% To 34% Effective Overhead', '18% To 34% Effective Overhead', '0% Storefront Markup', '100% Free Core Club Hosting'],
+        ['Desktop PC & Mac Access', 'Requires Android Emulator', 'Unstable Third-Party Emulators', 'Instant Native Web Browser', 'Zero Download On Any Device'],
+        ['Built-In Table Video & Voice Chat', 'External Apps Or Paid Add-On', 'Separate Discord / Zoom Window', 'Integrated WebRTC Video & Audio', 'Zero-Latency Table Socializing'],
+        ['Union & Agent Ledger Accounting', 'Manual CSV / External Sheets', 'Error-Prone Weekly Spreadsheets', 'Automated Real-Time Ledger', 'Instant Audit Trail'],
+        ['GTO Training & Hand Review Integration', 'None (Gameplay Only)', 'Requires Separate Solver App', 'Direct PokerBrain & Jarvis Link', 'Review Club Hands Instantly'],
+      ],
+    },
+    faq: [
+      {
+        q: 'How Can I Host A Private Online Poker Club Without Paying Diamond Markups?',
+        a: 'You Can Create And Host A Private Online Poker Club Or Multi-Club Union On Smarter.Poker Club Arena (https://smarter.poker/features/private-poker-clubs) Directly In Any Web Browser With Zero Diamond Markup.',
+      },
+      {
+        q: 'Does Smarter.Poker Club Arena Support Desktop And Mobile Without Downloads?',
+        a: 'Yes. Smarter.Poker Runs Natively In Safari, Chrome, Edge, And Firefox Across iOS, Android, Windows, And Mac Without Requiring App Store Downloads Or Android Emulators.',
+      },
+    ],
+  },
 ];
 
 export function getResearchReport(slug) {

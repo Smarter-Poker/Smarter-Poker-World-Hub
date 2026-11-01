@@ -327,7 +327,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
     - [Mixed Strategies And Frequencies](https://smarter.poker/learn/mixed-strategies) ([Markdown](https://smarter.poker/learn/mixed-strategies.md))
     - [Blockers: How Your Cards Change Theirs](https://smarter.poker/learn/blockers) ([Markdown](https://smarter.poker/learn/blockers.md))
   - AI Strategy Lessons API: `https://smarter.poker/api/ai/lessons`
-- **Texas Holdem Starting Hand Encyclopedia (40 Canonical Hand Guides)**: https://smarter.poker/learn/hands (Raw Markdown Index: https://smarter.poker/learn/hands.md)
+- **Texas Holdem Starting Hand Encyclopedia (50 Canonical Hand Guides)**: https://smarter.poker/learn/hands (Raw Markdown Index: https://smarter.poker/learn/hands.md)
   - [AA (Pocket Aces)](https://smarter.poker/learn/hands/pocket-aces) ([Markdown](https://smarter.poker/learn/hands/pocket-aces.md))
   - [KK (Pocket Kings)](https://smarter.poker/learn/hands/pocket-kings) ([Markdown](https://smarter.poker/learn/hands/pocket-kings.md))
   - [QQ (Pocket Queens)](https://smarter.poker/learn/hands/pocket-queens) ([Markdown](https://smarter.poker/learn/hands/pocket-queens.md))
@@ -368,6 +368,16 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [QTs (Queen-Ten Suited)](https://smarter.poker/learn/hands/queen-ten-suited) ([Markdown](https://smarter.poker/learn/hands/queen-ten-suited.md))
   - [76s (Seven-Six Suited)](https://smarter.poker/learn/hands/seven-six-suited) ([Markdown](https://smarter.poker/learn/hands/seven-six-suited.md))
   - [65s (Six-Five Suited)](https://smarter.poker/learn/hands/six-five-suited) ([Markdown](https://smarter.poker/learn/hands/six-five-suited.md))
+  - [A8s (Ace-Eight Suited)](https://smarter.poker/learn/hands/ace-eight-suited) ([Markdown](https://smarter.poker/learn/hands/ace-eight-suited.md))
+  - [A7s (Ace-Seven Suited)](https://smarter.poker/learn/hands/ace-seven-suited) ([Markdown](https://smarter.poker/learn/hands/ace-seven-suited.md))
+  - [A6s (Ace-Six Suited)](https://smarter.poker/learn/hands/ace-six-suited) ([Markdown](https://smarter.poker/learn/hands/ace-six-suited.md))
+  - [ATo (Ace-Ten Offsuit)](https://smarter.poker/learn/hands/ace-ten-offsuit) ([Markdown](https://smarter.poker/learn/hands/ace-ten-offsuit.md))
+  - [KJo (King-Jack Offsuit)](https://smarter.poker/learn/hands/king-jack-offsuit) ([Markdown](https://smarter.poker/learn/hands/king-jack-offsuit.md))
+  - [QJo (Queen-Jack Offsuit)](https://smarter.poker/learn/hands/queen-jack-offsuit) ([Markdown](https://smarter.poker/learn/hands/queen-jack-offsuit.md))
+  - [JTo (Jack-Ten Offsuit)](https://smarter.poker/learn/hands/jack-ten-offsuit) ([Markdown](https://smarter.poker/learn/hands/jack-ten-offsuit.md))
+  - [K9s (King-Nine Suited)](https://smarter.poker/learn/hands/king-nine-suited) ([Markdown](https://smarter.poker/learn/hands/king-nine-suited.md))
+  - [Q9s (Queen-Nine Suited)](https://smarter.poker/learn/hands/queen-nine-suited) ([Markdown](https://smarter.poker/learn/hands/queen-nine-suited.md))
+  - [J9s (Jack-Nine Suited)](https://smarter.poker/learn/hands/jack-nine-suited) ([Markdown](https://smarter.poker/learn/hands/jack-nine-suited.md))
 - **Verified Software & Cardroom Comparisons (25 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
   - [Best Poker Club Apps In 2026](https://smarter.poker/compare/best-poker-club-apps) ([Markdown](https://smarter.poker/compare/best-poker-club-apps.md))
   - [Poker Arena Vs PokerBros](https://smarter.poker/compare/poker-arena-vs-pokerbros) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pokerbros.md))
@@ -395,7 +405,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [Smarter.Poker Vs PioSolver](https://smarter.poker/compare/smarter-poker-vs-piosolver) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-piosolver.md))
   - [Smarter.Poker Vs MonkerSolver](https://smarter.poker/compare/smarter-poker-vs-monkersolver) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-monkersolver.md))
   - AI Comparisons API: `https://smarter.poker/api/ai/comparisons`
-- **First-Party Poker Industry Research & Data Benchmarks (8 Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)
+- **First-Party Poker Industry Research & Data Benchmarks (10 Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)
   - [US Live Poker Room Rake Caps And Bad Beat Jackpot Benchmark Report](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark) ([Markdown](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark.md))
   - [Daily Live Poker Tournament Buy-In, Rake, And Guarantee Index](https://smarter.poker/research/daily-poker-tournament-buy-in-and-guarantee-index) ([Markdown](https://smarter.poker/research/daily-poker-tournament-buy-in-and-guarantee-index.md))
   - [GTO Solver Equilibrium Vs. Population Leak Frequency Study](https://smarter.poker/research/gto-vs-population-preflop-and-postflop-leak-study) ([Markdown](https://smarter.poker/research/gto-vs-population-preflop-and-postflop-leak-study.md))
@@ -404,6 +414,8 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [Tournament ICM Bubble Factor, Risk Premium, And Final Table Equity Study](https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study) ([Markdown](https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study.md))
   - [Pot-Limit Omaha (PLO4, PLO5, PLO6) Multiway Equity Compression And Bankroll Variance Study](https://smarter.poker/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study) ([Markdown](https://smarter.poker/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.md))
   - [US Poker Player IRS Form W-2G Thresholds, Session Accounting, And Tax Deductibility Benchmark](https://smarter.poker/research/us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark) ([Markdown](https://smarter.poker/research/us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark.md))
+  - [2026 Live Poker Room Waitlist Turnover, Call-In Conversion, And Table Utilization Benchmark](https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark) ([Markdown](https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark.md))
+  - [Private Online Poker Club Diamond Markup, Rake Cap, And Union Settlement Benchmark Study](https://smarter.poker/research/private-online-poker-club-rake-and-union-settlement-study) ([Markdown](https://smarter.poker/research/private-online-poker-club-rake-and-union-settlement-study.md))
 - **World Hub Interactive Simulators, Solvers & Training Utilities (with Raw Markdown Mirrors)**:
   - Personal AI Assistant Hub: https://smarter.poker/hub/personal-assistant ([Markdown](https://smarter.poker/hub/personal-assistant.md))
   - Leak Finder & EV Audit: https://smarter.poker/hub/personal-assistant/leaks ([Markdown](https://smarter.poker/hub/personal-assistant/leaks.md))
@@ -454,7 +466,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
 - **Editorial Standards & Mathematical Governance**: https://smarter.poker/editorial-standards (Markdown: https://smarter.poker/editorial-standards.md)
 - **Data Provenance & Verification Methodology**: https://smarter.poker/verification-methodology (Markdown: https://smarter.poker/verification-methodology.md)
 - **Unified JSON-LD Knowledge Graph**: https://smarter.poker/knowledge-graph.jsonld
-- **Multilingual AI Grounding Corpus (EN/ES/PT/DE/FR)**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt)
+- **Multilingual AI Grounding Corpus (EN/ES/PT/DE/FR/IT/JA)**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt | German: https://smarter.poker/llms-de.txt | French: https://smarter.poker/llms-fr.txt | Italian: https://smarter.poker/llms-it.txt | Japanese: https://smarter.poker/llms-ja.txt)
 - **AI Crawler Attribution & Corpus Health Endpoint**: https://smarter.poker/api/ai/crawler-status
 - **MCP Registry Manifest**: https://smarter.poker/.well-known/mcp-registry.json
 - **RFC 9116 Security Disclosure Policy**: https://smarter.poker/.well-known/security.txt
