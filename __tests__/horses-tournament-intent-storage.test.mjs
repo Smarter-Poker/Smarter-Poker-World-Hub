@@ -1,4 +1,4 @@
-import test from 'node:test';
+import nodeTest from 'node:test';
 import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { cancellationIntent } from '../src/components/horses/tournamentCancellationIntent.mjs';
@@ -7,6 +7,20 @@ const key = `stable-tournament-cancel:11111111-1111-4111-8111-111111111111:${eve
 const a = { action: 'cancel_refund', tournamentId: event, opId: '33333333-3333-4333-8333-333333333333', reason: 'Original isolated review' };
 const b = { ...a, opId: '44444444-4444-4444-8444-444444444444' };
 const current = () => true;
+let previousGlobals;
+function test(name, run) {
+  return nodeTest(name, async context => {
+    const originals = new Map(['indexedDB', 'localStorage'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    previousGlobals = originals;
+    try { return await run(context); }
+    finally {
+      for (const [key, descriptor] of originals) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else delete globalThis[key];
+      }
+    }
+  });
+}
 function setup(legacy = null) {
   globalThis.indexedDB = new IDBFactory();
   const values = new Map(legacy === null ? [] : [[key, legacy]]);
@@ -97,4 +111,8 @@ test('unanswered storage transaction aborts at the same boundary without dispatc
  t.mock.timers.tick(30000); await new Promise(setImmediate);
  assert.equal(settled, true); assert.equal(aborted, 1); assert.ok(closed >= 1);
  assert.match((await pending).message, /Storage|Commit/);
+});
+
+nodeTest('cancellation storage fixtures restore browser globals for the shared CI entrypoint', () => {
+  for (const [key, descriptor] of previousGlobals) assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, key), descriptor, key);
 });
