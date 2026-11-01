@@ -95,6 +95,22 @@ async function passArenaGates(page, seen) {
     return false;
 }
 
+/** Realtime frames that mention the notifications stream, for diagnosis. */
+function watchRealtime(page) {
+    const seen = { sockets: 0, notificationJoins: 0, notificationEvents: 0, errors: [] };
+    page.on('websocket', ws => {
+        if (!/realtime/.test(ws.url())) return;
+        seen.sockets += 1;
+        ws.on('framesent', f => { const t = String(f.payload || ''); if (/phx_join/.test(t) && /"table":"notifications"/.test(t)) seen.notificationJoins += 1; });
+        ws.on('framereceived', f => {
+            const t = String(f.payload || '');
+            if (/postgres_changes/.test(t) && /"table":"notifications"/.test(t)) seen.notificationEvents += 1;
+            if (/"status":"error"|phx_error/.test(t)) seen.errors.push(t.slice(0, 200));
+        });
+    });
+    return seen;
+}
+
 const liveTables = page => page.evaluate(() => Number(document.body?.dataset.caLiveTables || '0')).catch(() => 0);
 const reconnecting = page => page.evaluate(() => /Reconnecting To The Table/i.test(document.body?.innerText || '')).catch(() => false);
 
@@ -152,6 +168,34 @@ async function main() {
                 await sleep(3000);
                 check('Club Arena menu hides the row once the device is enrolled', (await row.count()) === 0, null);
             }
+            // Same throwaway, in the Club Arena lobby: does a ringing call reach a
+            // non-table page? Separates "no alert anywhere" from "no alert at a table".
+            try {
+                const lobbyRt = watchRealtime(page);
+                await page.goto(`${CA}/`, { waitUntil: 'domcontentloaded' });
+                await passArenaGates(page, report.probeGates).catch(() => false);
+                await page.evaluate(() => { window.__caCallEvents = []; window.addEventListener('ca:incoming-call', e => window.__caCallEvents.push(e.detail?.type)); });
+                await sleep(8000);
+                const lobbyConversation = await createConversation(admin, created, B.id, A, { senderId: B.id, content: 'Club Arena Lobby Call Verification' });
+                const lctx = await chromium.launch({ headless: true, args: FAKE_MEDIA });
+                browsers.push(lctx);
+                const lc = await lctx.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
+                await lc.grantPermissions(['camera', 'microphone'], { origin: APP_ORIGIN });
+                await signIn(lc, B.session);
+                const lcaller = await lc.newPage();
+                await lcaller.goto(`${APP_ORIGIN}/hub/messenger?conversation=${lobbyConversation}`, { waitUntil: 'domcontentloaded' });
+                await lcaller.getByLabel('Start Video Call', { exact: true }).waitFor({ timeout: 60000 });
+                await sleep(3000);
+                await lcaller.getByLabel('Start Video Call', { exact: true }).click();
+                const lobbyAlert = await page.getByText(/Tap To Answer/i).first().waitFor({ timeout: 25000 }).then(() => true, () => false);
+                report.lobbyRing = { alert: lobbyAlert, eventsOnPage: await page.evaluate(() => window.__caCallEvents || []).catch(() => null), realtime: lobbyRt };
+                check('Club Arena lobby shows the incoming-call alert (throwaway, no table)', lobbyAlert, report.lobbyRing);
+                await lcaller.getByLabel('End Call', { exact: true }).first().click().catch(() => {});
+                await sleep(4000);
+                await lctx.close();
+            } catch (error) {
+                check('Club Arena lobby call step completed', false, { error: String(error?.message || error).split('\n')[0].slice(0, 200) });
+            }
             await ctx.close();
         } catch (error) {
             const page = browsers.at(-1)?.pages?.()[0];
@@ -187,6 +231,7 @@ async function main() {
         const arena = await actx.newPage();
         arena.setDefaultTimeout(20000);
         const consoleErrors = [];
+        const tableRt = watchRealtime(arena);
         arena.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)); });
         // Record whether the call event reached this page, separately from the toast.
         await actx.addInitScript(() => {
@@ -226,7 +271,7 @@ async function main() {
         const callRow = until(async () => ((await admin.from('notifications').select('id, type, data').eq('user_id', O).eq('type', 'incoming_call').gte('created_at', t1)).data || [])[0], { timeout: 20000 }).catch(() => null);
         const alerted = await alert.waitFor({ timeout: 25000 }).then(() => true, () => false);
         const row = await callRow;
-        report.ring = { incomingCallRowWritten: Boolean(row), rowHasRoom: Boolean(row?.data?.roomName), eventsOnPage: await arena.evaluate(() => window.__caCallEvents || []).catch(() => null), consoleErrors: consoleErrors.slice(-8) };
+        report.ring = { incomingCallRowWritten: Boolean(row), rowHasRoom: Boolean(row?.data?.roomName), eventsOnPage: await arena.evaluate(() => window.__caCallEvents || []).catch(() => null), consoleErrors: consoleErrors.slice(-8), realtime: tableRt };
         if (!alerted) await arena.screenshot({ path: `${RESULT_DIR}/arena-during-ring.png` }).catch(() => {});
         const alertText = alerted ? (await alert.textContent())?.trim() : null;
         check('Club Arena shows the incoming-call alert at the table', alerted, { alertText, ...report.ring });
