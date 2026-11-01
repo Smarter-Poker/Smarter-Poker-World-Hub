@@ -105,3 +105,37 @@ replaces, and the receipt now counts document loads (#2647).
 A banner a person sees on an iPhone or iPad, tapping it and Accept,
 front/back camera flip, the real keyboard, and minimize/restore audio. Suite
 `messenger-calls-device` conducts that test with one throwaway partner.
+
+## Club Arena, published (2026-11-01)
+
+Club Arena #9022 (call alert, a27d9d0f0) and #8999 (menu row, 13b9a8a60)
+merged at 05:00 UTC; publication was blocked first by a first-of-the-month
+test (#9100) and then held until 07:05 UTC by another release's owner
+window. #9119 (bf969b1ba) fixed a defect the suite found: on a cold load
+onto a table the header notifications channel joined without a token, so row
+level security dropped every notifications INSERT (only the DELETE arrived),
+and calls, message pop-ups and the bell count were silent at a table.
+
+Run 41284300265 (World Hub cab7d8f5, Club Arena 0d7cd8df4, which contains
+bf969b1ba): passed.
+
+- Menu, ordinary throwaway (role user): Terms accepted and the daily bonus
+  sheet closed by the throwaway; permission left at ask until the tap; the
+  menu offered Turn On Notifications, the tap stored a webpush subscription,
+  and the row hid afterwards.
+- Lobby: a call to the throwaway showed the Tap To Answer alert.
+- Table: a running classic cash table observed as a club member (club tables
+  are visible only to members, so this step uses the configured service
+  identity: no seat, no chips). The alert appeared at the table; tapping it
+  answered in a hub tab and the caller received the callee's video; the table
+  tab stayed live with no reconnect during the call; after hang-up the alert
+  was gone, the ringing row cleared, and the table tab was live and updating.
+- Cleanup: both throwaways deleted; threads, call rows, notifications, push
+  outbox rows and the throwaway's subscription removed.
+
+## Physical-device run 41259324858
+
+Waited the full 300 minutes; no READY and no Apple subscription arrived.
+Cleanup ran: its partner deleted, thread and rows removed, and an earlier
+cancelled run's partner swept. No iPhone or iPad result exists. The device
+conductor now requires an ordinary account the person controls (#2654).
