@@ -77,7 +77,28 @@ real deploy. `__NEXT_DATA__.buildId` is the same on every release
 | 41250843386 | 1e8650c8 -> 7fe722f7 (pages on the fixed build) | both reloaded about 5 s after the deploy, on the first hide-and-show |
 | 41252779970 | d5ae64a8 -> 9461f04f | both reloaded 4 s after the deploy, then once more 4 minutes later with no new deploy (`/sw.js` is now byte-stable across six fetches; the imported `/worker-*.js` is the remaining suspect) |
 
+| 41258734166 | 73b6c0e7 -> 090f1789 | draft page held its typed text and call page held its connected call, each reloading the moment the text was cleared or the call ended; the idle page never reloaded because every field on the page counted as a draft (fixed in #2645: only text a person typed holds an update) |
+| 41262339099 | b570ed48 -> 619237a9 | passed: idle page reloaded; draft kept its text and call stayed connected while held (`held-draft`, `held-call` in the updater's decision log); each reloaded after clearing or hang-up; a call rang afterwards |
+
 Calls rang on every open page after every deploy.
+
+The "second reload" in 41252779970 was a second real deploy: ae604417 was
+ready at 23:45:00 and the pages reloaded at 23:45:23. It is not a stale
+worker. Run 41262339099 also showed each reload as three main-frame
+navigations within half a second; those were the router's same-document URL
+replaces, and the receipt now counts document loads (#2647).
+
+## Club Arena (run 41261469643, Club Arena ba152e40f)
+
+- A running cash table observed by the test account stayed live through a
+  call made to that account: `data-ca-live-tables` 1, the table fingerprint
+  kept changing, no "Reconnecting To The Table", before and after the call.
+  The ringing row was gone after hang-up.
+- The in-Club-Arena call alert and the menu's Turn On Notifications row were
+  not on the published bundle (Club Arena PRs #8999 and #9022 not yet merged),
+  so those steps failed as expected. A brand-new account also meets Club
+  Arena's Terms of Service screen first; the suite now enrols as the test
+  account, which has accepted them, and removes only the subscription it made.
 
 ## Not proven here (physical device only)
 
