@@ -61,3 +61,10 @@ test('the notify suite uses throwaways only and labels emulated states', async (
   assert.match(notify, /tier: 'worker-display'/);
   assert.match(notify, /delete\(\)\.eq\('user_id', C\.id\)/);
 });
+
+test('the device conductor proves Home Screen isolation and restores only rows it switched off', () => {
+  assert.match(device, /othersBefore = \(\(await admin\.from\('push_subscriptions'\)\.select\('id, user_id, endpoint'\)\.eq\('is_active', true\)\.neq\('user_id', A\)/);
+  assert.match(device, /!sharedEndpoint && switchedOff\.length === 0/);
+  assert.match(device, /const affected = othersBefore\.filter\(o => ours\.has\(o\.endpoint\)\);/);
+  assert.match(device, /if \(report\.device\) delete report\.device\.endpoint;/);
+});
