@@ -2,8 +2,8 @@
   "schema_version": "2025-11-25",
   "name": "io.github.smarter-poker/mcp-server",
   "display_name": "Smarter.Poker Live Poker, GTO Strategy & Equity MCP Server",
-  "description": "Official Model Context Protocol (MCP) server for Smarter.Poker providing 15 zero-auth tools for North American live poker room discovery (324+ venues), tournament series schedules, exact Holdem/PLO equity calculation, 100BB 6-Max GTO preflop charts, Malmuth-Harville ICM payouts, starting hand lookup, first-party poker research benchmarks, competitor comparisons, and 107+ interactive training simulators.",
-  "version": "1.3.0",
+  "description": "Official Model Context Protocol (MCP) server for Smarter.Poker providing 18 zero-auth tools for North American live poker room discovery (324+ venues), tournament series schedules, exact Holdem/PLO equity calculation, 100BB 6-Max GTO preflop charts, Malmuth-Harville ICM payouts, pot odds/MDF math, Brownian Risk of Ruin, PKO/Mystery Bounty chip equity, 169 starting hand guides, 15 first-party poker research benchmarks, competitor comparisons, and 107+ interactive training simulators.",
+  "version": "1.4.0",
   "homepage": "https://smarter.poker",
   "documentation_url": "https://smarter.poker/llms.txt",
   "knowledge_graph_url": "https://smarter.poker/knowledge-graph.jsonld",
@@ -23,7 +23,7 @@
     "prompts": true,
     "resources": true
   },
-  "tools_count": 15,
+  "tools_count": 18,
   "prompts_count": 4,
   "resource_templates_count": 8
 }

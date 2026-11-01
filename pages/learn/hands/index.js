@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    /learn/hands - TEXAS HOLD'EM STARTING HAND ENCYCLOPEDIA INDEX
    ═══════════════════════════════════════════════════════════════════════════
-   Canonical index for all 20 starting hand strategy guides with exact
+   Canonical index for all 169 starting hand strategy guides with exact
    combinatoric probabilities, preflop ranks, positional GTO actions, and
    head-to-head equity matchups.
 
@@ -29,7 +29,7 @@ function handsIndexSchema() {
       '@id': `${PAGE_URL}#collection`,
       name: 'Poker Starting Hand Encyclopedia And GTO Matrix Guide',
       description:
-        'Sixty-Five Canonical Texas Hold\'em Starting Hand Strategy Guides Covering Exact Deal Probabilities, Preflop Rankings, Positional GTO Actions, And Matchup Equities.',
+        'All 169 Canonical Texas Hold\'em Starting Hand Strategy Guides Covering Exact Deal Probabilities, Preflop Rankings, Positional GTO Actions, And Matchup Equities.',
       url: PAGE_URL,
       inLanguage: 'en-US',
       dateModified: LEARN_MODIFIED,
@@ -67,7 +67,7 @@ export default function StartingHandsIndexPage() {
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Poker Starting Hand Encyclopedia"
-        description="Complete Texas Hold'em Starting Hand Encyclopedia: Combinatorics, Preflop Rank, Equity Vs. Random Hands, And 6-Max 100BB GTO Opening Strategy."
+        description="Complete Texas Hold'em Starting Hand Encyclopedia: Combinatorics, Preflop Rank, Equity Vs. Random Hands, And 6-Max 100BB GTO Opening Strategy For All 169 Starting Hands."
         canonical={HANDS_BASE_PATH}
         jsonLd={handsIndexSchema()}
       />
@@ -86,7 +86,7 @@ export default function StartingHandsIndexPage() {
         </h1>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 24px 0' }}>
-          Explore Exact Combinatoric Probabilities, Preflop Percentile Rankings, 6-Max 100BB GTO Positional Opening Actions, And Head-To-Head Matchup Equities For The Sixty-Five Most Important Starting Hands In No-Limit Texas Hold&apos;Em.
+          Explore Exact Combinatoric Probabilities, Preflop Percentile Rankings, 6-Max 100BB GTO Positional Opening Actions, And Head-To-Head Matchup Equities For All 169 Starting Hands In No-Limit Texas Hold&apos;Em.
         </p>
 
         <div style={{ overflowX: 'auto', marginBottom: 32 }}>

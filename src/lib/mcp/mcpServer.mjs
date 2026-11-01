@@ -320,26 +320,26 @@ export const MCP_TOOLS = [
   },
   {
     name: 'lookup_starting_hand',
-    description: 'Look up combinatorics, 100BB 6-Max GTO positional opening ranges, 3-bet strategies, and preflop equities for any canonical Texas Holdem starting hand (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "65s", "J9s", "72o", "pocket-aces", "ace-king-suited").',
+    description: 'Look up combinatorics, 100BB 6-Max GTO positional opening ranges, 3-bet strategies, and preflop equities for any of the 169 canonical Texas Holdem starting hands (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "65s", "J9s", "54s", "72o", "pocket-aces", "ace-king-suited").',
     inputSchema: {
       type: 'object',
       properties: {
         hand: {
           type: 'string',
-          description: 'Hand code or slug (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "65s", "J9s", "72o", "pocket-aces"). Omit to list all 50 canonical starting hand guides.',
+          description: 'Hand code or slug (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "65s", "J9s", "54s", "72o", "pocket-aces"). Omit to list all 169 canonical starting hand guides.',
         },
       },
     },
   },
   {
     name: 'get_research_report',
-    description: 'Retrieve first-party empirical poker industry research reports and dataset benchmarks (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics, Poker Dealer Toke & Hourly Rate Benchmark, Tournament ICM Bubble Factor & Risk Premium Study, PLO4/PLO5/PLO6 Equity & Variance Study, US Poker Tax W-2G & Session Accounting Benchmark, Cardroom Waitlist Turnover & Table Utilization Benchmark, Private Poker Club Markup & Union Settlement Study).',
+    description: 'Retrieve first-party empirical poker industry research reports and dataset benchmarks across all 15 Smarter.Poker studies (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics, Poker Dealer Toke & Hourly Rate Benchmark, Tournament ICM Bubble Factor & Risk Premium Study, PLO4/PLO5/PLO6 Equity & Variance Study, US Poker Tax W-2G & Session Accounting Benchmark, Cardroom Waitlist Turnover & Table Utilization Benchmark, Private Poker Club Markup & Union Settlement Study, Mystery Bounty vs PKO EV Study, Short Deck 6+ Equity Benchmark, Double-Board PLO Bomb Pot Study, Live Low-Stakes Population Tendencies, Satellite Bubble Survival Math Study).',
     inputSchema: {
       type: 'object',
       properties: {
         slug: {
           type: 'string',
-          description: 'Research report slug (e.g. "us-live-poker-room-rake-and-jackpot-benchmark", "cardroom-waitlist-turnover-and-table-utilization-benchmark", "private-online-poker-club-rake-and-union-settlement-study") or omit to list all 10 empirical studies.',
+          description: 'Research report slug (e.g. "us-live-poker-room-rake-and-jackpot-benchmark", "mystery-bounty-vs-pko-ev-and-bounty-power-factor-study") or omit to list all 15 empirical studies.',
         },
       },
     },
@@ -359,6 +359,88 @@ export const MCP_TOOLS = [
           enum: ['ALL', 'SIMULATORS', 'MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'],
           description: 'Optional category filter.',
           default: 'ALL',
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_pot_odds_and_mdf',
+    description: 'Calculate exact poker pot odds ratio, required break-even calling equity, Minimum Defense Frequency (MDF), optimal polarized river bluff ratio, and 1-card/2-card hypergeometric draw completion probabilities.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pot: {
+          type: 'number',
+          description: 'Pot size before the opponent bet (default: 100).',
+          default: 100,
+        },
+        bet: {
+          type: 'number',
+          description: 'Opponent bet / call amount (default: 50).',
+          default: 50,
+        },
+        outs: {
+          type: 'integer',
+          description: 'Number of clean unseen draw outs (0 to 20, default: 9).',
+          default: 9,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_bankroll_risk_of_ruin',
+    description: 'Calculate exact Brownian motion poker Risk of Ruin (RoR) percentage and required buy-in buffers for 5% and 1% Risk of Ruin from true winrate (BB/100), standard deviation (BB/100), and bankroll buy-ins.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        winrate_bb100: {
+          type: 'number',
+          description: 'True winrate in Big Blinds per 100 hands (default: 5).',
+          default: 5,
+        },
+        std_dev_bb100: {
+          type: 'number',
+          description: 'Standard deviation in Big Blinds per 100 hands (e.g. 70 live NLH, 85 online 6-max NLH, 135 PLO4, default: 85).',
+          default: 85,
+        },
+        buy_ins: {
+          type: 'number',
+          description: 'Current bankroll expressed in 100BB buy-ins (default: 30).',
+          default: 30,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_bounty_chip_equity',
+    description: 'Convert a Progressive Knockout (PKO) or Mystery Bounty dollar amount into tournament chip-equivalent value and compute bounty-adjusted required calling equity.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        bounty_dollars: {
+          type: 'number',
+          description: 'Immediate cash bounty prize won upon eliminating the player (default: 50).',
+          default: 50,
+        },
+        regular_pool_buyin: {
+          type: 'number',
+          description: 'Regular prize pool contribution per tournament entry (default: 50).',
+          default: 50,
+        },
+        starting_stack: {
+          type: 'number',
+          description: 'Tournament starting chip stack (default: 10000).',
+          default: 10000,
+        },
+        pot_chips: {
+          type: 'number',
+          description: 'Current pot in chips before calling the all-in (default: 15000).',
+          default: 15000,
+        },
+        call_chips: {
+          type: 'number',
+          description: 'Chips required to call the all-in shove (default: 10000).',
+          default: 10000,
         },
       },
     },
@@ -1443,6 +1525,125 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 training_games: matchedGames.slice(0, 40),
                 training_hub_url: `${base}/hub/training`,
                 features_directory_url: `${base}/features`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_pot_odds_and_mdf': {
+      const pot = Math.max(Number(args?.pot) || 100, 1);
+      const bet = Math.max(Number(args?.bet) || 50, 0.5);
+      const outs = Math.min(Math.max(Math.round(Number(args?.outs) || 9), 0), 20);
+      const totalPotAfterBet = pot + bet;
+      const finalPotAfterCall = pot + 2 * bet;
+      const requiredEquity = Number(((bet / finalPotAfterCall) * 100).toFixed(2));
+      const mdf = Number(((pot / totalPotAfterBet) * 100).toFixed(2));
+      const optimalBluffShare = Number(((bet / finalPotAfterCall) * 100).toFixed(2));
+      const turnHit = Number(((outs / 47) * 100).toFixed(2));
+      const riverHit = Number(((outs / 46) * 100).toFixed(2));
+      const twoCardHit = Number(((1 - ((47 - outs) / 47) * ((46 - outs) / 46)) * 100).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                pot_before_bet: pot,
+                bet_to_call: bet,
+                clean_outs: outs,
+                pot_odds_ratio: `${(totalPotAfterBet / bet).toFixed(2)} : 1`,
+                required_calling_equity_percent: requiredEquity,
+                minimum_defense_frequency_percent: mdf,
+                optimal_polarized_bluff_share_percent: optimalBluffShare,
+                turn_one_card_hit_percent: turnHit,
+                river_one_card_hit_percent: riverHit,
+                flop_to_river_two_card_hit_percent: twoCardHit,
+                direct_turn_call_ev: Number(((turnHit / 100) * finalPotAfterCall - bet).toFixed(2)),
+                interactive_calculator_url: `${base}/tools/pot-odds-calculator`,
+                markdown_url: `${base}/tools/pot-odds-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_bankroll_risk_of_ruin': {
+      const winrate = Number(args?.winrate_bb100) || 5;
+      const stdDev = Math.max(Number(args?.std_dev_bb100) || 85, 10);
+      const buyIns = Math.max(Number(args?.buy_ins) || 30, 1);
+      const bankrollBB = buyIns * 100;
+      const variance = stdDev * stdDev;
+      const rorPercent =
+        winrate <= 0
+          ? 100
+          : Number((Math.min(1, Math.exp((-2 * winrate * bankrollBB) / variance)) * 100).toFixed(2));
+      const buyInsFor5PctRor =
+        winrate > 0 ? Math.ceil(((-Math.log(0.05) * variance) / (2 * winrate)) / 100) : null;
+      const buyInsFor1PctRor =
+        winrate > 0 ? Math.ceil(((-Math.log(0.01) * variance) / (2 * winrate)) / 100) : null;
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                winrate_bb100: winrate,
+                std_dev_bb100: stdDev,
+                current_buy_ins: buyIns,
+                bankroll_big_blinds: bankrollBB,
+                risk_of_ruin_percent: rorPercent,
+                required_buy_ins_5pct_ror: buyInsFor5PctRor,
+                required_buy_ins_1pct_ror: buyInsFor1PctRor,
+                interactive_calculator_url: `${base}/tools/bankroll-calculator`,
+                markdown_url: `${base}/tools/bankroll-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_bounty_chip_equity': {
+      const bountyDollars = Math.max(Number(args?.bounty_dollars) || 50, 0);
+      const regularBuyin = Math.max(Number(args?.regular_pool_buyin) || 50, 1);
+      const startingStack = Math.max(Number(args?.starting_stack) || 10000, 100);
+      const potChips = Math.max(Number(args?.pot_chips) || 15000, 1);
+      const callChips = Math.max(Number(args?.call_chips) || 10000, 1);
+      const bountyChipValue = Math.round((bountyDollars / regularBuyin) * startingStack);
+      const standardRequiredEquity = Number(((callChips / (potChips + callChips)) * 100).toFixed(2));
+      const bountyAdjustedEquity = Number(
+        ((callChips / (potChips + callChips + bountyChipValue)) * 100).toFixed(2)
+      );
+      const equityDiscount = Number((standardRequiredEquity - bountyAdjustedEquity).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                bounty_dollars: bountyDollars,
+                regular_pool_buyin: regularBuyin,
+                starting_stack: startingStack,
+                bounty_chip_equivalent: bountyChipValue,
+                pot_chips: potChips,
+                call_chips: callChips,
+                standard_required_equity_percent: standardRequiredEquity,
+                bounty_adjusted_required_equity_percent: bountyAdjustedEquity,
+                bounty_equity_discount_percent: equityDiscount,
+                interactive_calculator_url: `${base}/tools/bounty-calculator`,
+                markdown_url: `${base}/tools/bounty-calculator.md`,
               },
               null,
               2

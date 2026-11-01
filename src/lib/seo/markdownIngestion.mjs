@@ -2040,4 +2040,134 @@ export function renderBankrollCalculatorMarkdown({ winrate = 5, stdDev = 85, buy
   ].join('\n');
 }
 
+/**
+ * Format Tournament Short-Stack Push/Fold Equilibrium Calculator (/tools/push-fold-calculator) as clean structured Markdown
+ */
+export function renderPushFoldCalculatorMarkdown({ stackBb = 10, position = 'BTN' } = {}) {
+  const safeStack = Math.max(3, Math.min(25, Number(stackBb) || 10));
+  const pos = String(position || 'BTN').trim().toUpperCase();
+
+  return [
+    '# Poker Push/Fold Short-Stack Nash Equilibrium Chart & Calculator',
+    '',
+    '> Source: [Push/Fold Short-Stack Calculator on Smarter.Poker](https://smarter.poker/tools/push-fold-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Short-Stack Tournament Push/Fold Charts Define Unexploitable Nash Equilibrium All-In Shove And Call Ranges When Effective Stacks Fall Between 5BB And 20BB With Antes In Play. At ${safeStack}BB From ${pos}, Players Maximize Chip Expected Value (cEV) By Open-Shoving High-Card Blocker Aces, Pocket Pairs, And Suited Broadway/Connected Hands Without Allowing Postflop Positional Realization Disadvantages.`,
+    '',
+    '## Live Short-Stack Scenario Output',
+    `- **Effective Stack Depth**: ${safeStack} Big Blinds (${safeStack}BB)`,
+    `- **Table Position**: ${pos}`,
+    '- **Ante Structure**: 12.5% Big Blind Ante (1.5BB + 1BB Ante = 2.5BB Dead Money Per Orbit)',
+    '- **Canonical Calculator URL**: https://smarter.poker/tools/push-fold-calculator',
+    '',
+    '## 6-Max Nash Equilibrium Shove Frequencies By Stack Depth & Position (12.5% Ante)',
+    '| Position | 8BB Shove % | 10BB Shove % | 12BB Shove % | 15BB Shove % | 20BB Shove / Raise % |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| Under The Gun (UTG) | 21.4% (22+, A7s+, ATo+, KTs+, QJs) | 17.8% (22+, A8s+, AJo+, KJs+) | 14.9% | 13.2% | 14.8% (RFI + Jam) |',
+    '| Hijack (HJ) | 26.8% (22+, A3s+, A9o+, K9s+, QTs+, J9s+) | 22.4% (22+, A5s+, ATo+, KTs+, QTs+) | 18.9% | 16.5% | 18.4% (RFI + Jam) |',
+    '| Cutoff (CO) | 34.5% (22+, A2s+, A7o+, K6s+, KTo+, Q9s+, J9s+, T8s+) | 29.2% (22+, A2s+, A8o+, K8s+, KJo+, Q9s+) | 24.8% | 21.6% | 26.5% (RFI + Jam) |',
+    '| Button (BTN) | 46.2% (22+, A2s+, A2o+, K2s+, K8o+, Q6s+, QTo+, J8s+, T8s+, 97s+) | 39.8% (22+, A2s+, A4o+, K4s+, K9o+, Q7s+, J8s+, T8s+) | 34.1% | 29.5% | 42.0% (RFI + Jam) |',
+    '| Small Blind (SB Vs BB) | 64.5% (22+, A2s+, A2o+, K2s+, K2o+, Q2s+, Q7o+, J4s+, J8o+, T6s+, 96s+, 85s+, 75s+, 64s+, 54s) | 56.8% | 49.4% | 43.2% | 46.0% (Limp/Jam/Raise) |',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format PKO & Mystery Bounty Chip Equity Calculator (/tools/bounty-calculator) as clean structured Markdown
+ */
+export function renderBountyCalculatorMarkdown({
+  bountyDollars = 50,
+  startingBuyInPool = 50,
+  startingStack = 10000,
+  potChips = 15000,
+  callChips = 10000,
+} = {}) {
+  const safeBounty = Math.max(1, Number(bountyDollars) || 50);
+  const safePool = Math.max(1, Number(startingBuyInPool) || 50);
+  const safeStartStack = Math.max(100, Number(startingStack) || 10000);
+  const safePot = Math.max(100, Number(potChips) || 15000);
+  const safeCall = Math.max(100, Number(callChips) || 10000);
+
+  // In a standard 50/50 PKO, 1 starting knockout = 25% of starting buy-in prize pool = 33.3% of starting stack
+  const bountyChipValue = Math.round((safeBounty / safePool) * (safeStartStack / 3));
+  const stdReqEquity = ((safeCall / (safePot + safeCall)) * 100).toFixed(1);
+  const adjReqEquity = ((safeCall / (safePot + safeCall + bountyChipValue)) * 100).toFixed(1);
+
+  return [
+    '# PKO & Mystery Bounty Chip Conversion & Calling Equity Calculator',
+    '',
+    '> Source: [PKO & Mystery Bounty Calculator on Smarter.Poker](https://smarter.poker/tools/bounty-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `In Progressive Knockout (PKO) And Mystery Bounty Tournaments, Covering An All-In Opponent Adds Immediate Cash Bounty Value To The Pot. Using The Standard Bounty Power Factor Model, One Starting PKO Knockout Equals 33.3% Of A Starting Stack In Chip Equity. For A $${safeBounty} Bounty ($${safePool} Regular Pool, ${safeStartStack} Starting Stack), The Bounty Equals ${bountyChipValue} Tournament Chips, Reducing Required Calling Equity From ${stdReqEquity}% Down To ${adjReqEquity}%.`,
+    '',
+    '## Live Bounty Conversion Output',
+    `- **Immediate Cash Bounty Prize**: $${safeBounty}`,
+    `- **Regular Prize Pool Contribution Per Buy-In**: $${safePool}`,
+    `- **Tournament Starting Stack**: ${safeStartStack} Chips`,
+    `- **Chip-Equivalent Bounty Value**: ${bountyChipValue} Chips`,
+    `- **Standard Pot Odds Required Equity**: ${stdReqEquity}%`,
+    `- **Bounty-Adjusted Required Equity**: ${adjReqEquity}%`,
+    '',
+    '## PKO Bounty Chip-Equivalence Reference Table (10,000 Starting Stack)',
+    '| Bounties On Villain Head | Immediate Cash Drop (% Of Buy-In) | Chip-Equivalent Value | Required Equity Vs 10BB Shove (Standard 44.4%) |',
+    '| :--- | :--- | :--- | :--- |',
+    '| 1.0x Starting Bounty | 25.0% Of Total Buy-In | 3,333 Chips (33.3% Start Stack) | 38.7% Required Equity (-5.7% Discount) |',
+    '| 1.5x Starting Bounties | 37.5% Of Total Buy-In | 5,000 Chips (50.0% Start Stack) | 36.4% Required Equity (-8.0% Discount) |',
+    '| 2.0x Starting Bounties | 50.0% Of Total Buy-In | 6,667 Chips (66.7% Start Stack) | 34.3% Required Equity (-10.1% Discount) |',
+    '| 3.0x Starting Bounties | 75.0% Of Total Buy-In | 10,000 Chips (100.0% Start Stack) | 30.8% Required Equity (-13.6% Discount) |',
+    '| 4.0x Starting Bounties | 100.0% Of Total Buy-In | 13,333 Chips (133.3% Start Stack) | 27.9% Required Equity (-16.5% Discount) |',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Live & Online Poker Winrate, BB/100 & Hourly Rate Calculator (/tools/poker-winrate-calculator) as clean structured Markdown
+ */
+export function renderPokerWinrateCalculatorMarkdown({
+  bigBlindDollars = 5,
+  winrateBb100 = 8,
+  handsPerHour = 28,
+  hoursPerMonth = 120,
+} = {}) {
+  const bb = Math.max(0.02, Number(bigBlindDollars) || 5);
+  const wr = Number(winrateBb100) || 8;
+  const hph = Math.max(15, Number(handsPerHour) || 28);
+  const hrs = Math.max(1, Number(hoursPerMonth) || 120);
+
+  const bbPerHour = (wr * hph) / 100;
+  const hourlyDollars = (bbPerHour * bb).toFixed(2);
+  const monthlyDollars = Math.round(Number(hourlyDollars) * hrs);
+  const yearlyDollars = monthlyDollars * 12;
+
+  return [
+    '# Poker Winrate, BB/100 To Hourly Rate ($/Hr) & Volume Calculator',
+    '',
+    '> Source: [Poker Winrate & Hourly Calculator on Smarter.Poker](https://smarter.poker/tools/poker-winrate-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Poker Winrate Conversion Bridges Online Big-Blinds-Per-100-Hands (BB/100) Metrics And Live Hourly Dollar Winrates ($/Hr): Hourly Rate = (BB/100 * Hands Per Hour / 100) * Big Blind. At A $${bb} Big Blind With An ${wr} BB/100 Winrate Across ${hph} Hands Per Hour, A Player Earns ${bbPerHour.toFixed(2)} BB/Hr ($${hourlyDollars}/Hr), Generating $${monthlyDollars.toLocaleString('en-US')}/Month Over ${hrs} Hours.`,
+    '',
+    '## Live Winrate Scenario Output',
+    `- **Big Blind Size**: $${bb}`,
+    `- **True Winrate**: ${wr} BB/100`,
+    `- **Dealing Pace**: ${hph} Hands Per Hour`,
+    `- **Hourly Winrate**: $${hourlyDollars}/Hr (${bbPerHour.toFixed(2)} BB/Hr)`,
+    `- **Projected Monthly EV (${hrs} Hrs)**: $${monthlyDollars.toLocaleString('en-US')}`,
+    `- **Projected Annual EV (${hrs * 12} Hrs)**: $${yearlyDollars.toLocaleString('en-US')}`,
+    '',
+    '## Live Vs. Online Poker Winrate & Hourly Conversion Benchmarks',
+    '| Game Stake & Environment | Hands Per Hour | Target Winrate (BB/100) | Hourly BB Winrate | Hourly Dollar EV ($/Hr) |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| Live $1/$2 NLH (9-Handed Casino) | 27 Hands/Hr | 10.0 BB/100 | 2.70 BB/Hr | $5.40 / Hr (Pre-Comps) |',
+    '| Live $1/$3 NLH (9-Handed Casino) | 28 Hands/Hr | 9.5 BB/100 | 2.66 BB/Hr | $7.98 / Hr + Comps |',
+    '| Live $2/$5 NLH (9-Handed Main Game) | 28 Hands/Hr | 8.5 BB/100 | 2.38 BB/Hr | $11.90 / Hr ($35.70 At 25.5 BB/100 Crusher) |',
+    '| Live $5/$10 NLH (8-Handed Time Rake) | 30 Hands/Hr | 6.5 BB/100 | 1.95 BB/Hr | $19.50 / Hr ($58.50 At 19.5 BB/100 Crusher) |',
+    '| Online $0.50/$1.00 (4 Tables 6-Max) | 320 Hands/Hr | 4.5 BB/100 | 14.40 BB/Hr | $14.40 / Hr + Rakeback |',
+    '| Online $1/$2 (4 Tables 6-Max) | 320 Hands/Hr | 4.0 BB/100 | 12.80 BB/Hr | $25.60 / Hr + Rakeback |',
+    '',
+  ].join('\n');
+}
+
 
