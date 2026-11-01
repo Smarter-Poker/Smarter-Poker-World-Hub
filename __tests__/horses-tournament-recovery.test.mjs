@@ -1,4 +1,6 @@
 import test from 'node:test';
+// Required CHECK 8 already invokes this suite; register its transactional storage cases here.
+import './horses-tournament-intent-storage.test.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
