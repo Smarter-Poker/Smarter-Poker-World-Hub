@@ -18,10 +18,18 @@ const Controls = compiledModule.exports.default;
 const actor = '11111111-1111-4111-8111-111111111111', eventId = '22222222-2222-4222-8222-222222222222', opId = '33333333-3333-4333-8333-333333333333';
 const intent = { action: 'cancel_refund', tournamentId: eventId, opId, reason: 'Recorded operator review' };
 const key = `stable-tournament-cancel:${actor}:${eventId}`;
-async function mounted({ stored = JSON.stringify(intent), writable = true, outcome = { state: 'pending', op_id: opId, tournament_id: eventId }, failure, postFailure, onPost } = {}) {
- const values = new Map(stored === null ? [] : [[key, stored]]), calls = [];
+const lockTails = new Map();
+const locks = { request(name, options, callback) {
+ assert.equal(options.mode, 'exclusive');
+ const result = (lockTails.get(name) || Promise.resolve()).then(callback);
+ lockTails.set(name, result.catch(() => {}));
+ return result;
+} };
+async function mounted({ stored = JSON.stringify(intent), writable = true, outcome = { state: 'pending', op_id: opId, tournament_id: eventId }, failure, postFailure, postOutcome, onPost, sharedValues, lockManager = locks } = {}) {
+ const values = sharedValues || new Map(stored === null ? [] : [[key, stored]]), calls = [];
+ Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { locks: lockManager } });
  globalThis.localStorage = { getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,v), removeItem: k => values.delete(k) };
- const authFetch = async (url, options = {}) => { calls.push({ url, options }); if (options.method === 'POST') { onPost?.(values, options); if (postFailure) throw postFailure; return { actorId: actor, operation: { pending: true, op_id: JSON.parse(options.body).opId, tournament_id: eventId } }; } if (url.includes('tournamentId=')) return { actorId: actor, writable, eligible: true }; if (failure) throw failure; return { actorId: actor, operation: outcome }; }; authFetch.actor = actor;
+ const authFetch = async (url, options = {}) => { calls.push({ url, options }); if (options.method === 'POST') { onPost?.(values, options); if (postFailure) throw postFailure; return { actorId: actor, operation: postOutcome || { pending: true, op_id: JSON.parse(options.body).opId, tournament_id: eventId } }; } if (url.includes('tournamentId=')) return { actorId: actor, writable, eligible: true }; if (failure) throw failure; return { actorId: actor, operation: await outcome }; }; authFetch.actor = actor;
  let view; await act(async () => { view = create(React.createElement(Controls, { authFetch, event: { id: eventId } })); });
  const button = label => view.root.findAllByType('button').find(b => b.children.join('') === label);
  const click = async label => { const b = button(label); assert.ok(b, `missing ${label}`); assert.equal(b.props.disabled, false, `${label} disabled`); await act(async () => { await b.props.onClick(); }); };
@@ -52,4 +60,84 @@ test('fresh dispatch persists identity before POST and retains pending approval'
 for (const status of [400,403,503]) test(`POST ${status} preserves retained identity for outcome recovery`, async () => {
  const m = await mounted({ postFailure: Object.assign(new Error('Write Outcome Unknown'), { status }) });
  try { await m.click('Read Outcome'); await m.click('Retry Same Operation'); assert.equal(m.values.get(key), JSON.stringify(intent)); assert.equal(m.button('Retry Same Operation').props.disabled, true); assert.equal(m.button('Read Outcome').props.disabled, false); } finally { await m.close(); }
+});
+
+for (const replacement of [
+ { ...intent, opId: '44444444-4444-4444-8444-444444444444' },
+ { ...intent, reason: 'A changed payload with the same operation ID' },
+]) test(`late completed read preserves a different durable request: ${replacement.opId === opId ? 'payload' : 'identity'}`, async () => {
+ let resolve;
+ const outcome = new Promise(r => { resolve = r; });
+ const m = await mounted({ outcome });
+ try {
+  let pending;
+  await act(async () => { pending = m.button('Read Outcome').props.onClick(); });
+  const newer = JSON.stringify(replacement);
+  m.values.set(key, newer);
+  await act(async () => {
+   resolve({ state: 'completed', op_id: opId, tournament_id: eventId, result: { receipt: { fully_settled: true, tournament_id: eventId } } });
+   await pending;
+  });
+  assert.equal(m.values.get(key), newer);
+  assert.equal(m.calls.some(c => c.options.method === 'POST'), false);
+ } finally { await m.close(); }
+});
+for (const terminal of ['completed', 'refused']) test(`old ${terminal} POST preserves a newer durable request`, async () => {
+ const newer = JSON.stringify({ ...intent, opId: '44444444-4444-4444-8444-444444444444' });
+ const m = await mounted({
+  onPost: values => values.set(key, newer),
+  postOutcome: { state: 'completed', op_id: opId, tournament_id: eventId, receipt: { fully_settled: true, tournament_id: eventId } },
+  postFailure: terminal === 'refused' ? Object.assign(new Error('Event Already Started'), { code: 'cancel_ineligible' }) : undefined,
+ });
+ try {
+  await m.click('Read Outcome');
+  await m.click('Retry Same Operation');
+  assert.equal(m.values.get(key), newer);
+  assert.equal(m.calls.filter(c => c.options.method === 'POST').length, 1);
+ } finally { await m.close(); }
+});
+
+test('a stale fresh mounted view cannot overwrite another mounted view request', async () => {
+ const sharedValues = new Map();
+ const a = await mounted({ sharedValues, stored: null });
+ const b = await mounted({ sharedValues, stored: null });
+ try {
+  for (const m of [a, b]) await act(async () => m.view.root.findByType('input').props.onChange({ target: { value: intent.reason } }));
+  await b.click('Cancel And Refund This Event');
+  const retained = sharedValues.get(key);
+  await a.click('Cancel And Refund This Event');
+  assert.equal(sharedValues.get(key), retained);
+  assert.equal(a.calls.some(c => c.options.method === 'POST'), false);
+  assert.equal(b.calls.filter(c => c.options.method === 'POST').length, 1);
+ } finally { await a.close(); await b.close(); }
+});
+test('an old retry cannot overwrite another durable request before dispatch', async () => {
+ const m = await mounted();
+ try {
+  await m.click('Read Outcome');
+  const newer = JSON.stringify({ ...intent, opId: '44444444-4444-4444-8444-444444444444' });
+  m.values.set(key, newer);
+  await m.click('Retry Same Operation');
+  assert.equal(m.values.get(key), newer);
+  assert.equal(m.calls.some(c => c.options.method === 'POST'), false);
+ } finally { await m.close(); }
+});
+test('unavailable cross-view lock refuses dispatch while preserving the original intent', async () => {
+ const m = await mounted({ lockManager: null });
+ try {
+  await m.click('Read Outcome');
+  await m.click('Retry Same Operation');
+  assert.equal(m.values.get(key), JSON.stringify(intent));
+  assert.equal(m.calls.some(c => c.options.method === 'POST'), false);
+ } finally { await m.close(); }
+});
+test('failed storage readback refuses a fresh financial dispatch', async () => {
+ const m = await mounted({ stored: null });
+ try {
+  await act(async () => m.view.root.findByType('input').props.onChange({ target: { value: intent.reason } }));
+  globalThis.localStorage.setItem = () => {};
+  await m.click('Cancel And Refund This Event');
+  assert.equal(m.calls.some(c => c.options.method === 'POST'), false);
+  assert.equal(m.values.has(key), false);
+ } finally { await m.close(); }
 });
