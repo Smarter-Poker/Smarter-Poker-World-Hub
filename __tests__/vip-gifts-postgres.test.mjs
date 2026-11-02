@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -33,9 +34,10 @@ const ids = ['10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000
 test('VIP gift transactions: real PostgreSQL wallet, friendship, payments, redemption, reversals and concurrency', async () => {
   const bin = process.env.PG17_BINDIR || ['/opt/homebrew/opt/postgresql@17/bin','/usr/lib/postgresql/17/bin'].find(p => existsSync(join(p,'initdb')));
   assert.ok(bin, 'PostgreSQL 17 is required; do not skip financial qualification');
+  assert.match(execFileSync(join(bin,'postgres'),['--version'],{encoding:'utf8'}), /PostgreSQL\) 17\./);
   const base = process.env.VIP_GIFT_POSTGRES_ROOT || process.env.MARKETPLACE_POSTGRES_ROOT;
   assert.ok(base && existsSync(base), 'Provide a task-owned PostgreSQL scratch directory');
-  const dir=mkdtempSync(join(base,'vip-gifts-')); const data=join(dir,'db'); const socket=join(dir,'socket'); mkdirSync(socket);
+  const dir=mkdtempSync(join(base,'vip-gifts-')); const data=join(dir,'db');
   const server=net.createServer(); await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve)); const port=server.address().port;
   await new Promise(resolve=>server.close(resolve));
   const opts={host:'127.0.0.1',port,user:'postgres',database:'postgres'};
@@ -48,7 +50,7 @@ test('VIP gift transactions: real PostgreSQL wallet, friendship, payments, redem
     rpc('send_vip_gift_atomic',[ids[0],recipient,request,plan,method,amount],connection);
   try {
     execFileSync(join(bin,'initdb'),['-D',data,'-U','postgres','--no-locale','--encoding=UTF8','--wal-segsize=1'],{stdio:'ignore'});
-    execFileSync(join(bin,'pg_ctl'),['-D',data,'-l',join(dir,'pg.log'),'-o',`-F -p ${port} -k ${socket} -c listen_addresses=127.0.0.1 -c timezone=UTC`,'-w','start'],{stdio:'ignore'}); started=true;
+    execFileSync(join(bin,'pg_ctl'),['-D',data,'-l',join(dir,'pg.log'),'-o',`-F -p ${port} -k '' -c listen_addresses=127.0.0.1 -c timezone=UTC`,'-w','start'],{stdio:'ignore'}); started=true;
     await client.connect(); await client.query(fixture);
     await client.query(readFileSync(new URL('__tests__/fixtures/vip-gift-wallet.sql',root),'utf8'));
     await assert.rejects(send('before-migration'),/does not exist/);
@@ -183,6 +185,42 @@ test('VIP gift transactions: real PostgreSQL wallet, friendship, payments, redem
     }
     const {rows:[security]}=await client.query("select bool_and(p.prosecdef AND p.proconfig @> ARRAY['search_path=public, extensions']) ok from pg_proc p where p.proname in ('send_vip_gift_atomic','settle_vip_gift_atomic','redeem_vip_gift_atomic','return_vip_gift_atomic','reverse_vip_gift_atomic')");
     assert.equal(security.ok,true);
+    // The pinned lineage also predates an already-merged signup audit fix.
+    // Execute that exact read-only audit transition instead of waiving history.
+    await client.query(`CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid);
+      CREATE TABLE wallets(user_id uuid,wallet_type text);
+      CREATE UNIQUE INDEX wallets_user_id_wallet_type_key ON wallets(user_id,wallet_type);
+      CREATE TABLE user_diamonds(id uuid); CREATE TABLE signup_errors(id uuid);
+      CREATE TABLE probe_heartbeats(id uuid); CREATE VIEW signup_health_view AS SELECT 1 ok;
+      CREATE SEQUENCE profiles_player_number_seq;
+      CREATE FUNCTION handle_new_user() RETURNS trigger LANGUAGE plpgsql AS $audit$ BEGIN
+      /* INSERT INTO public.signup_errors ${'fixture '.repeat(150)} */ RETURN NEW; END $audit$;
+      CREATE FUNCTION initialize_user_diamonds() RETURNS trigger LANGUAGE plpgsql AS $audit$ BEGIN
+      /* ${'fixture '.repeat(20)} */ RETURN NEW; END $audit$;
+      CREATE FUNCTION handle_new_user_v2_create_wallet() RETURNS trigger LANGUAGE plpgsql AS $audit$ BEGIN
+      /* ${'fixture '.repeat(20)} */ RETURN NEW; END $audit$;`);
+    const auditNames=['on_auth_user_created','on_auth_user_created_diamonds','on_auth_user_created_wallet',
+      'on_auth_user_email_confirmed_referral','on_auth_user_inserted_confirmed_referral'];
+    for(const name of [...auditNames,'unrelated_extra']) await client.query(`CREATE TRIGGER ${name} AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()`);
+    await client.query(readFileSync(new URL('supabase/migrations/20261031191337_signup_audit_checks_auth_triggers_by_name.sql',root),'utf8'));
+    const audit=async name=>(await client.query('SELECT signup_audit_check($1) ok',[name])).rows[0].ok;
+    for(const name of ['three_triggers_on_auth_users','auth_users_triggers_present','handle_new_user_function_exists_nonempty',
+      'handle_new_user_logs_to_signup_errors','wallet_trigger_function_exists','diamonds_trigger_function_exists',
+      'profiles_table_exists','wallets_table_exists','user_diamonds_table_exists','signup_errors_table_exists',
+      'probe_heartbeats_table_exists','signup_health_view_exists','player_number_sequence_exists','wallets_unique_index_exists']) assert.equal(await audit(name),true,name);
+    assert.equal(await audit('unknown-check'),false);
+    await client.query('ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created');
+    assert.equal(await audit('three_triggers_on_auth_users'),false);
+    await client.query('ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created');
+    await client.query('DROP TRIGGER on_auth_user_created ON auth.users');
+    assert.equal(await audit('auth_users_triggers_present'),false);
+    await client.query('SET ROLE authenticated');
+    await assert.rejects(client.query("SELECT signup_audit_check('profiles_table_exists')"),/permission denied/);
+    await client.query('RESET ROLE');
+    console.log('Marketplace PostgreSQL qualification passed: '+JSON.stringify([
+      'supabase/migrations/20261031191337_signup_audit_checks_auth_triggers_by_name.sql',
+      'supabase/migrations/20261102011118_marketplace_whole_dollar_prices.sql',
+    ].map(path=>({path,sha256:createHash('sha256').update(readFileSync(new URL(path,root))).digest('hex'),postgresMajor:17}))));
   } finally {
     await client.end().catch(()=>{});
     if(started) execFileSync(join(bin,'pg_ctl'),['-D',data,'-m','immediate','-w','stop'],{stdio:'ignore'});

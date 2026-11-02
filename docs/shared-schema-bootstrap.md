@@ -54,3 +54,18 @@ card accounting, pending liabilities and service-only access. Only its fresh
 successful path/hash/version receipt admits those four immutable SQL files;
 missing proof, different bytes or additional migrations still fail. The M1
 qualification and all historical checks remain mandatory and unchanged.
+
+The exact November 1 whole-dollar marketplace migration is also admitted only
+after the PostgreSQL 17 gift/price-transition test executes it against isolated
+fixtures and emits its fresh path/hash receipt. It checks catalog normalization
+and inherited variant prices, new gift offers, historical replay, old/new
+lifetime settlement and price-bound refunds. Changed bytes, missing/duplicate
+receipts or a different PostgreSQL major remain refused. This qualifies this
+transition only; it does not claim a full provider restore or installation.
+
+The baseline also predates the already-merged October 31 signup-audit trigger
+name fix. The same native qualification applies its exact SQL to isolated
+auth-trigger fixtures, proving all named audit checks, extra-trigger tolerance,
+missing/disabled-trigger refusal, unknown-check refusal and browser-role denial.
+It receives its own exact path/hash receipt; its source and production state
+are unchanged by this admission repair.

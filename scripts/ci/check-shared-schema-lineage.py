@@ -16,6 +16,8 @@ REPORT_TRANSITIONS = (
     ('supabase/migrations/20261028151456_digest_promo_wallet_payouts.sql', '5f2184d05ae638a1aab374f25bb98b2788bef1add2d037312b71b6dc94ad3335'),
     ('supabase/migrations/20261028152704_digest_profit_fractional_diamonds.sql', '961ffaa783c58f92b17d56f4679882403c7770f96cf3924f79dde60cab7ef5a1'),
 )
+MARKETPLACE_TRANSITIONS = (('supabase/migrations/20261031191337_signup_audit_checks_auth_triggers_by_name.sql', '16618b0db7ce11823bdfe685af7b3253976354dfcb099d13b4b926434a679021'), ('supabase/migrations/20261102011118_marketplace_whole_dollar_prices.sql', '8183a4285311c4e74d4e39e4e376ccc53b0dea3aba4fce8b1e2809b3b496f663'),)
+MARKETPLACE_PREFIX = 'Marketplace PostgreSQL qualification passed: '
 REPORT_PREFIX = 'Digest PostgreSQL qualification passed: '
 
 TRANSITIONS = (
@@ -53,11 +55,11 @@ def validate_inputs(inventory, forward, actual):
     if any(actual[p] != digest for p, digest in expected.items()):
         raise ValueError('Historical migration bytes changed')
     new = set(actual) - set(expected)
-    if new != set(dict(TRANSITIONS + REPORT_TRANSITIONS)) or any(actual.get(p) != digest for p, digest in TRANSITIONS + REPORT_TRANSITIONS):
-        raise ValueError('Only exact independently qualified M1 and digest transitions are admitted')
+    if new != set(dict(TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS)) or any(actual.get(p) != digest for p, digest in TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS):
+        raise ValueError('Only exact independently qualified M1, digest and marketplace transitions are admitted')
 
 
-def extend_inventory(inventory, forward, actual, proof, report_proof=None):
+def extend_inventory(inventory, forward, actual, proof, report_proof=None, marketplace_proof=None):
     validate_inputs(inventory, forward, actual)
     if not isinstance(proof, list) or len(proof) != len(TRANSITIONS):
         raise ValueError('Native proof must cover all three transitions in order')
@@ -71,9 +73,12 @@ def extend_inventory(inventory, forward, actual, proof, report_proof=None):
     expected_reports = [{'path': p, 'sha256': digest, 'postgresMajor': 17} for p, digest in REPORT_TRANSITIONS]
     if report_proof != expected_reports:
         raise ValueError('Fresh exact PostgreSQL 17 digest qualification required')
+    expected_marketplace = [{'path': p, 'sha256': digest, 'postgresMajor': 17} for p, digest in MARKETPLACE_TRANSITIONS]
+    if marketplace_proof != expected_marketplace:
+        raise ValueError('Fresh exact PostgreSQL 17 marketplace qualification required')
     admitted = copy.deepcopy(inventory)
     admitted['repositories']['hub']['files'].extend(
-        {'path': migration, 'sha256': digest} for migration, digest in TRANSITIONS + REPORT_TRANSITIONS)
+        {'path': migration, 'sha256': digest} for migration, digest in TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS)
     return admitted
 
 
@@ -109,8 +114,20 @@ def main():
     if len(receipts) != 1:
         raise ValueError('Expected one fresh digest native qualification receipt')
     report_proof = json.loads(receipts[0])
+    with tempfile.TemporaryDirectory(prefix='marketplace-qualified-') as scratch:
+        marketplace_env = dict(environment, VIP_GIFT_POSTGRES_ROOT=scratch)
+        if environment.get('PHASE6_POSTGRES_BIN'):
+            marketplace_env['PG17_BINDIR'] = environment['PHASE6_POSTGRES_BIN']
+        marketplace_result = subprocess.run(['node', '--test', str(root / '__tests__/vip-gifts-postgres.test.mjs')],
+                                           cwd=root, env=marketplace_env, check=True, capture_output=True, text=True)
+    # Node's spec/TAP reporters can prefix console output with '# '.
+    receipts = [line[line.index(MARKETPLACE_PREFIX) + len(MARKETPLACE_PREFIX):]
+                for line in marketplace_result.stdout.splitlines() if MARKETPLACE_PREFIX in line]
+    if len(receipts) != 1:
+        raise ValueError('Expected one fresh marketplace native qualification receipt')
+    marketplace_proof = json.loads(receipts[0])
     # Re-read migration bytes after execution so the receipt cannot admit changed input.
-    admitted = extend_inventory(inventory, forward, fingerprint(root), proof, report_proof)
+    admitted = extend_inventory(inventory, forward, fingerprint(root), proof, report_proof, marketplace_proof)
     with tempfile.TemporaryDirectory(prefix='training-qualified-lineage-') as scratch:
         derived = Path(scratch) / 'qualified-inventory.json'
         derived.write_text(json.dumps(admitted), encoding='utf-8')
