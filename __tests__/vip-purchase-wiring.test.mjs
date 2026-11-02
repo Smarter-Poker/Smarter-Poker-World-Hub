@@ -112,14 +112,14 @@ test('paying for a membership in diamonds is offered and correctly wired', () =>
   // The FAQ promises this. If the button goes, the promise becomes false again.
   // The wording moved on 2026-09-05 when the Daily Pass left the same sentence
   // and lifetime joined it; the promise is what is pinned, not the phrasing.
-  assert.ok(/1,999 Diamond Monthly/.test(STORE), 'FAQ references the monthly diamond option');
-  assert.ok(/49,900 Lifetime/.test(STORE), 'FAQ references the lifetime diamond option');
+  assert.ok(/2,000 Diamond Monthly/.test(STORE), 'FAQ references the monthly diamond option');
+  assert.ok(/50,000 Lifetime/.test(STORE), 'FAQ references the lifetime diamond option');
 });
 
 test('the diamond cost shown matches the server formula (100 per dollar)', () => {
   const usd = DATA.match(/monthly:\s*\{[\s\S]*?price:\s*([\d.]+)/);
   assert.ok(usd, 'monthly price not found in the catalog');
-  assert.equal(Math.round(Number(usd[1]) * 100), 1999, 'monthly must derive to 1,999 diamonds');
+  assert.equal(Math.round(Number(usd[1]) * 100), 2000, 'monthly must derive to 2,000 diamonds');
   assert.match(
     STORE,
     /Math\.round\(Number\(selectedVIPPlan\.price\) \* 100\)/,

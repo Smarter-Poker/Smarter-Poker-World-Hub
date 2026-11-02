@@ -12,13 +12,13 @@ const product = (key, gift = false) => graph.find(n => n['@id'] === `${VIP_URL}#
 test('all six published products use the actual catalog and server checkout prices', () => {
   assert.equal(graph.filter(n => n['@type'] === 'Product').length, 6);
   const server = read('pages/api/store/create-checkout-session.js');
-  for (const [plan, cents] of [['monthly', 1999], ['yearly', 19999], ['lifetime', 49900]]) {
+  for (const [plan, cents] of [['monthly', 2000], ['yearly', 20000], ['lifetime', 50000]]) {
     assert.equal(Math.round(catalog[plan].price * 100), cents);
-    if (plan === 'lifetime') assert.match(server, /lifetimeUnitAmount !== 49900/);
+    if (plan === 'lifetime') assert.match(server, /lifetimeUnitAmount !== 50000/);
     else assert.match(server, new RegExp(`${plan}: \\{[\\s\\S]*?unitAmount: ${cents}`));
     for (const gift of [false, true]) {
       const item = product(plan, gift);
-      assert.equal(item.offers.price, (cents / 100).toFixed(2));
+      assert.equal(item.offers.price, String(cents / 100));
       assert.equal(item.offers.priceSpecification.price, item.offers.price);
       assert.equal(item.offers.priceCurrency, 'USD');
       assert.equal(item.additionalProperty.value, cents);
@@ -64,9 +64,9 @@ test('stable canonical graph references resolve and catalogs contain the six Car
   assert.equal(graph.find(n => n['@type'] === 'CollectionPage').url, VIP_URL);
 });
 test('price edits flow through both card and diamond amounts; invalid and disabled offers are omitted', () => {
-  const changed = structuredClone(catalog); changed.monthly.price = 23.45;
+  const changed = structuredClone(catalog); changed.monthly.price = 24;
   let items = vipStructuredData(changed)['@graph'].filter(n => n['@type'] === 'Product' && n.name.includes('Monthly'));
-  for (const item of items) { assert.equal(item.offers.price, '23.45'); assert.equal(item.additionalProperty.value, 2345); }
+  for (const item of items) { assert.equal(item.offers.price, '24'); assert.equal(item.additionalProperty.value, 2400); }
   changed.monthly.cardCheckoutReady = false;
   items = vipStructuredData(changed)['@graph'].filter(n => n['@type'] === 'Product' && n.name.includes('Monthly'));
   assert.equal(items.every(n => !n.offers), true);
@@ -123,7 +123,7 @@ test('six strict product routes each publish exactly one canonical Product and o
     assert.equal(page.url, item.url);
     assert.equal(page.mainEntity['@id'], item['@id']);
     assert.equal(item.offers.url, item.url);
-    assert.equal(item.offers.price, Number(catalog[plan].price).toFixed(2));
+    assert.equal(item.offers.price, String(catalog[plan].price));
     assert.equal(item.additionalProperty.value, Math.round(catalog[plan].price * 100));
     assert.equal(item.description.includes(gift ? vipGiftTerms(plan) : vipMembershipTerms(plan)), true);
     const result = vipProductPageProps({ params: { plan }, res: { setHeader() {} }, query: { plan: 'vip-lifetime' } }, gift);
@@ -166,7 +166,7 @@ test('organic search copy distinguishes all six offers while preserving authorit
     titles.add(copy.title); descriptions.add(copy.description); intros.add(copy.intro);
     assert.ok(copy.title.length < 70);
     assert.ok(copy.description.length < 200);
-    assert.ok(copy.description.includes(`$${Number(catalog[plan].price).toFixed(2)}`));
+    assert.ok(copy.description.includes(`$${String(catalog[plan].price)}`));
     assert.ok(copy.description.includes(Math.round(catalog[plan].price * 100).toLocaleString('en-US')));
     assert.equal(copy.terms, gift ? vipGiftTerms(plan) : vipMembershipTerms(plan));
     assert.equal(copy.faqs[0].a, copy.terms);
@@ -179,11 +179,11 @@ test('organic search copy distinguishes all six offers while preserving authorit
     if (gift) assert.match(copy.description, /Accepted Friend/);
   }
   assert.equal(titles.size, 6); assert.equal(descriptions.size, 6); assert.equal(intros.size, 6);
-  const changed = structuredClone(catalog); changed.monthly.price = 23.45;
+  const changed = structuredClone(catalog); changed.monthly.price = 24;
   for (const gift of [false, true]) {
     const copy = vipProductContent(changed, 'monthly', gift);
-    assert.ok(copy.description.includes('$23.45'));
-    assert.ok(copy.description.includes('2,345'));
+    assert.ok(copy.description.includes('$24'));
+    assert.ok(copy.description.includes('2,400'));
     assert.equal(copy.description.includes('$19.99'), false);
   }
   assert.equal(vipProductContent(catalog, 'daily'), null);

@@ -1,3 +1,4 @@
+import { roundSalePriceUsd } from './wholeDollarPrice.mjs';
 export const MAX_DIAMOND_QUANTITY_PER_PACKAGE = 10;
 export const POSTGRES_INT4_MAX = 2_147_483_647;
 export const STRIPE_MIN_USD_UNIT_AMOUNT_CENTS = 50;
@@ -71,7 +72,8 @@ export function normalizeDiamondPackageRows(rows) {
     const key = String(row?.package_key || '').trim();
     const diamonds = Number(row?.diamonds);
     const bonus = Number(row?.bonus_diamonds ?? 0);
-    const priceCents = parseUsdAmountToCents(row?.price_usd);
+    const rawPriceCents = parseUsdAmountToCents(row?.price_usd);
+    const priceCents = rawPriceCents === null ? null : roundSalePriceUsd(rawPriceCents / 100) * 100;
     if (
       !/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(key) ||
       Object.prototype.hasOwnProperty.call(catalog, key) ||
@@ -81,7 +83,7 @@ export function normalizeDiamondPackageRows(rows) {
       bonus < 0 ||
       !Number.isSafeInteger(diamonds + bonus) ||
       diamonds + bonus > POSTGRES_INT4_MAX ||
-      priceCents === null
+      priceCents === null || priceCents > STRIPE_MAX_USD_UNIT_AMOUNT_CENTS
     ) {
       throw new Error(`diamond_packages row "${key || 'unnamed'}" is not usable`);
     }

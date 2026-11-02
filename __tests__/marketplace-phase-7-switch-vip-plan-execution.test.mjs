@@ -11,8 +11,8 @@ const CUSTOMER_ID = 'cus_exact';
 const SUBSCRIPTION_ID = 'sub_exact';
 
 const PLANS = Object.freeze({
-  monthly: Object.freeze({ amount: 1999, interval: 'month' }),
-  yearly: Object.freeze({ amount: 19999, interval: 'year' }),
+  monthly: Object.freeze({ amount: 2000, interval: 'month' }),
+  yearly: Object.freeze({ amount: 20000, interval: 'year' }),
 });
 
 function stripeSubscription(tier = 'monthly', overrides = {}) {

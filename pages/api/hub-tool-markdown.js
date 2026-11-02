@@ -83,7 +83,7 @@ export function renderVipCompareMarkdown() {
     '| :--- | :--- | :--- | :--- |',
     '| **Monthly VIP** | 30 Days | Card Or Diamonds (100 Diamonds Per $1) | Full VIP Access Across Training, Trivia & Cosmetics |',
     '| **Annual VIP** | 365 Days | Card Or Diamonds | 365 Days Of Full VIP Access With Annual Billing Savings |',
-    '| **Lifetime VIP** | Permanent (Never Expires) | One-Time Card Or 49,900 Diamonds | Permanent VIP Access, Unlimited Throwables, Rabbit Hunts, Time Banks & All Cataloged Table Skins |',
+    '| **Lifetime VIP** | Permanent (Never Expires) | One-Time Card Or 50,000 Diamonds | Permanent VIP Access, Unlimited Throwables, Rabbit Hunts, Time Banks & All Cataloged Table Skins |',
     '',
     '## Compliance & Platform Policy',
     '- **No Real-Money Gambling**: Smarter.Poker Operates Zero Real-Money Gambling. Club Chips Are Play Credits With No Cash Value, And Diamonds Are A Promotional Rewards Currency.',
@@ -103,7 +103,7 @@ const CUSTOM_SURFACE_MARKDOWN = {
         bullets: [
           '**Monthly VIP (`/hub/vip-membership/monthly`)**: 30 Days Of Full VIP Access Across Training, Trivia, And Club Arena Cosmetics.',
           '**Annual VIP (`/hub/vip-membership/yearly`)**: 365 Days Of Full VIP Access With Annual Billing Savings.',
-          '**Lifetime VIP (`/hub/vip-membership/lifetime`)**: Permanent VIP Access With Zero Recurring Renewals (One-Time Card Or 49,900 Diamonds).',
+          '**Lifetime VIP (`/hub/vip-membership/lifetime`)**: Permanent VIP Access With Zero Recurring Renewals (One-Time Card Or 50,000 Diamonds).',
           '**Compare All Plans (`/hub/vip-membership/compare`)**: Side-By-Side Feature Breakdown Of Free vs. Monthly, Annual, And Lifetime VIP Tiers.',
         ],
       },
@@ -145,7 +145,7 @@ const CUSTOM_SURFACE_MARKDOWN = {
         heading: 'Plan Specifications',
         bullets: [
           '**Billing Term**: Permanent (Never Expires, Zero Recurring Fees)',
-          '**Settlement Options**: One-Time Card Payment Or 49,900 Promotional Diamonds',
+          '**Settlement Options**: One-Time Card Payment Or 50,000 Promotional Diamonds',
           '**Gift Option**: Available At `/hub/vip-membership/gift/lifetime`',
         ],
       },

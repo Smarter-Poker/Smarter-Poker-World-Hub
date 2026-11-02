@@ -58,7 +58,7 @@ test('one normalized database row drives display, submission, and Stripe cents',
   );
   assert.equal(offer.name, 'Micro Casino: Vault');
   assert.doesNotMatch(offer.name, /[\u2013\u2014]/u);
-  assert.equal(offer.price, 1.25);
+  assert.equal(offer.price, 2);
   assert.equal(sameDiamondStorefrontOffer(offer, { ...offer }), true);
   assert.equal(sameDiamondStorefrontOffer(offer, { ...offer, priceCents: 126 }), false);
 });

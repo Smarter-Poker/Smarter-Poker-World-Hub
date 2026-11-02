@@ -1,3 +1,4 @@
+import { formatStoreUsd } from '../../lib/store/wholeDollarPrice.mjs';
 /**
  * Shopping Cart Component
  * Floating cart with slide-out panel
@@ -372,7 +373,7 @@ export default function ShoppingCartComponent({
                             color: '#1877F2',
                           }}
                         >
-                          ${((Number(item.price) || 0) * (Number(item.quantity) || 0)).toFixed(2)}
+                          ${formatStoreUsd((Number(item.price) || 0) * (Number(item.quantity) || 0))}
                         </div>
                       </div>
                     </div>
@@ -413,7 +414,7 @@ export default function ShoppingCartComponent({
                         color: '#1877F2',
                       }}
                     >
-                      ${(Number(total) || 0).toFixed(2)}
+                      ${formatStoreUsd(Number(total) || 0)}
                     </span>
                   </div>
 

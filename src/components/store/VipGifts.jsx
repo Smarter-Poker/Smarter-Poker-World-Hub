@@ -1,3 +1,4 @@
+import { formatStoreUsd } from '../../lib/store/wholeDollarPrice.mjs';
 import { VIP_TERMS, vipGiftTerms, vipProductPath } from '../../lib/store/vipStructuredData.mjs';
 import { useEffect, useRef, useState } from 'react';
 import { VIP_MEMBERSHIP } from '../../data/diamondStoreData';
@@ -8,7 +9,7 @@ import theme from './VipMembershipPage.module.css';
 import styles from './VipGifts.module.css';
 
 const names = { monthly: 'Monthly', yearly: 'Yearly', lifetime: 'Lifetime' };
-const price = (n) => `$${(n / 100).toFixed(2)}`;
+const price = (n) => `$${formatStoreUsd(n / 100)}`;
 const statusNames = { pending: 'Awaiting Card Payment', available: 'Ready To Redeem', redeemed: 'Redeemed',
   refunded: 'Returned', disputed: 'Payment Disputed', return_pending: 'Return Processing', expired: 'Checkout Expired. No Gift Sent' };
 
@@ -156,7 +157,7 @@ export default function VipGifts({ accountId, productPlan = null }) {
     <ul role="list" className={styles.publicTerms} aria-label="VIP Gift Card Prices And Terms">
       {Object.entries(VIP_TERMS).filter(([key]) => !productPlan || key === productPlan).map(([key, term]) => <li key={key}>
         <strong>{term.label} VIP Gift Card</strong>
-        <span>${Number(VIP_MEMBERSHIP[key].price).toFixed(2)} Or {Math.round(VIP_MEMBERSHIP[key].price * 100).toLocaleString('en-US')} Diamonds</span>
+        <span>${formatStoreUsd(VIP_MEMBERSHIP[key].price)} Or {Math.round(VIP_MEMBERSHIP[key].price * 100).toLocaleString('en-US')} Diamonds</span>
         <small>{vipGiftTerms(key)}</small>
         {!productPlan && <a className={theme.action} href={vipProductPath(key, true)}>View {term.label} Gift Card</a>}
       </li>)}

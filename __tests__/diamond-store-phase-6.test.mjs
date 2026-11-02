@@ -172,7 +172,7 @@ test('physical merch and Club Shop items expose both card and diamond purchase p
   assert.match(STORE, /redemptionIntent:\s*\{[\s\S]{0,80}?kind: 'club_shop'/);
   assert.doesNotMatch(STORE, /smarter_poker_pending_club_card_purchase/);
   assert.match(STORE, /'Buy With Diamonds'/);
-  assert.match(STORE, /`Card \$\$\{cardCharge\.toFixed\(2\)\}`/);
+  assert.match(STORE, /`Card \$\$\{formatStoreUsd\(cardCharge\)\}`/);
   assert.doesNotMatch(STORE, /<CreditCard\b|<Gem\b/);
 });
 

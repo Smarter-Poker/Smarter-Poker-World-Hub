@@ -576,7 +576,7 @@ export default function VipManagePage() {
                     className={`${styles.plan} ${membership.tier === 'monthly' ? styles.planActive : ''}`}
                   >
                     <span className={styles.planLabel}>Flexible Access</span>
-                    <strong>$19.99 / Month</strong>
+                    <strong>$20 / Month</strong>
                     <p>Monthly Renewal With Full VIP Access.</p>
                     <button
                       className={styles.button}
@@ -595,7 +595,7 @@ export default function VipManagePage() {
                     className={`${styles.plan} ${membership.tier === 'yearly' ? styles.planActive : ''}`}
                   >
                     <span className={styles.planLabel}>Best Card Rate</span>
-                    <strong>$199.99 / Year</strong>
+                    <strong>$200 / Year</strong>
                     <p>Yearly Renewal With The Same Full VIP Suite.</p>
                     <button
                       className={styles.button}

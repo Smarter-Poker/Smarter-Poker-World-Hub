@@ -587,9 +587,9 @@ if (requireProductionTruth) {
         && entry?.diamondCheckoutReady === false
       ));
     const expectedVip = new Map([
-      ['monthly', { id: 'vip-monthly', usd: 19.99, diamonds: 1_999, card: true }],
-      ['yearly', { id: 'vip-yearly', usd: 199.99, diamonds: 19_999, card: true }],
-      ['lifetime', { id: 'vip-lifetime', usd: 499, diamonds: 49_900, card: true }],
+      ['monthly', { id: 'vip-monthly', usd: 20, diamonds: 2_000, card: true }],
+      ['yearly', { id: 'vip-yearly', usd: 200, diamonds: 20_000, card: true }],
+      ['lifetime', { id: 'vip-lifetime', usd: 500, diamonds: 50_000, card: true }],
     ]);
     const vipPlans = Array.isArray(strictCatalog?.vipPlans) ? strictCatalog.vipPlans : [];
     const vipContractReady = vipPlans.length === expectedVip.size

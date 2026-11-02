@@ -104,7 +104,7 @@ test('Lifetime card price and active-session database guards are fixed and repro
   );
 
   assert.match(source, /stripePrice\.currency !== 'usd'/);
-  assert.match(source, /lifetimeUnitAmount !== 49900/);
+  assert.match(source, /lifetimeUnitAmount !== 50000/);
   assert.doesNotMatch(source, /LIFETIME_CARD_CHECKOUT_PAUSED/);
   const catalog = await read('src/data/diamondStoreData.js');
   const lifetimePlan = catalog.slice(

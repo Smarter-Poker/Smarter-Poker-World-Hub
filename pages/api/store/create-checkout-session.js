@@ -137,19 +137,19 @@ const VIP_SUBSCRIPTION_PLANS = {
   monthly: {
     tier: 'monthly',
     envVar: 'STRIPE_VIP_MONTHLY_PRICE_ID',
-    unitAmount: 1999, // $19.99
+    unitAmount: 2000, // $20
     interval: 'month',
     label: 'Smarter.Poker VIP - Monthly',
   },
   yearly: {
     tier: 'yearly',
     envVar: 'STRIPE_VIP_YEARLY_PRICE_ID',
-    unitAmount: 19999, // $199.99
+    unitAmount: 20000, // $200
     interval: 'year',
     label: 'Smarter.Poker VIP - Yearly',
   },
   /* LIFETIME IS NOT IN THIS TABLE ON PURPOSE.
-       Dan set it at $499 on 2026-09-05 and it is buyable today - with diamonds,
+       Dan set it at $500 on 2026-09-05 and it is buyable today - with diamonds,
        through /api/store/purchase-vip-with-diamonds, which the storefront
        offers. It is absent HERE because a lifetime purchase is one payment, not
        a subscription: `mode` at the session build below is `type === 
@@ -970,7 +970,7 @@ async function prepareCheckout(type, items, { requireCurrentDiamondCatalog = fal
   }
 
   if (type === 'vip_lifetime') {
-    /* Lifetime is $499 and the amount lives HERE, on the server, exactly
+    /* Lifetime is $500 and the amount lives HERE, on the server, exactly
            like VIP_SUBSCRIPTION_PLANS. The client sends only a plan key, never
            a price, so a tampered request cannot buy a permanent membership for
            a dollar. Kept in step with VIP_MEMBERSHIP.lifetime in
@@ -1015,10 +1015,10 @@ async function prepareCheckout(type, items, { requireCurrentDiamondCatalog = fal
         stripePrice.recurring ||
         stripePrice.currency !== 'usd' ||
         !Number.isSafeInteger(lifetimeUnitAmount) ||
-        lifetimeUnitAmount !== 49900
+        lifetimeUnitAmount !== 50000
       ) {
         console.warn(
-          '[Checkout] STRIPE_VIP_LIFETIME_PRICE_ID is not the fixed $499 USD one-time price:',
+          '[Checkout] STRIPE_VIP_LIFETIME_PRICE_ID is not the fixed $500 USD one-time price:',
           priceId
         );
         throw new CheckoutInputError(
@@ -1034,7 +1034,7 @@ async function prepareCheckout(type, items, { requireCurrentDiamondCatalog = fal
       };
     }
 
-    return { unitAmount: 49900, label: 'Smarter.Poker VIP - Lifetime', priceId: null };
+    return { unitAmount: 50000, label: 'Smarter.Poker VIP - Lifetime', priceId: null };
   }
 
   if (type === 'subscription') {
@@ -1604,7 +1604,7 @@ export default async function handler(req, res) {
         });
       }
 
-      /* 'vip_lifetime' is a ONE-TIME VIP purchase ($499, Dan 2026-09-05).
+      /* 'vip_lifetime' is a ONE-TIME VIP purchase ($500, Dan 2026-09-05).
              It is its own type rather than a fourth plan under 'subscription'
              because `mode` below is derived from this string, and a lifetime
              term must not open a Stripe subscription that would renew. */
@@ -1799,7 +1799,7 @@ export default async function handler(req, res) {
       // Entitlement and renewal guards MUST run before an old Checkout URL
       // is returned. A user can acquire Lifetime VIP with Diamonds after a
       // card session was opened; handing that still-payable URL back would
-      // invite a second $499 charge for an entitlement they already own.
+      // invite a second $500 charge for an entitlement they already own.
       const { data: profile, error: profileReadError } = await getSupabase()
         .from('profiles')
         .select('stripe_customer_id, email, username, is_vip, vip_tier, diamonds')

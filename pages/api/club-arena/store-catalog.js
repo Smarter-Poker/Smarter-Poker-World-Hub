@@ -67,8 +67,8 @@ const VIP_PLANS = [
     diamondCheckoutReady: true,
     name: 'Monthly VIP',
     period: 'Per Month',
-    priceUsd: 19.99,
-    priceDiamonds: Math.round(19.99 * DIAMONDS_PER_DOLLAR),
+    priceUsd: 20,
+    priceDiamonds: Math.round(20 * DIAMONDS_PER_DOLLAR),
     features: [
       'All VIP Features, All Month',
       'Daily + Monthly Diamond Bonuses',
@@ -85,8 +85,8 @@ const VIP_PLANS = [
     diamondCheckoutReady: true,
     name: 'Yearly VIP',
     period: 'Per Year',
-    priceUsd: 199.99,
-    priceDiamonds: Math.round(199.99 * DIAMONDS_PER_DOLLAR),
+    priceUsd: 200,
+    priceDiamonds: Math.round(200 * DIAMONDS_PER_DOLLAR),
     features: ['Everything In Monthly', 'Two Months Free Vs Monthly', 'Best Long-Run Value'],
   },
   {
@@ -101,8 +101,8 @@ const VIP_PLANS = [
     diamondCheckoutReady: true,
     name: 'Lifetime VIP',
     period: 'One Payment',
-    priceUsd: 499,
-    priceDiamonds: Math.round(499 * DIAMONDS_PER_DOLLAR),
+    priceUsd: 500,
+    priceDiamonds: Math.round(500 * DIAMONDS_PER_DOLLAR),
     features: [
       'Every VIP Feature, Permanently',
       'Unlimited Throwables, Rabbit Hunts, And Standard Time Banks',
@@ -136,9 +136,9 @@ function verify() {
                made the drift check go silent instead of firing. A missing plan
                is the loudest drift there is. */
       const checks = [
-        ['vip-monthly', vip.monthly, 19.99, true],
-        ['vip-yearly', vip.yearly, 199.99, true],
-        ['vip-lifetime', vip.lifetime, 499, true],
+        ['vip-monthly', vip.monthly, 20, true],
+        ['vip-yearly', vip.yearly, 200, true],
+        ['vip-lifetime', vip.lifetime, 500, true],
       ];
       for (const [id, entry, expected, expectedCard] of checks) {
         if (!entry) {

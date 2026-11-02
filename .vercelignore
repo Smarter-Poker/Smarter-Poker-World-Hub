@@ -185,3 +185,5 @@ _legacy_sql/
 
 # ── Misc tooling ──────────────────────────────────────────────
 /eslint-plugin-smarter-poker/
+
+!/__tests__/marketplace-whole-dollar-prices.test.mjs

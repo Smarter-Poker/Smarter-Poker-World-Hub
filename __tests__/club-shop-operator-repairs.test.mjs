@@ -1,3 +1,4 @@
+import { formatStoreUsd } from '../src/lib/store/wholeDollarPrice.mjs';
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  *  THE CLUB SHOP OPERATOR REPAIRS
@@ -163,6 +164,7 @@ const showcaseModule = compileModule(
   'src/components/diamond-store/SmarterStoreShowcase.jsx',
   (name) => {
     if (name.endsWith('.module.css')) return {};
+    if (name.endsWith('wholeDollarPrice.mjs')) return { formatStoreUsd };
     if (name.endsWith('/storeAnalytics')) return { captureStoreEvent: () => {} };
     if (name.endsWith('/marketplaceCopy')) return { marketplaceCopy };
     if (name === 'next/link') {

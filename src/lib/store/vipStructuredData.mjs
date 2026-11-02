@@ -1,3 +1,4 @@
+import { formatStoreUsd } from './wholeDollarPrice.mjs';
 import { breadcrumbSchema, ORGANIZATION_ID, WEBSITE_ID } from '../seo/hubPageSchema.js';
 
 export const VIP_URL = 'https://smarter.poker/hub/vip-membership';
@@ -41,12 +42,12 @@ export function vipStructuredData(catalog) {
       const offer = {
         '@type': 'Offer', ...ref(`${id}-card-offer`), name: `${name} With Card`,
         url: `https://smarter.poker${vipProductPath(plan, gift)}`,
-        price: (amount / 100).toFixed(2), priceCurrency: 'USD',
+        price: String(amount / 100), priceCurrency: 'USD',
         availability: 'https://schema.org/OnlineOnly',
         description, seller: { '@id': ORGANIZATION_ID }, itemOffered: ref(id),
         priceSpecification: {
           '@type': recurring ? 'UnitPriceSpecification' : 'PriceSpecification',
-          price: (amount / 100).toFixed(2), priceCurrency: 'USD',
+          price: String(amount / 100), priceCurrency: 'USD',
           ...(recurring ? { referenceQuantity: {
             '@type': 'QuantitativeValue', value: 1, unitCode: term.unitCode, unitText: term.unitText,
           } } : {}),
@@ -105,7 +106,7 @@ export function vipProductContent(catalog, plan, gift = false) {
   const cents = Math.round(Number(entry?.price) * 100);
   if (!Number.isSafeInteger(cents) || cents <= 0) return null;
   const term = VIP_TERMS[plan];
-  const price = `$${(cents / 100).toFixed(2)}`;
+  const price = `$${formatStoreUsd(cents / 100)}`;
   const diamonds = cents.toLocaleString('en-US');
   const heading = `${term.label} VIP ${gift ? 'Gift Card' : 'Membership'}`;
   const terms = gift ? vipGiftTerms(plan) : vipMembershipTerms(plan);

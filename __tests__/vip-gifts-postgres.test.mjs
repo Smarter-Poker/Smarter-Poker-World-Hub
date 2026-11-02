@@ -142,6 +142,45 @@ test('VIP gift transactions: real PostgreSQL wallet, friendship, payments, redem
     await assert.rejects(client.query('update profiles set vip_gift_id=$1 where id=$2',[gift.id,ids[1]]),/service-managed/);
     await assert.rejects(client.query('select * from vip_gifts'),/permission denied/);
     await assert.rejects(send('forged-service'),/permission denied/); await client.query('reset role');
+    // Qualify the live pricing transition against real historical paid records.
+    await client.query(`CREATE TABLE diamond_packages(package_key text,price_usd numeric);
+      CREATE TABLE merchandise_items(id text,price_usd numeric,price_diamonds integer);
+      CREATE TABLE merchandise_item_variants(id text,price_usd numeric,price_diamonds integer);
+      CREATE TABLE vip_lifetime_purchases(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid,
+       price_usd numeric NOT NULL,status text DEFAULT 'pending',stripe_checkout_session_id text,
+       stripe_payment_intent_id text,completed_at timestamptz,previous_is_vip boolean,
+       previous_vip_tier text,previous_vip_expires_at timestamptz,refunded_amount_cents integer DEFAULT 0,
+       dispute_id text,dispute_status text,reversal_reason text,entitlement_acquired_at timestamptz,
+       reversed_at timestamptz,updated_at timestamptz,
+       CONSTRAINT vip_lifetime_purchases_refunded_amount_check CHECK(refunded_amount_cents BETWEEN 0 AND 49900));
+      ALTER TABLE profiles ADD COLUMN vip_lifetime_card_purchase_id uuid;
+      INSERT INTO diamond_packages VALUES('legacy',9.99);
+      INSERT INTO merchandise_items VALUES('shirt',29.99,2999);
+      INSERT INTO merchandise_item_variants VALUES('size',31.99,3199),('inherit',NULL,NULL);`);
+    await client.query(readFileSync(new URL('supabase/migrations/20261102011118_marketplace_whole_dollar_prices.sql',root),'utf8'));
+    assert.equal((await send('same-request','monthly','diamonds',ids[1],1999)).duplicate,true,'historical replay retains old amount');
+    await client.query("insert into friendships values($1,$2,'accepted')",[ids[0],ids[1]]);
+    assert.equal((await send('new-old-price','monthly','card',ids[1],1999)).error,'invalid_offer');
+    for(const [plan,amount] of [['monthly',2000],['yearly',20000],['lifetime',50000]]) {
+      const result=await send('whole-dollar-'+plan,plan,'card',ids[1],amount);
+      assert.equal(result.success,true,JSON.stringify(result));
+      assert.equal(result.gift.amount,amount);
+    }
+    assert.equal(Number((await client.query('select price_usd from diamond_packages')).rows[0].price_usd),10);
+    await client.query("insert into merchandise_items values('boundary',30.01,3001)");
+    assert.equal(Number((await client.query("select price_usd from merchandise_items where id='boundary'")).rows[0].price_usd),31);
+    assert.equal((await client.query("select price_diamonds from merchandise_items where id='boundary'")).rows[0].price_diamonds,3100);
+    assert.equal((await client.query("select price_usd from merchandise_item_variants where id='inherit'")).rows[0].price_usd,null);
+    for(const dollars of [499,500]) {
+      const {rows:[purchase]}=await client.query("insert into vip_lifetime_purchases(user_id,price_usd) values($1,$2) returning id",[ids[2],dollars]);
+      const settled=await rpc('settle_vip_lifetime_card_purchase_atomic',[purchase.id,'cs_'+dollars,'pi_'+dollars]);
+      assert.equal(settled.success,true,JSON.stringify(settled));
+      assert.equal((await rpc('settle_vip_lifetime_card_purchase_atomic',[purchase.id,'cs_'+dollars,'pi_'+dollars])).duplicate,true);
+      assert.equal((await rpc('reconcile_vip_lifetime_card_reversal_atomic',[purchase.id,dollars===499?50000:49900,0,'refund',null,null])).error,'price_mismatch');
+      const reversed=await rpc('reconcile_vip_lifetime_card_reversal_atomic',[purchase.id,dollars*100,dollars*100,'refund',null,null]);
+      assert.equal(reversed.success,true,JSON.stringify(reversed));
+      assert.equal(reversed.full_reversal,true);
+    }
     const {rows:[security]}=await client.query("select bool_and(p.prosecdef AND p.proconfig @> ARRAY['search_path=public, extensions']) ok from pg_proc p where p.proname in ('send_vip_gift_atomic','settle_vip_gift_atomic','redeem_vip_gift_atomic','return_vip_gift_atomic','reverse_vip_gift_atomic')");
     assert.equal(security.ok,true);
   } finally {
