@@ -17,6 +17,7 @@ const {
   assertSqlLexingAssumptions,
   assertUniqueMigrationIdentities,
   attestMigrationConnection,
+  initializeMigrationSession,
   captureMigrationFiles,
   checksumSql,
   claimIndependentMigration,
@@ -617,4 +618,15 @@ test('the Phase 6 checkpoint migration remains recognizable and canonical', () =
 test('runner and helper remain syntactically valid CommonJS programs', () => {
   execFileSync(process.execPath, ['--check', runnerPath], { cwd: repoRoot });
   execFileSync(process.execPath, ['--check', join(repoRoot, 'scripts', 'lib', 'sql-transaction-control.js')], { cwd: repoRoot });
+});
+
+
+test('migration session initializes its parameterized application identity before attestation', async()=>{
+ const calls=[];
+ await initializeMigrationSession({query:async(text,values)=>{calls.push({text,values});}}, 'kuklfnapbkmacvwxktbh');
+ assert.deepEqual(calls,[{text:"SELECT set_config('application_name', $1, false)",values:['antigravity-sql-push:kuklfnapbkmacvwxktbh']}]);
+ await assert.rejects(initializeMigrationSession({query:async()=>{throw Error('must not query');}},'wrong'),/canonical project/);
+ await assert.rejects(initializeMigrationSession({query:async()=>{throw Error('connection failed');}},'kuklfnapbkmacvwxktbh'),/connection failed/);
+ const source=readFileSync(new URL('../scripts/antigravity_sql_push.js',import.meta.url),'utf8');
+ assert.ok(source.indexOf('await initializeMigrationSession(client, projectRef)') < source.indexOf('const attestation = await attestMigrationConnection(client'));
 });

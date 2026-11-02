@@ -1,3 +1,4 @@
+import { formatStoreUsd } from '../../lib/store/wholeDollarPrice.mjs';
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  * MerchStore: official merchandise storefront (Diamond Store → Merch tab)
@@ -100,7 +101,7 @@ const NEURAL_STEEL_MERCH = {
 };
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
-const usd = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+const usd = (n) => `$${formatStoreUsd(Number(n) || 0)}`;
 function firstFiniteNumber(candidates) {
   for (const c of candidates) {
     if (c === null || c === undefined || c === '') continue;

@@ -2864,7 +2864,7 @@ export default function MemoryGamesPage() {
                     <div className="preflop-vip-panel">
                       <div className="preflop-vip-seal">VIP</div>
                       <div className="preflop-vip-copy">
-                        <div>Go VIP - $19.99/Month</div>
+                        <div>Go VIP - $20/Month</div>
                         <p>Unlock Verified AI Scenario Generation And Other VIP Features.</p>
                       </div>
                       <button

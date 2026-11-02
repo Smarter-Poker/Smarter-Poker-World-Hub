@@ -1,3 +1,4 @@
+import { formatStoreUsd } from '../../src/lib/store/wholeDollarPrice.mjs';
 import { vipStructuredData, vipMembershipTerms, vipProductStructuredData, vipProductContent, vipProductPath, VIP_TERMS } from '../../src/lib/store/vipStructuredData.mjs';
 import VipGifts from '../../src/components/store/VipGifts';
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -371,7 +372,7 @@ function storeStructuredData(activeTab, vipProduct) {
           '@type': 'Offer',
           '@id': offerId,
           name: `${pkg.name} Package`,
-          price: (pkg.priceCents / 100).toFixed(2),
+          price: formatStoreUsd(pkg.priceCents / 100),
           priceCurrency: 'USD',
           priceValidUntil: '2027-12-31',
           itemCondition: 'https://schema.org/NewCondition',
@@ -537,7 +538,7 @@ const VIP_FAQ = [
   },
   {
     q: 'What Are My Options For Getting VIP?',
-    a: 'Three Terms. Monthly Is $19.99 Or 1,999 Diamonds. Yearly Is $199.99 Or 19,999 Diamonds, Which Works Out To Roughly Two Months Free. Lifetime Is $499 Or 49,900 Diamonds And Never Expires. The Rate Is Always 100 Diamonds Per Dollar.',
+    a: 'Three Terms. Monthly Is $20 Or 2,000 Diamonds. Yearly Is $200 Or 20,000 Diamonds, Which Works Out To Roughly Two Months Free. Lifetime Is $500 Or 50,000 Diamonds And Never Expires. The Rate Is Always 100 Diamonds Per Dollar.',
   },
   {
     q: 'What Happens When My VIP Expires?',
@@ -573,7 +574,7 @@ const VIP_FAQ = [
   },
   {
     q: 'What Payment Methods Are Accepted?',
-    a: 'Monthly, Yearly, And Lifetime VIP Accept All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. Every VIP Term Also Accepts Diamonds: 1,999 Diamond Monthly, 19,999 Yearly, Or 49,900 Lifetime.',
+    a: 'Monthly, Yearly, And Lifetime VIP Accept All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. Every VIP Term Also Accepts Diamonds: 2,000 Diamond Monthly, 20,000 Yearly, Or 50,000 Lifetime.',
   },
 ];
 
@@ -3473,8 +3474,8 @@ export default function DiamondStorePage({
   const vipCardReady = selectedVIPPlan?.cardCheckoutReady === true;
   const vipSubscribeLabel = vipCardReady
     ? lifetimeSelected
-      ? `Buy VIP Lifetime With Card: $${Number(selectedVIPPlan?.price || 499).toFixed(2)} Once`
-      : `Subscribe With Card: $${Number(selectedVIPPlan?.price || 19.99).toFixed(2)}/${selectedVIPPlan?.interval === 'year' ? 'Year' : 'Month'}`
+      ? `Buy VIP Lifetime With Card: $${formatStoreUsd(selectedVIPPlan?.price || 500)} Once`
+      : `Subscribe With Card: $${formatStoreUsd(selectedVIPPlan?.price || 20)}/${selectedVIPPlan?.interval === 'year' ? 'Year' : 'Month'}`
     : selectedVipHasExactRecovery
       ? 'Verify Purchase'
       : `Lifetime VIP Is Bought With Diamonds: ${Math.round(Number(selectedVIPPlan?.price || 0) * 100).toLocaleString()}`;
@@ -3668,7 +3669,7 @@ export default function DiamondStorePage({
 
                   {!vipProduct?.gift && <section id="vip-plans" className={vipStyles.purchase} aria-labelledby="vip-plan-title">
                     <div className={vipStyles.sectionHeading}>
-                      <h2 id="vip-plan-title">{vipProduct ? `${VIP_TERMS[vipProduct.plan].label} VIP: $${Number(VIP_MEMBERSHIP[vipProduct.plan].price).toFixed(2)}` : 'Choose Your VIP Membership'}</h2>
+                      <h2 id="vip-plan-title">{vipProduct ? `${VIP_TERMS[vipProduct.plan].label} VIP: $${formatStoreUsd(VIP_MEMBERSHIP[vipProduct.plan].price)}` : 'Choose Your VIP Membership'}</h2>
                       <p>{vipProduct ? vipMembershipTerms(vipProduct.plan) : 'Monthly Flexibility, A Year Of Access, Or Lifetime Membership.'}</p>
                     </div>
                     {!vipProduct && <>
@@ -3687,7 +3688,7 @@ export default function DiamondStorePage({
                         <strong>{marketplaceCopy(selectedVIPPlan.name)}</strong>
                         <span>{selectedVIPPlan.oneTime ? 'One Payment. No Renewal.' : `Renews Every ${selectedVIPPlan.interval === 'year' ? 'Year' : 'Month'}. Cancel Anytime.`}</span>
                         {selectedVIP === 'vip-yearly' && VIP_MEMBERSHIP.yearly.savings > 0 && (
-                          <span className={vipStyles.savings}>Save ${Number(VIP_MEMBERSHIP.yearly.savings).toFixed(2)} A Year Compared With Monthly.</span>
+                          <span className={vipStyles.savings}>Save ${formatStoreUsd(VIP_MEMBERSHIP.yearly.savings)} A Year Compared With Monthly.</span>
                         )}
                       </div>
                       <div className={vipStyles.paymentActions}>
@@ -4124,7 +4125,7 @@ export default function DiamondStorePage({
                                     "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
                                 }}
                               >
-                                $19.99
+                                $20
                               </div>
                               <div
                                 style={{
@@ -4146,7 +4147,7 @@ export default function DiamondStorePage({
                                     "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
                                 }}
                               >
-                                $199.99
+                                $200
                               </div>
                               <div
                                 style={{
@@ -4250,7 +4251,7 @@ export default function DiamondStorePage({
                         The Cap Is Measured After Your Share Streak Multiplier: Multipliers Help You
                         Reach {DAILY_CAP.free} Diamonds A Day With Less Work, They Never Raise It.
                         Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} Diamonds Per Month
-                        Budget On Top. 1 Diamond = $0.01, So {fmt(MONTHLY_CAP.free)} Diamonds A
+                        Budget On Top. 100 Diamonds = $1, So {fmt(MONTHLY_CAP.free)} Diamonds A
                         Month = ${(MONTHLY_CAP.free / 100).toFixed(0)}.
                       </p>
 
@@ -5245,8 +5246,8 @@ export default function DiamondStorePage({
                                                 : cardCharge == null
                                                   ? 'Card Limit Exceeded'
                                                   : diamondShortfall > 0
-                                                    ? `Need ${diamondShortfall.toLocaleString()} More Diamonds · Card $${cardCharge.toFixed(2)} Leaves ${cardPurchaseBalance.toLocaleString()}`
-                                                    : `Diamonds Leave ${diamondPurchaseBalance.toLocaleString()} · Card $${cardCharge.toFixed(2)} Leaves ${cardPurchaseBalance.toLocaleString()}`}
+                                                    ? `Need ${diamondShortfall.toLocaleString()} More Diamonds · Card $${formatStoreUsd(cardCharge)} Leaves ${cardPurchaseBalance.toLocaleString()}`
+                                                    : `Diamonds Leave ${diamondPurchaseBalance.toLocaleString()} · Card $${formatStoreUsd(cardCharge)} Leaves ${cardPurchaseBalance.toLocaleString()}`}
                                             </div>
                                             {(item.purchase_count || 0) > 0 && (
                                               <div
@@ -5314,7 +5315,7 @@ export default function DiamondStorePage({
                                                       : hasDiamondDebt
                                                         ? 'Card Checkout Paused'
                                                         : 'Card Unavailable'
-                                                    : `Card $${cardCharge.toFixed(2)}`}
+                                                    : `Card $${formatStoreUsd(cardCharge)}`}
                                               </button>
                                             )}
                                           </div>

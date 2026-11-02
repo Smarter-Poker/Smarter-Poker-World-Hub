@@ -24,7 +24,7 @@ test('announces active store navigation and complete package purchase names', ()
   assert.doesNotMatch(showcase, /target=["']_blank["']|Opens In New Tab/);
   assert.doesNotMatch(consoleControls, /target=["']_blank["']|window\.open/);
   assert.match(showcase, /className=\{styles\.packageUnit\}>Diamonds/);
-  assert.match(showcase, /Diamonds For \$\$\{Number\(pkg\.price/);
+  assert.match(showcase, /Diamonds For \$\$\{formatStoreUsd\(pkg\.price/);
 });
 
 test('makes VIP plan selection and checkout native keyboard controls', () => {

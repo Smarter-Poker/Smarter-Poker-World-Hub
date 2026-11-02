@@ -37,6 +37,7 @@ test('real Merch atlas cards keep image margins unpainted and copy faces readabl
   const compiled = await build({
     stdin: {
       contents: `import React,{useState,useId} from 'react';
+        import { formatStoreUsd } from './src/lib/store/wholeDollarPrice.mjs';
         const merchStyles=${JSON.stringify(Object.fromEntries(names.map((name) => [name, name])))};
         const Link=({href,children,...props})=><a href={href} {...props}>{children}</a>;
         ${source.match(/const MAX_QTY = [^;]+;/)[0]} ${helpers} ${card}

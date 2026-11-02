@@ -55,8 +55,8 @@ const VIP_COMPENSATED_ADMISSION_DENIALS = new Set([
     'profile_not_found',
 ]);
 const VIP_PLAN_CONTRACT = Object.freeze({
-    monthly: Object.freeze({ amount: 1999, interval: 'month' }),
-    yearly: Object.freeze({ amount: 19999, interval: 'year' }),
+    monthly: Object.freeze({ amount: 2000, legacyAmount: 1999, interval: 'month' }),
+    yearly: Object.freeze({ amount: 20000, legacyAmount: 19999, interval: 'year' }),
 });
 const VIP_SUBSCRIPTION_RECONCILIATION_LIMIT = 2;
 const VIP_SUBSCRIPTION_METADATA_KEYS = Object.freeze([
@@ -849,11 +849,11 @@ function validateVipOffer(subscription, tier) {
         || price.recurring?.interval !== contract.interval
         || Number(price.recurring?.interval_count) !== 1
         || price.recurring?.usage_type !== 'licensed'
-        || Number(price.unit_amount) !== contract.amount
+        || ![contract.amount, contract.legacyAmount].includes(Number(price.unit_amount))
         || Number(item.quantity) !== 1) {
         throw new Error('Stripe VIP subscription does not match the exact recurring offer');
     }
-    return contract.amount / 100;
+    return Number(price.unit_amount) / 100;
 }
 
 function syntheticLegacySubscriptionIdentity(subscriptionId, userId) {
@@ -1618,6 +1618,16 @@ async function applyLifetimeReversal(purchaseId, {
     return result;
 }
 
+async function lifetimePurchaseChargeAmount(purchaseId) {
+    const { data, error } = await getSupabase().from('vip_lifetime_purchases')
+        .select('price_usd').eq('id', purchaseId).maybeSingle();
+    const cents = Math.round(Number(data?.price_usd) * 100);
+    if (error || ![49900, 50000].includes(cents)) {
+        throw new Error('Lifetime dispute price could not be verified');
+    }
+    return cents;
+}
+
 async function handleDispute(dispute, eventType) {
     if (await reverseVipGift(getSupabase(), stripe, dispute, eventType)) return;
     const paymentIntent = typeof dispute?.payment_intent === 'string'
@@ -1642,7 +1652,7 @@ async function handleDispute(dispute, eventType) {
                 ? rawAmount
                 : null;
             await applyLifetimeReversal(lifetimePurchaseId, {
-                chargeAmount: 49900,
+                chargeAmount: await lifetimePurchaseChargeAmount(lifetimePurchaseId),
                 event: eventName,
                 disputeId,
                 disputeAmount,

@@ -1,3 +1,4 @@
+import { formatStoreUsd } from '../../lib/store/wholeDollarPrice.mjs';
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 
@@ -139,7 +140,7 @@ export default function SmarterStoreShowcase({
               <h2>Choose Your Stack</h2>
             </div>
             <div className={styles.sectionMeta}>
-              <span className={styles.exchangeRate}>1 Diamond = $0.01</span>
+              <span className={styles.exchangeRate}>100 Diamonds = $1</span>
               <span role="status" aria-live="polite">
                 {catalogState === 'database'
                   ? 'Current Pricing Verified'
@@ -182,7 +183,7 @@ export default function SmarterStoreShowcase({
                   </small>
                 </div>
                 <div className={styles.starterPurchase} data-package-purchase>
-                  <span data-package-price>${Number(pkg.price || 0).toFixed(2)}</span>
+                  <span data-package-price>${formatStoreUsd(pkg.price || 0)}</span>
                   <button
                     type="button"
                     onClick={() => onBuy(pkg)}
@@ -192,7 +193,7 @@ export default function SmarterStoreShowcase({
                       busyPackageId === pkg.id
                         ? `Opening Checkout For ${marketplaceCopy(pkg.name)}`
                         : catalogState === 'database'
-                          ? `Buy ${marketplaceCopy(pkg.name)}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
+                          ? `Buy ${marketplaceCopy(pkg.name)}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${formatStoreUsd(pkg.price || 0)}`
                           : catalogState === 'loading'
                             ? `Verifying Current Pricing For ${marketplaceCopy(pkg.name)}`
                             : `Pricing Unavailable For ${marketplaceCopy(pkg.name)}`
@@ -261,7 +262,7 @@ export default function SmarterStoreShowcase({
                   <footer>
                     <div className={styles.packagePrice} data-package-price>
                       <span>Price</span>
-                      <strong>${Number(pkg.price || 0).toFixed(2)}</strong>
+                      <strong>${formatStoreUsd(pkg.price || 0)}</strong>
                     </div>
                     <button
                       type="button"
@@ -272,7 +273,7 @@ export default function SmarterStoreShowcase({
                         busyPackageId === pkg.id
                           ? `Opening Checkout For ${marketplaceCopy(pkg.name)}`
                           : catalogState === 'database'
-                            ? `Buy ${marketplaceCopy(pkg.name)}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
+                            ? `Buy ${marketplaceCopy(pkg.name)}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${formatStoreUsd(pkg.price || 0)}`
                             : catalogState === 'loading'
                               ? `Verifying Current Pricing For ${marketplaceCopy(pkg.name)}`
                               : `Pricing Unavailable For ${marketplaceCopy(pkg.name)}`

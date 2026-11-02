@@ -1,3 +1,4 @@
+import { formatStoreUsd } from '../../lib/store/wholeDollarPrice.mjs';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -325,7 +326,7 @@ export default function MarketplaceDetailExperience({
                 {price != null && (
                   <div>
                     <small>{copyCardLabel}</small>
-                    <strong>${Number(price).toFixed(2)}</strong>
+                    <strong>${formatStoreUsd(price)}</strong>
                   </div>
                 )}
                 {diamondPrice != null && (

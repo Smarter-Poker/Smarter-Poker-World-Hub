@@ -1,3 +1,4 @@
+import { formatStoreUsd } from '../../lib/store/wholeDollarPrice.mjs';
 import React from 'react';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 import styles from './VipMembershipCard.module.css';
@@ -26,7 +27,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
       className={`${styles.vipCard} ${isSelected ? styles.vipCardSelected : ''}`}
       onClick={() => onSelect(plan.id)}
       aria-pressed={isSelected}
-      aria-label={`Select ${marketplaceCopy(plan.name)}, $${(Number(plan.price) || 0).toFixed(2)} ${spokenTerm}`}
+      aria-label={`Select ${marketplaceCopy(plan.name)}, $${formatStoreUsd(Number(plan.price) || 0)} ${spokenTerm}`}
     >
       <span className={styles.vipCardCrown} aria-hidden="true">
         <svg viewBox="0 0 64 52" fill="none"><path d="M8 14L20 25L32 5L44 25L56 14L50 42H14L8 14Z" stroke="currentColor" strokeWidth="2"/><path d="M16 46H48M18 36H46" stroke="currentColor" strokeWidth="2"/><path d="M28 28L32 23L36 28L32 33L28 28Z" fill="#45adff"/></svg>
@@ -34,7 +35,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
       <span className={styles.vipCardReadout}>
         <span className={styles.vipPlanName}>{marketplaceCopy(plan.name)}</span>
         <span className={styles.vipPriceRow}>
-          <strong>${(Number(plan.price) || 0).toFixed(2)}</strong>
+          <strong>${formatStoreUsd(Number(plan.price) || 0)}</strong>
           <span>{term}</span>
         </span>
         <span className={styles.vipDiamondPrice}>

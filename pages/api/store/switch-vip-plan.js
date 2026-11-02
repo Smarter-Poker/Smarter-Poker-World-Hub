@@ -93,14 +93,14 @@ const VIP_PLANS = {
     monthly: {
         tier: 'monthly',
         envVar: 'STRIPE_VIP_MONTHLY_PRICE_ID',
-        unitAmount: 1999,
+        unitAmount: 2000,
         interval: 'month',
         label: 'Smarter.Poker VIP - Monthly',
     },
     yearly: {
         tier: 'yearly',
         envVar: 'STRIPE_VIP_YEARLY_PRICE_ID',
-        unitAmount: 19999,
+        unitAmount: 20000,
         interval: 'year',
         label: 'Smarter.Poker VIP - Yearly',
     },

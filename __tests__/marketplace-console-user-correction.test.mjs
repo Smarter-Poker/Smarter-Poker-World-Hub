@@ -291,7 +291,7 @@ test('Marketplace copy and wallet errors avoid loose emoji and generic floating 
     `${cardsCss}\n${diamondStoreCss}`,
     /IBM Plex Mono|ui-monospace|\bmonospace\b/
   );
-  assert.match(diamondStore, /1 Diamond = \$0\.01/);
+  assert.match(diamondStore, /100 Diamonds = \$1/);
 });
 
 test('standard rewards preserve catalog taxonomy without floating icon overlays', async () => {
@@ -423,7 +423,7 @@ test('Diamond package cards expose a readable commerce hierarchy without ornamen
   assert.match(showcase, /className=\{styles\.packageBreakdown\}[\s\S]{0,80}?data-package-bonus/);
   assert.match(showcase, /<dt>Base Amount<\/dt>/);
   assert.match(showcase, /<dt>Bonus<\/dt>/);
-  assert.match(showcase, /<span>Price<\/span>[\s\S]*?\$\{Number\(pkg\.price/);
+  assert.match(showcase, /<span>Price<\/span>[\s\S]*?\$\{formatStoreUsd\(pkg\.price/);
   assert.match(showcase, /catalogState === 'database'\s*\?\s*'Buy Package'/);
   assert.match(showcase, /catalogState === 'loading'[\s\S]*?'Verifying\.\.\.'/);
   assert.match(showcase, /`Pricing Unavailable For \$\{marketplaceCopy\(pkg\.name\)\}`/);

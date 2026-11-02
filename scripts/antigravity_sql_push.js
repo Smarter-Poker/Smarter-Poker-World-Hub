@@ -24,6 +24,7 @@ const {
     assertSqlLexingAssumptions,
     assertUniqueMigrationIdentities,
     attestMigrationConnection,
+    initializeMigrationSession,
     captureMigrationFiles,
     claimIndependentMigration,
     completeIndependentMigration,
@@ -342,6 +343,7 @@ async function run() {
                 { code: 'SQL_RUNNER_FRONTEND_TLS_ATTESTATION_FAILED' },
             );
         }
+        await initializeMigrationSession(client, projectRef);
         const attestation = await attestMigrationConnection(client, {
             expectedDatabase: target.database,
             expectedProjectRef: projectRef,

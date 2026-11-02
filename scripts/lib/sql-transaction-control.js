@@ -387,6 +387,16 @@ async function assertSqlLexingAssumptions(client) {
     }
 }
 
+// Session poolers can replace startup-packet application_name with their own.
+// Set this session's configured identity before the unchanged attestation read.
+async function initializeMigrationSession(client, projectRef) {
+    if (!/^[a-z0-9]{20}$/.test(projectRef || '')) {
+        throw runnerError('SQL_RUNNER_INVALID_PROJECT_REF', 'a canonical project reference is required');
+    }
+    const applicationName = `antigravity-sql-push:${projectRef}`;
+    await client.query("SELECT set_config('application_name', $1, false)", [applicationName]);
+}
+
 async function attestMigrationConnection(client, {
     expectedDatabase,
     expectedProjectRef,
@@ -844,6 +854,7 @@ module.exports = {
     assertSqlLexingAssumptions,
     assertUniqueMigrationIdentities,
     attestMigrationConnection,
+    initializeMigrationSession,
     captureMigrationFiles,
     checksumSql,
     claimIndependentMigration,

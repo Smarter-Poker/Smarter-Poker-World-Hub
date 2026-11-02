@@ -60,6 +60,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends postgresql-17 locales
           sudo locale-gen en_US.UTF-8
+      - name: Install locked marketplace qualification dependencies
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: npm ci --no-audit --no-fund
       - name: Qualify exact DML and verify every migration against pinned history
         env:
           PHASE6_POSTGRES_BIN: /usr/lib/postgresql/17/bin

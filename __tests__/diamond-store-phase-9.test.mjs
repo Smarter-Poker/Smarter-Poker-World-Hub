@@ -142,6 +142,6 @@ test('dual payment language remains visible after the realism pass', () => {
   assert.match(STORE_PAGE, /All Major Credit And Debit Cards/);
   assert.match(STORE_PAGE, /handleClubCardCheckout/);
   assert.match(STORE_PAGE, /'Buy With Diamonds'/);
-  assert.match(STORE_PAGE, /`Card \$\$\{cardCharge\.toFixed\(2\)\}`/);
+  assert.match(STORE_PAGE, /`Card \$\$\{formatStoreUsd\(cardCharge\)\}`/);
   assert.doesNotMatch(STORE_PAGE, /<CreditCard\b|<Gem\b/);
 });

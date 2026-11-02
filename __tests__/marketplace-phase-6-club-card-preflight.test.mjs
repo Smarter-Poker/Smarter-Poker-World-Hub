@@ -128,8 +128,8 @@ test('Diamond package prices use exact Stripe cents and aggregate once', () => {
     diamonds: 950,
     bonus: 40,
     credit: 990,
-    cardChargeCents: 808,
-    cardChargeUsd: 8.08,
+    cardChargeCents: 1300,
+    cardChargeUsd: 13,
   });
 });
 
