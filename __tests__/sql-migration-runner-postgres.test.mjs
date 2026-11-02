@@ -14,6 +14,7 @@ const {
   assertAppliedMigrationIntegrity,
   assertNoAmbiguousClaims,
   attestMigrationConnection,
+  initializeMigrationSession,
   claimIndependentMigration,
   completeIndependentMigration,
   ensureMigrationLedger,
@@ -99,7 +100,7 @@ test('real PostgreSQL 17 preserves canonical ledger shape and enforces atomic/am
         port,
         user: 'postgres',
         database: 'migration_runner',
-        application_name: 'antigravity-sql-push:fixtureprojectref0000',
+        application_name: 'antigravity-sql-push:fixtureprojectref000',
       });
       await client.connect();
       clients.push(client);
@@ -107,9 +108,11 @@ test('real PostgreSQL 17 preserves canonical ledger shape and enforces atomic/am
     };
     const first = await connect();
     const second = await connect();
+    await first.query("SELECT set_config('application_name', 'Supavisor', false)");
+    await initializeMigrationSession(first, 'fixtureprojectref000');
     const environment = await attestMigrationConnection(first, {
       expectedDatabase: 'migration_runner',
-      expectedProjectRef: 'fixtureprojectref0000',
+      expectedProjectRef: 'fixtureprojectref000',
       expectedUser: 'postgres',
       // The disposable Unix socket has no TLS. Model the already verified
       // frontend and permitted session-pooler termination boundary here while
