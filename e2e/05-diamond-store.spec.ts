@@ -330,16 +330,16 @@ test.describe('5. Storefront Routes And Design Contract', () => {
             name: 'Neural Network Hoodie',
             description: 'Premium Hoodie With Neural Poker Design',
             category: 'apparel',
-            price_usd: 59.99,
-            price_diamonds: 5999,
+            price_usd: 60,
+            price_diamonds: 6000,
             has_variants: true,
             in_stock: true,
             stock: 60,
             fulfillment_ready: true,
             fulfillment_provider: 'printful',
             variants: [
-              { id: 'small', size: 'S', color: 'Black', price_usd: 59.99, price_diamonds: 5999, stock: 40, in_stock: true, fulfillment_ready: true },
-              { id: '2xl', size: '2XL', color: 'Black', price_usd: 61.99, price_diamonds: 6199, stock: 20, in_stock: true, fulfillment_ready: true },
+              { id: 'small', size: 'S', color: 'Black', price_usd: 60, price_diamonds: 6000, stock: 40, in_stock: true, fulfillment_ready: true },
+              { id: '2xl', size: '2XL', color: 'Black', price_usd: 62, price_diamonds: 6200, stock: 20, in_stock: true, fulfillment_ready: true },
             ],
           }],
         },
@@ -351,9 +351,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await expect(card).toBeVisible({ timeout: 15000 });
     await expect(card.getByText('Sold Out', { exact: true })).toHaveCount(0);
     await card.getByRole('button', { name: 'Black / 2XL' }).click();
-    await expect(card.getByText('$61.99', { exact: true })).toBeVisible();
-    await expect(card.getByRole('button', { name: /With Card For \$61\.99/ })).toBeEnabled();
-    const diamondButton = card.getByRole('button', { name: /With 6,199 Diamonds/ });
+    await expect(card.getByText('$62', { exact: true })).toBeVisible();
+    await expect(card.getByRole('button', { name: /With Card For \$62/ })).toBeEnabled();
+    const diamondButton = card.getByRole('button', { name: /With 6,200 Diamonds/ });
     await expect(diamondButton).not.toHaveAttribute('title', /Sold Out|Options Temporarily Unavailable/i);
     await card.getByRole('button', { name: 'Add Diamond Altitude Hoodie To Cart' }).click();
     await expect(page.getByRole('navigation', { name: 'Marketplace Commerce' }).getByRole('link', { name: /Cart/ })).toContainText('1');
@@ -391,15 +391,15 @@ test.describe('5. Storefront Routes And Design Contract', () => {
               name: 'Diamond Altitude Hoodie',
               description: 'Heavyweight Black Hoodie With The Diamond Altitude Circuit Graphic',
               category: 'apparel',
-              price_usd: 59.99,
-              price_diamonds: 5999,
+              price_usd: 60,
+              price_diamonds: 6000,
               has_variants: true,
               in_stock: true,
               stock: 20,
               fulfillment_ready: true,
               fulfillment_provider: 'printful',
               variants: [
-                { id: 'small', size: 'S', color: 'Black', price_usd: 59.99, price_diamonds: 5999, stock: 20, in_stock: true, fulfillment_ready: true },
+                { id: 'small', size: 'S', color: 'Black', price_usd: 60, price_diamonds: 6000, stock: 20, in_stock: true, fulfillment_ready: true },
               ],
             }],
           },
@@ -449,8 +449,8 @@ test.describe('5. Storefront Routes And Design Contract', () => {
           items: [{
             id: 'hoodie-neural',
             name: 'Diamond Altitude Hoodie With A Deliberately Long Product Name',
-            price: 59.99,
-            priceDiamonds: 5999,
+            price: 60,
+            priceDiamonds: 6000,
             quantity: 1,
             type: 'merchandise',
             image: '/images/merch/neural-steel/mockups/diamond-altitude-hoodie.webp',
@@ -547,9 +547,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   test('VIP selected terms expose current card and Diamond options', async ({ page }) => {
     await page.goto('/hub/vip-membership', { waitUntil: 'domcontentloaded' });
     for (const [name, card, diamonds] of [
-      ['Monthly', 'Subscribe With Card: $19.99/Month', '1,999'],
-      ['Yearly', 'Subscribe With Card: $199.99/Year', '19,999'],
-      ['Lifetime', 'Buy VIP Lifetime With Card: $499.00 Once', '49,900'],
+      ['Monthly', 'Subscribe With Card: $20/Month', '2,000'],
+      ['Yearly', 'Subscribe With Card: $200/Year', '20,000'],
+      ['Lifetime', 'Buy VIP Lifetime With Card: $500 Once', '50,000'],
     ]) {
       await page.getByRole('button', { name: new RegExp(`Select VIP ${name}`) }).click();
       await expect(page.getByRole('button', { name: card, exact: true })).toBeEnabled();
@@ -561,7 +561,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   test('VIP guest checkout retains the selected yearly plan through sign-in', async ({ page }) => {
     await page.goto('/hub/vip-membership?plan=vip-yearly', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('button', { name: /Select VIP Yearly/ })).toHaveAttribute('aria-pressed', 'true');
-    await page.getByRole('button', { name: 'Subscribe With Card: $199.99/Year', exact: true }).click();
+    await page.getByRole('button', { name: 'Subscribe With Card: $200/Year', exact: true }).click();
     await expect(page).toHaveURL(/\/auth\/login\?redirect=%2Fhub%2Fvip-membership%3Fplan%3Dvip-yearly$/);
   });
 
@@ -800,7 +800,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
 
     await page.goto(`/hub/club-shop/${itemId}?clubId=${clubId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { level: 1, name: 'Phase 13 Time Bank' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Buy With Card: $15.00' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Buy With Card: $15' })).toBeEnabled();
     await page.getByRole('button', { name: 'Review Diamond Purchase' }).click();
     const reviewTitle = page.getByRole('heading', { name: 'Confirm Diamond Purchase' });
     await expect(reviewTitle).toBeFocused();
@@ -848,7 +848,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       `/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}?clubId=${COPY_AUDIT_CLUB_ID}`,
       { waitUntil: 'domcontentloaded' },
     );
-    const cardButton = page.getByRole('button', { name: 'Buy With Card: $15.00' });
+    const cardButton = page.getByRole('button', { name: 'Buy With Card: $15' });
     await expect(cardButton).toBeEnabled();
     await cardButton.evaluate((button: HTMLButtonElement) => {
       button.click();
@@ -958,7 +958,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       await expect(offer.locator('[data-package-bonus]')).toContainText(
         pkg.bonus > 0 ? `+${pkg.bonus.toLocaleString('en-US')}` : 'No Bonus'
       );
-      await expect(offer.locator('[data-package-price]')).toContainText(`$${pkg.price.toFixed(2)}`);
+      await expect(offer.locator('[data-package-price]')).toContainText(`$${pkg.price.toLocaleString('en-US')}`);
       const action = offer.locator('[data-package-primary-action]');
       await expect(action).toBeEnabled();
       await expect(action).toHaveText('Buy Package');
@@ -1104,7 +1104,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
               variantId: 'small',
               name: 'Diamond Altitude Hoodie',
               type: 'Merchandise: Small',
-              price: 59.99,
+              price: 60,
               quantity: 2,
             },
             {
@@ -1112,7 +1112,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
               catalogId: 'range-grid-desk-mat',
               name: 'Range Grid Desk Mat',
               type: 'Merchandise',
-              price: 39.99,
+              price: 40,
               quantity: 1,
             },
           ],
@@ -1143,7 +1143,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
             type: 'merchandise',
             paymentStatus: 'paid',
             sessionStatus: 'complete',
-            amountTotal: 5999,
+            amountTotal: 6000,
             currency: 'usd',
             label: null,
             purchaseKind: null,
