@@ -50428,7 +50428,7 @@
       "functions": [
         {
           "name": "finite",
-          "line": 49,
+          "line": 51,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -50436,7 +50436,7 @@
         },
         {
           "name": "sameUser",
-          "line": 53,
+          "line": 55,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50444,7 +50444,7 @@
         },
         {
           "name": "parseLedger",
-          "line": 58,
+          "line": 60,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -50452,7 +50452,7 @@
         },
         {
           "name": "decideNudge",
-          "line": 89,
+          "line": 91,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50460,7 +50460,7 @@
         },
         {
           "name": "recordShown",
-          "line": 136,
+          "line": 138,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50468,7 +50468,7 @@
         },
         {
           "name": "recordDismissed",
-          "line": 140,
+          "line": 142,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50476,7 +50476,7 @@
         },
         {
           "name": "readNudgeState",
-          "line": 146,
+          "line": 148,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50484,7 +50484,7 @@
         },
         {
           "name": "writeLedger",
-          "line": 155,
+          "line": 157,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50492,7 +50492,7 @@
         },
         {
           "name": "requestPushNudge",
-          "line": 161,
+          "line": 163,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50500,7 +50500,7 @@
         },
         {
           "name": "takePendingNudge",
-          "line": 169,
+          "line": 171,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -50508,7 +50508,7 @@
         },
         {
           "name": "ledgerKey",
-          "line": 42,
+          "line": 44,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -50516,7 +50516,7 @@
         },
         {
           "name": "legacyAskedKey",
-          "line": 44,
+          "line": 46,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50524,7 +50524,7 @@
         },
         {
           "name": "legacyInstallKey",
-          "line": 45,
+          "line": 47,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50532,7 +50532,7 @@
         },
         {
           "name": "read",
-          "line": 147,
+          "line": 149,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -96581,7 +96581,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "decideNudge",
-        "line": 89,
+        "line": 91,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96597,7 +96597,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "recordShown",
-        "line": 136,
+        "line": 138,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96613,7 +96613,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "recordDismissed",
-        "line": 140,
+        "line": 142,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96629,7 +96629,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "readNudgeState",
-        "line": 146,
+        "line": 148,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96645,7 +96645,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "writeLedger",
-        "line": 155,
+        "line": 157,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96661,7 +96661,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "requestPushNudge",
-        "line": 161,
+        "line": 163,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96677,7 +96677,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "takePendingNudge",
-        "line": 169,
+        "line": 171,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106057,7 +106057,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "decideNudge",
-        "line": 89,
+        "line": 91,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106073,7 +106073,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "recordShown",
-        "line": 136,
+        "line": 138,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106089,7 +106089,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "recordDismissed",
-        "line": 140,
+        "line": 142,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106105,7 +106105,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "readNudgeState",
-        "line": 146,
+        "line": 148,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106121,7 +106121,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "writeLedger",
-        "line": 155,
+        "line": 157,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106137,7 +106137,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "requestPushNudge",
-        "line": 161,
+        "line": 163,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106153,7 +106153,7 @@
       {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "takePendingNudge",
-        "line": 169,
+        "line": 171,
         "references": 1,
         "exported": true,
         "defaultExport": false,
