@@ -2,7 +2,7 @@
 // Run: node --test __tests__/daily-digest.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS, horseRosterRows, allowedNumbers, playerTotalsRows, fmtSigned, fmtMinutes } from '../src/lib/dailyDigest/render.mjs';
+import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS, horseRosterRows, allowedNumbers, playerTotalsRows, fmtSigned, fmtMinutes, signupsRows, welcomeBackRows } from '../src/lib/dailyDigest/render.mjs';
 import { signViewToken, verifyViewToken, ownerPhone, digestRecipients, adminRecipients } from '../src/lib/dailyDigest/delivery.mjs';
 
 function fixture(overrides = {}) {
@@ -501,10 +501,10 @@ test('the digest is loaded once for all recipients and the reports do not race t
     } };
     const data = await loadDigestData(sb, '2026-10-28', { withCosts: false, dispatch: false });
     assert.equal(maxInflight, 1, 'one database read at a time');
-    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend']);
+    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups']);
     const a = renderDigest('2026-10-28', data, { recipientName: 'Ann' });
     const b = renderDigest('2026-10-28', data, { recipientName: 'Bob' });
-    assert.equal(order.length, 3, 'rendering for a second admin reads nothing');
+    assert.equal(order.length, 4, 'rendering for a second admin reads nothing');
     assert.match(a.html, /Ann/); assert.match(b.html, /Bob/);
     const fs = await import('node:fs');
     const route = fs.readFileSync(new URL('../pages/api/cron/daily-digest.js', import.meta.url), 'utf8');
@@ -559,7 +559,7 @@ test('the signed online view executes the shared serial loader without dispatchi
         await handler({ method: 'GET', query: { t: 'fixture' } }, res);
         assert.equal(maxInFlight, 1, 'online reports must not compete for the database');
         assert.deepEqual(options, { withCosts: false, dispatch: false });
-        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend']);
+        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups']);
         assert.equal(res.code, 200);
         assert.equal(res.headers['Cache-Control'], 'no-store');
         assert.match(res.body, /Real Player Totals/i);
@@ -597,4 +597,71 @@ test('explicit live verification rejects wrong revisions and broken sections wit
             throw new Error(`network failure at ${url}`);
         } }), error => error.message === 'Production digest request failed');
     } finally { if (oldSecret === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = oldSecret; }
+});
+
+// New Sign-Ups and Welcome-Back Chips (Dan 2026-11-04)
+const SIGNUPS = {
+    day: '2026-10-14', signup_count: 3,
+    signups: [
+        { username: 'Luvtasuck', display_name: 'Luvtasuck', signed_up_ct: '04:00 AM', referred_by: 'phucmot', referral_code_used: '1002337', agent: 'phucmot',
+          clubs: [{ club: 'KINGS CLUB', is_kings_club: true, agent: 'phucmot' }], in_kings_club: true, joined_a_club: true, hands: 30, played_hand: true, first_hand_ct: 'Oct 14 05:00 AM', phone_on_file: true, phone_verified: true, email_confirmed: true, welcome_back: null },
+        { username: 'Willian', display_name: 'Willian Soares', signed_up_ct: '02:18 PM', referred_by: null, agent: null, clubs: [], in_kings_club: false, joined_a_club: false, hands: 0, played_hand: false, phone_on_file: false, phone_verified: false, email_confirmed: true, welcome_back: null },
+        { username: 'Breezy', display_name: 'Breezy', signed_up_ct: '10:17 PM', referred_by: 'Probyourmom', agent: 'Probyourmom',
+          clubs: [{ club: 'Club Savage', is_kings_club: false, agent: 'Probyourmom' }], in_kings_club: false, joined_a_club: true, hands: 0, played_hand: false, phone_on_file: true, phone_verified: false, email_confirmed: true, welcome_back: { status: 'awarded' } },
+    ],
+    welcome_back: { amount: 25, awarded_count: 1,
+        awarded: [{ username: 'Breezy', display_name: 'Breezy', signed_up_ct: 'Oct 13 10:17 PM', awarded_ct: '11:00 PM', amount: 25, club: 'KINGS CLUB', push: true, email: 'sent', text: 'no phone', played_since: false }],
+        waiting_count: 2, waiting_for_club: [{ username: 'TheSAUCE' }, { username: 'PokerMogul' }] },
+};
+
+test('the New Sign-Ups card names every sign-up with referrer, agent and KINGS CLUB membership', () => {
+    const s = signupsRows(fixture({ signups: SIGNUPS }));
+    assert.equal(s.title, 'New Sign-Ups (Real Players) - 3');
+    assert.equal(s.rows.length, 3);
+    assert.deepEqual(s.rows[0].slice(0, 2), ['Luvtasuck', 'KINGS CLUB']);
+    assert.match(s.rows[0][2], /Referred by phucmot \(code 1002337\); Agent phucmot; Signed up 04:00 AM; Played 30 hands, first Oct 14 05:00 AM; Phone verified/);
+    assert.deepEqual(s.rows[1].slice(0, 2), ['Willian (Willian Soares)', 'No club yet']);
+    assert.match(s.rows[1][2], /No referral; Signed up 02:18 PM; No hand played yet; No phone/);
+    assert.equal(s.rows[2][1], 'Club Savage (not KINGS CLUB)');
+    assert.match(s.rows[2][2], /Welcome-back chips sent/);
+});
+
+test('the Welcome-Back Chips card shows each award with its channels and who is still waiting for a club', () => {
+    const w = welcomeBackRows(fixture({ signups: SIGNUPS }));
+    assert.equal(w.title, 'Welcome-Back Chips (25 Free Chips, No Hand After 24 Hours) - 1');
+    assert.deepEqual(w.rows[0].slice(0, 2), ['Breezy', '25 chips to KINGS CLUB']);
+    assert.match(w.rows[0][2], /Push sent; Email sent; Text no phone; Still has not played/);
+    assert.deepEqual(w.rows[1].slice(0, 2), ['Waiting To Join A Club', '2']);
+    assert.match(w.rows[1][2], /TheSAUCE, PokerMogul/);
+});
+
+test('both cards render in the email, the online view and the plain text, right after Growth', () => {
+    const d = fixture({ signups: SIGNUPS });
+    for (const html of [buildHtml(d, { email: true }), buildHtml(d, {})]) {
+        assert.ok(html.indexOf('New Sign-Ups (Real Players) - 3') > html.indexOf('>Growth<'));
+        assert.ok(html.indexOf('Welcome-Back Chips') < html.indexOf('Player Funnel'));
+        assert.match(html, /Luvtasuck/);
+        assert.match(html, /Referred by phucmot/);
+    }
+    const text = buildText(d, {});
+    assert.match(text, /NEW SIGN-UPS \(REAL PLAYERS\) - 3\nLuvtasuck: KINGS CLUB  \(Referred by phucmot/);
+    assert.match(text, /WELCOME-BACK CHIPS/);
+});
+
+test('a failed or missing sign-up report never stops the digest', () => {
+    const broken = fixture({ signups: { day: '2026-10-14', error: 'canceling statement due to statement timeout' } });
+    assert.match(buildHtml(broken, { email: true }), /Could not be built/);
+    assert.equal(welcomeBackRows(broken).rows.length, 0);
+    const none = fixture({ signups: { day: '2026-10-14', signups: [], welcome_back: { amount: 25, awarded: [], waiting_for_club: [] } } });
+    assert.match(buildHtml(none, { email: true }), /Nobody signed up/);
+    assert.match(buildHtml(none, { email: true }), /Nobody qualified/);
+    assert.doesNotMatch(buildHtml(fixture(), { email: true }), /New Sign-Ups/);
+});
+
+test('loadSignups returns the report or a tagged error, never throws', async () => {
+    const { loadSignups } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const sb = { rpc: async (name) => (name === 'fn_sp_digest_signups' ? { data: { day: '2026-10-14', signups: [] }, error: null } : { data: null, error: { message: 'wrong rpc' } }) };
+    assert.deepEqual(await loadSignups(sb, '2026-10-14'), { day: '2026-10-14', signups: [] });
+    const bad = { rpc: async () => { throw new Error('boom'); } };
+    assert.deepEqual(await loadSignups(bad, '2026-10-14'), { day: '2026-10-14', error: 'boom' });
 });

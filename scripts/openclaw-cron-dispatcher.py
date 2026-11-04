@@ -890,6 +890,15 @@ ALL_CRONS = [
     # Fires every 3 days at 09:30 UTC — low-traffic, non-critical.
     ('/api/cron/social-page-completion-nudge',    dict(day='*/3', hour=9, minute=30)),
 
+    # ── Welcome-back chips (Dan 2026-11-04) ───────────────────────────────
+    # Every real player who signed up 24+ hours ago and has not played a hand
+    # is paid 25 free chips from the Midway Union promo wallet and told by
+    # push, email and text. The database pays and raises the push
+    # (fn_sp_signup_welcome_back_run, idempotent per player); the route sends
+    # the email and the text. Hourly, off the top of the hour so it never
+    # shares the :00 crowd or the :50-:03 UTC break window.
+    ('/api/cron/signup-welcome-back',             dict(minute=17)),
+
 
     # ══ WAVE 5 — Club Arena platform crons (Round 9 + X7.4, 2026-04-29) ═════
     # Wired in Round 23 of the relaunch sweep. All 7 handlers existed in

@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: '24.12.0'
       - name: Render and report boundary regressions
-        run: node --test __tests__/daily-digest.test.mjs __tests__/digest-figures-carry-separators.test.mjs
+        run: node --test __tests__/daily-digest.test.mjs __tests__/digest-figures-carry-separators.test.mjs __tests__/welcome-back.test.mjs
       - name: Install PostgreSQL 17 for report qualification
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg

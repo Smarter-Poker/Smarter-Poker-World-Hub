@@ -80,13 +80,14 @@ export function ownerPhone() {
     return digits ? `+${digits}` : null;
 }
 
-export async function sendSms(body, { fetchImpl = fetch } = {}) {
+/** Texts the owner by default; pass `to` (E.164) to text someone else. */
+export async function sendSms(body, { fetchImpl = fetch, to: toOverride = null } = {}) {
     const sid = trim(process.env.TWILIO_ACCOUNT_SID);
     const token = trim(process.env.TWILIO_AUTH_TOKEN);
     const from = trim(process.env.TWILIO_PHONE_NUMBER);
-    const to = ownerPhone();
+    const to = toOverride || ownerPhone();
     if (!sid || !token || !from) return { ok: false, error: 'Twilio not configured' };
-    if (!to) return { ok: false, error: 'No owner phone configured' };
+    if (!to) return { ok: false, error: toOverride === null ? 'No owner phone configured' : 'No phone number' };
     try {
         const res = await fetchImpl(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
             method: 'POST',

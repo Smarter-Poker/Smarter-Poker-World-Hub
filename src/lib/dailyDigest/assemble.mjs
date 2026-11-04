@@ -53,6 +53,19 @@ export async function loadSpinsSpend(sb, day, retry = {}) {
     } catch (err) { return { day, error: String(err?.message || err) }; }
 }
 
+/**
+ * New Sign-Ups (fn_sp_digest_signups, Dan 2026-11-04): every real player who
+ * signed up that day with who referred them, their agent, the clubs they
+ * joined (KINGS CLUB flagged) and whether they have played a hand, plus the
+ * welcome-back chips awarded that day. A failure never stops the digest.
+ */
+export async function loadSignups(sb, day, retry = {}) {
+    try {
+        const { data, error } = await rpcWithRetry(sb, 'fn_sp_digest_signups', { p_day: day }, retry);
+        return error ? { day, error: error.message } : (data || { day, error: 'Report unavailable' });
+    } catch (err) { return { day, error: String(err?.message || err) }; }
+}
+
 /** Time the report loads may keep retrying, out of the route's 300 s. */
 const REPORT_BUDGET_MS = 150000;
 
@@ -68,8 +81,10 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     if (error) throw new Error(`fn_sp_daily_digest: ${error.message}`);
     const playerTotals = await loadPlayerTotals(sb, day, withBudget);
     const spinsSpend = await loadSpinsSpend(sb, day, withBudget);
+    const signups = await loadSignups(sb, day, withBudget);
     if (digest && playerTotals) digest.player_totals = playerTotals;
     if (digest) digest.spins_spend = spinsSpend;
+    if (digest) digest.signups = signups;
     const costs = withCosts ? await providerSpend(day).catch(() => null) : null;
     return { digest, costs };
 }
