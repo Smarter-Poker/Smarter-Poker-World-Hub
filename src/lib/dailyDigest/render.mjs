@@ -437,7 +437,7 @@ export function buildHtml(digest, opts = {}) {
             body += rowHtml(b.label, `<span style="font-weight:400;font-size:12px;color:${C.muted};">${esc(breakdownText(get(m, b.path)))}</span>`, '', false, false);
         }
         body += cardClose;
-        if (def.title === 'Growth') body += funnelCard(m);
+        if (def.title === 'Growth') body += signupsCard(digest) + funnelCard(m);
         if (def.title === 'Money') body += topListCard('Top Clubs By Rake', get(m, 'money.rake_by_club'), (x) => [x.club, fmtNum(x.rake)])
             + topListCard('Top Real Players By Rake (Whale Watch)', get(m, 'money.top_human_rakers'), (x) => [x.username, fmtNum(x.rake)]);
         if (def.title === 'Diamonds') body += topListCard('Diamond Movements Over 10,000', get(m, 'diamonds.big_movements'), (x) => [`${x.username || 'unknown'} (${String(x.type).replace(/_/g, ' ')}, ${x.at_ct})`, fmtInt(x.amount)]);
@@ -499,6 +499,81 @@ function funnelCard(m) {
         ret('d7', 'Day 7 Retention'),
         ret('d30', 'Day 30 Retention'),
     ]);
+}
+
+/**
+ * New Sign-Ups (Dan 2026-11-04): "under real player sign ups, I want to know
+ * where they came from, like what agent they were referred by and the name of
+ * the new players, and also if they are part of the KINGS CLUB or not."
+ * One row per sign-up from fn_sp_digest_signups ('signups' key): the player's
+ * name on the left, the club they joined on the right, and the referrer, agent,
+ * sign-up time and whether they have played a hand beneath. Returns
+ * { title, rows, note } for the card; rows is empty when nothing can be shown.
+ */
+export function signupsRows(digest) {
+    const s = digest && digest.signups;
+    if (!s) return { title: 'New Sign-Ups (Real Players)', rows: [], note: '' };
+    if (s.error) return { title: 'New Sign-Ups (Real Players)', rows: [['Unavailable', 'Could not be built', String(s.error).slice(0, 160)]], note: '' };
+    const list = Array.isArray(s.signups) ? s.signups : [];
+    const title = `New Sign-Ups (Real Players) - ${fmtInt(list.length)}`;
+    if (!list.length) return { title, rows: [['Nobody signed up', '0', '']], note: '' };
+    const rows = list.map((p) => {
+        const clubs = Array.isArray(p.clubs) ? p.clubs : [];
+        const kings = clubs.find((c) => c.is_kings_club);
+        const others = clubs.filter((c) => !c.is_kings_club).map((c) => c.club).filter(Boolean);
+        let value;
+        if (kings) value = others.length ? `KINGS CLUB + ${others.join(', ')}` : 'KINGS CLUB';
+        else if (others.length) value = `${others.join(', ')} (not KINGS CLUB)`;
+        else value = 'No club yet';
+        const name = p.display_name && p.display_name !== p.username ? `${p.username} (${p.display_name})` : (p.username || 'Unknown');
+        const bits = [];
+        bits.push(p.referred_by ? `Referred by ${p.referred_by}${p.referral_code_used ? ` (code ${p.referral_code_used})` : ''}` : 'No referral');
+        if (p.agent) bits.push(`Agent ${p.agent}`);
+        if (p.signed_up_ct) bits.push(`Signed up ${p.signed_up_ct}`);
+        bits.push(p.played_hand ? `Played ${fmtInt(p.hands)} hands${p.first_hand_ct ? `, first ${p.first_hand_ct}` : ''}` : 'No hand played yet');
+        if (p.phone_verified) bits.push('Phone verified');
+        else if (p.phone_on_file) bits.push('Phone on file, not verified');
+        else bits.push('No phone');
+        if (p.welcome_back?.status === 'awarded') bits.push('Welcome-back chips sent');
+        return [name, value, bits.join('; ')];
+    });
+    return { title, rows, note: '' };
+}
+
+/**
+ * Welcome-Back Chips (Dan 2026-11-04): sign-ups with no hand after 24 hours are
+ * paid 25 free chips from the Midway Union promo wallet and told by push,
+ * email and text. One row per award that day; players who could not be paid
+ * because they are in no club yet are listed beneath.
+ */
+export function welcomeBackRows(digest) {
+    const w = digest && digest.signups && !digest.signups.error && digest.signups.welcome_back;
+    if (!w) return { title: 'Welcome-Back Chips', rows: [] };
+    const amount = fmtInt(w.amount || 25);
+    const awarded = Array.isArray(w.awarded) ? w.awarded : [];
+    const waiting = Array.isArray(w.waiting_for_club) ? w.waiting_for_club : [];
+    const title = `Welcome-Back Chips (${amount} Free Chips, No Hand After 24 Hours) - ${fmtInt(awarded.length)}`;
+    const rows = awarded.map((a) => {
+        const name = a.display_name && a.display_name !== a.username ? `${a.username} (${a.display_name})` : (a.username || 'Unknown');
+        const bits = [
+            a.signed_up_ct ? `Signed up ${a.signed_up_ct}` : null,
+            a.awarded_ct ? `Chips sent ${a.awarded_ct}` : null,
+            `Push ${a.push ? 'sent' : 'not sent'}`,
+            `Email ${a.email || 'pending'}`,
+            `Text ${a.text || 'pending'}`,
+            a.played_since ? 'Played since' : 'Still has not played',
+        ].filter(Boolean);
+        return [name, `${fmtInt(a.amount)} chips to ${a.club || 'club wallet'}`, bits.join('; ')];
+    });
+    if (!rows.length) rows.push(['Nobody qualified', '0', 'Every sign-up older than 24 hours has played a hand or was already paid']);
+    if (waiting.length) rows.push(['Waiting To Join A Club', fmtInt(waiting.length), `Cannot be paid until they join a Midway Union club: ${waiting.map((x) => x.username).join(', ')}`]);
+    return { title, rows };
+}
+
+function signupsCard(digest) {
+    const s = signupsRows(digest);
+    const w = welcomeBackRows(digest);
+    return listCard(s.title, s.rows) + listCard(w.title, w.rows);
 }
 
 /**
@@ -731,6 +806,13 @@ export function buildText(digest, opts = {}) {
         lines.push(def.title.toUpperCase());
         for (const r of sectionRows(def, digest)) lines.push(`${r.label}: ${r.value}${r.sub ? `  (${r.sub})` : ''}`);
         for (const b of def.breakdowns || []) lines.push(`${b.label}: ${breakdownText(get(digest.metrics, b.path))}`);
+        if (def.title === 'Growth') {
+            for (const block of [signupsRows(digest), welcomeBackRows(digest)]) {
+                if (!block.rows.length) continue;
+                lines.push('', block.title.toUpperCase());
+                for (const [label, value, sub] of block.rows) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+            }
+        }
     }
     lines.push('');
     lines.push(`Admin dashboard: ${opts.dashboardUrl || 'https://smarter.poker/admin'}`);
