@@ -225,3 +225,23 @@ test('nudge templates: whole-number chips, no em dashes, STOP on texts, escaped 
     for (const t of [e.html, e.text, e.subject, playNudgeEmail({ username: 'A' }).html, clubNudgeSms({ username: 'A', clubCode: '1' }), playNudgeSms({ username: 'A' })]) assert.doesNotMatch(t, /—/);
     assert.match(playNudgeSms({ username: 'A', club: 'KINGS CLUB' }), /Reply STOP to opt out\.$/);
 });
+
+import { SEND_BUDGET_MS } from '../src/lib/welcomeBack/run.mjs';
+
+test('when the providers are slow the run stops sending inside its budget and leaves the rest for the next hour', async () => {
+    const run = { awarded: AWARDED, awarded_count: 2, no_club: [], no_club_count: 0, failed: [], failed_count: 0,
+        club_nudges: [{ user_id: 'u3', username: 'Late', email: 'late@example.com', phone: null, club_code: '25450', referral_code: null, amount: 25 }], club_nudge_count: 1 };
+    const { sb, calls } = fakeDb({ run });
+    const emails = [];
+    const summary = await runWelcomeBack(sb, {
+        // The first player's email takes the whole budget.
+        deadline: Date.now() + 50,
+        sendEmail: async (m) => { emails.push(m); await new Promise((r) => setTimeout(r, 80)); return { ok: true, id: 'e' }; },
+        sendSms: async () => ({ ok: true, id: 's' }),
+    });
+    assert.equal(emails.length, 1, 'the second player and the nudge wait for the next run');
+    assert.equal(summary.deferred, 2);
+    assert.equal(summary.emails_sent, 1);
+    assert.equal(calls.marks.length, 2, 'only the first player\'s receipts were recorded; nothing was marked for players not reached');
+    assert.ok(SEND_BUDGET_MS < 300000, 'the budget sits inside the route\'s maxDuration');
+});

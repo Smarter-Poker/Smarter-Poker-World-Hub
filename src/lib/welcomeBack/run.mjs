@@ -169,9 +169,19 @@ export function sendablePhone(raw) {
  * `deps.sendEmail({to, subject, html, text, idempotencyKey})` and
  * `deps.sendSms(body, {to})` return `{ ok, id?, error? }`.
  */
-export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log = () => {} } = {}) {
+/**
+ * Sending stops once this much of the route's 300 s has gone. A provider that
+ * is down costs up to ~65 s per player (three Resend attempts plus Twilio),
+ * so without a budget Vercel would kill the function mid-loop with no
+ * summary. Everything not reached is already recorded as pending in the
+ * database and goes out on the next hourly run.
+ */
+export const SEND_BUDGET_MS = 240000;
+
+export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log = () => {}, deadline = Date.now() + SEND_BUDGET_MS } = {}) {
     const summary = { awarded: 0, no_club: 0, failed: 0, emails_sent: 0, emails_failed: 0, texts_sent: 0, texts_failed: 0, texts_skipped_no_phone: 0, retried: 0,
-        club_nudges: 0, play_nudges: 0, nudge_emails_sent: 0, nudge_emails_failed: 0, nudge_texts_sent: 0, nudge_texts_failed: 0, nudges: [], players: [], errors: [] };
+        club_nudges: 0, play_nudges: 0, nudge_emails_sent: 0, nudge_emails_failed: 0, nudge_texts_sent: 0, nudge_texts_failed: 0, deferred: 0, nudges: [], players: [], errors: [] };
+    const outOfTime = () => Date.now() >= deadline;
 
     const { data: run, error } = await sb.rpc('fn_sp_signup_welcome_back_run', { p_limit: limit });
     if (error) throw new Error(`fn_sp_signup_welcome_back_run: ${error.message}`);
@@ -239,6 +249,7 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
     };
 
     for (const t of todo.values()) {
+        if (outOfTime()) { summary.deferred++; continue; }
         const entry = { user_id: t.user_id, username: t.username, club: t.club, source: t.source, email: 'not needed', text: 'not needed' };
         const amount = Number(t.amount || WELCOME_BACK_AMOUNT);
 
@@ -324,6 +335,7 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
     }
 
     for (const t of nudgeTodo) {
+        if (outOfTime()) { summary.deferred++; continue; }
         const entry = { kind: t.kind, user_id: t.user_id, username: t.username, source: t.source || 'run', email: t.email ? 'not needed' : 'no email', text: t.phone ? 'not needed' : 'no phone' };
         const amount = Number(t.amount || summary.amount || WELCOME_BACK_AMOUNT);
         const msg = t.kind === 'club'
@@ -357,5 +369,6 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
         log(`[welcome-back] ${t.kind} nudge ${t.username || t.user_id}: email ${entry.email}, text ${entry.text}`);
     }
 
+    if (summary.deferred) log(`[welcome-back] out of time: ${summary.deferred} player(s) left for the next run`);
     return summary;
 }
