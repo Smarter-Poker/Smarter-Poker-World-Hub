@@ -519,10 +519,11 @@ export function signupsRows(digest) {
     if (!list.length) return { title, rows: [['Nobody signed up', '0', '']], note: '' };
     const rows = list.map((p) => {
         const clubs = Array.isArray(p.clubs) ? p.clubs : [];
+        const pendingTag = (c) => (c.status && !['active', 'approved'].includes(String(c.status).toLowerCase()) ? ` (${c.status})` : '');
         const kings = clubs.find((c) => c.is_kings_club);
-        const others = clubs.filter((c) => !c.is_kings_club).map((c) => c.club).filter(Boolean);
+        const others = clubs.filter((c) => !c.is_kings_club).map((c) => c.club ? `${c.club}${pendingTag(c)}` : null).filter(Boolean);
         let value;
-        if (kings) value = others.length ? `KINGS CLUB + ${others.join(', ')}` : 'KINGS CLUB';
+        if (kings) value = others.length ? `KINGS CLUB${pendingTag(kings)} + ${others.join(', ')}` : `KINGS CLUB${pendingTag(kings)}`;
         else if (others.length) value = `${others.join(', ')} (not KINGS CLUB)`;
         else value = 'No club yet';
         const name = p.display_name && p.display_name !== p.username ? `${p.username} (${p.display_name})` : (p.username || 'Unknown');
@@ -534,7 +535,11 @@ export function signupsRows(digest) {
         if (p.phone_verified) bits.push('Phone verified');
         else if (p.phone_on_file) bits.push('Phone on file, not verified');
         else bits.push('No phone');
-        if (p.welcome_back?.status === 'awarded') bits.push('Welcome-back chips sent');
+        const wb = p.welcome_back?.status;
+        if (wb === 'awarded') bits.push('Welcome-back chips sent');
+        else if (wb === 'no_club') bits.push('Welcome-back chips waiting on a club');
+        else if (wb === 'failed') bits.push('Welcome-back chips could not be paid');
+        else if (wb === 'closed') bits.push('Played before welcome-back chips were due');
         return [name, value, bits.join('; ')];
     });
     return { title, rows, note: '' };
@@ -547,33 +552,80 @@ export function signupsRows(digest) {
  * because they are in no club yet are listed beneath.
  */
 export function welcomeBackRows(digest) {
-    const w = digest && digest.signups && !digest.signups.error && digest.signups.welcome_back;
+    const sg = digest && digest.signups && !digest.signups.error ? digest.signups : null;
+    const w = sg && sg.welcome_back;
     if (!w) return { title: 'Welcome-Back Chips', rows: [] };
     const amount = fmtInt(w.amount || 25);
+    const hours = fmtInt(sg.settings?.hours || 24);
     const awarded = Array.isArray(w.awarded) ? w.awarded : [];
     const waiting = Array.isArray(w.waiting_for_club) ? w.waiting_for_club : [];
-    const title = `Welcome-Back Chips (${amount} Free Chips, No Hand After 24 Hours) - ${fmtInt(awarded.length)}`;
-    const rows = awarded.map((a) => {
+    const title = `Welcome-Back Chips (${amount} Free Chips, No Hand After ${hours} Hours) - ${fmtInt(awarded.length)}`;
+    const rows = [];
+    // Did the chips work: who has since sat down.
+    const cv = sg.conversion;
+    if (cv) {
+        const part = (x) => (x && Number(x.awarded) ? `${fmtInt(x.played)} of ${fmtInt(x.awarded)} (${fmtPct(x.played, x.awarded)})` : 'none paid');
+        rows.push(['Played A Hand Since Getting Chips', part(cv.day), `Last 7 days ${part(cv.week)}; all time ${part(cv.all)}${cv.all ? `, ${fmtNum(cv.all.chips)} chips paid in total` : ''}`]);
+    }
+    // The wallet that funds it, and how long it lasts.
+    const pw = sg.promo_wallet;
+    if (pw) {
+        const runway = [];
+        if (pw.days_left_at_welcome_back_pace !== null && pw.days_left_at_welcome_back_pace !== undefined) runway.push(`${fmtNum(pw.days_left_at_welcome_back_pace, 1)} days at the welcome-back pace`);
+        if (pw.days_left_at_net_pace !== null && pw.days_left_at_net_pace !== undefined) runway.push(`${fmtNum(pw.days_left_at_net_pace, 1)} days at the wallet's net pace`);
+        else runway.push('refilled faster than it is spent this week');
+        rows.push([pw.low ? 'Midway Union Promo Wallet - LOW' : 'Midway Union Promo Wallet', `${fmtNum(pw.balance)} chips`,
+            `${fmtInt(pw.awards_left_at_amount)} more awards at ${amount}; welcome-back took ${fmtNum(pw.welcome_back_7d_chips)} in 7 days; wallet out ${fmtNum(pw.all_promo_7d_out)} / in ${fmtNum(pw.all_promo_7d_in)} (net ${fmtSigned(pw.net_7d)}); ${runway.join(', ')}${pw.low ? `; at or under the ${fmtNum(pw.low_threshold)} line` : ''}`]);
+    }
+    // Push reach and the two nudges.
+    const pc = sg.push_coverage;
+    if (pc) rows.push(['Push Enabled On A Device', `${fmtInt(pc.week_with_device)} of ${fmtInt(pc.week_signups)} sign-ups this week`, `${fmtInt(pc.paid_with_device)} of ${fmtInt(pc.paid_total)} welcome-back players can receive a push; the rest hear by email and text`]);
+    const nd = sg.nudges;
+    if (nd) {
+        rows.push(['Join-A-Club Nudges Sent', fmtInt(nd.club_nudges_day), `${fmtInt(nd.club_nudged_then_joined)} of ${fmtInt(nd.club_nudged_total)} ever nudged have since joined and been paid`]);
+        rows.push(['Play Nudges Sent', fmtInt(nd.play_nudges_day), `${fmtInt(nd.play_nudged_then_played)} of ${fmtInt(nd.play_nudged_total)} ever nudged have since played; sent ${fmtInt(sg.settings?.play_nudge_hours || 72)} hours after the chips if still no hand`]);
+    }
+    rows.push(...awarded.map((a) => {
         const name = a.display_name && a.display_name !== a.username ? `${a.username} (${a.display_name})` : (a.username || 'Unknown');
         const bits = [
             a.signed_up_ct ? `Signed up ${a.signed_up_ct}` : null,
             a.awarded_ct ? `Chips sent ${a.awarded_ct}` : null,
-            `Push ${a.push ? 'sent' : 'not sent'}`,
+            `Push ${a.push_status || (a.push ? 'queued' : 'not raised')}`,
             `Email ${a.email || 'pending'}`,
             `Text ${a.text || 'pending'}`,
             a.played_since ? 'Played since' : 'Still has not played',
+            a.play_nudge ? `Play nudge ${a.play_nudge.at_ct} (email ${a.play_nudge.email}, text ${a.play_nudge.text})` : null,
         ].filter(Boolean);
         return [name, `${fmtInt(a.amount)} chips to ${a.club || 'club wallet'}`, bits.join('; ')];
-    });
-    if (!rows.length) rows.push(['Nobody qualified', '0', 'Every sign-up older than 24 hours has played a hand or was already paid']);
-    if (waiting.length) rows.push(['Waiting To Join A Club', fmtInt(waiting.length), `Cannot be paid until they join a Midway Union club: ${waiting.map((x) => x.username).join(', ')}`]);
+    }));
+    if (!awarded.length) rows.push(['Nobody qualified', '0', `Every sign-up older than ${hours} hours has played a hand or was already paid`]);
+    if (waiting.length) rows.push(['Waiting To Join A Club', fmtInt(waiting.length), `Cannot be paid until they join a Midway Union club: ${waiting.map((x) => `${x.username}${x.club_nudge && x.club_nudge !== 'not yet' ? ` (nudged: ${x.club_nudge})` : ''}`).join(', ')}`]);
+    const failed = Array.isArray(w.failed) ? w.failed : [];
+    for (const f of failed) rows.push([`Could Not Be Paid: ${f.username || 'Unknown'}`, 'Retrying hourly', `${f.error || 'unknown error'}${f.since_ct ? `; first tried ${f.since_ct}` : ''}`]);
     return { title, rows };
+}
+
+/**
+ * Agent scoreboard (Dan 2026-11-04): who brought the week's sign-ups, and
+ * whether they joined, played, enabled push and were paid welcome-back chips.
+ */
+export function agentScoreboardRows(digest) {
+    const sg = digest && digest.signups && !digest.signups.error ? digest.signups : null;
+    const list = sg && Array.isArray(sg.agents_7d) ? sg.agents_7d : [];
+    const title = 'Agents And Referrers (Last 7 Days)';
+    if (!list.length) return { title, rows: sg ? [['No sign-ups this week', '0', '']] : [] };
+    return { title, rows: list.map((a) => [
+        a.referrer || 'No referral',
+        `${fmtInt(a.signups)} sign-up${Number(a.signups) === 1 ? '' : 's'}`,
+        `${fmtInt(a.joined)} joined a club (${fmtInt(a.kings_club)} KINGS CLUB), ${fmtInt(a.played)} played a hand, ${fmtInt(a.push_on)} push on, ${fmtInt(a.welcome_back_paid)} paid welcome-back chips`,
+    ]) };
 }
 
 function signupsCard(digest) {
     const s = signupsRows(digest);
     const w = welcomeBackRows(digest);
-    return listCard(s.title, s.rows) + listCard(w.title, w.rows);
+    const a = agentScoreboardRows(digest);
+    return listCard(s.title, s.rows) + listCard(w.title, w.rows) + listCard(a.title, a.rows);
 }
 
 /**
@@ -807,7 +859,7 @@ export function buildText(digest, opts = {}) {
         for (const r of sectionRows(def, digest)) lines.push(`${r.label}: ${r.value}${r.sub ? `  (${r.sub})` : ''}`);
         for (const b of def.breakdowns || []) lines.push(`${b.label}: ${breakdownText(get(digest.metrics, b.path))}`);
         if (def.title === 'Growth') {
-            for (const block of [signupsRows(digest), welcomeBackRows(digest)]) {
+            for (const block of [signupsRows(digest), welcomeBackRows(digest), agentScoreboardRows(digest)]) {
                 if (!block.rows.length) continue;
                 lines.push('', block.title.toUpperCase());
                 for (const [label, value, sub] of block.rows) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);

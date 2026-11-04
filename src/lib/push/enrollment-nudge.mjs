@@ -31,7 +31,9 @@
 
 export const OWNER_USER_ID = '47965354-0e56-43ef-931c-ddaab82af765';
 
-export const NUDGE_MOMENTS = Object.freeze(['first_run', 'club_joined', 'rakeback_receipt', 'invoice_workspace', 'message_received']);
+// 'welcome_chips' (Dan 2026-11-04): a player arriving from the welcome-back chips
+// email or text; Club Arena fires it from /?welcome=chips. Both copies agree.
+export const NUDGE_MOMENTS = Object.freeze(['first_run', 'club_joined', 'rakeback_receipt', 'invoice_workspace', 'message_received', 'welcome_chips']);
 const RECEIPT_MOMENTS = new Set(['rakeback_receipt', 'invoice_workspace']);
 
 const DAY = 24 * 60 * 60 * 1000;
