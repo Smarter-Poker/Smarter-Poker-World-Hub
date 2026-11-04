@@ -42,7 +42,7 @@ export function digestFrom() {
     return `Smarter.Poker <${addr}>`;
 }
 
-export async function sendEmail({ to, subject, html, text, idempotencyKey, from = null, fetchImpl = fetch }) {
+export async function sendEmail({ to, subject, html, text, idempotencyKey, from = null, headers = null, fetchImpl = fetch }) {
     const apiKey = trim(process.env.RESEND_API_KEY);
     if (!apiKey) return { ok: false, error: 'RESEND_API_KEY not configured' };
     if (!Array.isArray(to) || !to.length) return { ok: false, error: 'DAILY_DIGEST_TO not configured' };
@@ -57,7 +57,7 @@ export async function sendEmail({ to, subject, html, text, idempotencyKey, from 
                     ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
                 },
                 signal: AbortSignal.timeout(10000),
-                body: JSON.stringify({ from: from || digestFrom(), to, subject, html, text }),
+                body: JSON.stringify({ from: from || digestFrom(), to, subject, html, text, ...(headers ? { headers } : {}) }),
             });
             const body = await res.json().catch(() => ({}));
             if (res.ok && body?.id) return { ok: true, id: body.id };

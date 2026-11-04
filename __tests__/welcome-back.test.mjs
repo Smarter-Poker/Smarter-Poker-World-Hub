@@ -149,7 +149,9 @@ test('the route is a CRON_SECRET job and the dispatcher runs it hourly off the t
     assert.match(dispatcher, /'\/api\/cron\/signup-welcome-back':\s+300,/, 'the dispatcher gives the job the same 300s the route has');
     assert.match(dispatcher, /CRITICAL_JOBS\s*=\s*\{[\s\S]*?'\/api\/cron\/signup-welcome-back':\s+3,/, 'three failed hours page the owner');
     assert.match(route, /maxDuration: 300/);
-    assert.match(route, /summary\.failed > 0\) return res\.status\(503\)/, 'a player who could not be paid is not a 200');
+    assert.match(route, /summary\.wallet_empty \|\| summary\.failed_new > 0/, 'an empty wallet or a player who first failed this run is not a 200');
+    assert.match(route, /res\.status\(503\)/);
+    assert.doesNotMatch(route, /summary\.failed > 0\) return res\.status\(503\)/, 'one stuck player must not page every hour forever');
     assert.match(route, /Number\(req\.query\?\.limit\) \|\| 50, 60\)/, 'at most 60 disbursements per run');
     const vercel = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
     assert.ok(!(vercel.crons || []).some((c) => String(c.path).includes('signup-welcome-back')), 'never a vercel.json cron');
@@ -244,4 +246,40 @@ test('when the providers are slow the run stops sending inside its budget and le
     assert.equal(summary.emails_sent, 1);
     assert.equal(calls.marks.length, 2, 'only the first player\'s receipts were recorded; nothing was marked for players not reached');
     assert.ok(SEND_BUDGET_MS < 300000, 'the budget sits inside the route\'s maxDuration');
+});
+
+test('a muted player gets neither email nor text and is never retried; a Twilio timeout is never resent; emails carry an unsubscribe path', async () => {
+    const run = { awarded: AWARDED, awarded_count: 2, no_club: [], no_club_count: 0, failed: [], failed_count: 0 };
+    const { sb, calls } = fakeDb({ run });
+    // u2 has muted everything; u1's text times out at Twilio
+    sb.from = ((orig) => (name) => {
+        const q = orig(name);
+        if (name === 'notification_preferences') q.then = (resolve) => resolve({ data: [{ user_id: 'u2', mute_all: true }], error: null });
+        return q;
+    })(sb.from);
+    const emails = [];
+    const summary = await runWelcomeBack(sb, {
+        sendEmail: async (m) => { emails.push(m); return { ok: true, id: 'e' }; },
+        sendSms: async () => ({ ok: false, error: 'twilio threw: The operation was aborted due to timeout' }),
+    });
+    assert.equal(emails.length, 1, 'only the unmuted player is emailed');
+    assert.deepEqual(emails[0].headers, { 'List-Unsubscribe': '<https://smarter.poker/hub/settings/notifications>' });
+    assert.match(emails[0].html, /hub\/settings\/notifications/);
+    assert.match(emails[0].text, /hub\/settings\/notifications/);
+    assert.equal(summary.muted, 1);
+    const smsMark = calls.marks.find((m) => m.p_user_id === 'u1' && m.p_channel === 'sms');
+    assert.equal(smsMark.p_ok, false);
+    assert.match(smsMark.p_detail, /not resent/, 'a timed-out text is recorded as final, never retried');
+    assert.deepEqual(calls.marks.filter((m) => m.p_user_id === 'u2').map((m) => m.p_channel), ['email'], 'u2 has no phone: only the email receipt records the mute');
+    assert.match(calls.marks.find((m) => m.p_user_id === 'u2').p_detail, /muted/);
+});
+
+test('the summary carries the database verdicts the route pages on', async () => {
+    const run = { awarded: [], awarded_count: 0, no_club: [], no_club_count: 0, failed: [{ username: 'x', error: 'Insufficient Promo Balance' }], failed_count: 1, failed_new_count: 1, wallet_empty: true, closed_count: 2 };
+    const { sb } = fakeDb({ run });
+    const summary = await runWelcomeBack(sb, { sendEmail: async () => ({ ok: true }), sendSms: async () => ({ ok: true }) });
+    assert.equal(summary.failed, 1);
+    assert.equal(summary.failed_new, 1);
+    assert.equal(summary.wallet_empty, true);
+    assert.equal(summary.closed, 2);
 });

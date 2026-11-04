@@ -123,7 +123,7 @@ JOB_TIMEOUTS = {
     '/api/cron/horse-video-reels':     600,   # up to 80 verified video publishes, 540s internal deadline
     '/api/cron/horses-social-all':     600,
     '/api/cron/phase6-content':        300,   # grounded club/event reads plus capped publishing
-    '/api/cron/signup-welcome-back':   300,   # up to 50 awards, each an email and a text sent in series
+    '/api/cron/signup-welcome-back':   300,   # up to 60 awards plus nudges, email and text in series; the job stops sending at 240 s
     '/api/cron/phase7-content':        300,   # puzzle reveals plus capped puzzle and story publishing, 240s internal deadline
     '/api/cron/phase9-content':        300,   # one horse hand clip enqueue per fire, 240s internal deadline
     '/api/cron/fleet-weekly-digest':   120,   # one metrics RPC, two reads, one mail; 90s internal deadline

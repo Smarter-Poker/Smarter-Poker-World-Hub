@@ -24,9 +24,27 @@ const PLAY_URL = 'https://smarter.poker/hub/club-arena/';
 /** The chips links land in Club Arena with ?welcome=chips, which announces the welcome_chips push-nudge moment. */
 const WELCOME_URL = `${PLAY_URL}?welcome=chips`;
 const fmtChips = (v) => Number(v || WELCOME_BACK_AMOUNT).toLocaleString('en-US', { maximumFractionDigits: 2 });
+const unsubscribeHeaders = () => ({ 'List-Unsubscribe': `<${UNSUBSCRIBE_URL}>` });
+const unsubscribeFootHtml = () => `<div style="padding:14px 0 0 0;color:#8b95a7;font-size:11px;line-height:1.5;">You are getting this because you signed up at Smarter.Poker. <a href="${UNSUBSCRIBE_URL}" style="color:#8b95a7;">Manage or turn off these emails</a>.</div>`;
+const unsubscribeFootText = () => `Manage or turn off these emails: ${UNSUBSCRIBE_URL}`;
 /** Player-facing sender; the digest's alerts@ address is for the owner's ops mail. */
 export const WELCOME_BACK_FROM = 'Smarter.Poker <noreply@smarter.poker>';
 const UNDIALABLE = 'phone number cannot be dialed';
+/**
+ * Twilio did not answer inside its 30 s window. It may still have accepted
+ * the message, and a text has no idempotency key, so this one is never sent
+ * again: one possibly-missed text beats a player receiving the same text
+ * every hour. The email and the in-app/push legs still carry the news.
+ */
+const SMS_TIMED_OUT = 'text not resent: Twilio did not answer in time';
+/** The player turned everything off in notification settings (mute_all). */
+const MUTED = 'muted by the player in notification settings';
+/** Channel outcomes that are final: never retried on a later run. */
+const FINAL_SMS = new Set([UNDIALABLE, SMS_TIMED_OUT, MUTED]);
+const FINAL_EMAIL = new Set([MUTED]);
+const isTimeout = (err) => /timeout|timed out|aborted|AbortError/i.test(String(err || ''));
+/** Where every welcome-back email's unsubscribe link and List-Unsubscribe header point. */
+export const UNSUBSCRIBE_URL = 'https://smarter.poker/hub/settings/notifications';
 /** PostgREST: an award with an address whose channel has not gone out. */
 export const PENDING_CHANNEL_FILTER = 'and(email.not.is.null,email_sent_at.is.null),and(phone.not.is.null,sms_sent_at.is.null)';
 /** PostgREST: a raised nudge with an address whose channel has not gone out. */
@@ -46,6 +64,8 @@ export function welcomeBackEmail({ username, club, amount = WELCOME_BACK_AMOUNT 
         '',
         'See you at the tables,',
         'Smarter.Poker',
+        '',
+        unsubscribeFootText(),
     ].join('\n');
     const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>`
@@ -57,6 +77,7 @@ export function welcomeBackEmail({ username, club, amount = WELCOME_BACK_AMOUNT 
         + `<div style="padding:0 0 16px 0;font-size:15px;line-height:1.55;">Hi ${esc(name)}, you signed up for Smarter.Poker but have not played a hand yet, so the Midway Union just added <b>${esc(fmtChips(amount))} free chips</b> to ${esc(where)}.</div>`
         + `<a href="${WELCOME_URL}" style="display:inline-block;background:#4fc1b3;color:#05221f;text-decoration:none;font-weight:700;font-size:15px;padding:14px 24px;border-radius:8px;">Play Your First Hand</a>`
         + `<div style="padding:22px 0 0 0;color:#8a97a8;font-size:12px;line-height:1.6;">Chips are already in your wallet. Open Club Arena, pick a game and sit down.</div>`
+        + unsubscribeFootHtml()
         + `</td></tr></table></td></tr></table></body></html>`;
     return { subject, text, html };
 }
@@ -77,6 +98,7 @@ function shell({ subject, heading, lead, cta, ctaUrl, foot }) {
         + `<div style="padding:0 0 16px 0;font-size:15px;line-height:1.55;">${lead}</div>`
         + `<a href="${esc(ctaUrl)}" style="display:inline-block;background:#4fc1b3;color:#05221f;text-decoration:none;font-weight:700;font-size:15px;padding:14px 24px;border-radius:8px;">${esc(cta)}</a>`
         + `<div style="padding:22px 0 0 0;color:#8a97a8;font-size:12px;line-height:1.6;">${esc(foot)}</div>`
+        + unsubscribeFootHtml()
         + `</td></tr></table></td></tr></table></body></html>`;
 }
 
@@ -99,6 +121,8 @@ export function clubNudgeEmail({ username, club, clubCode, referralCode, amount 
         '',
         'See you at the tables,',
         'Smarter.Poker',
+        '',
+        unsubscribeFootText(),
     ].join('\n');
     const html = shell({
         subject,
@@ -133,6 +157,8 @@ export function playNudgeEmail({ username, club, amount = WELCOME_BACK_AMOUNT })
         '',
         'See you at the tables,',
         'Smarter.Poker',
+        '',
+        unsubscribeFootText(),
     ].join('\n');
     const html = shell({
         subject,
@@ -180,7 +206,7 @@ export const SEND_BUDGET_MS = 240000;
 
 export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log = () => {}, deadline = Date.now() + SEND_BUDGET_MS } = {}) {
     const summary = { awarded: 0, no_club: 0, failed: 0, emails_sent: 0, emails_failed: 0, texts_sent: 0, texts_failed: 0, texts_skipped_no_phone: 0, retried: 0,
-        club_nudges: 0, play_nudges: 0, nudge_emails_sent: 0, nudge_emails_failed: 0, nudge_texts_sent: 0, nudge_texts_failed: 0, deferred: 0, nudges: [], players: [], errors: [] };
+        club_nudges: 0, play_nudges: 0, nudge_emails_sent: 0, nudge_emails_failed: 0, nudge_texts_sent: 0, nudge_texts_failed: 0, deferred: 0, muted: 0, nudges: [], players: [], errors: [] };
     const outOfTime = () => Date.now() >= deadline;
 
     const { data: run, error } = await sb.rpc('fn_sp_signup_welcome_back_run', { p_limit: limit });
@@ -188,6 +214,10 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
     summary.awarded = Number(run?.awarded_count || 0);
     summary.no_club = Number(run?.no_club_count || 0);
     summary.failed = Number(run?.failed_count || 0);
+    summary.failed_new = Number(run?.failed_new_count || 0);
+    summary.wallet_empty = run?.wallet_empty === true;
+    summary.closed = Number(run?.closed_count || 0);
+    if (run?.already_running) summary.already_running = true;
     summary.union_promo_wallet_after = run?.union_promo_wallet_after ?? null;
     summary.amount = run?.amount ?? WELCOME_BACK_AMOUNT;
     summary.club_nudges = Number(run?.club_nudge_count || 0);
@@ -219,8 +249,8 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
         const fresh = new Date(p.awarded_at).getTime() > dayAgo;
         const quietForADay = !p.updated_at || new Date(p.updated_at).getTime() < dueAgain;
         const retryable = (err) => !err || fresh || quietForADay;
-        const needEmail = !!p.email && !p.email_sent_at && retryable(p.email_error);
-        const needSms = !!p.phone && !p.sms_sent_at && p.sms_error !== UNDIALABLE && retryable(p.sms_error);
+        const needEmail = !!p.email && !p.email_sent_at && !FINAL_EMAIL.has(p.email_error) && retryable(p.email_error);
+        const needSms = !!p.phone && !p.sms_sent_at && !FINAL_SMS.has(p.sms_error) && retryable(p.sms_error);
         if (!needEmail && !needSms) continue;
         todo.set(p.user_id, { ...p, needEmail, needSms, source: 'retry' });
         summary.retried++;
@@ -236,6 +266,17 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
             if (!t.club) t.club = clubOf.get(t.club_id) || null;
         }
     }
+
+    // Players who muted everything in notification settings get neither the
+    // email nor the text; the receipt says so, and it is final.
+    const muted = new Set();
+    const loadMuted = async (ids) => {
+        if (!ids.length) return;
+        const { data: prefs, error: prefErr } = await sb.from('notification_preferences').select('user_id, mute_all').in('user_id', ids);
+        if (prefErr) summary.errors.push(`notification_preferences lookup: ${prefErr.message}`);
+        for (const r of prefs || []) if (r.mute_all === true) muted.add(r.user_id);
+    };
+    await loadMuted([...todo.keys()]);
 
     // A receipt that fails to record would make the next run send again, so
     // it gets a second try before that is accepted.
@@ -253,11 +294,20 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
         const entry = { user_id: t.user_id, username: t.username, club: t.club, source: t.source, email: 'not needed', text: 'not needed' };
         const amount = Number(t.amount || WELCOME_BACK_AMOUNT);
 
+        if (muted.has(t.user_id)) {
+            entry.email = entry.text = 'muted';
+            summary.muted++;
+            if (t.needEmail && t.email) await mark(t.user_id, 'email', false, MUTED);
+            if (t.needSms && t.phone) await mark(t.user_id, 'sms', false, MUTED);
+            summary.players.push(entry);
+            continue;
+        }
+
         if (t.needEmail) {
             if (!t.email) entry.email = 'no email';
             else {
                 const msg = welcomeBackEmail({ username: t.username, club: t.club, amount });
-                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.user_id}`, from: WELCOME_BACK_FROM });
+                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.user_id}`, from: WELCOME_BACK_FROM, headers: unsubscribeHeaders() });
                 entry.email = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.emails_sent++; else summary.emails_failed++;
                 await mark(t.user_id, 'email', !!r.ok, r.ok ? null : r.error);
@@ -274,7 +324,7 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
                 const r = await sendSms(welcomeBackSms({ username: t.username, club: t.club, amount }), { to });
                 entry.text = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.texts_sent++; else summary.texts_failed++;
-                await mark(t.user_id, 'sms', !!r.ok, r.ok ? null : r.error);
+                await mark(t.user_id, 'sms', !!r.ok, r.ok ? null : (isTimeout(r.error) ? SMS_TIMED_OUT : r.error));
             }
         }
         summary.players.push(entry);
@@ -306,8 +356,8 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
             const fresh = new Date(at).getTime() > dayAgo;
             if (new Date(at).getTime() < Date.now() - 7 * 86400000) continue;
             const retryable = (err) => !err || fresh || quietForADay;
-            const needEmail = !!p.email && !p[`${kind}_nudge_email_at`] && retryable(p[`${kind}_nudge_email_error`]);
-            const needSms = !!p.phone && !p[`${kind}_nudge_sms_at`] && p[`${kind}_nudge_sms_error`] !== UNDIALABLE && retryable(p[`${kind}_nudge_sms_error`]);
+            const needEmail = !!p.email && !p[`${kind}_nudge_email_at`] && !FINAL_EMAIL.has(p[`${kind}_nudge_email_error`]) && retryable(p[`${kind}_nudge_email_error`]);
+            const needSms = !!p.phone && !p[`${kind}_nudge_sms_at`] && !FINAL_SMS.has(p[`${kind}_nudge_sms_error`]) && retryable(p[`${kind}_nudge_sms_error`]);
             if (!needEmail && !needSms) continue;
             nudgeTodo.push({ kind, user_id: p.user_id, email: p.email, phone: p.phone, club_id: p.club_id, amount: p.amount, needEmail, needSms, source: 'retry' });
             seen.add(`${kind}:${p.user_id}`);
@@ -334,8 +384,22 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
         }
     }
 
+    await loadMuted([...new Set(nudgeTodo.map((t) => t.user_id))].filter((id) => !todo.has(id)));
     for (const t of nudgeTodo) {
         if (outOfTime()) { summary.deferred++; continue; }
+        if (t.kind === 'club' && !t.club_code) {
+            // No join code to give: the message would say "join with code"
+            // and name nothing. Left pending; the next run looks the code up again.
+            summary.errors.push(`club nudge ${t.username || t.user_id}: KINGS CLUB join code not found; not sent`);
+            continue;
+        }
+        if (muted.has(t.user_id)) {
+            summary.muted++;
+            if (t.needEmail && t.email) await mark(t.user_id, `${t.kind}_nudge_email`, false, MUTED);
+            if (t.needSms && t.phone) await mark(t.user_id, `${t.kind}_nudge_sms`, false, MUTED);
+            summary.nudges.push({ kind: t.kind, user_id: t.user_id, username: t.username, email: 'muted', text: 'muted' });
+            continue;
+        }
         const entry = { kind: t.kind, user_id: t.user_id, username: t.username, source: t.source || 'run', email: t.email ? 'not needed' : 'no email', text: t.phone ? 'not needed' : 'no phone' };
         const amount = Number(t.amount || summary.amount || WELCOME_BACK_AMOUNT);
         const msg = t.kind === 'club'
@@ -347,7 +411,7 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
         if (t.needEmail) {
             if (!t.email) entry.email = 'no email';
             else {
-                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.kind}-nudge-${t.user_id}`, from: WELCOME_BACK_FROM });
+                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.kind}-nudge-${t.user_id}`, from: WELCOME_BACK_FROM, headers: unsubscribeHeaders() });
                 entry.email = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.nudge_emails_sent++; else summary.nudge_emails_failed++;
                 await mark(t.user_id, `${t.kind}_nudge_email`, !!r.ok, r.ok ? null : r.error);
@@ -362,7 +426,7 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
                 const r = await sendSms(smsBody, { to });
                 entry.text = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.nudge_texts_sent++; else summary.nudge_texts_failed++;
-                await mark(t.user_id, `${t.kind}_nudge_sms`, !!r.ok, r.ok ? null : r.error);
+                await mark(t.user_id, `${t.kind}_nudge_sms`, !!r.ok, r.ok ? null : (isTimeout(r.error) ? SMS_TIMED_OUT : r.error));
             }
         }
         summary.nudges.push(entry);

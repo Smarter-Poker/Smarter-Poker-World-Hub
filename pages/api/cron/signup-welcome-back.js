@@ -36,10 +36,16 @@ async function handler(req, res) {
     try {
         const sb = createClient();
         const summary = await runWelcomeBack(sb, { limit, sendEmail, sendSms, log: (m) => console.log(m) });
-        // A player the promotion could not pay (promo wallet empty, a ledger
-        // refusal) is an incident, not a success: non-200 lets the dispatcher
-        // count it and page after three failed hours. Channels still ran.
-        if (summary.failed > 0) return res.status(503).json({ success: false, error: `${summary.failed} player(s) could not be paid`, ...summary });
+        // A player the promotion could not pay is an incident, not a success:
+        // non-200 lets the dispatcher count it and page after three failed
+        // hours. It pages for an empty promo wallet (nobody can be paid) and
+        // for a player who FIRST failed this run; one stuck player seen every
+        // hour is reported in the digest under Could Not Be Paid instead, so
+        // the pager does not become a permanent alarm anyone learns to mute.
+        if (summary.wallet_empty || summary.failed_new > 0) {
+            const why = summary.wallet_empty ? 'Midway Union promo wallet cannot fund the chips' : `${summary.failed_new} player(s) could not be paid`;
+            return res.status(503).json({ success: false, error: why, ...summary });
+        }
         return res.status(200).json({ success: true, ...summary });
     } catch (err) {
         reportApiError(err, req);

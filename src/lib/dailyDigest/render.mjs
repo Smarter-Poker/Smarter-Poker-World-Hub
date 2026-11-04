@@ -535,7 +535,11 @@ export function signupsRows(digest) {
         if (p.phone_verified) bits.push('Phone verified');
         else if (p.phone_on_file) bits.push('Phone on file, not verified');
         else bits.push('No phone');
-        if (p.welcome_back?.status === 'awarded') bits.push('Welcome-back chips sent');
+        const wb = p.welcome_back?.status;
+        if (wb === 'awarded') bits.push('Welcome-back chips sent');
+        else if (wb === 'no_club') bits.push('Welcome-back chips waiting on a club');
+        else if (wb === 'failed') bits.push('Welcome-back chips could not be paid');
+        else if (wb === 'closed') bits.push('Played before welcome-back chips were due');
         return [name, value, bits.join('; ')];
     });
     return { title, rows, note: '' };

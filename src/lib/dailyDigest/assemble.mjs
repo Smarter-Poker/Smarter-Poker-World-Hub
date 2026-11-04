@@ -99,6 +99,11 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
             detail: pw,
             dispatch: false,
         });
+        // The header count and the "not yet picked up" line both read
+        // attention_status, so the added item is counted there too.
+        if (digest.attention_status && typeof digest.attention_status === 'object') {
+            digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
+        }
     }
     const costs = withCosts ? await providerSpend(day).catch(() => null) : null;
     return { digest, costs };
