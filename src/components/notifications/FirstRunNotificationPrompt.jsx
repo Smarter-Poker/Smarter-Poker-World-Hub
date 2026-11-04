@@ -98,6 +98,10 @@ const SUPPRESSED_ROUTES = [
 ];
 
 const COPY = {
+    welcome_chips: {
+        title: 'Never Miss Free Chips Again',
+        body: 'Turn On Notifications And We Will Tell You The Moment Chips Land In Your Wallet, A Seat Opens, Or A Tournament You Registered For Starts. You Can Change This Any Time In Settings.',
+    },
     first_run: {
         title: 'Never Miss A Game',
         body: 'Turn On Notifications And We Will Alert You When A Seat Opens, A Friend Goes Live, A Game Fills Up, Or Someone Messages You. You Can Fine-Tune Exactly Which Alerts You Get At Any Time.',

@@ -154,3 +154,74 @@ test('the route is a CRON_SECRET job and the dispatcher runs it hourly off the t
     const vercel = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
     assert.ok(!(vercel.crons || []).some((c) => String(c.path).includes('signup-welcome-back')), 'never a vercel.json cron');
 });
+
+// ── Enhancements (Dan 2026-11-04 13:02): nudges, settings, scoreboard ──────────
+import { clubNudgeEmail, clubNudgeSms, playNudgeEmail, playNudgeSms, PENDING_NUDGE_FILTER } from '../src/lib/welcomeBack/run.mjs';
+
+test('the join-a-club nudge carries the club code and referral code, by email and text, and is recorded per channel', async () => {
+    const run = { awarded: [], awarded_count: 0, no_club: [], no_club_count: 0, failed: [], failed_count: 0, amount: 25,
+        club_nudges: [{ user_id: 'n1', username: 'TheSAUCE', email: 'sauce@example.com', phone: '+13125550099', club_code: '25450', club: 'KINGS CLUB', referral_code: '1002337', referrer: 'kingfish', amount: 25 }], club_nudge_count: 1,
+        play_nudges: [{ user_id: 'n2', username: 'Nena', email: 'nena@example.com', phone: null, club: 'KINGS CLUB', amount: 25 }], play_nudge_count: 1 };
+    const { sb, calls } = fakeDb({ run });
+    const emails = [], texts = [];
+    const summary = await runWelcomeBack(sb, {
+        sendEmail: async (m) => { emails.push(m); return { ok: true, id: 'e' }; },
+        sendSms: async (b, o) => { texts.push([b, o.to]); return { ok: true, id: 's' }; },
+    });
+    assert.equal(summary.club_nudges, 1);
+    assert.equal(summary.play_nudges, 1);
+    assert.equal(emails.length, 2);
+    assert.match(emails[0].subject, /25 free chips are waiting, TheSAUCE\. Join KINGS CLUB/);
+    assert.match(emails[0].html, /club code <b>25450<\/b> \(referral code <b>1002337<\/b>\)/);
+    assert.match(emails[0].html, /\?join=25450&amp;ref=1002337/);
+    assert.equal(emails[0].idempotencyKey, 'welcome-back-club-nudge-n1');
+    assert.match(emails[1].subject, /Your 25 free chips are still waiting, Nena/);
+    assert.match(emails[1].html, /\?welcome=chips/);
+    assert.equal(texts.length, 1, 'Nena has no phone');
+    assert.match(texts[0][0], /Join KINGS CLUB with club code 25450 to claim them: .*\?join=25450&ref=1002337 Reply STOP to opt out\.$/);
+    assert.deepEqual(calls.marks, [
+        { p_user_id: 'n1', p_channel: 'club_nudge_email', p_ok: true, p_detail: null },
+        { p_user_id: 'n1', p_channel: 'club_nudge_sms', p_ok: true, p_detail: null },
+        { p_user_id: 'n2', p_channel: 'play_nudge_email', p_ok: true, p_detail: null },
+    ]);
+    assert.equal(summary.nudge_emails_sent, 2);
+    assert.equal(summary.nudge_texts_sent, 1);
+    assert.deepEqual(summary.nudges.map((n) => `${n.kind}:${n.username}:${n.email}:${n.text}`), ['club:TheSAUCE:sent:sent', 'play:Nena:sent:no phone']);
+});
+
+test('a nudge whose email never went out is retried on a later run, with the club code looked up', async () => {
+    const run = { awarded: [], awarded_count: 0, no_club: [], no_club_count: 0, failed: [], failed_count: 0, club_nudges: [], club_nudge_count: 0, play_nudges: [], play_nudge_count: 0 };
+    const pending = [
+        { user_id: 'r1', email: 'r1@example.com', email_sent_at: '2026-10-30T00:00:00Z', phone: null, club_id: null, amount: 25, status: 'no_club', updated_at: new Date(Date.now() - 3600000).toISOString(),
+          club_nudge_notified_at: new Date(Date.now() - 3600000).toISOString(), club_nudge_email_at: null, club_nudge_email_error: 'resend 500', club_nudge_sms_at: null, club_nudge_sms_error: null,
+          play_nudge_notified_at: null },
+        { user_id: 'r2', email: 'r2@example.com', email_sent_at: '2026-10-30T00:00:00Z', phone: null, club_id: 'kings', amount: 25, status: 'awarded', updated_at: new Date(Date.now() - 3600000).toISOString(),
+          club_nudge_notified_at: new Date(Date.now() - 2 * 86400000).toISOString(), club_nudge_email_at: null, club_nudge_email_error: null, club_nudge_sms_at: null, club_nudge_sms_error: null,
+          play_nudge_notified_at: null },
+    ];
+    const { sb, calls } = fakeDb({ run, pending, profiles: [{ id: 'r1', username: 'Rone' }], clubs: [{ id: 'kings', name: 'KINGS CLUB', club_id: 25450 }] });
+    sb.from = ((orig) => (name) => {
+        const q = orig(name);
+        if (name === 'clubs') q.maybeSingle = async () => ({ data: { club_id: 25450, name: 'KINGS CLUB' }, error: null });
+        if (name === 'referrals') q.then = (resolve) => resolve({ data: [{ referee_id: 'r1', referral_code_used: '1002337' }], error: null });
+        return q;
+    })(sb.from);
+    const emails = [];
+    const summary = await runWelcomeBack(sb, { sendEmail: async (m) => { emails.push(m); return { ok: true, id: 'e' }; }, sendSms: async () => ({ ok: true }) });
+    assert.ok(calls.queries.some((q) => q[0] === 'sp_signup_welcome_back_awards' && q[1] === 'or' && q[2] === PENDING_NUDGE_FILTER));
+    assert.equal(emails.length, 1, 'r2 has already joined (status awarded) so the club nudge is moot; r1 is retried');
+    assert.deepEqual(emails[0].to, ['r1@example.com']);
+    assert.match(emails[0].subject, /Rone/);
+    assert.match(emails[0].html, /club code <b>25450<\/b> \(referral code <b>1002337<\/b>\)/);
+    assert.equal(summary.nudges[0].source, 'retry');
+});
+
+test('nudge templates: whole-number chips, no em dashes, STOP on texts, escaped names', () => {
+    const e = clubNudgeEmail({ username: '<Phil>', club: 'KINGS CLUB', clubCode: '25450', referralCode: null, amount: 25 });
+    assert.match(e.html, /&lt;Phil&gt;/);
+    assert.doesNotMatch(e.html, /referral code/);
+    assert.equal(e.url, 'https://smarter.poker/hub/club-arena/?join=25450');
+    assert.match(playNudgeEmail({ username: 'A', club: 'KINGS CLUB', amount: '25.00' }).text, /The 25 free chips/);
+    for (const t of [e.html, e.text, e.subject, playNudgeEmail({ username: 'A' }).html, clubNudgeSms({ username: 'A', clubCode: '1' }), playNudgeSms({ username: 'A' })]) assert.doesNotMatch(t, /—/);
+    assert.match(playNudgeSms({ username: 'A', club: 'KINGS CLUB' }), /Reply STOP to opt out\.$/);
+});

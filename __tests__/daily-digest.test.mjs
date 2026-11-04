@@ -2,7 +2,7 @@
 // Run: node --test __tests__/daily-digest.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS, horseRosterRows, allowedNumbers, playerTotalsRows, fmtSigned, fmtMinutes, signupsRows, welcomeBackRows } from '../src/lib/dailyDigest/render.mjs';
+import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS, horseRosterRows, allowedNumbers, playerTotalsRows, fmtSigned, fmtMinutes, signupsRows, welcomeBackRows, agentScoreboardRows } from '../src/lib/dailyDigest/render.mjs';
 import { signViewToken, verifyViewToken, ownerPhone, digestRecipients, adminRecipients } from '../src/lib/dailyDigest/delivery.mjs';
 
 function fixture(overrides = {}) {
@@ -671,4 +671,60 @@ test('loadSignups returns the report or a tagged error, never throws', async () 
     assert.deepEqual(await loadSignups(sb, '2026-10-14'), { day: '2026-10-14', signups: [] });
     const bad = { rpc: async () => { throw new Error('boom'); } };
     assert.deepEqual(await loadSignups(bad, '2026-10-14'), { day: '2026-10-14', error: 'boom' });
+});
+
+// Enhancements (Dan 2026-11-04): conversion, promo wallet runway, scoreboard, push coverage, nudges
+const SIGNUPS_PLUS = { ...SIGNUPS,
+    settings: { amount: 25, hours: 24, club_nudge_hours: 1, play_nudge_hours: 72 },
+    conversion: { day: { awarded: 21, played: 3 }, week: { awarded: 21, played: 3 }, all: { awarded: 42, played: 10, chips: 1050 } },
+    promo_wallet: { balance: 135877.93, low_threshold: 2500, low: false, welcome_back_7d_chips: 525, all_promo_7d_out: 140897.45, all_promo_7d_in: 112320.41, net_7d: -28577.04, awards_left_at_amount: 5435, days_left_at_welcome_back_pace: 1811.7, days_left_at_net_pace: 33.3 },
+    agents_7d: [{ referrer: 'Probyourmom', signups: 5, joined: 5, kings_club: 5, played: 3, push_on: 0, welcome_back_paid: 1 }, { referrer: 'No referral', signups: 4, joined: 1, kings_club: 1, played: 1, push_on: 0, welcome_back_paid: 0 }],
+    push_coverage: { week_signups: 19, week_with_device: 0, paid_total: 21, paid_with_device: 0 },
+    nudges: { club_nudges_day: 7, play_nudges_day: 1, play_nudged_then_played: 0, play_nudged_total: 1, club_nudged_then_joined: 2, club_nudged_total: 7 },
+    welcome_back: { ...SIGNUPS.welcome_back,
+        awarded: [{ ...SIGNUPS.welcome_back.awarded[0], play_nudge: { at_ct: 'Oct 16 11:17 PM', email: 'sent', text: 'no phone' } }],
+        waiting_for_club: [{ username: 'TheSAUCE', club_nudge: 'push no device, email sent, text no phone' }, { username: 'PokerMogul', club_nudge: 'not yet' }] } };
+
+test('the Welcome-Back card opens with conversion, the promo wallet runway, push reach and the two nudges', () => {
+    const w = welcomeBackRows(fixture({ signups: SIGNUPS_PLUS }));
+    assert.equal(w.title, 'Welcome-Back Chips (25 Free Chips, No Hand After 24 Hours) - 1');
+    assert.deepEqual(w.rows[0].slice(0, 2), ['Played A Hand Since Getting Chips', '3 of 21 (14%)']);
+    assert.match(w.rows[0][2], /Last 7 days 3 of 21 \(14%\); all time 10 of 42 \(24%\), 1,050 chips paid in total/);
+    assert.deepEqual(w.rows[1].slice(0, 2), ['Midway Union Promo Wallet', '135,877.93 chips']);
+    assert.match(w.rows[1][2], /5,435 more awards at 25; welcome-back took 525 in 7 days; wallet out 140,897.45 \/ in 112,320.41 \(net -28,577.04\); 1,811.7 days at the welcome-back pace, 33.3 days at the wallet's net pace/);
+    assert.deepEqual(w.rows[2].slice(0, 2), ['Push Enabled On A Device', '0 of 19 sign-ups this week']);
+    assert.deepEqual(w.rows[3].slice(0, 2), ['Join-A-Club Nudges Sent', '7']);
+    assert.match(w.rows[3][2], /2 of 7 ever nudged have since joined/);
+    assert.deepEqual(w.rows[4].slice(0, 2), ['Play Nudges Sent', '1']);
+    assert.match(w.rows[4][2], /sent 72 hours after the chips/);
+    assert.match(w.rows[5][2], /Play nudge Oct 16 11:17 PM \(email sent, text no phone\)/);
+    assert.match(w.rows[6][2], /TheSAUCE \(nudged: push no device, email sent, text no phone\), PokerMogul/);
+});
+
+test('a low promo wallet is flagged in the card and becomes a Needs Your Attention item', async () => {
+    const low = { ...SIGNUPS_PLUS, promo_wallet: { ...SIGNUPS_PLUS.promo_wallet, balance: 1200, low: true, awards_left_at_amount: 48, days_left_at_net_pace: null } };
+    const w = welcomeBackRows(fixture({ signups: low }));
+    assert.equal(w.rows[1][0], 'Midway Union Promo Wallet - LOW');
+    assert.match(w.rows[1][2], /refilled faster than it is spent this week; at or under the 2,500 line/);
+    const { loadDigestData } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const sb = { rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_signups' ? low : PLAYER_TOTALS, error: null }) };
+    const { digest } = await loadDigestData(sb, '2026-10-28', { withCosts: false, dispatch: false });
+    const item = digest.attention.find((a) => a.rule === 'promo_wallet_low');
+    assert.ok(item, 'attention item added');
+    assert.match(item.title, /down to 1,200 chips \(48 welcome-back awards left; the line is 2,500\)/);
+    assert.match(buildSubject(digest), /Need Attention/);
+    const okSb = { rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_signups' ? SIGNUPS_PLUS : PLAYER_TOTALS, error: null }) };
+    const ok = await loadDigestData(okSb, '2026-10-28', { withCosts: false, dispatch: false });
+    assert.ok(!(ok.digest.attention || []).some((a) => a.rule === 'promo_wallet_low'), 'no item when the wallet is fine');
+});
+
+test('the agent scoreboard lists referrers with joined, KINGS CLUB, played, push and paid counts, in the email and the text', () => {
+    const a = agentScoreboardRows(fixture({ signups: SIGNUPS_PLUS }));
+    assert.equal(a.title, 'Agents And Referrers (Last 7 Days)');
+    assert.deepEqual(a.rows[0], ['Probyourmom', '5 sign-ups', '5 joined a club (5 KINGS CLUB), 3 played a hand, 0 push on, 1 paid welcome-back chips']);
+    assert.equal(a.rows[1][0], 'No referral');
+    const html = buildHtml(fixture({ signups: SIGNUPS_PLUS }), { email: true });
+    assert.ok(html.indexOf('Agents And Referrers') > html.indexOf('Welcome-Back Chips') && html.indexOf('Agents And Referrers') < html.indexOf('Player Funnel'));
+    assert.match(buildText(fixture({ signups: SIGNUPS_PLUS }), {}), /AGENTS AND REFERRERS \(LAST 7 DAYS\)\nProbyourmom: 5 sign-ups/);
+    assert.deepEqual(agentScoreboardRows(fixture()).rows, [], 'no report, no card');
 });

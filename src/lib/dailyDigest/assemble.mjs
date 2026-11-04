@@ -85,6 +85,21 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     if (digest && playerTotals) digest.player_totals = playerTotals;
     if (digest) digest.spins_spend = spinsSpend;
     if (digest) digest.signups = signups;
+    // The Midway Union promo wallet funds the welcome-back chips. At or under
+    // the owner's line (sp_digest_settings promo_wallet_low_chips) it is a
+    // Needs Your Attention item, not a number buried in a card.
+    const pw = signups && !signups.error && signups.promo_wallet;
+    if (digest && pw && pw.low) {
+        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
+        digest.attention.push({
+            rule: 'promo_wallet_low',
+            severity: 'warning',
+            status: 'not_picked_up',
+            title: `Midway Union promo wallet is down to ${Number(pw.balance).toLocaleString('en-US')} chips (${Number(pw.awards_left_at_amount || 0).toLocaleString('en-US')} welcome-back awards left; the line is ${Number(pw.low_threshold).toLocaleString('en-US')})`,
+            detail: pw,
+            dispatch: false,
+        });
+    }
     const costs = withCosts ? await providerSpend(day).catch(() => null) : null;
     return { digest, costs };
 }
