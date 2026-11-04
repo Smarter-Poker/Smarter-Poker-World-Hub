@@ -128,6 +128,12 @@ const EVENT_ALIASES = {
     vip_lapse: 'vip',
     vip_stipend: 'vip',
     page_completion_nudge: 'system',
+    // Welcome-back chips (Dan 2026-11-04): the Midway Union's free chips for a
+    // sign-up who has not played, the join-a-club nudge and the play nudge.
+    // Gated by the Bonuses switch like every other chip promotion.
+    welcome_back_chips: 'bonus',
+    welcome_back_club_nudge: 'bonus',
+    welcome_back_play_nudge: 'bonus',
     // poker
     late_reg: 'late_reg_closing',
     game_threshold: 'venue_alert',

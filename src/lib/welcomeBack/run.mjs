@@ -217,7 +217,14 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
     summary.failed_new = Number(run?.failed_new_count || 0);
     summary.wallet_empty = run?.wallet_empty === true;
     summary.closed = Number(run?.closed_count || 0);
-    if (run?.already_running) summary.already_running = true;
+    if (run?.already_running) {
+        // Another run holds the lock. Its pending-channel and nudge loops are
+        // the same ones this run would walk, and a text has no idempotency
+        // key, so this run stops here rather than send anything twice.
+        summary.already_running = true;
+        log('[welcome-back] another run is in progress; nothing sent');
+        return summary;
+    }
     summary.union_promo_wallet_after = run?.union_promo_wallet_after ?? null;
     summary.amount = run?.amount ?? WELCOME_BACK_AMOUNT;
     summary.club_nudges = Number(run?.club_nudge_count || 0);

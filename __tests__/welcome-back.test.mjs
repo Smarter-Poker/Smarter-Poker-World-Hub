@@ -283,3 +283,17 @@ test('the summary carries the database verdicts the route pages on', async () =>
     assert.equal(summary.wallet_empty, true);
     assert.equal(summary.closed, 2);
 });
+
+test('when the database reports another run in progress, nothing is sent', async () => {
+    const { sb, calls } = fakeDb({ run: { already_running: true }, pending: [{ user_id: 'u9', email: 'x@example.com', phone: null, awarded_at: new Date().toISOString() }] });
+    let sends = 0;
+    const summary = await runWelcomeBack(sb, { sendEmail: async () => { sends++; return { ok: true }; }, sendSms: async () => { sends++; return { ok: true }; } });
+    assert.equal(summary.already_running, true);
+    assert.equal(sends, 0);
+    assert.equal(calls.marks.length, 0);
+});
+
+test('the three welcome-back push types sit under the Bonuses preference', async () => {
+    const { eventToTypeKey } = await import('../src/lib/push/push-prefs.js');
+    for (const t of ['welcome_back_chips', 'welcome_back_club_nudge', 'welcome_back_play_nudge']) assert.equal(eventToTypeKey(t), 'bonus');
+});
