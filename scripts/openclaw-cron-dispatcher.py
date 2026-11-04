@@ -123,6 +123,7 @@ JOB_TIMEOUTS = {
     '/api/cron/horse-video-reels':     600,   # up to 80 verified video publishes, 540s internal deadline
     '/api/cron/horses-social-all':     600,
     '/api/cron/phase6-content':        300,   # grounded club/event reads plus capped publishing
+    '/api/cron/signup-welcome-back':   300,   # up to 50 awards, each an email and a text sent in series
     '/api/cron/phase7-content':        300,   # puzzle reveals plus capped puzzle and story publishing, 240s internal deadline
     '/api/cron/phase9-content':        300,   # one horse hand clip enqueue per fire, 240s internal deadline
     '/api/cron/fleet-weekly-digest':   120,   # one metrics RPC, two reads, one mail; 90s internal deadline
@@ -1336,6 +1337,7 @@ CRITICAL_JOBS = {
     # fails (missing instance, short horses, late start, stuck round, late
     # settlement), so two consecutive minutes page. Inert until enabled.
     '/api/cron/trivia-nightly-tournament': 2,
+    '/api/cron/signup-welcome-back':    3,   # hourly; 3 = three hours of sign-ups not getting their 25 chips
 }
 CRITICAL_RUNBOOKS = {
     '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
@@ -1348,6 +1350,7 @@ CRITICAL_RUNBOOKS = {
     '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
     '/api/cron/trivia-nightly-tournament': 'World-Hub docs/trivia/PHASE-6-RELEASE-REPORT.md (runbook) + trivia_tournament_health_v1()',
+    '/api/cron/signup-welcome-back':    'club-arena docs/changelog/2026-11-04-new-signups-in-the-digest-and-welcome-back-chips.md + journalctl -u openclaw | grep signup-welcome-back',
 }
 _critical_state = {}
 

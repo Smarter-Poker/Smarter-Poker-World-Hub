@@ -519,10 +519,11 @@ export function signupsRows(digest) {
     if (!list.length) return { title, rows: [['Nobody signed up', '0', '']], note: '' };
     const rows = list.map((p) => {
         const clubs = Array.isArray(p.clubs) ? p.clubs : [];
+        const pendingTag = (c) => (c.status && !['active', 'approved'].includes(String(c.status).toLowerCase()) ? ` (${c.status})` : '');
         const kings = clubs.find((c) => c.is_kings_club);
-        const others = clubs.filter((c) => !c.is_kings_club).map((c) => c.club).filter(Boolean);
+        const others = clubs.filter((c) => !c.is_kings_club).map((c) => c.club ? `${c.club}${pendingTag(c)}` : null).filter(Boolean);
         let value;
-        if (kings) value = others.length ? `KINGS CLUB + ${others.join(', ')}` : 'KINGS CLUB';
+        if (kings) value = others.length ? `KINGS CLUB${pendingTag(kings)} + ${others.join(', ')}` : `KINGS CLUB${pendingTag(kings)}`;
         else if (others.length) value = `${others.join(', ')} (not KINGS CLUB)`;
         else value = 'No club yet';
         const name = p.display_name && p.display_name !== p.username ? `${p.username} (${p.display_name})` : (p.username || 'Unknown');
@@ -558,7 +559,7 @@ export function welcomeBackRows(digest) {
         const bits = [
             a.signed_up_ct ? `Signed up ${a.signed_up_ct}` : null,
             a.awarded_ct ? `Chips sent ${a.awarded_ct}` : null,
-            `Push ${a.push ? 'sent' : 'not sent'}`,
+            `Push ${a.push_status || (a.push ? 'queued' : 'not raised')}`,
             `Email ${a.email || 'pending'}`,
             `Text ${a.text || 'pending'}`,
             a.played_since ? 'Played since' : 'Still has not played',
@@ -567,6 +568,8 @@ export function welcomeBackRows(digest) {
     });
     if (!rows.length) rows.push(['Nobody qualified', '0', 'Every sign-up older than 24 hours has played a hand or was already paid']);
     if (waiting.length) rows.push(['Waiting To Join A Club', fmtInt(waiting.length), `Cannot be paid until they join a Midway Union club: ${waiting.map((x) => x.username).join(', ')}`]);
+    const failed = Array.isArray(w.failed) ? w.failed : [];
+    for (const f of failed) rows.push([`Could Not Be Paid: ${f.username || 'Unknown'}`, 'Retrying hourly', `${f.error || 'unknown error'}${f.since_ct ? `; first tried ${f.since_ct}` : ''}`]);
     return { title, rows };
 }
 

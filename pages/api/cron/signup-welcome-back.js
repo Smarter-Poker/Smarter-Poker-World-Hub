@@ -22,7 +22,7 @@ import { withCronHealth } from '../../../src/lib/cronHealth';
 import { sendEmail, sendSms } from '../../../src/lib/dailyDigest/delivery.mjs';
 import { runWelcomeBack } from '../../../src/lib/welcomeBack/run.mjs';
 
-export const config = { maxDuration: 120 };
+export const config = { maxDuration: 300 };
 
 async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
@@ -30,10 +30,16 @@ async function handler(req, res) {
     const auth = String(req.headers.authorization || '');
     if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
 
-    const limit = Math.max(1, Math.min(Number(req.query?.limit) || 50, 500));
+    // 60 disbursements measured at 35-320 ms each stay well inside the
+    // database function's own statement budget.
+    const limit = Math.max(1, Math.min(Number(req.query?.limit) || 50, 60));
     try {
         const sb = createClient();
         const summary = await runWelcomeBack(sb, { limit, sendEmail, sendSms, log: (m) => console.log(m) });
+        // A player the promotion could not pay (promo wallet empty, a ledger
+        // refusal) is an incident, not a success: non-200 lets the dispatcher
+        // count it and page after three failed hours. Channels still ran.
+        if (summary.failed > 0) return res.status(503).json({ success: false, error: `${summary.failed} player(s) could not be paid`, ...summary });
         return res.status(200).json({ success: true, ...summary });
     } catch (err) {
         reportApiError(err, req);

@@ -21,6 +21,11 @@
 
 export const WELCOME_BACK_AMOUNT = 25;
 const PLAY_URL = 'https://smarter.poker/hub/club-arena/';
+/** Player-facing sender; the digest's alerts@ address is for the owner's ops mail. */
+export const WELCOME_BACK_FROM = 'Smarter.Poker <noreply@smarter.poker>';
+const UNDIALABLE = 'phone number cannot be dialed';
+/** PostgREST: an award with an address whose channel has not gone out. */
+export const PENDING_CHANNEL_FILTER = 'and(email.not.is.null,email_sent_at.is.null),and(phone.not.is.null,sms_sent_at.is.null)';
 
 export function welcomeBackEmail({ username, club, amount = WELCOME_BACK_AMOUNT }) {
     const name = username || 'there';
@@ -52,13 +57,14 @@ export function welcomeBackEmail({ username, club, amount = WELCOME_BACK_AMOUNT 
 
 export function welcomeBackSms({ username, club, amount = WELCOME_BACK_AMOUNT }) {
     const where = club ? `your ${club} wallet` : 'your club wallet';
-    return `Smarter.Poker: ${username ? `${username}, ` : ''}${amount} free chips from the Midway Union just landed in ${where}. Play your first hand: ${PLAY_URL}`;
+    return `Smarter.Poker: ${username ? `${username}, ` : ''}${amount} free chips from the Midway Union just landed in ${where}. Play your first hand: ${PLAY_URL} Reply STOP to opt out.`;
 }
 
 /** E.164 or null. Mirrors mfaSmsCode.normalizePhone; a number too short to dial is dropped. */
 export function sendablePhone(raw) {
     const digits = String(raw || '').replace(/\D/g, '');
     if (!digits) return null;
+    if (digits.startsWith('0')) return null; // a trunk-zero national number has no country code to dial
     if (digits.length === 10) return `+1${digits}`;
     if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
     if (digits.length >= 10 && digits.length <= 15) return `+${digits}`;
@@ -89,22 +95,28 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
 
     // Awards whose channels never completed (the job died mid-send, or Resend
     // and Twilio were down). A channel that failed with a reason is retried
-    // hourly for the award's first day, then left in the digest as failed.
+    // every hour on the award's first day, then once a day for a week, so a
+    // provider outage never leaves a paid player untold. Newest first, so a
+    // bad day's backlog cannot push this hour's awards past the page.
     const since = new Date(Date.now() - 7 * 86400000).toISOString();
     const { data: pending, error: pendErr } = await sb
         .from('sp_signup_welcome_back_awards')
-        .select('user_id, email, phone, club_id, amount, email_sent_at, sms_sent_at, email_error, sms_error, awarded_at')
+        .select('user_id, email, phone, club_id, amount, email_sent_at, sms_sent_at, email_error, sms_error, awarded_at, updated_at')
         .eq('status', 'awarded')
         .gte('awarded_at', since)
-        .or('and(email.not.is.null,email_sent_at.is.null),and(phone.not.is.null,sms_sent_at.is.null)')
+        .or(PENDING_CHANNEL_FILTER)
+        .order('awarded_at', { ascending: false })
         .limit(200);
     if (pendErr) summary.errors.push(`pending lookup: ${pendErr.message}`);
     const dayAgo = Date.now() - 86400000;
+    const dueAgain = Date.now() - 23 * 3600000;
     for (const p of pending || []) {
         if (todo.has(p.user_id)) continue;
         const fresh = new Date(p.awarded_at).getTime() > dayAgo;
-        const needEmail = !!p.email && !p.email_sent_at && (!p.email_error || fresh);
-        const needSms = !!p.phone && !p.sms_sent_at && (!p.sms_error || fresh);
+        const quietForADay = !p.updated_at || new Date(p.updated_at).getTime() < dueAgain;
+        const retryable = (err) => !err || fresh || quietForADay;
+        const needEmail = !!p.email && !p.email_sent_at && retryable(p.email_error);
+        const needSms = !!p.phone && !p.sms_sent_at && p.sms_error !== UNDIALABLE && retryable(p.sms_error);
         if (!needEmail && !needSms) continue;
         todo.set(p.user_id, { ...p, needEmail, needSms, source: 'retry' });
         summary.retried++;
@@ -121,9 +133,15 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
         }
     }
 
+    // A receipt that fails to record would make the next run send again, so
+    // it gets a second try before that is accepted.
     const mark = async (userId, channel, ok, detail) => {
-        const { error: mErr } = await sb.rpc('fn_sp_signup_welcome_back_mark', { p_user_id: userId, p_channel: channel, p_ok: ok, p_detail: detail || null });
-        if (mErr) summary.errors.push(`mark ${channel} ${userId}: ${mErr.message}`);
+        let mErr = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            ({ error: mErr } = await sb.rpc('fn_sp_signup_welcome_back_mark', { p_user_id: userId, p_channel: channel, p_ok: ok, p_detail: detail || null }));
+            if (!mErr) return;
+        }
+        summary.errors.push(`mark ${channel} ${userId}: ${mErr.message}`);
     };
 
     for (const t of todo.values()) {
@@ -134,7 +152,7 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
             if (!t.email) entry.email = 'no email';
             else {
                 const msg = welcomeBackEmail({ username: t.username, club: t.club, amount });
-                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.user_id}` });
+                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.user_id}`, from: WELCOME_BACK_FROM });
                 entry.email = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.emails_sent++; else summary.emails_failed++;
                 await mark(t.user_id, 'email', !!r.ok, r.ok ? null : r.error);
@@ -146,7 +164,7 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
             if (!to) {
                 entry.text = 'no phone';
                 summary.texts_skipped_no_phone++;
-                if (t.phone) await mark(t.user_id, 'sms', false, 'phone number cannot be dialed');
+                if (t.phone) await mark(t.user_id, 'sms', false, UNDIALABLE);
             } else {
                 const r = await sendSms(welcomeBackSms({ username: t.username, club: t.club, amount }), { to });
                 entry.text = r.ok ? 'sent' : `failed: ${r.error}`;

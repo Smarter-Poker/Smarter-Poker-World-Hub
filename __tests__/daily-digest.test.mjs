@@ -610,8 +610,9 @@ const SIGNUPS = {
           clubs: [{ club: 'Club Savage', is_kings_club: false, agent: 'Probyourmom' }], in_kings_club: false, joined_a_club: true, hands: 0, played_hand: false, phone_on_file: true, phone_verified: false, email_confirmed: true, welcome_back: { status: 'awarded' } },
     ],
     welcome_back: { amount: 25, awarded_count: 1,
-        awarded: [{ username: 'Breezy', display_name: 'Breezy', signed_up_ct: 'Oct 13 10:17 PM', awarded_ct: '11:00 PM', amount: 25, club: 'KINGS CLUB', push: true, email: 'sent', text: 'no phone', played_since: false }],
-        waiting_count: 2, waiting_for_club: [{ username: 'TheSAUCE' }, { username: 'PokerMogul' }] },
+        awarded: [{ username: 'Breezy', display_name: 'Breezy', signed_up_ct: 'Oct 13 10:17 PM', awarded_ct: '11:00 PM', amount: 25, club: 'KINGS CLUB', push: true, push_status: 'no device', email: 'sent', text: 'no phone', played_since: false }],
+        waiting_count: 2, waiting_for_club: [{ username: 'TheSAUCE' }, { username: 'PokerMogul' }],
+        failed_count: 1, failed: [{ username: 'Broke', error: 'Insufficient Promo Balance', since_ct: 'Oct 14 01:17 AM' }] },
 };
 
 test('the New Sign-Ups card names every sign-up with referrer, agent and KINGS CLUB membership', () => {
@@ -623,6 +624,8 @@ test('the New Sign-Ups card names every sign-up with referrer, agent and KINGS C
     assert.deepEqual(s.rows[1].slice(0, 2), ['Willian (Willian Soares)', 'No club yet']);
     assert.match(s.rows[1][2], /No referral; Signed up 02:18 PM; No hand played yet; No phone/);
     assert.equal(s.rows[2][1], 'Club Savage (not KINGS CLUB)');
+    const pending = signupsRows(fixture({ signups: { ...SIGNUPS, signups: [{ ...SIGNUPS.signups[0], clubs: [{ club: 'KINGS CLUB', is_kings_club: true, status: 'pending' }] }] } }));
+    assert.equal(pending.rows[0][1], 'KINGS CLUB (pending)');
     assert.match(s.rows[2][2], /Welcome-back chips sent/);
 });
 
@@ -630,9 +633,13 @@ test('the Welcome-Back Chips card shows each award with its channels and who is 
     const w = welcomeBackRows(fixture({ signups: SIGNUPS }));
     assert.equal(w.title, 'Welcome-Back Chips (25 Free Chips, No Hand After 24 Hours) - 1');
     assert.deepEqual(w.rows[0].slice(0, 2), ['Breezy', '25 chips to KINGS CLUB']);
-    assert.match(w.rows[0][2], /Push sent; Email sent; Text no phone; Still has not played/);
+    assert.match(w.rows[0][2], /Push no device; Email sent; Text no phone; Still has not played/);
+    const legacy = welcomeBackRows(fixture({ signups: { ...SIGNUPS, welcome_back: { ...SIGNUPS.welcome_back, awarded: [{ ...SIGNUPS.welcome_back.awarded[0], push_status: undefined }] } } }));
+    assert.match(legacy.rows[0][2], /Push queued;/, 'before the push outcome shipped, a raised notification is only queued');
     assert.deepEqual(w.rows[1].slice(0, 2), ['Waiting To Join A Club', '2']);
     assert.match(w.rows[1][2], /TheSAUCE, PokerMogul/);
+    assert.deepEqual(w.rows[2].slice(0, 2), ['Could Not Be Paid: Broke', 'Retrying hourly']);
+    assert.match(w.rows[2][2], /Insufficient Promo Balance; first tried Oct 14 01:17 AM/);
 });
 
 test('both cards render in the email, the online view and the plain text, right after Growth', () => {
