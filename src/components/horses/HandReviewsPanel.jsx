@@ -422,6 +422,11 @@ export default function HandReviewsPanel() {
   const [audits, setAudits] = useState([]);
   const [auditsError, setAuditsError] = useState(null);
   const [auditOpen, setAuditOpen] = useState(null);
+  // 2026-11-05: per-day audit state. Nov 1-4 2026 had no audit rows and the
+  // panel showed nothing for them; a missing, failed or pending day must be
+  // visible as exactly that.
+  const [auditStatus, setAuditStatus] = useState(null);
+  const [auditStatusError, setAuditStatusError] = useState(null);
 
   const [telemetry, setTelemetry] = useState([]);
   const [telemetryError, setTelemetryError] = useState(null);
@@ -506,6 +511,7 @@ export default function HandReviewsPanel() {
         ['ca_horse_solver_agreement', { p_runs: 14 }],
         ['ca_horse_solver_agreement_decisions', { p_day: null, p_reference: 'gto_charts', p_limit: 100 }],
         ['ca_gto_v31_certification_status', { p_dataset_id: null }],
+        ['ca_horse_daily_audit_status', { p_days: 14 }],
       ];
       const results = await withRequestTimeout(
         (signal) => Promise.all(specs.map(([name, args]) => rpcWithSignal(name, args, signal))),
@@ -531,6 +537,7 @@ export default function HandReviewsPanel() {
       apply(results[7], 'Solver Agreement', setAgree, setAgreeError, []);
       apply(results[8], 'Agreement Decisions', setAgreeDecisions, setAgreeDecisionsError, []);
       apply(results[9], 'Certification', setCertification, setCertificationError, null);
+      apply(results[10], 'Audit Status', setAuditStatus, setAuditStatusError, null);
     } catch (error) {
       if (isCurrentRead(readsRef, 'audits', request) && error?.name !== 'AbortError') {
         const message = safeReadMessage('Audit Feeds', error);
@@ -538,6 +545,7 @@ export default function HandReviewsPanel() {
         // must become failed rather than leaving old rows or an empty state
         // that looks like a successful read.
         setAuditsError(message); setAudits([]);
+        setAuditStatusError(message); setAuditStatus(null);
         setTelemetryError(message); setTelemetry([]);
         setLedgerError(message); setLedger([]);
         setLeagueError(message); setLeague([]);
@@ -1490,7 +1498,43 @@ export default function HandReviewsPanel() {
             })()}
           </div>
 
+          {(() => {
+            const days = Array.isArray(auditStatus?.days) ? auditStatus.days : [];
+            const present = new Set(audits.map((a) => a.day));
+            const gaps = days.filter((d) => !present.has(d.day) && d.machine_audit !== 'not_due');
+            const label = { missing: 'Audit Missing', failed: 'Audit Failed', running: 'Audit Running' };
+            return (
+              <>
+                {auditStatusError && (
+                  <div role="status" style={{ color: T.warn, fontSize: '0.8rem', padding: '0.25rem' }}>
+                    Audit status could not be read: {auditStatusError}
+                  </div>
+                )}
+                {auditStatus?.watchdog_stale && (
+                  <div role="status" style={{ color: T.danger, fontSize: '0.8rem', padding: '0.25rem' }}>
+                    The audit watchdog has not completed a pass in the last 7 hours.
+                  </div>
+                )}
+                {gaps.map((d) => (
+                  <div key={`gap-${d.day}`} style={{ borderTop: `1px solid ${T.line}`, display: 'flex', gap: '0.5rem 1rem', alignItems: 'center', flexWrap: 'wrap', padding: '0.5rem 0.25rem', minHeight: 44 }}>
+                    <span aria-hidden="true" style={{ width: '0.8rem' }} />
+                    <span style={{ fontWeight: 700, minWidth: 100 }}>{d.day}</span>
+                    <span style={{ color: d.machine_audit === 'running' ? T.warn : T.danger, fontWeight: 600 }}>
+                      {label[d.machine_audit] ?? 'Audit Missing'}
+                    </span>
+                    {d.failed_attempts > 0 && <span style={{ color: T.muted, fontSize: '0.8rem' }}>{d.failed_attempts} Failed Attempts</span>}
+                    {d.last_error && <span style={{ color: T.muted, fontSize: '0.8rem' }}>Last Error: {d.last_error}</span>}
+                    {d.analysis === 'pending_machine_audit' && (
+                      <span className="hr-push" style={{ color: T.warn, fontSize: '0.8rem' }}>Analysis Saved, Waiting For Audit</span>
+                    )}
+                  </div>
+                ))}
+              </>
+            );
+          })()}
+
           {audits.map((a) => {
+            const dayStatus = (Array.isArray(auditStatus?.days) ? auditStatus.days : []).find((d) => d.day === a.day);
             const rawFindings = Array.isArray(a.findings) ? a.findings : [];
             const crit = rawFindings.filter((f) => f.severity === 'critical').length;
             const warn = rawFindings.filter((f) => f.severity === 'warn').length;
@@ -1543,8 +1587,17 @@ export default function HandReviewsPanel() {
                   <span style={{ color: T.muted, fontSize: '0.8rem' }}>
                     {a.stats?.flagged_hands ?? 0} Flagged Hands / Net {a.stats?.net_bb_sum ?? 0} BB
                   </span>
-                  <span className="hr-push" style={{ color: a.agent_analysis ? T.positive : T.muted, fontSize: '0.8rem' }}>
-                    {a.agent_analysis ? 'Claude Analysis Ready' : 'Awaiting Claude Analysis'}
+                  {dayStatus?.machine_audit === 'recovered' && (
+                    <span style={{ color: T.warn, fontSize: '0.8rem' }}>Recovered After The Day Closed</span>
+                  )}
+                  <span className="hr-push" style={{ color: a.agent_analysis ? T.positive : dayStatus?.analysis === 'missing' ? T.danger : T.muted, fontSize: '0.8rem' }}>
+                    {dayStatus?.analysis === 'reconstructed'
+                      ? 'Reconstructed Claude Analysis'
+                      : a.agent_analysis
+                        ? 'Claude Analysis Ready'
+                        : dayStatus?.analysis === 'missing'
+                          ? 'Claude Analysis Missing'
+                          : 'Awaiting Claude Analysis'}
                   </span>
                 </button>
                 {open && (
