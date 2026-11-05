@@ -237,6 +237,18 @@
       "updatedAt": "2026-02-28T22:32:49.825Z"
     },
     {
+      "key": "RESEND_BULK_API_KEY",
+      "target": "preview,production",
+      "type": "sensitive",
+      "updatedAt": "2026-11-05T20:26:48.334Z"
+    },
+    {
+      "key": "RESEND_BULK_FROM_EMAIL",
+      "target": "preview,production",
+      "type": "plain",
+      "updatedAt": "2026-11-05T20:26:48.334Z"
+    },
+    {
       "key": "RESEND_FROM_EMAIL",
       "target": "development,preview,production",
       "type": "plain",
