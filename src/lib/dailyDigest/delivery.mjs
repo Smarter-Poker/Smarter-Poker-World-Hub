@@ -80,6 +80,20 @@ export function ownerPhone() {
     return digits ? `+${digits}` : null;
 }
 
+/**
+ * Where Twilio reports each text's final carrier result (delivered /
+ * undelivered + error code). Dan, 2026-11-05: a 200 from Twilio only means
+ * "accepted"; the carrier silently dropped every relaunch text to the owner's
+ * phone while the platform recorded them as sent. The callback lands in
+ * sms_delivery_receipts (pages/api/webhooks/twilio-status.js).
+ */
+export function smsStatusCallbackUrl() {
+    const explicit = trim(process.env.TWILIO_STATUS_CALLBACK_URL);
+    if (explicit) return explicit;
+    const base = trim(process.env.DIGEST_PUBLIC_BASE_URL) || 'https://smarter.poker';
+    return `${base.replace(/\/+$/, '')}/api/webhooks/twilio-status`;
+}
+
 /** Texts the owner by default; pass `to` (E.164) to text someone else. */
 export async function sendSms(body, { fetchImpl = fetch, to: toOverride = null } = {}) {
     const sid = trim(process.env.TWILIO_ACCOUNT_SID);
@@ -96,7 +110,7 @@ export async function sendSms(body, { fetchImpl = fetch, to: toOverride = null }
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             signal: AbortSignal.timeout(30000),
-            body: new URLSearchParams({ To: to, From: from, Body: String(body).slice(0, 600) }).toString(),
+            body: new URLSearchParams({ To: to, From: from, Body: String(body).slice(0, 600), StatusCallback: smsStatusCallbackUrl() }).toString(),
         });
         const json = await res.json().catch(() => ({}));
         if (res.ok && json?.sid) return { ok: true, id: json.sid };
