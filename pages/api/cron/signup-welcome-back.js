@@ -30,7 +30,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { withCronHealth } from '../../../src/lib/cronHealth';
-import { sendEmail, sendSms } from '../../../src/lib/dailyDigest/delivery.mjs';
+import { sendBulkEmail, sendSms } from '../../../src/lib/dailyDigest/delivery.mjs';
 import { runWelcomeBack } from '../../../src/lib/welcomeBack/run.mjs';
 import { runRelaunchNotice } from '../../../src/lib/tournamentRelaunch/notice.mjs';
 import { runPlayerAnnouncements } from '../../../src/lib/playerAnnouncements/notice.mjs';
@@ -49,13 +49,13 @@ async function handler(req, res) {
     const limit = Math.max(1, Math.min(Number(req.query?.limit) || 50, 60));
     try {
         const sb = createClient();
-        const summary = await runWelcomeBack(sb, { limit, sendEmail, sendSms, log: (m) => console.log(m) });
+        const summary = await runWelcomeBack(sb, { limit, sendEmail: sendBulkEmail, sendSms, log: (m) => console.log(m) });
 
         // One-time relaunch notice. Its own try: a relaunch failure must never
         // turn a good welcome-back run red, and the receipts make it resumable.
         let relaunch = null;
         try {
-            relaunch = await runRelaunchNotice(sb, { sendEmail, sendSms, log: (m) => console.log(m), deadline: startedAt + 270000 });
+            relaunch = await runRelaunchNotice(sb, { sendEmail: sendBulkEmail, sendSms, log: (m) => console.log(m), deadline: startedAt + 270000 });
         } catch (e) {
             relaunch = { error: String(e?.message || e) };
             console.error('[tournament-relaunch]', relaunch.error);
@@ -64,7 +64,7 @@ async function handler(req, res) {
         // Owner announcements. Same rule: resumable, never turns the run red.
         let announcements = null;
         try {
-            announcements = await runPlayerAnnouncements(sb, { sendEmail, sendSms, log: (m) => console.log(m), deadline: startedAt + 285000 });
+            announcements = await runPlayerAnnouncements(sb, { sendEmail: sendBulkEmail, sendSms, log: (m) => console.log(m), deadline: startedAt + 285000 });
         } catch (e) {
             announcements = { error: String(e?.message || e) };
             console.error('[player-announcements]', announcements.error);

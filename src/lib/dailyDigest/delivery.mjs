@@ -42,8 +42,38 @@ export function digestFrom() {
     return `Smarter.Poker <${addr}>`;
 }
 
-export async function sendEmail({ to, subject, html, text, idempotencyKey, from = null, headers = null, fetchImpl = fetch }) {
-    const apiKey = trim(process.env.RESEND_API_KEY);
+/**
+ * Player campaigns (welcome-back, tournament relaunch, owner announcements)
+ * send through the Pro Resend account, whose verified sending domain is
+ * mail.smarter.poker (Dan, 2026-11-05). RESEND_API_KEY belongs to a Free-plan
+ * account that owns the root smarter.poker domain and is capped at 100
+ * emails a day; on 2026-11-05 it refused 49 relaunch emails with
+ * daily_quota_exceeded while the Pro key refused the root domain as
+ * unverified. So a campaign uses the bulk key AND its own domain together, or,
+ * when the bulk key is not configured, the original key and the caller's
+ * sender, exactly as before.
+ */
+export function bulkEmailConfig() {
+    const apiKey = trim(process.env.RESEND_BULK_API_KEY);
+    if (!apiKey) return null;
+    const addr = trim(process.env.RESEND_BULK_FROM_EMAIL) || 'noreply@mail.smarter.poker';
+    return { apiKey, addr };
+}
+
+function withAddress(from, addr) {
+    const m = /^(.*?)\s*<[^>]*>\s*$/.exec(String(from || ''));
+    const name = (m && m[1].trim()) || 'Smarter.Poker';
+    return `${name} <${addr}>`;
+}
+
+export async function sendBulkEmail(opts = {}) {
+    const bulk = bulkEmailConfig();
+    if (!bulk) return sendEmail(opts);
+    return sendEmail({ ...opts, from: withAddress(opts.from || digestFrom(), bulk.addr), apiKey: bulk.apiKey });
+}
+
+export async function sendEmail({ to, subject, html, text, idempotencyKey, from = null, headers = null, apiKey: keyOverride = null, fetchImpl = fetch }) {
+    const apiKey = trim(keyOverride) || trim(process.env.RESEND_API_KEY);
     if (!apiKey) return { ok: false, error: 'RESEND_API_KEY not configured' };
     if (!Array.isArray(to) || !to.length) return { ok: false, error: 'DAILY_DIGEST_TO not configured' };
     let lastError = '';
