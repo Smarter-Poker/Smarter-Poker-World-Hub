@@ -143,7 +143,7 @@ test('the route is a CRON_SECRET job and the dispatcher runs it hourly off the t
     const route = fs.readFileSync(new URL('../pages/api/cron/signup-welcome-back.js', import.meta.url), 'utf8');
     assert.match(route, /CRON_SECRET/);
     assert.match(route, /withCronHealth\('signup-welcome-back'/);
-    assert.match(route, /runWelcomeBack\(sb, \{ limit, sendEmail, sendSms/);
+    assert.match(route, /runWelcomeBack\(sb, \{ limit, sendEmail: sendBulkEmail, sendSms/);
     const dispatcher = fs.readFileSync(new URL('../scripts/openclaw-cron-dispatcher.py', import.meta.url), 'utf8');
     assert.match(dispatcher, /\('\/api\/cron\/signup-welcome-back',\s+dict\(minute=17\)\)/);
     assert.match(dispatcher, /'\/api\/cron\/signup-welcome-back':\s+300,/, 'the dispatcher gives the job the same 300s the route has');
