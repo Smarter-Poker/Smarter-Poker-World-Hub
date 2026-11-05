@@ -9,16 +9,17 @@
  */
 
 import { Resend } from 'resend';
+import { resendApiKey, resendFrom } from './email/resendAccount.mjs';
 
 let resendClient = null;
 
 function getResend() {
     if (resendClient) return resendClient;
-    if (!process.env.RESEND_API_KEY) {
+    if (!resendApiKey()) {
         console.warn('[Email] RESEND_API_KEY not configured - emails disabled');
         return null;
     }
-    resendClient = new Resend(process.env.RESEND_API_KEY);
+    resendClient = new Resend(resendApiKey());
     return resendClient;
 }
 
@@ -26,7 +27,7 @@ function getResend() {
  * Check if email is configured
  */
 export function isEmailConfigured() {
-    return !!process.env.RESEND_API_KEY;
+    return !!resendApiKey();
 }
 
 /**
@@ -96,7 +97,7 @@ async function sendEmail({ to, subject, html, from }) {
 
     try {
         const { data, error } = await resend.emails.send({
-            from: from || 'Smarter.Poker <noreply@smarter.poker>',
+            from: resendFrom(from || 'Smarter.Poker <noreply@smarter.poker>'),
             to: Array.isArray(to) ? to : [to],
             subject,
             html,

@@ -33,6 +33,7 @@ import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
 import FirstRunNotificationPrompt from '../notifications/FirstRunNotificationPrompt';
 import PushSubscriptionSync from '../notifications/PushSubscriptionSync';
+import { pushAskMaySettle } from '../../lib/push/pushAskGate.mjs';
 
 /**
  * Routes that belong to staff tooling rather than the product. Prefix match,
@@ -71,8 +72,11 @@ export default function GlobalNotificationPrompt() {
             const request = ++version;
             try {
                 const { data, error } = await supabase.from('profiles')
-                    .select('phone_verified').eq('id', userId).maybeSingle();
-                if (active && request === version) setVerifiedPhoneOwner(!error && data?.phone_verified === true ? userId : null);
+                    .select('phone_verified, created_at').eq('id', userId).maybeSingle();
+                let skipped = false;
+                try { skipped = sessionStorage.getItem('phone_prompt_skipped') === '1'; } catch (_e) { /* ignore */ }
+                const settled = !error && data && pushAskMaySettle(data, { skipped });
+                if (active && request === version) setVerifiedPhoneOwner(settled ? userId : null);
             } catch { if (active && request === version) setVerifiedPhoneOwner(null); }
         };
         void readPhone();
@@ -89,7 +93,7 @@ export default function GlobalNotificationPrompt() {
     return (
         <>
             <PushSubscriptionSync />
-            {!staff && verifiedPhoneOwner === userId && !/^\/(?:auth|i)(?:\/|$)/.test(router.pathname || '') && <FirstRunNotificationPrompt userId={userId} />}
+            {!staff && verifiedPhoneOwner === userId && !/^\/(?:auth|i|hub\/verify-phone)(?:\/|$)/.test(router.pathname || '') && <FirstRunNotificationPrompt userId={userId} />}
         </>
     );
 }

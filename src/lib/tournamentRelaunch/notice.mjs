@@ -105,6 +105,10 @@ export async function runRelaunchNotice(sb, { sendEmail, sendSms, log = () => {}
         }
     };
 
+    // One text per phone number per campaign: several accounts can share a
+    // phone, and a burst to one line gets the platform number blocked by the
+    // carrier. The database hands each phone out once; this catches a batch.
+    const textedPhones = new Set();
     for (const r of rows) {
         if (Date.now() >= deadline) { summary.deferred++; continue; }
         if (muted.has(r.user_id)) {
@@ -125,7 +129,9 @@ export async function runRelaunchNotice(sb, { sendEmail, sendSms, log = () => {}
         if (r.need_sms && r.phone) {
             const to = sendablePhone(r.phone);
             if (!to) { await mark(r.user_id, 'sms', false, 'undialable'); }
+            else if (textedPhones.has(to)) { summary.texts_duplicate_phone = (summary.texts_duplicate_phone || 0) + 1; await mark(r.user_id, 'sms', false, 'duplicate_phone'); }
             else {
+                textedPhones.add(to);
                 const res = await sendSms(relaunchSms({ username: r.username, owed, clubCode: r.club_code }), { to });
                 const timedOut = /timeout|timed out|aborted/i.test(String(res?.error || ''));
                 if (res?.ok) summary.texts_sent++; else summary.texts_failed++;

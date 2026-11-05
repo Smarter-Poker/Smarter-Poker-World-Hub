@@ -40,7 +40,10 @@ const SMS_TIMED_OUT = 'text not resent: Twilio did not answer in time';
 /** The player turned everything off in notification settings (mute_all). */
 const MUTED = 'muted by the player in notification settings';
 /** Channel outcomes that are final: never retried on a later run. */
-const FINAL_SMS = new Set([UNDIALABLE, SMS_TIMED_OUT, MUTED]);
+// A phone shared by several accounts is texted once per campaign (Dan,
+// 2026-11-05: bursts to one line got the platform number carrier-blocked).
+export const DUPLICATE_PHONE = 'duplicate_phone';
+const FINAL_SMS = new Set([UNDIALABLE, SMS_TIMED_OUT, MUTED, DUPLICATE_PHONE]);
 const FINAL_EMAIL = new Set([MUTED]);
 const isTimeout = (err) => /timeout|timed out|aborted|AbortError/i.test(String(err || ''));
 /** Where every welcome-back email's unsubscribe link and List-Unsubscribe header point. */
@@ -205,6 +208,7 @@ export function sendablePhone(raw) {
 export const SEND_BUDGET_MS = 240000;
 
 export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log = () => {}, deadline = Date.now() + SEND_BUDGET_MS } = {}) {
+    const textedPhones = new Set();
     const summary = { awarded: 0, no_club: 0, failed: 0, emails_sent: 0, emails_failed: 0, texts_sent: 0, texts_failed: 0, texts_skipped_no_phone: 0, retried: 0,
         club_nudges: 0, play_nudges: 0, nudge_emails_sent: 0, nudge_emails_failed: 0, nudge_texts_sent: 0, nudge_texts_failed: 0, deferred: 0, muted: 0, nudges: [], players: [], errors: [] };
     const outOfTime = () => Date.now() >= deadline;
@@ -327,7 +331,11 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
                 entry.text = 'no phone';
                 summary.texts_skipped_no_phone++;
                 if (t.phone) await mark(t.user_id, 'sms', false, UNDIALABLE);
+            } else if (textedPhones.has(`welcome:${to}`)) {
+                entry.text = 'same phone already texted';
+                await mark(t.user_id, 'sms', false, DUPLICATE_PHONE);
             } else {
+                textedPhones.add(`welcome:${to}`);
                 const r = await sendSms(welcomeBackSms({ username: t.username, club: t.club, amount }), { to });
                 entry.text = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.texts_sent++; else summary.texts_failed++;
@@ -429,7 +437,11 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
             if (!to) {
                 entry.text = 'no phone';
                 if (t.phone) await mark(t.user_id, `${t.kind}_nudge_sms`, false, UNDIALABLE);
+            } else if (textedPhones.has(`${t.kind}_nudge:${to}`)) {
+                entry.text = 'same phone already texted';
+                await mark(t.user_id, `${t.kind}_nudge_sms`, false, DUPLICATE_PHONE);
             } else {
+                textedPhones.add(`${t.kind}_nudge:${to}`);
                 const r = await sendSms(smsBody, { to });
                 entry.text = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.nudge_texts_sent++; else summary.nudge_texts_failed++;

@@ -90,6 +90,8 @@ export async function runPlayerAnnouncements(sb, { sendEmail, sendSms, log = () 
         }
     };
 
+    // One text per phone per announcement (shared phones; carrier blocks).
+    const textedPhones = new Set();
     for (const r of rows) {
         if (Date.now() >= deadline) { summary.deferred++; continue; }
         if (muted.has(r.user_id)) {
@@ -108,12 +110,15 @@ export async function runPlayerAnnouncements(sb, { sendEmail, sendSms, log = () 
         }
         if (r.need_sms && r.phone) {
             const to = sendablePhone(r.phone);
+            const phoneKey = `${r.announcement_id}:${to}`;
             if (!to) await mark(r, 'sms', false, 'undialable');
+            else if (textedPhones.has(phoneKey)) { summary.texts_duplicate_phone = (summary.texts_duplicate_phone || 0) + 1; await mark(r, 'sms', false, 'duplicate_phone'); }
             else {
+                textedPhones.add(phoneKey);
                 const res = await sendSms(announcementSms(r), { to });
                 const timedOut = /timeout|timed out|aborted/i.test(String(res?.error || ''));
                 if (res?.ok) summary.texts_sent++; else summary.texts_failed++;
-                await mark(r, 'sms', !!res?.ok, res?.ok ? null : (timedOut ? 'timeout' : String(res?.error || 'unknown')));
+                await mark(r, 'sms', !!res?.ok, res?.ok ? (res?.id || null) : (timedOut ? 'timeout' : String(res?.error || 'unknown')));
             }
         }
     }

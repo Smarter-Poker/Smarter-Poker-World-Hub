@@ -24,6 +24,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { resendApiKey, resendFrom } from '../../../src/lib/email/resendAccount.mjs';
 
 
 let _admin = null;
@@ -84,13 +85,13 @@ async function handler(req, res) {
         // Alert on real orphans
         if (realCount > 0) {
 
-            if (process.env.RESEND_API_KEY && process.env.OPS_ALERT_EMAIL) {
+            if (resendApiKey() && process.env.OPS_ALERT_EMAIL) {
                 try {
                     await fetch('https://api.resend.com/emails', {
                         method: 'POST',
-                        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                        headers: { Authorization: `Bearer ${resendApiKey()}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            from: process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker',
+                            from: resendFrom(process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker'),
                             to: process.env.OPS_ALERT_EMAIL,
                             subject: `[smarter.poker] Auth integrity: ${realCount} real orphan(s)`,
                             text: JSON.stringify({ audit: auditData, heal: healResult }, null, 2),
