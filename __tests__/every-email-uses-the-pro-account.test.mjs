@@ -100,3 +100,13 @@ test('the digest names undelivered texts in plain words', () => {
     assert.equal(undeliveredTextsTitle({ total: 3, by_code: { 30005: 2, 21610: 1 } }),
         '3 texts did not reach the phone (2 number unknown or blocked by the carrier, 1 player texted STOP)');
 });
+
+test('the push ask reaches a player who skipped phone verification once the first day has passed', async () => {
+    const { pushAskMaySettle } = await import('../src/lib/push/pushAskGate.mjs');
+    const now = Date.parse('2026-11-05T22:00:00Z');
+    assert.equal(pushAskMaySettle({ phone_verified: true, created_at: '2026-11-05T21:59:00Z' }, { now }), true);
+    assert.equal(pushAskMaySettle({ phone_verified: false, created_at: '2026-11-05T21:00:00Z' }, { now }), false);
+    assert.equal(pushAskMaySettle({ phone_verified: false, created_at: '2026-11-05T21:00:00Z' }, { now, skipped: true }), true);
+    assert.equal(pushAskMaySettle({ phone_verified: false, created_at: '2026-11-01T00:00:00Z' }, { now }), true);
+    assert.equal(pushAskMaySettle(null, { now }), false);
+});
