@@ -66,6 +66,43 @@ export async function loadSignups(sb, day, retry = {}) {
     } catch (err) { return { day, error: String(err?.message || err) }; }
 }
 
+/**
+ * Texts the carrier did not deliver that day (Dan, 2026-11-05). "Sent" only
+ * ever meant Twilio accepted a text; the carrier's final result lands in
+ * sms_delivery_receipts through /api/webhooks/twilio-status. Grouped by
+ * Twilio error code so a blocked number or a bad list shows at a glance.
+ */
+export const SMS_ERROR_LABELS = {
+    30003: 'phone unreachable',
+    30005: 'number unknown or blocked by the carrier',
+    30006: 'landline or unreachable carrier',
+    30007: 'filtered by the carrier as spam',
+    30008: 'unknown carrier error',
+    21610: 'player texted STOP',
+};
+
+export async function loadUndeliveredTexts(sb, day) {
+    try {
+        const from = `${day}T00:00:00.000Z`;
+        const to = new Date(Date.parse(from) + 86400000).toISOString();
+        const { data, error } = await sb.from('sms_delivery_receipts').select('status, error_code')
+            .in('status', ['undelivered', 'failed']).gte('updated_at', from).lt('updated_at', to).limit(5000);
+        if (error) return { day, error: error.message };
+        const byCode = {};
+        for (const r of data || []) {
+            const k = r.error_code == null ? 'none' : String(r.error_code);
+            byCode[k] = (byCode[k] || 0) + 1;
+        }
+        return { day, total: (data || []).length, by_code: byCode };
+    } catch (err) { return { day, error: String(err?.message || err) }; }
+}
+
+export function undeliveredTextsTitle(u) {
+    const parts = Object.entries(u.by_code || {}).sort((a, b) => b[1] - a[1])
+        .map(([code, n]) => `${n} ${SMS_ERROR_LABELS[code] || (code === 'none' ? 'no reason given' : `error ${code}`)}`);
+    return `${u.total} text${u.total === 1 ? '' : 's'} did not reach the phone (${parts.join(', ')})`;
+}
+
 /** Time the report loads may keep retrying, out of the route's 300 s. */
 const REPORT_BUDGET_MS = 150000;
 
@@ -101,6 +138,22 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
         });
         // The header count and the "not yet picked up" line both read
         // attention_status, so the added item is counted there too.
+        if (digest.attention_status && typeof digest.attention_status === 'object') {
+            digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
+        }
+    }
+    const undelivered = await loadUndeliveredTexts(sb, day);
+    if (digest) digest.undelivered_texts = undelivered;
+    if (digest && undelivered && !undelivered.error && undelivered.total > 0) {
+        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
+        digest.attention.push({
+            rule: 'texts_not_delivered',
+            severity: 'warning',
+            status: 'not_picked_up',
+            title: undeliveredTextsTitle(undelivered),
+            detail: undelivered,
+            dispatch: false,
+        });
         if (digest.attention_status && typeof digest.attention_status === 'object') {
             digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
         }

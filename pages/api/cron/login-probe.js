@@ -75,6 +75,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { resendApiKey, resendFrom } from '../../../src/lib/email/resendAccount.mjs';
 import { isDedicatedProbeAccount } from '../../../src/lib/probeIdentity';
 import { unconfiguredProbe } from '../../../src/lib/probeUnconfigured';
 
@@ -118,7 +119,7 @@ export {
 // dashboard at 3am. Failure of THIS probe emails OPS_ALERT_EMAIL directly.
 async function alertOps(subject, text) {
     try {
-        const key = (process.env.RESEND_API_KEY || '').trim();
+        const key = resendApiKey();
         const to = (process.env.OPS_ALERT_EMAIL || '').trim();
         if (!key || !to) {
             console.warn('[login-probe] alert email skipped: RESEND_API_KEY / OPS_ALERT_EMAIL unset');
@@ -129,7 +130,7 @@ async function alertOps(subject, text) {
             signal: AbortSignal.timeout(5000),
             headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                from: (process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker').trim(),
+                from: resendFrom((process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker').trim()),
                 to,
                 subject,
                 text,

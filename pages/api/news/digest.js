@@ -26,6 +26,7 @@
  */
 import crypto from 'crypto';
 import { Resend } from 'resend';
+import { resendApiKey, resendFrom } from '../../../src/lib/email/resendAccount.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -259,7 +260,7 @@ export default async function handler(req, res) {
       const days = clampInt(safeQ(req.query.days), DEFAULT_WINDOW_DAYS, 1, 30);
       const articleLimit = clampInt(safeQ(req.query.limit), DEFAULT_ARTICLE_COUNT, 1, 20);
 
-      const apiKey = process.env.RESEND_API_KEY;
+      const apiKey = resendApiKey();
       // A dry run touches no mail provider, so it is allowed to answer even
       // without a key (that is how you verify the recipient count on a machine
       // that has no secrets); the response flags emailConfigured: false so the
@@ -274,7 +275,7 @@ export default async function handler(req, res) {
           });
       }
 
-      const from = process.env.NEWS_DIGEST_FROM || DEFAULT_DIGEST_FROM;
+      const from = resendFrom(process.env.NEWS_DIGEST_FROM || DEFAULT_DIGEST_FROM);
       const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, '');
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 

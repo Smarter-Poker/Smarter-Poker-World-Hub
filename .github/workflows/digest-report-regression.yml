@@ -20,6 +20,11 @@ on:
       - '__tests__/*digest*'
       - 'scripts/verify-digest-player-report-postgres.mjs'
       - '.github/workflows/digest-report-regression.yml'
+      - 'src/lib/email/**'
+      - 'src/lib/tournamentRelaunch/**'
+      - 'src/lib/playerAnnouncements/**'
+      - 'src/lib/welcomeBack/**'
+      - '__tests__/every-email-uses-the-pro-account.test.mjs'
   push:
     branches: [main]
     paths:
@@ -30,6 +35,11 @@ on:
       - '__tests__/*digest*'
       - 'scripts/verify-digest-player-report-postgres.mjs'
       - '.github/workflows/digest-report-regression.yml'
+      - 'src/lib/email/**'
+      - 'src/lib/tournamentRelaunch/**'
+      - 'src/lib/playerAnnouncements/**'
+      - 'src/lib/welcomeBack/**'
+      - '__tests__/every-email-uses-the-pro-account.test.mjs'
 permissions:
   contents: read
 jobs:
@@ -43,7 +53,7 @@ jobs:
         with:
           node-version: '24.12.0'
       - name: Render and report boundary regressions
-        run: node --test __tests__/daily-digest.test.mjs __tests__/digest-figures-carry-separators.test.mjs __tests__/welcome-back.test.mjs __tests__/bulk-email-sender.test.mjs
+        run: node --test __tests__/daily-digest.test.mjs __tests__/digest-figures-carry-separators.test.mjs __tests__/welcome-back.test.mjs __tests__/bulk-email-sender.test.mjs __tests__/every-email-uses-the-pro-account.test.mjs
       - name: Install PostgreSQL 17 for report qualification
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg

@@ -5,7 +5,9 @@ import { Resend } from 'resend';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { resendApiKey, resendFrom } from '../../../src/lib/email/resendAccount.mjs';
+
+const resend = new Resend(resendApiKey());
 
 import { COMMANDER_FREE_MODE, COMMANDER_FREE_TAGLINE } from '../../../src/lib/commander/tierConfig';
 
@@ -160,7 +162,7 @@ export default async function handler(req, res) {
 
   try {
     const data = await resend.emails.send({
-      from: 'Club Commander <noreply@smarter.poker>',
+      from: resendFrom('Club Commander <noreply@smarter.poker>'),
       to: [to],
       subject: `Welcome to Club Commander, ${name}! ♠️`,
       html: emailHtml,

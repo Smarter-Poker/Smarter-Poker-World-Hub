@@ -5,8 +5,9 @@
  */
 
 import { Resend } from 'resend';
+import { resendApiKey, resendFrom } from './email/resendAccount.mjs';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(resendApiKey());
 
 /**
  * Send support ticket notification email
@@ -23,7 +24,7 @@ export async function sendTicketNotification({
 }) {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Live Help <support@smarter.poker>',
+            from: resendFrom('Live Help <support@smarter.poker>'),
             to: ['support@smarter.poker'], // Your support team email
             replyTo: userEmail,
             subject: `[${priority.toUpperCase()}] Support Ticket #${ticketId.slice(0, 8)}`,
@@ -127,7 +128,7 @@ export async function sendTicketStatusUpdate({
 }) {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Live Help <support@smarter.poker>',
+            from: resendFrom('Live Help <support@smarter.poker>'),
             to: [userEmail],
             subject: `Support Ticket Update: ${subject}`,
             html: `

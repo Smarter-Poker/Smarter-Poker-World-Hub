@@ -4,6 +4,7 @@
  * Every network call is bounded and returns a result object; nothing throws.
  */
 import crypto from 'crypto';
+import { resendApiKey, resendFrom } from '../email/resendAccount.mjs';
 
 const trim = (v) => (typeof v === 'string' ? v.trim() : '');
 
@@ -73,8 +74,11 @@ export async function sendBulkEmail(opts = {}) {
 }
 
 export async function sendEmail({ to, subject, html, text, idempotencyKey, from = null, headers = null, apiKey: keyOverride = null, fetchImpl = fetch }) {
-    const apiKey = trim(keyOverride) || trim(process.env.RESEND_API_KEY);
+    // No explicit key: the account helper picks the Pro key when it is set and
+    // moves an @smarter.poker sender onto mail.smarter.poker to match it.
+    const apiKey = trim(keyOverride) || resendApiKey();
     if (!apiKey) return { ok: false, error: 'RESEND_API_KEY not configured' };
+    const sender = trim(keyOverride) ? (from || digestFrom()) : resendFrom(from || digestFrom());
     if (!Array.isArray(to) || !to.length) return { ok: false, error: 'DAILY_DIGEST_TO not configured' };
     let lastError = '';
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -87,7 +91,7 @@ export async function sendEmail({ to, subject, html, text, idempotencyKey, from 
                     ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
                 },
                 signal: AbortSignal.timeout(10000),
-                body: JSON.stringify({ from: from || digestFrom(), to, subject, html, text, ...(headers ? { headers } : {}) }),
+                body: JSON.stringify({ from: sender, to, subject, html, text, ...(headers ? { headers } : {}) }),
             });
             const body = await res.json().catch(() => ({}));
             if (res.ok && body?.id) return { ok: true, id: body.id };

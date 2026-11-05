@@ -32,6 +32,7 @@
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { createClient } from '@supabase/supabase-js';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { resendApiKey, resendFrom, resendSendingDomain } from '../../../src/lib/email/resendAccount.mjs';
 
 
 let _admin = null;
@@ -47,7 +48,10 @@ function getAdmin() {
 const DOMAIN = 'smarter.poker';
 
 async function checkResendDomain() {
-    const apiKey = process.env.RESEND_API_KEY;
+    // The account in use decides which domain must be verified: the Pro key
+    // sends from mail.smarter.poker, the original key from smarter.poker.
+    const apiKey = resendApiKey();
+    const DOMAIN = resendSendingDomain();
     if (!apiKey) {
         return { check: 'resend_api_key', ok: false, detail: 'RESEND_API_KEY not set' };
     }
@@ -231,13 +235,13 @@ async function handler(req, res) {
     if (failures.length > 0) {
 
         // Email alert
-        if (process.env.RESEND_API_KEY && process.env.OPS_ALERT_EMAIL) {
+        if (resendApiKey() && process.env.OPS_ALERT_EMAIL) {
             try {
                 await fetch('https://api.resend.com/emails', {
                     method: 'POST',
-                    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                    headers: { Authorization: `Bearer ${resendApiKey()}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        from: process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker',
+                        from: resendFrom(process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker'),
                         to: process.env.OPS_ALERT_EMAIL,
                         subject: `[smarter.poker] Email deliverability check FAILED - ${failures.length}/4`,
                         text: JSON.stringify({ failures, allResults: results }, null, 2),

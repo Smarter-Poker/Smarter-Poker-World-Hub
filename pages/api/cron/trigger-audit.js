@@ -29,6 +29,7 @@ import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { resendApiKey, resendFrom } from '../../../src/lib/email/resendAccount.mjs';
 
 let _admin = null;
 function getAdmin() {
@@ -181,16 +182,16 @@ async function handler(req, res) {
         }
 
         // Optional email alert
-        if (process.env.RESEND_API_KEY && process.env.OPS_ALERT_EMAIL) {
+        if (resendApiKey() && process.env.OPS_ALERT_EMAIL) {
             try {
                 await fetch('https://api.resend.com/emails', {
                     method: 'POST',
                     headers: {
-                        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                        Authorization: `Bearer ${resendApiKey()}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        from: process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker',
+                        from: resendFrom(process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker'),
                         to: process.env.OPS_ALERT_EMAIL,
                         subject: `[smarter.poker] Trigger audit FAILED - ${failures.length} assertions`,
                         text: JSON.stringify({ failures, allResults: results }, null, 2),
