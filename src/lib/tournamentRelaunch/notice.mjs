@@ -130,7 +130,9 @@ export async function runRelaunchNotice(sb, { sendEmail, sendSms, log = () => {}
                 const timedOut = /timeout|timed out|aborted/i.test(String(res?.error || ''));
                 if (res?.ok) summary.texts_sent++; else summary.texts_failed++;
                 // A text has no idempotency key: a timeout is never resent.
-                await mark(r.user_id, 'sms', !!res?.ok, res?.ok ? null : (timedOut ? 'timeout' : String(res?.error || 'unknown')));
+                // On success the detail is Twilio's message id, so the carrier's final
+                // result (sms_delivery_receipts) can be joined to this player.
+                await mark(r.user_id, 'sms', !!res?.ok, res?.ok ? (res?.id || null) : (timedOut ? 'timeout' : String(res?.error || 'unknown')));
             }
         }
     }
