@@ -1507,12 +1507,12 @@ export default function HandReviewsPanel() {
               <>
                 {auditStatusError && (
                   <div role="status" style={{ color: T.warn, fontSize: '0.8rem', padding: '0.25rem' }}>
-                    Audit status could not be read: {auditStatusError}
+                    Audit Status Could Not Be Read: {auditStatusError}
                   </div>
                 )}
                 {auditStatus?.watchdog_stale && (
                   <div role="status" style={{ color: T.danger, fontSize: '0.8rem', padding: '0.25rem' }}>
-                    The audit watchdog has not completed a pass in the last 7 hours.
+                    The Audit Watchdog Has Not Completed A Pass In The Last 7 Hours.
                   </div>
                 )}
                 {gaps.map((d) => (
