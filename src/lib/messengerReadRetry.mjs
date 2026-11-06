@@ -36,3 +36,20 @@ export async function persistReadWithRetry(attempt, {
     }
     return { ok: false, abandoned: false, error: lastError };
 }
+
+/**
+ * The one sentence a player sees when a read receipt finally fails. It names
+ * the cause the evidence supports: only a request that never got an HTTP
+ * answer (or timed out) is a connection problem; a server that kept failing,
+ * an expired session or a refused conversation each say so.
+ */
+export function readFailureMessage(error) {
+    const status = Number(error?.status);
+    if (!Number.isFinite(status) || status === 0 || status === 408) return 'Read Status Could Not Be Saved. Check Your Connection.';
+    if (status === 401) return 'Your Session Has Expired. Sign In Again To Save Read Status.';
+    if (status === 403) return 'You No Longer Have Access To This Conversation.';
+    if (status === 404) return 'This Conversation Is No Longer Available.';
+    if (status === 429) return 'Read Status Is Busy Right Now. It Will Save Shortly.';
+    if (status >= 500) return 'Read Status Could Not Be Saved. The Server Is Not Responding, Please Try Again Shortly.';
+    return 'Read Status Could Not Be Saved.';
+}
