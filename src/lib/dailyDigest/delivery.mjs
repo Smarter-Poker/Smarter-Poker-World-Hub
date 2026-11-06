@@ -128,14 +128,40 @@ export function smsStatusCallbackUrl() {
     return `${base.replace(/\/+$/, '')}/api/webhooks/twilio-status`;
 }
 
+/**
+ * A number a carrier permanently refused (30004/30005/30006/21211/21610/21614)
+ * is suppressed by the sms_delivery_receipts trigger and removed from every
+ * table (2026-11-06). The notice lists can no longer store one; this is the
+ * last door, for a number that reaches sendSms some other way. A lookup that
+ * fails does not block the text: suppression is a courtesy to the carrier,
+ * not a money gate.
+ */
+export async function smsNumberSuppressed(to, { sb = null } = {}) {
+    try {
+        let client = sb;
+        if (!client && !trim(process.env.SUPABASE_SERVICE_ROLE_KEY)) return false;
+        if (!client) {
+            const { createClient } = await import('../supabaseServerClient');
+            client = createClient();
+        }
+        const { data, error } = await client.rpc('fn_sms_number_is_suppressed', { p_phone: to });
+        return !error && data === true;
+    } catch {
+        return false;
+    }
+}
+
 /** Texts the owner by default; pass `to` (E.164) to text someone else. */
-export async function sendSms(body, { fetchImpl = fetch, to: toOverride = null } = {}) {
+export async function sendSms(body, { fetchImpl = fetch, to: toOverride = null, sb = null, suppressionCheck = smsNumberSuppressed } = {}) {
     const sid = trim(process.env.TWILIO_ACCOUNT_SID);
     const token = trim(process.env.TWILIO_AUTH_TOKEN);
     const from = trim(process.env.TWILIO_PHONE_NUMBER);
     const to = toOverride || ownerPhone();
     if (!sid || !token || !from) return { ok: false, error: 'Twilio not configured' };
     if (!to) return { ok: false, error: toOverride === null ? 'No owner phone configured' : 'No phone number' };
+    if (toOverride && await suppressionCheck(to, { sb })) {
+        return { ok: false, suppressed: true, error: 'number refused by the carrier (suppressed)' };
+    }
     try {
         const res = await fetchImpl(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
             method: 'POST',
