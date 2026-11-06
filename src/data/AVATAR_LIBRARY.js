@@ -8,6 +8,9 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// Version only image requests; catalog IDs and entitlement paths stay stable.
+export const AVATAR_ART_REVISION = '4b7ebb1d3e8cfaa8bd4f';
+
 // Avatar categories
 export const AVATAR_CATEGORIES = {
     PEOPLE: { id: 'people', name: 'People & Professions', icon: '◆' },
@@ -1049,6 +1052,11 @@ export const AVATAR_LIBRARY = [
         tags: ['vip', 'premium', 'yakuza']
     },
 ];
+
+// Existing clients keep reading image; current galleries request this artwork revision.
+for (const avatar of AVATAR_LIBRARY) {
+    avatar.previewImage = avatar.image + '?art=' + AVATAR_ART_REVISION;
+}
 
 // Helper functions
 export const getFreeAvatars = () =>

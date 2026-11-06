@@ -1,0 +1,830 @@
+{
+  "reviewedAt": "2026-11-06",
+  "assets": [
+    {
+      "file": "table/free_android@2x.webp",
+      "sha256": "8450afccf9aec06aaf7edbf7f0ba41c2558af262af452612937943125cb86a56",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.300121, 0.710462],
+        [0.708946, 0.719629]
+      ]
+    },
+    {
+      "file": "table/free_business@2x.webp",
+      "sha256": "81c7e134bda0b434cdd7fcad98d7d5ff9276702300002a28b5b5a99027b2a30b",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.326345, 0.628732],
+        [0.719748, 0.668404]
+      ]
+    },
+    {
+      "file": "table/free_fox@2x.webp",
+      "sha256": "742b76651cc8fde0e53e19d79c692413e04c63efb9580c96a4a3d24684e540f7",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.347857, 0.713782],
+        [0.660824, 0.721107]
+      ]
+    },
+    {
+      "file": "table/free_geisha@2x.webp",
+      "sha256": "8cba68a74389f48c7aab053bd73c062cb9fde9902a3212a54454f6ff4e54bdb9",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.597239, 0.664994]]
+    },
+    {
+      "file": "table/free_knight@2x.webp",
+      "sha256": "b6946cd8bcfe8f10d21ce7bbcfa2513a410dcd4c91b6ff1bbac4caf50569eb4b",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.714, 0.758871]]
+    },
+    {
+      "file": "table/free_musician@2x.webp",
+      "sha256": "996323a3698a3a50eedeccf760b8204fa125bae50cf3c129dcdd10fe799f8071",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.712435, 0.588939],
+        [0.235457, 0.610966]
+      ]
+    },
+    {
+      "file": "table/free_ninja@2x.webp",
+      "sha256": "910434f7b67a603be82c56690cceb05d2d57cedfbb747687e3291ae8d2fdd910",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.267171, 0.683782],
+        [0.725826, 0.682715]
+      ]
+    },
+    {
+      "file": "table/free_wizard@2x.webp",
+      "sha256": "b6a6af6c5ec008f6b1471d625c5a8c311e276e1b570121350c078da0eb955668",
+      "reason": "Space between the staff, raised hand and hat",
+      "centroids": [
+        [0.234596, 0.351858],
+        [0.317641, 0.435445]
+      ]
+    },
+    {
+      "file": "table/vip_alien@2x.webp",
+      "sha256": "093373387580b8859b2c6795a2dfa0cf87563ba53bc6302b985ba01cbd1522bb",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.336221, 0.744797],
+        [0.682839, 0.757179]
+      ]
+    },
+    {
+      "file": "table/vip_alien_overlord@2x.webp",
+      "sha256": "1251d6320433db6ba75a203f0856bc9e26567e8f06846590865eb846d465d597",
+      "reason": "Spaces between separate tentacles and hands",
+      "centroids": [
+        [0.257833, 0.483701],
+        [0.724571, 0.482773]
+      ]
+    },
+    {
+      "file": "table/vip_astronaut@2x.webp",
+      "sha256": "991148c35c690090b12b887230a5ce13938beb0aa833d14e89f56aa28b97b25e",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.244943, 0.727406],
+        [0.737595, 0.731958]
+      ]
+    },
+    {
+      "file": "table/vip_basketball@2x.webp",
+      "sha256": "6e0347ae3b1975f914d80be75a481ead6f5b8e011b81ffa102cb3ec039cba49c",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.264988, 0.780912]]
+    },
+    {
+      "file": "table/vip_bounty_hunter@2x.webp",
+      "sha256": "ea1473668c14d712b82318fc4467d4d4ce04477207c9459e7e8a37b9ddef35ac",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.181263, 0.922059],
+        [0.820143, 0.918908]
+      ]
+    },
+    {
+      "file": "table/vip_bull@2x.webp",
+      "sha256": "3893c3ccb7464837f794aa99a0f35aacd2ea7a1682e0df9645543089bf4cd42c",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.243922, 0.697678],
+        [0.748942, 0.700496]
+      ]
+    },
+    {
+      "file": "table/vip_business_cat@2x.webp",
+      "sha256": "dc68c8e00a4faa289ea89be67bfb72a697d0ca58449a0a3676e04266d36e2789",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.307265, 0.691816],
+        [0.723014, 0.694714]
+      ]
+    },
+    {
+      "file": "table/vip_casino_dealer@2x.webp",
+      "sha256": "0a2e5a61db463ae53cd28692db145f9d5be278068d9cff7a717571ea508adfc2",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.272901, 0.702623],
+        [0.724077, 0.702856]
+      ]
+    },
+    {
+      "file": "table/vip_country@2x.webp",
+      "sha256": "ee017b4ba39d6cfb6b7bf096dafb0b6de05f38b8a50abf428adb7f6500f8591e",
+      "reason": "Space between the guitar, fingers and arm",
+      "centroids": [
+        [0.722917, 0.720864],
+        [0.620533, 0.848235]
+      ]
+    },
+    {
+      "file": "table/vip_cyber_punk@2x.webp",
+      "sha256": "788d38924187655af56e761ca58804782039290307687b7c331c3c958d581340",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.3664, 0.386275],
+        [0.282221, 0.735317],
+        [0.737219, 0.732003]
+      ]
+    },
+    {
+      "file": "table/vip_dancer@2x.webp",
+      "sha256": "65f7963cd4cb826609335fc3d3667314ec039dc392f04f9f1f871ce9b0821177",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.254824, 0.382007],
+        [0.216549, 0.393829]
+      ]
+    },
+    {
+      "file": "table/vip_director@2x.webp",
+      "sha256": "f40af792196c1bed1e980a66840b6f6d3c54c85e5f294e06119fd6318f337036",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.700525, 0.740404]]
+    },
+    {
+      "file": "table/vip_dj@2x.webp",
+      "sha256": "1cb250d6597d240c6416aa774f1007a2dfd30346d561a7de2504886d6e4edb82",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.573, 0.128676],
+        [0.268748, 0.741688],
+        [0.721359, 0.744175]
+      ]
+    },
+    {
+      "file": "table/vip_hacker@2x.webp",
+      "sha256": "ce6950fbd9d021b296c01470b5e5bb39dce486daa2bd40ed3dadd775fd4fbd74",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.691128, 0.722719],
+        [0.300484, 0.721525]
+      ]
+    },
+    {
+      "file": "table/vip_hollywood@2x.webp",
+      "sha256": "ba09da26f472211b49ffc195a361236a71dc6a6f7b2d3de6d4d49e978a0608cd",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.348575, 0.762688],
+        [0.691853, 0.786815]
+      ]
+    },
+    {
+      "file": "table/vip_ice_queen@2x.webp",
+      "sha256": "353973c8e111436a21f35b783cb79abea46d5d13cfc9ee6a493dd49fac22db75",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.342118, 0.649942],
+        [0.648776, 0.650218]
+      ]
+    },
+    {
+      "file": "table/vip_jazz@2x.webp",
+      "sha256": "d7873b6e74c19d9aa736ea0d51db259d26a50457782fe56ee8f39eabd83b5148",
+      "reason": "Space behind the saxophone bell and hand",
+      "centroids": [[0.629289, 0.463237]]
+    },
+    {
+      "file": "table/vip_liberty@2x.webp",
+      "sha256": "77bb44cd356b2e110202d1aa7f4ba8c5ebae2ec5f70800fa9c9caf918272bde7",
+      "reason": "Space between the raised torch arm, crown and head",
+      "centroids": [[0.278753, 0.385903]]
+    },
+    {
+      "file": "table/vip_luchador@2x.webp",
+      "sha256": "9a4758d8b251cced00e08d693f9dad647c1f7f08e51bba1043a82d2943d8fcaf",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.250599, 0.753912],
+        [0.746109, 0.753941]
+      ]
+    },
+    {
+      "file": "table/vip_mad_scientist@2x.webp",
+      "sha256": "758f3df9720cceb3a64d72efc9de534200dda51d8e021d1be57a3838cc9d3332",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.262808, 0.698416],
+        [0.728036, 0.707274]
+      ]
+    },
+    {
+      "file": "table/vip_mecha_pilot@2x.webp",
+      "sha256": "a367ddd3d43357d1ee8acb90faed30570e1af92385447bb1048e1b08de5478b3",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.319075, 0.718863],
+        [0.677893, 0.718368]
+      ]
+    },
+    {
+      "file": "table/vip_mobster@2x.webp",
+      "sha256": "a24c98bf63cc5ce45f49d5ef1bc424c3efe3b75cd45605cdf397786513fe6d85",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.2512, 0.689804],
+        [0.736, 0.690899]
+      ]
+    },
+    {
+      "file": "table/vip_mummy@2x.webp",
+      "sha256": "6152e8ed844b6df9dccbabe2f02ff0dad072e678ad2a76c7228c60bfa640f6e7",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.270215, 0.774796],
+        [0.699, 0.775756]
+      ]
+    },
+    {
+      "file": "table/vip_neon_ninja@2x.webp",
+      "sha256": "9690f7f3ec32eea31e92df0c07bd840a611ba29e53d2059cb056bfaf5f0afe5e",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.1896, 0.914902],
+        [0.806824, 0.915571]
+      ]
+    },
+    {
+      "file": "table/vip_samurai_cyborg@2x.webp",
+      "sha256": "64b81e0489b8ff7ca6cc4d71347bd2424ab2b6f4d068dbbc9e5945f37afd7e75",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.563467, 0.165588],
+        [0.808571, 0.916667],
+        [0.188471, 0.919031]
+      ]
+    },
+    {
+      "file": "table/vip_secret_agent@2x.webp",
+      "sha256": "cd2660888eb8d33ec1fd278444139ac8b208b42c57cbfa96b456d9f079c29e06",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.273319, 0.746026],
+        [0.727097, 0.746078]
+      ]
+    },
+    {
+      "file": "table/vip_silent_actor@2x.webp",
+      "sha256": "576a9ad7d57a2294a98e3ab4637533da33db12608f8095ea2134f4829ecf63d5",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.297872, 0.742303]]
+    },
+    {
+      "file": "table/vip_soccer@2x.webp",
+      "sha256": "58164d3a40d68b5bb06533e4e1984faf9b96ce3ab38ca18f0d6976ed00c5d543",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.271231, 0.683541]]
+    },
+    {
+      "file": "table/vip_sorceress@2x.webp",
+      "sha256": "90656290ac59f93cd4a5adb1eecb7601a8cb340941e6a71e1804616224ba2f47",
+      "reason": "Spaces between separate hair strands",
+      "centroids": [
+        [0.699667, 0.282843],
+        [0.292, 0.306723],
+        [0.216255, 0.374656],
+        [0.769731, 0.398595],
+        [0.174615, 0.535916],
+        [0.821571, 0.535084]
+      ]
+    },
+    {
+      "file": "table/vip_space_pirate@2x.webp",
+      "sha256": "f141f4a0d3b0f5a88730f85062315cd6fc55edf14ebc83dc8d903a02b60ddf54",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.235758, 0.677731],
+        [0.72552, 0.682364]
+      ]
+    },
+    {
+      "file": "table/vip_steampunk_inventor@2x.webp",
+      "sha256": "ca118fba6fe46816e06f5ff4b265b16be94aa796f25d16a23cf1d31f87f2306f",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.720044, 0.739542],
+        [0.264591, 0.747059]
+      ]
+    },
+    {
+      "file": "table/vip_street_racer@2x.webp",
+      "sha256": "dff8ab42ddfa047a313850b2bfe935f43472c32e18b3366b49eef1c5d7e0c5f0",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.280836, 0.680303],
+        [0.710978, 0.679634]
+      ]
+    },
+    {
+      "file": "table/vip_tiger_boss@2x.webp",
+      "sha256": "5c98751c5bf2b0d673097f1d38069b4a747b64d3cdce9adb47cadc7f7772e366",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.258284, 0.691169],
+        [0.730789, 0.696472]
+      ]
+    },
+    {
+      "file": "table/vip_unicorn@2x.webp",
+      "sha256": "35fb1fbfc8af11805b9de9b359337599df45f3fa93aab0ab7ef001a587e3ad5d",
+      "reason": "Space between the mane and torso",
+      "centroids": [[0.913913, 0.592199]]
+    },
+    {
+      "file": "table/vip_voodoo_priest@2x.webp",
+      "sha256": "2cbeb03172fa89fad49905164004f1016eaf2f5f4e9ea579aa7ed0aed65f591c",
+      "reason": "Spaces between separate hair strands",
+      "centroids": [
+        [0.649366, 0.34627],
+        [0.3224, 0.34098],
+        [0.325811, 0.388346]
+      ]
+    },
+    {
+      "file": "table/vip_wrestler@2x.webp",
+      "sha256": "5a2195456e824bf871213e8a965b5b37d79c9b7cc7445bf00db48bd79a3988a7",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.74589, 0.772209],
+        [0.252, 0.777411]
+      ]
+    },
+    {
+      "file": "table/vip_yakuza@2x.webp",
+      "sha256": "f895a44aaa1292e37d74dfb84314d3b6601c9b120c65f3399baeb95a07e5483b",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.229171, 0.67633]]
+    },
+    {
+      "file": "free/android.webp",
+      "sha256": "501427075f40b50ab8c053847293c1f4693297adc90ad18437b946a307c59715",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.354523, 0.685949],
+        [0.654158, 0.694852]
+      ]
+    },
+    {
+      "file": "free/business.webp",
+      "sha256": "dd45469fc898f80b70a609bd1dd03c3ca9d00ca08c506493752b5d3b6c02156c",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.373104, 0.604343],
+        [0.66135, 0.642468]
+      ]
+    },
+    {
+      "file": "free/fox.webp",
+      "sha256": "fed8f72f12ceff7fdcc89852e82db15c2cf44080c97a3e874c110bfe7ec304a0",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.39052, 0.689983],
+        [0.621173, 0.69649]
+      ]
+    },
+    {
+      "file": "free/geisha.webp",
+      "sha256": "52e3d54ab616165abf2f747ef73155961083c75c5faa6d0f6bed8b1304b31669",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.572139, 0.641369]]
+    },
+    {
+      "file": "free/knight.webp",
+      "sha256": "71732cc2679eef269179256cf246d0d77901becf699f06777d63cbd73807f180",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.659677, 0.733699]]
+    },
+    {
+      "file": "free/musician.webp",
+      "sha256": "1090e18db70a158a2f6996f8ec5ec70db103f9497fc88e1351e802422cefe63b",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.657742, 0.564218],
+        [0.308231, 0.587381]
+      ]
+    },
+    {
+      "file": "free/ninja.webp",
+      "sha256": "be93a5baf66929d595f95a3c87d99b4b118cb1672c826d39cd972815f5e3f02b",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.330566, 0.659303],
+        [0.666684, 0.658]
+      ]
+    },
+    {
+      "file": "free/wizard.webp",
+      "sha256": "f1acdfad7163401eae704fdd5a9465726b4ab34b4a5f0c2d79f441886a390eb7",
+      "reason": "Space between the staff, raised hand and hat",
+      "centroids": [[0.307043, 0.329649]]
+    },
+    {
+      "file": "vip/alien.webp",
+      "sha256": "c21061b6f33d4bf9ff347bbc26a3e63011f88b35685258c3aace7ab92594011d",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.381977, 0.720612],
+        [0.636418, 0.733089]
+      ]
+    },
+    {
+      "file": "vip/alien_overlord.webp",
+      "sha256": "be5bb646b7af21a18240b39b26829893ae6c7832d9837c776bd3393efc4317b6",
+      "reason": "Spaces between separate tentacles and hands",
+      "centroids": [
+        [0.324448, 0.461534],
+        [0.66614, 0.458936]
+      ]
+    },
+    {
+      "file": "vip/astronaut.webp",
+      "sha256": "98aabe954a6c1c9ee5c8bc0e45a22da1ef42308ef8389d1f99a8d535b0f0cc6b",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.693811, 0.682342],
+        [0.294514, 0.677636]
+      ]
+    },
+    {
+      "file": "vip/basketball.webp",
+      "sha256": "35bc15a95242a7ab6ce8f6c16d4e06e4c3245f5872309dbd4f441e3152ef5178",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.305138, 0.730121]]
+    },
+    {
+      "file": "vip/bounty_hunter.webp",
+      "sha256": "0acc4a5bdb1b7336950e28659ea3b5e134aaf2513bf5eeec5555c6eb06f76212",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.738063, 0.891983],
+        [0.264517, 0.896598]
+      ]
+    },
+    {
+      "file": "vip/bull.webp",
+      "sha256": "8374c9c07be8a925ea5db9ed2a03fe815b4fe7163bd82f30245afa6014013f6e",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.313207, 0.672821],
+        [0.683592, 0.675763]
+      ]
+    },
+    {
+      "file": "vip/business_cat.webp",
+      "sha256": "a8d4500cd228df18b3f20ea3214af63244d191858378bcbf7e5ecbd554dfe83f",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.361249, 0.668639],
+        [0.665312, 0.671404]
+      ]
+    },
+    {
+      "file": "vip/casino_dealer.webp",
+      "sha256": "1f549edaa47471dcbffda9923cb21dbcfddde161cda8cc8ddc08b7c03d598491",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.33449, 0.678142],
+        [0.665278, 0.678364]
+      ]
+    },
+    {
+      "file": "vip/country.webp",
+      "sha256": "e79dd641a4e8f268fe251a7e5977abd9803b06067d51d0fc46bfb159b6bba7f2",
+      "reason": "Space between the guitar, fingers and arm",
+      "centroids": [
+        [0.707002, 0.631243],
+        [0.613391, 0.792014]
+      ]
+    },
+    {
+      "file": "vip/cyber_punk.webp",
+      "sha256": "253960b1ce8e774310f1d359ef41f574a03db85f08d9faf6ec2978c4f41de062",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.342144, 0.710987],
+        [0.675486, 0.707147]
+      ]
+    },
+    {
+      "file": "vip/dancer.webp",
+      "sha256": "4c88b3e4ec83885b6a3790554e189c56c1a91252ef70a24b29f59106494671f4",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.32442, 0.358693]]
+    },
+    {
+      "file": "vip/director.webp",
+      "sha256": "2d2d08a52c4fcda1bba00d4223da4fd3f2f4775df9feaad538691d848385bd24",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.647493, 0.716246]]
+    },
+    {
+      "file": "vip/dj.webp",
+      "sha256": "84e4154d0d5cd4ea591a6b54549903678e15ba9d602c6e99242d5e674ab5fe54",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.555901, 0.106659],
+        [0.332205, 0.716862],
+        [0.664892, 0.719468]
+      ]
+    },
+    {
+      "file": "vip/hacker.webp",
+      "sha256": "78d35706ba8a1a5226bd217932a7e4e13af70e57d56a1e498cf97e2a44d83eb4",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.642539, 0.698418],
+        [0.356172, 0.696388]
+      ]
+    },
+    {
+      "file": "vip/hollywood.webp",
+      "sha256": "8a8d2f9a755f3e8e413caaefd8f7a3a50a40968ce61a94d95b2b75c28423493d",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.3899, 0.739375],
+        [0.640752, 0.763191]
+      ]
+    },
+    {
+      "file": "vip/ice_queen.webp",
+      "sha256": "af7fe9f4a34af2081fa60bd6dfd06368334742a1f4eda0250d97338af7370e5e",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.387044, 0.625702],
+        [0.610972, 0.626196]
+      ]
+    },
+    {
+      "file": "vip/jazz.webp",
+      "sha256": "e99b2dc4334740a91a5625718cc9909abaee3336ef5109ead1dbf866f2f7d0b6",
+      "reason": "Space behind the saxophone bell and hand",
+      "centroids": [[0.597627, 0.439189]]
+    },
+    {
+      "file": "vip/liberty.webp",
+      "sha256": "e38ab368f2900d65fa4d570fccd5a15a325d345afc18521a84902133f2c5a221",
+      "reason": "Space between the raised torch arm, crown and head",
+      "centroids": [[0.340481, 0.363479]]
+    },
+    {
+      "file": "vip/luchador.webp",
+      "sha256": "7939c5825feb82fc54a1b79125a1968220bcefda61e2a731082a773327143e34",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.281489, 0.687398],
+        [0.716639, 0.687503]
+      ]
+    },
+    {
+      "file": "vip/mad_scientist.webp",
+      "sha256": "16bdb968f65af2f2794c745e7235f1a76ca2c93d868cabef783ce5b893124933",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.328432, 0.674828],
+        [0.669753, 0.682851]
+      ]
+    },
+    {
+      "file": "vip/mecha_pilot.webp",
+      "sha256": "8e7467d2e7c8a80cb170d1137d2dd81b2fb04addfa8c3677e6814c63b6f96700",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.368035, 0.694774],
+        [0.630919, 0.693616]
+      ]
+    },
+    {
+      "file": "vip/mobster.webp",
+      "sha256": "cc572cb91cda0f1f66877bf7c7d88ac5789eb3acd56ed8f4cff14d5a60558345",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.319559, 0.665527],
+        [0.674473, 0.667829]
+      ]
+    },
+    {
+      "file": "vip/mummy.webp",
+      "sha256": "71cc2f4cf20d41ac1645bf7cf290147e5fe6e8fd7d50789d3d8a2e9d345a4aa6",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.333775, 0.75011],
+        [0.64832, 0.751355]
+      ]
+    },
+    {
+      "file": "vip/neon_ninja.webp",
+      "sha256": "9e982696f1da349cfad966f1d4638a258afb4a07f5c955cdfbefc09554084601",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.723846, 0.890874],
+        [0.274177, 0.890833]
+      ]
+    },
+    {
+      "file": "vip/samurai_cyborg.webp",
+      "sha256": "8ab8de91f1d5a878051b7b4d571b6d49905b7a5a194f28ba737ff2922258fbd3",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.546109, 0.1422],
+        [0.726196, 0.893542],
+        [0.27234, 0.89418]
+      ]
+    },
+    {
+      "file": "vip/secret_agent.webp",
+      "sha256": "31bfd6e1ca4e3734c9623ca8d6ff80f8ce22f9ad360f044631be70a6026722d8",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.335237, 0.721273],
+        [0.667335, 0.72096]
+      ]
+    },
+    {
+      "file": "vip/silent_actor.webp",
+      "sha256": "d9535094eeb863088d4d4107ff67ee96fe2757aed0ba9958ecbdedc9755c0d7f",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.354608, 0.71908]]
+    },
+    {
+      "file": "vip/soccer.webp",
+      "sha256": "b84165152690ea1c53fd5746c8437470fa449ef8004a7932ef95859dc1d21097",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.334044, 0.658856]]
+    },
+    {
+      "file": "vip/sorceress.webp",
+      "sha256": "13d6acf59768d30c5b3104d48b681b10c04cfeb8e638e8725a9d11e360aa04ee",
+      "reason": "Spaces between separate hair strands",
+      "centroids": [
+        [0.647215, 0.258551],
+        [0.34943, 0.285251],
+        [0.263834, 0.513678],
+        [0.73872, 0.509571]
+      ]
+    },
+    {
+      "file": "vip/space_pirate.webp",
+      "sha256": "0d65258b0680f4f04f4f1a524147271483204d7b6d78f20185b97b4c907b4e69",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.308514, 0.652348],
+        [0.667238, 0.657525]
+      ]
+    },
+    {
+      "file": "vip/steampunk_inventor.webp",
+      "sha256": "c9808cc640441a5251615dd3b2ef49f964a71603b81f690c2fc7ea81f01f57f9",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.66278, 0.71584],
+        [0.328668, 0.722422]
+      ]
+    },
+    {
+      "file": "vip/street_racer.webp",
+      "sha256": "bf12e42fdea0779c202a1fdd57536a360fb80acabc50a884cba122d8b2a303b2",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.340509, 0.656988],
+        [0.655811, 0.655321]
+      ]
+    },
+    {
+      "file": "vip/tiger_boss.webp",
+      "sha256": "4dc040b7070c649fce40b1c0ca1e1f9851b091594989a34d64c5f565b0cd15a3",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.325268, 0.666882],
+        [0.671386, 0.671919]
+      ]
+    },
+    {
+      "file": "vip/unicorn.webp",
+      "sha256": "a9d00dd88c55adb2b02d0532cbe274c4583a9566f2876a3c4c95fee1c62e0598",
+      "reason": "Space between the mane and torso",
+      "centroids": [[0.805151, 0.56652]]
+    },
+    {
+      "file": "vip/voodoo_priest.webp",
+      "sha256": "233ba4016010584036bb8b653f119c1e603a4585cfbbb1ddc655fa25548d5f5b",
+      "reason": "Spaces between separate hair strands",
+      "centroids": [[0.609806, 0.321373]]
+    },
+    {
+      "file": "vip/wrestler.webp",
+      "sha256": "63c905810c758f367dda7d340239d217355ef9941ada0474b5f743c95f3c5600",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.73211, 0.691667],
+        [0.267644, 0.698566]
+      ]
+    },
+    {
+      "file": "vip/yakuza.webp",
+      "sha256": "c14e5c7a57ecd9cd8dd6641654a74caed7ddee00412f4d0be46151a7097eafd1",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.302644, 0.651866]]
+    },
+    {
+      "file": "table/custom_complete_7f10ed2af667ba12@2x.webp",
+      "sha256": "7f10ed2af667ba12e2faef84631dc5890c602865f2b0f6d8ad31e4e64c8f85b5",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.747346, 0.725841]]
+    },
+    {
+      "file": "table/custom_complete_4b54611bbfb7d88b@2x.webp",
+      "sha256": "4b54611bbfb7d88b158289fc9c2a21bcae129b7c848c03edf0dd7ff545ef47f0",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.630819, 0.926351]]
+    },
+    {
+      "file": "table/custom_complete_0131b099c918d884@2x.webp",
+      "sha256": "0131b099c918d88425058586a477321cca36e42b27b01062703af01f1c86db28",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.751061, 0.784859]]
+    },
+    {
+      "file": "table/custom_complete_4342d338731689df@2x.webp",
+      "sha256": "4342d338731689df924ef770617c027cb243ca61ef2890b3720bf46a8d72e33b",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.270223, 0.671331]]
+    },
+    {
+      "file": "table/custom_complete_433068844d76bfbb@2x.webp",
+      "sha256": "433068844d76bfbb178b513de252c3be338a58d5e0d83a2c279a8524866b8e84",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.27923, 0.476057],
+        [0.737291, 0.728983]
+      ]
+    },
+    {
+      "file": "table/custom_complete_3cc909ae5d88316a@2x.webp",
+      "sha256": "3cc909ae5d88316a6bed8065625cde96cca63ea16f9abdf47c6ded4d29b26865",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.248114, 0.514974]]
+    },
+    {
+      "file": "table/custom_complete_0da1fb1798f3cae1@2x.webp",
+      "sha256": "0da1fb1798f3cae19ed0e3006dd7bd52ef4cdf69a38ba098b23befb5fdc7c0bb",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.705267, 0.70986]]
+    },
+    {
+      "file": "table/custom_complete_c5f5a8c1b7012b74@2x.webp",
+      "sha256": "c5f5a8c1b7012b74c7811fe07996ff0e7b0b5c8c953d9eb7dbf38a41929a351a",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.773549, 0.84269]]
+    },
+    {
+      "file": "table/custom_complete_d26e7f051db82666@2x.webp",
+      "sha256": "d26e7f051db82666e2875061241494f4d7752e436dfd4b936ae1116f672d5c05",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [
+        [0.307055, 0.657045],
+        [0.682823, 0.723936]
+      ]
+    },
+    {
+      "file": "table/custom_complete_c109592c8cfaddb0@2x.webp",
+      "sha256": "c109592c8cfaddb0afad3b221cd876508c9f0b89223ad5b0f3a7325045b7c94d",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.322495, 0.682756]]
+    },
+    {
+      "file": "table/custom_complete_6d0344917e977c4c@2x.webp",
+      "sha256": "6d0344917e977c4ce46d2862f57e5221be9a147f587bac6401a5620781b0273c",
+      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
+      "centroids": [[0.64669, 0.453947]]
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
  *  avatarMatte — finding, and telling apart, the two kinds of hole in a cut-out
@@ -323,37 +325,8 @@ export function inpaint(value, known, domain, width, height, channels) {
  * is matched by its centroid as a fraction of the image, which survives
  * re-encoding; the area is a comment, not a key.
  */
-export const KEEP_SEE_THROUGH = [
-  // the halo is a RING. Filling it makes a solid gold disc over her head.
-  ['vip/angel.webp', 0.5151, 0.1184], //  5678 px
-  ['table/vip_angel@2x.webp', 0.5076, 0.3311], //   368 px
-
-  // between the raised torch arm and her head, and between the arm and the
-  // crown spikes. Filling either welds her arm to her face.
-  ['vip/liberty.webp', 0.3262, 0.4611], // 23480 px
-  ['vip/liberty.webp', 0.3135, 0.3008], //  6749 px
-  ['table/vip_liberty@2x.webp', 0.2626, 0.4601], //  2654 px
-  ['table/vip_liberty@2x.webp', 0.2454, 0.3001], //   773 px
-
-  // between the saxophone bell and his chest
-  ['vip/jazz.webp', 0.5446, 0.5547], //  5781 px
-  ['table/vip_jazz@2x.webp', 0.7377, 0.6428], //  2097 px
-
-  // between her braids. Filling these webs the hair
-  ['vip/dancer.webp', 0.2492, 0.3302], //   987 px
-  ['vip/dancer.webp', 0.2487, 0.3932], //  1047 px
-  ['vip/dancer.webp', 0.2624, 0.4197], //  1241 px
-  ['table/vip_dancer@2x.webp', 0.1574, 0.3245], //   186 px
-  ['table/vip_dancer@2x.webp', 0.1749, 0.4213], //   146 px
-  ['table/vip_dancer@2x.webp', 0.7903, 0.4529], //   195 px
-
-  // between strands of hair
-  ['vip/sorceress.webp', 0.7621, 0.3935], //  1176 px
-  ['vip/sorceress.webp', 0.2241, 0.4385], //  1441 px
-
-  // behind the chain, inside the shoulder armour
-  ['vip/dragon.webp', 0.343, 0.9153], //  2215 px
-];
+export const REVIEWED_GAPS = JSON.parse(readFileSync(new URL('../data/avatar-reviewed-gaps.json', import.meta.url), 'utf8')).assets;
+export const KEEP_SEE_THROUGH = REVIEWED_GAPS.flatMap(({ file, centroids }) => centroids.map(([x, y]) => [file, x, y]));
 
 /** How close a component's centroid has to be to a listed one, as a fraction. */
 export const KEEP_TOLERANCE = 0.02;

@@ -183,7 +183,7 @@ const InspectModal = ({ avatar, isCustom, onClose, onEquip, isVip }) => {
   };
 
   const name = isCustom ? (avatar.prompt?.substring(0,30) || 'Custom Avatar') : avatar.name;
-  const imageUrl = isCustom ? avatar.image_url : avatar.image;
+  const imageUrl = isCustom ? avatar.image_url : (avatar.previewImage || avatar.image);
   const isVideo = imageUrl?.match(/\.(webm|mp4)$/i);
   const isSelected = avatar.isSelected;
 
@@ -964,7 +964,7 @@ export default function AvatarGallery({ onSelect }) {
                       <div className="screws"></div>
                       
                       {/* Phase 1 Skeleton Loader */}
-                    <AvatarMedia src={av.image} alt={av.name} index={index} frame={av.equipped_frame} aura={av.equipped_aura} />
+                    <AvatarMedia src={av.previewImage || av.image} alt={av.name} index={index} frame={av.equipped_frame} aura={av.equipped_aura} />
 
                       <div className="avatar-info">
                         <p className="avatar-name">{av.name}</p>
