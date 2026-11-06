@@ -224,6 +224,7 @@ jobs:
           __tests__/messenger-workspace.test.mjs
           __tests__/messenger-large-inbox-batches.test.mjs
           __tests__/messenger-read-retry.test.mjs
+          __tests__/unbatched-in-lists-guard.test.mjs
           __tests__/club-notice-board.test.mjs
           __tests__/club-notice-board-component.test.mjs
           __tests__/messenger-send-reliability.test.mjs
@@ -767,6 +768,12 @@ jobs:
       # GROWS, so the trap cannot be re-laid quietly.
       - name: "CHECK 19: An inline width on .sp-icon-btn is not silently discarded"
         run: node scripts/ci/check-icon-button-sizing.mjs
+      # A PostgREST .in() list travels in the URL; past ~25KB the gateway
+      # answers a plain 400. That broke Messenger read receipts for a
+      # 673-thread inbox (2026-11-06, #2684). Baseline ratchet: a file's count
+      # of not-visibly-bounded .in() lists may only go down.
+      - name: "CHECK 27: No new unbatched .in() lists"
+        run: node scripts/ci/check-unbatched-in-lists.mjs
       - name: "CHECK 10: Diamond economy invariants"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
