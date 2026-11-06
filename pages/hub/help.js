@@ -368,7 +368,7 @@ export default function HelpPage() {
                             </Link>
                         </div>
                         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
-                            <Link href="/hub/settings" style={{
+                            <Link href="/hub/settings?section=account" style={{
                                 color: C.accent,
                                 textDecoration: 'none',
                                 fontSize: 15,

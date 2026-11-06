@@ -41791,7 +41791,7 @@
         },
         {
           "name": "HamburgerMenu",
-          "line": 2257,
+          "line": 2252,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -41888,7 +41888,7 @@
         {
           "name": "on",
           "line": 329,
-          "references": 27,
+          "references": 28,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -43219,8 +43219,16 @@
       },
       "functions": [
         {
+          "name": "enforceAccountSettingsEntry",
+          "line": 36,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "sanitizeFallbackMenuConfig",
-          "line": 70,
+          "line": 131,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -43228,7 +43236,7 @@
         },
         {
           "name": "sanitizeProvidedMenuConfig",
-          "line": 74,
+          "line": 135,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -43267,8 +43275,24 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "routesToAccountSettings",
+          "line": 30,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "note",
+          "line": 39,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "sanitizeMenuConfig",
-          "line": 10,
+          "line": 70,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -43276,7 +43300,7 @@
         },
         {
           "name": "allowsAction",
-          "line": 11,
+          "line": 72,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -43415,7 +43439,7 @@
       "functions": [
         {
           "name": "applyWorldMenuDeck",
-          "line": 1449,
+          "line": 1412,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -43423,7 +43447,7 @@
         },
         {
           "name": "getMenuConfig",
-          "line": 1484,
+          "line": 1447,
           "references": 10,
           "exported": true,
           "defaultExport": false,
@@ -43431,7 +43455,7 @@
         },
         {
           "name": "getMenuConfigForPath",
-          "line": 1522,
+          "line": 1485,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -43455,7 +43479,7 @@
         },
         {
           "name": "hasItemWithId",
-          "line": 1397,
+          "line": 1360,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -43463,7 +43487,7 @@
         },
         {
           "name": "worldPrimaryDeck",
-          "line": 1399,
+          "line": 1362,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43471,7 +43495,7 @@
         },
         {
           "name": "removePrimaryDuplicates",
-          "line": 1428,
+          "line": 1391,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -95404,7 +95428,7 @@
       {
         "file": "src/config/fallbackMenuSafety.mjs",
         "name": "sanitizeFallbackMenuConfig",
-        "line": 70,
+        "line": 131,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95414,6 +95438,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/fallback-menu-safety.test.mjs",
+          "__tests__/settings-single-entry.test.mjs",
           "src/components/ui/HamburgerMenu.jsx",
           "src/components/ui/WorldCommandDock.jsx"
         ]
@@ -95421,7 +95446,7 @@
       {
         "file": "src/config/fallbackMenuSafety.mjs",
         "name": "sanitizeProvidedMenuConfig",
-        "line": 74,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95431,6 +95456,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/fallback-menu-safety.test.mjs",
+          "__tests__/settings-single-entry.test.mjs",
           "src/components/ui/HamburgerMenu.jsx"
         ]
       },
@@ -95469,7 +95495,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1522,
+        "line": 1485,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -104863,7 +104889,7 @@
       {
         "file": "src/config/fallbackMenuSafety.mjs",
         "name": "sanitizeFallbackMenuConfig",
-        "line": 70,
+        "line": 131,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -104873,6 +104899,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/fallback-menu-safety.test.mjs",
+          "__tests__/settings-single-entry.test.mjs",
           "src/components/ui/HamburgerMenu.jsx",
           "src/components/ui/WorldCommandDock.jsx"
         ]
@@ -104880,7 +104907,7 @@
       {
         "file": "src/config/fallbackMenuSafety.mjs",
         "name": "sanitizeProvidedMenuConfig",
-        "line": 74,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -104890,6 +104917,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/fallback-menu-safety.test.mjs",
+          "__tests__/settings-single-entry.test.mjs",
           "src/components/ui/HamburgerMenu.jsx"
         ]
       },
@@ -104928,7 +104956,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1522,
+        "line": 1485,
         "references": 1,
         "exported": true,
         "defaultExport": false,

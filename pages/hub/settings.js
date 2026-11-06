@@ -8,7 +8,6 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import Switch from '../../src/components/ui/Switch';
-import { usePersistedState } from '../../src/hooks/usePersistedState';
 // useTheme removed — unused (DarkModeToggle handles theme internally)
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import dynamic from 'next/dynamic';
@@ -154,7 +153,12 @@ export default function SettingsPage() {
             }
         } catch (_) {}
     }, []);
-    const [activeSection, setActiveSection] = usePersistedState('sp-settings-active-section', 'account');
+    // ACCOUNT FIRST, ALWAYS (Dan, 2026-11-05). This used to restore the last
+    // tab from localStorage, so "Settings" reopened Notifications (a wall of
+    // Social Mentions toggles) and read as social media settings. The URL is
+    // the only state: /hub/settings is Account, ?section=x deep-links a tab
+    // (applied by the URL deep-link effect below, after hydration).
+    const [activeSection, setActiveSection] = useState('account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
     const [customAvatars, setCustomAvatars] = useState([]);
@@ -282,7 +286,9 @@ export default function SettingsPage() {
     };
 
     // Menu config
-    const menuConfig = getMenuConfig('settings', user, {}, { onSignOut: () => handleLogout() });
+    // The drawer here is the World Hub menu. The old 'settings' drawer listed
+    // the same tabs the page already shows, a second way into every tab.
+    const menuConfig = getMenuConfig('hub-home', user, {}, { onSignOut: () => handleLogout() });
 
     //  BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
     useEffect(() => {

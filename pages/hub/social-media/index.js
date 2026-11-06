@@ -7098,7 +7098,7 @@ function SocialMediaPage() {
             <span style={{ color: C.textSec }}>›</span>
           </Link>
           <Link prefetch={false}
-            href="/hub/settings"
+            href="/hub/settings?section=account"
             onClick={() => setSidebarOpen(false)}
             style={{
               padding: '12px 0',

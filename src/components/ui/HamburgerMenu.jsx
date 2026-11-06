@@ -1381,7 +1381,7 @@ function HamburgerMenuContent({
 
         {/* Search */}
         {showSearch && (
-          <div className="sp-command-search" style={{ padding: '0 14px 12px', position: 'sticky', top: 0, zIndex: 4, background: colors.bg }}>
+          <div className="sp-command-search" style={{ padding: '0 14px 12px', position: 'relative', zIndex: 4, background: colors.bg }}>
             <div className="sp-command-search__well" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Search size={18} aria-hidden="true" color={colors.textSec} style={{ position: 'absolute', left: 12 }} />
               <input
@@ -1997,9 +1997,13 @@ function HamburgerMenuContent({
           box-shadow: 0 0 14px color-mix(in srgb, var(--world-accent, #2e9bff) 70%, transparent);
           z-index: 8;
         }
+        /* NOT STICKY (Dan, 2026-11-05: "this weird thing at the top follows
+           you down instead of disappearing"). The World Command rail and the
+           search box scroll away with the menu like any page header. On iPhone
+           the sticky offset (safe-area inset on top of the drawer's own
+           safe-area padding) also parked the rail over the menu tiles. */
         .sp-command-utility-rail {
-          position: sticky;
-          top: 0;
+          position: relative;
           z-index: 6;
           min-height: 64px;
           background: linear-gradient(180deg, var(--world-rail, #070b10) 74%, color-mix(in srgb, var(--world-rail, #070b10) 86%, transparent));
@@ -2062,12 +2066,6 @@ function HamburgerMenuContent({
         .sp-command-status { display: flex; align-items: center; gap: 7px; color: var(--world-muted, #9fb0bf); font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
         .sp-command-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--world-accent); box-shadow: 0 0 9px var(--world-accent); }
         .sp-command-search input { border-radius: 2px !important; }
-        .sp-drawer[data-responsive-composition='adaptive'] .sp-command-utility-rail {
-          top: env(safe-area-inset-top, 0px);
-        }
-        .sp-drawer[data-responsive-composition='adaptive'] .sp-command-search {
-          top: calc(64px + env(safe-area-inset-top, 0px)) !important;
-        }
         .sp-menu-row,
         .sp-grid-tile,
         .sp-sc-tile,
@@ -2217,9 +2215,6 @@ function HamburgerMenuContent({
             min-height: 56px;
             padding-top: 6px !important;
             padding-bottom: 6px !important;
-          }
-          .sp-drawer[data-responsive-composition='adaptive'] .sp-command-search {
-            top: calc(56px + env(safe-area-inset-top, 0px)) !important;
           }
           .sp-drawer[data-responsive-composition='adaptive'] .sp-command-context p { display: none; }
           .sp-drawer[data-responsive-composition='adaptive'] .sp-command-context {

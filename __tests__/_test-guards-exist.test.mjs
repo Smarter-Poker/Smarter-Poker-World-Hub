@@ -148,6 +148,7 @@ import './club-stats-maintenance-does-no-repair-work.law.test.mjs';
 import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
+import './settings-single-entry.test.mjs';
 import './footer-follows-the-reader-not-a-rail.test.mjs';
 import './global-header-approved.test.mjs';
 import './global-header-profile-frame-law.test.mjs';
