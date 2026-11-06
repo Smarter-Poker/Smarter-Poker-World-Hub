@@ -6115,14 +6115,22 @@ function SocialMediaPage() {
         .eq('user_id', userId);
       if (!myConvos || myConvos.length === 0) return;
 
-      // Step 2: Fetch ALL participants for those conversations in one query
-      const conversationIds = myConvos.map((c) => c.conversation_id);
-      const { data: allParts } = await supabase
-        .from('social_conversation_participants')
-        .select('conversation_id, user_id')
-        .in('conversation_id', conversationIds)
-        .neq('user_id', userId);
-      if (!allParts || allParts.length === 0) return;
+      // Step 2: Fetch the other participants in bounded batches. One IN list
+      // of every conversation id passed the database gateway's URL limit for
+      // busy agents (2026-11-06: ~1,000 ids = 39KB -> 400), leaving the
+      // contacts rail empty. 100 UUIDs per request stays near 4KB.
+      const conversationIds = [...new Set(myConvos.map((c) => c.conversation_id))];
+      const allParts = [];
+      for (let start = 0; start < conversationIds.length; start += 100) {
+        const { data: batch, error: batchError } = await supabase
+          .from('social_conversation_participants')
+          .select('conversation_id, user_id')
+          .in('conversation_id', conversationIds.slice(start, start + 100))
+          .neq('user_id', userId);
+        if (batchError) throw batchError;
+        allParts.push(...(batch || []));
+      }
+      if (allParts.length === 0) return;
 
       // Build a map: conversation_id -> other user_id
       const convToUser = {};
@@ -6132,11 +6140,16 @@ function SocialMediaPage() {
 
       // Step 3: Batch-fetch all profiles in one query
       const uniqueUserIds = [...new Set(Object.values(convToUser || {}))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .in('id', uniqueUserIds);
-      const profileMap = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+      const profiles = [];
+      for (let start = 0; start < uniqueUserIds.length; start += 100) {
+        const { data: batch, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', uniqueUserIds.slice(start, start + 100));
+        if (profileError) throw profileError;
+        profiles.push(...(batch || []));
+      }
+      const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
 
       // Assemble contacts in-memory
       const list = myConvos.map((c) => {

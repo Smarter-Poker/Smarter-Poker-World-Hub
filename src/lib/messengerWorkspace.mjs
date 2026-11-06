@@ -8,9 +8,24 @@ function fail(status, message) {
     throw Object.assign(new Error(message), { status });
 }
 
-async function rows(query) {
+// PostgREST filters travel in the URL. Every IN list over a caller-sized set
+// (inbox threads, peers, members) must be batched; 100 UUIDs is ~3.7KB.
+export const IN_BATCH_SIZE = 100;
+export function idBatches(ids, size = IN_BATCH_SIZE) {
+    const list = [...new Set(ids)];
+    const batches = [];
+    for (let start = 0; start < list.length; start += size) batches.push(list.slice(start, start + size));
+    return batches;
+}
+
+async function rows(query, label = 'query') {
     const { data, error } = await query;
-    if (error || !Array.isArray(data)) fail(503, 'Messenger Is Temporarily Unavailable');
+    if (error || !Array.isArray(data)) {
+        // Keep the user-facing message generic, but never hide the cause from
+        // the server log again: the 2026-11-06 outage logged only this text.
+        console.warn(`[messengerWorkspace] ${label} failed:`, error?.code || '', error?.message || (Array.isArray(data) ? '' : 'non-array result'));
+        fail(503, 'Messenger Is Temporarily Unavailable');
+    }
     return data;
 }
 
@@ -163,8 +178,11 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     // groups so promotion enrollment is visible before anybody sends a message.
     const managed = !contextId && clubs.length ? await rows(db.from('club_messenger_staff_notice_groups')
         .select('club_id,conversation_id').in('club_id', clubs.map(c => c.id))) : [];
-    const participation = managed.length ? await rows(db.from('social_conversation_participants')
-        .select('conversation_id').eq('user_id', userId).in('conversation_id', managed.map(g => g.conversation_id))) : [];
+    const participation = [];
+    for (const batch of idBatches(managed.map(g => g.conversation_id))) {
+        participation.push(...await rows(db.from('social_conversation_participants')
+            .select('conversation_id').eq('user_id', userId).in('conversation_id', batch), 'staff group participation'));
+    }
     const emptyGroups = managed.filter(g => participation.some(p => p.conversation_id === g.conversation_id))
         .map(g => ({ conversation_id: g.conversation_id, is_group: true, unread_count: 0 }));
     const unique = [...new Map([...emptyGroups, ...data].map(c => [c.conversation_id || c.id, c])).values()];
@@ -176,9 +194,18 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     const metadata = new Map(meta.map(c => [c.id, c]));
     const clubBrands = new Map();
     if (ids.length && !internal.countsOnly) {
-        const branded = await rows(db.from('social_messages').select('conversation_id,media_metadata')
-            .in('conversation_id', ids).neq('sender_id', userId).contains('media_metadata', { is_club_identity: true })
-            .order('created_at', { ascending: false }).limit(500));
+        // Bounded batches. One unbatched IN list of every inbox id exceeded the
+        // database gateway's URL limit once an agent's inbox passed ~650
+        // threads (2026-11-06: 673 ids = 26.7KB -> plain 400 Bad Request), and
+        // because every resolve runs this, opening, reading and sending in ANY
+        // conversation failed with "Read Status Could Not Be Saved".
+        const branded = [];
+        for (const batch of idBatches(ids)) {
+            branded.push(...await rows(db.from('social_messages').select('conversation_id,media_metadata,created_at')
+                .in('conversation_id', batch).neq('sender_id', userId).contains('media_metadata', { is_club_identity: true })
+                .order('created_at', { ascending: false }).limit(500), 'club identity messages'));
+        }
+        branded.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
         for (const message of branded) {
             if (!clubBrands.has(message.conversation_id)) clubBrands.set(message.conversation_id, message.media_metadata);
         }
