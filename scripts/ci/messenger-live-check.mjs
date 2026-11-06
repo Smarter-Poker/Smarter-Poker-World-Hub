@@ -139,6 +139,7 @@ async function run() {
     const selected = new Set();
     const loaded = new Map();
     const messageReceipts = new Set();
+    const reopenedAfterRefresh = new Set();
     const notificationReceipts = new Set();
     const failures = [];
     const pageErrors = [];
@@ -193,7 +194,16 @@ async function run() {
       assert.ok(loaded.has(conversation.id) && messageReceipts.has(conversation.id), 'Selected visible conversation had no successful read receipt');
       const refreshed = await api('/api/messenger/get-conversations', { workspace: 'resolve', conversationId: conversation.id });
       assert.equal(refreshed.conversation?.unreadCount, 0, 'Persisted conversation unread count did not clear');
+      // Refresh the page, which reopens the same conversation from its URL:
+      // the read must survive both, and the reopened history must load again.
+      const reopenedHistory = page.waitForResponse(r => new URL(r.url()).pathname === '/api/messenger/get-messages' && r.request().postDataJSON()?.conversationId === conversation.id, { timeout: 30000 });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      assert.ok((await reopenedHistory).ok(), 'Reopened conversation history did not load after refresh');
+      const reopened = await api('/api/messenger/get-conversations', { workspace: 'resolve', conversationId: conversation.id });
+      assert.equal(reopened.conversation?.unreadCount, 0, 'Read status did not survive refresh and reopen');
+      reopenedAfterRefresh.add(conversation.id);
     }
+    report.coverage.readSurvivedRefreshAndReopen = reopenedAfterRefresh.size;
     report.coverage.messageReadReceipts = messageReceipts.size;
     report.coverage.nonzeroMessageTransitions = candidates.filter(c => c.unreadCount > 0).length;
     if (!candidates.length) report.limitations.push('Designated test account has no existing conversations; no message read transition was exercised');
@@ -238,7 +248,7 @@ async function run() {
     assert.equal(failures.length, 0, failures[0] || 'Read safety failure');
     assert.equal(pageErrors.length, 0, 'Published page raised browser errors');
     report.after = { messages: after.total, notifications: after.header.notificationCount };
-    report.checks.push('Persisted read receipts verified against fresh application APIs', 'Reloaded Messenger and notification badges match fresh authoritative counts');
+    report.checks.push('Persisted read receipts verified against fresh application APIs', 'Read receipts survive a page refresh that reopens the conversation', 'Reloaded Messenger and notification badges match fresh authoritative counts');
     report.status = report.limitations.length ? 'passed-available-data-with-coverage-gaps' : 'passed';
     console.log(JSON.stringify(report));
   } catch (error) {
