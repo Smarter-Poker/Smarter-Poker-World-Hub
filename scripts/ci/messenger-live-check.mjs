@@ -121,10 +121,12 @@ async function run() {
       const header = await api('/api/user/get-header-stats');
       return { workspaces, header, total: validateUnreadSnapshot(header, workspaces) };
     };
+    report.phase = 'initial-snapshot';
     const before = await snapshot();
     report.before = { messages: before.total, notifications: before.header.notificationCount, clubs: before.workspaces[0].clubs.length };
     report.checks.push('Authenticated header counts match every reachable workspace and tab');
 
+    report.phase = 'browser-start';
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
@@ -186,6 +188,7 @@ async function run() {
     const available = before.workspaces.flatMap(w => w.conversations).filter((row, i, rows) => rows.findIndex(r => r.id === row.id) === i);
     const candidates = available.filter(c => c.unreadCount > 0).slice(0, 3);
     if (!candidates.length && available.length) candidates.push(available[0]);
+    report.phase = 'conversation-read';
     for (const conversation of candidates) {
       selected.add(conversation.id);
       const receipt = page.waitForResponse(r => new URL(r.url()).pathname === '/api/messenger/mark-read' && r.request().postDataJSON()?.conversationId === conversation.id, { timeout: 30000 });
@@ -197,6 +200,7 @@ async function run() {
       // Refresh the page, which reopens the same conversation from its URL:
       // the read must survive both, and the reopened history must load again.
       const reopenedHistory = page.waitForResponse(r => new URL(r.url()).pathname === '/api/messenger/get-messages' && r.request().postDataJSON()?.conversationId === conversation.id, { timeout: 30000 });
+      report.phase = 'conversation-refresh-reopen';
       await page.reload({ waitUntil: 'domcontentloaded' });
       assert.ok((await reopenedHistory).ok(), 'Reopened conversation history did not load after refresh');
       const reopened = await api('/api/messenger/get-conversations', { workspace: 'resolve', conversationId: conversation.id });
@@ -209,6 +213,7 @@ async function run() {
     if (!candidates.length) report.limitations.push('Designated test account has no existing conversations; no message read transition was exercised');
     else if (!report.coverage.nonzeroMessageTransitions) report.limitations.push('Designated test account had no unread conversations; only idempotent read persistence was exercised');
 
+    report.phase = 'notification-read';
     const feedBefore = await api('/api/notifications/feed');
     const feedLoaded = page.waitForResponse(r => new URL(r.url()).pathname === '/api/notifications/feed');
     await page.goto(`${APP_ORIGIN}/hub/notifications`, { waitUntil: 'domcontentloaded' });
@@ -232,6 +237,7 @@ async function run() {
     }
     report.coverage.notificationReadReceipts = notificationReceipts.size;
     if (!notificationReceipts.size) report.limitations.push('No unread visible notification row existed; no notification read transition was exercised');
+    report.phase = 'final-snapshot-and-badges';
     const after = await snapshot();
     await page.goto(`${APP_ORIGIN}/hub/messenger`, { waitUntil: 'domcontentloaded' });
     await page.locator('.approved-global-header__messenger').waitFor();
@@ -255,7 +261,10 @@ async function run() {
     // Assertions contain only fixed descriptions, counts, endpoint paths or SHA.
     // Provider errors and response bodies are deliberately never logged.
     report.status = 'failed';
-    report.failure = error instanceof assert.AssertionError ? error.message.split('\n')[0] : 'Live probe could not complete; check configured test access and service availability';
+    // A non-assertion failure names only the phase and the error class (for
+    // example TimeoutError), never a provider message or response body.
+    const errorClass = /^[A-Za-z]{1,40}$/.test(error?.name || '') ? error.name : 'Error';
+    report.failure = error instanceof assert.AssertionError ? error.message.split('\n')[0] : `Live probe could not complete during ${report.phase || 'setup'} (${errorClass}); check configured test access and service availability`;
     console.error(report.failure);
     process.exitCode = 1;
   } finally {
