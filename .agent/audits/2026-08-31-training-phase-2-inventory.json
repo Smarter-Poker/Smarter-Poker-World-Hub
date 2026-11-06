@@ -44665,7 +44665,7 @@
       "functions": [
         {
           "name": "getFreeAvatars",
-          "line": 1054,
+          "line": 1062,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -44673,7 +44673,7 @@
         },
         {
           "name": "getVIPAvatars",
-          "line": 1057,
+          "line": 1065,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -44681,7 +44681,7 @@
         },
         {
           "name": "getAvatarsByCategory",
-          "line": 1060,
+          "line": 1068,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -44689,7 +44689,7 @@
         },
         {
           "name": "getAvatarsByPersonality",
-          "line": 1063,
+          "line": 1071,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -44697,22 +44697,6 @@
         },
         {
           "name": "getAvatarById",
-          "line": 1066,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "getRandomAvatar",
-          "line": 1069,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "getCategories",
           "line": 1074,
           "references": 1,
           "exported": true,
@@ -44720,8 +44704,24 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "getRandomAvatar",
+          "line": 1077,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getCategories",
+          "line": 1082,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "getAll",
-          "line": 1079,
+          "line": 1087,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -44729,7 +44729,7 @@
         },
         {
           "name": "getByTier",
-          "line": 1081,
+          "line": 1089,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -95943,7 +95943,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAvatarsByCategory",
-        "line": 1060,
+        "line": 1068,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95958,7 +95958,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAvatarsByPersonality",
-        "line": 1063,
+        "line": 1071,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95973,7 +95973,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAvatarById",
-        "line": 1066,
+        "line": 1074,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -95989,7 +95989,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getRandomAvatar",
-        "line": 1069,
+        "line": 1077,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96004,7 +96004,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getCategories",
-        "line": 1074,
+        "line": 1082,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96019,7 +96019,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAll",
-        "line": 1079,
+        "line": 1087,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96036,7 +96036,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getByTier",
-        "line": 1081,
+        "line": 1089,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105402,7 +105402,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAvatarsByCategory",
-        "line": 1060,
+        "line": 1068,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105417,7 +105417,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAvatarsByPersonality",
-        "line": 1063,
+        "line": 1071,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105432,7 +105432,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAvatarById",
-        "line": 1066,
+        "line": 1074,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105448,7 +105448,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getRandomAvatar",
-        "line": 1069,
+        "line": 1077,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105463,7 +105463,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getCategories",
-        "line": 1074,
+        "line": 1082,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105478,7 +105478,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getAll",
-        "line": 1079,
+        "line": 1087,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -105495,7 +105495,7 @@
       {
         "file": "src/data/AVATAR_LIBRARY.js",
         "name": "getByTier",
-        "line": 1081,
+        "line": 1089,
         "references": 1,
         "exported": true,
         "defaultExport": false,
