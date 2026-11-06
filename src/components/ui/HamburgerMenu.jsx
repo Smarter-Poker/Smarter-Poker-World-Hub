@@ -35,6 +35,7 @@ import { toast } from '../../stores/toastStore';
 import {
   sanitizeFallbackMenuConfig,
   sanitizeProvidedMenuConfig,
+  isAccountSettingsHref,
 } from '../../config/fallbackMenuSafety.mjs';
 import {
   evaluateWorldMenuActivation,
@@ -656,6 +657,8 @@ function HamburgerMenuContent({
 
   const rememberRecent = useCallback((item) => {
     if (!item?.href) return;
+    // Settings has exactly one door, the footer link (fallbackMenuSafety).
+    if (isAccountSettingsHref(item.href)) return;
     const entry = { href: item.href, label: labelOf(item) };
     if (!entry.label) return;
     const next = [entry, ...(lsGet('sp-menu-recents', []) || []).filter((r) => r?.href !== entry.href)]
@@ -687,13 +690,17 @@ function HamburgerMenuContent({
   }, [query, menuItems]);
 
   const favItems = useMemo(
-    () => favs.map((href) => linkables.find((l) => l.href === href)).filter(Boolean),
+    () => favs.filter((href) => !isAccountSettingsHref(href))
+      .map((href) => linkables.find((l) => l.href === href)).filter(Boolean),
     [favs, linkables],
   );
 
   const recentItems = useMemo(
     () => (recents || [])
       .filter((r) => r?.href && parseWorldMenuHref(r.href).pathname !== parseWorldMenuHref(currentPath).pathname)
+      // A Settings visit recorded before 2026-11-05 must not reappear as a
+      // second way into Settings (Dan: remove all the duplicate ways in).
+      .filter((r) => !isAccountSettingsHref(r.href))
       .slice(0, 4),
     [recents, currentPath],
   );
