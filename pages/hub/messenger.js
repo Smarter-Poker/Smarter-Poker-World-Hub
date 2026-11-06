@@ -151,6 +151,7 @@ function compareMessageTimestamps(left, right) {
 
 import { Phone, Video, Search, Info, SquarePen } from 'lucide-react';
 import { spKeyActivate } from '../../src/lib/keyboardActivate';
+import { persistReadWithRetry } from '../../src/lib/messengerReadRetry.mjs';
 
 const PhoneIcon = ({ size = 24, color = '#0084FF' }) => (
     <Phone size={size} color={color} strokeWidth={2.5} />
@@ -1538,16 +1539,30 @@ function MessengerPage() {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(throughMessageId || '')
                 || !current() || document.visibilityState === 'hidden') return false;
             // Do not clear local/global badges or emit a read receipt on failure.
-            const readResponse = await authedFetch('/api/messenger/mark-read', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body: JSON.stringify({ conversationId, throughMessageId }),
-            });
-            const readResult = await readResponse.json();
-            if (!readResponse.ok || readResult.success !== true) {
-                if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+            // A transient failure (network, 5xx, 429) retries quietly; the
+            // receipt is idempotent server-side. Only a failure that survives
+            // every attempt, or a refusal, is shown to the player.
+            const saved = await persistReadWithRetry(async () => {
+                const readResponse = await authedFetch('/api/messenger/mark-read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                    body: JSON.stringify({ conversationId, throughMessageId }),
+                });
+                let receipt = null;
+                try { receipt = await readResponse.json(); } catch { /* unreadable body is a failed receipt */ }
+                if (!readResponse.ok || receipt?.success !== true) {
+                    throw Object.assign(new Error(receipt?.error || 'Read Status Could Not Be Saved'), { status: readResponse.status || (readResponse.ok ? 200 : 0) });
+                }
+                return receipt;
+            }, { stillWanted: () => current() && document.visibilityState !== 'hidden' });
+            if (!saved.ok) {
+                if (!saved.abandoned) {
+                    console.warn('[Messenger] Read persistence failed:', saved.error?.status || '', saved.error?.message || saved.error);
+                    if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Check Your Connection.' });
+                }
                 return false;
             }
+            const readResult = saved.value;
             if (current()) {
                 loadConversationsRef.current?.(user.id, { invalidate: true });
             }
@@ -1575,7 +1590,7 @@ function MessengerPage() {
 
         } catch (error) {
             console.warn('[Messenger] Read persistence failed:', error);
-            if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+            if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Check Your Connection.' });
             return false;
         }
     };
