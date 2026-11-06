@@ -18,7 +18,7 @@ import {
     decideNudge, recordDismissed, recordShown, parseLedger, readNudgeState, writeLedger,
     ledgerKey, legacyAskedKey, OWNER_USER_ID, COOLDOWNS_MS, MAX_DISMISSALS, NUDGE_MOMENTS,
 } from '../src/lib/push/enrollment-nudge.mjs';
-import { hasRepairableEnrollment } from '../src/lib/push/subscription-repair.mjs';
+import { hasRepairableEnrollment, isSystemRetirement, endpointIsExpired } from '../src/lib/push/subscription-repair.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DAY = 86_400_000;
@@ -115,10 +115,13 @@ function fakeDb(rows, { fail = false } = {}) {
             const q = {
                 select() { return q; },
                 eq(col, val) { filters[col] = val; return q; },
+                order() { return q; },
                 limit() {
                     calls.push({ ...filters });
                     if (fail) return Promise.resolve({ data: null, error: { message: 'down' } });
-                    return Promise.resolve({ data: rows.filter((r) => Object.entries(filters).every(([k, v]) => r[k] === v)), error: null });
+                    const hit = rows.filter((r) => Object.entries(filters).every(([k, v]) => r[k] === v))
+                        .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+                    return Promise.resolve({ data: hit, error: null });
                 },
             };
             return q;
@@ -131,16 +134,64 @@ test('repair is allowed only for an enrollment this account already holds on thi
     const rows = [
         { user_id: PLAYER, endpoint: 'https://fcm.googleapis.com/a', device_id: 'device-aaaa', is_active: true },
         { user_id: other, endpoint: 'https://fcm.googleapis.com/b', device_id: 'device-bbbb', is_active: true },
-        { user_id: PLAYER, endpoint: 'https://fcm.googleapis.com/c', device_id: 'device-cccc', is_active: false },
+        // The PERSON turned this device off (the ownership RPC leaves no system reason).
+        { user_id: PLAYER, endpoint: 'https://fcm.googleapis.com/c', device_id: 'device-cccc', is_active: false, last_failure_reason: null },
+        // Moved to another account on a shared browser.
+        { user_id: PLAYER, endpoint: 'https://fcm.googleapis.com/d', device_id: 'device-dddd', is_active: false, last_failure_reason: 'reassigned_to_other_user' },
     ];
     const db = fakeDb(rows);
     assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://fcm.googleapis.com/a' }), true);
     assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://fcm.googleapis.com/new', device_id: 'device-aaaa' }), true, 'a rotated endpoint on the same device is a repair');
     assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://fcm.googleapis.com/b', device_id: 'device-bbbb' }), false, 'another account\'s device is never taken over silently');
-    assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://fcm.googleapis.com/c', device_id: 'device-cccc' }), false, 'a retired row is not an enrollment to repair');
+    assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://fcm.googleapis.com/c', device_id: 'device-cccc' }), false, 'a device the person turned off is never re-enrolled silently');
+    assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://fcm.googleapis.com/d', device_id: 'device-dddd' }), false, 'a device handed to another account is never taken back silently');
     assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'x', device_id: 'bad id!' }), false);
-    assert.ok(db.calls.every((c) => c.user_id === PLAYER && c.is_active === true), 'every probe is scoped to the verified account and active rows');
+    assert.ok(db.calls.every((c) => c.user_id === PLAYER), 'every probe is scoped to the verified account');
     await assert.rejects(hasRepairableEnrollment(fakeDb([], { fail: true }), PLAYER, { endpoint: 'e' }), (e) => e.status === 503);
+});
+
+// Dan, 2026-11-05: Apple 410'd his iPhone endpoint on Nov 2, the dispatcher
+// retired the row, and the old "active rows only" gate then refused every
+// silent repair for ever. The device must heal itself without a tap.
+test('a device the PUSH SERVICE retired (expired, superseded) is repaired silently', async () => {
+    const rows = [
+        { user_id: PLAYER, endpoint: 'https://web.push.apple.com/dead', device_id: 'iphone-1111', is_active: false, last_failure_reason: 'expired_410', updated_at: '2026-11-02T19:04:01Z' },
+        { user_id: PLAYER, endpoint: 'https://fcm.googleapis.com/old', device_id: 'mac-22222222', is_active: false, last_failure_reason: 'superseded_same_device', updated_at: '2026-10-09T00:00:00Z' },
+    ];
+    const db = fakeDb(rows);
+    assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://web.push.apple.com/fresh', device_id: 'iphone-1111' }), true, 'expired endpoint on this device: re-enroll the fresh one');
+    assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://web.push.apple.com/fresh2', replaces_endpoint: 'https://web.push.apple.com/dead' }), true, 'the endpoint it replaces proves the enrollment even with no device id');
+    assert.equal(await hasRepairableEnrollment(db, PLAYER, { endpoint: 'https://fcm.googleapis.com/new', device_id: 'mac-22222222' }), true);
+});
+
+test('the NEWEST row decides: an old system retirement never outvotes a later deliberate off', async () => {
+    const rows = [
+        { user_id: PLAYER, endpoint: 'https://fcm.googleapis.com/1', device_id: 'device-eeee', is_active: false, last_failure_reason: 'superseded_same_device', updated_at: '2026-10-01T00:00:00Z' },
+        { user_id: PLAYER, endpoint: 'https://fcm.googleapis.com/2', device_id: 'device-eeee', is_active: false, last_failure_reason: null, updated_at: '2026-10-20T00:00:00Z' },
+    ];
+    assert.equal(await hasRepairableEnrollment(fakeDb(rows), PLAYER, { endpoint: 'https://fcm.googleapis.com/3', device_id: 'device-eeee' }), false);
+});
+
+test('system-retirement classification is exact', () => {
+    for (const r of ['expired_410', 'expired_404', 'superseded', 'superseded_same_device', 'superseded_by_confirmed_device', 'no_receipt_while_sibling_confirmed']) assert.equal(isSystemRetirement(r), true, r);
+    for (const r of [null, undefined, '', 'reassigned_to_other_user', 'user_disabled', 'expired_', 'http_500']) assert.equal(isSystemRetirement(r), false, String(r));
+});
+
+test('a dead (expired) endpoint is never re-saved: the route answers 410 so the client rotates', async () => {
+    const rows = [
+        { user_id: PLAYER, endpoint: 'https://web.push.apple.com/dead', is_active: false, last_failure_reason: 'expired_410' },
+        { user_id: PLAYER, endpoint: 'https://fcm.googleapis.com/live', is_active: true, last_failure_reason: null },
+    ];
+    assert.equal(await endpointIsExpired(fakeDb(rows), PLAYER, 'https://web.push.apple.com/dead'), true);
+    assert.equal(await endpointIsExpired(fakeDb(rows), PLAYER, 'https://fcm.googleapis.com/live'), false);
+    assert.equal(await endpointIsExpired(fakeDb(rows), PLAYER, 'https://fcm.googleapis.com/unknown'), false);
+    const route = readFileSync(join(ROOT, 'pages/api/push/subscribe.js'), 'utf8');
+    const probe = route.indexOf('endpointIsExpired(supabase, user.id, endpoint)');
+    const write = route.indexOf('await changePushSubscription(supabase, user.id, {\n            endpoint, p256dh');
+    assert.ok(probe > -1 && probe < write, 'the expired-endpoint refusal runs before the enrollment transaction');
+    assert.match(route.slice(probe, write), /status\(410\)[\s\S]*endpoint_expired/);
+    const client = readFileSync(join(ROOT, 'src/lib/push-client.js'), 'utf8');
+    assert.match(client, /endpoint_expired/, 'the client rotates on endpoint_expired');
 });
 
 test('the subscribe route checks repair eligibility before any write, and the sync asks for repair only', () => {
@@ -169,4 +220,19 @@ test('Messenger delegates consent and retry decisions to the shared push host', 
     assert.doesNotMatch(page, /PushPromptModal/, 'Messenger must not mount a second consent modal');
     assert.doesNotMatch(page, /messenger_push_prompt_handled/, 'legacy permanent dismissal must not bypass the shared cool-down ledger');
     assert.doesNotMatch(page, /setExternalUserId\(/, 'the VAPID provider authenticates enrollment server-side');
+});
+
+// Dan, 2026-11-05: the test button said "sent" because his Mac answered for
+// the iPhone he tapped it on. The test must heal and then judge THIS device.
+test('the test button enrolls this device first and the route judges this device, not the account', () => {
+    const client = readFileSync(join(ROOT, 'src/lib/push-client.js'), 'utf8');
+    const fn = client.slice(client.indexOf('export async function sendTestPush'), client.indexOf('export async function thisDeviceServerEnrolled'));
+    assert.ok(fn.indexOf('await enablePush()') > -1 && fn.indexOf('await enablePush()') < fn.indexOf("fetch('/api/push/test'"), 'heal before testing');
+    assert.match(fn, /JSON\.stringify\(endpoint \? \{ endpoint \} : \{\}\)/);
+    assert.match(fn, /json\.thisDevice === true/);
+    const route = readFileSync(join(ROOT, 'pages/api/push/test.js'), 'utf8');
+    assert.match(route, /deviceReport\(supabase, targetId, deviceEndpoint, startedAt\)/);
+    assert.match(route, /thisDevice: false/);
+    const toggle = readFileSync(join(ROOT, 'src/components/notifications/PushNotificationToggle.jsx'), 'utf8');
+    assert.match(toggle, /thisDeviceServerEnrolled\(supabase\)/, 'On means the server holds a live row for this device');
 });

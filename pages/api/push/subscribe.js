@@ -22,7 +22,7 @@ import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { validatePushEndpoint, validatePushKeys } from '../../../src/lib/push/push-endpoint';
 import { notify } from '../../../src/lib/notify';
 import { changePushSubscription } from '../../../src/lib/push/subscription-ownership.mjs';
-import { hasRepairableEnrollment } from '../../../src/lib/push/subscription-repair.mjs';
+import { hasRepairableEnrollment, endpointIsExpired } from '../../../src/lib/push/subscription-repair.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -113,8 +113,19 @@ export default async function handler(req, res) {
         // device, never create one. OS permission is per origin, so on a shared
         // browser the next account to sign in would otherwise be enrolled, and
         // the previous one displaced, without either of them tapping anything.
+        const replacesEndpoint = typeof body.replacesEndpoint === 'string' ? body.replacesEndpoint : null;
+
+        // DEAD ENDPOINT (2026-11-05). The push service already answered 404/410
+        // for this exact endpoint: it can never deliver again. Re-saving it
+        // would flip the row back to active and every later send would report
+        // "sent" into a dead URL. Tell the client to create a fresh
+        // subscription (push-client rotates on endpoint_expired).
+        if (await endpointIsExpired(supabase, user.id, endpoint)) {
+            return res.status(410).json({ error: 'This device\'s notification channel expired. Renewing it.', code: 'endpoint_expired' });
+        }
+
         if (body?.repairOnly === true) {
-            const repairable = await hasRepairableEnrollment(supabase, user.id, { endpoint, device_id: deviceId });
+            const repairable = await hasRepairableEnrollment(supabase, user.id, { endpoint, device_id: deviceId, replaces_endpoint: replacesEndpoint });
             if (!repairable) {
                 return res.status(409).json({ error: 'This device is not enrolled for this account.', code: 'repair_not_enrolled' });
             }
@@ -123,7 +134,7 @@ export default async function handler(req, res) {
             endpoint, p256dh, auth, transport, platform, device_id: deviceId,
             user_agent: String(body.userAgent || req.headers['user-agent'] || '').slice(0, 500),
             device_label: body.deviceLabel ? String(body.deviceLabel).slice(0, 120) : null,
-            replaces_endpoint: typeof body.replacesEndpoint === 'string' ? body.replacesEndpoint : null,
+            replaces_endpoint: replacesEndpoint,
         }, true);
         for (const displacedUserId of result.displaced_user_ids) {
             try {
