@@ -7,7 +7,68 @@ const isContent = (item) => item?.type !== 'section' && item?.type !== 'divider'
 
 const hasHandler = (value) => typeof value === 'function';
 
-const sanitizeMenuConfig = (config, allowPageHandlers) => {
+/*
+ * ONE SETTINGS, AND IT IS THE ACCOUNT (Dan, 2026-11-05).
+ * "If I'm inside the World Hub and I click Settings, it should be settings for
+ * the World Hub, my account, and never a random World Hub page settings!"
+ *
+ * Before this, a drawer could carry a bottom "Settings", a second "Settings"
+ * row in its body, a "Settings" section of page toggles, and deep links such as
+ * "Privacy Settings" / "Blocked Users" / "Payment Methods" into individual
+ * account tabs - and the account page itself reopened whichever tab was used
+ * last (often Notifications, which reads as social settings).
+ *
+ * Every drawer, automatic or page-provided, now passes through this:
+ *   - every row that routes to /hub/settings (any ?section=) is removed from
+ *     the body and the footer links;
+ *   - exactly one footer link named "Settings" is added, to the account tab;
+ *   - a page's own toggle group is a "Preferences" section, never "Settings".
+ * /hub/settings/notifications is a different page (device push) and is kept.
+ */
+export const ACCOUNT_SETTINGS_HREF = '/hub/settings?section=account';
+
+const routesToAccountSettings = (item) => {
+  if (typeof item?.href !== 'string') return false;
+  const path = item.href.split(/[?#]/, 1)[0].replace(/\/+$/, '');
+  return path === '/hub/settings';
+};
+
+export function enforceAccountSettingsEntry(config = {}) {
+  const source = config || {};
+  let icon = null;
+  const note = (item) => { if (!icon && item?.icon) icon = item.icon; };
+  const menuItems = (Array.isArray(source.menuItems) ? source.menuItems : []).flatMap((item) => {
+    if (!item || typeof item !== 'object') return [item];
+    if (item.type === 'section' && typeof item.label === 'string' && /settings/i.test(item.label)) {
+      return [{ ...item, label: item.label.replace(/settings/gi, 'Preferences') }];
+    }
+    if (item.type === 'grid') {
+      const items = (Array.isArray(item.items) ? item.items : []).filter((g) => {
+        if (routesToAccountSettings(g)) { note(g); return false; }
+        return true;
+      });
+      return items.length ? [{ ...item, items }] : [];
+    }
+    if (routesToAccountSettings(item)) { note(item); return []; }
+    return [item];
+  });
+  // A section whose rows were all settings links is now a heading over
+  // nothing (or over the next group): drop it.
+  const keptItems = menuItems.filter((item, index) => {
+    if (item?.type !== 'section') return true;
+    const next = menuItems[index + 1];
+    return Boolean(next && next.type !== 'section' && next.type !== 'divider');
+  });
+  const bottomLinks = (Array.isArray(source.bottomLinks) ? source.bottomLinks : []).filter((item) => {
+    if (routesToAccountSettings(item) || (item && item.label === 'Settings')) { note(item); return false; }
+    return true;
+  });
+  bottomLinks.push({ id: 'account-settings', label: 'Settings', href: ACCOUNT_SETTINGS_HREF, ...(icon ? { icon } : {}) });
+  return { ...source, menuItems: keptItems, bottomLinks };
+}
+
+const sanitizeMenuConfig = (rawConfig, allowPageHandlers) => {
+  const config = enforceAccountSettingsEntry(rawConfig);
   const allowsAction = (item) =>
     hasInternalAction(item) || (allowPageHandlers && hasHandler(item?.onClick));
 

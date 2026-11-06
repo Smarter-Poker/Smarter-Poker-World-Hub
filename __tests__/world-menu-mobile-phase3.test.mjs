@@ -89,9 +89,11 @@ test('open drawer isolates obscured branches and restores their prior accessibil
 });
 
 test('adaptive mobile drawer keeps search, safe areas, and descriptions readable', () => {
-  assert.match(hamburger, /\.sp-drawer\[data-responsive-composition='adaptive'\] \.sp-command-utility-rail \{\s*top: env\(safe-area-inset-top, 0px\);/);
-  assert.match(hamburger, /\.sp-drawer\[data-responsive-composition='adaptive'\] \.sp-command-search \{\s*top: calc\(64px \+ env\(safe-area-inset-top, 0px\)\) !important;/);
-  assert.match(hamburger, /@media \(max-height: 480px\) and \(orientation: landscape\)[\s\S]*?top: calc\(56px \+ env\(safe-area-inset-top, 0px\)\) !important;/);
+  // Dan, 2026-11-05: the World Command rail must scroll away, never follow
+  // the menu down. Neither the rail nor the search box may be sticky.
+  assert.match(hamburger, /\.sp-command-utility-rail \{\s*position: relative;/);
+  assert.doesNotMatch(hamburger, /position:\s*['"]?sticky/);
+  assert.match(hamburger, /className="sp-command-search" style=\{\{[^}]*position: 'relative'/);
   assert.match(hamburger, /padding-right: env\(safe-area-inset-right, 0px\)/);
   assert.match(hamburger, /padding-bottom: calc\(24px \+ env\(safe-area-inset-bottom, 0px\)\) !important/);
   assert.match(hamburger, /padding-left: env\(safe-area-inset-left, 0px\)/);

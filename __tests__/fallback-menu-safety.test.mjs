@@ -169,7 +169,7 @@ test('provided configs retain wired controls and omit missing handlers', () => {
     'Wired Grid Action',
     'Grid Navigation',
   ]);
-  assert.deepEqual(safe.bottomLinks.map((item) => item.label), ['Wired Bottom Action']);
+  assert.deepEqual(safe.bottomLinks.map((item) => item.label), ['Wired Bottom Action', 'Settings']);
 
   safe.menuItems.find((item) => item.label === 'Wired Toggle').onChange(true);
   safe.menuItems.find((item) => item.label === 'Wired Action').onClick();
@@ -198,5 +198,5 @@ test('the fallback sanitizer removes orphan chrome and preserves real navigation
   });
 
   assert.deepEqual(safe.menuItems.map((item) => item.label || item.type), ['Navigation', 'Help']);
-  assert.deepEqual(safe.bottomLinks.map((item) => item.label), ['Help', 'Invite Friends']);
+  assert.deepEqual(safe.bottomLinks.map((item) => item.label), ['Help', 'Invite Friends', 'Settings']);
 });

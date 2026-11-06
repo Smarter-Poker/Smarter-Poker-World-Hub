@@ -108,7 +108,7 @@ async function acknowledgeNotifications(set) {
 export const OVERLAY_PAGES = {
   messenger: { url: '/hub/messenger', title: 'Messenger' },
   notifications: { url: '/hub/notifications', title: 'Notifications' },
-  settings: { url: '/hub/settings', title: 'Settings' },
+  settings: { url: '/hub/settings?section=account', title: 'Settings' },
   'diamond-store': { url: '/hub/diamond-store', title: 'Diamond Store' },
 };
 

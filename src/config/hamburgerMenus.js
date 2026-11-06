@@ -362,7 +362,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help and Support', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings }
         ]
     }),
 
@@ -371,7 +371,7 @@ export const MENU_CONFIGS = {
     // needs a human to confirm before removal.
     'training': (user, state, handlers) => ({
         menuItems: [
-            createMenuItem.section('Training Settings'),
+            createMenuItem.section('Training Preferences'),
             createMenuItem.toggle(
                 'View Mode',
                 state.viewMode === 'pro',
@@ -410,7 +410,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings }
         ]
     }),
 
@@ -426,7 +426,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Unread', '/hub/messenger?filter=unread', null, state.unreadCount || null),
             createMenuItem.navigation('Message Requests', '/hub/messenger/requests', null, state.requestCount || null),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle(
                 'Notifications',
                 state.notifications !== false,
@@ -448,7 +448,6 @@ export const MENU_CONFIGS = {
                 handlers.setMessageSounds
             ),
             createMenuItem.divider(),
-            createMenuItem.navigation('Privacy Settings', '/hub/settings?section=privacy'),
             createMenuItem.navigation('Blocked Users', '/hub/messenger/blocked')
         ],
         bottomLinks: [
@@ -470,7 +469,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Reels', '/hub/reels/my-reels'),
             createMenuItem.navigation('Saved Reels', '/hub/reels/saved'),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle(
                 'Autoplay',
                 state.autoplay !== false,
@@ -493,7 +492,6 @@ export const MENU_CONFIGS = {
                 handlers.setShowCaptions
             ),
             createMenuItem.divider(),
-            createMenuItem.navigation('Content Preferences', '/hub/settings?section=display')
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
@@ -506,7 +504,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Suggestions', '/hub/friends?tab=discover'),
             createMenuItem.navigation('All Friends', '/hub/friends?tab=friends'),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             // Label is 'Allow Friend Requests' (not 'Friend Requests') so it does not
             // collide with the 'Friend Requests' navigation item above it.
             createMenuItem.toggle(
@@ -526,8 +524,6 @@ export const MENU_CONFIGS = {
                 handlers.setFriendSuggestions
             ),
             createMenuItem.divider(),
-            createMenuItem.navigation('Privacy Settings', '/hub/settings?section=privacy'),
-            createMenuItem.navigation('Blocked Users', '/hub/settings?section=blocked')
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
@@ -548,7 +544,6 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Shopping Cart', '/hub/diamond-store/cart', MenuIcons.store, state.cartCount || null),
             createMenuItem.navigation('Order History', '/hub/diamond-store/orders'),
             createMenuItem.navigation('Wishlist', '/hub/diamond-store/wishlist'),
-            createMenuItem.navigation('Payment Methods', '/hub/settings?section=billing'),
             createMenuItem.divider(),
             createMenuItem.section('Preferences'),
             createMenuItem.toggle(
@@ -567,34 +562,6 @@ export const MENU_CONFIGS = {
         ]
     }),
 
-    'settings': (user, state, handlers) => ({
-        menuItems: [
-            createMenuItem.section('Quick Navigation'),
-            createMenuItem.navigation('Account Settings', '/hub/settings?section=account', MenuIcons.settings),
-            createMenuItem.navigation('Privacy & Security', '/hub/settings?section=privacy', MenuIcons.lock),
-            createMenuItem.navigation('Notifications', '/hub/settings?section=notifications', MenuIcons.flag),
-            createMenuItem.navigation('Display & Sound', '/hub/settings?section=display', MenuIcons.sliders),
-            createMenuItem.navigation('Billing & Payments', '/hub/settings?section=billing', MenuIcons.wallet),
-            createMenuItem.divider(),
-            createMenuItem.section('Account Actions'),
-            // Sign-out lives in bottomLinks only: HamburgerMenu owns handleLogout
-            // (shared supabase client) and auto-appends a 'Log Out' row whenever no
-            // sign-out item exists in menuItems or bottomLinks, deduping any
-            // config-supplied row. So it can never be a no-op, and never doubles up.
-            createMenuItem.navigation(
-                'Delete Account',
-                '/hub/settings?section=delete',
-                MenuIcons.flag,
-                null,
-                null,
-                { danger: true, id: 'delete-account' }
-            )
-        ],
-        bottomLinks: [
-            { label: 'Help & Support', href: '/hub/help', icon: MenuIcons.help }
-        ]
-    }),
-
     'my-clubs': () => ({
         menuItems: [
             createMenuItem.section('Club Workspace'),
@@ -606,7 +573,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help And Support', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings },
         ],
     }),
 
@@ -637,7 +604,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help And Support', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings },
         ],
     }),
 
@@ -659,7 +626,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Slots', '/hub/bankroll-manager?type=slots'),
             createMenuItem.navigation('Sports Betting', '/hub/bankroll-manager?type=sports'),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle('Display EUR', state.currencyEUR || false, handlers.setCurrencyEUR, 'Show amounts in Euros'),
             createMenuItem.toggle('Auto-Save', state.autoSave !== false, handlers.setAutoSave),
             createMenuItem.toggle('Notifications', state.notifications !== false, handlers.setNotifications),
@@ -713,7 +680,7 @@ export const MENU_CONFIGS = {
             // page tour is registered in src/tutorials/poker-near-me.js and
             // HamburgerMenu adds its own "Page Tutorial" row for every registered
             // route, so a second row here would be a duplicate.
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle('Geofence Alerts', state.geofenceAlerts !== false, handlers.setGeofenceAlerts, 'Get Notified When Near Poker Venues'),
             createMenuItem.toggle('Location Services', state.locationEnabled !== false, handlers.setLocationEnabled),
             createMenuItem.toggle('Show Newcomer-Friendly', state.showNewcomerFriendly !== false, handlers.setShowNewcomerFriendly)
@@ -763,7 +730,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Watch Later', '/hub/video-library?filter=watchlater'),
             createMenuItem.navigation('Playlists', '/hub/video-library?filter=playlists'),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle('Autoplay', state.autoplay !== false, handlers.setAutoplay),
             createMenuItem.toggle('Captions', state.captions || false, handlers.setCaptions)
         ],
@@ -784,7 +751,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Stats', '/hub/trivia/stats'),
             createMenuItem.navigation('Achievements', '/hub/trivia/achievements'),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
             createMenuItem.toggle('Timer', state.timerEnabled !== false, handlers.setTimerEnabled),
             createMenuItem.toggle('Hints', state.hintsEnabled || false, handlers.setHintsEnabled),
@@ -813,7 +780,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Bookmarks', '/hub/news?filter=bookmarks'),
             createMenuItem.navigation('Read Later', '/hub/news?filter=later'),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle('Push Notifications', state.pushNotifications || false, handlers.setPushNotifications),
             createMenuItem.toggle('Email Digest', state.emailDigest || false, handlers.setEmailDigest),
             createMenuItem.navigation('Manage Sources', '/hub/news/sources')
@@ -914,7 +881,7 @@ export const MENU_CONFIGS = {
                 { id: 'tutorial', label: 'Play Tutorial', icon: MenuIcons.help, onClick: handlers.onPlayTutorial, action: true },
                 { label: 'Leak Finder', href: '/hub/personal-assistant/leaks', icon: MenuIcons.flame },
                 { label: 'PA Hub', href: '/hub/personal-assistant', icon: MenuIcons.brain },
-                { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+                { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings },
                 { label: 'Help', href: '/hub/help', icon: MenuIcons.help },
                 { label: 'World Hub', href: '/hub', icon: MenuIcons.home }
             ]
@@ -946,7 +913,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings }
         ]
     }),
 
@@ -997,7 +964,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('World Hub', '/hub', MenuIcons.home)
         ],
         bottomLinks: [
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings },
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
         ]
     }),
@@ -1015,7 +982,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Stats', '/hub/preflop-charts/stats'),
             createMenuItem.navigation('Achievements', '/hub/preflop-charts/achievements'),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
             createMenuItem.toggle('Keyboard Shortcuts', state.keyboardShortcuts !== false, handlers.setKeyboardShortcuts),
             createMenuItem.toggle('Show Timer', state.showTimer !== false, handlers.setShowTimer),
@@ -1037,7 +1004,6 @@ export const MENU_CONFIGS = {
             createMenuItem.divider(),
             createMenuItem.section('Quick Navigation'),
             createMenuItem.navigation('Profile', '/hub/profile', MenuIcons.users),
-            createMenuItem.navigation('Settings', '/hub/settings', MenuIcons.settings)
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
@@ -1066,7 +1032,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Install App', '/hub/install', MenuIcons.install)
         ],
         bottomLinks: [
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings }
         ]
     }),
 
@@ -1103,7 +1069,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Install App', '/hub/install', MenuIcons.install)
         ],
         bottomLinks: [
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings }
         ]
     }),
 
@@ -1114,7 +1080,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Mentions', '/hub/notifications?filter=mentions'),
             createMenuItem.navigation('Friend Requests', '/hub/notifications?filter=friends'),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             // Master push switch. The page writes it across every category column in
             // user_notification_preferences, which pages/api/notifications/send.js reads
             // to filter recipients — so turning it off genuinely stops delivery.
@@ -1131,7 +1097,7 @@ export const MENU_CONFIGS = {
             // reads user_notification_preferences.
         ],
         bottomLinks: [
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings }
         ]
     }),
 
@@ -1214,7 +1180,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Tax Summary & Export', '/hub/toke-tracker/vault?tab=tax', MenuIcons.fileText),
             createMenuItem.navigation('Venue Intel', '/hub/toke-tracker/venues', MenuIcons.mapPin),
             createMenuItem.divider(),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle(
                 'Shift Notifications',
                 state.shiftNotifications !== false,
@@ -1241,7 +1207,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help & Support', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings?section=account', icon: MenuIcons.settings }
         ]
     }),
 
@@ -1260,7 +1226,6 @@ export const MENU_CONFIGS = {
             // every drawer, so the row was a duplicate path to the same flow.
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
-            createMenuItem.navigation('Settings', '/hub/settings', MenuIcons.settings),
             createMenuItem.navigation('Home', '/hub', MenuIcons.home)
         ],
         bottomLinks: []
@@ -1335,7 +1300,7 @@ export const MENU_CONFIGS = {
                 ]),
                 createMenuItem.divider(),
             ] : []),
-            createMenuItem.section('Settings'),
+            createMenuItem.section('Preferences'),
             createMenuItem.toggle(
                 'Sound Effects',
                 state.soundEffects !== false,
@@ -1363,8 +1328,6 @@ export const MENU_CONFIGS = {
                 handlers.setCompactView
             ),
             createMenuItem.divider(),
-            createMenuItem.navigation('Table Preferences', '/hub/settings?section=gameplay'),
-            createMenuItem.navigation('Privacy Settings', '/hub/settings?section=privacy')
         ],
         bottomLinks: [
             { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help },
