@@ -187,7 +187,11 @@ async function run() {
     page.setDefaultTimeout(30000);
     const available = before.workspaces.flatMap(w => w.conversations).filter((row, i, rows) => rows.findIndex(r => r.id === row.id) === i);
     const candidates = available.filter(c => c.unreadCount > 0).slice(0, 3);
-    if (!candidates.length && available.length) candidates.push(available[0]);
+    // A conversation with no messages (an empty staff group) has nothing to
+    // display, so it can never produce a read receipt; fall back only to one
+    // that has history.
+    const readable = available.find(c => c.last_message_at);
+    if (!candidates.length && readable) candidates.push(readable);
     report.phase = 'conversation-read';
     for (const conversation of candidates) {
       selected.add(conversation.id);
@@ -197,11 +201,14 @@ async function run() {
       assert.ok(loaded.has(conversation.id) && messageReceipts.has(conversation.id), 'Selected visible conversation had no successful read receipt');
       const refreshed = await api('/api/messenger/get-conversations', { workspace: 'resolve', conversationId: conversation.id });
       assert.equal(refreshed.conversation?.unreadCount, 0, 'Persisted conversation unread count did not clear');
-      // Refresh the page, which reopens the same conversation from its URL:
-      // the read must survive both, and the reopened history must load again.
-      const reopenedHistory = page.waitForResponse(r => new URL(r.url()).pathname === '/api/messenger/get-messages' && r.request().postDataJSON()?.conversationId === conversation.id, { timeout: 30000 });
+      // Refresh, then reopen the same conversation from its link. Messenger
+      // removes ?conversation= from the address once it has opened the chat,
+      // so a bare reload lands on the inbox; the reopen is explicit. The read
+      // must survive both, and the reopened history must load again.
       report.phase = 'conversation-refresh-reopen';
       await page.reload({ waitUntil: 'domcontentloaded' });
+      const reopenedHistory = page.waitForResponse(r => new URL(r.url()).pathname === '/api/messenger/get-messages' && r.request().postDataJSON()?.conversationId === conversation.id, { timeout: 30000 });
+      await page.goto(`${APP_ORIGIN}/hub/messenger?conversation=${conversation.id}`, { waitUntil: 'domcontentloaded' });
       assert.ok((await reopenedHistory).ok(), 'Reopened conversation history did not load after refresh');
       const reopened = await api('/api/messenger/get-conversations', { workspace: 'resolve', conversationId: conversation.id });
       assert.equal(reopened.conversation?.unreadCount, 0, 'Read status did not survive refresh and reopen');
@@ -210,7 +217,7 @@ async function run() {
     report.coverage.readSurvivedRefreshAndReopen = reopenedAfterRefresh.size;
     report.coverage.messageReadReceipts = messageReceipts.size;
     report.coverage.nonzeroMessageTransitions = candidates.filter(c => c.unreadCount > 0).length;
-    if (!candidates.length) report.limitations.push('Designated test account has no existing conversations; no message read transition was exercised');
+    if (!candidates.length) report.limitations.push('Designated test account has no conversation with messages; no message read transition was exercised');
     else if (!report.coverage.nonzeroMessageTransitions) report.limitations.push('Designated test account had no unread conversations; only idempotent read persistence was exercised');
 
     report.phase = 'notification-read';
