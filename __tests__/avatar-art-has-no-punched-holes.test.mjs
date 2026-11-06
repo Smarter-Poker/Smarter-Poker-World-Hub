@@ -32,7 +32,8 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -76,6 +77,13 @@ test('the avatar library is present', () => {
   // 100 busts + 24 free + 76 vip. A rename or a move would otherwise turn every
   // assertion below into a vacuous pass.
   assert.ok(files.length >= 200, `only ${files.length} avatars found under public/avatars`);
+});
+
+test('intentional gaps are reviewed against the exact artwork bytes', () => {
+  for (const asset of matte.REVIEWED_GAPS) {
+    assert.ok(asset.reason.length > 20, asset.file);
+    assert.equal(createHash('sha256').update(readFileSync(join(AVATARS, asset.file))).digest('hex'), asset.sha256, asset.file + ' changed and needs a new gap review');
+  }
 });
 
 test('no avatar has a hole punched through the subject', { skip: !sharp }, async () => {

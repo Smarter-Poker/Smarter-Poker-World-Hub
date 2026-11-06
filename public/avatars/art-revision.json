@@ -1,0 +1,1293 @@
+{
+  "revision": "4b7ebb1d3e8cfaa8bd4f",
+  "assets": [
+    {
+      "file": "avatars/free/android.webp",
+      "sha256": "501427075f40b50ab8c053847293c1f4693297adc90ad18437b946a307c59715"
+    },
+    {
+      "file": "avatars/table/free_android.webp",
+      "sha256": "9888ff105593fa8bcbe5f695cd5dc4bc23f12b152e2eebc533f81f6c6354927a"
+    },
+    {
+      "file": "avatars/table/free_android@2x.webp",
+      "sha256": "8450afccf9aec06aaf7edbf7f0ba41c2558af262af452612937943125cb86a56"
+    },
+    {
+      "file": "avatars/free/aztec.webp",
+      "sha256": "687c8a1f1c85aa7000b97561a5359f81e2faf30699edc0065be6724413e11faf"
+    },
+    {
+      "file": "avatars/table/free_aztec.webp",
+      "sha256": "652da56f53cdbc0caddbd9504c9e55d89fb112943b28a6a59d5f87887b00066c"
+    },
+    {
+      "file": "avatars/table/free_aztec@2x.webp",
+      "sha256": "820fba93764b0982681c7520e878b0f0fa18100cba60ce90035b9825c27bfcf6"
+    },
+    {
+      "file": "avatars/free/business.webp",
+      "sha256": "dd45469fc898f80b70a609bd1dd03c3ca9d00ca08c506493752b5d3b6c02156c"
+    },
+    {
+      "file": "avatars/table/free_business.webp",
+      "sha256": "2a9af30dd90c706f83162043738503124e13217374eef533e5cdbe75938539db"
+    },
+    {
+      "file": "avatars/table/free_business@2x.webp",
+      "sha256": "81c7e134bda0b434cdd7fcad98d7d5ff9276702300002a28b5b5a99027b2a30b"
+    },
+    {
+      "file": "avatars/free/chef.webp",
+      "sha256": "a509b4ffd52ab69e2bfb83264affbff8741904178b18755ea88f0a03b0ca8f57"
+    },
+    {
+      "file": "avatars/table/free_chef.webp",
+      "sha256": "a691e93bad016ab6d0a80b035b52e90f72c7f1283a5d3c53107dd7ea84b8d657"
+    },
+    {
+      "file": "avatars/table/free_chef@2x.webp",
+      "sha256": "9e7a0033aa09e00c9970a16e603737ac53ca2b77ef18d044654ee28cef606598"
+    },
+    {
+      "file": "avatars/free/cowboy.webp",
+      "sha256": "a5f10d3655ff8e59e0f6c61ad3d7dc77cd70dff9f57acd75204c388a0cacfa9d"
+    },
+    {
+      "file": "avatars/table/free_cowboy.webp",
+      "sha256": "9747d9fad778034560bc63981e9da561298394e8cc9872a4ad00ad77fe72ea93"
+    },
+    {
+      "file": "avatars/table/free_cowboy@2x.webp",
+      "sha256": "13ddc601879035b1f266b6a227a673201460b08032f017faa86fd00c5ac427a0"
+    },
+    {
+      "file": "avatars/free/cyborg.webp",
+      "sha256": "cd63796fb995f820c4569e0274d0f03890c7d76b3c5c40a538937a3512c20ca5"
+    },
+    {
+      "file": "avatars/table/free_cyborg.webp",
+      "sha256": "c55f98bd3b2d583879cb446006139429a8bc5a570c732a565e66b5f1920e2439"
+    },
+    {
+      "file": "avatars/table/free_cyborg@2x.webp",
+      "sha256": "e6a758711acc7da43affd3083de24781294e463fe157adb1e08719aaf2be033b"
+    },
+    {
+      "file": "avatars/free/detective.webp",
+      "sha256": "21c8a041450757abda110567bdf86e92cad108da888c6b3e1e34daf73ef65103"
+    },
+    {
+      "file": "avatars/table/free_detective.webp",
+      "sha256": "c584982c33ddc0f9a4d4e6cb27c919b58a0e0557f552080240f1cf339eea8c6f"
+    },
+    {
+      "file": "avatars/table/free_detective@2x.webp",
+      "sha256": "f955f35d6c4fbaebd6752f9d0faa8000f25b476ea792436ec4ee9d23b7e96a08"
+    },
+    {
+      "file": "avatars/free/fox.webp",
+      "sha256": "fed8f72f12ceff7fdcc89852e82db15c2cf44080c97a3e874c110bfe7ec304a0"
+    },
+    {
+      "file": "avatars/table/free_fox.webp",
+      "sha256": "536616239c724effa3a29d89e2286cb0d7c4de0035ecb451f6fe06f3f070807c"
+    },
+    {
+      "file": "avatars/table/free_fox@2x.webp",
+      "sha256": "742b76651cc8fde0e53e19d79c692413e04c63efb9580c96a4a3d24684e540f7"
+    },
+    {
+      "file": "avatars/free/geisha.webp",
+      "sha256": "52e3d54ab616165abf2f747ef73155961083c75c5faa6d0f6bed8b1304b31669"
+    },
+    {
+      "file": "avatars/table/free_geisha.webp",
+      "sha256": "5e79025412ba48e755b37e1a60e1bd1e1165cbd7db644663a9d8a457d455a4b2"
+    },
+    {
+      "file": "avatars/table/free_geisha@2x.webp",
+      "sha256": "8cba68a74389f48c7aab053bd73c062cb9fde9902a3212a54454f6ff4e54bdb9"
+    },
+    {
+      "file": "avatars/free/knight.webp",
+      "sha256": "71732cc2679eef269179256cf246d0d77901becf699f06777d63cbd73807f180"
+    },
+    {
+      "file": "avatars/table/free_knight.webp",
+      "sha256": "f55f87f03f7a0893d8bb9c68edb04130697f08fcc2fbab9a23fd686c66a2bc95"
+    },
+    {
+      "file": "avatars/table/free_knight@2x.webp",
+      "sha256": "b6946cd8bcfe8f10d21ce7bbcfa2513a410dcd4c91b6ff1bbac4caf50569eb4b"
+    },
+    {
+      "file": "avatars/free/lion.webp",
+      "sha256": "3222060b6a7e7c9153d7b16d414c11ca312f46e3cc19238cf942dd7697d370c8"
+    },
+    {
+      "file": "avatars/table/free_lion.webp",
+      "sha256": "086077e2ec33d8f444eca16365530d6ded8de1ddb5cc091d3b9376c40ff05218"
+    },
+    {
+      "file": "avatars/table/free_lion@2x.webp",
+      "sha256": "0483a7f32adab0182e1cd7836406dd9f6408a398d9e746a4624037455bd65585"
+    },
+    {
+      "file": "avatars/free/musician.webp",
+      "sha256": "1090e18db70a158a2f6996f8ec5ec70db103f9497fc88e1351e802422cefe63b"
+    },
+    {
+      "file": "avatars/table/free_musician.webp",
+      "sha256": "09eda4f642d092eb99f5392a3c32ffe4f88b470e9923fec36980103a148f87e5"
+    },
+    {
+      "file": "avatars/table/free_musician@2x.webp",
+      "sha256": "996323a3698a3a50eedeccf760b8204fa125bae50cf3c129dcdd10fe799f8071"
+    },
+    {
+      "file": "avatars/free/ninja.webp",
+      "sha256": "be93a5baf66929d595f95a3c87d99b4b118cb1672c826d39cd972815f5e3f02b"
+    },
+    {
+      "file": "avatars/table/free_ninja.webp",
+      "sha256": "73e1d8916c4a59d12cb141c6aabed3ef7c15da7518ef9d3321aa9cea5ff9e95f"
+    },
+    {
+      "file": "avatars/table/free_ninja@2x.webp",
+      "sha256": "910434f7b67a603be82c56690cceb05d2d57cedfbb747687e3291ae8d2fdd910"
+    },
+    {
+      "file": "avatars/free/owl.webp",
+      "sha256": "5c940a9d1175588b200122ce1fab09330c4c08c69313a691efb048cbc2978615"
+    },
+    {
+      "file": "avatars/table/free_owl.webp",
+      "sha256": "3a5747934174ce5bfd9ea417a454ee8db57f0694ac8c3cf00e9576bb5145b359"
+    },
+    {
+      "file": "avatars/table/free_owl@2x.webp",
+      "sha256": "0176846e76da73c90e7c54de9ca5225d5cc5398ef94f099244c014a0da086c33"
+    },
+    {
+      "file": "avatars/free/penguin.webp",
+      "sha256": "00f023821cc7d13d760e3e2d29e65f3908f24db44dd5a5ed97450ea3d5a33b22"
+    },
+    {
+      "file": "avatars/table/free_penguin.webp",
+      "sha256": "47cd6633f3a0183cbd815cd147b28fc48f1d3374ba00c901d74a60df2b001cc3"
+    },
+    {
+      "file": "avatars/table/free_penguin@2x.webp",
+      "sha256": "2ce85a1962f794f8f56485ab699373b0ac14dacd81e1c5788bb1264c1a345367"
+    },
+    {
+      "file": "avatars/free/pirate.webp",
+      "sha256": "3339daea2e67489223daaa4195b92d566ad6dfddd5a835cc9f7f3c93727dfa26"
+    },
+    {
+      "file": "avatars/table/free_pirate.webp",
+      "sha256": "265a162ce76e3cd6953b7286d6f76352da2e4118c1bf8a27dd62c2aed2bd9ead"
+    },
+    {
+      "file": "avatars/table/free_pirate@2x.webp",
+      "sha256": "c0e2536274fe07315be9a900801585c509ae6aed53b80bba32171b66524637b5"
+    },
+    {
+      "file": "avatars/free/rockstar.webp",
+      "sha256": "c72923d60ec1eb6931e8cf2412a0b41c16fa2d5129c6598609042dd75329b607"
+    },
+    {
+      "file": "avatars/table/free_rockstar.webp",
+      "sha256": "a6c6f7f708225353d0b64626e9dd41699785298b7f4f4e1d62d6c614d9f8a03f"
+    },
+    {
+      "file": "avatars/table/free_rockstar@2x.webp",
+      "sha256": "b23f1f2c28ff98aac03ebeaf1e615d18e2d72aff8da4e5aca1b5206e6683e464"
+    },
+    {
+      "file": "avatars/free/samurai.webp",
+      "sha256": "698b752f87a606d9ab37c69d5be59d279b72c3dafc75dae040b37c07c1281411"
+    },
+    {
+      "file": "avatars/table/free_samurai.webp",
+      "sha256": "3376f238a43e4a375bae87ea6a6b4485379d6a2fc0525773543869755f0574fa"
+    },
+    {
+      "file": "avatars/table/free_samurai@2x.webp",
+      "sha256": "228b5f45664a43064a88efc2360d55237b59ccc1e16ed5367be598551b3e646e"
+    },
+    {
+      "file": "avatars/free/shark.webp",
+      "sha256": "eae600904fe4170d4621e0c0c777ca967e953c2f3a6e0583dda20cdea8150842"
+    },
+    {
+      "file": "avatars/table/free_shark.webp",
+      "sha256": "d89a42f4b8798537d6a310035cc6ecd7433eb33fb61fe2d8f57e514a3cec9018"
+    },
+    {
+      "file": "avatars/table/free_shark@2x.webp",
+      "sha256": "0871d6aa02534be441ffdadcb670266c639c86f2caa9072075bddb738d11608d"
+    },
+    {
+      "file": "avatars/free/shiba.webp",
+      "sha256": "1824cec6b1880c8c62fa9dd3f7d71c25fb97ea8e44959e7f3bbc7d6cc2576e91"
+    },
+    {
+      "file": "avatars/table/free_shiba.webp",
+      "sha256": "62efa8271d313e4aec3f4b1f50d8be9f7cfab67a2ac09691f568d06c04c257f9"
+    },
+    {
+      "file": "avatars/table/free_shiba@2x.webp",
+      "sha256": "dbc1f7ea5ba9b4df8410e8bda42e9d5a32b82d71f1acef65154ef502c92c62af"
+    },
+    {
+      "file": "avatars/free/space_commander.webp",
+      "sha256": "49a411bde6186d8bc7010ca8d5ce0939bc672fc2e1ffa1d6e7a60dd6e4738160"
+    },
+    {
+      "file": "avatars/table/free_space_commander.webp",
+      "sha256": "235feea9dda51ff1366c68c1a13f2e2cb8602efaea0f9aa922159a1ae17e9d87"
+    },
+    {
+      "file": "avatars/table/free_space_commander@2x.webp",
+      "sha256": "cb0bddd4a1f41a0c977b04a4f679b9cce1e677382540ea1a36b351b1adcf6810"
+    },
+    {
+      "file": "avatars/free/teacher.webp",
+      "sha256": "1136dd775c22937cbe4ec9eb94ce7cec952149bf8205c7a869d8943b52cdd2ab"
+    },
+    {
+      "file": "avatars/table/free_teacher.webp",
+      "sha256": "7ecfed52703534a91384eed0a625a93c38232b9f46c75d9c055a517ed9787b62"
+    },
+    {
+      "file": "avatars/table/free_teacher@2x.webp",
+      "sha256": "27c766bab2a16b5600e61fcd52525e974a3c85a393ae1b39957b2322e43b6930"
+    },
+    {
+      "file": "avatars/free/viking.webp",
+      "sha256": "648bad0c03a5deceedddc385f16287a7939a1e8a086c831bdf043eeee41b2f1d"
+    },
+    {
+      "file": "avatars/table/free_viking.webp",
+      "sha256": "2b0a4632705e94b484674d2383d3c8bcc858edb37db305b8edbe66d9b5502fa2"
+    },
+    {
+      "file": "avatars/table/free_viking@2x.webp",
+      "sha256": "3c7141f05e6ae9e4820efc40879beb89b4ab40dc7c11dceb85bc7b3897c48aa6"
+    },
+    {
+      "file": "avatars/free/wizard.webp",
+      "sha256": "f1acdfad7163401eae704fdd5a9465726b4ab34b4a5f0c2d79f441886a390eb7"
+    },
+    {
+      "file": "avatars/table/free_wizard.webp",
+      "sha256": "11b685f935a082a158eae137f360c774e31bb69fc83fbd41c4397d02c37d7dff"
+    },
+    {
+      "file": "avatars/table/free_wizard@2x.webp",
+      "sha256": "b6a6af6c5ec008f6b1471d625c5a8c311e276e1b570121350c078da0eb955668"
+    },
+    {
+      "file": "avatars/vip/alien.webp",
+      "sha256": "c21061b6f33d4bf9ff347bbc26a3e63011f88b35685258c3aace7ab92594011d"
+    },
+    {
+      "file": "avatars/table/vip_alien.webp",
+      "sha256": "b60c0cb1ede71c2b8e2f6246c38078f3fd2703af275802240c5e0a7e29797df2"
+    },
+    {
+      "file": "avatars/table/vip_alien@2x.webp",
+      "sha256": "093373387580b8859b2c6795a2dfa0cf87563ba53bc6302b985ba01cbd1522bb"
+    },
+    {
+      "file": "avatars/vip/alien_overlord.webp",
+      "sha256": "be5bb646b7af21a18240b39b26829893ae6c7832d9837c776bd3393efc4317b6"
+    },
+    {
+      "file": "avatars/table/vip_alien_overlord.webp",
+      "sha256": "4acbe4c1e23fc2f054a1d7527fd5da585c06fa5a08f844ec8f52ac6defaeb2fc"
+    },
+    {
+      "file": "avatars/table/vip_alien_overlord@2x.webp",
+      "sha256": "1251d6320433db6ba75a203f0856bc9e26567e8f06846590865eb846d465d597"
+    },
+    {
+      "file": "avatars/vip/angel.webp",
+      "sha256": "0924e726ff28d0fa8a3eda12bbb3121365dcceacb8f3fa2db6a9427dfa9dfc35"
+    },
+    {
+      "file": "avatars/table/vip_angel.webp",
+      "sha256": "3f6fc88ba337400856ad0d8296320d9531dd639b977a54697782e75060dcf0fe"
+    },
+    {
+      "file": "avatars/table/vip_angel@2x.webp",
+      "sha256": "fe661671a4c41b7e6bc3f70d8f6a955c32ad7047899d2f38f067c30257cf350d"
+    },
+    {
+      "file": "avatars/vip/arctic_explorer.webp",
+      "sha256": "5874dd7c160ca99a145a1a430ed1bdd4c6750d6bc47e67963f75089401852155"
+    },
+    {
+      "file": "avatars/table/vip_arctic_explorer.webp",
+      "sha256": "dca5ee63710bd89c93d27c40c1071f873db57a08dbcb0ff3fe1222b6a8886506"
+    },
+    {
+      "file": "avatars/table/vip_arctic_explorer@2x.webp",
+      "sha256": "e9051d66b72c1cddb3343329e658fb4de8e02bbcf3b0308654bcbc760c90f4e6"
+    },
+    {
+      "file": "avatars/vip/artist.webp",
+      "sha256": "a85bc8e957be49ed36ec06b8b3684d41338d6dcaf9c3a9d5f7a8333cde103c19"
+    },
+    {
+      "file": "avatars/table/vip_artist.webp",
+      "sha256": "696950cf1f2f8c965b0a6c44816de079cdc1f2b5d0779cf3931a9fdaee477470"
+    },
+    {
+      "file": "avatars/table/vip_artist@2x.webp",
+      "sha256": "1e420621d8c9601e992d68c590064b7d74251a09b974a66d9761fea703ea6c56"
+    },
+    {
+      "file": "avatars/vip/astronaut.webp",
+      "sha256": "98aabe954a6c1c9ee5c8bc0e45a22da1ef42308ef8389d1f99a8d535b0f0cc6b"
+    },
+    {
+      "file": "avatars/table/vip_astronaut.webp",
+      "sha256": "d0e328b505421f3f3c9e94edadacc2c4cb5d12ee2359ce1f9833f7bad4f02686"
+    },
+    {
+      "file": "avatars/table/vip_astronaut@2x.webp",
+      "sha256": "991148c35c690090b12b887230a5ce13938beb0aa833d14e89f56aa28b97b25e"
+    },
+    {
+      "file": "avatars/vip/aztec_warrior.webp",
+      "sha256": "8de578817131929ec4b2069d663a1f773b790d368722acb8b20ca6a8068e9e19"
+    },
+    {
+      "file": "avatars/table/vip_aztec_warrior.webp",
+      "sha256": "3103fff4f5268b7a7233712a90113927cea669f7754219626b32ec40312d06c9"
+    },
+    {
+      "file": "avatars/table/vip_aztec_warrior@2x.webp",
+      "sha256": "897ed9f4013d9c21956f39e6d70642461098830eb68f87add5167c9af56c24b0"
+    },
+    {
+      "file": "avatars/vip/badger.webp",
+      "sha256": "d87ca8ca916add21fc6233096c6c731d3ff9f54b6caa6f5cedf80d647212a2a0"
+    },
+    {
+      "file": "avatars/table/vip_badger.webp",
+      "sha256": "e98262c6afffa82b23745bfb72f798e9ffd4e041962527632eadb3a63ace4e40"
+    },
+    {
+      "file": "avatars/table/vip_badger@2x.webp",
+      "sha256": "8e96bcdc130b474583456022a464bb067ec6ff924ab6fce352257e46f2ab6d55"
+    },
+    {
+      "file": "avatars/vip/basketball.webp",
+      "sha256": "35bc15a95242a7ab6ce8f6c16d4e06e4c3245f5872309dbd4f441e3152ef5178"
+    },
+    {
+      "file": "avatars/table/vip_basketball.webp",
+      "sha256": "84aab8c5269e7ef00eba39c072916827f475abd596ef38045ca676c2714af4c1"
+    },
+    {
+      "file": "avatars/table/vip_basketball@2x.webp",
+      "sha256": "6e0347ae3b1975f914d80be75a481ead6f5b8e011b81ffa102cb3ec039cba49c"
+    },
+    {
+      "file": "avatars/vip/bear.webp",
+      "sha256": "8806cfc70aaeb196d3cfe1bea8fb3bbfb0b7a286555fd7e08f1f87aeb57fdeae"
+    },
+    {
+      "file": "avatars/table/vip_bear.webp",
+      "sha256": "c9cd4504ff842abdf2d83437dbdc563c254a4a34fa2938899c09b6385f0e15ed"
+    },
+    {
+      "file": "avatars/table/vip_bear@2x.webp",
+      "sha256": "cf53e4b93d27ff44bf7b3a8b240f73b4c331f23e1caad51a32876124417d9ec2"
+    },
+    {
+      "file": "avatars/vip/bounty_hunter.webp",
+      "sha256": "0acc4a5bdb1b7336950e28659ea3b5e134aaf2513bf5eeec5555c6eb06f76212"
+    },
+    {
+      "file": "avatars/table/vip_bounty_hunter.webp",
+      "sha256": "063d41d824c48c45a96d640a89db3925a417937f0349b1379e50eece1d086551"
+    },
+    {
+      "file": "avatars/table/vip_bounty_hunter@2x.webp",
+      "sha256": "ea1473668c14d712b82318fc4467d4d4ce04477207c9459e7e8a37b9ddef35ac"
+    },
+    {
+      "file": "avatars/vip/boxer.webp",
+      "sha256": "d4e5513eff0e4c613eb4e9d5e430d75b4e3ab8c0a350cd910d62c73f47762f40"
+    },
+    {
+      "file": "avatars/table/vip_boxer.webp",
+      "sha256": "178779cbf348aacca17217973859a992af589dca0c36902f3d2690249e8ec30b"
+    },
+    {
+      "file": "avatars/table/vip_boxer@2x.webp",
+      "sha256": "c1ee476838fb82ea3555a7ce132a51f486c284a1960e5aba6671e6a7c054a664"
+    },
+    {
+      "file": "avatars/vip/bull.webp",
+      "sha256": "8374c9c07be8a925ea5db9ed2a03fe815b4fe7163bd82f30245afa6014013f6e"
+    },
+    {
+      "file": "avatars/table/vip_bull.webp",
+      "sha256": "084b06adbf8a72a6180f8520afa933c51a93ecb41963baee4c5c660c911f70e0"
+    },
+    {
+      "file": "avatars/table/vip_bull@2x.webp",
+      "sha256": "3893c3ccb7464837f794aa99a0f35aacd2ea7a1682e0df9645543089bf4cd42c"
+    },
+    {
+      "file": "avatars/vip/business_cat.webp",
+      "sha256": "a8d4500cd228df18b3f20ea3214af63244d191858378bcbf7e5ecbd554dfe83f"
+    },
+    {
+      "file": "avatars/table/vip_business_cat.webp",
+      "sha256": "bf8a194b76529a9677a39409f1721ef819b901f56c4e50d82bee003c2714b106"
+    },
+    {
+      "file": "avatars/table/vip_business_cat@2x.webp",
+      "sha256": "dc68c8e00a4faa289ea89be67bfb72a697d0ca58449a0a3676e04266d36e2789"
+    },
+    {
+      "file": "avatars/vip/casino_dealer.webp",
+      "sha256": "1f549edaa47471dcbffda9923cb21dbcfddde161cda8cc8ddc08b7c03d598491"
+    },
+    {
+      "file": "avatars/table/vip_casino_dealer.webp",
+      "sha256": "a464aa02a17f0395d6717340e1c20a3a8300f03e4710b5e8c3941964109b554b"
+    },
+    {
+      "file": "avatars/table/vip_casino_dealer@2x.webp",
+      "sha256": "0a2e5a61db463ae53cd28692db145f9d5be278068d9cff7a717571ea508adfc2"
+    },
+    {
+      "file": "avatars/vip/country.webp",
+      "sha256": "e79dd641a4e8f268fe251a7e5977abd9803b06067d51d0fc46bfb159b6bba7f2"
+    },
+    {
+      "file": "avatars/table/vip_country.webp",
+      "sha256": "66ce666c83a4b6f12fa0310401a64378c18da09ecba72b0fdde6851f631eac9f"
+    },
+    {
+      "file": "avatars/table/vip_country@2x.webp",
+      "sha256": "ee017b4ba39d6cfb6b7bf096dafb0b6de05f38b8a50abf428adb7f6500f8591e"
+    },
+    {
+      "file": "avatars/vip/cyber_assassin.webp",
+      "sha256": "f0498320a9cf2ac2375ff6a6a07e9c716cb0c24b8758ccd78b4d2f1728dfc5c4"
+    },
+    {
+      "file": "avatars/table/vip_cyber_assassin.webp",
+      "sha256": "d11f8f43a6125e31b7a103d6b5bc8f85aa6b5abc2841278b2a1337d6e31a1e20"
+    },
+    {
+      "file": "avatars/table/vip_cyber_assassin@2x.webp",
+      "sha256": "89b38829423980166996b6283efa37f7f01614896389618f175b712cd5a5d0a1"
+    },
+    {
+      "file": "avatars/vip/cyber_punk.webp",
+      "sha256": "253960b1ce8e774310f1d359ef41f574a03db85f08d9faf6ec2978c4f41de062"
+    },
+    {
+      "file": "avatars/table/vip_cyber_punk.webp",
+      "sha256": "385c8130f668c712115ed07ee5cc994afe135f1edafeb64afec9fc606c5486cb"
+    },
+    {
+      "file": "avatars/table/vip_cyber_punk@2x.webp",
+      "sha256": "788d38924187655af56e761ca58804782039290307687b7c331c3c958d581340"
+    },
+    {
+      "file": "avatars/vip/dancer.webp",
+      "sha256": "4c88b3e4ec83885b6a3790554e189c56c1a91252ef70a24b29f59106494671f4"
+    },
+    {
+      "file": "avatars/table/vip_dancer.webp",
+      "sha256": "eb08a9130c9442a8f7990396c001f4ff600d4c2ed1c4b5f227da8fae97814eb3"
+    },
+    {
+      "file": "avatars/table/vip_dancer@2x.webp",
+      "sha256": "65f7963cd4cb826609335fc3d3667314ec039dc392f04f9f1f871ce9b0821177"
+    },
+    {
+      "file": "avatars/vip/director.webp",
+      "sha256": "2d2d08a52c4fcda1bba00d4223da4fd3f2f4775df9feaad538691d848385bd24"
+    },
+    {
+      "file": "avatars/table/vip_director.webp",
+      "sha256": "9e060ec44d703e8c332ed1c0377e06ecbea4ea0e13134d943ebab28b11904fa4"
+    },
+    {
+      "file": "avatars/table/vip_director@2x.webp",
+      "sha256": "f40af792196c1bed1e980a66840b6f6d3c54c85e5f294e06119fd6318f337036"
+    },
+    {
+      "file": "avatars/vip/dj.webp",
+      "sha256": "84e4154d0d5cd4ea591a6b54549903678e15ba9d602c6e99242d5e674ab5fe54"
+    },
+    {
+      "file": "avatars/table/vip_dj.webp",
+      "sha256": "8c3ffaf0156aff42a81bdaad1626c1e1cd96662d25a49f8ed293d8b0dc36a6a7"
+    },
+    {
+      "file": "avatars/table/vip_dj@2x.webp",
+      "sha256": "1cb250d6597d240c6416aa774f1007a2dfd30346d561a7de2504886d6e4edb82"
+    },
+    {
+      "file": "avatars/vip/dragon.webp",
+      "sha256": "96eca851e71e88f73b440ebf44ef94169bbd1a4e322b6a774a7e64ec69935e17"
+    },
+    {
+      "file": "avatars/table/vip_dragon.webp",
+      "sha256": "385e12ab1f349ba7583de5d0e54cd61b47dd34f5161ff94be2911932c1534e0f"
+    },
+    {
+      "file": "avatars/table/vip_dragon@2x.webp",
+      "sha256": "b3e03cc8749b66f507e3c27bb8aee0d78dbe884f4c95d1c900cd8dae55c72a44"
+    },
+    {
+      "file": "avatars/vip/eagle.webp",
+      "sha256": "26c781e0317e0cd37d7a15bb64f848d6525565ee1d6ade0704d1956206397621"
+    },
+    {
+      "file": "avatars/table/vip_eagle.webp",
+      "sha256": "f01fcd4bac4dcb331d4aabaae9de3b5bf11f0373c09bce837956fd757a62610c"
+    },
+    {
+      "file": "avatars/table/vip_eagle@2x.webp",
+      "sha256": "6a4bfb83fded3fa0cd102dbaa4db52cee846932104a62d1e7e9f98a595f41b14"
+    },
+    {
+      "file": "avatars/vip/elite_cyborg.webp",
+      "sha256": "3792fb81838da6c784be67a616c7536dffef5379b3f598ba30d57aef5703db4d"
+    },
+    {
+      "file": "avatars/table/vip_elite_cyborg.webp",
+      "sha256": "04a4b6ff01e031dbd80103a5bf3d46cf353ec1abba055663338e5b6e65eaf7af"
+    },
+    {
+      "file": "avatars/table/vip_elite_cyborg@2x.webp",
+      "sha256": "05454014062f0549943d33301ba07b469aa5df9e39772e3af5d9223a355d6015"
+    },
+    {
+      "file": "avatars/vip/fire_demon.webp",
+      "sha256": "f75cd8a31d81d819c00cfe593014a4145114b4a3746525bad90e28778d8087eb"
+    },
+    {
+      "file": "avatars/table/vip_fire_demon.webp",
+      "sha256": "12e398c8ce7c57840476421533f37cd543516f2c83d972a68397b00336c02284"
+    },
+    {
+      "file": "avatars/table/vip_fire_demon@2x.webp",
+      "sha256": "e40b3adb84adeba5d7b0bd354e80afc0c74e8dc98fb142733d8b105b960aabf6"
+    },
+    {
+      "file": "avatars/vip/football.webp",
+      "sha256": "e346eb39ceff89f40ede097bd3de6d040b1a7f285670d93af9d308de3a09aa09"
+    },
+    {
+      "file": "avatars/table/vip_football.webp",
+      "sha256": "67163a86bb1ed2289053f5349c79f6d54466d333c8bf54bd4a86b36546397c88"
+    },
+    {
+      "file": "avatars/table/vip_football@2x.webp",
+      "sha256": "12802ea458d3aee47dcf934af24db56cc8a2bd03f9c03b9a567c5f6ecd26386c"
+    },
+    {
+      "file": "avatars/vip/galactic_emperor.webp",
+      "sha256": "9b6ba726db3fabc4b5863ab74cbe968dcea87ac338f37627b01ab2f873dbef17"
+    },
+    {
+      "file": "avatars/table/vip_galactic_emperor.webp",
+      "sha256": "4e0e67797f87b33567004dc8da50c8563102d716e09030b4355a5b030d3ef7c8"
+    },
+    {
+      "file": "avatars/table/vip_galactic_emperor@2x.webp",
+      "sha256": "38874f11c08ee5c0e69cded0c01626abedbd4c74b524443494b11be229486180"
+    },
+    {
+      "file": "avatars/vip/geisha_master.webp",
+      "sha256": "528f08c516eca2b874a5791021e4fd2303700175509026a8c49a75e8a4085c3d"
+    },
+    {
+      "file": "avatars/table/vip_geisha_master.webp",
+      "sha256": "fd039036657672b7fe81f1a32b4655602e123b0b68aad5782b92d13a01416da5"
+    },
+    {
+      "file": "avatars/table/vip_geisha_master@2x.webp",
+      "sha256": "c87bdc81d1d7e941bfe87d048b93124480b3cb648cfa0c18b27c9ea8360e498e"
+    },
+    {
+      "file": "avatars/vip/gladiator.webp",
+      "sha256": "bf9003e9901400ec86910bfb4436cbf3750ff556f04e9cdfe8ab24c2d7a2a25d"
+    },
+    {
+      "file": "avatars/table/vip_gladiator.webp",
+      "sha256": "5675c5461c35bc083eafdf40cbeab0cb4e791cbe01c250bc48c2e61772097932"
+    },
+    {
+      "file": "avatars/table/vip_gladiator@2x.webp",
+      "sha256": "0a869ba8c3cd816d96f06cbe1cc3acd2ded79b6f48e52092609bbf3022fcc31f"
+    },
+    {
+      "file": "avatars/vip/gorilla.webp",
+      "sha256": "9644fb400fa5e70b44e96aaad473f3bcff79033261c1b1e4460dbda452cc5d5c"
+    },
+    {
+      "file": "avatars/table/vip_gorilla.webp",
+      "sha256": "f2feb98a93370832a4dacfb2fe441f330f51eda2002dfb1aaac81f779ab46481"
+    },
+    {
+      "file": "avatars/table/vip_gorilla@2x.webp",
+      "sha256": "54158fad973b6dd18eccb41e9319cd2f6111cfec41eaee5e232171fa28259469"
+    },
+    {
+      "file": "avatars/vip/grumpy_cat.webp",
+      "sha256": "e494bda0f99f34f427a24077fc171bd26fb6605777b14c80f168aaeb3f84d446"
+    },
+    {
+      "file": "avatars/table/vip_grumpy_cat.webp",
+      "sha256": "0e230ec317e0bedfeabfb9e2bf16b01c1c9427b56883aaccdcfc3d55c59ae973"
+    },
+    {
+      "file": "avatars/table/vip_grumpy_cat@2x.webp",
+      "sha256": "2b60b54d04c3bf1ca2151ddd0ad5142025f9f03db45d69f62ac3b31a26b21e5c"
+    },
+    {
+      "file": "avatars/vip/hacker.webp",
+      "sha256": "78d35706ba8a1a5226bd217932a7e4e13af70e57d56a1e498cf97e2a44d83eb4"
+    },
+    {
+      "file": "avatars/table/vip_hacker.webp",
+      "sha256": "e5c268546c3102a912e4e85c4dbad8734aa33f46e59f7ca5d21e4fd9c8f3544b"
+    },
+    {
+      "file": "avatars/table/vip_hacker@2x.webp",
+      "sha256": "ce6950fbd9d021b296c01470b5e5bb39dce486daa2bd40ed3dadd775fd4fbd74"
+    },
+    {
+      "file": "avatars/vip/hollywood.webp",
+      "sha256": "8a8d2f9a755f3e8e413caaefd8f7a3a50a40968ce61a94d95b2b75c28423493d"
+    },
+    {
+      "file": "avatars/table/vip_hollywood.webp",
+      "sha256": "955965e2e98237f6118d8b7ed9edd40fb423502d73358af2f1406e5ce30edf35"
+    },
+    {
+      "file": "avatars/table/vip_hollywood@2x.webp",
+      "sha256": "ba09da26f472211b49ffc195a361236a71dc6a6f7b2d3de6d4d49e978a0608cd"
+    },
+    {
+      "file": "avatars/vip/ice_queen.webp",
+      "sha256": "af7fe9f4a34af2081fa60bd6dfd06368334742a1f4eda0250d97338af7370e5e"
+    },
+    {
+      "file": "avatars/table/vip_ice_queen.webp",
+      "sha256": "d4e2a4756eff8d9f99fd9bb81d2376c60392aa0cee8f0ecb04c0692691605b2c"
+    },
+    {
+      "file": "avatars/table/vip_ice_queen@2x.webp",
+      "sha256": "353973c8e111436a21f35b783cb79abea46d5d13cfc9ee6a493dd49fac22db75"
+    },
+    {
+      "file": "avatars/vip/jazz.webp",
+      "sha256": "e99b2dc4334740a91a5625718cc9909abaee3336ef5109ead1dbf866f2f7d0b6"
+    },
+    {
+      "file": "avatars/table/vip_jazz.webp",
+      "sha256": "82a35679e7fe19d06c02ca2b8e298a10c3e704947eda078160d13d7e937c88e4"
+    },
+    {
+      "file": "avatars/table/vip_jazz@2x.webp",
+      "sha256": "d7873b6e74c19d9aa736ea0d51db259d26a50457782fe56ee8f39eabd83b5148"
+    },
+    {
+      "file": "avatars/vip/liberty.webp",
+      "sha256": "e38ab368f2900d65fa4d570fccd5a15a325d345afc18521a84902133f2c5a221"
+    },
+    {
+      "file": "avatars/table/vip_liberty.webp",
+      "sha256": "abddee8d303e79d6c6fbea304f730bf619e221736f7edafc5ae34b9a630c7588"
+    },
+    {
+      "file": "avatars/table/vip_liberty@2x.webp",
+      "sha256": "77bb44cd356b2e110202d1aa7f4ba8c5ebae2ec5f70800fa9c9caf918272bde7"
+    },
+    {
+      "file": "avatars/vip/luchador.webp",
+      "sha256": "7939c5825feb82fc54a1b79125a1968220bcefda61e2a731082a773327143e34"
+    },
+    {
+      "file": "avatars/table/vip_luchador.webp",
+      "sha256": "1f13f6a4a2e9a3f736f4e02da61b92dd52605cfbe2b6a48a52f2f8a6346f3a8d"
+    },
+    {
+      "file": "avatars/table/vip_luchador@2x.webp",
+      "sha256": "9a4758d8b251cced00e08d693f9dad647c1f7f08e51bba1043a82d2943d8fcaf"
+    },
+    {
+      "file": "avatars/vip/mad_scientist.webp",
+      "sha256": "16bdb968f65af2f2794c745e7235f1a76ca2c93d868cabef783ce5b893124933"
+    },
+    {
+      "file": "avatars/table/vip_mad_scientist.webp",
+      "sha256": "d3c997c578a81b52f9c40b4d910ff21a145d14aa33ee6d361c577ea0a0852d3b"
+    },
+    {
+      "file": "avatars/table/vip_mad_scientist@2x.webp",
+      "sha256": "758f3df9720cceb3a64d72efc9de534200dda51d8e021d1be57a3838cc9d3332"
+    },
+    {
+      "file": "avatars/vip/mecha_pilot.webp",
+      "sha256": "8e7467d2e7c8a80cb170d1137d2dd81b2fb04addfa8c3677e6814c63b6f96700"
+    },
+    {
+      "file": "avatars/table/vip_mecha_pilot.webp",
+      "sha256": "d39df2c22c36c663d81b0958e8a9480c47f75ebd24983cd87018dbc4b10e2867"
+    },
+    {
+      "file": "avatars/table/vip_mecha_pilot@2x.webp",
+      "sha256": "a367ddd3d43357d1ee8acb90faed30570e1af92385447bb1048e1b08de5478b3"
+    },
+    {
+      "file": "avatars/vip/mobster.webp",
+      "sha256": "cc572cb91cda0f1f66877bf7c7d88ac5789eb3acd56ed8f4cff14d5a60558345"
+    },
+    {
+      "file": "avatars/table/vip_mobster.webp",
+      "sha256": "3f005ffdf386f9a5069cb264cb6adba7081649e6d0aa86d906f5b62a38485fdb"
+    },
+    {
+      "file": "avatars/table/vip_mobster@2x.webp",
+      "sha256": "a24c98bf63cc5ce45f49d5ef1bc424c3efe3b75cd45605cdf397786513fe6d85"
+    },
+    {
+      "file": "avatars/vip/monarch.webp",
+      "sha256": "96f0883a9d8b03d3a32fc23ed30c157dff091ecf43642b9d98d2586ed163a77c"
+    },
+    {
+      "file": "avatars/table/vip_monarch.webp",
+      "sha256": "89daff5e7f0ec71fc030bc66f456220cf503961ff9708872930f33f0760ee377"
+    },
+    {
+      "file": "avatars/table/vip_monarch@2x.webp",
+      "sha256": "4d994f91cec47ddb69e188d792a8720b35e5c19871e2286eef6cb1cc8d11a415"
+    },
+    {
+      "file": "avatars/vip/mummy.webp",
+      "sha256": "71cc2f4cf20d41ac1645bf7cf290147e5fe6e8fd7d50789d3d8a2e9d345a4aa6"
+    },
+    {
+      "file": "avatars/table/vip_mummy.webp",
+      "sha256": "6e2725820c46159600031ea0fd8ca857310de4d57dbb0b8bbc16a06c48c0bb60"
+    },
+    {
+      "file": "avatars/table/vip_mummy@2x.webp",
+      "sha256": "6152e8ed844b6df9dccbabe2f02ff0dad072e678ad2a76c7228c60bfa640f6e7"
+    },
+    {
+      "file": "avatars/vip/neon_ninja.webp",
+      "sha256": "9e982696f1da349cfad966f1d4638a258afb4a07f5c955cdfbefc09554084601"
+    },
+    {
+      "file": "avatars/table/vip_neon_ninja.webp",
+      "sha256": "b4cace71d282f7183f06eee017a5e000418ba024e0f7604dc5ebe0003005d39b"
+    },
+    {
+      "file": "avatars/table/vip_neon_ninja@2x.webp",
+      "sha256": "9690f7f3ec32eea31e92df0c07bd840a611ba29e53d2059cb056bfaf5f0afe5e"
+    },
+    {
+      "file": "avatars/vip/panther.webp",
+      "sha256": "c1d1414333d848cc3a015f7410d86e041f8723e8bc79be5e50673836acdb1f8f"
+    },
+    {
+      "file": "avatars/table/vip_panther.webp",
+      "sha256": "6fd1c951150afe75b49bacd67deec9b38ca20a99611ca4ddf9d09ba6b792a4b7"
+    },
+    {
+      "file": "avatars/table/vip_panther@2x.webp",
+      "sha256": "daedb2e7d333752adb8740223b23cff56f25c2b0465ecf33eb843d46d75bed9f"
+    },
+    {
+      "file": "avatars/vip/phantom.webp",
+      "sha256": "9171e95c57f465af3ec989a4cb752f395a072c75b0f885f3d98177ac752dd3c6"
+    },
+    {
+      "file": "avatars/table/vip_phantom.webp",
+      "sha256": "467cfda50e3bb4e5690ba3abef0dbc7c1ff92f80d78111e14b164f500c657936"
+    },
+    {
+      "file": "avatars/table/vip_phantom@2x.webp",
+      "sha256": "9e928bab48b3a5c71c4441612ce5755c36ccd6c5e3dc51916c9f003d9b9b958b"
+    },
+    {
+      "file": "avatars/vip/pharaoh.webp",
+      "sha256": "6c1fee033bf00451f3d43ad1fd0aa86ebd60b75731f8f58d764096844684afd7"
+    },
+    {
+      "file": "avatars/table/vip_pharaoh.webp",
+      "sha256": "76c16af38fefc415b6bae9d2a7688eb240753d9530b3a88ffee581b40a3ca62b"
+    },
+    {
+      "file": "avatars/table/vip_pharaoh@2x.webp",
+      "sha256": "20151591e2386e507298dd8c8723838afd50c047f402906253d865deca185f14"
+    },
+    {
+      "file": "avatars/vip/phoenix.webp",
+      "sha256": "0fb4b1f3ddbe211822d89be10dbaf8bbdf40c62a0bcce2a0f3ba971fe5c4e3da"
+    },
+    {
+      "file": "avatars/table/vip_phoenix.webp",
+      "sha256": "349accd8766e0574564c86f5544c25bdcfd1ab80e1420500dea064b2b588f35c"
+    },
+    {
+      "file": "avatars/table/vip_phoenix@2x.webp",
+      "sha256": "b8e229419600bd7cb2ac529f64e0baace00e5cb533a00cc94dcf6df71f825f5b"
+    },
+    {
+      "file": "avatars/vip/physicist.webp",
+      "sha256": "16f13ee0c288a03c0663dc60b7024ff1df3c05d176990eedba731397c023392b"
+    },
+    {
+      "file": "avatars/table/vip_physicist.webp",
+      "sha256": "a819de92dbbc2a3a758661f11bae51da3815a1c30e9457645be3e4f5e661a43a"
+    },
+    {
+      "file": "avatars/table/vip_physicist@2x.webp",
+      "sha256": "8fa0d2a187364e486a7df80937185b2f2976830d3eef978cf2c162a1dfcb0be8"
+    },
+    {
+      "file": "avatars/vip/plague_doctor.webp",
+      "sha256": "71e92889ef634a7146f08271d37efe752d0e6c69642eee2794db70f54849f4f3"
+    },
+    {
+      "file": "avatars/table/vip_plague_doctor.webp",
+      "sha256": "9573630001c767fc4a03dad3c820d8ebadd2cdf75b4f81a4a406056fe6d542a1"
+    },
+    {
+      "file": "avatars/table/vip_plague_doctor@2x.webp",
+      "sha256": "830377f7ce349032a07a8f132dc25deaec64bcd3e35d5691520ae7da9050fd5d"
+    },
+    {
+      "file": "avatars/vip/politician.webp",
+      "sha256": "9f66afd5d7d5c1034976f88caf595dafb535083bebbe76d61403ec2b1724d3a7"
+    },
+    {
+      "file": "avatars/table/vip_politician.webp",
+      "sha256": "54e6e16a99cb2e245cae3da0ec01cdab45da137b695e68ed857c383bd0293a9a"
+    },
+    {
+      "file": "avatars/table/vip_politician@2x.webp",
+      "sha256": "2da712ba0620a5623d6e7861b3a80746b37bee92829bfe847bbd968f13d2b826"
+    },
+    {
+      "file": "avatars/vip/pug.webp",
+      "sha256": "80a64b43f17830b16a0552d2165d4677b33422e128bf5512e8859de0f34a4c47"
+    },
+    {
+      "file": "avatars/table/vip_pug.webp",
+      "sha256": "1f4df21749f5f276589fc55014308ff106608d4d81b022f081e27bfafb6b42ee"
+    },
+    {
+      "file": "avatars/table/vip_pug@2x.webp",
+      "sha256": "3ad878ecfe1d6e2d1b580b618f3e5bbee507c3902caf4cfabea1da2395dc37ed"
+    },
+    {
+      "file": "avatars/vip/rapper.webp",
+      "sha256": "b5892e6a91dfac5f589c2fa183a01d4792291b602e90a541dc0aa44f78289ed7"
+    },
+    {
+      "file": "avatars/table/vip_rapper.webp",
+      "sha256": "80416e9edaa4475d66ef69afe5ddfd2cf45f2632d2f5fcd3cfad92ede6551ae7"
+    },
+    {
+      "file": "avatars/table/vip_rapper@2x.webp",
+      "sha256": "19cd00f01da8afcdc2d6ee5d5f26e228311bb90fbcafb8f2a840ae972ecb6578"
+    },
+    {
+      "file": "avatars/vip/rock_legend.webp",
+      "sha256": "cbe92baa9ec487da4565db4a307687619c6b2da8d16a9337399f3874e1922388"
+    },
+    {
+      "file": "avatars/table/vip_rock_legend.webp",
+      "sha256": "a1828666fa2762b2ef964a8c14a083e713cb780df53dfb2cb1bdb8dafa9dc74c"
+    },
+    {
+      "file": "avatars/table/vip_rock_legend@2x.webp",
+      "sha256": "06173568b3a2b726b598f5de7ec60e240f80db186a8d81bd1389e913f1f4eef9"
+    },
+    {
+      "file": "avatars/vip/royal_guard.webp",
+      "sha256": "2500df6b4377df9398499475faed33a96cb31a300f3e7dd10967443e3ffafef4"
+    },
+    {
+      "file": "avatars/table/vip_royal_guard.webp",
+      "sha256": "eba4b94f4f71526ff6584dcf26ff16ba0312d773fb0d4822ac7b42fe2833733e"
+    },
+    {
+      "file": "avatars/table/vip_royal_guard@2x.webp",
+      "sha256": "c49a4d0b4e9f6bcae7126963887cb966a4b65c129f22d13fb7a965e6f6bdb76f"
+    },
+    {
+      "file": "avatars/vip/samurai_cyborg.webp",
+      "sha256": "8ab8de91f1d5a878051b7b4d571b6d49905b7a5a194f28ba737ff2922258fbd3"
+    },
+    {
+      "file": "avatars/table/vip_samurai_cyborg.webp",
+      "sha256": "2d4b8c5d96182c08a7a1e219bbfcab79079072c66370785ee3092a5a2be5c614"
+    },
+    {
+      "file": "avatars/table/vip_samurai_cyborg@2x.webp",
+      "sha256": "64b81e0489b8ff7ca6cc4d71347bd2424ab2b6f4d068dbbc9e5945f37afd7e75"
+    },
+    {
+      "file": "avatars/vip/secret_agent.webp",
+      "sha256": "31bfd6e1ca4e3734c9623ca8d6ff80f8ce22f9ad360f044631be70a6026722d8"
+    },
+    {
+      "file": "avatars/table/vip_secret_agent.webp",
+      "sha256": "254c976b421c495156317eca8662f42cce33fa791ce9d82043a312428c5925d9"
+    },
+    {
+      "file": "avatars/table/vip_secret_agent@2x.webp",
+      "sha256": "cd2660888eb8d33ec1fd278444139ac8b208b42c57cbfa96b456d9f079c29e06"
+    },
+    {
+      "file": "avatars/vip/silent_actor.webp",
+      "sha256": "d9535094eeb863088d4d4107ff67ee96fe2757aed0ba9958ecbdedc9755c0d7f"
+    },
+    {
+      "file": "avatars/table/vip_silent_actor.webp",
+      "sha256": "c53c66e57d2c7823daf6d6af62517c912b6c60cebf87a423401d8dc4c0896292"
+    },
+    {
+      "file": "avatars/table/vip_silent_actor@2x.webp",
+      "sha256": "576a9ad7d57a2294a98e3ab4637533da33db12608f8095ea2134f4829ecf63d5"
+    },
+    {
+      "file": "avatars/vip/soccer.webp",
+      "sha256": "b84165152690ea1c53fd5746c8437470fa449ef8004a7932ef95859dc1d21097"
+    },
+    {
+      "file": "avatars/table/vip_soccer.webp",
+      "sha256": "ee75f28470ac81070d7047a4cb914577e8aebff50d0a4c56a7fdac715433bb04"
+    },
+    {
+      "file": "avatars/table/vip_soccer@2x.webp",
+      "sha256": "58164d3a40d68b5bb06533e4e1984faf9b96ce3ab38ca18f0d6976ed00c5d543"
+    },
+    {
+      "file": "avatars/vip/sorceress.webp",
+      "sha256": "13d6acf59768d30c5b3104d48b681b10c04cfeb8e638e8725a9d11e360aa04ee"
+    },
+    {
+      "file": "avatars/table/vip_sorceress.webp",
+      "sha256": "8690e9be90e43d2e64636d0daa91d96dd71745233f77395c17c2705b2388487b"
+    },
+    {
+      "file": "avatars/table/vip_sorceress@2x.webp",
+      "sha256": "90656290ac59f93cd4a5adb1eecb7601a8cb340941e6a71e1804616224ba2f47"
+    },
+    {
+      "file": "avatars/vip/space_pioneer.webp",
+      "sha256": "88cdffb4d251624e0d3945c3189f55285c4f3af4e1ebd4dbff38baadef282a0b"
+    },
+    {
+      "file": "avatars/table/vip_space_pioneer.webp",
+      "sha256": "9a42c9e869c8788b247c943a9c41ebfdfdb384514a9057ab0651df4b0a25649f"
+    },
+    {
+      "file": "avatars/table/vip_space_pioneer@2x.webp",
+      "sha256": "bfd41ff08c3cee9de4ca4ba08a443c0dd747804ba4dc8387f2c892149cd3c56d"
+    },
+    {
+      "file": "avatars/vip/space_pirate.webp",
+      "sha256": "0d65258b0680f4f04f4f1a524147271483204d7b6d78f20185b97b4c907b4e69"
+    },
+    {
+      "file": "avatars/table/vip_space_pirate.webp",
+      "sha256": "3b12ddae6d527524595434f97ffab565c9f496b40660a50130a795bf09a56540"
+    },
+    {
+      "file": "avatars/table/vip_space_pirate@2x.webp",
+      "sha256": "f141f4a0d3b0f5a88730f85062315cd6fc55edf14ebc83dc8d903a02b60ddf54"
+    },
+    {
+      "file": "avatars/vip/space_ranger.webp",
+      "sha256": "d91146818fced6f5bd10138cc187188d7d7ee3d20b1a9934f0650bdf439f32d1"
+    },
+    {
+      "file": "avatars/table/vip_space_ranger.webp",
+      "sha256": "91121dfb573a7b5c3bcc56e65e57f7a8ab19f35a3710a99c4c91de2d092fc9b8"
+    },
+    {
+      "file": "avatars/table/vip_space_ranger@2x.webp",
+      "sha256": "014024969d6b91359b56967f7c2efb836f6f97019c662cd721e5fca429a7c18a"
+    },
+    {
+      "file": "avatars/vip/spartan.webp",
+      "sha256": "4be304d0839541f74c9f75d1e223dd6abbe5a6fccdfd2646c2590cd3e1084aed"
+    },
+    {
+      "file": "avatars/table/vip_spartan.webp",
+      "sha256": "8aa083bb196a5d1e1254c257d6aba85333b045ee983e249790c1133644968c09"
+    },
+    {
+      "file": "avatars/table/vip_spartan@2x.webp",
+      "sha256": "ec2f17f4068df5799dd8945ba2a427ee87005f0038fe9660cc32d8a0f308428a"
+    },
+    {
+      "file": "avatars/vip/steampunk_inventor.webp",
+      "sha256": "c9808cc640441a5251615dd3b2ef49f964a71603b81f690c2fc7ea81f01f57f9"
+    },
+    {
+      "file": "avatars/table/vip_steampunk_inventor.webp",
+      "sha256": "3a2128c58e6e9ab286f390bce8ee3e302a571e41c802409674d664a9c3222890"
+    },
+    {
+      "file": "avatars/table/vip_steampunk_inventor@2x.webp",
+      "sha256": "ca118fba6fe46816e06f5ff4b265b16be94aa796f25d16a23cf1d31f87f2306f"
+    },
+    {
+      "file": "avatars/vip/street_racer.webp",
+      "sha256": "bf12e42fdea0779c202a1fdd57536a360fb80acabc50a884cba122d8b2a303b2"
+    },
+    {
+      "file": "avatars/table/vip_street_racer.webp",
+      "sha256": "b4b3a100583242cce82e62796e377f823494225946a2f57545314f48c5a645dd"
+    },
+    {
+      "file": "avatars/table/vip_street_racer@2x.webp",
+      "sha256": "dff8ab42ddfa047a313850b2bfe935f43472c32e18b3366b49eef1c5d7e0c5f0"
+    },
+    {
+      "file": "avatars/vip/tech_mogul.webp",
+      "sha256": "4bda505b21226db81612d038ca58320921bd9434b44e9862cde4274b4169e989"
+    },
+    {
+      "file": "avatars/table/vip_tech_mogul.webp",
+      "sha256": "476b5c2bcff0e15aba928e5a28c1055de174c6308e2e73bdd5e309d5f0b2b884"
+    },
+    {
+      "file": "avatars/table/vip_tech_mogul@2x.webp",
+      "sha256": "cff89f65593b4e3ffa8b1ef9d0aaf578a38eb4be27b82dd504e854380e28cf67"
+    },
+    {
+      "file": "avatars/vip/tiger_boss.webp",
+      "sha256": "4dc040b7070c649fce40b1c0ca1e1f9851b091594989a34d64c5f565b0cd15a3"
+    },
+    {
+      "file": "avatars/table/vip_tiger_boss.webp",
+      "sha256": "a32410c25787eaeecdde8cf8282d0fe1c321637a9fee5d47ff3571b469fb74f7"
+    },
+    {
+      "file": "avatars/table/vip_tiger_boss@2x.webp",
+      "sha256": "5c98751c5bf2b0d673097f1d38069b4a747b64d3cdce9adb47cadc7f7772e366"
+    },
+    {
+      "file": "avatars/vip/unicorn.webp",
+      "sha256": "a9d00dd88c55adb2b02d0532cbe274c4583a9566f2876a3c4c95fee1c62e0598"
+    },
+    {
+      "file": "avatars/table/vip_unicorn.webp",
+      "sha256": "51e1d87e3fba93f571eedcc529785d0361b17d8bc425528a40b56ff681b4db1f"
+    },
+    {
+      "file": "avatars/table/vip_unicorn@2x.webp",
+      "sha256": "35fb1fbfc8af11805b9de9b359337599df45f3fa93aab0ab7ef001a587e3ad5d"
+    },
+    {
+      "file": "avatars/vip/vampire.webp",
+      "sha256": "438f532060193094901383372f4c56a1315515a283cb7c6fa064c8e622c53887"
+    },
+    {
+      "file": "avatars/table/vip_vampire.webp",
+      "sha256": "cf47e2c57fc9043bba6ee43496fe5283b0e5aa68679c0ae891d588314f22d26f"
+    },
+    {
+      "file": "avatars/table/vip_vampire@2x.webp",
+      "sha256": "248e9e14b1bb642e0b70bc9962cdd7c80e75e4f4ccfd932c878ef8bda5b2fd5a"
+    },
+    {
+      "file": "avatars/vip/vampire_hunter.webp",
+      "sha256": "477c1f20b772b52c073ef9220d334ebdcea81dc9246bdcc953ac35334aeb87f7"
+    },
+    {
+      "file": "avatars/table/vip_vampire_hunter.webp",
+      "sha256": "4271851ebeb66108393743a93a49f2e0d982a506ae3f05c58dd258da4527b02a"
+    },
+    {
+      "file": "avatars/table/vip_vampire_hunter@2x.webp",
+      "sha256": "2302c229a9291d37c2d5f4bedab09bb9a75fc6eb8f0e8be89c8909dab13653b6"
+    },
+    {
+      "file": "avatars/vip/vigilante.webp",
+      "sha256": "573326c6432feee3d896d1da74ab2dbe7332c1405c4a12b7ac4b6dd5c6b799d0"
+    },
+    {
+      "file": "avatars/table/vip_vigilante.webp",
+      "sha256": "ae2b81380931d454601e0ea0283dbc6a7391376d1285a550d0b2739f4891dd5b"
+    },
+    {
+      "file": "avatars/table/vip_vigilante@2x.webp",
+      "sha256": "8b381c1a91b4e67bc7783174eb1cbbc3161362fb3485968b33f392d914558bac"
+    },
+    {
+      "file": "avatars/vip/viking_warrior.webp",
+      "sha256": "ff85bf9ccaee686a06fa08cf67003218102856f574736caf2de6cc19381f3e45"
+    },
+    {
+      "file": "avatars/table/vip_viking_warrior.webp",
+      "sha256": "51737bc787d71e128844d6297c83e5deef75563eba987f7b3f85cad8f72feef7"
+    },
+    {
+      "file": "avatars/table/vip_viking_warrior@2x.webp",
+      "sha256": "47a1f5b0b20c863651ff616f3d80ecedf9774d1a8a93687b6c68739c9ea61b4c"
+    },
+    {
+      "file": "avatars/vip/voodoo_priest.webp",
+      "sha256": "233ba4016010584036bb8b653f119c1e603a4585cfbbb1ddc655fa25548d5f5b"
+    },
+    {
+      "file": "avatars/table/vip_voodoo_priest.webp",
+      "sha256": "387685a32b546329b1a9b6947030884aa42acc89181fb99f475e9f4bf19a2d18"
+    },
+    {
+      "file": "avatars/table/vip_voodoo_priest@2x.webp",
+      "sha256": "2cbeb03172fa89fad49905164004f1016eaf2f5f4e9ea579aa7ed0aed65f591c"
+    },
+    {
+      "file": "avatars/vip/wolf.webp",
+      "sha256": "f704103a0f1d01bce93cea4d8832950b0be571d65fe9e2f54648795d88347a9a"
+    },
+    {
+      "file": "avatars/table/vip_wolf.webp",
+      "sha256": "6a8b0502c84e3fa37e3fd2ea7599c2cd3e562241d133853c614ade73f06ef66d"
+    },
+    {
+      "file": "avatars/table/vip_wolf@2x.webp",
+      "sha256": "2fbc6c1a4c7fd47a20dc7c39a31be74aadb021f4415fb0e45c6c86b3b87227d5"
+    },
+    {
+      "file": "avatars/vip/wrestler.webp",
+      "sha256": "63c905810c758f367dda7d340239d217355ef9941ada0474b5f743c95f3c5600"
+    },
+    {
+      "file": "avatars/table/vip_wrestler.webp",
+      "sha256": "39e54d56b828fbbc9920f8d5412e604ae2ff09a4ef2344bd99afc085711ecab9"
+    },
+    {
+      "file": "avatars/table/vip_wrestler@2x.webp",
+      "sha256": "5a2195456e824bf871213e8a965b5b37d79c9b7cc7445bf00db48bd79a3988a7"
+    },
+    {
+      "file": "avatars/vip/yakuza.webp",
+      "sha256": "c14e5c7a57ecd9cd8dd6641654a74caed7ddee00412f4d0be46151a7097eafd1"
+    },
+    {
+      "file": "avatars/table/vip_yakuza.webp",
+      "sha256": "79397bce65b1df5c89ce70fa14e97fbd3165d89cbdf14f46721cba9c9431e4b8"
+    },
+    {
+      "file": "avatars/table/vip_yakuza@2x.webp",
+      "sha256": "f895a44aaa1292e37d74dfb84314d3b6601c9b120c65f3399baeb95a07e5483b"
+    },
+    {
+      "file": "avatars/table/custom_complete_7f7b826d18995340@2x.webp",
+      "sha256": "7f7b826d18995340765f46db92dc0cc54bb1eb2df0f8fa665bbcd2f48e5888b0"
+    },
+    {
+      "file": "avatars/table/custom_complete_7f10ed2af667ba12@2x.webp",
+      "sha256": "7f10ed2af667ba12e2faef84631dc5890c602865f2b0f6d8ad31e4e64c8f85b5"
+    },
+    {
+      "file": "avatars/table/custom_complete_4b54611bbfb7d88b@2x.webp",
+      "sha256": "4b54611bbfb7d88b158289fc9c2a21bcae129b7c848c03edf0dd7ff545ef47f0"
+    },
+    {
+      "file": "avatars/table/custom_complete_42fd8b6f6c4ad623@2x.webp",
+      "sha256": "42fd8b6f6c4ad623e36c3b5606a5f81b5f3fc5e3a28b8e19e96478e944c00f11"
+    },
+    {
+      "file": "avatars/table/custom_complete_a837b0680094f110@2x.webp",
+      "sha256": "a837b0680094f11047871615c3ce30679ab0775a64e901abe1e831813ea927be"
+    },
+    {
+      "file": "avatars/table/custom_complete_0131b099c918d884@2x.webp",
+      "sha256": "0131b099c918d88425058586a477321cca36e42b27b01062703af01f1c86db28"
+    },
+    {
+      "file": "avatars/table/custom_complete_5444979bbcd6722d@2x.webp",
+      "sha256": "5444979bbcd6722de834a7900fb2b72b16b2af01569906465332ae53c6f6c032"
+    },
+    {
+      "file": "avatars/table/custom_complete_4342d338731689df@2x.webp",
+      "sha256": "4342d338731689df924ef770617c027cb243ca61ef2890b3720bf46a8d72e33b"
+    },
+    {
+      "file": "avatars/table/custom_complete_73072f2a2aa98d3d@2x.webp",
+      "sha256": "73072f2a2aa98d3dd59006e528996a833842bc7f573c42fc9d091f11ca390706"
+    },
+    {
+      "file": "avatars/table/custom_complete_d37c37f20ee2cad3@2x.webp",
+      "sha256": "d37c37f20ee2cad36af4fdccff85b16f88f0971afc758142db78870dfc6db6c8"
+    },
+    {
+      "file": "avatars/table/custom_complete_fe70c4d8bb381471@2x.webp",
+      "sha256": "fe70c4d8bb381471c7675bdd6eb7f748552af67c8a469b8004e9ba8abbe9bbec"
+    },
+    {
+      "file": "avatars/table/custom_complete_433068844d76bfbb@2x.webp",
+      "sha256": "433068844d76bfbb178b513de252c3be338a58d5e0d83a2c279a8524866b8e84"
+    },
+    {
+      "file": "avatars/table/custom_complete_3cc909ae5d88316a@2x.webp",
+      "sha256": "3cc909ae5d88316a6bed8065625cde96cca63ea16f9abdf47c6ded4d29b26865"
+    },
+    {
+      "file": "avatars/table/custom_complete_0da1fb1798f3cae1@2x.webp",
+      "sha256": "0da1fb1798f3cae19ed0e3006dd7bd52ef4cdf69a38ba098b23befb5fdc7c0bb"
+    },
+    {
+      "file": "avatars/table/custom_complete_c5f5a8c1b7012b74@2x.webp",
+      "sha256": "c5f5a8c1b7012b74c7811fe07996ff0e7b0b5c8c953d9eb7dbf38a41929a351a"
+    },
+    {
+      "file": "avatars/table/custom_complete_843ce7ea72fe7a0d@2x.webp",
+      "sha256": "843ce7ea72fe7a0d0a866d4d6df4b2da10c4ceaa2795d8761330a37fd6180b36"
+    },
+    {
+      "file": "avatars/table/custom_complete_d26e7f051db82666@2x.webp",
+      "sha256": "d26e7f051db82666e2875061241494f4d7752e436dfd4b936ae1116f672d5c05"
+    },
+    {
+      "file": "avatars/table/custom_complete_10532176e04b308b@2x.webp",
+      "sha256": "10532176e04b308b239825719917d4deb6ff261c3db6ecfcb4e71c06e8908b81"
+    },
+    {
+      "file": "avatars/table/custom_complete_18f0699283328e6e@2x.webp",
+      "sha256": "18f0699283328e6e11424a01af30bf2c19ec452469efbd6f638713c7008c5222"
+    },
+    {
+      "file": "avatars/table/custom_complete_6cb197d65578c31b@2x.webp",
+      "sha256": "6cb197d65578c31b3c8875610639b3d1871e8b7f645c3f1cb2ddf7733e157950"
+    },
+    {
+      "file": "avatars/table/custom_complete_c109592c8cfaddb0@2x.webp",
+      "sha256": "c109592c8cfaddb0afad3b221cd876508c9f0b89223ad5b0f3a7325045b7c94d"
+    },
+    {
+      "file": "avatars/table/custom_complete_6d0344917e977c4c@2x.webp",
+      "sha256": "6d0344917e977c4ce46d2862f57e5221be9a147f587bac6401a5620781b0273c"
+    }
+  ]
+}
