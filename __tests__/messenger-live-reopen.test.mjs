@@ -12,3 +12,13 @@ test('the live verifier refreshes, reopens and re-reads every conversation it ma
   for (const marker of order) { const next = loop.indexOf(marker, at + 1); assert.ok(next > at, marker); at = next; }
   assert.match(source, /report\.coverage\.readSurvivedRefreshAndReopen = reopenedAfterRefresh\.size/);
 });
+
+test('a live verifier failure names its phase and error class without provider text', () => {
+  const source = readFileSync(new URL('../scripts/ci/messenger-live-check.mjs', import.meta.url), 'utf8');
+  for (const phase of ['initial-snapshot', 'browser-start', 'conversation-read', 'conversation-refresh-reopen', 'notification-read', 'final-snapshot-and-badges']) {
+    assert.match(source, new RegExp(`report\\.phase = '${phase}'`), phase);
+  }
+  assert.match(source, /Live probe could not complete during \$\{report\.phase \|\| 'setup'\} \(\$\{errorClass\}\)/);
+  assert.match(source, /\/\^\[A-Za-z\]\{1,40\}\$\/\.test\(error\?\.name/);
+  assert.doesNotMatch(source, /report\.failure = [^;]*error\.message(?!\.split)/);
+});
