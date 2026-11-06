@@ -27,11 +27,10 @@ const hasHandler = (value) => typeof value === 'function';
  */
 export const ACCOUNT_SETTINGS_HREF = '/hub/settings?section=account';
 
-const routesToAccountSettings = (item) => {
-  if (typeof item?.href !== 'string') return false;
-  const path = item.href.split(/[?#]/, 1)[0].replace(/\/+$/, '');
-  return path === '/hub/settings';
-};
+export const isAccountSettingsHref = (href) =>
+  typeof href === 'string' && href.split(/[?#]/, 1)[0].replace(/\/+$/, '') === '/hub/settings';
+
+const routesToAccountSettings = (item) => isAccountSettingsHref(item?.href);
 
 export function enforceAccountSettingsEntry(config = {}) {
   const source = config || {};

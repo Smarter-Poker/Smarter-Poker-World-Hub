@@ -80,3 +80,12 @@ test('no drawer config or hand-built Settings link points anywhere but the accou
   assert.match(read('pages/hub/help.js'), /href="\/hub\/settings\?section=account"/);
   assert.match(read('src/stores/pageOverlayStore.js'), /settings: \{ url: '\/hub\/settings\?section=account'/);
 });
+
+test('Recently Visited and Favourites never become a second door into Settings', () => {
+  const drawer = read('src/components/ui/HamburgerMenu.jsx');
+  const remember = drawer.slice(drawer.indexOf('const rememberRecent = useCallback'), drawer.indexOf('const rememberRecent = useCallback') + 400);
+  assert.match(remember, /if \(isAccountSettingsHref\(item\.href\)\) return;/);
+  const recents = drawer.slice(drawer.indexOf('const recentItems = useMemo'), drawer.indexOf('const recentItems = useMemo') + 600);
+  assert.match(recents, /\.filter\(\(r\) => !isAccountSettingsHref\(r\.href\)\)/);
+  assert.match(drawer, /favs\.filter\(\(href\) => !isAccountSettingsHref\(href\)\)/);
+});
