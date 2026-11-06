@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { isMessageId, visibleMessageBoundary } from '../src/lib/messengerContinuity.mjs';
+import { persistReadWithRetry as realPersistReadWithRetry } from '../src/lib/messengerReadRetry.mjs';
+// Retries run without real delays in these fixtures.
+const persistReadWithRetry = (attempt, options) => realPersistReadWithRetry(attempt, { ...options, wait: async () => {} });
 
 const messenger = readFileSync('pages/hub/messenger.js', 'utf8');
 const notifications = readFileSync('src/components/notifications/HubNotificationsFeed.jsx', 'utf8');
@@ -28,7 +31,7 @@ function readFixture() {
         loadConversationsRef: { current: (...args) => state.refreshes.push(args) },
         preferencesRef: { current: {} }, typingChannelRef: { current: { send: async msg => { state.receipts.push(msg); } } },
         refreshUnread: () => state.refreshes.push('header'), broadcastSync: (...args) => state.broadcasts.push(args),
-        setToast: toast => state.toasts.push(toast), console: { warn() {} },
+        setToast: toast => state.toasts.push(toast), console: { warn() {} }, persistReadWithRetry,
     }, 'markConversationRead');
     return { state, read, workspaceRef, activeConversationRef };
 }
@@ -288,4 +291,37 @@ test('existing browser deletions migrate once and do not bleed into the next acc
  assert.equal(reader().has(readMessageId),true);assert.equal(values.has('sp-hidden-messages'),false);
  assert.deepEqual(JSON.parse(values.get('sp-hidden-messages:account-a')),[readMessageId]);
  user.id='account-b';assert.equal(reader().size,0);
+});
+
+const failedResponse = (status, data = { success: false }) => ({ ok: false, status, json: async () => data });
+const settle = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+
+test('a transient read failure retries quietly and succeeds without a toast', async () => {
+    const f = readFixture(), write = f.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
+    f.state.requests[0].resolve(failedResponse(503)); await settle();
+    assert.equal(f.state.requests.length, 2, 'a 503 is retried');
+    f.state.requests[1].resolve(response({ success: true, readThrough: '2026-11-06T20:00:00Z' }));
+    assert.equal(await write, true);
+    assert.equal(f.state.toasts.length, 0);
+    assert.equal(f.state.broadcasts.length, 1);
+});
+
+test('a read failure that outlasts every retry shows one toast and no receipt', async () => {
+    const f = readFixture(), write = f.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
+    for (let i = 0; i < 3; i++) { await settle(); f.state.requests[i].resolve(failedResponse(503)); }
+    assert.equal(await write, false);
+    assert.equal(f.state.requests.length, 3);
+    assert.equal(f.state.toasts.length, 1);
+    assert.doesNotMatch(f.state.toasts[0].message, /Reopen/);
+    assert.equal(f.state.broadcasts.length, 0); assert.equal(f.state.receipts.length, 0);
+});
+
+test('a refused read is final at once, and leaving the conversation abandons the retry silently', async () => {
+    const refused = readFixture(), write = refused.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
+    refused.state.requests[0].resolve(failedResponse(403)); assert.equal(await write, false);
+    assert.equal(refused.state.requests.length, 1); assert.equal(refused.state.toasts.length, 1);
+    const left = readFixture(), pending = left.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
+    left.activeConversationRef.current = { id: 'conversation-b' };
+    left.state.requests[0].resolve(failedResponse(503)); assert.equal(await pending, false);
+    assert.equal(left.state.requests.length, 1); assert.equal(left.state.toasts.length, 0);
 });
