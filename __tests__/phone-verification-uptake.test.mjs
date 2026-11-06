@@ -85,8 +85,9 @@ test('every send attempt is logged durably without the phone or the code', () =>
   const helper = send.slice(send.indexOf('async function logSendAttempt'), send.indexOf('/* ── Rate limit'));
   assert.match(helper, /\.from\('sms_otp_send_log'\)\.insert\(\{/);
   assert.doesNotMatch(helper, /cleanPhone|otpCode|phone:/);
-  assert.match(send, /await logSendAttempt\(supabase, 'sent'\);/);
+  // 2026-11-06: the sent row also carries Twilio's sid, so the carrier receipt can be joined.
+  assert.match(send, /await logSendAttempt\(supabase, 'sent', null, message\?\.sid\);/);
   assert.match(send, /await logSendAttempt\(supabase, 'failed', error\?\.code \?\? null\);/);
   assert.match(send, /await logSendAttempt\(supabase, 'rate_limited'\);/);
-  assert.ok(send.indexOf("logSendAttempt(supabase, 'sent')") > send.indexOf('client.messages.create('), 'sent is logged only after Twilio accepted the message');
+  assert.ok(send.indexOf("logSendAttempt(supabase, 'sent', null, message?.sid)") > send.indexOf('client.messages.create('), 'sent is logged only after Twilio accepted the message');
 });
