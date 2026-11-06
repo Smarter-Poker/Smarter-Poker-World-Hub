@@ -305,6 +305,11 @@ async function persistSubscription(subscription, replacedEndpoint, repairOnly) {
         'Saving your subscription'
     );
     if (res.status === 401) throw new Error('You need to be signed in to enable notifications.');
+    // The push service already declared this endpoint dead (404/410). The
+    // caller must drop it and create a fresh one; see enablePush STEP 4.
+    if (res.status === 410) {
+        throw Object.assign(new Error('This device\'s notification channel expired.'), { code: 'endpoint_expired' });
+    }
     if (res.status === 409 && repairOnly === true) {
         throw Object.assign(new Error('This device is not enrolled for this account.'), { code: 'repair_not_enrolled' });
     }
@@ -410,13 +415,36 @@ export async function enablePush(options = {}) {
 
         // -- STEP 4: persist ---------------------------------------------------
         // Never report the endpoint we just created as the one it replaced.
-        await persistSubscription(
-            subscription,
-            replacedEndpoint && replacedEndpoint !== subscription.endpoint ? replacedEndpoint : null,
-            repairOnly
-        );
+        try {
+            await persistSubscription(
+                subscription,
+                replacedEndpoint && replacedEndpoint !== subscription.endpoint ? replacedEndpoint : null,
+                repairOnly
+            );
+        } catch (persistError) {
+            if (persistError?.code !== 'endpoint_expired') throw persistError;
+            // -- STEP 4b: the browser is still holding an endpoint the push
+            // service has already killed (Dan's iPhone, 2026-11-02: Apple 410,
+            // the phone kept the dead endpoint, every repair re-sent it).
+            // Drop it, mint a fresh one, and save that, naming the dead one so
+            // the server links the two as the same enrollment.
+            const deadEndpoint = subscription.endpoint;
+            try { await subscription.unsubscribe(); } catch { /* ignore */ }
+            subscription = await withTimeout(
+                registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+                }),
+                T.subscribe,
+                'Renewing this device'
+            );
+            if (subscription.endpoint === deadEndpoint) {
+                throw new Error('This device could not renew its notification channel. Turn notifications off and on again.');
+            }
+            await persistSubscription(subscription, deadEndpoint, repairOnly);
+        }
         clearOptOut();
-        return { ok: true, permission: 'granted' };
+        return { ok: true, permission: 'granted', endpoint: subscription.endpoint };
     } catch (e) {
         return { ok: false, error: e?.message || 'Could not enable notifications.', code: e?.code };
     }
@@ -476,23 +504,71 @@ export async function disablePush() {
     }
 }
 
-/** Fire a test push at this account. Resolves with how many devices accepted it. */
+/**
+ * Fire a test push from THIS device.
+ *
+ * Dan, 2026-11-05: tapped "Test Push Notification" on his phone, got nothing,
+ * and the button said it worked. It pushed to the ACCOUNT, so it was answered
+ * by his Mac (the only live enrollment) while the phone it was tapped on had
+ * been silently retired by Apple three days earlier.
+ *
+ * The test is a tap, so it is consent: it first runs a full enablePush() on
+ * this device, which heals an expired or rotated subscription, then names this
+ * device's endpoint so the server can say whether THIS device was reached.
+ */
 export async function sendTestPush() {
+    let endpoint = null;
+    if (isWebPushSupported() && notificationPermission() !== 'denied' && !isOptedOut()) {
+        const enrolled = await enablePush();
+        if (!enrolled.ok) {
+            return { ok: false, sent: 0, thisDevice: false, error: enrolled.error || 'This device could not be enrolled for notifications.' };
+        }
+        endpoint = enrolled.endpoint || null;
+    }
     try {
         const res = await withTimeout(
             fetch('/api/push/test', {
                 method: 'POST',
                 headers: authHeaders(),
-                body: JSON.stringify({}),
+                body: JSON.stringify(endpoint ? { endpoint } : {}),
             }),
             15_000,
             'Test push'
         );
         const json = await res.json().catch(() => ({}));
         if (!res.ok) return { ok: false, error: json?.error || `Test failed (${res.status})` };
-        return { ok: json.ok === true, sent: json.sent || 0, error: json.ok ? undefined : (json.hint || json.reason) };
+        return {
+            ok: json.ok === true && (endpoint ? json.thisDevice === true : true),
+            sent: json.sent || 0,
+            thisDevice: json.thisDevice === true,
+            devices: Array.isArray(json.devices) ? json.devices : [],
+            error: json.ok
+                ? (endpoint && json.thisDevice !== true ? (json.thisDeviceReason || 'This device was not reached.') : undefined)
+                : (json.hint || json.reason),
+        };
     } catch (e) {
         return { ok: false, error: e?.message || 'Test push failed.' };
+    }
+}
+
+/**
+ * Is THIS device enrolled on the server, not just holding a local subscription?
+ * A local PushSubscription survives the server retiring it (Apple 410), so the
+ * old "has a local subscription" check showed On for a device that could never
+ * be reached. Read through RLS ("user reads own push subs").
+ */
+export async function thisDeviceServerEnrolled(supabaseClient) {
+    if (!isWebPushSupported() || !supabaseClient) return false;
+    try {
+        const registration = await getRegistration();
+        const sub = await withTimeout(registration.pushManager.getSubscription(), T.getSubscription, 'Reading subscription');
+        if (!sub?.endpoint) return false;
+        const { data, error } = await supabaseClient
+            .from('push_subscriptions').select('id').eq('endpoint', sub.endpoint).eq('is_active', true).limit(1);
+        if (error) return null; // unknown, do not lie either way
+        return Array.isArray(data) && data.length > 0;
+    } catch {
+        return null;
     }
 }
 
@@ -508,4 +584,4 @@ export async function hasLocalSubscription() {
     }
 }
 
-export default { enablePush, disablePush, sendTestPush, isWebPushSupported, notificationPermission, hasLocalSubscription };
+export default { enablePush, disablePush, sendTestPush, isWebPushSupported, notificationPermission, hasLocalSubscription, thisDeviceServerEnrolled };

@@ -59,6 +59,13 @@ export default async function handler(req, res) {
         if (body.body) text = String(body.body);
     }
 
+    // THIS DEVICE (2026-11-05). The tapping device names its endpoint so the
+    // answer is about the phone in the person's hand, not "some device on the
+    // account accepted it" (Dan's Mac answered for his dead iPhone).
+    const deviceEndpoint = targetId === user.id && typeof body.endpoint === 'string' && body.endpoint.length <= 4096
+        ? body.endpoint : null;
+    const startedAt = new Date(Date.now() - 1000).toISOString();
+
     const result = await enqueuePush(supabase, {
         userId: targetId,
         title,
@@ -81,12 +88,34 @@ export default async function handler(req, res) {
         });
     }
 
+    const report = await deviceReport(supabase, targetId, deviceEndpoint, startedAt);
+
     return res.status(200).json({
         ok: result.sent,
         sent: result.accepted,
         outboxId: result.outboxId,
         reason: result.reason,
+        ...report,
     });
+}
+
+/** Which of the account's devices this test actually reached, and whether the caller's is one. */
+async function deviceReport(supabase, userId, deviceEndpoint, startedAt) {
+    try {
+        const { data } = await supabase.from('push_subscriptions')
+            .select('endpoint, device_label, is_active, last_used_at, last_failure_reason')
+            .eq('user_id', userId).eq('is_active', true);
+        const rows = Array.isArray(data) ? data : [];
+        const reached = (r) => r.last_used_at && r.last_used_at >= startedAt;
+        const devices = rows.map((r) => ({ label: r.device_label || 'Device', reached: Boolean(reached(r)) }));
+        if (!deviceEndpoint) return { devices };
+        const mine = rows.find((r) => r.endpoint === deviceEndpoint);
+        if (!mine) return { devices, thisDevice: false, thisDeviceReason: 'This device is not enrolled for notifications on this account.' };
+        if (!reached(mine)) return { devices, thisDevice: false, thisDeviceReason: 'The push service did not accept the test for this device.' };
+        return { devices, thisDevice: true };
+    } catch {
+        return {};
+    }
 }
 
 function safeParse(s) {

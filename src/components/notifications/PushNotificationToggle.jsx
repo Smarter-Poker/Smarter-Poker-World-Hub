@@ -17,6 +17,7 @@ import {
     enablePush, disablePush, sendTestPush,
     isWebPushSupported, notificationPermission,
     hasLocalSubscription, isIos, isIosStandalonePwa,
+    thisDeviceServerEnrolled, isOptedOut,
 } from '../../lib/push-client';
 import { getAccessToken } from '../../lib/authUtils';
 import { groupedPushTypes } from '../../lib/push/push-prefs';
@@ -69,8 +70,18 @@ export default function PushNotificationToggle({
             setSupported(ok);
             setPermission(notificationPermission());
             if (ok) {
+                // A local subscription is not an enrollment: Apple/FCM can
+                // retire the endpoint server-side while the browser keeps the
+                // object (Dan's iPhone, 2026-11-02). Show On only when the
+                // server holds a live row for THIS device, and heal a retired
+                // one silently first, since this account opted in here.
                 const has = await hasLocalSubscription();
-                if (mounted.current) setSubscribed(has);
+                let live = has ? await thisDeviceServerEnrolled(supabase) : false;
+                if (has && live === false && notificationPermission() === 'granted' && !isOptedOut()) {
+                    const healed = await enablePush({ repairOnly: true });
+                    live = healed.ok ? true : await thisDeviceServerEnrolled(supabase);
+                }
+                if (mounted.current) setSubscribed(live === null ? has : live === true);
             }
         })();
     }, []);
@@ -163,8 +174,17 @@ export default function PushNotificationToggle({
         try {
             const result = await sendTestPush();
             if (!mounted.current) return;
-            if (result.ok) toast('success', `Test sent to ${result.sent} device${result.sent === 1 ? '' : 's'}`);
-            else toast('error', result.error || 'Test push did not go through');
+            if (result.ok) {
+                const others = Math.max(0, (result.sent || 0) - (result.thisDevice ? 1 : 0));
+                toast('success', result.thisDevice
+                    ? `Test sent to this device${others ? ` and ${others} other${others === 1 ? '' : 's'}` : ''}`
+                    : `Test sent to ${result.sent} device${result.sent === 1 ? '' : 's'}`);
+                setSubscribed(true);
+                setPermission(notificationPermission());
+            } else {
+                toast('error', result.error || 'Test push did not go through');
+            }
+            loadDevices();
         } finally {
             if (mounted.current) setTesting(false);
         }
