@@ -9,7 +9,7 @@
  */
 
 // Version only image requests; catalog IDs and entitlement paths stay stable.
-export const AVATAR_ART_REVISION = '4b7ebb1d3e8cfaa8bd4f';
+export const AVATAR_ART_REVISION = '01583720e532bebe42bf';
 
 // Avatar categories
 export const AVATAR_CATEGORIES = {

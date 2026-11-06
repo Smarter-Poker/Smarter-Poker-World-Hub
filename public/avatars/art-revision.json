@@ -1,5 +1,5 @@
 {
-  "revision": "4b7ebb1d3e8cfaa8bd4f",
+  "revision": "01583720e532bebe42bf",
   "assets": [
     {
       "file": "avatars/free/android.webp",
@@ -1167,15 +1167,15 @@
     },
     {
       "file": "avatars/vip/wolf.webp",
-      "sha256": "f704103a0f1d01bce93cea4d8832950b0be571d65fe9e2f54648795d88347a9a"
+      "sha256": "cd9057f7131c389e6baf3a38d63645a1003ac5060e52c63117edce9c91c79f88"
     },
     {
       "file": "avatars/table/vip_wolf.webp",
-      "sha256": "6a8b0502c84e3fa37e3fd2ea7599c2cd3e562241d133853c614ade73f06ef66d"
+      "sha256": "6230f91bb6a31c11dd7fc65ae28792e22aad9430d052c79a59b535bc35f8ca1b"
     },
     {
       "file": "avatars/table/vip_wolf@2x.webp",
-      "sha256": "2fbc6c1a4c7fd47a20dc7c39a31be74aadb021f4415fb0e45c6c86b3b87227d5"
+      "sha256": "ccc2e21fbeec0bc8de6ebe315ecf77972662ea5e6ef0e7d34008e43b9797ab28"
     },
     {
       "file": "avatars/vip/wrestler.webp",
@@ -1284,10 +1284,6 @@
     {
       "file": "avatars/table/custom_complete_c109592c8cfaddb0@2x.webp",
       "sha256": "c109592c8cfaddb0afad3b221cd876508c9f0b89223ad5b0f3a7325045b7c94d"
-    },
-    {
-      "file": "avatars/table/custom_complete_6d0344917e977c4c@2x.webp",
-      "sha256": "6d0344917e977c4ce46d2862f57e5221be9a147f587bac6401a5620781b0273c"
     }
   ]
 }

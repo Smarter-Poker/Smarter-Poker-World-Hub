@@ -91,7 +91,7 @@ test('custom avatars preserve their complete 455px subject and immutable bytes',
   const custom = JSON.parse(
     fs.readFileSync(path.join(root, 'scripts/data/custom-complete-silhouettes.json'))
   );
-  assert.equal(custom.files.length, 22);
+  assert.equal(custom.files.length, 21);
   for (const entry of custom.files) {
     const file = path.join(root, 'public', entry.file);
     const bytes = fs.readFileSync(file);
@@ -111,7 +111,7 @@ test('custom avatars preserve their complete 455px subject and immutable bytes',
 
 test('the published artwork revision seals every delivered preset and custom variant', () => {
   const receipt = JSON.parse(fs.readFileSync(path.join(root, 'public/avatars/art-revision.json')));
-  assert.equal(receipt.assets.length, 322);
+  assert.equal(receipt.assets.length, 321);
   assert.equal(createHash('sha256').update(JSON.stringify(receipt.assets)).digest('hex').slice(0, 20), receipt.revision);
   for (const entry of receipt.assets) {
     assert.equal(createHash('sha256').update(fs.readFileSync(path.join(root, 'public', entry.file))).digest('hex'), entry.sha256, entry.file);
