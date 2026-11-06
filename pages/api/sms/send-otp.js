@@ -16,6 +16,7 @@ import crypto from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { smsStatusCallbackUrl } from '../../../src/lib/dailyDigest/delivery.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -66,12 +67,15 @@ function normalizePhone(raw) {
    Twilio delivered 11. One row per attempt here (no phone number, no code) is
    what fn_sp_daily_metrics_compute counts. Best-effort: a logging failure must
    never block or fail a send. */
-async function logSendAttempt(supabase, outcome, providerErrorCode = null) {
+async function logSendAttempt(supabase, outcome, providerErrorCode = null, twilioSid = null) {
     try {
         const { error } = await supabase.from('sms_otp_send_log').insert({
             purpose: 'phone_verify',
             outcome,
             provider_error_code: providerErrorCode == null ? null : String(providerErrorCode),
+            // 2026-11-06: the carrier's final answer for this code lands in
+            // sms_delivery_receipts under this sid (statusCallback below).
+            twilio_sid: twilioSid ? String(twilioSid).slice(0, 64) : null,
         });
         if (error) console.warn('[send-otp] send log insert failed:', error.message);
     } catch (logErr) {
@@ -195,12 +199,18 @@ export default async function handler(req, res) {
           // ── Send SMS via Twilio ──────────────────────────────────────────
           const client = getTwilioClient();
 
+          // statusCallback (2026-11-06): "sent" only ever meant Twilio accepted
+          // the code. A new player asked for a code 42 s after signing up on
+          // 2026-11-06 and nothing recorded whether the carrier delivered it.
+          // The receipt now lands in sms_delivery_receipts, where a permanent
+          // carrier refusal also suppresses and removes the number.
           const message = await client.messages.create({
               body: `Your Smarter.Poker code is: ${otpCode}. Expires in 10 min.`,
               from: twilioPhone,
-              to: cleanPhone
+              to: cleanPhone,
+              statusCallback: smsStatusCallbackUrl(),
           });
-          await logSendAttempt(supabase, 'sent');
+          await logSendAttempt(supabase, 'sent', null, message?.sid);
 
 
           return res.status(200).json({
