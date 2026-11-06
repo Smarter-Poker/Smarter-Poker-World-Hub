@@ -151,7 +151,7 @@ function compareMessageTimestamps(left, right) {
 
 import { Phone, Video, Search, Info, SquarePen } from 'lucide-react';
 import { spKeyActivate } from '../../src/lib/keyboardActivate';
-import { persistReadWithRetry } from '../../src/lib/messengerReadRetry.mjs';
+import { persistReadWithRetry, readFailureMessage } from '../../src/lib/messengerReadRetry.mjs';
 
 const PhoneIcon = ({ size = 24, color = '#0084FF' }) => (
     <Phone size={size} color={color} strokeWidth={2.5} />
@@ -681,6 +681,10 @@ function MessengerPage() {
     const loadConversationsRef = useRef(null);
     const loadMessagesRef = useRef(null);
     const markConversationReadRef = useRef(null);
+    // A read receipt retrying after this page unmounted must stop, not replay
+    // or toast into a page that is gone.
+    const readReceiptsMountedRef = useRef(true);
+    useEffect(() => { readReceiptsMountedRef.current = true; return () => { readReceiptsMountedRef.current = false; }; }, []);
     const inboxRequestSequence = useRef(0);
     const messagesRequestSequence = useRef(0);
     // PERF 2026-08-24: in-flight de-duplication for loadConversations.
@@ -1534,7 +1538,7 @@ function MessengerPage() {
 
     const markConversationRead = async (conversationId, throughMessageId) => {
         const requestScope = workspaceKey;
-        const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
+        const current = () => readReceiptsMountedRef.current && workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
         try {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(throughMessageId || '')
                 || !current() || document.visibilityState === 'hidden') return false;
@@ -1558,7 +1562,7 @@ function MessengerPage() {
             if (!saved.ok) {
                 if (!saved.abandoned) {
                     console.warn('[Messenger] Read persistence failed:', saved.error?.status || '', saved.error?.message || saved.error);
-                    if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Check Your Connection.' });
+                    if (current()) setToast({ type: 'error', message: readFailureMessage(saved.error) });
                 }
                 return false;
             }
@@ -1590,7 +1594,7 @@ function MessengerPage() {
 
         } catch (error) {
             console.warn('[Messenger] Read persistence failed:', error);
-            if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Check Your Connection.' });
+            if (current()) setToast({ type: 'error', message: readFailureMessage(error) });
             return false;
         }
     };

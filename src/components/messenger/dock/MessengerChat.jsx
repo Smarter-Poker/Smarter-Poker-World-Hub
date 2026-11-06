@@ -6,7 +6,7 @@ import { dockName } from './messengerDock.mjs';
 import { visibleMessageBoundary, isMessageId, CONTINUITY_PREFIX } from './messengerContinuity.mjs';
 import { createMessengerSendOperation, restoreMessengerSendOperations, performMessengerSend,
     mergeMessengerPendingMessages, reconcileMessengerMessage, messengerOperationMessage, acknowledgeMessengerSend } from './messengerSendOperation.mjs';
-import { persistReadWithRetry } from '../../../lib/messengerReadRetry.mjs';
+import { persistReadWithRetry, readFailureMessage } from '../../../lib/messengerReadRetry.mjs';
 
 const MESSAGE_ROUTES = { 'get-messages': '/api/messenger/get-messages', 'mark-read': '/api/messenger/mark-read' };
 function safeMedia(content) {
@@ -165,7 +165,12 @@ export default function MessengerChat({ actorId, identity, conversation, service
             // a refusal or a failure that outlasts every retry is shown.
             const saved = await persistReadWithRetry(() => request('mark-read', { conversationId: id, throughMessageId: boundary.last }),
                 { stillWanted: () => current() && document.visibilityState === 'visible' });
-            if (!saved.ok) { if (saved.abandoned) return; throw saved.error; }
+            if (!saved.ok) {
+                // Nothing advanced: readThrough, badges and the receipt stay as
+                // they were, so the next displayed message retries the read.
+                if (!saved.abandoned && current()) setError(readFailureMessage(saved.error));
+                return;
+            }
             const result = saved.value;
             if (identity.current !== actorId) return;
             // The acknowledged read still refreshes badges if this panel was

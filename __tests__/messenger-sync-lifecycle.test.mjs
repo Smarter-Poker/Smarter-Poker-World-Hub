@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { isMessageId, visibleMessageBoundary } from '../src/lib/messengerContinuity.mjs';
-import { persistReadWithRetry as realPersistReadWithRetry } from '../src/lib/messengerReadRetry.mjs';
+import { persistReadWithRetry as realPersistReadWithRetry, readFailureMessage } from '../src/lib/messengerReadRetry.mjs';
 // Retries run without real delays in these fixtures.
 const persistReadWithRetry = (attempt, options) => realPersistReadWithRetry(attempt, { ...options, wait: async () => {} });
 
@@ -21,6 +21,7 @@ const readMessageId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 function readFixture() {
     const state = { requests: [], broadcasts: [], receipts: [], cleared: [], refreshes: [], toasts: [], hidden: false };
     const workspaceRef = { current: 'scope-a' }, activeConversationRef = { current: { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } };
+    const readReceiptsMountedRef = { current: true };
     const code = slice(messenger, '    const markConversationRead =', '    const loadMessages =');
     const read = evaluate(code, {
         workspaceKey: 'scope-a', workspaceRef, activeConversationRef, getHiddenMessageIds: () => new Set(), markConversationReadRef: {},
@@ -31,9 +32,9 @@ function readFixture() {
         loadConversationsRef: { current: (...args) => state.refreshes.push(args) },
         preferencesRef: { current: {} }, typingChannelRef: { current: { send: async msg => { state.receipts.push(msg); } } },
         refreshUnread: () => state.refreshes.push('header'), broadcastSync: (...args) => state.broadcasts.push(args),
-        setToast: toast => state.toasts.push(toast), console: { warn() {} }, persistReadWithRetry,
+        setToast: toast => state.toasts.push(toast), console: { warn() {} }, persistReadWithRetry, readFailureMessage, readReceiptsMountedRef,
     }, 'markConversationRead');
-    return { state, read, workspaceRef, activeConversationRef };
+    return { state, read, workspaceRef, activeConversationRef, readReceiptsMountedRef };
 }
 
 test('incoming reads never persist for a hidden or different conversation', async () => {
@@ -324,4 +325,37 @@ test('a refused read is final at once, and leaving the conversation abandons the
     left.activeConversationRef.current = { id: 'conversation-b' };
     left.state.requests[0].resolve(failedResponse(503)); assert.equal(await pending, false);
     assert.equal(left.state.requests.length, 1); assert.equal(left.state.toasts.length, 0);
+});
+
+test('the final read error names the cause: connection, server, session or permission', async () => {
+    const cases = [
+        [() => Promise.reject(new TypeError('Failed to fetch')), /Check Your Connection/],
+        [() => Promise.resolve(failedResponse(503)), /Server Is Not Responding/],
+        [() => Promise.resolve(failedResponse(401)), /Session Has Expired/],
+        [() => Promise.resolve(failedResponse(403)), /No Longer Have Access/],
+        [() => Promise.resolve(response({ success: false })), /^Read Status Could Not Be Saved\.$/],
+    ];
+    for (const [answer, expected] of cases) {
+        const f = readFixture(), write = f.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
+        for (let i = 0; i < 3; i++) {
+            await settle();
+            if (!f.state.requests[i]) break;
+            answer().then(f.state.requests[i].resolve, error => { f.state.requests[i].resolve(Promise.reject(error)); });
+        }
+        assert.equal(await write, false);
+        assert.equal(f.state.toasts.length, 1, String(expected));
+        assert.match(f.state.toasts[0].message, expected);
+        assert.equal(f.state.broadcasts.length, 0); assert.equal(f.state.receipts.length, 0); assert.equal(f.state.refreshes.length, 0);
+        if (!/Connection|Server/.test(String(expected))) assert.equal(f.state.requests.length, 1, 'a refusal is not retried');
+        else assert.equal(f.state.requests.length, 3, 'a connection or server failure uses every retry');
+    }
+});
+
+test('a page that unmounts during a retry wait sends nothing more and shows nothing', async () => {
+    const f = readFixture(), write = f.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
+    f.readReceiptsMountedRef.current = false;
+    f.state.requests[0].resolve(failedResponse(503));
+    assert.equal(await write, false);
+    assert.equal(f.state.requests.length, 1);
+    assert.equal(f.state.toasts.length, 0);
 });
