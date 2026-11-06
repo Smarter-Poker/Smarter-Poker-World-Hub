@@ -34,6 +34,9 @@ function readRoute({ participant = true, allowed = true, receipt = { success: tr
         createClient: () => db,
         getServerUserWithFallback: async () => ({ user: { id: 'authenticated-user' } }),
         applyRateLimit: () => true, LIMITS: {}, reportApiError() {},
+        // Routes authorize one conversation through the same resolve rules.
+        authorizeMessengerConversation: (db, userId, conversationId) =>
+            mocks.getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId }),
         getMessengerWorkspace: async (_db, userId, request) => {
             assert.equal(userId, 'authenticated-user');
             assert.equal(request.workspace, 'resolve');

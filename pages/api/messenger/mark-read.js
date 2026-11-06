@@ -7,7 +7,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
-import { getMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
+import { authorizeMessengerConversation } from '../../../src/lib/messengerWorkspace.mjs';
 
 // Use service role to bypass RLS
 let _supabase = null;
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
           }
 
           // Apply the same private invoice and club membership boundary as reading.
-          await getMessengerWorkspace(getSupabase(), userId, { workspace: 'resolve', conversationId });
+          await authorizeMessengerConversation(getSupabase(), userId, conversationId);
           const { data: receipt, error: rpcErr } = await getSupabase().rpc('fn_mark_messages_read_through', {
               p_conversation_id: conversationId,
               p_user_id: userId,

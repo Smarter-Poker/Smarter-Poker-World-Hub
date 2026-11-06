@@ -5,7 +5,7 @@ import { sanitizeMessage } from '../../../src/utils/messageSanitizer';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { notifyNewMessage } from '../../../src/lib/notify';
 import { randomUUID } from 'node:crypto';
-import { getMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
+import { authorizeMessengerConversation } from '../../../src/lib/messengerWorkspace.mjs';
 
 const isUUID = value => typeof value === 'string'
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
@@ -184,7 +184,7 @@ export default async function handler(req, res) {
 
           // Sending uses the same private-invoice and active-club boundary as
           // opening the conversation. Participation alone is not visibility.
-          await getMessengerWorkspace(getSupabase(), userId, { workspace: 'resolve', conversationId });
+          await authorizeMessengerConversation(getSupabase(), userId, conversationId);
 
           // Blocking, enforced on the server. messenger_blocked was read and
           // written only by the client (useMessengerService), and no route in

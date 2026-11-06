@@ -33,7 +33,7 @@ export async function writeMessengerContinuity(db, userId, body) {
     // Repeat access inside the database CAS; only owned-save cleanup may run
     // after membership loss, returning its own ID/revision and no content.
     if (!(body.field === 'saved' && value.saved === false)) {
-        await getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId: body.conversationId }, { countsOnly: true });
+        await getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId: body.conversationId }, { countsOnly: true, authorizeOnly: true });
     }
     const result = await rpc(db, 'fn_messenger_continuity_write', {
         p_user_id: userId, p_conversation_id: body.conversationId, p_field: body.field,
@@ -49,7 +49,7 @@ export async function readMessengerContinuity(db, userId, body) {
     const cursor = body.savedCursor;
     if (cursor != null && (!fields(cursor, ['createdAt', 'messageId']) || !time(cursor.createdAt) || !uuid(cursor.messageId))) fail(400, 'Invalid Saved Message Cursor');
     const selection = body.conversationId ? { workspace: 'resolve', conversationId: body.conversationId } : body.workspace || { workspace: 'social' };
-    const scope = await getMessengerWorkspace(db, userId, selection, { countsOnly: true });
+    const scope = await getMessengerWorkspace(db, userId, selection, { countsOnly: true, authorizeOnly: !!body.conversationId });
     const ids = body.conversationId ? [scope.conversation.id] : scope.conversations.map(row => row.id);
     const states = {};
     const candidates = [];
@@ -113,7 +113,7 @@ export function navigationArgs(request) {
 
 export async function readMessengerNavigation(db, userId, request) {
     navigationArgs(request);
-    await getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId: request.conversationId }, { countsOnly: true });
+    await getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId: request.conversationId }, { countsOnly: true, authorizeOnly: true });
     return navigationWindow(db, userId, request);
 }
 
