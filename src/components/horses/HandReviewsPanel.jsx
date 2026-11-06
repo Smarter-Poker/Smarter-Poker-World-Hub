@@ -511,7 +511,7 @@ export default function HandReviewsPanel() {
         ['ca_horse_solver_agreement', { p_runs: 14 }],
         ['ca_horse_solver_agreement_decisions', { p_day: null, p_reference: 'gto_charts', p_limit: 100 }],
         ['ca_gto_v31_certification_status', { p_dataset_id: null }],
-        ['ca_horse_daily_audit_status', { p_days: 14 }],
+        ['ca_horse_audit_watch_status', { p_days: 14 }],
       ];
       const results = await withRequestTimeout(
         (signal) => Promise.all(specs.map(([name, args]) => rpcWithSignal(name, args, signal))),
