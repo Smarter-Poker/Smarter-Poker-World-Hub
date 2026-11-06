@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 172,
     "markerCandidates": 341,
-    "possibleUnwiredFunctions": 397,
+    "possibleUnwiredFunctions": 396,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 227,
     "routeStateUnassignedGaps": 0,
@@ -50202,7 +50202,7 @@
         {
           "name": "withTimeout",
           "line": 67,
-          "references": 13,
+          "references": 15,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -50210,7 +50210,7 @@
         {
           "name": "isWebPushSupported",
           "line": 76,
-          "references": 6,
+          "references": 8,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -50218,7 +50218,7 @@
         {
           "name": "notificationPermission",
           "line": 85,
-          "references": 2,
+          "references": 3,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -50242,7 +50242,7 @@
         {
           "name": "urlBase64ToUint8Array",
           "line": 107,
-          "references": 3,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -50298,7 +50298,7 @@
         {
           "name": "getRegistration",
           "line": 235,
-          "references": 5,
+          "references": 6,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -50306,30 +50306,30 @@
         {
           "name": "persistSubscription",
           "line": 279,
-          "references": 2,
+          "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "enablePush",
-          "line": 328,
-          "references": 2,
+          "line": 333,
+          "references": 5,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "isOptedOut",
-          "line": 436,
-          "references": 1,
+          "line": 464,
+          "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "setOptOut",
-          "line": 439,
+          "line": 467,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50337,7 +50337,7 @@
         },
         {
           "name": "clearOptOut",
-          "line": 442,
+          "line": 470,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50345,7 +50345,7 @@
         },
         {
           "name": "disablePush",
-          "line": 447,
+          "line": 475,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50353,7 +50353,15 @@
         },
         {
           "name": "sendTestPush",
-          "line": 480,
+          "line": 519,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "thisDeviceServerEnrolled",
+          "line": 560,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50361,7 +50369,7 @@
         },
         {
           "name": "hasLocalSubscription",
-          "line": 500,
+          "line": 576,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50384,9 +50392,7 @@
           "namedFunctionExpression": false
         }
       ],
-      "possibleUnwiredFunctions": [
-        "isOptedOut"
-      ],
+      "possibleUnwiredFunctions": [],
       "markers": []
     },
     {
@@ -96562,23 +96568,6 @@
         ]
       },
       {
-        "file": "src/lib/push-client.js",
-        "name": "isOptedOut",
-        "line": 436,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/notifications/FirstRunNotificationPrompt.jsx",
-          "src/components/notifications/PushSubscriptionSync.jsx",
-          "src/components/ui/HamburgerMenu.jsx"
-        ]
-      },
-      {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "decideNudge",
         "line": 91,
@@ -106035,23 +106024,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/social/GoLiveModal.jsx"
-        ]
-      },
-      {
-        "file": "src/lib/push-client.js",
-        "name": "isOptedOut",
-        "line": 436,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/notifications/FirstRunNotificationPrompt.jsx",
-          "src/components/notifications/PushSubscriptionSync.jsx",
-          "src/components/ui/HamburgerMenu.jsx"
         ]
       },
       {
