@@ -819,12 +819,6 @@
       "sha256": "c109592c8cfaddb0afad3b221cd876508c9f0b89223ad5b0f3a7325045b7c94d",
       "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
       "centroids": [[0.322495, 0.682756]]
-    },
-    {
-      "file": "table/custom_complete_6d0344917e977c4c@2x.webp",
-      "sha256": "6d0344917e977c4ce46d2862f57e5221be9a147f587bac6401a5620781b0273c",
-      "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
-      "centroids": [[0.64669, 0.453947]]
     }
   ]
 }
