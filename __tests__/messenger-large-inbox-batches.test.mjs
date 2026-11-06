@@ -107,3 +107,25 @@ test('the social contacts rail batches its participant and profile lookups', () 
     assert.match(body, /\.in\('id', uniqueUserIds\.slice\(start, start \+ 100\)\)/);
     assert.doesNotMatch(body, /\.in\('conversation_id', conversationIds\)/);
 });
+
+test('a read receipt in a 673-thread inbox authorizes one conversation, not the whole inbox', async () => {
+    const { db } = busyInbox(673);
+    const counted = { calls: 0, rpc: 0 };
+    const from = db.from.bind(db); const rpc = db.rpc.bind(db);
+    db.from = table => { counted.calls++; return from(table); };
+    db.rpc = (name, args) => { counted.rpc++; return rpc(name, args); };
+    const { authorizeMessengerConversation } = await import('../src/lib/messengerWorkspace.mjs');
+    const result = await authorizeMessengerConversation(db, user, thread(5));
+    assert.equal(result.conversation.id, thread(5));
+    assert.equal(result.authorizedOnly, true);
+    assert.equal(result.conversations.length, 1);
+    assert.ok(counted.calls + counted.rpc <= 8, `used ${counted.calls} queries and ${counted.rpc} rpcs`);
+});
+
+test('mark-read and send-message authorize through the one-conversation path', () => {
+    for (const route of ['pages/api/messenger/mark-read.js', 'pages/api/messenger/send-message.js']) {
+        const source = readFileSync(new URL(`../${route}`, import.meta.url), 'utf8');
+        assert.match(source, /authorizeMessengerConversation\(getSupabase\(\), userId, conversationId\)/, route);
+        assert.doesNotMatch(source, /getMessengerWorkspace\(/, route);
+    }
+});

@@ -174,18 +174,27 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         p_user_id: userId, p_context_entity_id: contextId,
     });
     if (error || !Array.isArray(data)) fail(503, 'Messenger Is Temporarily Unavailable');
+    // Authorization of ONE conversation (read receipt, send, history, search)
+    // needs only that conversation's row. Every visibility rule below is
+    // decided per conversation, so narrowing to it gives the same answer as
+    // the full inbox without reading metadata, invoices, branding and club
+    // relationships for every other thread (a 673-thread agent inbox made
+    // each read receipt ~36 requests).
+    const authorizeOne = !!(internal.authorizeOnly && resolvedId);
+    const listed = authorizeOne ? data.filter(c => (c.conversation_id || c.id) === resolvedId) : data;
     // Staff groups have no synthetic opening post. Include authorized empty
     // groups so promotion enrollment is visible before anybody sends a message.
-    const managed = !contextId && clubs.length ? await rows(db.from('club_messenger_staff_notice_groups')
+    const managed = !contextId && clubs.length && !(authorizeOne && listed.length) ? await rows(db.from('club_messenger_staff_notice_groups')
         .select('club_id,conversation_id').in('club_id', clubs.map(c => c.id))) : [];
     const participation = [];
     for (const batch of idBatches(managed.map(g => g.conversation_id))) {
         participation.push(...await rows(db.from('social_conversation_participants')
             .select('conversation_id').eq('user_id', userId).in('conversation_id', batch), 'staff group participation'));
     }
-    const emptyGroups = managed.filter(g => participation.some(p => p.conversation_id === g.conversation_id))
+    const emptyGroups = managed.filter(g => participation.some(p => p.conversation_id === g.conversation_id)
+        && (!authorizeOne || g.conversation_id === resolvedId))
         .map(g => ({ conversation_id: g.conversation_id, is_group: true, unread_count: 0 }));
-    const unique = [...new Map([...emptyGroups, ...data].map(c => [c.conversation_id || c.id, c])).values()];
+    const unique = [...new Map([...emptyGroups, ...listed].map(c => [c.conversation_id || c.id, c])).values()];
     const ids = unique.map(c => c.conversation_id || c.id);
     const [meta, accounting] = await Promise.all([
         byIds(db, 'social_conversations', 'id,is_request,request_sender_id,last_message_preview,group_name', 'id', ids),
@@ -193,7 +202,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     ]);
     const metadata = new Map(meta.map(c => [c.id, c]));
     const clubBrands = new Map();
-    if (ids.length && !internal.countsOnly) {
+    if (ids.length && !internal.countsOnly && !authorizeOne) {
         // Bounded batches. One unbatched IN list of every inbox id exceeded the
         // database gateway's URL limit once an agent's inbox passed ~650
         // threads (2026-11-06: 673 ids = 26.7KB -> plain 400 Bad Request), and
@@ -274,7 +283,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     }
     if (resolvedId && !conversation) fail(404, 'Conversation Unavailable');
     let weeklySummary = null;
-    if (club?.canManage && folder === 'invoices' && !internal.countsOnly) {
+    if (club?.canManage && folder === 'invoices' && !internal.countsOnly && !authorizeOne) {
         // The period's recorded book decides union versus standalone scope.
         // Current membership does not decide where historical rake was earned.
         const periods = await rows(db.from('settlement_periods').select('id,club_id,union_id,start_at,end_at')
@@ -308,10 +317,12 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
             }
         }
     }
-    const visible = internal.countsOnly ? selected : await enrichMessengerClubRelationships(db, userId, selected);
+    const visible = internal.countsOnly || authorizeOne ? selected : await enrichMessengerClubRelationships(db, userId, selected);
     if (resolvedId) conversation = visible.find(row => row.id === resolvedId);
+    // An authorize-only answer carries the one conversation; its list and
+    // counts cover that conversation alone and must not be shown as an inbox.
     return { success: true, clubs, conversations: visible, conversation, weeklySummary, unreadCounts, attentionCounts,
-        workspace: club ? 'club' : 'social', clubId: club?.id || null, folder };
+        workspace: club ? 'club' : 'social', clubId: club?.id || null, folder, ...(authorizeOne ? { authorizedOnly: true } : {}) };
 }
 
 // Use the exact inbox visibility rules, including private invoices and active
@@ -334,8 +345,12 @@ export async function getMessengerUnreadSummary(db, userId) {
 }
 
 
+export async function authorizeMessengerConversation(db, userId, conversationId) {
+    return getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId }, { authorizeOnly: true });
+}
+
 export async function readMessengerMessages(db, userId, request) {
-    await getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId: request.conversationId });
+    await authorizeMessengerConversation(db, userId, request.conversationId);
     // The private reader name is an installation contract: an older database
     // cannot silently supply the participant-only invoice reader.
     const { data, error } = await db.rpc('fn_messenger_private_message_page', {
@@ -352,7 +367,7 @@ export async function searchMessengerWorkspace(db, userId, request, limit = 50) 
     const selection = request.conversationId
         ? { workspace: 'resolve', conversationId: request.conversationId }
         : { workspace: request.workspace || 'social', clubId: request.clubId, folder: request.folder };
-    const workspace = await getMessengerWorkspace(db, userId, selection);
+    const workspace = await getMessengerWorkspace(db, userId, selection, request.conversationId ? { authorizeOnly: true } : {});
     const ids = request.conversationId ? [workspace.conversation.id] : workspace.conversations.map(conversation => conversation.id);
     if (!ids.length) return [];
     if (ids.length > 500) fail(503, 'Choose A Smaller Search Scope');

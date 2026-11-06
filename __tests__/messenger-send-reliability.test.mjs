@@ -58,6 +58,9 @@ function fixture(options = {}) {
         getServerUserWithFallback: async () => ({ user: options.unauthenticated ? null : { id: USER } }),
         applyRateLimit: () => !options.limited, LIMITS: { write: {} }, reportApiError() {},
         sanitizeMessage: content => content.replace(/<script>.*?<\/script>/g, '[Removed Malicious Code]'),
+        // Routes authorize one conversation through the same resolve rules.
+        authorizeMessengerConversation: (db, userId, conversationId) =>
+            mocks.getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId }),
         getMessengerWorkspace: async (_db, userId, request) => {
             access.push({ userId, request });
             if (options.workspaceStatus) throw Object.assign(new Error('Workspace Unavailable'), { status: options.workspaceStatus });

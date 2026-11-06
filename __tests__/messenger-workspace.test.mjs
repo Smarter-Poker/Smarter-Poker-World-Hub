@@ -392,3 +392,32 @@ test('main feed respects revoked memberships and hidden private invoices', async
     assert.deepEqual(new Set((await getMessengerWorkspace(hidden.db, ids.user, { workspace: 'feed' })).conversations.map(c => c.id)), new Set([ids.social, ids.chat]));
     await assert.rejects(getMessengerWorkspace(fixture({ broken: 'visibility' }).db, ids.user, { workspace: 'feed' }), e => e.status === 503);
 });
+
+// 2026-11-06: read receipts, sends, history and per-thread search authorize ONE
+// conversation without loading the whole inbox. That fast path must reach the
+// same decision as the full resolve in every scenario this file pins.
+async function outcome(run){try{const r=await run();return {id:r.conversation?.id,clubId:r.clubId,folder:r.folder};}catch(e){return {status:e.status};}}
+test('authorize-only resolve reaches the same decision as the full inbox resolve in every scenario',async()=>{
+ const scenarios=[
+  ['social chat',()=>fixture(),ids.social],
+  ['own invoice',()=>fixture(),ids.invoice],
+  ['no participation',()=>fixture(),ids.agentInvoice],
+  ['revoked membership',()=>fixture({member:false}),ids.invoice],
+  ['hidden payee copy',()=>{const s=fixture({role:'owner'});s.tables.accounting_conversations[0].recipient_visible=false;return s;},ids.invoice],
+  ['issuer discussion',()=>{const s=fixture({role:'owner'});s.tables.accounting_conversations[1].last_discussion_at='2026-09-14T12:00:00Z';s.tables.social_conversation_participants.push({conversation_id:ids.agentInvoice,user_id:ids.user,context_entity_id:ids.page});return s;},ids.agentInvoice],
+  ['unanswered issuer thread',()=>{const s=fixture({role:'owner'});s.tables.social_conversation_participants.push({conversation_id:ids.agentInvoice,user_id:ids.user,context_entity_id:ids.page});return s;},ids.agentInvoice],
+  ['page-less club invoice',()=>fixture({page:false}),ids.invoice],
+  ['empty new thread',()=>emptyThreadFixture(),'40000000-0000-4000-8000-000000000001'],
+  ['empty thread with deleted rows',()=>emptyThreadFixture({existing:true}),'40000000-0000-4000-8000-000000000001'],
+  ['incoming empty request',()=>emptyThreadFixture({request:true,sender:ids.other}),'40000000-0000-4000-8000-000000000001'],
+  ['empty club thread, removed member',()=>emptyThreadFixture({context:ids.page,member:false}),'40000000-0000-4000-8000-000000000001'],
+  ['empty club thread, member',()=>emptyThreadFixture({context:ids.page}),'40000000-0000-4000-8000-000000000001'],
+  ['broken accounting reader',()=>fixture({broken:'visibility'}),ids.invoice],
+  ['broken inbox rpc',()=>fixture({broken:'rpc'}),ids.social],
+ ];
+ for(const [name,make,conversationId] of scenarios){
+  const full=await outcome(()=>getMessengerWorkspace(make().db,ids.user,{workspace:'resolve',conversationId}));
+  const fast=await outcome(()=>getMessengerWorkspace(make().db,ids.user,{workspace:'resolve',conversationId},{authorizeOnly:true}));
+  assert.deepEqual(fast,full,name);
+ }
+});
