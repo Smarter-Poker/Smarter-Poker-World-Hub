@@ -358,6 +358,20 @@ relative manifest / model-index / M2-terminal paths and record formats):
 - `create_public215_seed_once.ps1`: the private M2 seed and public commitment;
   `-TaskFolder mac-v31-r7-corrected-20261030-01a17e88 -CommitmentLabel corrected_r7`
   is exactly the R7 run.
+- `register_public215_once.ps1` + `register_public215_once.py`: the one
+  COMPACTOR registration on M2 (`register_dataset`, then `dataset_contract`,
+  exclusive `registered-contract.json`). The identity R7's registration
+  hard-coded comes from one SHA-256-pinned `public215_registration_pins_v1`
+  file (task root, runtime pins, manifest/bundle/producer identity, dataset key,
+  context census); the R7 dataset key is refused.
+- `capture_public215_m1_once.ps1`: the one-shot M1 capture supervisor (host,
+  launcher, Python, Pio, manifest and nine producer-file checks, registered
+  readback, exclusive claim, then the unchanged canonical launcher), from one
+  SHA-256-pinned `public215_m1_capture_pins_v1` file.
+
+`final_public215_training.py` (a pinned pipeline file) takes its census from the
+frozen training recipe and the approved context list instead of R7's 107 x 57 =
+6,099 constants; R7's recipe states exactly that census, so R7 trains as before.
 
 Stage-specific pins (model index, capture checksum, qualification fingerprint,
 prepared map) stay in each controller's own pinned config. These files are

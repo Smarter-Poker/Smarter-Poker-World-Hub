@@ -167,8 +167,21 @@ def declared_m1_targets(manifest: ApprovedManifest) -> tuple[dict[str,dict],dict
             need(target["target_id"] not in entries, "duplicate M1 target")
             entries[target["target_id"]] = {"scenario":scenario,"target":target,"context":ctx,"context_id":cid}
             contexts.setdefault(cid,[]).append(target["target_id"])
-    need(len(entries) == 6099 and len(contexts) == 107 and all(len(v)==57 for v in contexts.values()), "global official 6099/107/57 target census")
+    count, per_context = official_census(manifest)
+    need(len(entries) == count*per_context and len(contexts) == count and all(len(v)==per_context for v in contexts.values()), "global official target census")
     return entries, contexts
+
+
+def official_census(manifest: ApprovedManifest) -> tuple[int,int]:
+    """Census the approved manifest declares: (contexts, M1 boards per context).
+
+    R7 declared 107 x 57 = 6,099; R8 declares 100 x 57 = 5,700. The frozen
+    training recipe states it and must agree with the approved context list;
+    boards per context are three equal global folds."""
+    recipe=manifest.raw['public215_protocols']['training_recipe'];count=len(manifest.raw['public215_contexts'])
+    per_context=recipe.get('training_sources_per_context')
+    need(type(per_context) is int and per_context>=3 and per_context%3==0 and recipe.get('context_count')==count and recipe.get('source_count')==count*per_context and count>0,'frozen recipe census')
+    return count, per_context
 
 
 def validate_public_partition(manifest: ApprovedManifest, expected: dict[str,dict], contexts: dict[str,list[str]]) -> None:
@@ -191,7 +204,7 @@ def validate_public_partition(manifest: ApprovedManifest, expected: dict[str,dic
             signature=str(len(board)//2)+':'+''.join(sorted(board[::2],key=ranks.index));signatures.append(signature)
             need(signature not in oldhold and int(SHA(('R7-domain-reserve:'+seed+signature).encode('ascii')),16)%5!=0,'public M1 reserved/R6 holdout exclusion')
             folds[int(SHA((seed+signature).encode('ascii')),16)%3]+=1
-        need(sorted(signatures)==bycontext[cid]['rank_signatures'] and len(set(signatures))==57 and folds==[19,19,19],'public exact57 ranks/19 each global fold')
+        need(sorted(signatures)==bycontext[cid]['rank_signatures'] and len(set(signatures))==len(tids) and len(tids)%3==0 and folds==[len(tids)//3]*3,'public exact distinct ranks/equal global folds')
         global_m1.update(signatures)
     public_selection=partition['m2_selection'];need(public_selection.get('format')=='public_hist215_m2_selection_protocol_v1','public M2 commitment protocol')
     oldall=set(partition['old_R6_all_rank_signatures']);need(oldhold<=oldall,'R6 exclusion ledger containment')
@@ -225,7 +238,8 @@ def validate_capture_index(index: dict, manifest: ApprovedManifest, expected: di
     need(index["format"] == "public_hist215_final_M1_capture_index_v1" and index["machine_id"] == "M1" and index["approval_status"] == "approved", "official M1 capture authority")
     bindings=capture_bindings(manifest,index['dataset_id'])
     need(all(index[k]==v for k,v in bindings.items()), "capture immutable source bindings")
-    need(type(index["source_count"])is int and index["source_count"] == 6099 and type(index["context_count"])is int and index["context_count"] == 107 and isinstance(index["sources"],list) and len(index["sources"])==6099, "capture terminal census")
+    planned=len(expected);planned_contexts=len({e["context_id"] for e in expected.values()})
+    need(planned>0 and type(index["source_count"])is int and index["source_count"] == planned and type(index["context_count"])is int and index["context_count"] == planned_contexts and isinstance(index["sources"],list) and len(index["sources"])==planned, "capture terminal census")
     need(isinstance(index['dataset_id'],str) and UUID.fullmatch(index['dataset_id']), 'capture dataset UUID')
     result={}; order=[]; globalsources=[]
     for row in index["sources"]:
@@ -339,16 +353,16 @@ def verify_source_file(row: dict, manifest: ApprovedManifest, ex: dict, normaliz
 
 def load_feature_index(value: dict, manifest: ApprovedManifest, expected: dict[str,dict], contexts: dict[str,list[str]]) -> dict:
     exact(value,{"format","feature_schema_checksum","encoder_checksum","physics_checksum","source_count","context_count","dtype","contexts"})
-    need(value["format"]=="public_hist215_public_feature_index_v1" and value['feature_schema_checksum']==FEATURE_DESCRIPTOR_SHA256 and type(value['source_count'])is int and value['source_count']==6099 and type(value['context_count'])is int and value['context_count']==107 and value['dtype']=='<f8',"public feature authority/census")
+    need(value["format"]=="public_hist215_public_feature_index_v1" and value['feature_schema_checksum']==FEATURE_DESCRIPTOR_SHA256 and type(value['source_count'])is int and value['source_count']==len(expected) and type(value['context_count'])is int and value['context_count']==len(contexts) and value['dtype']=='<f8',"public feature authority/census")
     need(nonzero_hash(value['encoder_checksum']) and value['physics_checksum']==digest(manifest.raw['public215_protocols']['physics_protocol']),"public encoder/physics identity")
-    need(isinstance(value['contexts'],list) and len(value['contexts'])==107,"feature context census")
+    need(isinstance(value['contexts'],list) and len(value['contexts'])==len(contexts),"feature context census")
     metadata={public_context_id(e['context']):e for e in manifest.raw['public215_contexts']};result={};range_cache={}
     approved_cases={public_context_id(g['context']):g['cases']for g in manifest.raw['public215_protocols']['runtime_parity_protocol']['contexts']}
     for group in value['contexts']:
         exact(group,{"context_id","context","template_checksum","matrix_path","matrix_sha256","rows","row_count","cases"});cid=group['context_id']
         need(cid in contexts and cid not in result and group['context']==metadata[cid]['context'] and group['template_checksum']==metadata[cid]['template_checksum'],"public matrix context/template")
         need(nonzero_hash(group['matrix_sha256']) and isinstance(group['matrix_path'],str) and Path(group['matrix_path']).is_absolute() and Path(group['matrix_path']).suffix=='.npy',"pinned public NPY file")
-        need(isinstance(group['rows'],list) and len(group['rows'])==57,"public matrix board census")
+        need(isinstance(group['rows'],list) and len(group['rows'])==len(contexts[cid]),"public matrix board census")
         offset=0
         for tid,row in zip(contexts[cid],group['rows']):
             exact(row,{"target_id","board","combo_indices","offset","count"});need(row['target_id']==tid and row['board']==expected[tid]['target']['board'] and type(row['offset'])is int and row['offset']==offset,"public matrix approved target order/board/offset")
@@ -528,7 +542,7 @@ def train(args) -> None:
             'feature_schema_checksum':FEATURE_DESCRIPTOR_SHA256,'encoder_checksum':features['encoder_checksum'],
             'physics_checksum':digest(protocols['physics_protocol']),'dependency_lock_checksum':digest(protocols['dependency_lock']),
             'runtime_parity_protocol_checksum':digest(protocols['runtime_parity_protocol']),'whole_variant':authority['whole_variant'],
-            'parameters':FROZEN_PARAMETERS,'machine_id':'M1','source_count':57,'artifact_count':len({s['source_row_id']for s in source_rows}),
+            'parameters':FROZEN_PARAMETERS,'machine_id':'M1','source_count':len(contexts[cid]),'artifact_count':len({s['source_row_id']for s in source_rows}),
             'board_count':len({s['board']for s in source_rows}),'sources':source_rows}
         psha=digest(provenance);serialize_training_provenance(provenance,expected_sha256=psha)
         model={'format':'public_hist215_v1','variant':authority['whole_variant'],'feature_count':215,'action_ids':actions,'heads':heads,

@@ -20,6 +20,7 @@ sys.path.insert(0, str(HERE))
 import public215_profile as p  # noqa: E402
 import qualify_public215_once as g  # noqa: E402
 import freeze_public215_once as f  # noqa: E402
+import register_public215_once as reg  # noqa: E402
 import qualify_r7_once as r7  # noqa: E402
 import compactor  # noqa: E402
 from contract import PUBLIC215_PIPELINE_FILES, REQUIRED_PIPELINE_FILES  # noqa: E402
@@ -66,7 +67,9 @@ class ProfileTests(unittest.TestCase):
 
     def test_controller_tooling_stays_outside_the_nine_pipeline_files(self):
         for name in ('public215_profile.py', 'qualify_public215_once.py', 'freeze_public215_once.py',
-                     'create_public215_seed_once.ps1', 'test_public215_controllers.py'):
+                     'create_public215_seed_once.ps1', 'test_public215_controllers.py',
+                     'register_public215_once.py', 'register_public215_once.ps1',
+                     'capture_public215_m1_once.ps1'):
             self.assertNotIn('scripts/horse-solver-v31/' + name, PUBLIC215_PIPELINE_FILES)
             self.assertNotIn('scripts/horse-solver-v31/' + name, REQUIRED_PIPELINE_FILES)
         self.assertEqual(len(PUBLIC215_PIPELINE_FILES), 9)
@@ -282,6 +285,117 @@ class SeedScriptTests(unittest.TestCase):
                          "$ExpectedHost='SMARTERPOKER'", "$ExpectedAccount='smarterpoker\\danbe'"]:
             self.assertIn(required, source)
         for forbidden in ['Remove-Item', 'Write-Host $bytes', 'Get-Content', 'ReadAllBytes']:
+            self.assertNotIn(forbidden, source)
+
+
+REG_PINS = {
+    'format': 'public215_registration_pins_v1', 'host': 'SMARTERPOKER', 'account': 'smarterpoker\\danbe',
+    'task_root': 'C:\\sp-v31\\mac-v31-public215-r8', 'python': 'C:\\python.exe', 'python_sha256': '1' * 64,
+    'git': 'C:\\git.exe', 'recipient_root': 'C:\\recipient', 'gateway_url': 'https://smarter.poker/api/internal/horse-solver-v31',
+    'controller_sha256': '2' * 64, 'manifest_relative': 'manifests/public215-r8.json', 'manifest_sha256': '3' * 64,
+    'input_bundle_id': '44444444-4444-5444-8444-444444444444', 'input_bundle_checksum': '4' * 64,
+    'dataset_key': 'horse-v31-public215-cash-r8-20261107', 'pipeline_commit': '5' * 40,
+    'pipeline_bundle_checksum': '6' * 64, 'contexts': 3}
+
+
+class FakeRegistrationClient:
+    def __init__(self, contract=None):
+        self.calls = []; self.contract = contract
+
+    def call(self, op, payload):
+        self.calls.append((op, payload))
+        if op == 'register_dataset':
+            return {'dataset_id': '77777777-7777-4777-8777-777777777777', 'state': 'building', 'idempotent': False}
+        return self.contract
+
+
+def registration_manifest(contexts=3):
+    raw = {'input_bundle_id': REG_PINS['input_bundle_id'], 'input_bundle_checksum': REG_PINS['input_bundle_checksum'],
+           'dataset_key': REG_PINS['dataset_key'], 'pipeline_commit': REG_PINS['pipeline_commit'],
+           'pipeline_bundle_checksum': REG_PINS['pipeline_bundle_checksum'], 'quality_gates': {'max_frequency_mae': 0.05},
+           'public215_contexts': [{}] * contexts}
+    import types
+    return types.SimpleNamespace(raw=raw, checksum=REG_PINS['manifest_sha256'])
+
+
+class RegistrationTests(unittest.TestCase):
+    def contract(self, manifest):
+        return {'dataset_id': '77777777-7777-4777-8777-777777777777', 'state': 'building',
+                'dataset_key': manifest.raw['dataset_key'], 'manifest_checksum': manifest.checksum,
+                'input_bundle_checksum': manifest.raw['input_bundle_checksum'],
+                'pipeline_commit': manifest.raw['pipeline_commit'], 'input_approval_status': 'approved'}
+
+    def test_pins_are_exact_and_never_name_r7(self):
+        self.assertEqual(reg.validate_pins(copy.deepcopy(REG_PINS))['contexts'], 3)
+        for key, value in [('dataset_key', reg.R7_DATASET_KEY), ('contexts', 0), ('pipeline_commit', '0' * 40),
+                           ('input_bundle_id', '55555555-4444-5444-8444-444444444444'), ('gateway_url', 'http://x'),
+                           ('manifest_relative', '../m.json'), ('extra', 1)]:
+            bad = copy.deepcopy(REG_PINS); bad[key] = value
+            with self.assertRaises(reg.Refusal):
+                reg.validate_pins(bad)
+        bad = copy.deepcopy(REG_PINS); del bad['host']
+        with self.assertRaises(reg.Refusal):
+            reg.validate_pins(bad)
+
+    def test_pins_file_is_sha256_pinned(self):
+        with tempfile.TemporaryDirectory(dir=HERE) as folder:
+            path = Path(folder) / 'pins.json'; raw = json.dumps(REG_PINS).encode(); path.write_bytes(raw)
+            self.assertEqual(reg.load_pins(path, hashlib.sha256(raw).hexdigest())['dataset_key'], REG_PINS['dataset_key'])
+            with self.assertRaises(reg.Refusal):
+                reg.load_pins(path, 'f' * 64)
+
+    def test_registers_once_then_reads_the_contract_and_writes_one_readback(self):
+        manifest = registration_manifest(); client = FakeRegistrationClient(self.contract(manifest))
+        coverage = lambda m: [{'cell': i} for i in range(3)]
+        with tempfile.TemporaryDirectory() as folder:
+            readback = Path(folder) / 'registered-contract.json'
+            receipt = reg.register(manifest, REG_PINS, client, coverage, lambda r: True, readback)
+            self.assertEqual([c[0] for c in client.calls], ['register_dataset', 'dataset_contract'])
+            self.assertEqual(client.calls[0][1]['input_bundle_id'], REG_PINS['input_bundle_id'])
+            self.assertEqual(receipt['contract'], 'smarter-poker.public215-registered-contract-readback.v1')
+            self.assertEqual(json.loads(readback.read_text())['dataset_id'], receipt['dataset_id'])
+            with self.assertRaises(reg.Refusal):  # existing readback: never a second registration
+                reg.register(manifest, REG_PINS, FakeRegistrationClient(self.contract(manifest)), coverage, lambda r: True, readback)
+
+    def test_identity_or_census_mismatch_refuses_before_any_gateway_call(self):
+        coverage = lambda m: [{'cell': i} for i in range(3)]
+        for mutate in [lambda m: setattr(m, 'checksum', '9' * 64), lambda m: m.raw.update(dataset_key='other-key'),
+                       lambda m: m.raw.update(pipeline_commit='8' * 40), lambda m: m.raw.update(public215_contexts=[{}])]:
+            manifest = registration_manifest(); mutate(manifest); client = FakeRegistrationClient(self.contract(manifest))
+            with tempfile.TemporaryDirectory() as folder:
+                with self.assertRaises(reg.Refusal):
+                    reg.register(manifest, REG_PINS, client, coverage, lambda r: True, Path(folder) / 'r.json')
+            self.assertEqual(client.calls, [])
+
+    def test_a_contract_that_disagrees_writes_no_readback(self):
+        manifest = registration_manifest(); bad = self.contract(manifest); bad['input_approval_status'] = 'pending'
+        with tempfile.TemporaryDirectory() as folder:
+            readback = Path(folder) / 'r.json'
+            with self.assertRaises(reg.Refusal):
+                reg.register(manifest, REG_PINS, FakeRegistrationClient(bad), lambda m: [1, 2, 3], lambda r: True, readback)
+            self.assertFalse(readback.exists())
+
+
+class SupervisorScriptTests(unittest.TestCase):
+    def test_registration_supervisor_keeps_every_r7_guard_with_pinned_identity(self):
+        source = (HERE / 'register_public215_once.ps1').read_text()
+        for required in ['(SHA $PinsPath) -ceq $PinsSha256', "public215_registration_pins_v1", 'rev-parse HEAD',
+                         'status --porcelain', 'never retry', "'COMPACTOR'", 'RSA-4096-OAEP-SHA256-MGF1-SHA256',
+                         '[IO.FileMode]::CreateNew', '$env:HORSE_SOLVER_V31_HMAC_SECRET=$null',
+                         '[Array]::Clear($plain,0,$plain.Length)', 'register_public215_once.py', 'promotion_requested=$false']:
+            self.assertIn(required, source)
+        for forbidden in ['Remove-Item', 'Write-Host $secret', 'eb30f11b', '187815b1']:
+            self.assertNotIn(forbidden, source)
+
+    def test_m1_capture_supervisor_keeps_every_r7_guard_with_pinned_identity(self):
+        source = (HERE / 'capture_public215_m1_once.ps1').read_text()
+        for required in ['(SHA $PinsPath) -ceq $PinsSha256', 'public215_m1_capture_pins_v1', "$Pins.pipeline_files.Count -eq 9",
+                         'Protected producer HEAD differs', 'Producer must be clean', 'Actual registered readback differs',
+                         'smarter-poker.public215-registered-contract-readback.v1', 'never retry',
+                         'The bundle UUID is never the dataset UUID', "'-Machine','M1'", 'APPROVED_PIO_BINARY_CHECKSUM',
+                         'source_completeness_verified=$false']:
+            self.assertIn(required, source)
+        for forbidden in ['Remove-Item', 'HMAC_SECRET', 'eb30f11b', '187815b1', '6099']:
             self.assertNotIn(forbidden, source)
 
 

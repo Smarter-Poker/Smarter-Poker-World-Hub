@@ -20,7 +20,7 @@ from sklearn.ensemble._hist_gradient_boosting.common import PREDICTOR_RECORD_DTY
 from contract import ContractError
 from public_hist215 import canonical_bytes,digest,decode_f64
 from final_public215_training import (PARAMETERS,artifact_database_checksums,pg_json_text,
-    export_scalar_head,training_arrays,validate_capture_index,parse_official_node,public_matrix,SHA,validate_public_partition,reference_cases,GatewayJSONNormalizer,capture_receipt_sources)
+    export_scalar_head,training_arrays,validate_capture_index,official_census,parse_official_node,public_matrix,SHA,validate_public_partition,reference_cases,GatewayJSONNormalizer,capture_receipt_sources)
 
 
 def scalar_stub():
@@ -150,6 +150,14 @@ class FinalPublic215TrainingTests(unittest.TestCase):
         validate_public_partition(manifest,expected,contexts)
         recipe['public_semantic_order_checksum']=digest(list(reversed(semantics)))
         with self.assertRaises(ContractError):validate_public_partition(manifest,expected,contexts)
+
+    def test_census_is_the_frozen_recipe_r7_107x57_and_r8_100x57(self):
+        def manifest(contexts,per,count,source):
+            return types.SimpleNamespace(raw={'public215_contexts':[{}]*contexts,'public215_protocols':{'training_recipe':{'context_count':count,'training_sources_per_context':per,'source_count':source}}})
+        self.assertEqual(official_census(manifest(107,57,107,6099)),(107,57))
+        self.assertEqual(official_census(manifest(100,57,100,5700)),(100,57))
+        for bad in [(100,57,107,5700),(100,57,100,6099),(100,56,100,5600),(0,57,0,0),(100,True,100,100)]:
+            with self.assertRaises(ContractError):official_census(manifest(*bad))
 
     def test_capture_header_is_M1_terminal_6099_and_never_creates_receipts(self):
         raw={'input_bundle_id':str(uuid.uuid4()),'input_bundle_checksum':'1'*64,'pipeline_commit':'2'*40,'pipeline_bundle_checksum':'3'*64,
