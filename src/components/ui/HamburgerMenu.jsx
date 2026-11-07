@@ -25,8 +25,25 @@ import { getAuthUser, clearAuth } from '../../lib/authUtils';
 import { T } from '../sandbox/paTokens';
 import { homeGamePageUrl } from '../../lib/home-games/urls';
 import { getWorldMenuStyleVariables, resolveWorldMenu } from '../../config/worldMenuNavigation';
+
+/**
+ * NOTIFICATIONS IS THE TOP SETTING IN EVERY WORLD HUB DRAWER (2026-11-07).
+ * Dan, verbatim: "THE TOP SETTING IN THE WORLD HUB HAMBURGER MENU NEEDS TO BE
+ * 'NOTIFICATIONS'. CURRENTLY ITS NOT EVEN IN THE HAMBURGER MENU."
+ * It is rendered by the drawer itself, above shortcuts, favourites, recents and
+ * every config's items, so no page's menu config can push it down or leave it
+ * out. It opens the notification settings screen (push on/off per device).
+ */
+export const NOTIFICATIONS_MENU_ROW = Object.freeze({
+  id: 'notifications-settings',
+  type: 'navigation',
+  label: 'Notifications',
+  href: '/hub/settings/notifications',
+  description: 'Turn On Push Alerts For This Device',
+  icon: MenuIcons.bell,
+});
 import { openPageOverlay } from '../../stores/pageOverlayStore';
-import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
+import { applyWorldMenuDeck, getMenuConfigForPath, MenuIcons } from '../../config/hamburgerMenus';
 import { getTutorialForPath, requestPageTutorial } from '../../tutorials';
 import { usePush } from '../../contexts/PushContext';
 import * as pushClient from '../../lib/push-client';
@@ -1444,7 +1461,11 @@ function HamburgerMenuContent({
           </div>
         ) : (
           <>
-            {/* ── YOUR SHORTCUTS — ALWAYS FIRST ── */}
+            {/* ── NOTIFICATIONS — THE TOP SETTING (Dan, 2026-11-07) ── */}
+            <div role="group" aria-label="Notifications" data-menu-top="notifications">
+              {renderNavigation(NOTIFICATIONS_MENU_ROW, 'notifications-top')}
+            </div>
+            {/* ── YOUR SHORTCUTS — directly under Notifications ── */}
             {shortcutItems.length > 0 && (
               <div>
                 {renderSectionTitle('Your Shortcuts')}
