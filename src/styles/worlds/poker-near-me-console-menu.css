@@ -89,11 +89,12 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   display: none !important;
 }
 
-/* Title well. Sticky, so its box is an opaque black band (the same black as
-   the drawer) with the well printed on its content box. */
+/* Title well: an opaque black band (the same black as the drawer) with the
+   well printed on its content box. It scrolls away with the menu like every
+   other world's rail (Dan, 2026-11-05; #2678): it is not pinned. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail {
-  position: sticky;
-  top: env(safe-area-inset-top, 0px) !important;
+  position: relative;
+  top: auto !important;
   z-index: 8;
   flex: 0 0 auto !important;
   box-sizing: content-box !important;
