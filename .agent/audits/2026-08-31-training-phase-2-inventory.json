@@ -97312,6 +97312,7 @@
           "src/lib/authUtils.ts",
           "src/lib/clubInvite.js",
           "src/lib/seo/publicFeedData.js",
+          "src/lib/sharedHandLink.js",
           "src/lib/supabase.ts"
         ]
       },
@@ -106773,6 +106774,7 @@
           "src/lib/authUtils.ts",
           "src/lib/clubInvite.js",
           "src/lib/seo/publicFeedData.js",
+          "src/lib/sharedHandLink.js",
           "src/lib/supabase.ts"
         ]
       },
