@@ -180,21 +180,36 @@ async function assertMobileSizing(drawer: Locator) {
   expect(audit.smallPhaseThreeText).toEqual([]);
 }
 
-async function assertStickyUtilities(drawer: Locator) {
+/**
+ * THE WORLD COMMAND RAIL SCROLLS AWAY (Dan, 2026-11-05: "this weird thing at
+ * the top follows you down instead of disappearing"; #2678). The rail and the
+ * menu search are ordinary page headers now: not sticky, not fixed, laid out
+ * above the menu at the top of the drawer, and gone from view once a
+ * scrollable drawer is scrolled to its end. This used to assert the old
+ * pinned contract, which #2678 retired on purpose.
+ */
+async function assertUtilitiesScrollAway(drawer: Locator) {
   await expect(drawer.locator('.sp-command-utility-rail')).toBeVisible();
   await expect(drawer.locator('.sp-command-search')).toBeVisible();
   await expect.poll(async () => drawer.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-    const rail = element.querySelector('.sp-command-utility-rail')?.getBoundingClientRect();
-    const search = element.querySelector('.sp-command-search')?.getBoundingClientRect();
+    element.scrollTop = 0;
+    const railNode = element.querySelector('.sp-command-utility-rail');
+    const searchNode = element.querySelector('.sp-command-search');
+    if (!railNode || !searchNode) return null;
+    const positions = [getComputedStyle(railNode).position, getComputedStyle(searchNode).position];
     const frame = element.getBoundingClientRect();
-    if (!rail || !search) return null;
+    const railTop = railNode.getBoundingClientRect();
+    const searchTop = searchNode.getBoundingClientRect();
+    const scrollable = element.scrollHeight > element.clientHeight + 1;
+    element.scrollTop = element.scrollHeight;
+    const railEnd = railNode.getBoundingClientRect();
     return {
-      railPinned: Math.abs(rail.top - frame.top) <= 1,
-      noOverlap: search.top >= rail.bottom - 1,
-      searchContained: search.bottom <= frame.bottom + 1,
+      notPinned: positions.every((p) => p !== 'sticky' && p !== 'fixed'),
+      railAtTopFirst: Math.abs(railTop.top - frame.top) <= 1 + Number.parseFloat(getComputedStyle(element).paddingTop || '0'),
+      noOverlap: searchTop.top >= railTop.bottom - 1,
+      scrollsAway: !scrollable || railEnd.bottom <= frame.top + 1,
     };
-  })).toEqual({ railPinned: true, noOverlap: true, searchContained: true });
+  })).toEqual({ notPinned: true, railAtTopFirst: true, noOverlap: true, scrollsAway: true });
 }
 
 for (const world of NON_SOCIAL_WORLDS) {
@@ -219,7 +234,7 @@ for (const world of NON_SOCIAL_WORLDS) {
     await assertContained(page, drawer);
     await assertModalIsolation(page, drawer);
     await assertMobileSizing(drawer);
-    await assertStickyUtilities(drawer);
+    await assertUtilitiesScrollAway(drawer);
 
     await page.keyboard.press('Escape');
     await expect(drawer).toBeHidden();
@@ -234,7 +249,7 @@ test('adaptive command menu is contained in short landscape', async ({ page }) =
   await visitWorld(page, world);
   const { drawer } = await openMenu(page, world);
   await assertContained(page, drawer);
-  await assertStickyUtilities(drawer);
+  await assertUtilitiesScrollAway(drawer);
   await expect.poll(() => drawer.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
     const actions = Array.from(element.querySelectorAll('a[href], button:not([disabled])'))
