@@ -335,3 +335,31 @@ changed manifests cannot reuse the checkpoint. Gateway retries use fresh
 nonces, while database operations remain idempotent. Any malformed output,
 changed topology, bad EV identity, stale provenance, or shared/invalid key
 fails closed and is visible in worker/compactor liveness.
+
+### Dataset-agnostic one-shot controllers (R8 and later)
+
+The `*_r7_once.py` controllers hard-code the corrected R7 dataset and, for the
+continuation/seal-recovery ones, the exact R7 incident evidence (PIDs, nonces,
+rollback times). They stay byte-for-byte unchanged so R7 remains reproducible,
+and they are not reused for a new dataset.
+
+A new dataset uses the generic controllers, which read the dataset identity
+from one SHA-256-pinned `public215_dataset_profile_v1` file
+(`public215_profile.py`: dataset key/UUID, manifest and bundle checksums,
+producer commit, context census, M1/M2 boards per context, task folder and the
+relative manifest / model-index / M2-terminal paths and record formats):
+
+- `freeze_public215_once.py`: per context, the two approved Linux physics
+  boards, then the model freeze (the R7 forward path).
+- `qualify_public215_once.py`: all cell builds, every heldout physics audit,
+  the bounded per-cell preparation every seal now needs, one seal and one
+  status read. With `R7_PROFILE` it issues exactly the R7 build and heldout
+  calls (tested against `qualify_r7_once.py`).
+- `create_public215_seed_once.ps1`: the private M2 seed and public commitment;
+  `-TaskFolder mac-v31-r7-corrected-20261030-01a17e88 -CommitmentLabel corrected_r7`
+  is exactly the R7 run.
+
+Stage-specific pins (model index, capture checksum, qualification fingerprint,
+prepared map) stay in each controller's own pinned config. These files are
+controller tooling, never members of the nine pinned `pipeline_files`; each
+attempts once and records an unknown outcome instead of retrying.
