@@ -54,7 +54,7 @@ export default async function handler(req, res) {
           ]);
           const blockedParam = req.query.blocked;
           const blockedTypes = blockedParam
-              ? blockedParam.split(',').map(t => t.trim()).filter(t => VALID_NOTIFICATION_TYPES.has(t))
+              ? [...new Set(blockedParam.split(',').map(t => t.trim()).filter(t => VALID_NOTIFICATION_TYPES.has(t)))]
               : [];
 
           // Fetch notifications
@@ -67,6 +67,7 @@ export default async function handler(req, res) {
               .limit(limit);
 
           if (blockedTypes.length > 0) {
+              // in-list: bounded by VALID_NOTIFICATION_TYPES (deduplicated allowlist)
               query = query.not('type', 'in', `(${blockedTypes.join(',')})`);
           }
 

@@ -162,6 +162,7 @@ async function loadCapCountingRows(supabase, userId, monthStart, monthEnd) {
         if (CAP_COUNTED_ACTIONS.length > 0) {
             q = q.in('transaction_type', CAP_COUNTED_ACTIONS);
         } else if (CAP_EXEMPT_ACTIONS.length > 0) {
+            // in-list: bounded by the reward catalog constant (CAP_EXEMPT_ACTIONS)
             q = q.not('transaction_type', 'in', `(${CAP_EXEMPT_ACTIONS.join(',')})`);
         }
 

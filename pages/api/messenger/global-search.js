@@ -57,6 +57,7 @@ export default async function handler(req, res) {
               const { data: profs } = await getSupabase()
                   .from('profiles')
                   .select(MESSENGER_PROFILE_COLUMNS)
+                  // in-list: bounded by the search result (at most 30 messages)
                   .in('id', senderIds);
               (profs || []).forEach(p => { const named = withMessengerDisplayName(p); if (named) profiles[p.id] = named; });
           }

@@ -11,6 +11,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { notify } from '../../../src/lib/notify';
+import { findSharedConversation } from '../../../src/lib/inBatches.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -51,24 +52,18 @@ export default async function handler(req, res) {
 
     // Verify the caller and callee actually share a conversation
     // This prevents any authenticated user from spamming missed-call notifications to arbitrary users.
-    const { data: callerConvs } = await getSupabase()
-        .from('social_conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id)
-        .limit(500);
-
-    const callerConvIds = (callerConvs || []).map(p => p.conversation_id);
-
-    let sharedConv = false;
-    if (callerConvIds.length > 0) {
-        const { data: shared } = await getSupabase()
-            .from('social_conversation_participants')
-            .select('conversation_id')
-            .eq('user_id', calleeId)
-            .in('conversation_id', callerConvIds)
-            .limit(1);
-        sharedConv = !!(shared && shared.length > 0);
+    // Every one of the caller's conversations is checked, in batches: a
+    // 500-row cap here silently dropped a real missed call for anyone with a
+    // larger inbox (2026-11-06: an agent had 673 threads).
+    const { data: sharedId, error: sharedError } = await findSharedConversation(getSupabase(), {
+        userId: user.id,
+        otherUserId: calleeId,
+    });
+    if (sharedError) {
+        console.warn('[insert-missed-call-notification] shared conversation check failed:', sharedError.code, sharedError.message);
+        return res.status(503).json({ success: false, error: 'Could not verify the conversation' });
     }
+    const sharedConv = !!sharedId;
 
     if (!sharedConv) {
         // They have no shared conversation — likely spam or stale state. Silently ignore.

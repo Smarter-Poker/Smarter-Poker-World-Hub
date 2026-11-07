@@ -15,6 +15,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { findSharedConversation } from '../../../src/lib/inBatches.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -248,31 +249,22 @@ export default async function handler(req, res) {
         // minted a brand-new conversation and the club inbox filled with empty
         // duplicates of the same thread. Mirrors the RPC, which matches on
         // context_entity_id IS NOT DISTINCT FROM.
-        let existingQuery = supabase
-            .from('social_conversation_participants')
-            .select('conversation_id, social_conversations!inner(id, is_group)')
-            .eq('user_id', user.id)
-            .eq('social_conversations.is_group', false);
-        existingQuery = contextEntityId
-            ? existingQuery.eq('context_entity_id', contextEntityId)
-            : existingQuery.is('context_entity_id', null);
-        // Cap at 500 — users with >500 convs may hit duplicate but this path is only
-        // active when fn_get_or_create_conversation RPC isn't deployed (migration pending).
-        const { data: existing } = await existingQuery.limit(500);
-
-        const myConvIds = (existing || []).map(p => p.conversation_id);
-
-        let foundId = null;
-        if (myConvIds.length > 0) {
-            // Check if otherUser is in any of the same conversations
-            const { data: shared } = await supabase
-                .from('social_conversation_participants')
-                .select('conversation_id')
-                .eq('user_id', otherUserId)
-                .in('conversation_id', myConvIds)
-                .limit(1);
-
-            foundId = shared?.[0]?.conversation_id || null;
+        // Every candidate thread is checked, in batches, rather than the first
+        // 500: past that a user with a large inbox got a duplicate thread.
+        const { data: foundId, error: sharedError } = await findSharedConversation(supabase, {
+            userId: user.id,
+            otherUserId,
+            select: 'conversation_id, social_conversations!inner(id, is_group)',
+            narrow: query => {
+                const direct = query.eq('social_conversations.is_group', false);
+                return contextEntityId
+                    ? direct.eq('context_entity_id', contextEntityId)
+                    : direct.is('context_entity_id', null);
+            },
+        });
+        if (sharedError) {
+            console.warn('[start-conversation] existing conversation lookup failed:', sharedError.code, sharedError.message);
+            return res.status(503).json({ success: false, error: 'Messenger Is Temporarily Unavailable' });
         }
 
         // Reuse is now safe in BOTH modes: the candidate set above is already

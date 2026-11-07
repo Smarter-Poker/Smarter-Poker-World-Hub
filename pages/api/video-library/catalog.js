@@ -93,6 +93,7 @@ export default async function handler(req, res) {
             .from('video_library_public_catalog')
             .select(VIDEO_FIELDS, { count: 'exact' });
 
+        // in-list: bounded by the frozen BLOCKED_VIDEO_LIBRARY_IDS constant
         query = query.not('youtube_video_id', 'in', `(${BLOCKED_VIDEO_LIBRARY_IDS.join(',')})`);
         query = query.in('type', VIDEO_LIBRARY_ALLOWED_TYPES);
         if (player) query = query.in('type', VIDEO_LIBRARY_POKER_TYPES).or(playerCatalogFilter(player));

@@ -30,6 +30,8 @@
  * One module, used by both messengers, so the two copies cannot drift again.
  */
 
+import { selectInBatches } from './inBatches.mjs';
+
 /**
  * Resolve the signed-in user id without touching supabase.auth.getSession(),
  * which contends on the client's internal lock while the messenger is
@@ -149,7 +151,7 @@ export async function syncMessengerPrefs(sb, uid, next, prev) {
   if (removedBookmarks.length) {
     ops.push([
       'messenger_bookmarks delete',
-      sb.from('messenger_bookmarks').delete().eq('user_id', uid).in('message_id', removedBookmarks),
+      selectInBatches(removedBookmarks, (batch) => sb.from('messenger_bookmarks').delete().eq('user_id', uid).in('message_id', batch)),
     ]);
   }
 
@@ -201,11 +203,11 @@ export async function syncMessengerPrefs(sb, uid, next, prev) {
   if (clearedThemes.length) {
     ops.push([
       'messenger_themes delete',
-      sb
+      selectInBatches(clearedThemes, (batch) => sb
         .from('messenger_themes')
         .delete()
         .eq('user_id', uid)
-        .in('conversation_id', clearedThemes),
+        .in('conversation_id', batch)),
     ]);
   }
 

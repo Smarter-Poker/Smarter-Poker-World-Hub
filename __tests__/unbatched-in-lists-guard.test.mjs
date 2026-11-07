@@ -20,3 +20,9 @@ test('the committed baseline matches the tree, so the ratchet starts honest', ()
     const current = scan();
     for (const [file, count] of Object.entries(current)) assert.ok(count <= (baseline[file] || 0), `${file} grew to ${count}`);
 });
+
+test('a hand-built NOT IN list is counted unless it is literal or bounded', () => {
+    assert.equal(unboundedInCalls("q.not('id', 'in', `(${readIds.map((id) => `\"${id}\"`).join(',')})`)").length, 1);
+    assert.equal(unboundedInCalls("q.not('venue_type', 'in', '(series,tour,home_game)')").length, 0);
+    assert.equal(unboundedInCalls("// in-list: bounded by READ_ID_CAP (300)\nq.not('id', 'in', `(${readIds.join(',')})`)").length, 0);
+});

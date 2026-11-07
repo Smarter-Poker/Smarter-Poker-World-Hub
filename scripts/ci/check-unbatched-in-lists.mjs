@@ -24,6 +24,11 @@ const EXTENSIONS = /\.(m?js|jsx|ts|tsx)$/;
 const SKIP = /(^|\/)(node_modules|\.next|__tests__|tests?|__mocks__|vendor|public)(\/|$)|\.test\.|\.spec\./;
 const IN_CALL = /\.in\(\s*(['"`])[\w.]+\1\s*,\s*([\s\S]{0,200}?)\)/g;
 const BOUNDED = /\.slice\(|chunk|batch|idBatches|in-list:\s*bounded/i;
+// The negated form carries its list in the URL too, built by hand:
+//   .not('id', 'in', `(${ids.join(',')})`)
+// A literal list ('(a,b)') is its own bound; an interpolated one is counted.
+// Added 2026-11-07 after a 1000-id read list here made a ~38KB URL.
+const NOT_IN_CALL = /\.not\(\s*(['"`])[\w.>-]+\1\s*,\s*(['"])in\2\s*,\s*`\(\$\{([\s\S]{1,200}?)\}\)`\s*\)/g;
 
 function walk(directory, files = []) {
     if (!existsSync(directory)) return files;
@@ -49,7 +54,14 @@ export function unboundedInCalls(source) {
         if (BOUNDED.test(context)) continue;
         hits.push({ line: source.slice(0, match.index).split('\n').length, argument: argument.slice(0, 60) });
     }
-    return hits;
+    for (const match of source.matchAll(NOT_IN_CALL)) {
+        const lineStart = source.lastIndexOf('\n', match.index) + 1;
+        const previousLineStart = source.lastIndexOf('\n', Math.max(0, lineStart - 2)) + 1;
+        const context = source.slice(previousLineStart, match.index + match[0].length);
+        if (BOUNDED.test(context)) continue;
+        hits.push({ line: source.slice(0, match.index).split('\n').length, argument: `not in ${match[3].slice(0, 52)}` });
+    }
+    return hits.sort((a, b) => a.line - b.line);
 }
 
 export function scan(root = ROOT) {
@@ -82,7 +94,7 @@ function main() {
         console.error(`  ${file}: ${baseline[file] || 0} -> ${count}`);
         for (const hit of unboundedInCalls(source)) console.error(`    line ${hit.line}: .in(..., ${hit.argument})`);
     }
-    console.error('Batch the list (100 ids per request, see idBatches in src/lib/messengerWorkspace.mjs) or mark a truly bounded list with `// in-list: bounded <why>`.');
+    console.error('Batch the list (100 ids per request, see selectInBatches in src/lib/inBatches.mjs) or mark a truly bounded list with `// in-list: bounded <why>`.');
     process.exit(1);
 }
 
