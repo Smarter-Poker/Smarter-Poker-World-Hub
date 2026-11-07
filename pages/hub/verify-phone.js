@@ -25,6 +25,7 @@ import { supabase } from '../../src/lib/supabase';
 import { useRequireAuth, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 import { busEmit } from '../../src/engine/EventBus';
 import { fetchPendingJoinPath, safeClubArenaPath } from '../../src/lib/clubInvite';
+import { codeNotDeliveredMessage } from '../../src/lib/sms/codeDelivery.mjs';
 
 const RESEND_COOLDOWN_S = 60;
 const DISMISS_KEY = 'phone_prompt_dismissed_at';
@@ -144,6 +145,29 @@ export default function VerifyPhonePage() {
 
     const digits = phone.replace(/\D/g, '');
 
+    const deliveryWatch = useRef(0);
+    const watchCodeDelivery = useCallback((messageId) => {
+        const watchId = ++deliveryWatch.current;
+        const startedAt = Date.now();
+        const poll = async () => {
+            if (deliveryWatch.current !== watchId || Date.now() - startedAt > 90000) return;
+            try {
+                const res = await fetch(`/api/sms/otp-status?sid=${encodeURIComponent(messageId)}`, { cache: 'no-store' });
+                const answer = await res.json().catch(() => ({}));
+                if (deliveryWatch.current !== watchId) return;
+                if (answer.state === 'delivered') return;
+                if (answer.state === 'not_delivered') {
+                    setError(codeNotDeliveredMessage(answer.reason));
+                    setCooldown(0);
+                    return;
+                }
+            } catch (_e) { /* keep waiting; the timer still offers a resend */ }
+            setTimeout(poll, 4000);
+        };
+        setTimeout(poll, 4000);
+    }, []);
+    useEffect(() => () => { deliveryWatch.current += 1; }, []);
+
     const sendCode = useCallback(async () => {
         if (busy || cooldown > 0) return;
         if (digits.length !== 10) {
@@ -164,6 +188,10 @@ export default function VerifyPhonePage() {
             setStage('code');
             setCode('');
             setCooldown(RESEND_COOLDOWN_S);
+            // A CODE THAT NEVER ARRIVES IS SAID SO (2026-11-07): the carrier's
+            // answer lands in sms_delivery_receipts; on a refusal the player is
+            // told at once and may send a new code without waiting out the timer.
+            if (data.messageId) watchCodeDelivery(data.messageId);
             try { capture(FunnelEvents.PHONE_VERIFY_CODE_SENT, { welcome: isWelcome }); } catch (_e) { /* best-effort */ }
             setTimeout(() => codeRef.current?.focus(), 50);
         } catch (err) {
