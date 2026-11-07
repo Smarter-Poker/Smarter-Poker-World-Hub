@@ -535,3 +535,15 @@ test('bounded preparation rejects mismatched authoritative receipts and permits 
     const actual=await callPreseal(f);assert.equal(actual.error,undefined);assert.equal(actual.result.status,status);
     assert.equal(actual.calls[1].name,'fn_gto_v31_seal_cell_preparation_status');}
 });
+
+test('public215 feature contract v2 (R8) is admitted exactly like v1; unknown contracts never are', async () => {
+  const auth = await import('../src/lib/horses/solverV31IngressAuth.mjs');
+  assert.deepEqual([...auth.V31_PUBLIC215_FEATURE_CONTRACTS], ['holdem-public-hist215-v1', 'holdem-public-hist215-v2']);
+  assert.equal(auth.v31FeatureContractVersion({ feature_contract_version: 'holdem-public-hist215-v2' }), 'holdem-public-hist215-v2');
+  assert.equal(auth.v31FeatureContractVersion({ feature_contract_version: 'holdem-public-hist215-v3' }), null);
+  assert.equal(auth.v31IsPublic215FeatureContract('holdem-public-hist215-v1'), true);
+  assert.equal(auth.v31IsPublic215FeatureContract('holdem-public-hist215-v2'), true);
+  assert.equal(auth.v31IsPublic215FeatureContract('holdem-board-relative-v2'), false);
+  assert.equal(auth.V31_PUBLIC215_FEATURE_SCHEMAS['holdem-public-hist215-v1'], '0ca054f9bb0463bf6a298a80a29cb4b6d9e6bffcc193e4af9d497e2936ec849f');
+  assert.equal(auth.V31_PUBLIC215_FEATURE_SCHEMAS['holdem-public-hist215-v2'], 'c37e7aa2b2dde3f71cde7d224594de637ab66c928c6dffd94661fec3f7ac80c4');
+});

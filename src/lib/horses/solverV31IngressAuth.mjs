@@ -58,7 +58,18 @@ const PROVENANCE_KEYS = Object.freeze([
 export function v31FeatureContractVersion(value) {
   const version = Object.prototype.hasOwnProperty.call(value || {}, 'feature_contract_version')
     ? value.feature_contract_version : 'rank-suit-count-v1';
-  return ['rank-suit-count-v1', 'holdem-board-relative-v2', 'holdem-public-hist215-v1'].includes(version) ? version : null;
+  return ['rank-suit-count-v1', 'holdem-board-relative-v2', ...V31_PUBLIC215_FEATURE_CONTRACTS].includes(version) ? version : null;
+}
+
+/** The public215 feature contracts: v1 (R7, 215 features) and v2 (R8, 246 = v1 + appended one-hots).
+ * Each dataset declares exactly one; the database binds its descriptor checksum. */
+export const V31_PUBLIC215_FEATURE_CONTRACTS = Object.freeze(['holdem-public-hist215-v1', 'holdem-public-hist215-v2']);
+export const V31_PUBLIC215_FEATURE_SCHEMAS = Object.freeze({
+  'holdem-public-hist215-v1': '0ca054f9bb0463bf6a298a80a29cb4b6d9e6bffcc193e4af9d497e2936ec849f',
+  'holdem-public-hist215-v2': 'c37e7aa2b2dde3f71cde7d224594de637ab66c928c6dffd94661fec3f7ac80c4',
+});
+export function v31IsPublic215FeatureContract(version) {
+  return V31_PUBLIC215_FEATURE_CONTRACTS.includes(version);
 }
 
 export function v31PolicyExportSchema(value) {
@@ -337,7 +348,7 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
       || !exactKeys(envelope.provenance, [...PROVENANCE_KEYS, ...['feature_contract_version', 'policy_export_schema'].filter(key => Object.prototype.hasOwnProperty.call(envelope.provenance || {}, key))])
       || !v31FeatureContractVersion(envelope.provenance)
       || !v31PolicyExportSchema(envelope.provenance)
-      || (v31FeatureContractVersion(envelope.provenance) === 'holdem-public-hist215-v1'
+      || (v31IsPublic215FeatureContract(v31FeatureContractVersion(envelope.provenance))
         && v31PolicyExportSchema(envelope.provenance) !== 'smarter-poker.pio-policy.v4')
       || !envelope.payload
       || typeof envelope.payload !== 'object'
@@ -345,7 +356,7 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
 
   const allowed = principal === 'COMPACTOR' ? COMPACTOR_OPERATIONS : WORKER_OPERATIONS;
   if (!allowed.has(envelope.operation) && !(principal === 'M2' && envelope.operation === 'model_freeze_authority')) return false;
-  if (['prepare_model','freeze_model','model_freeze_authority'].includes(envelope.operation) && v31FeatureContractVersion(envelope.provenance) !== 'holdem-public-hist215-v1') return false;
+  if (['prepare_model','freeze_model','model_freeze_authority'].includes(envelope.operation) && !v31IsPublic215FeatureContract(v31FeatureContractVersion(envelope.provenance))) return false;
   const provenance = envelope.provenance;
   return DATASET_KEY.test(provenance.dataset_key)
     && canonicalIdentityText(provenance.solver_version, 120)
@@ -397,7 +408,7 @@ export function v31Public215BuildEnvelopeIsValid(value, datasetId, withReceipt =
     }
     const actions = value.public_model.action_ids;
     if (!Array.isArray(actions) || actions.length < 2 || actions.some(a=>typeof a !== 'string' || !/^(?:c|f|b[1-9][0-9]{0,78})$/.test(a)) || actions.join('\0') !== [...new Set(actions)].sort().join('\0')) return false;
-    if (value.feature_schema_checksum !== '0ca054f9bb0463bf6a298a80a29cb4b6d9e6bffcc193e4af9d497e2936ec849f'
+    if (!Object.values(V31_PUBLIC215_FEATURE_SCHEMAS).includes(value.feature_schema_checksum)
         || value.public_model.format !== 'public_hist215_v1'
         || value.public_template.format !== 'public_hist215_template_v1'
         || value.public_training_provenance.format !== 'public_hist215_training_v1'
@@ -431,7 +442,7 @@ export function v31Public215PhysicsPayloadIsValid(payload, contract) {
   return exactKeys(payload, ['dataset_id','context','physics_board','preparation_offset'])
     && payload.dataset_id === contract.dataset_id
     && contract.state === 'building'
-    && v31FeatureContractVersion(contract) === 'holdem-public-hist215-v1'
+    && v31IsPublic215FeatureContract(v31FeatureContractVersion(contract))
     && Number.isSafeInteger(contract.declared_cells) && contract.declared_cells > 0
     && contract.declared_cells <= 2147483647
     && Number.isSafeInteger(payload.preparation_offset) && payload.preparation_offset >= 0
@@ -500,7 +511,7 @@ export function v31Public215ApprovedPhysicsPreparation(payload, contract, rows) 
 export function v31Public215HeldoutPhysicsPayloadIsValid(payload, contract) {
   return exactKeys(payload, ['dataset_id','context','preparation_offset','heldout_board_offset'])
     && payload.dataset_id === contract.dataset_id && contract.state === 'building'
-    && v31FeatureContractVersion(contract) === 'holdem-public-hist215-v1'
+    && v31IsPublic215FeatureContract(v31FeatureContractVersion(contract))
     && Number.isSafeInteger(contract.declared_cells) && contract.declared_cells > 0
     && contract.declared_cells <= 2147483647
     && Number.isSafeInteger(payload.preparation_offset) && payload.preparation_offset >= 0

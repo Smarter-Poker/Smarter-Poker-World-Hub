@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from contract import ApprovedManifest, ContractError, load_manifest, _json_bytes
-from public_hist215 import (FEATURE_DESCRIPTOR_SHA256, FROZEN_PARAMETERS, canonical_bytes,
+from public_hist215 import (feature_contract, FROZEN_PARAMETERS, canonical_bytes,
                             digest, encode_f64, serialize_model, serialize_training_provenance, UUID, decode_f64)
 
 PARAMETERS = {"max_iter":100,"max_leaf_nodes":15,"min_samples_leaf":10,
@@ -300,7 +300,7 @@ def export_scalar_head(model: Any) -> dict:
     params=model.get_params(deep=False)
     need(all(type(params[k]) is type(v) and params[k]==v for k,v in PARAMETERS.items()),"fitted frozen Hist parameters")
     need(params.get("loss")=="squared_error" and params.get("learning_rate")==0.1,"fitted default loss/rate")
-    need(model.n_features_in_==215 and model.n_trees_per_iteration_==1,"scalar215 head")
+    need(model.n_features_in_ in (215,246) and model.n_trees_per_iteration_==1,"scalar215 head")
     categorical=getattr(model,"is_categorical_",None)
     need(categorical is None or not np.asarray(categorical).any(),"numeric-only fitted features")
     baseline=model._baseline_prediction
@@ -353,7 +353,8 @@ def verify_source_file(row: dict, manifest: ApprovedManifest, ex: dict, normaliz
 
 def load_feature_index(value: dict, manifest: ApprovedManifest, expected: dict[str,dict], contexts: dict[str,list[str]]) -> dict:
     exact(value,{"format","feature_schema_checksum","encoder_checksum","physics_checksum","source_count","context_count","dtype","contexts"})
-    need(value["format"]=="public_hist215_public_feature_index_v1" and value['feature_schema_checksum']==FEATURE_DESCRIPTOR_SHA256 and type(value['source_count'])is int and value['source_count']==len(expected) and type(value['context_count'])is int and value['context_count']==len(contexts) and value['dtype']=='<f8',"public feature authority/census")
+    schema,width=feature_contract(manifest.raw['feature_contract_version'])
+    need(value["format"]=="public_hist215_public_feature_index_v1" and value['feature_schema_checksum']==schema and type(value['source_count'])is int and value['source_count']==len(expected) and type(value['context_count'])is int and value['context_count']==len(contexts) and value['dtype']=='<f8',"public feature authority/census")
     need(nonzero_hash(value['encoder_checksum']) and value['physics_checksum']==digest(manifest.raw['public215_protocols']['physics_protocol']),"public encoder/physics identity")
     need(isinstance(value['contexts'],list) and len(value['contexts'])==len(contexts),"feature context census")
     metadata={public_context_id(e['context']):e for e in manifest.raw['public215_contexts']};result={};range_cache={}
@@ -388,9 +389,9 @@ def load_feature_index(value: dict, manifest: ApprovedManifest, expected: dict[s
         boards={expected[tid]['target']['board']for tid in contexts[cid]}
         for case,approved in zip(group['cases'],approved_cases[cid]):
             exact(case,{'board','own','features_f64'})
-            need(approved=={k:case[k]for k in ['board','own']} and case['board']in boards and isinstance(case['features_f64'],list) and len(case['features_f64'])==215,'pre-capture M1 public case identity/shape')
+            need(approved=={k:case[k]for k in ['board','own']} and case['board']in boards and isinstance(case['features_f64'],list) and len(case['features_f64'])==width,'pre-capture M1 public case identity/shape')
             for word in case['features_f64']:decode_f64(word)
-        result[cid]=group
+        result[cid]={**group,'feature_count':width}
     need(set(result)==set(contexts),"public full context set")
     return result
 
@@ -403,7 +404,7 @@ def public_matrix(group: dict):
         while block:=source.read(1024*1024):h.update(block)
     need(h.hexdigest()==group['matrix_sha256'],"public matrix bytes")
     matrix=np.load(path,allow_pickle=False,mmap_mode='r')
-    need(isinstance(matrix,np.ndarray) and matrix.dtype.str=='<f8' and matrix.ndim==2 and matrix.shape==(group['row_count'],215) and matrix.flags.c_contiguous and matrix.offset+matrix.nbytes==path.stat().st_size and np.isfinite(matrix).all(),"finite C-order public float64 matrix, no pickle")
+    need(isinstance(matrix,np.ndarray) and matrix.dtype.str=='<f8' and matrix.ndim==2 and matrix.shape==(group['row_count'],group['feature_count']) and matrix.flags.c_contiguous and matrix.offset+matrix.nbytes==path.stat().st_size and np.isfinite(matrix).all(),"finite C-order public float64 matrix, no pickle")
     return matrix
 
 
@@ -455,7 +456,7 @@ def training_arrays(nodes: list[dict], group: dict, matrix):
         take=np.asarray([row['offset']+positions[i]for i in n['positive']],dtype=np.int64)
         xs.append(np.asarray(matrix[take],dtype=np.float64));ys.append(np.column_stack((n['policy'],n['action_EV'],n['frequency'])))
     X=np.concatenate(xs);Y=np.concatenate(ys);wt=normalized_training_weights(nodes)
-    need(X.shape[1]==215 and Y.shape[1]==1+2*len(nodes[0]['actions']) and np.isfinite(X).all() and np.isfinite(Y).all() and np.isfinite(wt).all() and (wt>0).all(),"final per-context arrays")
+    need(X.shape[1]==group['feature_count'] and Y.shape[1]==1+2*len(nodes[0]['actions']) and np.isfinite(X).all() and np.isfinite(Y).all() and np.isfinite(wt).all() and (wt>0).all(),"final per-context arrays")
     return X,Y,wt
 
 
@@ -539,15 +540,15 @@ def train(args) -> None:
             'source_partition_checksum':digest(protocols['source_partition']),'producer_commit':manifest.raw['pipeline_commit'],
             'producer_bundle_checksum':manifest.raw['pipeline_bundle_checksum'],'solver_binary_checksum':manifest.raw['solver_binary_checksum'],
             'range_bundle_checksum':manifest.raw['range_bundle_checksum'],'icm_model_checksum':manifest.raw['icm_model_checksum'],
-            'feature_schema_checksum':FEATURE_DESCRIPTOR_SHA256,'encoder_checksum':features['encoder_checksum'],
+            'feature_schema_checksum':feature_contract(manifest.raw['feature_contract_version'])[0],'encoder_checksum':features['encoder_checksum'],
             'physics_checksum':digest(protocols['physics_protocol']),'dependency_lock_checksum':digest(protocols['dependency_lock']),
             'runtime_parity_protocol_checksum':digest(protocols['runtime_parity_protocol']),'whole_variant':authority['whole_variant'],
             'parameters':FROZEN_PARAMETERS,'machine_id':'M1','source_count':len(contexts[cid]),'artifact_count':len({s['source_row_id']for s in source_rows}),
             'board_count':len({s['board']for s in source_rows}),'sources':source_rows}
         psha=digest(provenance);serialize_training_provenance(provenance,expected_sha256=psha)
-        model={'format':'public_hist215_v1','variant':authority['whole_variant'],'feature_count':215,'action_ids':actions,'heads':heads,
-            'template_sha256':approved['template_checksum'],'feature_schema_sha256':FEATURE_DESCRIPTOR_SHA256,'provenance_sha256':psha}
-        msha=digest(model);serialize_model(model,model_sha256=msha,template_sha256=approved['template_checksum'],feature_schema_sha256=FEATURE_DESCRIPTOR_SHA256,provenance_sha256=psha,action_ids=actions)
+        model={'format':'public_hist215_v1','variant':authority['whole_variant'],'feature_count':feature_contract(manifest.raw['feature_contract_version'])[1],'action_ids':actions,'heads':heads,
+            'template_sha256':approved['template_checksum'],'feature_schema_sha256':feature_contract(manifest.raw['feature_contract_version'])[0],'provenance_sha256':psha}
+        msha=digest(model);serialize_model(model,model_sha256=msha,template_sha256=approved['template_checksum'],feature_schema_sha256=feature_contract(manifest.raw['feature_contract_version'])[0],provenance_sha256=psha,action_ids=actions)
         fragment={'format':'public_hist215_final_M1_fragment_v1','context_id':cid,'context':approved['context'],'dataset_id':capture['dataset_id'],
             'public_model':model,'model_checksum':msha,'public_training_provenance':provenance,'training_provenance_checksum':psha,
             'training_authority_checksum':args.training_authority_sha256,'sklearn_reference_cases':references,'status':'UNQUALIFIED_REQUIRES_ACTUAL_LINUX_BUILD_PARITY_AND_SQL'}
