@@ -172,6 +172,18 @@ class NodeLineTests(unittest.TestCase):
         self.assertEqual(state["minimum_raise_target_chips"], 550)
         self.assertEqual(state["public_history"][-1]["family"], "all_in")
 
+    def test_texture_class_keys_trip_rank_flops_like_the_engine(self):
+        # GtoPostflop.textureClass: one distinct rank is paired and never connected.
+        self.assertEqual(texture_class("AsAdAc"), "Arpd")
+        self.assertEqual(texture_class("KsKdKc"), "Brpd")
+        self.assertEqual(texture_class("2s2d2c"), "Lrpd")
+        self.assertEqual(texture_class("As2d3c"), "Aruc")  # the wheel rule is unchanged
+        self.assertEqual(texture_class("AsAd2c"), "Arpc")
+        import itertools
+        deck = [r + s for r in "23456789TJQKA" for s in "cdhs"]
+        for cards in itertools.combinations(deck, 3):  # every flop classifies
+            self.assertRegex(texture_class("".join(cards)), r"^[ABML][mtr][pu][cd]$")
+
     def test_wager_tokens_are_pio_totals_since_the_root(self):
         # Pio 3.8.0 (e21ea7ad...), add_line 0 250 250 250 500 500 500 500 on a
         # 500 pot: show_children r:0:c:b250:c:7d:c lists r:0:c:b250:c:7d:c:b500
