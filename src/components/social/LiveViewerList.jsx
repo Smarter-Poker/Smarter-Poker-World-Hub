@@ -76,9 +76,12 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
             try {
                 const token = getAccessToken();
                 if (!token) { setRecentChats([]); return; }
+                // POST: the route answers 405 to anything else, which is why
+                // this list was empty in production even after it was wired.
                 const resp = await fetch('/api/messenger/get-conversations', {
-                    method: 'GET',
-                    headers: { Authorization: `Bearer ${token}` },
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: '{}',
                 });
                 const json = await resp.json().catch(() => ({}));
                 if (!mounted) return;
