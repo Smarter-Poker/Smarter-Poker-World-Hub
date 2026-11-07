@@ -41509,7 +41509,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 860,
+          "line": 877,
           "handler": "onActivate",
           "destination": null,
           "type": "button",
@@ -41519,7 +41519,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 867,
+          "line": 884,
           "handler": "onActivate",
           "destination": "item.href",
           "type": null,
@@ -41529,7 +41529,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 873,
+          "line": 890,
           "handler": "onActivate",
           "destination": "item.href",
           "type": null,
@@ -41539,7 +41539,7 @@
         {
           "element": "button",
           "name": "item.label",
-          "line": 890,
+          "line": 907,
           "handler": "() => item.onChange(!item.checked)",
           "destination": null,
           "type": "button",
@@ -41549,7 +41549,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 949,
+          "line": 966,
           "handler": "() => {\n              if (item.openInviteModal) {\n                onClose?.();\n                setShowInviteModal(true);\n                return;\n              }\n              if (typeof item.onClick === 'function') item.onClick();\n              if (item.closeOnClick !== false) onClose?.();\n            }",
           "destination": null,
           "type": "button",
@@ -41559,7 +41559,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1039,
+          "line": 1056,
           "handler": "() => {\n                      gridItem.onClick();\n                      onClose?.();\n                    }",
           "destination": null,
           "type": "button",
@@ -41569,7 +41569,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 1066,
+          "line": 1083,
           "handler": "onTile",
           "destination": "gridItem.href",
           "type": null,
@@ -41579,7 +41579,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1073,
+          "line": 1090,
           "handler": "onTile",
           "destination": "gridItem.href",
           "type": null,
@@ -41589,7 +41589,7 @@
         {
           "element": "button",
           "name": "editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'",
-          "line": 1332,
+          "line": 1349,
           "handler": "() => setEditFavs((v) => !v)",
           "destination": null,
           "type": "button",
@@ -41599,7 +41599,7 @@
         {
           "element": "button",
           "name": "Close menu",
-          "line": 1347,
+          "line": 1364,
           "handler": "onClose",
           "destination": null,
           "type": "button",
@@ -41609,7 +41609,7 @@
         {
           "element": "button",
           "name": "Clear search",
-          "line": 1409,
+          "line": 1426,
           "handler": "() => {\n                    setQuery('');\n                    if (isPokerNearMeMenu) searchInputRef.current?.focus();\n                  }",
           "destination": null,
           "type": "button",
@@ -41619,7 +41619,7 @@
         {
           "element": "a",
           "name": "`Open ${sc.name}`",
-          "line": 1503,
+          "line": 1524,
           "handler": "(e) => {\n                            e.preventDefault();\n                            if (sc.page) switchToClub(sc.page);\n                            onClose?.();\n                            window.location.href = sc.href;\n                          }",
           "destination": "sc.href",
           "type": null,
@@ -41629,7 +41629,7 @@
         {
           "element": "link",
           "name": "`Open ${sc.name}`",
-          "line": 1521,
+          "line": 1542,
           "handler": "() => {\n                          if (sc.page) switchToClub(sc.page);\n                          onClose?.();\n                        }",
           "destination": "sc.href",
           "type": null,
@@ -41639,7 +41639,7 @@
         {
           "element": "link",
           "name": "See all your pages",
-          "line": 1538,
+          "line": 1559,
           "handler": "() => onClose?.()",
           "destination": "/hub/social-pages",
           "type": null,
@@ -41649,7 +41649,7 @@
         {
           "element": "link",
           "name": "View Profile",
-          "line": 1605,
+          "line": 1626,
           "handler": "() => onClose?.()",
           "destination": "isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'",
           "type": null,
@@ -41659,7 +41659,7 @@
         {
           "element": "button",
           "name": "(Personal)",
-          "line": 1651,
+          "line": 1672,
           "handler": "() => { switchToPersonal(); onClose?.(); }",
           "destination": null,
           "type": "button",
@@ -41669,7 +41669,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1674,
+          "line": 1695,
           "handler": "() => {\n                            switchToClub(page);\n                            onClose?.();\n                            if (page.page_type === 'home_game') {\n                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route\n                            } else if (page.page_type === 'club') {\n                              window.location.href = '/hub/commander';\n                            } else {\n                              router.push(`/hub/social-pages/${page.id}`);\n                            }\n                          }",
           "destination": null,
           "type": "button",
@@ -41679,7 +41679,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1757,
+          "line": 1778,
           "handler": "() => toggleSection(group.label)",
           "destination": null,
           "type": "button",
@@ -41689,7 +41689,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1836,
+          "line": 1857,
           "handler": "() => {\n                      if (link.openInviteModal) {\n                        onClose?.();\n                        setShowInviteModal(true);\n                        return;\n                      }\n                      if (typeof link.onClick === 'function') link.onClick();\n                      onClose?.();\n                    }",
           "destination": null,
           "type": "button",
@@ -41699,7 +41699,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 1860,
+          "line": 1881,
           "handler": "() => onClose?.()",
           "destination": "link.href",
           "type": null,
@@ -41709,7 +41709,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1869,
+          "line": 1890,
           "handler": "() => { rememberRecent(link); onClose?.(); }",
           "destination": "link.href",
           "type": null,
@@ -41751,7 +41751,7 @@
       "functions": [
         {
           "name": "pokerNearMeCommandIcon",
-          "line": 137,
+          "line": 154,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41759,7 +41759,7 @@
         },
         {
           "name": "buildGroups",
-          "line": 164,
+          "line": 181,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41767,7 +41767,7 @@
         },
         {
           "name": "countActionable",
-          "line": 179,
+          "line": 196,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41775,7 +41775,7 @@
         },
         {
           "name": "collectLinkables",
-          "line": 184,
+          "line": 201,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41783,7 +41783,7 @@
         },
         {
           "name": "HamburgerMenuContent",
-          "line": 197,
+          "line": 214,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41791,7 +41791,7 @@
         },
         {
           "name": "HamburgerMenu",
-          "line": 2259,
+          "line": 2280,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -41799,7 +41799,7 @@
         },
         {
           "name": "needsHardNav",
-          "line": 63,
+          "line": 80,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41807,7 +41807,7 @@
         },
         {
           "name": "isNotificationsHref",
-          "line": 73,
+          "line": 90,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41815,7 +41815,7 @@
         },
         {
           "name": "isModifiedActivation",
-          "line": 78,
+          "line": 95,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41823,7 +41823,7 @@
         },
         {
           "name": "lsGet",
-          "line": 86,
+          "line": 103,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -41831,7 +41831,7 @@
         },
         {
           "name": "lsSet",
-          "line": 96,
+          "line": 113,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41839,7 +41839,7 @@
         },
         {
           "name": "labelOf",
-          "line": 101,
+          "line": 118,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -41847,7 +41847,7 @@
         },
         {
           "name": "matchesId",
-          "line": 102,
+          "line": 119,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41855,7 +41855,7 @@
         },
         {
           "name": "looksLikeSignOut",
-          "line": 103,
+          "line": 120,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41863,7 +41863,7 @@
         },
         {
           "name": "pokerNearMeIconClass",
-          "line": 221,
+          "line": 238,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -41871,7 +41871,7 @@
         },
         {
           "name": "goOn",
-          "line": 316,
+          "line": 333,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41879,7 +41879,7 @@
         },
         {
           "name": "goOff",
-          "line": 317,
+          "line": 334,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41887,15 +41887,15 @@
         },
         {
           "name": "on",
-          "line": 330,
-          "references": 28,
+          "line": 347,
+          "references": 29,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "containOutsideKey",
-          "line": 403,
+          "line": 420,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41903,7 +41903,7 @@
         },
         {
           "name": "handleTouchStart",
-          "line": 479,
+          "line": 496,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41911,7 +41911,7 @@
         },
         {
           "name": "handleTouchEnd",
-          "line": 489,
+          "line": 506,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41919,7 +41919,7 @@
         },
         {
           "name": "handleTouchCancel",
-          "line": 500,
+          "line": 517,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41927,7 +41927,7 @@
         },
         {
           "name": "isolateBranches",
-          "line": 537,
+          "line": 554,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41935,7 +41935,7 @@
         },
         {
           "name": "toggleSection",
-          "line": 638,
+          "line": 655,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41943,7 +41943,7 @@
         },
         {
           "name": "toggleFav",
-          "line": 649,
+          "line": 666,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41951,15 +41951,15 @@
         },
         {
           "name": "renderNavigation",
-          "line": 758,
-          "references": 4,
+          "line": 775,
+          "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "onActivate",
-          "line": 813,
+          "line": 830,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41967,7 +41967,7 @@
         },
         {
           "name": "renderMenuItem",
-          "line": 879,
+          "line": 896,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41975,7 +41975,7 @@
         },
         {
           "name": "onTile",
-          "line": 1056,
+          "line": 1073,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41983,7 +41983,7 @@
         },
         {
           "name": "renderSectionTitle",
-          "line": 1100,
+          "line": 1117,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41991,7 +41991,7 @@
         },
         {
           "name": "isWiredSignOut",
-          "line": 1186,
+          "line": 1203,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42002,7 +42002,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 86,
+          "line": 103,
           "excerpt": "const lsGet = (key, fallback) => {",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42010,7 +42010,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 89,
+          "line": 106,
           "excerpt": "if (!raw) return fallback;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42018,7 +42018,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 91,
+          "line": 108,
           "excerpt": "return parsed === null || parsed === undefined ? fallback : parsed;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42026,7 +42026,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 93,
+          "line": 110,
           "excerpt": "return fallback;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42034,7 +42034,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 427,
+          "line": 444,
           "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42042,7 +42042,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 443,
+          "line": 460,
           "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42050,7 +42050,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1036,
+          "line": 1053,
           "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42058,7 +42058,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1037,
+          "line": 1054,
           "excerpt": "if (stub) return null;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42066,7 +42066,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1183,
+          "line": 1200,
           "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42074,7 +42074,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1399,
+          "line": 1416,
           "excerpt": "placeholder=\"Search menu\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42082,7 +42082,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1833,
+          "line": 1854,
           "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -42090,7 +42090,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1834,
+          "line": 1855,
           "excerpt": "if (stub) return null;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -70303,11 +70303,11 @@
       "effectRef": "src/components/ui/GeevesMenuWidget.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:860:1",
+      "id": "src/components/ui/HamburgerMenu.jsx:877:1",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 860,
+      "line": 877,
       "handler": "onActivate",
       "destination": null,
       "type": "button",
@@ -70316,11 +70316,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:867:2",
+      "id": "src/components/ui/HamburgerMenu.jsx:884:2",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 867,
+      "line": 884,
       "handler": "onActivate",
       "destination": "item.href",
       "type": null,
@@ -70329,11 +70329,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:873:3",
+      "id": "src/components/ui/HamburgerMenu.jsx:890:3",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 873,
+      "line": 890,
       "handler": "onActivate",
       "destination": "item.href",
       "type": null,
@@ -70342,11 +70342,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:890:4",
+      "id": "src/components/ui/HamburgerMenu.jsx:907:4",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "item.label",
-      "line": 890,
+      "line": 907,
       "handler": "() => item.onChange(!item.checked)",
       "destination": null,
       "type": "button",
@@ -70355,11 +70355,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:949:5",
+      "id": "src/components/ui/HamburgerMenu.jsx:966:5",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 949,
+      "line": 966,
       "handler": "() => {\n              if (item.openInviteModal) {\n                onClose?.();\n                setShowInviteModal(true);\n                return;\n              }\n              if (typeof item.onClick === 'function') item.onClick();\n              if (item.closeOnClick !== false) onClose?.();\n            }",
       "destination": null,
       "type": "button",
@@ -70368,11 +70368,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1039:6",
+      "id": "src/components/ui/HamburgerMenu.jsx:1056:6",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1039,
+      "line": 1056,
       "handler": "() => {\n                      gridItem.onClick();\n                      onClose?.();\n                    }",
       "destination": null,
       "type": "button",
@@ -70381,11 +70381,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1066:7",
+      "id": "src/components/ui/HamburgerMenu.jsx:1083:7",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 1066,
+      "line": 1083,
       "handler": "onTile",
       "destination": "gridItem.href",
       "type": null,
@@ -70394,11 +70394,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1073:8",
+      "id": "src/components/ui/HamburgerMenu.jsx:1090:8",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1073,
+      "line": 1090,
       "handler": "onTile",
       "destination": "gridItem.href",
       "type": null,
@@ -70407,11 +70407,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1332:9",
+      "id": "src/components/ui/HamburgerMenu.jsx:1349:9",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'",
-      "line": 1332,
+      "line": 1349,
       "handler": "() => setEditFavs((v) => !v)",
       "destination": null,
       "type": "button",
@@ -70420,11 +70420,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1347:10",
+      "id": "src/components/ui/HamburgerMenu.jsx:1364:10",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "Close menu",
-      "line": 1347,
+      "line": 1364,
       "handler": "onClose",
       "destination": null,
       "type": "button",
@@ -70433,11 +70433,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1409:11",
+      "id": "src/components/ui/HamburgerMenu.jsx:1426:11",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "Clear search",
-      "line": 1409,
+      "line": 1426,
       "handler": "() => {\n                    setQuery('');\n                    if (isPokerNearMeMenu) searchInputRef.current?.focus();\n                  }",
       "destination": null,
       "type": "button",
@@ -70446,11 +70446,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1503:12",
+      "id": "src/components/ui/HamburgerMenu.jsx:1524:12",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "`Open ${sc.name}`",
-      "line": 1503,
+      "line": 1524,
       "handler": "(e) => {\n                            e.preventDefault();\n                            if (sc.page) switchToClub(sc.page);\n                            onClose?.();\n                            window.location.href = sc.href;\n                          }",
       "destination": "sc.href",
       "type": null,
@@ -70459,11 +70459,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1521:13",
+      "id": "src/components/ui/HamburgerMenu.jsx:1542:13",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "`Open ${sc.name}`",
-      "line": 1521,
+      "line": 1542,
       "handler": "() => {\n                          if (sc.page) switchToClub(sc.page);\n                          onClose?.();\n                        }",
       "destination": "sc.href",
       "type": null,
@@ -70472,11 +70472,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1538:14",
+      "id": "src/components/ui/HamburgerMenu.jsx:1559:14",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "See all your pages",
-      "line": 1538,
+      "line": 1559,
       "handler": "() => onClose?.()",
       "destination": "/hub/social-pages",
       "type": null,
@@ -70485,11 +70485,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1605:15",
+      "id": "src/components/ui/HamburgerMenu.jsx:1626:15",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "View Profile",
-      "line": 1605,
+      "line": 1626,
       "handler": "() => onClose?.()",
       "destination": "isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'",
       "type": null,
@@ -70498,11 +70498,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1651:16",
+      "id": "src/components/ui/HamburgerMenu.jsx:1672:16",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "(Personal)",
-      "line": 1651,
+      "line": 1672,
       "handler": "() => { switchToPersonal(); onClose?.(); }",
       "destination": null,
       "type": "button",
@@ -70511,11 +70511,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1674:17",
+      "id": "src/components/ui/HamburgerMenu.jsx:1695:17",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1674,
+      "line": 1695,
       "handler": "() => {\n                            switchToClub(page);\n                            onClose?.();\n                            if (page.page_type === 'home_game') {\n                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route\n                            } else if (page.page_type === 'club') {\n                              window.location.href = '/hub/commander';\n                            } else {\n                              router.push(`/hub/social-pages/${page.id}`);\n                            }\n                          }",
       "destination": null,
       "type": "button",
@@ -70524,11 +70524,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1757:18",
+      "id": "src/components/ui/HamburgerMenu.jsx:1778:18",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1757,
+      "line": 1778,
       "handler": "() => toggleSection(group.label)",
       "destination": null,
       "type": "button",
@@ -70537,11 +70537,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1836:19",
+      "id": "src/components/ui/HamburgerMenu.jsx:1857:19",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1836,
+      "line": 1857,
       "handler": "() => {\n                      if (link.openInviteModal) {\n                        onClose?.();\n                        setShowInviteModal(true);\n                        return;\n                      }\n                      if (typeof link.onClick === 'function') link.onClick();\n                      onClose?.();\n                    }",
       "destination": null,
       "type": "button",
@@ -70550,11 +70550,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1860:20",
+      "id": "src/components/ui/HamburgerMenu.jsx:1881:20",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 1860,
+      "line": 1881,
       "handler": "() => onClose?.()",
       "destination": "link.href",
       "type": null,
@@ -70563,11 +70563,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1869:21",
+      "id": "src/components/ui/HamburgerMenu.jsx:1890:21",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1869,
+      "line": 1890,
       "handler": "() => { rememberRecent(link); onClose?.(); }",
       "destination": "link.href",
       "type": null,
@@ -90863,7 +90863,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 86,
+        "line": 103,
         "excerpt": "const lsGet = (key, fallback) => {",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90872,7 +90872,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 89,
+        "line": 106,
         "excerpt": "if (!raw) return fallback;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90881,7 +90881,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 91,
+        "line": 108,
         "excerpt": "return parsed === null || parsed === undefined ? fallback : parsed;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90890,7 +90890,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 93,
+        "line": 110,
         "excerpt": "return fallback;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90899,7 +90899,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 427,
+        "line": 444,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90908,7 +90908,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 443,
+        "line": 460,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90917,7 +90917,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1036,
+        "line": 1053,
         "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90926,7 +90926,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1037,
+        "line": 1054,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90935,7 +90935,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1183,
+        "line": 1200,
         "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90944,7 +90944,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1399,
+        "line": 1416,
         "excerpt": "placeholder=\"Search menu\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90953,7 +90953,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1833,
+        "line": 1854,
         "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90962,7 +90962,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1834,
+        "line": 1855,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100325,7 +100325,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 86,
+        "line": 103,
         "excerpt": "const lsGet = (key, fallback) => {",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100334,7 +100334,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 89,
+        "line": 106,
         "excerpt": "if (!raw) return fallback;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100343,7 +100343,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 91,
+        "line": 108,
         "excerpt": "return parsed === null || parsed === undefined ? fallback : parsed;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100352,7 +100352,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 93,
+        "line": 110,
         "excerpt": "return fallback;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100361,7 +100361,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 427,
+        "line": 444,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100370,7 +100370,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 443,
+        "line": 460,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100379,7 +100379,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1036,
+        "line": 1053,
         "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100388,7 +100388,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1037,
+        "line": 1054,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100397,7 +100397,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1183,
+        "line": 1200,
         "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100406,7 +100406,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1399,
+        "line": 1416,
         "excerpt": "placeholder=\"Search menu\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100415,7 +100415,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1833,
+        "line": 1854,
         "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -100424,7 +100424,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1834,
+        "line": 1855,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
