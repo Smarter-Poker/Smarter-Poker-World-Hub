@@ -487,6 +487,11 @@ def analyze_node(
     closed = False
     closed_by_checks = False
     current_actions: list[dict[str, Any]] = []
+    # Pio wager tokens are the actor's TOTAL chips since the root, across
+    # streets (Pio 3.8: r:0:c:b250:c:7d:c:b500 is a 250-chip turn bet after a
+    # 250-chip flop call; show_node reports spent 250/500). Chips spent before
+    # this street are subtracted to get the street target.
+    street_start = [0, 0]
     completed: list[tuple[int | None, bool]] = []
     last_aggressive: dict[str, Any] | None = None
     cumulative_line: list[int] = []
@@ -504,6 +509,7 @@ def analyze_node(
             street_index += 1
             actor = 0
             contributions = [0, 0]
+            street_start = list(total_spent)
             current_target = 0
             wager = False
             closed = False
@@ -539,7 +545,7 @@ def analyze_node(
         match = BET.fullmatch(token)
         if not match:
             raise PioError(f"node contains an unsupported token: {token}")
-        target = int(match.group(1))
+        target = int(match.group(1)) - street_start[actor]
         prior_target = current_target
         if target <= contributions[actor] or (wager and target <= current_target):
             raise PioError("node wager target does not advance legal action")
@@ -1004,8 +1010,9 @@ def _action_spec(code: str, line: NodeLine, effective_stack_chips: int) -> dict[
     match = BET.fullmatch(code)
     if not match:
         raise PioError(f"unsupported Pio action: {code}")
-    target = int(match.group(1))
     actor = line.actor
+    # Cumulative-since-root Pio token minus the chips spent on earlier streets.
+    target = int(match.group(1)) - (line.total_spent[actor] - line.contributions[actor])
     actor_total_target = line.contributions[actor] + effective_stack_chips - line.total_spent[actor]
     if target <= line.contributions[actor] or target > actor_total_target:
         raise PioError(f"Pio child {code} is outside the actor's legal stack")
@@ -1128,11 +1135,13 @@ def complete_node_state(scenario: dict[str, Any], target: dict[str, Any], *,
                         preflop_aggressor=scenario["preflop_aggressor_solver_player"])
     actor, stage, pot, bet, increment = 0, 0, root, 0, bb
     contributions, spent, history = [0, 0], [0, 0], []
+    street_start = [0, 0]
     for token in target["node"].split(":")[2:]:
         if CARD.fullmatch(token):
             stage += 1
             actor, bet, increment = 0, 0, bb
             contributions = [0, 0]
+            street_start = list(spent)
             continue
         old = contributions[actor]
         remaining = stack - spent[actor]
@@ -1140,7 +1149,7 @@ def complete_node_state(scenario: dict[str, Any], target: dict[str, Any], *,
             family = "call" if bet > old else "check"
             target_chips = bet
         elif token.startswith("b") and token[1:].isdigit():
-            target_chips = int(token[1:])
+            target_chips = int(token[1:]) - street_start[actor]
             all_in = target_chips == old + remaining
             if target_chips <= bet or target_chips > old + remaining:
                 raise PioError("invalid complete-state wager")

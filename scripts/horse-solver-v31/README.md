@@ -216,6 +216,20 @@ change inference, relax quality gates, or authorize promotion.
 
 ## Pio semantics pinned by the worker
 
+Every Pio wager token `bN` in a node id is the actor's **total chips since the
+root, across streets**, exactly like the `add_line` numbers. Pio 3.8.0 names a
+250-chip turn bet after a 250-chip flop call `r:0:c:b250:c:7d:c:b500` and
+`show_node` reports it as spent 250 / 500. `analyze_node`, `complete_node_state`
+and `_action_spec` subtract the chips each player spent on earlier streets, so a
+later-street wager's street target, pot, facing bucket and pot fraction are the
+real ones (until 2026-11-07 they read the token as a street amount, which
+doubled-counted earlier streets: R7's turn barrel child `b500` was exported as a
+50% pot bet although Pio solved a 25% bet). The database chronology functions
+(`fn_gto_v31_node_line_proof`, `fn_gto_v31_complete_public_state`) still read
+the token as a street amount, so a target whose path holds a wager after
+earlier-street money is refused at ingest (fail-closed) until they are aligned;
+child pot fractions are not recomputed in SQL.
+
 Dedicated authored opponent-jam response scenarios may explicitly declare
 `conditional_root_action: {"action":"all_in","model":"authored_opponent_jam_response"}`.
 This models the IP response conditional on an OOP root jam with the approved
@@ -358,6 +372,20 @@ relative manifest / model-index / M2-terminal paths and record formats):
 - `create_public215_seed_once.ps1`: the private M2 seed and public commitment;
   `-TaskFolder mac-v31-r7-corrected-20261030-01a17e88 -CommitmentLabel corrected_r7`
   is exactly the R7 run.
+- `register_public215_once.ps1` + `register_public215_once.py`: the one
+  COMPACTOR registration on M2 (`register_dataset`, then `dataset_contract`,
+  exclusive `registered-contract.json`). The identity R7's registration
+  hard-coded comes from one SHA-256-pinned `public215_registration_pins_v1`
+  file (task root, runtime pins, manifest/bundle/producer identity, dataset key,
+  context census); the R7 dataset key is refused.
+- `capture_public215_m1_once.ps1`: the one-shot M1 capture supervisor (host,
+  launcher, Python, Pio, manifest and nine producer-file checks, registered
+  readback, exclusive claim, then the unchanged canonical launcher), from one
+  SHA-256-pinned `public215_m1_capture_pins_v1` file.
+
+`final_public215_training.py` (a pinned pipeline file) takes its census from the
+frozen training recipe and the approved context list instead of R7's 107 x 57 =
+6,099 constants; R7's recipe states exactly that census, so R7 trains as before.
 
 Stage-specific pins (model index, capture checksum, qualification fingerprint,
 prepared map) stay in each controller's own pinned config. These files are
