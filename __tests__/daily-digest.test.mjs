@@ -501,10 +501,10 @@ test('the digest is loaded once for all recipients and the reports do not race t
     } };
     const data = await loadDigestData(sb, '2026-10-28', { withCosts: false, dispatch: false });
     assert.equal(maxInflight, 1, 'one database read at a time');
-    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups']);
+    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding']);
     const a = renderDigest('2026-10-28', data, { recipientName: 'Ann' });
     const b = renderDigest('2026-10-28', data, { recipientName: 'Bob' });
-    assert.equal(order.length, 4, 'rendering for a second admin reads nothing');
+    assert.equal(order.length, 5, 'rendering for a second admin reads nothing');
     assert.match(a.html, /Ann/); assert.match(b.html, /Bob/);
     const fs = await import('node:fs');
     const route = fs.readFileSync(new URL('../pages/api/cron/daily-digest.js', import.meta.url), 'utf8');
@@ -559,7 +559,7 @@ test('the signed online view executes the shared serial loader without dispatchi
         await handler({ method: 'GET', query: { t: 'fixture' } }, res);
         assert.equal(maxInFlight, 1, 'online reports must not compete for the database');
         assert.deepEqual(options, { withCosts: false, dispatch: false });
-        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups']);
+        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding']);
         assert.equal(res.code, 200);
         assert.equal(res.headers['Cache-Control'], 'no-store');
         assert.match(res.body, /Real Player Totals/i);
@@ -578,7 +578,7 @@ test('explicit live verification rejects wrong revisions and broken sections wit
     const response = html => new Response(html, { headers: { 'content-type': 'text/html', 'cache-control': 'no-store' } });
     const fetchImpl = async (url, opts) => {
         calls.push([url, opts]);
-        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Real Player Totals Diamond Spins');
+        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Real Player Totals Diamond Spins Free Buy And Guarantee Funding');
     };
     try {
         const report = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl });
@@ -591,7 +591,7 @@ test('explicit live verification rejects wrong revisions and broken sections wit
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: 'b'.repeat(40), fetchImpl }), /revision differs/);
         assert.equal(calls.length, 1, 'a wrong deployment never reads the report');
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url =>
-            url.endsWith('/api/health') ? Response.json({ version: sha }) : response('Real Player Totals Diamond Spins Report Unavailable') }), /section failed/);
+            url.endsWith('/api/health') ? Response.json({ version: sha }) : response('Real Player Totals Diamond Spins Free Buy And Guarantee Funding Report Unavailable') }), /section failed/);
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url => {
             if (url.endsWith('/api/health')) return Response.json({ version: sha });
             throw new Error(`network failure at ${url}`);
@@ -727,4 +727,73 @@ test('the agent scoreboard lists referrers with joined, KINGS CLUB, played, push
     assert.ok(html.indexOf('Agents And Referrers') > html.indexOf('Welcome-Back Chips') && html.indexOf('Agents And Referrers') < html.indexOf('Player Funnel'));
     assert.match(buildText(fixture({ signups: SIGNUPS_PLUS }), {}), /AGENTS AND REFERRERS \(LAST 7 DAYS\)\nProbyourmom: 5 sign-ups/);
     assert.deepEqual(agentScoreboardRows(fixture()).rows, [], 'no report, no card');
+});
+
+// Free Buy And Guarantee Funding (Dan 2026-11-06), the shape production
+// returned for 2026-11-06 plus one underfunded event.
+const FUNDING = {
+    day: '2026-11-06', events: 37, free_buy_events: 5, exact: 30, over: 0, under: 1, pending: 6,
+    required_total: 991, posted_total: 961, promo_total: 891, house_total: 70,
+    free_buy: [
+        { name: 'Midnight Free Buy (NLH)', starts_ct: '12:30 AM', free_buy_format: 'pko', guarantee: 0, entries: 170, tickets: 18, player_coverage: 0, required: 170, posted: 170, promo: 170, house: 0, variance: 0, verdict: 'exact' },
+        { name: 'Afternoon Free Buy (NLH)', starts_ct: '4:30 PM', free_buy_format: 'aiof', guarantee: 500, entries: 136, tickets: 49, player_coverage: 117, required: 383, posted: 383, promo: 383, house: 0, variance: 0, verdict: 'exact' },
+        { name: 'Prime Time Free Buy (NLH)', starts_ct: '8:30 PM', free_buy_format: 'mystery', guarantee: 0, entries: 174, tickets: 174, player_coverage: 0, required: 174, posted: 174, promo: 174, house: 0, variance: 0, verdict: 'pending' },
+    ],
+    off: [{ name: 'Sunday <b>Major</b>', starts_ct: '7:00 PM', free_buy_format: null, guarantee: 1000, entries: 20, tickets: 0, player_coverage: 900, required: 100, posted: 70, promo: 0, house: 70, variance: -30, verdict: 'under' }],
+    tickets: { gaming_day: '2026-11-06', allotment: 5, redeemed: 477, returned: 2, players: 400, players_at_limit: 3 },
+    open_findings: { total: 1, by_kind: { guarantee_underfunded: 1 } },
+};
+
+test('the funding card says required against posted per event, with promo, house and players apart', async () => {
+    const { freeBuyFundingRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const rows = freeBuyFundingRows(fixture({ free_buy_funding: FUNDING }));
+    const byLabel = Object.fromEntries(rows.map((r) => [r[0], r]));
+    assert.deepEqual(byLabel['Events Funded Exactly'].slice(1), ['30 Of 31', '0 over, 1 under; 6 still open', true]);
+    assert.deepEqual(byLabel['Required / Posted'].slice(1, 3), ['991 / 961 Chips', 'Promo 891, house 70; finalized events only']);
+    assert.equal(byLabel['Afternoon Free Buy (NLH) (4:30 PM)'][1], 'Exact');
+    assert.equal(byLabel['Afternoon Free Buy (NLH) (4:30 PM)'][2], 'Guarantee 500: players 117, needs 383; posted 383 (promo 383, house 0); 49 tickets');
+    assert.equal(byLabel['Midnight Free Buy (NLH) (12:30 AM)'][2], '170 first entries need 170; posted 170 (promo 170, house 0); 18 tickets');
+    assert.equal(byLabel['Prime Time Free Buy (NLH) (8:30 PM)'][1], 'Still Open');
+    assert.deepEqual(byLabel['Sunday <b>Major</b> (7:00 PM)'].slice(1, 2), ['Under By 30']);
+    assert.equal(byLabel['Sunday <b>Major</b> (7:00 PM)'][3], true);
+    assert.deepEqual(byLabel['Free Buy Tickets Used'].slice(1, 3), ['477 By 400 Players', '2 returned; 3 used all 5 (gaming day 2026-11-06)']);
+    assert.deepEqual(byLabel['Open Funding Watch Findings'].slice(1, 4), ['1', 'guarantee underfunded 1', true]);
+
+    const html = buildHtml(fixture({ free_buy_funding: FUNDING }), { email: true });
+    assert.match(html, /Free Buy And Guarantee Funding/);
+    assert.ok(html.includes('Sunday &lt;b&gt;Major&lt;/b&gt;'), 'event names are escaped');
+    assert.ok(!html.includes('Sunday <b>Major</b>'));
+    assert.ok(!/—/.test(html), 'no em dashes');
+    const text = buildText(fixture({ free_buy_funding: FUNDING }));
+    assert.match(text, /FREE BUY AND GUARANTEE FUNDING\nEvents Funded Exactly: 30 Of 31 {2}\(0 over, 1 under; 6 still open\)/);
+    for (const n of ['991', '961', '891', '477', '400', '383', '117']) assert.ok(allowedNumbers(fixture({ free_buy_funding: FUNDING })).has(n), n);
+});
+
+test('the funding card is absent without the report and says Report Unavailable when it failed', async () => {
+    const { freeBuyFundingRows } = await import('../src/lib/dailyDigest/render.mjs');
+    assert.deepEqual(freeBuyFundingRows(fixture()), []);
+    assert.ok(!buildHtml(fixture()).includes('Free Buy And Guarantee Funding'));
+    const failed = freeBuyFundingRows(fixture({ free_buy_funding: { day: '2026-11-06', error: 'permission denied' } }));
+    assert.deepEqual(failed, [['Report Unavailable', 'Unavailable', 'permission denied', false]]);
+});
+
+test('an event funded over or under becomes one tracked Needs Your Attention item; an exact day adds none', async () => {
+    const { loadDigestData, loadFreeBuyFunding } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const sbFor = (funding) => ({ rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_free_buy_funding' ? funding : PLAYER_TOTALS, error: null }) });
+    const { digest } = await loadDigestData(sbFor(FUNDING), '2026-11-06', { withCosts: false, dispatch: false });
+    const items = digest.attention.filter((a) => a.rule === 'free_buy_funding_off');
+    assert.equal(items.length, 1);
+    assert.equal(items[0].title, '1 event was not funded exactly (Sunday <b>Major</b> under by 30)');
+    assert.equal(items[0].status, 'tracked');
+    assert.equal(items[0].dispatch, false, 'the watch already raised the Production Alert');
+    assert.equal(digest.attention_status.tracked, 2);
+    assert.match(buildSubject(digest), /^\[4 Need Attention\]/);
+    const exact = { ...FUNDING, under: 0, off: [] };
+    const ok = await loadDigestData(sbFor(exact), '2026-11-06', { withCosts: false, dispatch: false });
+    assert.ok(!ok.digest.attention.some((a) => a.rule === 'free_buy_funding_off'));
+    assert.deepEqual(ok.digest.free_buy_funding, exact);
+    const failing = { rpc: async () => ({ data: null, error: { message: 'function fn_sp_digest_free_buy_funding does not exist' } }) };
+    assert.deepEqual(await loadFreeBuyFunding(failing, '2026-11-06'), { day: '2026-11-06', error: 'function fn_sp_digest_free_buy_funding does not exist' });
+    const throwing = { rpc: async () => { throw new Error('socket closed'); } };
+    assert.deepEqual(await loadFreeBuyFunding(throwing, '2026-11-06'), { day: '2026-11-06', error: 'socket closed' });
 });

@@ -54,6 +54,26 @@ export async function loadSpinsSpend(sb, day, retry = {}) {
 }
 
 /**
+ * Free Buy And Guarantee Funding (fn_sp_digest_free_buy_funding, Dan
+ * 2026-11-06): required against posted for every guaranteed event and Midway
+ * Free Buy of the day. A failure never stops the digest.
+ */
+export async function loadFreeBuyFunding(sb, day, retry = {}) {
+    try {
+        const { data, error } = await rpcWithRetry(sb, 'fn_sp_digest_free_buy_funding', { p_day: day }, retry);
+        return error ? { day, error: error.message } : (data || { day, error: 'Report unavailable' });
+    } catch (err) { return { day, error: String(err?.message || err) }; }
+}
+
+/** One Needs Your Attention line naming every event funded over or under. */
+export function fundingOffTitle(f) {
+    const off = Array.isArray(f.off) ? f.off : [];
+    const names = off.slice(0, 4).map((e) => `${e.name} ${e.verdict} by ${Math.abs(Number(e.variance) || 0).toLocaleString('en-US')}`);
+    const n = (Number(f.over) || 0) + (Number(f.under) || 0);
+    return `${n} event${n === 1 ? ' was' : 's were'} not funded exactly (${names.join('; ')}${off.length > 4 ? '; more in the card' : ''})`;
+}
+
+/**
  * New Sign-Ups (fn_sp_digest_signups, Dan 2026-11-04): every real player who
  * signed up that day with who referred them, their agent, the clubs they
  * joined (KINGS CLUB flagged) and whether they have played a hand, plus the
@@ -154,9 +174,28 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     const playerTotals = await loadPlayerTotals(sb, day, withBudget);
     const spinsSpend = await loadSpinsSpend(sb, day, withBudget);
     const signups = await loadSignups(sb, day, withBudget);
+    const freeBuyFunding = await loadFreeBuyFunding(sb, day, withBudget);
     if (digest && playerTotals) digest.player_totals = playerTotals;
     if (digest) digest.spins_spend = spinsSpend;
     if (digest) digest.signups = signups;
+    if (digest) digest.free_buy_funding = freeBuyFunding;
+    // The Free Buy funding watch already raised a Production Alert for each
+    // event; this is the same fact in the morning email, so it is not sent again.
+    if (digest && freeBuyFunding && !freeBuyFunding.error
+        && (Number(freeBuyFunding.over) || 0) + (Number(freeBuyFunding.under) || 0) > 0) {
+        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
+        digest.attention.push({
+            rule: 'free_buy_funding_off',
+            severity: 'critical',
+            status: 'tracked',
+            title: fundingOffTitle(freeBuyFunding),
+            detail: { over: freeBuyFunding.over, under: freeBuyFunding.under, off: freeBuyFunding.off },
+            dispatch: false,
+        });
+        if (digest.attention_status && typeof digest.attention_status === 'object') {
+            digest.attention_status.tracked = Number(digest.attention_status.tracked || 0) + 1;
+        }
+    }
     // The Midway Union promo wallet funds the welcome-back chips. At or under
     // the owner's line (sp_digest_settings promo_wallet_low_chips) it is a
     // Needs Your Attention item, not a number buried in a card.

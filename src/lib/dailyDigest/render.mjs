@@ -386,6 +386,64 @@ function listCard(title, rows) {
     return cardOpen(title) + rows.map((r) => rowHtml(r[0], esc(r[1]), r[2], false, false)).join('') + cardClose;
 }
 
+/**
+ * Free Buy And Guarantee Funding (fn_sp_digest_free_buy_funding, Dan
+ * 2026-11-06): every guaranteed event and Midway Free Buy that started on the
+ * Central day, required against posted. Guaranteed: H = max(0, G - C), C the
+ * players' qualifying buy-ins, rebuys and add-ons. Free Buy without a
+ * guarantee: H = V, one chip per first entry. Promo is the Midway Union Promo
+ * Wallet; house is the union bank or club treasury. Rows are
+ * [label, value, sub, red].
+ */
+const FUNDING_VERDICT = { exact: 'Exact', pending: 'Still Open' };
+function fundingValue(e) {
+    if (e.verdict === 'over') return `Over By ${fmtNum(e.variance)}`;
+    if (e.verdict === 'under') return `Under By ${fmtNum(Math.abs(Number(e.variance) || 0))}`;
+    return FUNDING_VERDICT[e.verdict] || 'Unknown';
+}
+function fundingSub(e) {
+    const parts = [];
+    if (Number(e.guarantee) > 0) {
+        parts.push(`Guarantee ${fmtNum(e.guarantee)}: players ${fmtNum(e.player_coverage)}, needs ${fmtNum(e.required)}`);
+    } else {
+        parts.push(`${fmtInt(e.entries)} first entries need ${fmtNum(e.required)}`);
+    }
+    parts.push(`posted ${fmtNum(e.posted)} (promo ${fmtNum(e.promo)}, house ${fmtNum(e.house)})`);
+    if (e.free_buy_format) parts.push(`${fmtInt(e.tickets)} tickets`);
+    return parts.join('; ');
+}
+export function freeBuyFundingRows(digest) {
+    const f = digest && digest.free_buy_funding;
+    if (!f) return [];
+    if (f.error) return [['Report Unavailable', 'Unavailable', String(f.error), false]];
+    const settled = (Number(f.events) || 0) - (Number(f.pending) || 0);
+    const off = (Number(f.over) || 0) + (Number(f.under) || 0);
+    const rows = [
+        ['Events Funded Exactly', `${fmtInt(f.exact)} Of ${fmtInt(settled)}`,
+            `${off ? `${fmtInt(f.over)} over, ${fmtInt(f.under)} under` : 'None over or under'}; ${fmtInt(f.pending)} still open`, off > 0],
+        ['Required / Posted', `${fmtNum(f.required_total)} / ${fmtNum(f.posted_total)} Chips`,
+            `Promo ${fmtNum(f.promo_total)}, house ${fmtNum(f.house_total)}; finalized events only`, false],
+    ];
+    for (const e of f.free_buy || []) {
+        rows.push([`${e.name} (${e.starts_ct})`, fundingValue(e), fundingSub(e), e.verdict === 'over' || e.verdict === 'under']);
+    }
+    for (const e of (f.off || []).filter((x) => !x.free_buy_format)) {
+        rows.push([`${e.name} (${e.starts_ct})`, fundingValue(e), fundingSub(e), true]);
+    }
+    const t = f.tickets || {};
+    rows.push(['Free Buy Tickets Used', `${fmtInt(t.redeemed)} By ${fmtInt(t.players)} Players`,
+        `${fmtInt(t.returned)} returned; ${fmtInt(t.players_at_limit)} used all ${fmtInt(t.allotment)} (gaming day ${t.gaming_day || f.day})`, false]);
+    const w = f.open_findings || {};
+    const kinds = Object.entries(w.by_kind || {}).map(([k, n]) => `${k.replace(/_/g, ' ')} ${fmtInt(n)}`).join(', ');
+    rows.push(['Open Funding Watch Findings', fmtInt(w.total), kinds || 'None', Number(w.total) > 0]);
+    return rows;
+}
+function freeBuyFundingCard(digest) {
+    const rows = freeBuyFundingRows(digest);
+    if (!rows.length) return '';
+    return cardOpen('Free Buy And Guarantee Funding') + rows.map((r) => rowHtml(r[0], esc(r[1]), r[2], r[3], false)).join('') + cardClose;
+}
+
 export function buildSubject(digest) {
     const m = digest.metrics || {};
     const n = (digest.attention || []).length;
@@ -419,6 +477,7 @@ export function buildHtml(digest, opts = {}) {
         body += opts.email ? cardOpen(title) + rows.map(([label, value, sub]) =>
             `<tr><td colspan="2" class="digest-row"><b>${esc(label)}: ${esc(value)}</b>${sub ? `<div style="color:${C.muted};font-size:11px;">${esc(sub)}</div>` : ''}</td></tr>`).join('') + cardClose : listCard(title, rows);
     }
+    body += freeBuyFundingCard(digest);
     if (!opts.email) body += horseRosterCard(digest);
     else body += listCard('Horse Roster', horseRosterRows(digest).slice(0, 6));
 
@@ -857,6 +916,11 @@ export function buildText(digest, opts = {}) {
         lines.push('', key === 'week' ? 'REAL PLAYERS - LAST 7 DAYS' : 'REAL PLAYERS - MONTH TO DATE');
         if (p.missing_days) lines.push(`Unavailable: ${fmtInt(p.missing_days)} missing days; partial totals are not shown.`);
         else lines.push(`${p.from} To ${p.to}: ${fmtInt(p.players)} players, net ${fmtSigned(p.net)}, cash rake ${fmtNum(p.cash_rake)}, tournament rake ${fmtNum(p.tournament_rake)}, BBJ ${p.bbj_rake === undefined ? 'unavailable' : fmtNum(p.bbj_rake)}`);
+    }
+    const funding = freeBuyFundingRows(digest);
+    if (funding.length) {
+        lines.push('', 'FREE BUY AND GUARANTEE FUNDING');
+        for (const [label, value, sub] of funding) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
     }
     const roster = horseRosterRows(digest);
     if (roster.length) {
