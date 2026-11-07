@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -93,6 +93,17 @@ test('adaptive mobile drawer keeps search, safe areas, and descriptions readable
   // the menu down. Neither the rail nor the search box may be sticky.
   assert.match(hamburger, /\.sp-command-utility-rail \{\s*position: relative;/);
   assert.doesNotMatch(hamburger, /position:\s*['"]?sticky/);
+  // A world's own stylesheet must not pin it back (Poker Near Me's painted
+  // console did until 2026-11-07): no rule for the rail or search in any
+  // world stylesheet may make it sticky or fixed.
+  const worldsDir = join(ROOT, 'src/styles/worlds');
+  for (const file of readdirSync(worldsDir).filter((f) => f.endsWith('.css'))) {
+    const css = readFileSync(join(worldsDir, file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (!/\.sp-command-(utility-rail|search)\s*(,|$)/.test(selector.trim())) continue;
+      assert.doesNotMatch(body, /position:\s*(sticky|fixed)/, `${file}: ${selector.trim().slice(-80)} pins the command rail`);
+    }
+  }
   assert.match(hamburger, /className="sp-command-search" style=\{\{[^}]*position: 'relative'/);
   assert.match(hamburger, /padding-right: env\(safe-area-inset-right, 0px\)/);
   assert.match(hamburger, /padding-bottom: calc\(24px \+ env\(safe-area-inset-bottom, 0px\)\) !important/);
