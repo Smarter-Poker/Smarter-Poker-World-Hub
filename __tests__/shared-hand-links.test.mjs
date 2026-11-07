@@ -91,3 +91,10 @@ test('the image reads the stored facts by token and never draws hole cards', () 
     assert.doesNotMatch(og, /searchParams\.get\('(hero|board|pot|player|stakes|amount)'\)/);
     assert.doesNotMatch(og, /\$\{?\s*['"]?\$/);
 });
+
+test('the image draws suits as shapes in the four-colour deck, never as emoji glyphs', () => {
+    const og = read('pages/api/og/club-hand.js');
+    assert.doesNotMatch(og, /[♠-♧]/);
+    assert.match(og, /<path d=\{SUIT_PATH\[suit\]\} fill=\{SUIT_COLOR\[suit\]\} \/>/);
+    for (const s of ['h', 'd', 'c', 's']) assert.match(og, new RegExp(`\\b${s}: 'M`));
+});
