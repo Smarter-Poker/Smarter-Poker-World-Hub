@@ -704,7 +704,9 @@ def texture_class(board: str) -> str:
         paired = len(set(values)) != 3
         distinct = sorted(set(values))
         connected = len(distinct) >= 2 and distinct[-1] - distinct[0] <= 4
-        if not connected and distinct[-1] == 14 and distinct[-2] <= 5:
+        # A trip-rank flop (e.g. AsAdAc) has one distinct rank: never connected,
+        # exactly as the engine's GtoPostflop.textureClass keys it.
+        if not connected and len(distinct) >= 2 and distinct[-1] == 14 and distinct[-2] <= 5:
             connected = True
     else:
         max_suit = max(suits.count(suit) for suit in set(suits))
