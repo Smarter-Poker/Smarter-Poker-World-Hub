@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from compile_inputs import (ContractError, RECIPE_CONTRACT, SNAPSHOT_CONTRACT,
-                            compile_model, compile_recipe, encoded, exact_icm, sha)
+                            compile_model, compile_recipe, encoded, exact_icm, range_weight_text, sha)
 from contract import canonical_hand_order_tokens
 
 
@@ -72,6 +72,29 @@ class InputCompilerTests(unittest.TestCase):
             recipe_path.write_bytes(encoded(recipe))
             with self.assertRaises(ContractError):
                 compile_recipe(recipe_path, root, root / "four")
+
+    def test_range_weights_are_written_exactly_on_the_public215_grid(self):
+        for value, text in [(0.0601, "0.0601"), (0.1227, "0.1227"), (1.0, "1"), (0.0, "0"), (0.5, "0.5"),
+                            (0.0057, "0.0057"), (0.123456789012, "0.123456789012")]:
+            self.assertEqual(range_weight_text(value), text)
+        for bad in (1e-13, 0.1234567890123, 1.5, -0.25):
+            with self.assertRaises(ContractError):
+                range_weight_text(bad)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            order_bytes = " ".join(canonical_hand_order_tokens()).encode()
+            range_bytes = ("0.0601 0.0057 0.1227 " + "0 " * 1323).encode()
+            (root / "order.txt").write_bytes(order_bytes)
+            (root / "range.txt").write_bytes(range_bytes)
+            provenance = {"origin": "authored_reviewed", "source_reference": "fixture:4-decimal-measured-weights",
+                          "game_family": "cash", "table_size": 6, "depth_bucket": 80, "pot_type": "srp",
+                          "player_position": "BB", "action_line": "BTN raise BB call", "reviewed_by": "unit-test"}
+            recipe = {"contract": RECIPE_CONTRACT, "ranges": [{"id": "range", "path": "range.txt",
+                      "checksum": sha(range_bytes), "order_path": "order.txt", "order_checksum": sha(order_bytes),
+                      "provenance": provenance}], "models": []}
+            (root / "recipe.json").write_bytes(encoded(recipe))
+            compile_recipe(root / "recipe.json", root, root / "out")
+            self.assertEqual((root / "out/ranges/range.txt").read_text().split()[:4], ["0.0601", "0.0057", "0.1227", "0"])
 
 
 if __name__ == "__main__":
