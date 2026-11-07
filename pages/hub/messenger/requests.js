@@ -7,6 +7,7 @@
  */
 
 import { MESSENGER_PROFILE_COLUMNS, withMessengerDisplayName } from '../../../src/lib/messengerDisplayName.mjs';
+import { listUserConversationIds, selectInBatches } from '../../../src/lib/inBatches.mjs';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -49,29 +50,32 @@ export default function MessageRequests() {
                 return;
             }
 
-            // Step 1: Get all conversations the user is a participant in
-            const { data: participations } = await supabase
-                .from('social_conversation_participants')
-                .select('conversation_id')
-                .eq('user_id', authUser.id)
-                .limit(200);
-
-            if (!participations || participations.length === 0) {
+            // Step 1: Get all conversations the user is a participant in.
+            // Every one, in pages: a 200-row cap over unordered rows hid any
+            // request outside an arbitrary 200 threads in a large inbox.
+            const { data: convIds, error: participationError } = await listUserConversationIds(supabase, authUser.id);
+            if (participationError) {
+                console.warn('Error fetching conversations:', participationError);
                 setRequests([]);
                 setLoading(false);
                 return;
             }
 
-            const convIds = participations.map(p => p.conversation_id);
+            if (!convIds || convIds.length === 0) {
+                setRequests([]);
+                setLoading(false);
+                return;
+            }
 
-            // Step 2: Get conversations that are message requests (not sent by this user)
-            const { data: requestConvs, error } = await supabase
+            // Step 2: Get conversations that are message requests (not sent by this user),
+            // in batches that fit the URL limit, newest first across all batches.
+            const { data: requestRows, error } = await selectInBatches(convIds, batch => supabase
                 .from('social_conversations')
                 .select('id, created_at, last_message_preview, last_message_at, is_request, request_sender_id')
-                .in('id', convIds)
+                .in('id', batch)
                 .eq('is_request', true)
-                .neq('request_sender_id', authUser.id)
-                .order('created_at', { ascending: false });
+                .neq('request_sender_id', authUser.id));
+            const requestConvs = (requestRows || []).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 
             if (error) {
                 console.warn('Error fetching requests:', error);
@@ -90,10 +94,10 @@ export default function MessageRequests() {
             const senderIds = [...new Set(requestConvs.map(c => c.request_sender_id).filter(Boolean))];
             let profilesMap = {};
             if (senderIds.length > 0) {
-                const { data: profiles } = await supabase
+                const { data: profiles } = await selectInBatches(senderIds, batch => supabase
                     .from('profiles')
                     .select(MESSENGER_PROFILE_COLUMNS)
-                    .in('id', senderIds);
+                    .in('id', batch));
                 (profiles || []).forEach(p => { const named = withMessengerDisplayName(p); if (named) profilesMap[p.id] = named; });
             }
 

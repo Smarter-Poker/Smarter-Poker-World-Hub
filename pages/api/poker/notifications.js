@@ -192,7 +192,11 @@ try {
         let readIdsForFilter = null;
         let readListComplete = true;
         if (wantUnreadOnly) {
-          const READ_ID_CAP = 1000;
+          // The read ids travel in the URL as a NOT IN list (~38 bytes each
+          // quoted). 1000 made a ~38KB URL that the gateway refuses past ~25KB,
+          // so the unread view failed for anyone with ~650+ reads. 300 is
+          // ~11KB; past it the truncation safety net below filters instead.
+          const READ_ID_CAP = 300;
           const { data: allReads, error: allReadsErr } = await getSupabase()
             .from('notification_reads')
             .select('notification_id')
@@ -214,6 +218,7 @@ try {
 
         if (wantUnreadOnly && readListComplete && readIdsForFilter.length > 0) {
           // ids are UUIDs from our own table — quoted for PostgREST list syntax.
+          // in-list: bounded by READ_ID_CAP (300)
           notifQuery = notifQuery.not('id', 'in', `(${readIdsForFilter.map((id) => `"${id}"`).join(',')})`);
         }
 
@@ -237,6 +242,7 @@ try {
           .from('notification_reads')
           .select('notification_id')
           .eq('user_id', user_id)
+          // in-list: bounded by the page (limitNum, at most 100 ids)
           .in('notification_id', notificationIds)
           .limit(notificationIds.length);
 
@@ -315,6 +321,7 @@ try {
             .from('notification_reads')
             .select('notification_id')
             .eq('user_id', user_id)
+            // in-list: bounded by the .limit(100) notification read above
             .in('notification_id', allNotifIds)
             .limit(100);
 

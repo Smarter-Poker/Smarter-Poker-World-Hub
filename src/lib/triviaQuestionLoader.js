@@ -335,6 +335,7 @@ export async function fetchRandomQuestionPool(supabase, opts = {}) {
     // players who had the most excluded ids.
     let countQ = supabase.from(source).select('id', { count: 'exact', head: true });
     countQ = applyPoolFilters(countQ, filters);
+    // in-list: bounded by MAX_DB_EXCLUDE_IDS (300) in safeUuids
     if (dbExclude.length > 0) countQ = countQ.not('id', 'in', `(${dbExclude.join(',')})`);
 
     const { count: total, error: cErr } = await countQ;
@@ -358,6 +359,7 @@ export async function fetchRandomQuestionPool(supabase, opts = {}) {
 
         let dataQ = supabase.from(source).select(columns);
         dataQ = applyPoolFilters(dataQ, filters);
+        // in-list: bounded by MAX_DB_EXCLUDE_IDS (300) in safeUuids
         if (dbExclude.length > 0) dataQ = dataQ.not('id', 'in', `(${dbExclude.join(',')})`);
         // Stable ORDER BY — without it Postgres page boundaries are undefined
         // and consecutive .range() calls can overlap or skip rows arbitrarily.

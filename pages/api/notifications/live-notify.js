@@ -7,6 +7,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { selectInBatches } from '../../../src/lib/inBatches.mjs';
 
 // Rule 4: API routes use the patched server client, created lazily (never at
 // module scope during SSG), exactly as the neighbouring notification routes do.
@@ -58,22 +59,40 @@ export default async function handler(req, res) {
     const displayName =
       profile?.display_name || profile?.username || 'Someone you follow';
 
-    // Get all followers
-    const { data: followers, error } = await supabaseAdmin
-      .from('social_follows')
-      .select('follower_id')
-      .eq('following_id', user.id);
+    // Get all followers. Paged: a single read stops at the row cap (1000).
+    const followers = [];
+    for (let from = 0; from < 50000; from += 1000) {
+      const { data: page, error } = await supabaseAdmin
+        .from('social_follows')
+        .select('follower_id')
+        .eq('following_id', user.id)
+        .order('follower_id', { ascending: true })
+        .range(from, from + 999);
+      if (error) {
+        console.warn('[live-notify] followers read failed:', error.code, error.message);
+        return res.status(503).json({ notified: 0, error: 'Followers could not be read' });
+      }
+      followers.push(...(page || []));
+      if (!page || page.length < 1000) break;
+    }
 
-    if (error || !followers?.length) {
+    if (!followers.length) {
       return res.status(200).json({ notified: 0 });
     }
 
-    // Fetch notification preferences for all followers
+    // Fetch notification preferences for all followers, in batches: one IN
+    // list of every follower passes the ~25KB URL limit at ~650 followers, the
+    // read then failed, and every follower who had opted out was notified.
     const followerIds = followers.map((f) => f.follower_id);
-    const { data: prefs } = await supabaseAdmin
+    const { data: prefs, error: prefsError } = await selectInBatches(followerIds, (batch) => supabaseAdmin
       .from('user_notification_preferences')
       .select('user_id, live_notifications')
-      .in('user_id', followerIds);
+      .in('user_id', batch));
+    if (prefsError) {
+      // Never notify without knowing who opted out.
+      console.warn('[live-notify] preferences read failed:', prefsError.code, prefsError.message);
+      return res.status(503).json({ notified: 0, error: 'Notification preferences could not be read' });
+    }
 
     // Build preference map; default true if row missing
     const prefMap = {};
@@ -91,13 +110,18 @@ export default async function handler(req, res) {
     // a 'live' notification for this exact stream.
     const dedupCutoff = new Date(Date.now() - DEDUP_WINDOW_MS).toISOString();
     const eligibleIds = eligible.map((f) => f.follower_id);
-    const { data: alreadyNotified } = await supabaseAdmin
+    const { data: alreadyNotified, error: dedupError } = await selectInBatches(eligibleIds, (batch) => supabaseAdmin
       .from('notifications')
       .select('user_id')
       .eq('type', 'live')
       .filter('data->>stream_id', 'eq', String(streamId))
       .gte('created_at', dedupCutoff)
-      .in('user_id', eligibleIds);
+      .in('user_id', batch));
+    if (dedupError) {
+      // Without the dedup read a retry would notify everyone twice.
+      console.warn('[live-notify] dedup read failed:', dedupError.code, dedupError.message);
+      return res.status(503).json({ notified: 0, error: 'Earlier notifications could not be read' });
+    }
     const alreadySet = new Set((alreadyNotified || []).map((n) => n.user_id));
     if (alreadySet.size > 0) {
       eligible = eligible.filter((f) => !alreadySet.has(f.follower_id));

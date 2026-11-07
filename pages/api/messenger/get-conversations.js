@@ -22,6 +22,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
+import { selectInBatches } from '../../../src/lib/inBatches.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -106,10 +107,10 @@ export default async function handler(req, res) {
             if (rpcConvIds.length > 0) {
                 try {
                     const [metaRowsRes, messagesRes] = await Promise.all([
-                        getSupabase()
+                        selectInBatches(rpcConvIds, batch => getSupabase()
                             .from('social_conversations')
                             .select('id, is_request, request_sender_id, last_message_preview')
-                            .in('id', rpcConvIds),
+                            .in('id', batch)),
                         // PERF 2026-08-24: was unbounded and unfiltered - it pulled
                         // EVERY message the user had ever received across EVERY thread,
                         // sorted them, and then used only the newest row per conversation
@@ -124,14 +125,22 @@ export default async function handler(req, res) {
                         //  2. .limit() - club identity is carried on recent messages;
                         //     newest-first ordering means the rows that can win the
                         //     "first per conversation" race are the ones fetched.
-                        getSupabase()
+                        // Batched (URL limit), each batch newest-first; the merge
+                        // below re-sorts and keeps the newest 500 overall, which
+                        // is what the single query returned.
+                        selectInBatches(rpcConvIds, batch => getSupabase()
                             .from('social_messages')
-                            .select('conversation_id, media_metadata')
-                            .in('conversation_id', rpcConvIds)
+                            .select('conversation_id, media_metadata, created_at')
+                            .in('conversation_id', batch)
                             .neq('sender_id', userId)
                             .not('media_metadata', 'is', null)
                             .order('created_at', { ascending: false })
-                            .limit(500)
+                            .limit(500)).then(result => result.error ? result : {
+                                data: result.data
+                                    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+                                    .slice(0, 500),
+                                error: null,
+                            })
                     ]);
                     if (metaRowsRes.data) {
                         metaRowsRes.data.forEach(r => { convMetaMap[r.id] = r; });
@@ -257,25 +266,30 @@ export default async function handler(req, res) {
         }, '9999-12-31');
 
         const [convsResult, otherParticipantsResult, candidateMsgsResult] = await Promise.all([
-            getSupabase()
+            selectInBatches(conversationIds, batch => getSupabase()
                 .from('social_conversations')
                 .select('id, last_message_at, last_message_preview, is_group, is_request, request_sender_id')
-                .in('id', conversationIds)
+                .in('id', batch)
                 .order('last_message_at', { ascending: false })
-                .limit(500),
-            getSupabase()
+                .limit(500)).then(result => result.error ? result : {
+                    data: result.data
+                        .sort((a, b) => String(b.last_message_at || '').localeCompare(String(a.last_message_at || '')))
+                        .slice(0, 500),
+                    error: null,
+                }),
+            selectInBatches(conversationIds, batch => getSupabase()
                 .from('social_conversation_participants')
                 .select('conversation_id, user_id')
-                .in('conversation_id', conversationIds)
-                .neq('user_id', userId),
-            getSupabase()
+                .in('conversation_id', batch)
+                .neq('user_id', userId)),
+            selectInBatches(conversationIds, batch => getSupabase()
                 .from('social_messages')
                 .select('conversation_id, created_at')
-                .in('conversation_id', conversationIds)
+                .in('conversation_id', batch)
                 .neq('sender_id', userId)
                 .eq('is_deleted', false)
                 .gt('created_at', earliestRead)
-                .limit(10000),
+                .limit(10000)),
         ]);
 
         // Surface errors from any branch rather than silently returning partial data.
@@ -310,10 +324,10 @@ export default async function handler(req, res) {
 
         let profilesMap = {};
         if (otherUserIds.size > 0) {
-            const { data: profiles, error: profErr } = await getSupabase()
+            const { data: profiles, error: profErr } = await selectInBatches([...otherUserIds], batch => getSupabase()
                 .from('profiles')
                 .select('id, username, display_name, avatar_url')
-                .in('id', [...otherUserIds]);
+                .in('id', batch));
             if (profErr) {
                 // eslint-disable-next-line no-console
                 console.warn('[get-conversations] profiles query error:', profErr);

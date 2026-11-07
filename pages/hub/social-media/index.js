@@ -583,6 +583,7 @@ const PostCard = React.memo(
           const { data: profilesData } = await supabase
             .from('profiles')
             .select('id, username, avatar_url')
+            // in-list: bounded by one comment page (COMMENT_PAGE_SIZE, 50)
             .in('id', authorIds);
 
           if (profilesData) {
@@ -814,10 +815,13 @@ const PostCard = React.memo(
             // Phase 28 Fix: Trigger mention notifications
             const mentions = commentText.match(/@([\w.]+)/g);
             if (mentions && mentions.length > 0) {
-              const usernames = mentions.map((m) => m.slice(1));
+              // Deduplicated and capped: a comment pasting hundreds of
+              // @handles must not build a URL past the gateway limit.
+              const usernames = [...new Set(mentions.map((m) => m.slice(1)))].slice(0, 50);
               const { data: mentionedUsers } = await supabase
                 .from('profiles')
                 .select('id, username')
+                // in-list: bounded to 50 deduplicated handles above
                 .in('username', usernames);
               if (mentionedUsers && mentionedUsers.length > 0) {
                 // Filter out self-mentions — don't notify yourself
@@ -4703,6 +4707,7 @@ function SocialMediaPage() {
                       ? await supabase
                           .from('profiles')
                           .select('id, username, display_name, avatar_url')
+                          // in-list: bounded by the .limit(50) notification read above
                           .in('id', actorIds)
                       : { data: [] };
 
@@ -4993,6 +4998,7 @@ function SocialMediaPage() {
           const { data: profiles } = await supabase
             .from('profiles')
             .select('id, username, avatar_url')
+            // in-list: bounded by the .limit(50) notification read above
             .in('id', actorIds);
           (profiles || []).forEach((p) => {
             profileById[p.id] = p;
@@ -5916,7 +5922,8 @@ function SocialMediaPage() {
           const { data: mentionedUsers } = await supabase
             .from('profiles')
             .select('id, username')
-            .in('username', mentions);
+            // Deduplicated and capped like comment mentions (URL limit).
+            .in('username', [...new Set(mentions)].slice(0, 50));
 
           if (mentionedUsers?.length > 0) {
             const mentionInserts = mentionedUsers.map((u) => ({
@@ -6223,6 +6230,7 @@ function SocialMediaPage() {
           const { data: authors } = await supabase
             .from('profiles')
             .select('id, username')
+            // in-list: bounded by the .limit(5) post search above
             .in('id', authorIds);
           const authorMap = Object.fromEntries((authors || []).map((a) => [a.id, a]));
           enrichedPosts = posts.map((p) => ({

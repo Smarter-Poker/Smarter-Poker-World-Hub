@@ -228,6 +228,7 @@ export default async function handler(req, res) {
                     .from('notification_reads')
                     .select('notification_id')
                     .eq('user_id', userId)
+                    // in-list: bounded by the page (limit + 1, at most 101 ids)
                     .in('notification_id', allIds)
                     .limit(allIds.length);
                 if (readError) throw readError;
@@ -265,8 +266,9 @@ export default async function handler(req, res) {
             ? supabase
                 .from('commander_home_groups')
                 .select('id, name')
+                // in-list: bounded by the page (limit + 1, at most 101 ids)
                 .in('id', groupIds)
-                .limit(100)
+                .limit(groupIds.length)
             : Promise.resolve({ data: [] });
 
         // ── Phase 4: Enrich social notifications with actor profiles (server-side) ──
@@ -307,14 +309,16 @@ export default async function handler(req, res) {
                     actorIds.length > 0
                         ? supabase.from('profiles')
                             .select('id, username, display_name, avatar_url')
+                            // in-list: bounded by the page (limit + 1, at most 101 ids)
                             .in('id', actorIds)
-                            .limit(50)
+                            .limit(actorIds.length)
                         : Promise.resolve({ data: [] }),
                     actorNames.length > 0
                         ? supabase.from('profiles')
                             .select('id, username, display_name, avatar_url')
+                            // in-list: bounded by the page (limit + 1, at most 101 names)
                             .in('display_name', actorNames)
-                            .limit(50)
+                            .limit(Math.max(50, actorNames.length))
                         : Promise.resolve({ data: [] }),
                 ]);
 

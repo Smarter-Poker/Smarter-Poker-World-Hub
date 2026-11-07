@@ -38,6 +38,7 @@ async function fetchPokerVideos() {
             .from('video_library_public_catalog')
             .select(VIDEO_ROW_FIELDS)
             .in('type', VIDEO_LIBRARY_POKER_TYPES)
+            // in-list: bounded by the frozen BLOCKED_VIDEO_LIBRARY_IDS constant
             .not('youtube_video_id', 'in', `(${BLOCKED_VIDEO_LIBRARY_IDS.join(',')})`)
             .or(mixedContentFilter())
             .order('youtube_video_id', { ascending: true })
