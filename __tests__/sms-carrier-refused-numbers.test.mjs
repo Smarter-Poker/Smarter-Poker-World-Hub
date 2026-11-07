@@ -58,3 +58,27 @@ test('a verification code asks for its carrier result and logs the message id', 
     assert.match(src, /logSendAttempt\(supabase, 'sent', null, message\?\.sid\)/);
     assert.match(src, /twilio_sid:/);
 });
+
+test('a code the carrier refused is reported to the player in title case', async () => {
+    const { codeNotDeliveredMessage } = await import('../src/lib/sms/codeDelivery.mjs');
+    const msg = codeNotDeliveredMessage('number unknown or blocked by the carrier');
+    assert.equal(msg, 'Your Code Did Not Reach Your Phone (Number Unknown Or Blocked By The Carrier). Check The Number Or Send A New Code.');
+    for (const word of msg.replace(/[().]/g, '').split(/\s+/)) assert.match(word, /^[A-Z]/);
+});
+
+test('the code status answer reveals only the delivery state', async () => {
+    const { otpDeliveryAnswer } = await import('../src/lib/sms/codeDelivery.mjs');
+    assert.deepEqual(otpDeliveryAnswer(null), { state: 'pending' });
+    assert.deepEqual(otpDeliveryAnswer({ status: 'sent', error_code: null }), { state: 'pending' });
+    assert.deepEqual(otpDeliveryAnswer({ status: 'delivered', error_code: null }), { state: 'delivered' });
+    assert.deepEqual(otpDeliveryAnswer({ status: 'undelivered', error_code: 30007 }), { state: 'not_delivered', reason: 'filtered by the carrier as spam' });
+});
+
+test('the verify screen watches the code it sent and offers a resend on a refusal', () => {
+    const src = readFileSync(new URL('../pages/hub/verify-phone.js', import.meta.url), 'utf8');
+    assert.match(src, /if \(data\.messageId\) watchCodeDelivery\(data\.messageId\)/);
+    assert.match(src, /\/api\/sms\/otp-status\?sid=/);
+    assert.match(src, /setError\(codeNotDeliveredMessage\(answer\.reason\)\);\s*setCooldown\(0\);/);
+    const send = readFileSync(new URL('../pages/api/sms/send-otp.js', import.meta.url), 'utf8');
+    assert.match(send, /messageId: message\?\.sid \|\| null/);
+});
