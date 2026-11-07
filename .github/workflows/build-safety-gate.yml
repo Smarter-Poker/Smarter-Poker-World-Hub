@@ -223,6 +223,7 @@ jobs:
           __tests__/messenger-club-welcome.test.mjs
           __tests__/messenger-workspace.test.mjs
           __tests__/messenger-large-inbox-batches.test.mjs
+          __tests__/messenger-large-inbox-fixture.test.mjs
           __tests__/messenger-live-reopen.test.mjs
           __tests__/messenger-read-retry.test.mjs
           __tests__/unbatched-in-lists-guard.test.mjs
