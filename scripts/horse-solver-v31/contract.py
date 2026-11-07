@@ -73,15 +73,16 @@ PUBLIC215_PIPELINE_FILES = REQUIRED_PIPELINE_FILES | {
     "scripts/horse-solver-v31/final_public215_training.py",
 }
 PUBLIC215_MANIFEST_FIELDS = {"pipeline_contract_version", "policy_representation", "public215_contexts", "public215_template_files", "public215_protocols", "public215_protocol_files"}
-FEATURE_CONTRACT_VERSIONS = frozenset({"rank-suit-count-v1", "holdem-board-relative-v2", "holdem-public-hist215-v1"})
+PUBLIC215_FEATURE_CONTRACT_VERSIONS = frozenset({"holdem-public-hist215-v1", "holdem-public-hist215-v2"})
+FEATURE_CONTRACT_VERSIONS = frozenset({"rank-suit-count-v1", "holdem-board-relative-v2"}) | PUBLIC215_FEATURE_CONTRACT_VERSIONS
 
 
 def required_pipeline_files(value: dict[str, Any]) -> frozenset[str]:
     if "pipeline_contract_version" not in value:
-        if any(k in value for k in PUBLIC215_MANIFEST_FIELDS - {"pipeline_contract_version"}) or value.get("feature_contract_version") == "holdem-public-hist215-v1":
+        if any(k in value for k in PUBLIC215_MANIFEST_FIELDS - {"pipeline_contract_version"}) or value.get("feature_contract_version") in PUBLIC215_FEATURE_CONTRACT_VERSIONS:
             raise ContractError("public215 requires explicit pipeline contract")
         return REQUIRED_PIPELINE_FILES
-    if value["pipeline_contract_version"] != PUBLIC215_PIPELINE_CONTRACT or value.get("policy_representation") != "public_hist215_v1" or value.get("feature_contract_version") != "holdem-public-hist215-v1" or policy_export_schema(value) != "smarter-poker.pio-policy.v4" or not PUBLIC215_MANIFEST_FIELDS <= value.keys():
+    if value["pipeline_contract_version"] != PUBLIC215_PIPELINE_CONTRACT or value.get("policy_representation") != "public_hist215_v1" or value.get("feature_contract_version") not in PUBLIC215_FEATURE_CONTRACT_VERSIONS or policy_export_schema(value) != "smarter-poker.pio-policy.v4" or not PUBLIC215_MANIFEST_FIELDS <= value.keys():
         raise ContractError("invalid public215 pipeline identity")
     return PUBLIC215_PIPELINE_FILES
 
@@ -433,11 +434,13 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
         raise ContractError("input approval files cannot be empty")
 
     public215 = bundle.get("policy_representation") == "public_hist215_v1"
-    if "policy_representation" in bundle or "public215_contexts" in bundle or feature_contract_version(bundle) == "holdem-public-hist215-v1":
-        if not public215 or feature_contract_version(bundle) != "holdem-public-hist215-v1" or policy_export_schema(bundle) != "smarter-poker.pio-policy.v4":
+    if "policy_representation" in bundle or "public215_contexts" in bundle or feature_contract_version(bundle) in PUBLIC215_FEATURE_CONTRACT_VERSIONS:
+        if not public215 or feature_contract_version(bundle) not in PUBLIC215_FEATURE_CONTRACT_VERSIONS or policy_export_schema(bundle) != "smarter-poker.pio-policy.v4":
             raise ContractError("invalid public215 approval identity")
-        from public_hist215 import validate_context_metadata, validate_protocols
+        from public_hist215 import feature_contract, validate_context_metadata, validate_protocols
         validate_context_metadata(bundle.get("public215_contexts"))
+        if bundle["public215_contexts"][0]["feature_schema_checksum"] != feature_contract(feature_contract_version(bundle))[0]:
+            raise ContractError("public215 approval descriptor differs from its feature contract")
         validate_protocols(bundle.get("public215_protocols"), bundle["public215_contexts"])
     allowed_kinds = {
         "range",

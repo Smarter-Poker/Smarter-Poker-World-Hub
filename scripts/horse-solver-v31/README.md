@@ -214,6 +214,24 @@ change inference, relax quality gates, or authorize promotion.
    the passing dataset in `candidate`. Review the receipts, then use the same
    command with `--promote`. The database independently rechecks every gate.
 
+## Public215 feature contracts (v1 and v2)
+
+A public215 dataset declares exactly one `feature_contract_version`; nothing is
+inferred from a vector, model or template.
+
+- `holdem-public-hist215-v1` (R7): 215 features, descriptor
+  `public_hist215_feature_descriptor.json` (`0ca054f9...`). Unchanged.
+- `holdem-public-hist215-v2` (R8): the same 215 features in the same order, then
+  31 one-hots (`public_hist215.V2_APPENDED`, indices 215..245): the R8 ROOT range
+  checksums (bundle `7de4856b`), hero/opponent positions UTG/HJ/CO and facing
+  bucket `mid`. 246 features, descriptor `c37e7aa2...` = the v1 descriptor plus
+  exactly that block (`feature_descriptor_v2`), so no new pipeline file exists.
+
+`feature_contract(version)` gives the descriptor and width; models, matrices,
+build receipts and training read the width from it. Club Arena
+(`GtoPublicHist215Contracts.ts`), the database and the gateway carry the same
+two contracts.
+
 ## Pio semantics pinned by the worker
 
 Every Pio wager token `bN` in a node id is the actor's **total chips since the

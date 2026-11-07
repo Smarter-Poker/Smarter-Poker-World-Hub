@@ -107,7 +107,7 @@ def decode_f64(value: Any) -> float:
     return number
 
 
-def _tree(tree: Any) -> None:
+def _tree(tree: Any, max_feature: int = 214) -> None:
     if not isinstance(tree, list) or not 1 <= len(tree) <= 29:
         raise ContractError("public215 tree size")
     leaves = 0
@@ -118,7 +118,7 @@ def _tree(tree: Any) -> None:
             leaves += 1
         else:
             _keys(node, {"feature", "threshold_f64", "left", "right", "missing_left"})
-            if not _integer(node["feature"], 0, 214):
+            if not _integer(node["feature"], 0, max_feature):
                 raise ContractError("public215 feature index")
             if any(not _integer(node[k], 0, len(tree) - 1) for k in ("left", "right")):
                 raise ContractError("public215 child index")
@@ -156,7 +156,11 @@ def serialize_model(model: Any, *, model_sha256: str, template_sha256: str,
     for value in [model_sha256, *bindings.values()]:
         if not isinstance(value, str) or not DIGEST.fullmatch(value):
             raise ContractError("public215 binding digest")
-    if model["format"] != FORMAT or type(model["feature_count"]) is not int or model["feature_count"] != 215 or model["variant"] not in ("direct", "coherent"):
+    # The vector width is the bound descriptor's: v2 246. Any other descriptor
+    # keeps the v1 width 215, exactly as v1 admission always did (the
+    # descriptor itself is bound to the dataset contract by the callers).
+    width = FEATURE_COUNT_BY_SCHEMA.get(feature_schema_sha256, 215)
+    if model["format"] != FORMAT or type(model["feature_count"]) is not int or model["feature_count"] != width or model["variant"] not in ("direct", "coherent"):
         raise ContractError("public215 format")
     if any(model[key] != value for key, value in bindings.items()):
         raise ContractError("public215 binding mismatch")
@@ -172,7 +176,7 @@ def serialize_model(model: Any, *, model_sha256: str, template_sha256: str,
         if not isinstance(head["trees"], list) or len(head["trees"]) != 100:
             raise ContractError("public215 frozen iterations")
         for tree in head["trees"]:
-            _tree(tree)
+            _tree(tree, width - 1)
     payload = canonical_bytes(model)
     if len(payload) > MAX_MODEL_BYTES or hashlib.sha256(payload).hexdigest() != model_sha256:
         raise ContractError("public215 model digest/bytes")
@@ -233,6 +237,82 @@ def serialize_training_provenance(value: Any, *, expected_sha256: str) -> bytes:
     return payload
 
 FEATURE_DESCRIPTOR_SHA256 = "0ca054f9bb0463bf6a298a80a29cb4b6d9e6bffcc193e4af9d497e2936ec849f"
+# Feature contract v2 (holdem-public-hist215-v2, R8): the unchanged v1 215
+# features, then these one-hots (indices 215..245). The v2 descriptor is the v1
+# descriptor file plus exactly this block (feature_descriptor_v2), so no new
+# pipeline file exists; its canonical digest is pinned here and in Club Arena.
+FEATURE_CONTRACT_V1 = "holdem-public-hist215-v1"
+FEATURE_CONTRACT_V2 = "holdem-public-hist215-v2"
+V2_APPENDED = (
+    "facing_size_bucket=mid",
+    "hero_position=CO",
+    "hero_position=HJ",
+    "hero_position=UTG",
+    "iprange=1eff0dca52c74b86d77a314c3554cb7357e42e3979bda3970e306dd242e63b19",
+    "iprange=4c4aca48c0b577be5492f05d19eb294557a2cf87103dcf42773db40956b58bad",
+    "iprange=8094ad2bd7fd8e75d410ec521e9749199cc43986319efd148940aa1e886258b8",
+    "iprange=8d05309cf40a74905140d9a3c2b857b4aa0917f37c2434e43c95c8227e0a3c12",
+    "iprange=8e091848a962599d769f99a352a6a1bc7aed2222ede6509f457aa4ac6f44a129",
+    "iprange=940cbb36f68dfee091837aee988eed475ac6cf0f2b6107373014a6bca47eba3c",
+    "iprange=b1d304ccba44f89fa02db583045f4e04a6a6a350ddae1ca4e8dc5a4beb20efb1",
+    "iprange=c8a29032b419bc0f571b511b5c3b4ea5d34f19c07a92660643623102a4d5023c",
+    "iprange=cfb46e1b5d5e73cfbcfe954cd5e9a774181eb9154b3d1ff23d58de6b08335400",
+    "iprange=df7c2db33566dd6b1ab17146e5c86e45025159eb9b591efdfd0c403d102b50b0",
+    "iprange=ebefaf9e605ad69e732d3c29d38c966f229b56437748534ceb9281a318ccd31a",
+    "ooprange=22f7c9b7c5cd1a795476f2e5419b1829d6e13bbfe6dd7a682c56f8c6c72a387e",
+    "ooprange=2eb11daeca4ffdaa8dac768fabfb388ed7a7ea0eae4c65e46618c6eda3444e46",
+    "ooprange=45f108f17d60c7ca10db794ef2a2d1a1c354075f8e24e9eb94559baabaaea54b",
+    "ooprange=6f32554c839177cb628055124548b524a033250bcc2d2c2612e8b8885b4bdd46",
+    "ooprange=789b60c1614b66a8e8e9bfb7d457837683fda8aa798a1090564fea928a0c9ef2",
+    "ooprange=8c26e3d32a0944a4f66c3afbf54efe80ac6e24a4cee7eaf8311dc95c54743f65",
+    "ooprange=8e091848a962599d769f99a352a6a1bc7aed2222ede6509f457aa4ac6f44a129",
+    "ooprange=940cbb36f68dfee091837aee988eed475ac6cf0f2b6107373014a6bca47eba3c",
+    "ooprange=a70f8bc53d028a436d875c4374b9b8bb615e7eef33f14676bdb95fc64da0fe81",
+    "ooprange=b342d9978e3f4dc9b96aeb9509cff1501f71bb3480db9f0e74db160241937b13",
+    "ooprange=c8682c9598acfdb2947b0bf029bf812ba1f1c92b40b8fb452c81f28f46f99fed",
+    "ooprange=d94b67df0b44afe07d24d6b9b1b69ab517afc327a3186c1535aebab6a949310c",
+    "ooprange=df7c2db33566dd6b1ab17146e5c86e45025159eb9b591efdfd0c403d102b50b0",
+    "opponent_position=CO",
+    "opponent_position=HJ",
+    "opponent_position=UTG",
+)
+FEATURE_DESCRIPTOR_V2_SHA256 = "c37e7aa2b2dde3f71cde7d224594de637ab66c928c6dffd94661fec3f7ac80c4"
+FEATURE_CONTRACTS = {FEATURE_CONTRACT_V1: (FEATURE_DESCRIPTOR_SHA256, 215),
+                     FEATURE_CONTRACT_V2: (FEATURE_DESCRIPTOR_V2_SHA256, 215 + len(V2_APPENDED))}
+FEATURE_COUNT_BY_SCHEMA = {sha: count for sha, count in FEATURE_CONTRACTS.values()}
+
+
+def feature_contract(version: Any) -> tuple[str, int]:
+    """(descriptor sha256, feature count) of a dataset's explicit contract version."""
+    if version not in FEATURE_CONTRACTS:
+        raise ContractError("public215 unknown feature contract version")
+    return FEATURE_CONTRACTS[version]
+
+
+def feature_descriptor_v2(v1: dict) -> dict:
+    """The v2 descriptor: the v1 descriptor with the appended block, nothing else."""
+    v2 = dict(v1)
+    v2.update({"format": "holdem-public-hist215-feature-schema-v2", "feature_count": 215 + len(V2_APPENDED),
+               "feature_order": [*v1["feature_order"], *V2_APPENDED],
+               "feature_groups": [*v1["feature_groups"], {"count": len(V2_APPENDED), "name": "v2_appended_public_categories", "offset": 215}],
+               "predecessor_schema_sha256": FEATURE_DESCRIPTOR_SHA256,
+               "appended_rule": "one_hot_exact_context_category_or_root_range_checksum_then_zero"})
+    return v2
+
+
+def maintained_feature_descriptor(version: Any) -> dict:
+    """The maintained descriptor of a contract, each checked against its pinned digest."""
+    from pathlib import Path
+    raw = Path(__file__).with_name("public_hist215_feature_descriptor.json").read_bytes()
+    if hashlib.sha256(raw).hexdigest() != FEATURE_DESCRIPTOR_SHA256:
+        raise ContractError("public215 maintained full feature descriptor differs")
+    sha, count = feature_contract(version)
+    value = json.loads(raw)
+    if version == FEATURE_CONTRACT_V2:
+        value = feature_descriptor_v2(value)
+    if digest(value) != sha or value["feature_count"] != count:
+        raise ContractError("public215 maintained feature descriptor differs")
+    return value
 CONTEXT_KEYS = {"street", "game_family", "objective", "utility_context", "table_size", "pot_type",
                 "hero_position", "opponent_position", "depth_bucket", "texture_class", "node_role",
                 "facing_kind", "facing_size_bucket"}
@@ -254,7 +334,7 @@ def validate_context_metadata(entries: Any) -> None:
             raise ContractError("public215 approved ordered children")
         if entry["model_action_order"] != sorted(actions):
             raise ContractError("public215 frozen scientific model action order")
-        if not isinstance(entry["template_checksum"], str) or not DIGEST.fullmatch(entry["template_checksum"]) or entry["template_checksum"] == "0" * 64 or entry["feature_schema_checksum"] != FEATURE_DESCRIPTOR_SHA256:
+        if not isinstance(entry["template_checksum"], str) or not DIGEST.fullmatch(entry["template_checksum"]) or entry["template_checksum"] == "0" * 64 or entry["feature_schema_checksum"] not in FEATURE_COUNT_BY_SCHEMA or entry["feature_schema_checksum"] != entries[0]["feature_schema_checksum"]:
             raise ContractError("public215 metadata digest")
         order.append(canonical_bytes(c))
     if order != sorted(set(order)):
@@ -271,11 +351,12 @@ def validate_manifest_metadata(manifest: dict, root: Any, combo_order: tuple[str
     from pathlib import Path
     from contract import _json_bytes, _verify_file, _safe_relative_path
     from pio_upi import target_context, analyze_node
-    descriptor = Path(__file__).with_name("public_hist215_feature_descriptor.json").read_bytes()
-    if hashlib.sha256(descriptor).hexdigest() != FEATURE_DESCRIPTOR_SHA256:
-        raise ContractError("public215 maintained full feature descriptor differs")
+    schema, _ = feature_contract(manifest.get("feature_contract_version"))
+    maintained_feature_descriptor(manifest["feature_contract_version"])
     entries = manifest["public215_contexts"]
     validate_context_metadata(entries)
+    if entries[0]["feature_schema_checksum"] != schema:
+        raise ContractError("public215 context descriptor differs from the declared feature contract")
     validate_protocols(manifest["public215_protocols"], entries)
     protocol_files = _keys(manifest["public215_protocol_files"], PROTOCOL_KEYS)
     for key, f in protocol_files.items():
@@ -399,7 +480,7 @@ def serialize_build_receipt(value: Any, *, expected_sha256: str, model: dict,
             raise ContractError("public215 approved case order/deck")
         identities.add(identity)
         decoded = {}
-        for key, size in (("features_f64",215),("raw_heads_f64",heads),("Q_f64",actions),("frequency_f64",actions)):
+        for key, size in (("features_f64",model["feature_count"]),("raw_heads_f64",heads),("Q_f64",actions),("frequency_f64",actions)):
             if not isinstance(c[key], list) or len(c[key]) != size:
                 raise ContractError("public215 case vector census")
             decoded[key] = [decode_f64(x) for x in c[key]]
@@ -430,7 +511,7 @@ def validate_protocols(protocols: Any, contexts: list[dict]) -> None:
         if not isinstance(body, dict) or not body:
             raise ContractError("public215 canonical protocol body required")
         canonical_bytes(body)
-    if digest(protocols["feature_schema"]) != FEATURE_DESCRIPTOR_SHA256:
+    if digest(protocols["feature_schema"]) not in FEATURE_COUNT_BY_SCHEMA or digest(protocols["feature_schema"]) != contexts[0]["feature_schema_checksum"]:
         raise ContractError("public215 protocol full feature descriptor differs")
     p = _keys(protocols["runtime_parity_protocol"], {"format", "method", "clock", "platform", "node_major", "napi_version", "native_source_checksum", "execution_limit_ms", "contexts"})
     if p["format"] != "public_hist215_runtime_parity_protocol_v1" or p["method"] != "cold_public215_features_and_all_heads_v1" or p["clock"] != "process.hrtime.bigint" or p["platform"] != "linux" or not _integer(p["node_major"],22,22) or not _integer(p["napi_version"],8,8) or p["native_source_checksum"] != NATIVE_SOURCE_SHA256 or not _integer(p["execution_limit_ms"],8000,8000):

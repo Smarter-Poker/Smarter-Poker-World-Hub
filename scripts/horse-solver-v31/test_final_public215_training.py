@@ -52,7 +52,7 @@ class FinalPublic215TrainingTests(unittest.TestCase):
     def test_exact_equal_board_mass_and_policy_Q_frequency_column_order(self):
         nodes=[{'positive':[1,3],'actions':['b20','c'],'weights':[1.,3.],'policy':[10.,20.],'action_EV':[[1.,2.],[3.,4.]],'frequency':[[.4,.6],[.2,.8]]},
                {'positive':[2],'actions':['b20','c'],'weights':[100.],'policy':[30.],'action_EV':[[5.,6.]],'frequency':[[.6,.4]]}]
-        group={'rows':[{'combo_indices':[1,3],'offset':0},{'combo_indices':[2],'offset':2}]}
+        group={'rows':[{'combo_indices':[1,3],'offset':0},{'combo_indices':[2],'offset':2}],'feature_count':215}
         X,Y,w=training_arrays(nodes,group,np.arange(645,dtype='float64').reshape(3,215))
         np.testing.assert_array_equal(w,[.375,1.125,1.5]);np.testing.assert_array_equal(Y[0],[10,1,2,.4,.6]);self.assertEqual(X.shape,(3,215))
         self.assertEqual(nodes[0]['weights'],[1.,3.])
@@ -103,9 +103,10 @@ class FinalPublic215TrainingTests(unittest.TestCase):
     def test_public_npy_is_exact_float64_finite_c_order_and_exact_file_frame(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'public.npy'
-            def group():return {'matrix_path':str(path),'matrix_sha256':SHA(path.read_bytes()),'row_count':2}
+            def group(width=215):return {'matrix_path':str(path),'matrix_sha256':SHA(path.read_bytes()),'row_count':2,'feature_count':width}
             np.save(path,np.zeros((2,215),dtype='<f8'),allow_pickle=False)
             matrix=public_matrix(group());self.assertEqual(matrix.shape,(2,215));del matrix
+            with self.assertRaises(ContractError):public_matrix(group(246))  # a v1 matrix is not a v2 input
             for values in [np.zeros((2,215),dtype='float32'),np.full((2,215),np.nan),np.asfortranarray(np.zeros((2,215)))]:
                 np.save(path,values,allow_pickle=False)
                 with self.assertRaises(ContractError):public_matrix(group())

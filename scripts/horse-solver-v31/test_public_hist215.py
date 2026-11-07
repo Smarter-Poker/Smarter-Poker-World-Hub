@@ -156,7 +156,7 @@ class Public215MetadataTests(unittest.TestCase):
                 protocols=self.protocols(entry); files={}
                 for key,body in protocols.items():
                     path=key+".json";(root/path).write_bytes(canonical_bytes(body));files[key]={"path":path,"checksum":digest(body)}
-                return {"scenarios":[scenario],"public215_contexts":[entry],"public215_template_files":[{"path":"template.json","checksum":checksum}],"public215_protocols":protocols,"public215_protocol_files":files}
+                return {"feature_contract_version":"holdem-public-hist215-v1","scenarios":[scenario],"public215_contexts":[entry],"public215_template_files":[{"path":"template.json","checksum":checksum}],"public215_protocols":protocols,"public215_protocol_files":files}
             cards=[r+s for r in "23456789TJQKA" for s in "cdhs"]
             order=tuple(cards[a]+cards[b] for b in range(1,52) for a in range(b))
             validate_manifest_metadata(manifest_for(template),root,order,verify_inputs=True)
@@ -348,6 +348,57 @@ class Public215M2SelectorTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError,"complete frozen Linux model index"):
                 worker.run(args)
             pio.assert_not_called()
+
+
+class FeatureContractV2Tests(unittest.TestCase):
+    def test_v2_is_v1_plus_the_appended_block_and_both_digests_are_pinned(self):
+        import public_hist215 as c
+        v1 = c.maintained_feature_descriptor(c.FEATURE_CONTRACT_V1)
+        v2 = c.maintained_feature_descriptor(c.FEATURE_CONTRACT_V2)
+        self.assertEqual(digest(v1), c.FEATURE_DESCRIPTOR_SHA256)
+        self.assertEqual(digest(v2), "c37e7aa2b2dde3f71cde7d224594de637ab66c928c6dffd94661fec3f7ac80c4")
+        self.assertEqual(v2["feature_order"][:215], v1["feature_order"])
+        self.assertEqual(v2["feature_order"][215:], list(c.V2_APPENDED))
+        self.assertEqual(v2["feature_count"], 246)
+        self.assertEqual(list(c.V2_APPENDED), sorted(set(c.V2_APPENDED)))
+        self.assertFalse(set(c.V2_APPENDED) & set(v1["feature_order"]))
+        self.assertEqual(c.feature_contract("holdem-public-hist215-v1"), (c.FEATURE_DESCRIPTOR_SHA256, 215))
+        self.assertEqual(c.feature_contract("holdem-public-hist215-v2"), (c.FEATURE_DESCRIPTOR_V2_SHA256, 246))
+        for unknown in (None, "holdem-public-hist215-v3", "rank-suit-count-v1"):
+            with self.assertRaises(ContractError):
+                c.feature_contract(unknown)
+
+    def test_model_width_follows_the_bound_descriptor(self):
+        import public_hist215 as c
+        leaf = [{"value_f64": encode_f64(0.0)}]
+        node = lambda f: [{"feature": f, "threshold_f64": encode_f64(0.5), "left": 1, "right": 2, "missing_left": True},
+                          {"value_f64": encode_f64(0.0)}, {"value_f64": encode_f64(1.0)}]
+        def model(count, schema, tree):
+            return {"format": "public_hist215_v1", "variant": "direct", "feature_count": count, "action_ids": ["c"],
+                    "heads": [{"baseline_f64": encode_f64(0.0), "trees": [tree] * 100} for _ in range(3)],
+                    "template_sha256": "1" * 64, "feature_schema_sha256": schema, "provenance_sha256": "3" * 64}
+        def admit(m):
+            return c.serialize_model(m, model_sha256=digest(m), template_sha256="1" * 64, feature_schema_sha256=m["feature_schema_sha256"],
+                                     provenance_sha256="3" * 64, action_ids=["c"])
+        v2 = c.FEATURE_DESCRIPTOR_V2_SHA256
+        admit(model(246, v2, node(245)))
+        for bad in (model(215, v2, leaf), model(246, v2, node(246)), model(246, c.FEATURE_DESCRIPTOR_SHA256, leaf), model(215, c.FEATURE_DESCRIPTOR_SHA256, node(215))):
+            with self.assertRaises(ContractError):
+                admit(bad)
+        admit(model(215, c.FEATURE_DESCRIPTOR_SHA256, node(214)))
+
+    def test_manifest_pipeline_identity_accepts_exactly_v1_and_v2(self):
+        import contract
+        base = {"pipeline_contract_version": contract.PUBLIC215_PIPELINE_CONTRACT, "policy_representation": "public_hist215_v1",
+                "policy_export_schema": "smarter-poker.pio-policy.v4", "public215_contexts": [], "public215_template_files": [],
+                "public215_protocols": {}, "public215_protocol_files": {}}
+        for version in ("holdem-public-hist215-v1", "holdem-public-hist215-v2"):
+            self.assertEqual(contract.required_pipeline_files({**base, "feature_contract_version": version}), contract.PUBLIC215_PIPELINE_FILES)
+        for version in ("holdem-public-hist215-v3", "holdem-board-relative-v2"):
+            with self.assertRaises(ContractError):
+                contract.required_pipeline_files({**base, "feature_contract_version": version})
+        with self.assertRaises(ContractError):  # never inferred: a public215 field needs the explicit pipeline contract
+            contract.required_pipeline_files({"feature_contract_version": "holdem-public-hist215-v2"})
 
 
 if __name__ == "__main__":

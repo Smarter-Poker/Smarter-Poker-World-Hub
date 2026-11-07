@@ -9,6 +9,7 @@ import {
   v31IngressEnvelopeIsValid,
   verifyV31IngressRequest,
   v31FeatureContractVersion,
+  v31IsPublic215FeatureContract,
   v31PolicyExportSchema,
   v31Public215BuildEnvelopeIsValid,
   v31Public215FreezeEnvelopeIsValid,
@@ -260,7 +261,7 @@ async function dispatch(supabase, envelope) {
   if (operation === 'model_freeze_authority') {
     if (!['M2','COMPACTOR'].includes(principal) || !exactKeys(payload,['dataset_id'])
         || payload.dataset_id !== contract.dataset_id || contract.state !== 'building'
-        || v31FeatureContractVersion(contract) !== 'holdem-public-hist215-v1') {
+        || !v31IsPublic215FeatureContract(v31FeatureContractVersion(contract))) {
       throw new GatewayError('Model freeze authority is unavailable for this contract',409);
     }
     return rpc(supabase,'fn_gto_v31_model_freeze_authority',{p_dataset_id:payload.dataset_id});
@@ -280,7 +281,7 @@ async function dispatch(supabase, envelope) {
         || contract.state !== 'building') {
       throw new GatewayError('Artifact ingestion is not authorized for this dataset', 409);
     }
-    const selectedM2 = principal === 'M2' && v31FeatureContractVersion(contract) === 'holdem-public-hist215-v1';
+    const selectedM2 = principal === 'M2' && v31IsPublic215FeatureContract(v31FeatureContractVersion(contract));
     if (selectedM2 ? (typeof payload.artifact?.selection_seed !== 'string' || !/^[0-9a-f]{64}$/.test(payload.artifact.selection_seed))
       : Object.prototype.hasOwnProperty.call(payload.artifact || {}, 'selection_seed')) {
       throw new GatewayError('Artifact selection authority is invalid', 409);
@@ -335,7 +336,7 @@ async function dispatch(supabase, envelope) {
   }
   if (operation === 'prepare_model' || operation === 'freeze_model') {
     if (!exactKeys(payload,['dataset_id','context']) || payload.dataset_id!==contract.dataset_id
-        || contract.state!=='building' || v31FeatureContractVersion(contract)!=='holdem-public-hist215-v1'
+        || contract.state!=='building' || !v31IsPublic215FeatureContract(v31FeatureContractVersion(contract))
         || !(operation==='prepare_model'
           ? v31Public215BuildEnvelopeIsValid(payload.context,contract.dataset_id,false)
           : v31Public215FreezeEnvelopeIsValid(payload.context,contract.dataset_id))) {
@@ -345,7 +346,7 @@ async function dispatch(supabase, envelope) {
       {p_dataset_id:payload.dataset_id,...(operation==='prepare_model'?{p_program:payload.context}:{p_freeze:payload.context})},LONG_DB_TIMEOUT_MS);
   }
   if (operation === 'build_cell') {
-    if (v31FeatureContractVersion(contract) === 'holdem-public-hist215-v1'
+    if (v31IsPublic215FeatureContract(v31FeatureContractVersion(contract))
         ? !v31Public215BuildEnvelopeIsValid(payload.context, contract.dataset_id)
         : payload.context?.policy_representation !== undefined) {
       throw new GatewayError('Compact-cell representation envelope is invalid', 409);
@@ -369,7 +370,7 @@ async function dispatch(supabase, envelope) {
     if (principal !== 'COMPACTOR' || !exactKeys(payload, keys)
         || !['prepare_cell','preparation_status'].includes(payload.phase)
         || payload.dataset_id !== contract.dataset_id || contract.state !== 'building'
-        || v31FeatureContractVersion(contract) !== 'holdem-public-hist215-v1'
+        || !v31IsPublic215FeatureContract(v31FeatureContractVersion(contract))
         || !Number.isSafeInteger(payload.preparation_offset)
         || Object.is(payload.preparation_offset, -0) || payload.preparation_offset < 0 || payload.preparation_offset >= 107
         || !keys.filter(k=>k.endsWith('checksum')).every(k=>
