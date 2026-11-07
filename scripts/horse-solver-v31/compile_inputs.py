@@ -138,6 +138,24 @@ def compile_model(model_id, snapshot, source_path, checksum):
             "source_snapshot_checksum": checksum, "points": points}
 
 
+def range_weight_text(value):
+    """Shortest exact text of a range weight on the public215 decimal grid.
+
+    `format(value, ".17g")` printed binary noise (0.0601 -> 0.060100000000000001),
+    which no public215 consumer accepts: every ROOT weight must be an exact
+    decimal multiple of 1e-12 in [0, 1]. repr() is the shortest text that
+    round-trips the float, so a supplied 4-decimal weight stays 4 decimals.
+    """
+    from decimal import Decimal
+    text = repr(float(value))
+    if text.endswith(".0"):
+        text = text[:-2]
+    scaled = Decimal(text) * 10 ** 12
+    if "e" in text.lower() or not (0 <= scaled <= 10 ** 12) or scaled != scaled.to_integral_value():
+        raise ContractError("range weight is not an exact 12-place decimal in [0,1]: " + text)
+    return text
+
+
 def compile_recipe(recipe_path, source_root, output_root):
     recipe_bytes = recipe_path.read_bytes()
     recipe = exact(_json_bytes(recipe_bytes, "input recipe"), {"contract", "ranges", "models"}, "recipe")
@@ -169,7 +187,7 @@ def compile_recipe(recipe_path, source_root, output_root):
         for token, weight in zip(order, weights):
             remapped[canonical[frozenset((token[:2], token[2:]))]] = weight
         relative = f"ranges/{name}.txt"
-        payload = (" ".join(format(value, ".17g") for value in remapped) + "\n").encode()
+        payload = (" ".join(range_weight_text(value) for value in remapped) + "\n").encode()
         outputs[relative] = payload
         outputs[f"sources/ranges/{name}.source"] = raw
         outputs[f"sources/ranges/{name}.order"] = order_bytes
