@@ -50,6 +50,7 @@ from gateway import (  # noqa: E402
     sign_request,
 )
 from pio_upi import (  # noqa: E402
+    _action_spec,
     PioError,
     PioProcess,
     PioSetupSession,
@@ -152,7 +153,7 @@ class NodeLineTests(unittest.TestCase):
 
     def test_complete_state_recovers_actual_multistreet_node_payments(self):
         scenario = base_scenario()
-        target = {"node": "r:0:b100:b300:c:2d:c:b200", "board": "AsKd7c2d"}
+        target = {"node": "r:0:b100:b300:c:2d:c:b500", "board": "AsKd7c2d"}
         state = complete_node_state(scenario, target, icm_model_checksum='f'*64)
         self.assertEqual(state["pot_chips"], 900)
         self.assertEqual(state["contributions_chips"], [0, 200])
@@ -170,6 +171,34 @@ class NodeLineTests(unittest.TestCase):
         self.assertEqual(state["last_full_raise_increment_chips"], 200)
         self.assertEqual(state["minimum_raise_target_chips"], 550)
         self.assertEqual(state["public_history"][-1]["family"], "all_in")
+
+    def test_wager_tokens_are_pio_totals_since_the_root(self):
+        # Pio 3.8.0 (e21ea7ad...), add_line 0 250 250 250 500 500 500 500 on a
+        # 500 pot: show_children r:0:c:b250:c:7d:c lists r:0:c:b250:c:7d:c:b500
+        # and show_node reports spent OOP 250 / IP 500. The token is the actor's
+        # total since the root, so this is a 250-chip turn bet into 1000.
+        line = analyze_node("r:0:c:b250:c:7d:c:b500", root_pot_chips=500,
+                            effective_stack_chips=8000, preflop_aggressor=1)
+        self.assertEqual((line.street, line.actor, line.node_role, line.facing_size_bucket),
+                         ("turn", 0, "facing_bet", "small"))
+        self.assertEqual((line.total_spent, line.contributions, line.pot_chips, line.current_target),
+                         ((250, 500), (0, 250), 1250, 250))
+        self.assertEqual(line.cumulative_line, (0, 250, 250, 250, 500))
+        barrel = analyze_node("r:0:c:b250:c:7d:c", root_pot_chips=500,
+                              effective_stack_chips=8000, preflop_aggressor=1)
+        self.assertEqual(barrel.node_role, "barrel")
+        self.assertEqual(_action_spec("b500", barrel, 8000),
+                         {"family": "bet", "size_unit": "pot_fraction", "size_value": 0.25, "all_in": False})
+        self.assertEqual(_action_spec("b8000", barrel, 8000)["family"], "all_in")
+        scenario = {**base_scenario(), "pot_chips": 500, "effective_stack_chips": 8000,
+                    "chips_per_bb": 100, "flop_board": "QsJh2c", "preflop_aggressor_solver_player": 1}
+        state = complete_node_state(scenario, {"node": "r:0:c:b250:c:7d:c:b500", "board": "QsJh2c7d"},
+                                    icm_model_checksum='f' * 64)
+        self.assertEqual((state["total_spent_chips"], state["pot_chips"], state["to_call_chips"]), ([250, 500], 1250, 250))
+        self.assertEqual(state["public_history"][-1], {"street": "turn", "solver_player": 1,
+                         "position": scenario["ip_position"], "family": "bet", "target_chips": 250})
+        with self.assertRaises(PioError):  # a total at or below earlier-street spending is no wager
+            analyze_node("r:0:c:b250:c:7d:c:b250", root_pot_chips=500, effective_stack_chips=8000, preflop_aggressor=1)
 
     def test_conditional_root_jam_is_explicit_and_forced_before_build(self):
         scenario = base_scenario()
@@ -201,7 +230,7 @@ class NodeLineTests(unittest.TestCase):
     def conditioned(self):
         scenario = base_scenario()
         scenario["tree_lines"] = [[100, 300, 300, 300, 500, 500]]
-        node = "r:0:b100:b300:c:2d:c:b200"
+        node = "r:0:b100:b300:c:2d:c:b500"
         line = analyze_node(node, root_pot_chips=100, effective_stack_chips=1000, preflop_aggressor=None)
         scenario["targets"][0].update(node=node, board="AsKd7c2d", node_role=line.node_role,
             facing_kind=line.facing_kind, facing_size_bucket=line.facing_size_bucket,

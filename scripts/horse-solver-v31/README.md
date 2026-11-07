@@ -216,6 +216,20 @@ change inference, relax quality gates, or authorize promotion.
 
 ## Pio semantics pinned by the worker
 
+Every Pio wager token `bN` in a node id is the actor's **total chips since the
+root, across streets**, exactly like the `add_line` numbers. Pio 3.8.0 names a
+250-chip turn bet after a 250-chip flop call `r:0:c:b250:c:7d:c:b500` and
+`show_node` reports it as spent 250 / 500. `analyze_node`, `complete_node_state`
+and `_action_spec` subtract the chips each player spent on earlier streets, so a
+later-street wager's street target, pot, facing bucket and pot fraction are the
+real ones (until 2026-11-07 they read the token as a street amount, which
+doubled-counted earlier streets: R7's turn barrel child `b500` was exported as a
+50% pot bet although Pio solved a 25% bet). The database chronology functions
+(`fn_gto_v31_node_line_proof`, `fn_gto_v31_complete_public_state`) still read
+the token as a street amount, so a target whose path holds a wager after
+earlier-street money is refused at ingest (fail-closed) until they are aligned;
+child pot fractions are not recomputed in SQL.
+
 Dedicated authored opponent-jam response scenarios may explicitly declare
 `conditional_root_action: {"action":"all_in","model":"authored_opponent_jam_response"}`.
 This models the IP response conditional on an OOP root jam with the approved
