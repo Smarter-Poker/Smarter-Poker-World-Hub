@@ -103,6 +103,41 @@ export function undeliveredTextsTitle(u) {
     return `${u.total} text${u.total === 1 ? '' : 's'} did not reach the phone (${parts.join(', ')})`;
 }
 
+/**
+ * WHICH FIX CLOSED IT (Dan, 2026-11-07): each critical alert type in the
+ * grouped "new this week or doubled" item lists how many of its own original
+ * alert records are verified fixed and the fix that closed them, read from
+ * the records themselves (investigation_status, investigation.fixing_pr).
+ * A quiet alert is never shown as fixed: only verified_fixed counts.
+ */
+export function summarizeAlertFixes(sourceEvents, rows) {
+    const byId = new Map((rows || []).map((r) => [String(r.id), r]));
+    return (sourceEvents || []).map((g) => {
+        const ids = Array.isArray(g.event_ids) ? g.event_ids.map(String) : [];
+        const found = ids.map((id) => byId.get(id)).filter(Boolean);
+        const verified = found.filter((r) => r.investigation_status === 'verified_fixed');
+        const fixes = [...new Set(verified.map((r) => r.fixing_pr).filter(Boolean))];
+        return { alertname: g.alertname, total: ids.length, verified: verified.length, fixes };
+    });
+}
+
+export async function loadAlertFixes(sb, digest) {
+    try {
+        const item = (digest?.attention || []).find((it) => it.rule === 'critical_alert_rising');
+        const groups = item?.detail?.source_events;
+        if (!item || !Array.isArray(groups) || !groups.length) return;
+        const ids = [...new Set(groups.flatMap((g) => (Array.isArray(g.event_ids) ? g.event_ids : [])))].slice(0, 2000);
+        const rows = [];
+        for (let i = 0; i < ids.length; i += 200) {
+            const { data, error } = await sb.from('operational_alert_events')
+                .select('id, investigation_status, investigation').in('id', ids.slice(i, i + 200));
+            if (error) return;
+            for (const r of data || []) rows.push({ id: r.id, investigation_status: r.investigation_status, fixing_pr: r.investigation?.fixing_pr || null });
+        }
+        item.fixes = summarizeAlertFixes(groups, rows);
+    } catch { /* the digest never fails on this annotation */ }
+}
+
 /** Time the report loads may keep retrying, out of the route's 300 s. */
 const REPORT_BUDGET_MS = 150000;
 
@@ -142,6 +177,7 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
             digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
         }
     }
+    await loadAlertFixes(sb, digest);
     const undelivered = await loadUndeliveredTexts(sb, day);
     if (digest) digest.undelivered_texts = undelivered;
     if (digest && undelivered && !undelivered.error && undelivered.total > 0) {

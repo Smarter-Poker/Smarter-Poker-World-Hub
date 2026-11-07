@@ -351,6 +351,13 @@ export function shortTitle(title, max = 260) {
 
 const STATUS_LABEL = { fixed: 'Resolved Or Reviewed', in_progress: 'Under Investigation', not_picked_up: 'Not Yet Picked Up', tracked: 'Recorded Alert; Assignment Unconfirmed' };
 
+/** One line per alert type: verified-fixed count and the fix that closed it. */
+export function alertFixLines(it) {
+    if (!Array.isArray(it?.fixes)) return [];
+    return it.fixes.map((f) => `${f.alertname}: ${fmtInt(f.verified)} of ${fmtInt(f.total)} verified fixed${
+        f.fixes.length ? ` (Fix: ${f.fixes.join('; ').slice(0, 140)})` : f.verified < f.total ? ' (no verified fix yet)' : ''}`);
+}
+
 export function attentionHtml(digest) {
     const items = digest.attention || [];
     if (!items.length) {
@@ -367,6 +374,7 @@ export function attentionHtml(digest) {
             return `<tr><td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;color:${C.text};">`
                 + `<span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${color};margin-right:8px;"></span>${esc(shortTitle(it.title))}`
                 + `<div style="margin:3px 0 0 16px;font-size:11px;color:${sColor};">${esc(status)}${it.resolution ? ` - ${esc(String(it.resolution).slice(0, 160))}` : ''}</div>`
+                + alertFixLines(it).map((line) => `<div style="margin:2px 0 0 16px;font-size:11px;color:${C.muted};">${esc(line)}</div>`).join('')
                 + `</td></tr>`;
         })
         .join('');
@@ -828,7 +836,10 @@ export function buildText(digest, opts = {}) {
     }
     const items = digest.attention || [];
     lines.push(items.length ? `NEEDS YOUR ATTENTION (${items.length})` : 'Nothing needs your attention.');
-    for (const it of items) lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
+    for (const it of items) {
+        lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
+        for (const line of alertFixLines(it)) lines.push(`    ${line}`);
+    }
     lines.push('', 'MONTH TO DATE');
     for (const [k, v] of Object.entries(digest.mtd || {})) lines.push(`${k.replace(/_/g, ' ')}: ${fmtNum(v)}`);
     if (digest.week) {

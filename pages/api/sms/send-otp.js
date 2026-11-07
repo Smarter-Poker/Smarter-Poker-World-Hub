@@ -216,6 +216,8 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               message: 'Verification code sent',
+              // The verify screen asks /api/sms/otp-status for its carrier answer.
+              messageId: message?.sid || null,
           });
 
       } catch (error) {
