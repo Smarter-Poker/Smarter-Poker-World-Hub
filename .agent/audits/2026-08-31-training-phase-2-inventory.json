@@ -50857,7 +50857,7 @@
         },
         {
           "name": "datasetSchema",
-          "line": 304,
+          "line": 305,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50865,7 +50865,7 @@
         },
         {
           "name": "courseSchema",
-          "line": 348,
+          "line": 349,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -50873,7 +50873,7 @@
         },
         {
           "name": "freerollEventSchema",
-          "line": 417,
+          "line": 418,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -96855,6 +96855,7 @@
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/phase22-discovery-faq-speakable.test.mjs",
+          "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/events-calendar.js",
           "pages/hub/home-games/near-me.js",
           "pages/hub/index.js",
@@ -96869,7 +96870,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 417,
+        "line": 418,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106317,6 +106318,7 @@
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
           "__tests__/phase22-discovery-faq-speakable.test.mjs",
+          "__tests__/schema-faq-and-rich-results.test.mjs",
           "pages/hub/events-calendar.js",
           "pages/hub/home-games/near-me.js",
           "pages/hub/index.js",
@@ -106331,7 +106333,7 @@
       {
         "file": "src/lib/seo/hubPageSchema.js",
         "name": "freerollEventSchema",
-        "line": 417,
+        "line": 418,
         "references": 1,
         "exported": true,
         "defaultExport": false,
