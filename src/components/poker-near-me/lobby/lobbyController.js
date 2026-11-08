@@ -6,6 +6,8 @@
  * from becoming the source of truth for data behavior.
  */
 
+import { breadcrumbSchema } from '../../../lib/seo/hubPageSchema.js';
+
 export const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -83,6 +85,7 @@ export function createLobbyJsonLd(websiteSchema, siteUrl = 'https://smarter.poke
           '@id': `${siteUrl}/#organization`,
         },
       },
+      breadcrumbSchema([['Hub', '/hub'], ['Poker Near Me', '/hub/poker-near-me/lobby']], siteUrl),
     ],
   };
 }

@@ -29,9 +29,9 @@ export const WEBSITE_ID = `${SITE}/#website`;
 
 import { resolveToolWikidataLinks } from './wikidataRegistry.mjs';
 
-const absolute = (path) => {
+const absolute = (path, site = SITE) => {
   const safePath = typeof path === 'string' && path.length > 0 ? path : '/';
-  return `${SITE}${safePath.startsWith('/') ? '' : '/'}${safePath}`;
+  return `${site}${safePath.startsWith('/') ? '' : '/'}${safePath}`;
 };
 
 /**
@@ -39,16 +39,16 @@ const absolute = (path) => {
  * always starts at the site root, because a crawler that arrives on a deep
  * page from a sitemap has no other way to learn where it is.
  */
-export function breadcrumbSchema(trail) {
+export function breadcrumbSchema(trail, site = SITE) {
   const items = [['Smarter.Poker', '/'], ...trail];
   return {
     '@type': 'BreadcrumbList',
-    '@id': `${absolute(items[items.length - 1][1])}#breadcrumb`,
+    '@id': `${absolute(items[items.length - 1][1], site)}#breadcrumb`,
     itemListElement: items.map(([name, path], index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name,
-      item: absolute(path),
+      item: absolute(path, site),
     })),
   };
 }
@@ -249,6 +249,7 @@ export function hubCollectionSchema({
   image = `${SITE}/images/og-card.jpg`,
   dataset = null,
   faqs = null,
+  pageType = 'CollectionPage',
 }) {
   const url = absolute(path);
   const imageNode = licensableImageSchema({
@@ -259,7 +260,7 @@ export function hubCollectionSchema({
   });
   const nodes = [
     {
-      '@type': 'CollectionPage',
+      '@type': pageType,
       '@id': `${url}#page`,
       url,
       name,

@@ -5,6 +5,7 @@ import { hubCollectionSchema } from '../src/lib/seo/hubPageSchema';
 
 // AEO phase 3 (2026-09-17): this page had copy and no structured data.
 const TERMS_SCHEMA = hubCollectionSchema({
+  pageType: 'WebPage',
   path: '/terms',
   name: 'Terms Of Service | Smarter.Poker',
   description:

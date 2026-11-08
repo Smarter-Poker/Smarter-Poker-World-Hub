@@ -16,6 +16,7 @@ import { PrivacySection, styles } from './terms';
 // none, though it is the URL the app stores read and the one every hub
 // summary links to in its compliance line.
 const PRIVACY_SCHEMA = hubCollectionSchema({
+  pageType: 'WebPage',
   path: '/privacy',
   name: 'Privacy Policy | Smarter.Poker',
   description:
