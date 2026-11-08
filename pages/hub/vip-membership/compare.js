@@ -4,6 +4,7 @@ import MarketplaceDetailExperience from '../../../src/components/store/Marketpla
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
 import styles from './compare.module.css';
 import { getVipBenefitsForPlan, VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
+import { breadcrumbSchema } from '../../../src/lib/seo/hubPageSchema';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
 /* Monthly, Yearly, Lifetime (Dan 2026-09-05). Was daily/monthly/annual - with
@@ -13,13 +14,25 @@ const PLANS = [VIP_MEMBERSHIP.monthly, VIP_MEMBERSHIP.yearly, VIP_MEMBERSHIP.lif
 
 export default function VipComparePage() {
   const canonical = '/hub/vip-membership/compare';
+  const breadcrumbs = [
+    { label: 'Marketplace', href: '/hub/diamond-store' },
+    { label: 'VIP Membership', href: '/hub/vip-membership' },
+    { label: 'Compare Plans', href: canonical },
+  ];
+  const breadcrumb = breadcrumbSchema(breadcrumbs.map(({ label, href }) => [label, href]));
   const schema = {
     '@context': 'https://schema.org',
-    '@type': 'WebPage',
-    name: 'Compare Smarter.Poker VIP Membership Plans',
-    description:
-      'Compare monthly, yearly, and lifetime VIP access with card and diamond payment options.',
-    url: `https://smarter.poker${canonical}`,
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        name: 'Compare Smarter.Poker VIP Membership Plans',
+        description:
+          'Compare monthly, yearly, and lifetime VIP access with card and diamond payment options.',
+        url: `https://smarter.poker${canonical}`,
+        breadcrumb: { '@id': breadcrumb['@id'] },
+      },
+      breadcrumb,
+    ],
   };
 
   return (
@@ -30,11 +43,7 @@ export default function VipComparePage() {
       eyebrow="High Limit Access / Plan Intelligence"
       image="/images/store-v3/vip-hero.webp"
       imageAlt="Futuristic Smarter.Poker VIP access platform illuminated in blue"
-      breadcrumbs={[
-        { label: 'Marketplace', href: '/hub/diamond-store' },
-        { label: 'VIP Membership', href: '/hub/vip-membership' },
-        { label: 'Compare Plans', href: canonical },
-      ]}
+      breadcrumbs={breadcrumbs}
       status="All Diamond Plans Live"
       presentation="membership"
       actions={

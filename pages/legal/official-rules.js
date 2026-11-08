@@ -4,6 +4,7 @@ import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
 
 // AEO phase 3 (2026-09-17): this page had copy and no structured data.
 const RULES_SCHEMA = hubCollectionSchema({
+  pageType: 'WebPage',
   path: '/legal/official-rules',
   name: 'Official Rules | Smarter.Poker',
   description:

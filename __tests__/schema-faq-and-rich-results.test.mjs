@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hubProductSchema, faqSchema } from '../src/lib/seo/hubPageSchema.js';
+import { hubCollectionSchema, hubProductSchema, faqSchema } from '../src/lib/seo/hubPageSchema.js';
 import { seriesSchema } from '../src/lib/poker-near-me/seriesSeo.mjs';
 
 test('faqSchema builds valid Schema.org FAQPage graph node', () => {
@@ -111,3 +111,16 @@ test('venue and series pages contain semantic definition lists (dl, dt, dd) for 
   assert.ok(seriesFile.includes('<dd className="venue-value'), 'Series page should use dd for venue-value');
 });
 
+
+test('document pages can identify themselves as WebPage without changing collection defaults', () => {
+  const page = {
+    path: '/privacy',
+    name: 'Privacy Policy',
+    description: 'Privacy policy for Smarter.Poker.',
+    trail: [['Privacy Policy', '/privacy']],
+  };
+  const [document] = hubCollectionSchema({ ...page, pageType: 'WebPage' });
+  assert.equal(document['@type'], 'WebPage');
+  assert.equal(document.breadcrumb['@id'], 'https://smarter.poker/privacy#breadcrumb');
+  assert.equal(hubCollectionSchema(page)[0]['@type'], 'CollectionPage');
+});

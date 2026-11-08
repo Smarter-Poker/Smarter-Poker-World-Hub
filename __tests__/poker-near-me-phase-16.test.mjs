@@ -151,6 +151,12 @@ test('lobby crawl graph remains a complete canonical destination contract', () =
   assert.equal(graph['@graph'][1].itemListElement.length, 12);
   assert.equal(graph['@graph'][1].itemListElement[0].position, 1);
   assert.match(graph['@graph'][1].itemListElement[0].url, /^https:\/\/smarter\.poker\/hub\//);
+  const breadcrumb = graph['@graph'].find((node) => node['@type'] === 'BreadcrumbList');
+  assert.deepEqual(breadcrumb?.itemListElement.map(({ position, item }) => [position, item]), [
+    [1, 'https://smarter.poker/'],
+    [2, 'https://smarter.poker/hub'],
+    [3, 'https://smarter.poker/hub/poker-near-me/lobby'],
+  ]);
 });
 
 test('location persistence writes the platform key and emits one refresh signal', () => {
