@@ -11,10 +11,10 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 355,
-    "componentFiles": 51,
+    "dependencyFiles": 357,
+    "componentFiles": 53,
     "hookFiles": 14,
-    "ctas": 362,
+    "ctas": 388,
     "dialogs": 12,
     "persistenceFiles": 79,
     "realtimeFiles": 6,
@@ -908,7 +908,7 @@
         "success": true,
         "authExpiry": true
       },
-      "ctaCount": 1,
+      "ctaCount": 6,
       "dialogCount": 0,
       "apiReferences": [
         "/api/training/achievements"
@@ -1545,7 +1545,7 @@
         "success": true,
         "authExpiry": true
       },
-      "ctaCount": 8,
+      "ctaCount": 10,
       "dialogCount": 0,
       "apiReferences": [
         "/api/training/hand-of-the-day",
@@ -4044,7 +4044,7 @@
         "success": true,
         "authExpiry": true
       },
-      "ctaCount": 4,
+      "ctaCount": 19,
       "dialogCount": 0,
       "apiReferences": [
         "/api/training/streak"
@@ -7634,10 +7634,12 @@
         "pages/hub/training/daily-challenge.js",
         "src/components/poker/FeedbackCard.jsx",
         "src/components/poker/QuizAnswer.jsx",
+        "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/Card.tsx",
         "src/components/training/ConnectionToast.js",
+        "src/components/training/DailyPersonalQuiz.jsx",
         "src/components/training/TrainingSignInPrompt.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
@@ -24406,7 +24408,11 @@
         "src/lib/authUtils.js"
       ],
       "links": [
-        "/hub/training/achievements"
+        "/hub/training/achievements",
+        "/hub/training/challenges",
+        "/hub/training/daily-challenge",
+        "/hub/training/daily-goals",
+        "/hub/training/streaks"
       ],
       "apiReferences": [
         "/api/training/achievements"
@@ -24414,9 +24420,59 @@
       "apiReferencePrefixes": [],
       "ctas": [
         {
+          "element": "link",
+          "name": "Hand Of The Day",
+          "line": 199,
+          "handler": null,
+          "destination": "/hub/training/daily-challenge",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Daily Goals Vault",
+          "line": 202,
+          "handler": null,
+          "destination": "/hub/training/daily-goals",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Weekly & Monthly Goals",
+          "line": 205,
+          "handler": null,
+          "destination": "/hub/training/challenges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Achievements Vault",
+          "line": 208,
+          "handler": null,
+          "destination": "/hub/training/achievements",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Streaks Vault",
+          "line": 211,
+          "handler": null,
+          "destination": "/hub/training/streaks",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
           "element": "button",
           "name": "`Filter by ${cat === 'all' ? 'all categories' : cat}`",
-          "line": 212,
+          "line": 238,
           "handler": "() => setActiveCategory(cat)",
           "destination": null,
           "type": "button",
@@ -24456,7 +24512,7 @@
       "functions": [
         {
           "name": "CategoryIcon",
-          "line": 48,
+          "line": 50,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -24464,7 +24520,7 @@
         },
         {
           "name": "MedalIcon",
-          "line": 89,
+          "line": 91,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -24472,7 +24528,7 @@
         },
         {
           "name": "TrophyIcon",
-          "line": 101,
+          "line": 103,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -24480,7 +24536,7 @@
         },
         {
           "name": "CheckIcon",
-          "line": 116,
+          "line": 118,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -24488,7 +24544,7 @@
         },
         {
           "name": "TrainingAchievements",
-          "line": 126,
+          "line": 128,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -24501,7 +24557,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 102,
+          "line": 104,
           "excerpt": "// ach card fallback icon (replaces ★)",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -26045,10 +26101,12 @@
       "imports": [
         "src/components/poker/FeedbackCard.jsx",
         "src/components/poker/QuizAnswer.jsx",
+        "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/Card.tsx",
         "src/components/training/ConnectionToast.js",
+        "src/components/training/DailyPersonalQuiz.jsx",
         "src/components/training/TrainingSignInPrompt.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
@@ -26058,9 +26116,11 @@
       ],
       "links": [
         "/hub/training",
+        "/hub/training/achievements",
         "/hub/training/challenges",
         "/hub/training/daily-challenge",
-        "/hub/training/daily-goals"
+        "/hub/training/daily-goals",
+        "/hub/training/streaks"
       ],
       "apiReferences": [
         "/api/training/hand-of-the-day",
@@ -26072,7 +26132,7 @@
         {
           "element": "button",
           "name": "Back To Training",
-          "line": 458,
+          "line": 460,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26082,7 +26142,7 @@
         {
           "element": "link",
           "name": "Hand Of The Day",
-          "line": 471,
+          "line": 473,
           "handler": null,
           "destination": "/hub/training/daily-challenge",
           "type": null,
@@ -26092,7 +26152,7 @@
         {
           "element": "link",
           "name": "Daily Goals Vault",
-          "line": 474,
+          "line": 476,
           "handler": null,
           "destination": "/hub/training/daily-goals",
           "type": null,
@@ -26102,7 +26162,7 @@
         {
           "element": "link",
           "name": "Weekly & Monthly Goals",
-          "line": 477,
+          "line": 479,
           "handler": null,
           "destination": "/hub/training/challenges",
           "type": null,
@@ -26110,9 +26170,29 @@
           "wiring": "destination"
         },
         {
+          "element": "link",
+          "name": "Achievements Vault",
+          "line": 482,
+          "handler": null,
+          "destination": "/hub/training/achievements",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Streaks Vault",
+          "line": 485,
+          "handler": null,
+          "destination": "/hub/training/streaks",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
           "element": "button",
           "name": "Retry Loading Today's Challenge",
-          "line": 499,
+          "line": 507,
           "handler": "fetchChallenge",
           "destination": null,
           "type": "button",
@@ -26122,7 +26202,7 @@
         {
           "element": "button",
           "name": "Retry Saving Daily Challenge Completion",
-          "line": 689,
+          "line": 697,
           "handler": "() => completeDailyAttempt(\n                            activeAttemptId,\n                            completionResponseTimeRef.current,\n                          )",
           "destination": null,
           "type": "button",
@@ -26132,7 +26212,7 @@
         {
           "element": "button",
           "name": "Continue To Training Hub",
-          "line": 703,
+          "line": 711,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26142,7 +26222,7 @@
         {
           "element": "button",
           "name": "Continue To Training Hub",
-          "line": 723,
+          "line": 731,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26182,7 +26262,7 @@
       "functions": [
         {
           "name": "handToCards",
-          "line": 37,
+          "line": 39,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26190,7 +26270,7 @@
         },
         {
           "name": "CountdownTimer",
-          "line": 64,
+          "line": 66,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26198,7 +26278,7 @@
         },
         {
           "name": "StreakCalendar",
-          "line": 97,
+          "line": 99,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26206,7 +26286,7 @@
         },
         {
           "name": "DailyChallengePage",
-          "line": 130,
+          "line": 132,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -26214,7 +26294,7 @@
         },
         {
           "name": "tick",
-          "line": 69,
+          "line": 71,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26227,7 +26307,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 55,
+          "line": 57,
           "excerpt": "// Fallback: try parseCards",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -34436,6 +34516,10 @@
       ],
       "links": [
         "/hub/training",
+        "/hub/training/achievements",
+        "/hub/training/challenges",
+        "/hub/training/daily-challenge",
+        "/hub/training/daily-goals",
         "/hub/training/streaks"
       ],
       "apiReferences": [
@@ -34445,8 +34529,158 @@
       "ctas": [
         {
           "element": "link",
+          "name": "Hand Of The Day",
+          "line": 309,
+          "handler": null,
+          "destination": "/hub/training/daily-challenge",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Daily Goals Vault",
+          "line": 312,
+          "handler": null,
+          "destination": "/hub/training/daily-goals",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Weekly & Monthly Goals",
+          "line": 315,
+          "handler": null,
+          "destination": "/hub/training/challenges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Achievements Vault",
+          "line": 318,
+          "handler": null,
+          "destination": "/hub/training/achievements",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Streaks Vault",
+          "line": 321,
+          "handler": null,
+          "destination": "/hub/training/streaks",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Hand Of The Day",
+          "line": 345,
+          "handler": null,
+          "destination": "/hub/training/daily-challenge",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Daily Goals Vault",
+          "line": 348,
+          "handler": null,
+          "destination": "/hub/training/daily-goals",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Weekly & Monthly Goals",
+          "line": 351,
+          "handler": null,
+          "destination": "/hub/training/challenges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Achievements Vault",
+          "line": 354,
+          "handler": null,
+          "destination": "/hub/training/achievements",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Streaks Vault",
+          "line": 357,
+          "handler": null,
+          "destination": "/hub/training/streaks",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Hand Of The Day",
+          "line": 392,
+          "handler": null,
+          "destination": "/hub/training/daily-challenge",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Daily Goals Vault",
+          "line": 395,
+          "handler": null,
+          "destination": "/hub/training/daily-goals",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Weekly & Monthly Goals",
+          "line": 398,
+          "handler": null,
+          "destination": "/hub/training/challenges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Achievements Vault",
+          "line": 401,
+          "handler": null,
+          "destination": "/hub/training/achievements",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Streaks Vault",
+          "line": 404,
+          "handler": null,
+          "destination": "/hub/training/streaks",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
           "name": "Start Training",
-          "line": 390,
+          "line": 445,
           "handler": null,
           "destination": "/hub/training",
           "type": null,
@@ -34456,7 +34690,7 @@
         {
           "element": "button",
           "name": "`Feed sharing is unavailable for your ${streak.currentStreak}-day streak`",
-          "line": 433,
+          "line": 491,
           "handler": null,
           "destination": null,
           "type": "button",
@@ -34466,7 +34700,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 661,
+          "line": 719,
           "handler": null,
           "destination": null,
           "type": "button",
@@ -34476,7 +34710,7 @@
         {
           "element": "button",
           "name": "`Claim ${baseData.diamonds} diamonds for ${baseData.name}`",
-          "line": 670,
+          "line": 728,
           "handler": "() => claimMilestone(milestone.days)",
           "destination": null,
           "type": "button",
@@ -34649,7 +34883,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 329,
+          "line": 365,
           "excerpt": "message=\"We could not verify sealed training sessions. No zero-streak fallback has been shown.\"",
           "disposition": "identity-or-persistence-resilience",
           "review": "documented-follow-up",
@@ -37422,6 +37656,84 @@
       "markers": []
     },
     {
+      "file": "src/components/seo/CitationBacklinkBox.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "a",
+          "name": "All Webmaster Widgets & Badges",
+          "line": 108,
+          "handler": null,
+          "destination": "/tools/embeds",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 150,
+          "handler": "() => handleCopy(item.key, item.code)",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "CitationBacklinkBox",
+          "line": 12,
+          "references": 2,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleCopy",
+          "line": 67,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
       "file": "src/components/seo/HubPageSummary.js",
       "imports": [
         "src/lib/seo/summarySchema.js"
@@ -38447,6 +38759,76 @@
           "references": 3,
           "exported": false,
           "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/components/training/DailyPersonalQuiz.jsx",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 143,
+          "handler": "() => handleAnswer(i)",
+          "destination": null,
+          "type": "button",
+          "disabled": "selected !== null",
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
+          "name": "Next Question ›",
+          "line": 164,
+          "handler": "nextQuestion",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "DailyPersonalQuiz",
+          "line": 65,
+          "references": 2,
+          "exported": true,
+          "defaultExport": true,
           "namedFunctionExpression": false
         }
       ],
@@ -62657,6 +63039,10 @@
     },
     {
       "from": "pages/hub/training/daily-challenge.js",
+      "to": "src/components/seo/CitationBacklinkBox.js"
+    },
+    {
+      "from": "pages/hub/training/daily-challenge.js",
       "to": "src/components/seo/HubPageSummary.js"
     },
     {
@@ -62670,6 +63056,10 @@
     {
       "from": "pages/hub/training/daily-challenge.js",
       "to": "src/components/training/ConnectionToast.js"
+    },
+    {
+      "from": "pages/hub/training/daily-challenge.js",
+      "to": "src/components/training/DailyPersonalQuiz.jsx"
     },
     {
       "from": "pages/hub/training/daily-challenge.js",
@@ -65437,6 +65827,7 @@
     "src/components/poker/ProgressStrip.jsx",
     "src/components/poker/QuizAnswer.jsx",
     "src/components/sandbox/paTokens.js",
+    "src/components/seo/CitationBacklinkBox.js",
     "src/components/seo/HubPageSummary.js",
     "src/components/seo/SEOHead.js",
     "src/components/store/DiamondWalletModal.jsx",
@@ -65445,6 +65836,7 @@
     "src/components/training/CanonicalTrainingRedirect.jsx",
     "src/components/training/Card.tsx",
     "src/components/training/ConnectionToast.js",
+    "src/components/training/DailyPersonalQuiz.jsx",
     "src/components/training/EVGraph.jsx",
     "src/components/training/ErrorBanner.js",
     "src/components/training/GTOQuestionCard.jsx",
@@ -66600,11 +66992,76 @@
   ],
   "ctaLedger": [
     {
-      "id": "pages/hub/training/achievements.js:212:1",
+      "id": "pages/hub/training/achievements.js:199:1",
+      "file": "pages/hub/training/achievements.js",
+      "element": "link",
+      "name": "Hand Of The Day",
+      "line": 199,
+      "handler": null,
+      "destination": "/hub/training/daily-challenge",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/achievements.js"
+    },
+    {
+      "id": "pages/hub/training/achievements.js:202:2",
+      "file": "pages/hub/training/achievements.js",
+      "element": "link",
+      "name": "Daily Goals Vault",
+      "line": 202,
+      "handler": null,
+      "destination": "/hub/training/daily-goals",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/achievements.js"
+    },
+    {
+      "id": "pages/hub/training/achievements.js:205:3",
+      "file": "pages/hub/training/achievements.js",
+      "element": "link",
+      "name": "Weekly & Monthly Goals",
+      "line": 205,
+      "handler": null,
+      "destination": "/hub/training/challenges",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/achievements.js"
+    },
+    {
+      "id": "pages/hub/training/achievements.js:208:4",
+      "file": "pages/hub/training/achievements.js",
+      "element": "link",
+      "name": "Achievements Vault",
+      "line": 208,
+      "handler": null,
+      "destination": "/hub/training/achievements",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/achievements.js"
+    },
+    {
+      "id": "pages/hub/training/achievements.js:211:5",
+      "file": "pages/hub/training/achievements.js",
+      "element": "link",
+      "name": "Streaks Vault",
+      "line": 211,
+      "handler": null,
+      "destination": "/hub/training/streaks",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/achievements.js"
+    },
+    {
+      "id": "pages/hub/training/achievements.js:238:6",
       "file": "pages/hub/training/achievements.js",
       "element": "button",
       "name": "`Filter by ${cat === 'all' ? 'all categories' : cat}`",
-      "line": 212,
+      "line": 238,
       "handler": "() => setActiveCategory(cat)",
       "destination": null,
       "type": "button",
@@ -66899,11 +67356,11 @@
       "effectRef": "pages/hub/training/custom-solve.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:458:1",
+      "id": "pages/hub/training/daily-challenge.js:460:1",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Back To Training",
-      "line": 458,
+      "line": 460,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -66912,11 +67369,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:471:2",
+      "id": "pages/hub/training/daily-challenge.js:473:2",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "link",
       "name": "Hand Of The Day",
-      "line": 471,
+      "line": 473,
       "handler": null,
       "destination": "/hub/training/daily-challenge",
       "type": null,
@@ -66925,11 +67382,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:474:3",
+      "id": "pages/hub/training/daily-challenge.js:476:3",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "link",
       "name": "Daily Goals Vault",
-      "line": 474,
+      "line": 476,
       "handler": null,
       "destination": "/hub/training/daily-goals",
       "type": null,
@@ -66938,11 +67395,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:477:4",
+      "id": "pages/hub/training/daily-challenge.js:479:4",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "link",
       "name": "Weekly & Monthly Goals",
-      "line": 477,
+      "line": 479,
       "handler": null,
       "destination": "/hub/training/challenges",
       "type": null,
@@ -66951,11 +67408,37 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:499:5",
+      "id": "pages/hub/training/daily-challenge.js:482:5",
+      "file": "pages/hub/training/daily-challenge.js",
+      "element": "link",
+      "name": "Achievements Vault",
+      "line": 482,
+      "handler": null,
+      "destination": "/hub/training/achievements",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/daily-challenge.js"
+    },
+    {
+      "id": "pages/hub/training/daily-challenge.js:485:6",
+      "file": "pages/hub/training/daily-challenge.js",
+      "element": "link",
+      "name": "Streaks Vault",
+      "line": 485,
+      "handler": null,
+      "destination": "/hub/training/streaks",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/daily-challenge.js"
+    },
+    {
+      "id": "pages/hub/training/daily-challenge.js:507:7",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Retry Loading Today's Challenge",
-      "line": 499,
+      "line": 507,
       "handler": "fetchChallenge",
       "destination": null,
       "type": "button",
@@ -66964,11 +67447,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:689:6",
+      "id": "pages/hub/training/daily-challenge.js:697:8",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Retry Saving Daily Challenge Completion",
-      "line": 689,
+      "line": 697,
       "handler": "() => completeDailyAttempt(\n                            activeAttemptId,\n                            completionResponseTimeRef.current,\n                          )",
       "destination": null,
       "type": "button",
@@ -66977,11 +67460,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:703:7",
+      "id": "pages/hub/training/daily-challenge.js:711:9",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Continue To Training Hub",
-      "line": 703,
+      "line": 711,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -66990,11 +67473,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:723:8",
+      "id": "pages/hub/training/daily-challenge.js:731:10",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Continue To Training Hub",
-      "line": 723,
+      "line": 731,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -69057,11 +69540,206 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/streaks.js:390:1",
+      "id": "pages/hub/training/streaks.js:309:1",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Hand Of The Day",
+      "line": 309,
+      "handler": null,
+      "destination": "/hub/training/daily-challenge",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:312:2",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Daily Goals Vault",
+      "line": 312,
+      "handler": null,
+      "destination": "/hub/training/daily-goals",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:315:3",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Weekly & Monthly Goals",
+      "line": 315,
+      "handler": null,
+      "destination": "/hub/training/challenges",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:318:4",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Achievements Vault",
+      "line": 318,
+      "handler": null,
+      "destination": "/hub/training/achievements",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:321:5",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Streaks Vault",
+      "line": 321,
+      "handler": null,
+      "destination": "/hub/training/streaks",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:345:6",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Hand Of The Day",
+      "line": 345,
+      "handler": null,
+      "destination": "/hub/training/daily-challenge",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:348:7",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Daily Goals Vault",
+      "line": 348,
+      "handler": null,
+      "destination": "/hub/training/daily-goals",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:351:8",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Weekly & Monthly Goals",
+      "line": 351,
+      "handler": null,
+      "destination": "/hub/training/challenges",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:354:9",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Achievements Vault",
+      "line": 354,
+      "handler": null,
+      "destination": "/hub/training/achievements",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:357:10",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Streaks Vault",
+      "line": 357,
+      "handler": null,
+      "destination": "/hub/training/streaks",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:392:11",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Hand Of The Day",
+      "line": 392,
+      "handler": null,
+      "destination": "/hub/training/daily-challenge",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:395:12",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Daily Goals Vault",
+      "line": 395,
+      "handler": null,
+      "destination": "/hub/training/daily-goals",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:398:13",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Weekly & Monthly Goals",
+      "line": 398,
+      "handler": null,
+      "destination": "/hub/training/challenges",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:401:14",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Achievements Vault",
+      "line": 401,
+      "handler": null,
+      "destination": "/hub/training/achievements",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:404:15",
+      "file": "pages/hub/training/streaks.js",
+      "element": "link",
+      "name": "Streaks Vault",
+      "line": 404,
+      "handler": null,
+      "destination": "/hub/training/streaks",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/streaks.js"
+    },
+    {
+      "id": "pages/hub/training/streaks.js:445:16",
       "file": "pages/hub/training/streaks.js",
       "element": "link",
       "name": "Start Training",
-      "line": 390,
+      "line": 445,
       "handler": null,
       "destination": "/hub/training",
       "type": null,
@@ -69070,11 +69748,11 @@
       "effectRef": "pages/hub/training/streaks.js"
     },
     {
-      "id": "pages/hub/training/streaks.js:433:2",
+      "id": "pages/hub/training/streaks.js:491:17",
       "file": "pages/hub/training/streaks.js",
       "element": "button",
       "name": "`Feed sharing is unavailable for your ${streak.currentStreak}-day streak`",
-      "line": 433,
+      "line": 491,
       "handler": null,
       "destination": null,
       "type": "button",
@@ -69083,11 +69761,11 @@
       "effectRef": "pages/hub/training/streaks.js"
     },
     {
-      "id": "pages/hub/training/streaks.js:661:3",
+      "id": "pages/hub/training/streaks.js:719:18",
       "file": "pages/hub/training/streaks.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 661,
+      "line": 719,
       "handler": null,
       "destination": null,
       "type": "button",
@@ -69096,11 +69774,11 @@
       "effectRef": "pages/hub/training/streaks.js"
     },
     {
-      "id": "pages/hub/training/streaks.js:670:4",
+      "id": "pages/hub/training/streaks.js:728:19",
       "file": "pages/hub/training/streaks.js",
       "element": "button",
       "name": "`Claim ${baseData.diamonds} diamonds for ${baseData.name}`",
-      "line": 670,
+      "line": 728,
       "handler": "() => claimMilestone(milestone.days)",
       "destination": null,
       "type": "button",
@@ -69590,6 +70268,32 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
+      "id": "src/components/seo/CitationBacklinkBox.js:108:1",
+      "file": "src/components/seo/CitationBacklinkBox.js",
+      "element": "a",
+      "name": "All Webmaster Widgets & Badges",
+      "line": 108,
+      "handler": null,
+      "destination": "/tools/embeds",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/seo/CitationBacklinkBox.js"
+    },
+    {
+      "id": "src/components/seo/CitationBacklinkBox.js:150:2",
+      "file": "src/components/seo/CitationBacklinkBox.js",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 150,
+      "handler": "() => handleCopy(item.key, item.code)",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/seo/CitationBacklinkBox.js"
+    },
+    {
       "id": "src/components/seo/HubPageSummary.js:1084:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
@@ -69887,6 +70591,32 @@
       "disabled": null,
       "wiring": "destination",
       "effectRef": "src/components/training/CanonicalTrainingRedirect.jsx"
+    },
+    {
+      "id": "src/components/training/DailyPersonalQuiz.jsx:143:1",
+      "file": "src/components/training/DailyPersonalQuiz.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 143,
+      "handler": "() => handleAnswer(i)",
+      "destination": null,
+      "type": "button",
+      "disabled": "selected !== null",
+      "wiring": "handler",
+      "effectRef": "src/components/training/DailyPersonalQuiz.jsx"
+    },
+    {
+      "id": "src/components/training/DailyPersonalQuiz.jsx:164:2",
+      "file": "src/components/training/DailyPersonalQuiz.jsx",
+      "element": "button",
+      "name": "Next Question ›",
+      "line": 164,
+      "handler": "nextQuestion",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/training/DailyPersonalQuiz.jsx"
     },
     {
       "id": "src/components/training/ErrorBanner.js:74:1",
@@ -76780,10 +77510,12 @@
         "pages/hub/training/daily-challenge.js",
         "src/components/poker/FeedbackCard.jsx",
         "src/components/poker/QuizAnswer.jsx",
+        "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/Card.tsx",
         "src/components/training/ConnectionToast.js",
+        "src/components/training/DailyPersonalQuiz.jsx",
         "src/components/training/TrainingSignInPrompt.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
@@ -84697,6 +85429,16 @@
       "tests": []
     },
     {
+      "file": "src/components/seo/CitationBacklinkBox.js",
+      "reachableFiles": [
+        "src/components/seo/CitationBacklinkBox.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/components/seo/HubPageSummary.js",
       "reachableFiles": [
         "src/components/seo/HubPageSummary.js",
@@ -84898,6 +85640,18 @@
       "persistence": [],
       "realtime": [],
       "tests": []
+    },
+    {
+      "file": "src/components/training/DailyPersonalQuiz.jsx",
+      "reachableFiles": [
+        "src/components/training/DailyPersonalQuiz.jsx"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/daily-challenges-casino-realism.test.mjs"
+      ]
     },
     {
       "file": "src/components/training/EVGraph.jsx",
@@ -90383,7 +91137,7 @@
       {
         "file": "pages/hub/training/achievements.js",
         "kind": "FALLBACK",
-        "line": 102,
+        "line": 104,
         "excerpt": "// ach card fallback icon (replaces ★)",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -90393,7 +91147,7 @@
       {
         "file": "pages/hub/training/daily-challenge.js",
         "kind": "FALLBACK",
-        "line": 55,
+        "line": 57,
         "excerpt": "// Fallback: try parseCards",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -90886,7 +91640,7 @@
       {
         "file": "pages/hub/training/streaks.js",
         "kind": "FALLBACK",
-        "line": 329,
+        "line": 365,
         "excerpt": "message=\"We could not verify sealed training sessions. No zero-streak fallback has been shown.\"",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
@@ -94024,7 +94778,7 @@
       {
         "file": "pages/hub/training/achievements.js",
         "name": "TrainingAchievements",
-        "line": 126,
+        "line": 128,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -94245,7 +94999,7 @@
       {
         "file": "pages/hub/training/daily-challenge.js",
         "name": "DailyChallengePage",
-        "line": 130,
+        "line": 132,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -97279,15 +98033,19 @@
           "pages/hub/training/equity-calculator.js",
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
+          "pages/tools/3bet-calculator.js",
           "pages/tools/bankroll-calculator.js",
           "pages/tools/blind-structure-calculator.js",
           "pages/tools/bounty-calculator.js",
           "pages/tools/embeds.js",
           "pages/tools/index.js",
+          "pages/tools/payout-calculator.js",
+          "pages/tools/plo-bet-calculator.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges/index.js",
           "pages/tools/push-fold-calculator.js",
+          "pages/tools/rake-calculator.js",
           "pages/tools/side-pot-calculator.js",
           "pages/tools/spr-calculator.js",
           "src/lib/seo/summarySchema.js"
@@ -99899,7 +100657,7 @@
       {
         "file": "pages/hub/training/achievements.js",
         "kind": "FALLBACK",
-        "line": 102,
+        "line": 104,
         "excerpt": "// ach card fallback icon (replaces ★)",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -99909,7 +100667,7 @@
       {
         "file": "pages/hub/training/daily-challenge.js",
         "kind": "FALLBACK",
-        "line": 55,
+        "line": 57,
         "excerpt": "// Fallback: try parseCards",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -100402,7 +101160,7 @@
       {
         "file": "pages/hub/training/streaks.js",
         "kind": "FALLBACK",
-        "line": 329,
+        "line": 365,
         "excerpt": "message=\"We could not verify sealed training sessions. No zero-streak fallback has been shown.\"",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
@@ -103540,7 +104298,7 @@
       {
         "file": "pages/hub/training/achievements.js",
         "name": "TrainingAchievements",
-        "line": 126,
+        "line": 128,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -103761,7 +104519,7 @@
       {
         "file": "pages/hub/training/daily-challenge.js",
         "name": "DailyChallengePage",
-        "line": 130,
+        "line": 132,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -106795,15 +107553,19 @@
           "pages/hub/training/equity-calculator.js",
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
+          "pages/tools/3bet-calculator.js",
           "pages/tools/bankroll-calculator.js",
           "pages/tools/blind-structure-calculator.js",
           "pages/tools/bounty-calculator.js",
           "pages/tools/embeds.js",
           "pages/tools/index.js",
+          "pages/tools/payout-calculator.js",
+          "pages/tools/plo-bet-calculator.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges/index.js",
           "pages/tools/push-fold-calculator.js",
+          "pages/tools/rake-calculator.js",
           "pages/tools/side-pot-calculator.js",
           "pages/tools/spr-calculator.js",
           "src/lib/seo/summarySchema.js"

@@ -115,6 +115,42 @@ const INTERACTIVE_TOOLS = [
     formula: 'Geometric Sizing s = 0.5 * ((1 + 2 * SPR)^(1 / Streets) - 1)',
   },
   {
+    name: 'Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Calculator',
+    href: '/tools/plo-bet-calculator',
+    mdHref: '/tools/plo-bet-calculator.md',
+    badge: 'Pot-Limit & Bomb Pot',
+    summary:
+      'Computes Exact Pot-Limit Omaha Maximum Bet And Raise Sizes Using The Dealer 3x Plus Trail Formula And Solves Double-Board Bomb Pot Split Equity And Quartering Risk.',
+    formula: 'Max Pot Bet = 3 * Last_Bet + Trail_Calls + Previous_Pot',
+  },
+  {
+    name: 'Tournament Payout & Prize Pool Distribution Calculator',
+    href: '/tools/payout-calculator',
+    mdHref: '/tools/payout-calculator.md',
+    badge: 'TDA Prize Pool',
+    summary:
+      'Generates Official TDA-Compliant Tournament Prize Pool Distributions Across Top 10%, Top 15%, Top 20%, And Winner-Take-All Payout Structures With Bubble Factor Estimates.',
+    formula: 'Net Prize Pool = Entries * (Buy_In - Fee) + Rebuys * Buy_In + Added_Money',
+  },
+  {
+    name: 'Live Cash Game Rake & Time-Charge Calculator',
+    href: '/tools/rake-calculator',
+    mdHref: '/tools/rake-calculator.md',
+    badge: 'Rake Economics',
+    summary:
+      'Compares Casino Percentage Pot Drop Rake Plus Bad Beat Jackpot Drops Against Timed Seat Collection In $/Hr, Effective BB/100 Drag, And 1,000-Hour Annual Cost.',
+    formula: 'Rake BB/100 = ((Pots_Won_Hr * Avg_Drop / Big_Blind) / Hands_Per_Hr) * 100',
+  },
+  {
+    name: 'GTO Preflop 3-Bet, Squeeze, 4-Bet & MDF Calculator',
+    href: '/tools/3bet-calculator',
+    mdHref: '/tools/3bet-calculator.md',
+    badge: '3-Bet & 4-Bet Math',
+    summary:
+      'Calculates Solver-Approved In-Position And Out-Of-Position 3-Bet, Multiway Squeeze, And 4-Bet Sizing In Big Blinds With Villain Minimum Defense Frequency (MDF).',
+    formula: '3-Bet Size = Open_BB * ((IP ? 3.0 : 4.0) + 1.0 * Callers)',
+  },
+  {
     name: 'Embeddable Webmaster Poker Widgets',
     href: '/tools/embeds',
     mdHref: '/tools/embeds.md',
@@ -212,7 +248,7 @@ export default function PokerToolsDirectoryPage() {
         </h1>
 
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>12 Free Browser-Native Poker Calculators And GTO Reference Tools</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Risk Of Ruin Bankroll Math, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Multi-Way Side Pots, Tournament Blind Schedules, And Geometric SPR Bet Sizing. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
+          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>16 Free Browser-Native Poker Calculators And GTO Reference Tools</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Risk Of Ruin Bankroll Math, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, Tournament Payout Distributions, Live Cash Rake Comparisons, And 3-Bet/4-Bet Sizing. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
         </p>
 
         {/* Grid Of Interactive Calculators */}
@@ -324,6 +360,18 @@ export default function PokerToolsDirectoryPage() {
             <Link href="/learn/hands" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               169 Starting Hand Encyclopedia
             </Link>
+            <Link href="/learn/poker-hand-rankings" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Poker Hand Rankings Cheat Sheet
+            </Link>
+            <Link href="/rules" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              30 Official TDA &amp; Cash Rules
+            </Link>
+            <Link href="/games" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              15 Poker Variants &amp; Mixed Games
+            </Link>
+            <Link href="/poker-rooms/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              12 US Regional Poker Market Guides
+            </Link>
             <Link href="/learn" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               GTO Strategy Academy
             </Link>
@@ -347,8 +395,8 @@ export default function PokerToolsDirectoryPage() {
           canonicalUrl={canonicalUrl}
           badgeType="gto"
           badgeLabel="GTO Math & Solvers"
-          badgeValue="12 Free Poker Calculators"
-          summary="Complete Directory Of 12 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
+          badgeValue="16 Free Poker Calculators"
+          summary="Complete Directory Of 16 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
           slug="poker-tools-suite"
         />
 

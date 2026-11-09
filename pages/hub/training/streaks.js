@@ -304,12 +304,31 @@ export default function StreaksPage() {
         <SEOHead title="Training Streaks - Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
-          <TrainerEmptyState
-            variant="locked"
-            title="Sign in to view your streak"
-            message="Daily streaks unlock once you sign in to track your training."
-            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[streaks] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
-          />
+          <div style={styles.content}>
+            <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
+              <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
+                Hand Of The Day
+              </Link>
+              <Link href="/hub/training/daily-goals" style={styles.navPlate}>
+                Daily Goals Vault
+              </Link>
+              <Link href="/hub/training/challenges" style={styles.navPlate}>
+                Weekly &amp; Monthly Goals
+              </Link>
+              <Link href="/hub/training/achievements" style={styles.navPlate}>
+                Achievements Vault
+              </Link>
+              <Link href="/hub/training/streaks" style={styles.navPlateActive}>
+                Streaks Vault
+              </Link>
+            </nav>
+            <TrainerEmptyState
+              variant="locked"
+              title="Sign in to view your streak"
+              message="Daily streaks unlock once you sign in to track your training."
+              cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[streaks] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
+            />
+          </div>
         </div>
       </PageTransition>
     );
@@ -322,6 +341,23 @@ export default function StreaksPage() {
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
           <div style={styles.content}>
+            <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
+              <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
+                Hand Of The Day
+              </Link>
+              <Link href="/hub/training/daily-goals" style={styles.navPlate}>
+                Daily Goals Vault
+              </Link>
+              <Link href="/hub/training/challenges" style={styles.navPlate}>
+                Weekly &amp; Monthly Goals
+              </Link>
+              <Link href="/hub/training/achievements" style={styles.navPlate}>
+                Achievements Vault
+              </Link>
+              <Link href="/hub/training/streaks" style={styles.navPlateActive}>
+                Streaks Vault
+              </Link>
+            </nav>
             <ErrorBanner message="Unable to verify your training streak." onRetry={() => refreshStreak()} />
             <TrainerEmptyState
               variant="retry"
@@ -352,6 +388,24 @@ export default function StreaksPage() {
         <UniversalHeader pageDepth={2} />
 
         <div className="sp-journey-main" style={styles.content}>
+          <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
+            <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
+              Hand Of The Day
+            </Link>
+            <Link href="/hub/training/daily-goals" style={styles.navPlate}>
+              Daily Goals Vault
+            </Link>
+            <Link href="/hub/training/challenges" style={styles.navPlate}>
+              Weekly &amp; Monthly Goals
+            </Link>
+            <Link href="/hub/training/achievements" style={styles.navPlate}>
+              Achievements Vault
+            </Link>
+            <Link href="/hub/training/streaks" style={styles.navPlateActive}>
+              Streaks Vault
+            </Link>
+          </nav>
+
           <ErrorBanner
             message={swrError ? 'Unable to load streak data.' : null}
             onRetry={() => refreshStreak()}
@@ -368,10 +422,11 @@ export default function StreaksPage() {
                 animate={{ opacity: 1, y: 0 }}
                 style={{
                   padding: '12px 16px',
-                  borderRadius: 12,
+                  borderRadius: '2px',
                   marginBottom: 16,
-                  background: 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(249,115,22,0.04))',
-                  border: '1px solid rgba(239,68,68,0.2)',
+                  background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+                  border: '1px solid rgba(239,68,68,0.45)',
+                  borderLeft: '3px solid #f2b84b',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -390,10 +445,13 @@ export default function StreaksPage() {
                 <Link
                   href="/hub/training"
                   style={{
+                    minHeight: '44px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                     padding: '8px 16px',
-                    borderRadius: 8,
-                    background: 'rgba(239,68,68,0.12)',
-                    border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: '2px',
+                    background: 'rgba(239,68,68,0.16)',
+                    border: '1px solid rgba(239,68,68,0.4)',
                     color: 'var(--sp-accent-red)',
                     fontSize: 12,
                     fontWeight: 700,
@@ -418,7 +476,7 @@ export default function StreaksPage() {
             <div style={styles.flameContainer}>
               {/* TRAIN-STREAKS-A11Y-1: SVG flame replaces ▲ hero icon.
                   Color drives the gradient; CSS keeps the pulse animation. */}
-              <span style={{ ...styles.flame, color: '#FF6B35', display: 'inline-flex' }} aria-hidden>
+              <span style={{ ...styles.flame, color: '#f2b84b', display: 'inline-flex' }} aria-hidden>
                 <FlameIcon size={64} />
               </span>
             </div>
@@ -461,9 +519,9 @@ export default function StreaksPage() {
                 <div style={{
                   marginTop: 16,
                   padding: '10px 14px',
-                  borderRadius: 10,
+                  borderRadius: '2px',
                   background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid #415866',
                   fontSize: 12,
                   color: 'var(--sp-fg-muted)',
                   lineHeight: 1.5,
@@ -527,7 +585,7 @@ export default function StreaksPage() {
             {/* TRAIN-STREAKS-A11Y-1: SVG calendar icon in section heading */}
             <h2 style={styles.sectionTitle}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
+                <span style={{ display: 'inline-flex', color: '#25c8ff' }} aria-hidden>
                   <CalendarIcon size={18} />
                 </span>
                 Last 30 Days
@@ -540,11 +598,11 @@ export default function StreaksPage() {
                   style={{
                     ...styles.calendarDay,
                     background: day.trained
-                      ? 'linear-gradient(135deg, #FF6B35, #FF4444)'
+                      ? 'linear-gradient(135deg, #25c8ff, #f2b84b)'
                       : day.isToday
-                        ? 'rgba(0, 224, 255, 0.2)'
-                        : '#1a1a1a',
-                    border: day.isToday ? '2px solid #00E0FF' : '1px solid rgba(255,255,255,0.1)',
+                        ? 'rgba(37, 200, 255, 0.2)'
+                        : 'linear-gradient(180deg, #0d1a22, #060d12)',
+                    border: day.isToday ? '2px solid #25c8ff' : '1px solid #354c58',
                   }}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -566,7 +624,7 @@ export default function StreaksPage() {
                 <span style={styles.legendDot} /> Trained
               </span>
               <span>
-                <span style={{ ...styles.legendDot, background: '#00E0FF' }} /> Today
+                <span style={{ ...styles.legendDot, background: '#25c8ff' }} /> Today
               </span>
             </div>
           </section>
@@ -576,7 +634,7 @@ export default function StreaksPage() {
             {/* TRAIN-STREAKS-A11Y-1: SVG trophy in section heading */}
             <h2 style={styles.sectionTitle}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ display: 'inline-flex', color: '#FFD700' }} aria-hidden>
+                <span style={{ display: 'inline-flex', color: '#f2b84b' }} aria-hidden>
                   <TrophyIcon size={18} />
                 </span>
                 Milestones
@@ -620,13 +678,13 @@ export default function StreaksPage() {
                     key={milestone.days}
                     style={{
                       ...styles.milestoneCard,
-                      opacity: milestone.achieved ? 1 : 0.5,
-                      border: isClaimable ? '2px solid #FFD700' : '1px solid rgba(255,255,255,0.1)',
+                      opacity: milestone.achieved ? 1 : 0.55,
+                      border: isClaimable ? '1px solid #f2b84b' : '1px solid #415866',
                     }}
                     whileHover={isClaimable ? { scale: 1.02 } : {}}
                   >
                     {/* TRAIN-STREAKS-A11Y-1: SVG milestone icon via MilestoneIcon */}
-                    <div style={{ ...styles.milestoneIcon, color: isClaimable ? '#FFD700' : 'var(--sp-fg-muted)', display: 'inline-flex' }} aria-hidden>
+                    <div style={{ ...styles.milestoneIcon, color: isClaimable ? '#f2b84b' : 'var(--sp-fg-muted)', display: 'inline-flex' }} aria-hidden>
                       <MilestoneIcon kind={kind} size={32} />
                     </div>
                     <div style={styles.milestoneInfo}>
@@ -635,7 +693,7 @@ export default function StreaksPage() {
                     </div>
                     <div style={styles.milestoneReward}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <span aria-hidden style={{ display: 'inline-flex', color: '#00E0FF' }}><DiamondIcon size={14} /></span>
+                        <span aria-hidden style={{ display: 'inline-flex', color: '#25c8ff' }}><DiamondIcon size={14} /></span>
                         {entitlement}
                       </span>
                     </div>
@@ -695,21 +753,60 @@ export default function StreaksPage() {
 
 const styles = {
   container: {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: '#0a0a0a',
-    color: '#FFFFFF',
+    minHeight: '100dvh',
+    paddingBottom: 70,
+    width: '100%',
+    maxWidth: '100vw',
+    overflowX: 'clip',
+    boxSizing: 'border-box',
+    background: '#020608',
+    color: '#eef6f9',
   },
   content: {
-    maxWidth: '600px',
+    maxWidth: '720px',
     margin: '0 auto',
     padding: '80px 24px 40px',
+  },
+  subpageNav: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    marginBottom: '20px',
+  },
+  navPlate: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '44px',
+    padding: '0 14px',
+    border: '1px solid #536a76',
+    borderRadius: '2px',
+    background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+    color: '#e7f0f4',
+    fontSize: '12px',
+    fontWeight: 700,
+    textDecoration: 'none',
+  },
+  navPlateActive: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '44px',
+    padding: '0 14px',
+    border: '1px solid #25c8ff',
+    borderRadius: '2px',
+    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
+    color: '#ffffff',
+    fontSize: '12px',
+    fontWeight: 700,
+    textDecoration: 'none',
   },
   claimReceipt: {
     marginBottom: 12,
     padding: '10px 12px',
-    border: '1px solid rgba(0, 224, 255, 0.28)',
-    borderRadius: 8,
-    background: 'rgba(0, 224, 255, 0.08)',
+    border: '1px solid rgba(37, 200, 255, 0.35)',
+    borderRadius: '2px',
+    background: 'rgba(37, 200, 255, 0.08)',
     color: 'var(--sp-fg)',
     fontSize: 12,
     lineHeight: 1.5,
@@ -723,8 +820,10 @@ const styles = {
   heroSection: {
     textAlign: 'center',
     padding: '40px 20px',
-    background: 'linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 68, 68, 0.1))',
-    borderRadius: '20px',
+    background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+    border: '1px solid #536a76',
+    borderLeft: '3px solid #25c8ff',
+    borderRadius: '2px',
     marginBottom: '24px',
   },
   flameContainer: {
@@ -737,7 +836,7 @@ const styles = {
   streakNumber: {
     fontSize: '72px',
     fontWeight: 800,
-    background: 'linear-gradient(135deg, #FF6B35, #FF4444)',
+    background: 'linear-gradient(135deg, #25c8ff, #f2b84b)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   },
@@ -751,18 +850,20 @@ const styles = {
     fontSize: '14px',
     color: 'var(--sp-fg-dim)',
     background: 'rgba(255,255,255,0.05)',
+    border: '1px solid #415866',
     padding: '8px 16px',
-    borderRadius: '20px',
+    borderRadius: '2px',
     display: 'inline-block',
   },
   shareStreakBtn: {
     marginTop: '20px',
-    padding: '12px 24px',
-    background: 'linear-gradient(135deg, #00E0FF, #0099FF)',
-    border: 'none',
-    borderRadius: '12px',
+    minHeight: '44px',
+    padding: '10px 24px',
+    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
+    border: '1px solid #25c8ff',
+    borderRadius: '2px',
     color: '#fff',
-    fontWeight: 600,
+    fontWeight: 700,
     fontSize: '14px',
     cursor: 'pointer',
     display: 'flex',
@@ -771,8 +872,10 @@ const styles = {
     margin: '20px auto 0',
   },
   nextMilestoneCard: {
-    background: '#1a1a1a',
-    borderRadius: '12px',
+    background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+    border: '1px solid #536a76',
+    borderLeft: '3px solid #f2b84b',
+    borderRadius: '2px',
     padding: '20px',
     marginBottom: '24px',
   },
@@ -781,22 +884,22 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '12px',
-    fontWeight: 600,
+    fontWeight: 700,
   },
   diamondReward: {
-    color: '#00E0FF',
+    color: '#25c8ff',
   },
   progressBarContainer: {
     height: '8px',
     background: 'rgba(255,255,255,0.1)',
-    borderRadius: '4px',
+    borderRadius: '2px',
     overflow: 'hidden',
     marginBottom: '8px',
   },
   progressBarFill: {
     height: '100%',
-    background: 'linear-gradient(90deg, #FF6B35, #FFD700)',
-    borderRadius: '4px',
+    background: 'linear-gradient(90deg, #25c8ff, #f2b84b)',
+    borderRadius: '2px',
     transition: 'width 0.3s ease',
   },
   progressText: {
@@ -809,7 +912,7 @@ const styles = {
   },
   sectionTitle: {
     fontSize: '18px',
-    fontWeight: 600,
+    fontWeight: 700,
     marginBottom: '16px',
   },
   calendarGrid: {
@@ -824,12 +927,12 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: '8px',
+    borderRadius: '2px',
     position: 'relative',
   },
   calendarDayNumber: {
     fontSize: '12px',
-    fontWeight: 500,
+    fontWeight: 600,
   },
   trainedIndicator: {
     fontSize: '12px',
@@ -849,8 +952,8 @@ const styles = {
     display: 'inline-block',
     width: '12px',
     height: '12px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #FF6B35, #FF4444)',
+    borderRadius: '2px',
+    background: 'linear-gradient(135deg, #25c8ff, #f2b84b)',
     marginRight: '6px',
     verticalAlign: 'middle',
   },
@@ -862,8 +965,10 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    background: '#1a1a1a',
-    borderRadius: '12px',
+    background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+    border: '1px solid #415866',
+    borderLeft: '3px solid #25c8ff',
+    borderRadius: '2px',
     padding: '16px',
   },
   milestoneIcon: {
@@ -873,7 +978,7 @@ const styles = {
     flex: 1,
   },
   milestoneName: {
-    fontWeight: 600,
+    fontWeight: 700,
     marginBottom: '4px',
   },
   milestoneDays: {
@@ -882,23 +987,26 @@ const styles = {
   },
   milestoneReward: {
     fontSize: '16px',
-    fontWeight: 600,
-    color: '#00E0FF',
+    fontWeight: 700,
+    color: '#25c8ff',
   },
   claimedBadge: {
     fontSize: '14px',
-    color: '#31A24C',
+    color: '#39d59b',
     padding: '6px 12px',
-    background: 'rgba(49, 162, 76, 0.1)',
-    borderRadius: '6px',
+    background: 'rgba(57, 213, 155, 0.1)',
+    border: '1px solid rgba(57, 213, 155, 0.4)',
+    borderRadius: '2px',
   },
   claimButton: {
+    minHeight: '44px',
     padding: '8px 16px',
-    background: 'linear-gradient(135deg, #FFD700, #FF6B35)',
+    background: 'linear-gradient(135deg, #f2b84b, #25c8ff)',
     border: 'none',
-    borderRadius: '6px',
-    color: '#000',
-    fontWeight: 600,
+    borderRadius: '2px',
+    color: '#020608',
+    fontWeight: 700,
+    fontSize: '12px',
     cursor: 'pointer',
   },
   actions: {
@@ -906,7 +1014,7 @@ const styles = {
     marginTop: '40px',
   },
   backButton: {
-    color: '#00E0FF',
+    color: '#25c8ff',
     textDecoration: 'none',
     fontSize: '16px',
   },
@@ -915,7 +1023,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#0a0a0a',
+    background: '#020608',
   },
   loadingText: {
     color: 'var(--sp-fg-muted)',
@@ -928,10 +1036,10 @@ const styles = {
     display: 'inline-block',
     marginTop: '24px',
     padding: '12px 32px',
-    background: '#00E0FF',
-    color: '#000',
-    borderRadius: '8px',
+    background: '#25c8ff',
+    color: '#020608',
+    borderRadius: '2px',
     textDecoration: 'none',
-    fontWeight: 600,
+    fontWeight: 700,
   },
 };

@@ -760,6 +760,70 @@
   }
 }
 
+.referenceSection {
+  margin-top: 28px;
+  padding: 24px 20px;
+  border: 1px solid #536a76;
+  border-left: 3px solid var(--dc-cyan);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #101a20 0%, #050b0f 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 16px 40px rgba(0, 0, 0, 0.44);
+}
+
+.referenceHeader {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #2c414d;
+}
+
+.referenceHeader span {
+  display: inline-block;
+  color: var(--dc-cyan);
+  font: 700 12px/1.25 var(--font-orbitron), "Arial Narrow", sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.referenceHeader h2 {
+  margin: 8px 0 6px;
+  color: #f4f8fa;
+  font: 700 clamp(20px, 4vw, 28px)/1.15 var(--font-orbitron), "Arial Narrow", sans-serif;
+}
+
+.referenceHeader p {
+  margin: 0;
+  color: #a9bbc4;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.referenceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.referenceCard {
+  padding: 16px;
+  border: 1px solid #415866;
+  border-top: 2px solid var(--dc-gold);
+  border-radius: 2px;
+  background: #060e13;
+}
+
+.referenceCard h3 {
+  margin: 0 0 8px;
+  color: #edf6f9;
+  font: 700 15px/1.3 var(--font-orbitron), "Arial Narrow", sans-serif;
+}
+
+.referenceCard p {
+  margin: 0;
+  color: #9cb0ba;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dealerLight {
     animation: none;
@@ -779,6 +843,8 @@
   .streakPanel,
   .rulesPanel,
   .resultDrawer,
+  .referenceSection,
+  .referenceCard,
   .metrics {
     border-color: CanvasText;
     background: Canvas;

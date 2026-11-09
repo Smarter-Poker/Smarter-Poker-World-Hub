@@ -40,6 +40,16 @@ const PRESETS = {
     value: 'Smarter.Poker Club Arena',
     accent: '#a855f7',
   },
+  daily: {
+    label: 'Daily GTO Challenge',
+    value: 'Solver Verified On Smarter.Poker',
+    accent: '#25c8ff',
+  },
+  rules: {
+    label: 'Official Poker Rules',
+    value: 'Smarter.Poker TDA & RROP',
+    accent: '#f2b84b',
+  },
 };
 
 const THEME_ACCENTS = {

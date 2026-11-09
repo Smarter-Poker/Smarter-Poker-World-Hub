@@ -1235,7 +1235,7 @@ const nextConfig = {
       // Guarantees max-snippet:-1, max-image-preview:large, max-video-preview:-1
       // and Vary: Accept across all public AEO content and Markdown endpoints.
       {
-        source: '/:path(learn|learn/.*|glossary|glossary/.*|compare|compare/.*|features|features/.*|research|research/.*|tools/.*|about|verification-methodology|editorial-standards|freerolls)',
+        source: '/:path(learn|learn/.*|glossary|glossary/.*|compare|compare/.*|features|features/.*|research|research/.*|rules|rules/.*|games|games/.*|poker-rooms/guides|poker-rooms/guides/.*|tools/.*|about|verification-methodology|editorial-standards|freerolls)',
         headers: [
           {
             key: 'X-Robots-Tag',
@@ -1429,6 +1429,56 @@ const nextConfig = {
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/discovery-markdown?slug=venues',
         },
+        {
+          source: '/rules',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/rules',
+        },
+        {
+          source: '/rules/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/rules/:slug',
+        },
+        {
+          source: '/games',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/games',
+        },
+        {
+          source: '/games/:variant',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/games/:variant',
+        },
+        {
+          source: '/poker-rooms/guides',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/guides',
+        },
+        {
+          source: '/poker-rooms/guides/:city',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/guides/:city',
+        },
+        {
+          source: '/tools/plo-bet-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/plo-bet-calculator',
+        },
+        {
+          source: '/tools/payout-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/payout-calculator',
+        },
+        {
+          source: '/tools/rake-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/rake-calculator',
+        },
+        {
+          source: '/tools/3bet-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/3bet-calculator',
+        },
       ],
       afterFiles: [
         /* Clean Root OpenAPI & Knowledge Graph Aliases for AI crawlers */
@@ -1611,6 +1661,46 @@ const nextConfig = {
         {
           source: '/tools/spr-calculator.md',
           destination: '/tools/spr-calculator?format=md',
+        },
+        {
+          source: '/tools/plo-bet-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/plo-bet-calculator',
+        },
+        {
+          source: '/tools/payout-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/payout-calculator',
+        },
+        {
+          source: '/tools/rake-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/rake-calculator',
+        },
+        {
+          source: '/tools/3bet-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/3bet-calculator',
+        },
+        {
+          source: '/rules.md',
+          destination: '/api/hub-tool-markdown?path=/rules',
+        },
+        {
+          source: '/rules/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/rules/:slug',
+        },
+        {
+          source: '/games.md',
+          destination: '/api/hub-tool-markdown?path=/games',
+        },
+        {
+          source: '/games/:variant.md',
+          destination: '/api/hub-tool-markdown?path=/games/:variant',
+        },
+        {
+          source: '/poker-rooms/guides.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/guides',
+        },
+        {
+          source: '/poker-rooms/guides/:city.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/guides/:city',
         },
         {
           source: '/openapi.json',

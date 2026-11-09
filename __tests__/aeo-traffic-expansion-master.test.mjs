@@ -12,16 +12,31 @@ import {
   renderSidePotCalculatorMarkdown,
   renderBlindStructureCalculatorMarkdown,
   renderSprCalculatorMarkdown,
+  renderPloBetCalculatorMarkdown,
+  renderPayoutCalculatorMarkdown,
+  renderRakeCalculatorMarkdown,
+  renderThreeBetCalculatorMarkdown,
+  renderRulesIndexMarkdown,
+  renderRuleDetailMarkdown,
+  renderGamesIndexMarkdown,
+  renderGameVariantMarkdown,
+  renderPokerHandRankingsMarkdown,
+  renderMarketGuidesIndexMarkdown,
+  renderMarketGuideCityMarkdown,
 } from '../src/lib/seo/markdownIngestion.mjs';
+import { POKER_RULES } from '../src/content/rules/rules.js';
+import { POKER_VARIANTS } from '../src/content/games/variants.js';
+import { POKER_MARKET_GUIDES } from '../src/content/guides/markets.js';
 import { STARTING_HANDS, findStartingHand, getExpandedHandMatchups, renderStartingHandMarkdown } from '../src/content/learn/hands.js';
 import { VIDEO_LIBRARY_PLAYERS, buildPlayerJsonLd } from '../src/lib/videoLibraryPlayers.mjs';
 import { renderVideoWatchMarkdown, videoSitemapEntry } from '../src/lib/videoLibraryWatch.mjs';
 import { COMPARE_PAGES, getComparePage } from '../src/content/compare/pages.js';
 import { buildTourIcs } from '../src/lib/poker-near-me/calendarExport.mjs';
-import { renderHomeGameGeoMarkdown } from '../pages/api/hub-tool-markdown.js';
+import { renderHomeGameGeoMarkdown, renderHubToolMarkdown } from '../pages/api/hub-tool-markdown.js';
 import { MCP_TOOLS, executeMcpTool } from '../src/lib/mcp/mcpServer.mjs';
-import { STATIC_PAGES, RESEARCH_PAGES, LEARN_PAGES } from '../src/lib/seo/sitemapBuilders.mjs';
+import { STATIC_PAGES, RESEARCH_PAGES, LEARN_PAGES, RULES_PAGES, GAMES_PAGES, MARKET_GUIDE_PAGES } from '../src/lib/seo/sitemapBuilders.mjs';
 import { buildRssFeedXml } from '../pages/feed.xml.js';
+import { buildKnowledgeGraph } from '../pages/api/ai/knowledge-graph.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -218,4 +233,87 @@ test('Phase 5 of 6: 21 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery
   for (const href of ['/tools', '/learn/hands', '/research', '/freerolls', '/hub/video-library']) {
     assert.ok(page404.includes(`href: '${href}'`), `pages/404.js includes ${href}`);
   }
+});
+
+test('Phase 6 of 6: 12-Item Master Expansion — 30 Official Rules, 15 Game Variants, 4 New Calculators, Hand Rankings, 12 Market Guides, & Training Vaults #SmarterCasinoRealism', () => {
+  // 1. 30 Official Poker Rules & Floor Rulings
+  assert.equal(POKER_RULES.length, 30);
+  assert.equal(RULES_PAGES.length, 31);
+  assert.ok(renderRulesIndexMarkdown().includes('Official Poker Rules & Casino Floor Rulings Encyclopedia'));
+  assert.ok(renderRuleDetailMarkdown('showdown-order-who-shows-first').includes('TDA Rule 16'));
+  assert.ok(renderHubToolMarkdown('/rules/verbal-declarations-binding-action').includes('Verbal Declarations'));
+
+  // 2. 15 Poker Variants & Mixed Games
+  assert.equal(POKER_VARIANTS.length, 15);
+  assert.equal(GAMES_PAGES.length, 16);
+  assert.ok(renderGamesIndexMarkdown().includes('Poker Variants & Mixed Games Encyclopedia'));
+  assert.ok(renderGameVariantMarkdown('pot-limit-omaha-plo4').includes('Mandatory Two-Card Rule'));
+  assert.ok(renderHubToolMarkdown('/games/short-deck-six-plus').includes('Short Deck'));
+
+  // 3. 4 New Interactive Calculators (/tools/plo-bet-calculator, /tools/payout-calculator, /tools/rake-calculator, /tools/3bet-calculator)
+  for (const rel of [
+    'pages/tools/plo-bet-calculator.js',
+    'pages/tools/payout-calculator.js',
+    'pages/tools/rake-calculator.js',
+    'pages/tools/3bet-calculator.js',
+  ]) {
+    assert.ok(fs.existsSync(path.join(ROOT, rel)), `${rel} exists`);
+    const src = read(rel);
+    assert.ok(src.includes('SEOHead'), `${rel} renders SEOHead`);
+    assert.ok(src.includes('CitationBacklinkBox'), `${rel} renders CitationBacklinkBox`);
+    assert.equal(src.includes('\u2014'), false, `${rel} contains zero em dashes`);
+  }
+  assert.ok(renderPloBetCalculatorMarkdown().includes('Pot-Limit Omaha (PLO) Max Bet'));
+  assert.ok(renderPayoutCalculatorMarkdown().includes('Poker Tournament Payout & Prize Pool Distribution Calculator'));
+  assert.ok(renderRakeCalculatorMarkdown().includes('Live Cash Game Rake, Promo Drop & Time-Charge Impact Calculator'));
+  assert.ok(renderThreeBetCalculatorMarkdown().includes('Preflop 3-Bet, 4-Bet Sizing & Minimum Defense Frequency (MDF) Calculator'));
+
+  // 4. Official Poker Hand Rankings Cheat Sheet (/learn/poker-hand-rankings)
+  const handRankingsSrc = read('pages/learn/poker-hand-rankings.js');
+  assert.ok(handRankingsSrc.includes('2,598,960'));
+  assert.ok(handRankingsSrc.includes('133,784,560'));
+  assert.ok(renderPokerHandRankingsMarkdown().includes('Royal Flush'));
+  assert.ok(renderHubToolMarkdown('/learn/poker-hand-rankings').includes('2,598,960'));
+
+  // 5. Top 12 US Regional Poker Market Strategy Guides (/poker-rooms/guides and /poker-rooms/guides/[city])
+  assert.equal(POKER_MARKET_GUIDES.length, 12);
+  assert.equal(MARKET_GUIDE_PAGES.length, 13);
+  assert.ok(renderMarketGuidesIndexMarkdown().includes('US Regional Live Poker Market Strategy Guides'));
+  assert.ok(renderMarketGuideCityMarkdown('las-vegas-nevada').includes('Las Vegas'));
+  assert.ok(renderHubToolMarkdown('/poker-rooms/guides/houston-texas').includes('Houston'));
+
+  // 6. Training Vaults #SmarterCasinoRealism & Daily Challenge Reference Section
+  for (const trainingRel of [
+    'pages/hub/training/achievements.js',
+    'pages/hub/training/streaks.js',
+    'pages/hub/training/leaderboard.js',
+    'pages/hub/training/tournaments.js',
+    'pages/hub/training/daily-challenge.js',
+  ]) {
+    const src = read(trainingRel);
+    const nonCommentLines = src
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*') && !l.includes('cleaned-emoji artifact'))
+      .join('\n');
+    assert.equal(nonCommentLines.includes('\u2014'), false, `${trainingRel} UI copy has zero em dashes`);
+    assert.ok(
+      src.includes('achievements-casino.module.css') ||
+      src.includes('daily-challenge-casino.module.css') ||
+      src.includes('#25c8ff') ||
+      src.includes("borderRadius: '2px'") ||
+      src.includes('borderRadius: 2'),
+      `${trainingRel} adopts #SmarterCasinoRealism visual tokens`
+    );
+  }
+  const dailySrc = read('pages/hub/training/daily-challenge.js');
+  assert.ok(dailySrc.includes('CitationBacklinkBox'), 'daily-challenge.js wires CitationBacklinkBox');
+  assert.ok(dailySrc.includes('/hub/training/achievements'), 'daily-challenge.js links to Achievements Vault');
+  assert.ok(dailySrc.includes('/hub/training/streaks'), 'daily-challenge.js links to Streaks Vault');
+  assert.ok(renderHubToolMarkdown('/hub/training/daily-challenge').includes('Daily GTO Poker Hand Challenge'));
+
+  // 7. Unified Knowledge Graph & Sitemaps include Rules, Variants, and Market Guides
+  const graph = buildKnowledgeGraph()['@graph'];
+  assert.ok(graph.some((n) => n['@id'] === 'https://smarter.poker/rules#encyclopedia'));
+  assert.ok(graph.some((n) => n['@id'] === 'https://smarter.poker/games#variants'));
+  assert.ok(graph.some((n) => n['@id'] === 'https://smarter.poker/poker-rooms/guides#markets'));
 });

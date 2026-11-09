@@ -24,8 +24,8 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-test('Dynamic SVG Authority Badge generator renders valid, accessible SVG across all 5 presets', () => {
-  for (const type of ['venue', 'commander', 'research', 'gto', 'club']) {
+test('Dynamic SVG Authority Badge generator renders valid, accessible SVG across all 7 presets', () => {
+  for (const type of ['venue', 'commander', 'research', 'gto', 'club', 'daily', 'rules']) {
     const svg = renderBadgeSvg({ type });
     assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'), `${type} badge is valid SVG`);
     assert.ok(svg.includes('role="img"'), `${type} badge includes role="img"`);
@@ -42,7 +42,7 @@ test('Dynamic SVG Authority Badge generator renders valid, accessible SVG across
   assert.equal(escapeXml('A & B < C > "D" \'E\''), 'A &amp; B &lt; C &gt; &quot;D&quot; &apos;E&apos;');
 });
 
-test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators and 5 SVG backlink badges', () => {
+test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators and 7 SVG backlink badges', () => {
   const embedsSrc = read('pages/tools/embeds.js');
   for (const widgetId of [
     'odds-calculator',
@@ -56,6 +56,10 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators and 5 SVG 
     'side-pot-calculator',
     'blind-structure-calculator',
     'spr-calculator',
+    'plo-bet-calculator',
+    'payout-calculator',
+    'rake-calculator',
+    '3bet-calculator',
   ]) {
     assert.ok(embedsSrc.includes(`id: '${widgetId}'`), `embeds.js includes ${widgetId}`);
   }
@@ -66,6 +70,8 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators and 5 SVG 
     'badge-research',
     'badge-gto',
     'badge-club',
+    'badge-daily',
+    'badge-rules',
   ]) {
     assert.ok(embedsSrc.includes(`id: '${badgeId}'`), `embeds.js includes ${badgeId}`);
   }
@@ -79,10 +85,14 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators and 5 SVG 
   assert.ok(md.includes('Multi-Way All-In Main & Side Pot Calculator'));
   assert.ok(md.includes('Tournament Blind Structure & Chip Distribution Generator'));
   assert.ok(md.includes('Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator'));
+  assert.ok(md.includes('Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Calculator'));
+  assert.ok(md.includes('Tournament Payout & Prize Pool Distribution Calculator'));
+  assert.ok(md.includes('Live Cash Game Rake & Time-Charge Calculator'));
+  assert.ok(md.includes('GTO Preflop 3-Bet, Squeeze, 4-Bet & MDF Calculator'));
   assert.ok(md.includes('Dynamic SVG Authority & Partner Backlink Badges'));
 });
 
-test('Research, Starting Hands, Glossary, and Calculator pages wire CitationBacklinkBox with HTML, Badge, Markdown, BBCode, Press, and BibTeX formats', () => {
+test('Research, Starting Hands, Glossary, Rules, Games, Guides, and Calculator pages wire CitationBacklinkBox with HTML, Badge, Markdown, BBCode, Press, and BibTeX formats', () => {
   const boxSrc = read('src/components/seo/CitationBacklinkBox.js');
   assert.ok(boxSrc.includes('HTML Contextual Backlink'));
   assert.ok(boxSrc.includes('SVG Authority Badge Embed'));
@@ -97,7 +107,14 @@ test('Research, Starting Hands, Glossary, and Calculator pages wire CitationBack
     'pages/learn/hands/[hand].js',
     'pages/learn/hands/index.js',
     'pages/learn/[topic].js',
+    'pages/learn/poker-hand-rankings.js',
     'pages/glossary/[term].js',
+    'pages/rules/index.js',
+    'pages/rules/[slug].js',
+    'pages/games/index.js',
+    'pages/games/[variant].js',
+    'pages/poker-rooms/guides/index.js',
+    'pages/poker-rooms/guides/[city].js',
     'src/components/features/FeatureLanderLayout.js',
     'pages/editorial-standards.js',
     'pages/verification-methodology.js',
@@ -110,7 +127,12 @@ test('Research, Starting Hands, Glossary, and Calculator pages wire CitationBack
     'pages/tools/side-pot-calculator.js',
     'pages/tools/blind-structure-calculator.js',
     'pages/tools/spr-calculator.js',
+    'pages/tools/plo-bet-calculator.js',
+    'pages/tools/payout-calculator.js',
+    'pages/tools/rake-calculator.js',
+    'pages/tools/3bet-calculator.js',
     'pages/tools/preflop-ranges/index.js',
+    'pages/hub/training/daily-challenge.js',
   ];
 
   for (const pagePath of wiredPages) {
@@ -119,11 +141,11 @@ test('Research, Starting Hands, Glossary, and Calculator pages wire CitationBack
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 11 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 15 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 26);
+  assert.equal(jsonFeed.items.length, 30);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);
@@ -144,6 +166,14 @@ test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 
     '/tools/side-pot-calculator',
     '/tools/blind-structure-calculator',
     '/tools/spr-calculator',
+    '/tools/plo-bet-calculator',
+    '/tools/payout-calculator',
+    '/tools/rake-calculator',
+    '/tools/3bet-calculator',
+    '/learn/poker-hand-rankings',
+    '/rules/showdown-order-who-shows-first',
+    '/games/texas-holdem',
+    '/poker-rooms/guides/las-vegas-nevada',
     '/research/us-live-poker-room-rake-and-jackpot-benchmark',
   ]) {
     assert.ok(rssXml.includes(`https://smarter.poker${calcPath}`), `RSS feed includes ${calcPath}`);

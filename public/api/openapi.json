@@ -206,7 +206,7 @@
       "post": {
         "operationId": "callMcpRpc",
         "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution",
-        "description": "Executes Model Context Protocol (MCP) tool calls including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series.",
+        "description": "Executes Model Context Protocol (MCP) tool calls including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus raw Markdown ingestion for /tools/plo-bet-calculator, /tools/payout-calculator, /tools/rake-calculator, /tools/3bet-calculator, /rules, /games, /learn/poker-hand-rankings, and /poker-rooms/guides.",
         "requestBody": {
           "required": true,
           "content": {

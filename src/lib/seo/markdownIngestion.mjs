@@ -33,6 +33,9 @@ import {
 } from '../../content/learn/lessons.js';
 import { RFI } from '../../config/solverRanges.js';
 import { describeRange, combosFor } from './preflopReference.js';
+import { POKER_RULES, RULES_AS_OF, getRuleBySlug } from '../../content/rules/rules.js';
+import { POKER_VARIANTS, GAMES_AS_OF, getGameVariantBySlug } from '../../content/games/variants.js';
+import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF, getMarketGuideBySlug } from '../../content/guides/markets.js';
 
 function clean(str) {
   return String(str || '').replace(/\s+/g, ' ').trim();
@@ -1230,12 +1233,34 @@ export function renderEmbedsMarkdown({ canonicalUrl = 'https://smarter.poker/too
     '- Embed URL: `https://smarter.poker/tools/spr-calculator`',
     '- Canonical Target: `https://smarter.poker/tools/spr-calculator`',
     '',
+    '### 12. Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Calculator',
+    '- Purpose: Calculates exact Pot-Limit Omaha maximum bet and raise sizes using the 3x plus trail formula and solves double-board bomb pot split equity.',
+    '- Embed URL: `https://smarter.poker/tools/plo-bet-calculator`',
+    '- Canonical Target: `https://smarter.poker/tools/plo-bet-calculator`',
+    '',
+    '### 13. Tournament Payout & Prize Pool Distribution Calculator',
+    '- Purpose: Generates TDA-compliant tournament prize pool payouts across Top 10%, Top 15%, Top 20%, and Winner-Take-All structures with ICM bubble factors.',
+    '- Embed URL: `https://smarter.poker/tools/payout-calculator`',
+    '- Canonical Target: `https://smarter.poker/tools/payout-calculator`',
+    '',
+    '### 14. Live Cash Game Rake & Time-Charge Calculator',
+    '- Purpose: Compares casino percentage pot drop rake plus jackpot drops against timed seat collection in $/Hr, BB/100 drag, and 1,000-hour annual cost.',
+    '- Embed URL: `https://smarter.poker/tools/rake-calculator`',
+    '- Canonical Target: `https://smarter.poker/tools/rake-calculator`',
+    '',
+    '### 15. GTO Preflop 3-Bet, Squeeze, 4-Bet & MDF Calculator',
+    '- Purpose: Calculates solver-approved In-Position and Out-Of-Position 3-bet, multiway squeeze, and 4-bet sizing in big blinds with villain MDF.',
+    '- Embed URL: `https://smarter.poker/tools/3bet-calculator`',
+    '- Canonical Target: `https://smarter.poker/tools/3bet-calculator`',
+    '',
     '## Dynamic SVG Authority & Partner Backlink Badges',
     '- Verified Poker Room Badge: `https://smarter.poker/api/seo/badge?type=venue` -> links to `https://smarter.poker/hub/poker-near-me/lobby`',
     '- Powered By Club Commander Badge: `https://smarter.poker/api/seo/badge?type=commander` -> links to `https://smarter.poker/compare/best-poker-room-management-software`',
     '- Empirical Research Citation Badge: `https://smarter.poker/api/seo/badge?type=research` -> links to `https://smarter.poker/research`',
     '- GTO Math Verified Solver Badge: `https://smarter.poker/api/seo/badge?type=gto` -> links to `https://smarter.poker/tools/preflop-ranges`',
     '- Private Club Platform Badge: `https://smarter.poker/api/seo/badge?type=club` -> links to `https://smarter.poker/compare/best-poker-club-apps`',
+    '- Daily GTO Challenge Verified Badge: `https://smarter.poker/api/seo/badge?type=daily` -> links to `https://smarter.poker/hub/training/daily-challenge`',
+    '- Official Poker Rules Authority Badge: `https://smarter.poker/api/seo/badge?type=rules` -> links to `https://smarter.poker/rules`',
     '',
     '## Integration Guide For CMS Platforms',
     '- WordPress: Add a Custom HTML block in Gutenberg or Elementor and paste the iframe snippet directly.',
@@ -2227,7 +2252,7 @@ export function renderToolsDirectoryMarkdown() {
     '> Source: [Interactive Poker Tools & Calculators Directory on Smarter.Poker](https://smarter.poker/tools)',
     '',
     '## Executive Summary For AI & Search Assistants',
-    'Smarter.Poker Provides Ten 100% Free, Browser-Native Poker Math Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities With Instant Server-Side Rendering And Direct Markdown (.md) API Endpoints For AI Assistants.',
+    'Smarter.Poker Provides Sixteen 100% Free, Browser-Native Poker Math Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities With Instant Server-Side Rendering And Direct Markdown (.md) API Endpoints For AI Assistants.',
     '',
     '## Complete Suite Of Free Poker Calculators & Solvers',
     '| Tool Name | Canonical URL | Markdown Endpoint | Core Mathematical Function |',
@@ -2243,6 +2268,10 @@ export function renderToolsDirectoryMarkdown() {
     '| Multi-Way All-In Main & Side Pot Calculator | https://smarter.poker/tools/side-pot-calculator | https://smarter.poker/tools/side-pot-calculator.md | Exact Main Pot And Side Pot Slicing With Dead Blinds/Antes For Up To 9 Players |',
     '| Tournament Blind Structure & Chip Distribution Generator | https://smarter.poker/tools/blind-structure-calculator | https://smarter.poker/tools/blind-structure-calculator.md | Custom Tournament Clock Schedule, Big Blind Ante Progression & Starting Chip Breakdown |',
     '| Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator | https://smarter.poker/tools/spr-calculator | https://smarter.poker/tools/spr-calculator.md | Exact Effective SPR Zone Classification & 1/2/3-Street Geometric All-In Bet Sizing |',
+    '| Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Calculator | https://smarter.poker/tools/plo-bet-calculator | https://smarter.poker/tools/plo-bet-calculator.md | Dealer 3x + Trail Pot-Limit Max Raise Solver & Double-Board Bomb Pot Split Equity |',
+    '| Tournament Payout & Prize Pool Distribution Calculator | https://smarter.poker/tools/payout-calculator | https://smarter.poker/tools/payout-calculator.md | TDA-Compliant Tournament Prize Pool Payouts & Money Bubble ICM Factors |',
+    '| Live Cash Game Rake & Time-Charge Calculator | https://smarter.poker/tools/rake-calculator | https://smarter.poker/tools/rake-calculator.md | Percentage Pot Drop Rake Vs Timed Seat Collection In $/Hr And BB/100 |',
+    '| GTO Preflop 3-Bet, Squeeze, 4-Bet & MDF Calculator | https://smarter.poker/tools/3bet-calculator | https://smarter.poker/tools/3bet-calculator.md | Optimal IP/OOP 3-Bet, Multiway Squeeze, And 4-Bet Sizing With Villain MDF |',
     '| Embeddable Webmaster Poker Widgets | https://smarter.poker/tools/embeds | https://smarter.poker/tools/embeds.md | Zero-Dependency Responsive Iframe Widgets For Poker Blogs, Forums & Discord Communities |',
     '',
     '## 100BB 6-Max Positional GTO Preflop Charts',
@@ -2445,6 +2474,354 @@ export function renderSprCalculatorMarkdown({
     '',
   ].join('\n');
 }
+
+/**
+ * Format Pot-Limit Omaha (PLO) Max Bet & Double-Board Bomb Pot Calculator (/tools/plo-bet-calculator) as Markdown
+ */
+export function renderPloBetCalculatorMarkdown({
+  previousPot = 1.5,
+  lastBet = 1.0,
+  trailCalls = 0,
+  heroAlreadyIn = 0,
+} = {}) {
+  const safePot = Math.max(0, Number(previousPot) || 1.5);
+  const safeLastBet = Math.max(0, Number(lastBet) || 1.0);
+  const safeTrail = Math.max(0, Number(trailCalls) || 0);
+  const safeHero = Math.max(0, Number(heroAlreadyIn) || 0);
+  const maxBetTotal = 3 * safeLastBet + safeTrail + safePot - 2 * safeHero;
+  const potAfterMaxBet = maxBetTotal + safeLastBet + safeTrail + safePot - safeHero;
+
+  return [
+    '# Pot-Limit Omaha (PLO) Max Bet & Double-Board Bomb Pot Calculator',
+    '',
+    '> Source: [PLO Max Bet & Bomb Pot Calculator on Smarter.Poker](https://smarter.poker/tools/plo-bet-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `In Pot-Limit Omaha (PLO4, PLO5, PLO6), The Maximum Legal Raise Total Is Governed By The Dealer Shortcut Formula: Max Raise Total = (3 * Last Bet) + Trail Calls + Previous Center Pot - (2 * Hero Chips Already In On This Street). With Previous Pot = ${safePot} BB, Facing Bet = ${safeLastBet} BB, And Trail Calls = ${safeTrail} BB, The Maximum Pot-Sized Raise Total Is ${maxBetTotal.toFixed(1)} BB (Creating A ${potAfterMaxBet.toFixed(1)} BB Pot Before Villain Responds).`,
+    '',
+    '## PLO Preflop Pot Raise Progression (1/2 Or 0.5/1 BB Structure)',
+    '| Action Stage | Previous Pot | Facing Bet | Max Pot Raise Total | Resulting Pot After Raise | Effective SPR At 100 BB |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| 1st Raise (Open Pot) | 1.5 BB | 1.0 BB | 3.5 BB | 5.0 BB | 13.8 SPR (Heads-Up) |',
+    '| 2nd Raise (3-Bet Pot) | 1.5 BB | 3.5 BB | 12.0 BB | 17.0 BB | 3.6 SPR (Heads-Up) |',
+    '| 3rd Raise (4-Bet Pot) | 5.0 BB | 12.0 BB | 41.0 BB | 53.0 BB | 0.72 SPR (Committed) |',
+    '| 4th Raise (5-Bet Jam) | 17.0 BB | 41.0 BB | 140.0 BB | 181.0 BB | 0.0 SPR (All-In Preflop) |',
+    '',
+    '## Double-Board PLO Bomb Pot Split Equity & Quartering Math',
+    '- **Freeroll Advantage**: Locking Up Board A (100% Equity) With A 36% Nut Flush Draw On Board B Yields 68.0% Total Pot Equity (Zero Risk Of Losing Money).',
+    '- **Quartering Trap**: Calling A Pot-Sized River Bet When Drawing Only To Chop One Board (0% Scoop Equity, 50% Split Equity) Captures Only 25% Of The Final Pot While Paying 33.3% Pot Odds (-8.33% EV Loss).',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Tournament Payout & Prize Pool Distribution Calculator (/tools/payout-calculator) as Markdown
+ */
+export function renderPayoutCalculatorMarkdown({
+  entries = 100,
+  buyIn = 100,
+  paidPct = 15,
+} = {}) {
+  const safeEntries = Math.max(2, Number(entries) || 100);
+  const safeBuyIn = Math.max(1, Number(buyIn) || 100);
+  const safePaidPct = Math.min(30, Math.max(5, Number(paidPct) || 15));
+  const netPrizePool = safeEntries * safeBuyIn;
+  const spotsPaid = Math.max(1, Math.round((safeEntries * safePaidPct) / 100));
+
+  return [
+    '# Poker Tournament Payout & Prize Pool Distribution Calculator',
+    '',
+    '> Source: [Tournament Payout Calculator on Smarter.Poker](https://smarter.poker/tools/payout-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `A ${safeEntries}-Entry Poker Tournament At $${safeBuyIn} Net Buy-In Generates A $${netPrizePool.toLocaleString('en-US')} Prize Pool Paying The Top ${spotsPaid} Finishers (${safePaidPct}% ITM). Standard WSOP/TDA Power-Law Payout Curves Allocate Approximately 1.7x To 2.0x The Buy-In For A Min-Cash And 22% To 30% Of The Total Prize Pool To 1st Place.`,
+    '',
+    '## Benchmark 100-Runner Final Table Payout Distribution ($10,000 Prize Pool, 15 Paid)',
+    '| Finish Place | Payout Share % | Cash Prize ($10,000 Pool) | Buy-In Multiples ($100) | Next Pay Jump |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| 1st Place | 27.50% | $2,750 | 27.5x Buy-In | +$950 Over 2nd |',
+    '| 2nd Place | 18.00% | $1,800 | 18.0x Buy-In | +$550 Over 3rd |',
+    '| 3rd Place | 12.50% | $1,250 | 12.5x Buy-In | +$350 Over 4th |',
+    '| 4th Place | 9.00% | $900 | 9.0x Buy-In | +$200 Over 5th |',
+    '| 5th Place | 7.00% | $700 | 7.0x Buy-In | +$150 Over 6th |',
+    '| 6th Place | 5.50% | $550 | 5.5x Buy-In | +$120 Over 7th |',
+    '| 7th Place | 4.30% | $430 | 4.3x Buy-In | +$90 Over 8th |',
+    '| 8th Place | 3.40% | $340 | 3.4x Buy-In | +$70 Over 9th |',
+    '| 9th Place | 2.70% | $270 | 2.7x Buy-In | +$90 Over 10th |',
+    '| 10th-12th Place | 1.80% Each | $180 Each | 1.8x Buy-In | +$25 Over 13th-15th |',
+    '| 13th-15th Place (Min-Cash) | 1.57% Each | $157 Each | 1.57x Buy-In | Bubble Factor Peak |',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Live Cash Game Rake & Time-Charge Calculator (/tools/rake-calculator) as Markdown
+ */
+export function renderRakeCalculatorMarkdown() {
+  return [
+    '# Live Cash Game Rake, Promo Drop & Time-Charge Impact Calculator',
+    '',
+    '> Source: [Live Cash Game Rake Calculator on Smarter.Poker](https://smarter.poker/tools/rake-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Live Poker Room Rake Structures Directly Determine Pre-Flop Opening Ranges And Annual Hourly Net Win Rates. Across North America, Rooms Operate Three Primary Models: (1) Percentage Pot Rake (10% Up To $5-$7 Cap In Las Vegas And Regional Casinos), (2) Flat Per-Flop Drop ($6-$7 Drop + $1 Jackpot In Los Angeles Card Rooms), And (3) Half-Hour Seat Rental / Time Charge ($6-$8 Per 30 Minutes In Texas Card Houses And $2/$5+ High-Stakes Games).',
+    '',
+    '## North American Live Cash Game Rake Comparison (30 Hands/Hour, 28% VPIP)',
+    '| Regional Rake Model | Stakes | Rake / Drop Structure | Hourly Rake Paid Per Player | Rake Cost In BB / 100 Hands | Strategic Adjustment |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| Las Vegas Strip (Wynn / Bellagio / Aria) | $1/$3 NLH | 10% Up To $5 Cap ($0 Promo) | ~$13.80 / Hr | 15.3 BB / 100 | Tighten Flat Calls; 3-Bet Linearly |',
+    '| Las Vegas Strip Mid-Stakes | $2/$5 NLH | 10% Up To $6 Cap ($0 Promo) | ~$16.50 / Hr | 11.0 BB / 100 | High Playability; Standard GTO Ranges |',
+    '| Los Angeles Flat Drop (Commerce / Bike / Hustler) | $5/$5 NLH | $7 Flat Flop Drop + $1 Promo | ~$22.40 / Hr | 14.9 BB / 100 | Avoid Small Multiway Limped Pots |',
+    '| Texas Private Club Time-Charge (Austin / Houston / Dallas) | $1/$2 Or $1/$3 | $12 - $14 / Hr Seat Rental ($0 Pot Drop) | $13.00 / Hr Fixed | 14.4 BB / 100 (Zero Per-Pot Tax) | Play High VPIP & Wide Postflop Edges |',
+    '| Regional Casino High-Cap + Bad Beat Drop | $1/$2 NLH | 10% Up To $6 + $2 Promo Drop | ~$22.00 / Hr | 36.7 BB / 100 | Severe Rake Trap; Move Up To $2/$5 Fast |',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format 3-Bet, 4-Bet & Minimum Defense Frequency Calculator (/tools/3bet-calculator) as Markdown
+ */
+export function renderThreeBetCalculatorMarkdown({
+  openSize = 2.5,
+  threeBetSize = 8.0,
+} = {}) {
+  const safeOpen = Math.max(2, Number(openSize) || 2.5);
+  const safe3Bet = Math.max(safeOpen * 2, Number(threeBetSize) || 8.0);
+  const potBefore3Bet = 1.5 + safeOpen;
+  const riskToSteal = safe3Bet;
+  const requiredFoldEquity = (riskToSteal / (riskToSteal + potBefore3Bet)) * 100;
+  const mdf = 100 - requiredFoldEquity;
+
+  return [
+    '# Preflop 3-Bet, 4-Bet Sizing & Minimum Defense Frequency (MDF) Calculator',
+    '',
+    '> Source: [3-Bet & 4-Bet Sizing Calculator on Smarter.Poker](https://smarter.poker/tools/3bet-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Against A ${safeOpen} BB Preflop Open (Creating A ${potBefore3Bet.toFixed(1)} BB Dead Pot Including Blinds), A 3-Bet To ${safe3Bet.toFixed(1)} BB Risks ${safe3Bet.toFixed(1)} BB To Win ${potBefore3Bet.toFixed(1)} BB, Requiring ${requiredFoldEquity.toFixed(1)}% Break-Even Bluff Fold Equity And Leaving The Original Raiser With A ${mdf.toFixed(1)}% Minimum Defense Frequency (MDF).`,
+    '',
+    '## Solver-Backed 100BB Preflop 3-Bet & 4-Bet Sizing Benchmarks',
+    '| Scenario | Open / 3-Bet Size | Optimal Re-Raise Multiplier | Target Bet Size (BB) | Break-Even Fold Equity | Optimal Value-To-Bluff Ratio |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| In Position (IP) 3-Bet Vs 2.5 BB Open | 2.5 BB Open | 3.0x Open Size | 7.5 BB | 65.2% | ~1.5 : 1 Linear / Polar Mix |',
+    '| Out Of Position (OOP) SB/BB 3-Bet Vs 2.5 BB Open | 2.5 BB Open | 4.0x - 4.4x Open Size | 10.0 - 11.0 BB | 69.0% - 71.0% | ~1.8 : 1 Polarized |',
+    '| Live Cash 3-Bet Vs 4 BB Open + 2 Callers | 4.0 BB + 8.0 BB Dead | 3.5x + 1x Per Caller | 22.0 BB | 62.0% | Value-Heavy Linear |',
+    '| In Position (IP) 4-Bet Vs 10 BB OOP 3-Bet | 10.0 BB 3-Bet | 2.2x - 2.3x 3-Bet Size | 22.0 - 23.0 BB | 62.7% | ~1.4 : 1 (AA/KK/AK Vs A5s/A4s) |',
+    '| Out Of Position (OOP) 4-Bet Vs 7.5 BB IP 3-Bet | 7.5 BB 3-Bet | 2.6x - 2.8x 3-Bet Size | 19.5 - 21.0 BB | 66.5% | ~1.5 : 1 Polarized |',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Official Poker Rules & Floor Rulings Encyclopedia (/rules and /rules/[slug]) as Markdown
+ */
+export function renderRulesIndexMarkdown() {
+  return [
+    '# Official Poker Rules & Casino Floor Rulings Encyclopedia (TDA & RROP)',
+    '',
+    `> Source: [Official Poker Rules & Floor Rulings on Smarter.Poker](https://smarter.poker/rules) | As Of ${RULES_AS_OF}`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Authoritative Reference Covering ${POKER_RULES.length} Official Poker Tournament Directors Association (TDA) And Robert's Rules Of Poker (RROP) Floor Rulings Across Showdown Order, Verbal Declarations, Oversized Chip Rules, String Bets, Short All-In Action Reopening, Odd Chip Distribution, And Variant-Specific Procedures.`,
+    '',
+    '## Complete Index Of Official Floor Rulings',
+    '| Rule Title | Category | Official Citation | Direct URL |',
+    '| :--- | :--- | :--- | :--- |',
+    ...POKER_RULES.map(
+      (r) => `| **${r.title}** | ${r.category} | ${r.tdaRef} | [https://smarter.poker/rules/${r.slug}](https://smarter.poker/rules/${r.slug}) |`
+    ),
+    '',
+  ].join('\n');
+}
+
+export function renderRuleDetailMarkdown(slug) {
+  const rule = POKER_RULES.find((r) => r.slug === slug);
+  if (!rule) return null;
+  const url = `https://smarter.poker/rules/${rule.slug}`;
+  return [
+    `# ${rule.h1} | Official Poker Floor Ruling`,
+    '',
+    `> Source: [${rule.title} on Smarter.Poker](${url}) | Official Reference: ${rule.tdaRef}`,
+    '',
+    '## Direct Answer & Summary Ruling',
+    rule.summary,
+    '',
+    '## Official Casino Floor & TDA Ruling',
+    rule.floorRuling,
+    '',
+    '## Common Live Table Scenarios & Rulings',
+    ...(rule.commonScenarios || []).map(
+      (s, i) => `${i + 1}. **Scenario**: ${s.situation}\n   - **Official Ruling**: ${s.ruling}`
+    ),
+    '',
+    '## Frequently Asked Questions',
+    ...(rule.faqs || []).flatMap((f) => [`### ${f.q}`, f.a, '']),
+    `## Canonical & Raw Markdown Links`,
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    `- **All Poker Rules Index**: [https://smarter.poker/rules](https://smarter.poker/rules)`,
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Poker Variants & Mixed Games Hub (/games and /games/[variant]) as Markdown
+ */
+export function renderGamesIndexMarkdown() {
+  return [
+    '# Poker Variants & Mixed Games Encyclopedia (Rules, Hand Rankings & Strategy)',
+    '',
+    `> Source: [Poker Variants & Mixed Games Hub on Smarter.Poker](https://smarter.poker/games) | As Of ${GAMES_AS_OF}`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Complete Rules, Betting Structures, And Starting Hand Strategy For ${POKER_VARIANTS.length} Official Poker Variants Across Community Card Games (Texas Hold'em, PLO4, PLO5, PLO6, Big O, Short Deck 6+, Double-Board Bomb Pots), Stud Games (7-Card Stud, Stud Hi-Lo, Razz), Draw & Lowball (2-7 Triple Draw, No-Limit 2-7 Single Draw, Badugi), And Mixed Rotations (H.O.R.S.E. And 8-Game Mix).`,
+    '',
+    '## Complete Poker Variants Matrix',
+    '| Variant Name | Category | Hole Cards | Board Cards | Betting Structure | Direct URL |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...POKER_VARIANTS.map(
+      (v) => `| **${v.name}** | ${v.category} | ${v.holeCards} | ${v.boardCards} | ${v.bettingStructure} | [https://smarter.poker/games/${v.slug}](https://smarter.poker/games/${v.slug}) |`
+    ),
+    '',
+  ].join('\n');
+}
+
+export function renderGameVariantMarkdown(slug) {
+  const variant = POKER_VARIANTS.find((v) => v.slug === slug);
+  if (!variant) return null;
+  const url = `https://smarter.poker/games/${variant.slug}`;
+  return [
+    `# ${variant.h1} | Smarter.Poker`,
+    '',
+    `> Source: [${variant.name} Rules & Strategy on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    variant.summary,
+    '',
+    '## Game Specifications',
+    `- **Variant Name**: ${variant.name}`,
+    `- **Category**: ${variant.category}`,
+    `- **Hole Cards**: ${variant.holeCards}`,
+    `- **Board Cards**: ${variant.boardCards}`,
+    `- **Betting Structure**: ${variant.bettingStructure}`,
+    `- **Hand Ranking System**: ${variant.handRankingSystem}`,
+    '',
+    '## Official Dealing & Betting Rules',
+    ...(variant.rulesOverview || []).map((r, i) => `${i + 1}. ${r}`),
+    '',
+    '## Starting Hand Strategy Tiers',
+    ...(variant.startingHandStrategy || []).map(
+      (t) => `- **${t.tier}** (${t.hands}): ${t.advice}`
+    ),
+    '',
+    '## Key Strategic Differences From Texas Hold\'em',
+    ...(variant.keyDifferencesFromHoldem || []).map((d) => `- ${d}`),
+    '',
+    '## Frequently Asked Questions',
+    ...(variant.faqs || []).flatMap((f) => [`### ${f.q}`, f.a, '']),
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    `- **All Poker Variants Hub**: [https://smarter.poker/games](https://smarter.poker/games)`,
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Official Poker Hand Rankings & Tie-Breaker Cheat Sheet (/learn/poker-hand-rankings) as Markdown
+ */
+export function renderPokerHandRankingsMarkdown() {
+  const url = 'https://smarter.poker/learn/poker-hand-rankings';
+  return [
+    '# Official Poker Hand Rankings Chart, Combinatorics & Tie-Breaker Rules',
+    '',
+    `> Source: [Official Poker Hand Rankings Cheat Sheet on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'In Standard 52-Card High Poker (Texas Hold\'em, Pot-Limit Omaha, 7-Card Stud, And 5-Card Draw), There Are Exactly 2,598,960 Five-Card Combinations And 133,784,560 Seven-Card Combinations Ranked From Royal Flush (#1 Best) Down To High Card (#10). All Four Suits (Spades, Hearts, Diamonds, Clubs) Have Equal Rank When Determining A Winning Hand Or Breaking Ties.',
+    '',
+    '## Standard 52-Card High Poker Hand Rankings (Strongest To Weakest)',
+    '| Rank | Hand Name | Example 5-Card Hand | 5-Card Combos (2,598,960) | 5-Card Probability | 7-Card Combos (133,784,560) | 7-Card Probability | Tie-Breaker Rule |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| **#1** | **Royal Flush** | A♠ K♠ Q♠ J♠ T♠ | 4 | 0.000154% (649,739 : 1) | 4,324 | 0.00323% (30,939 : 1) | Suits Never Break Ties; Board Royal Flush Splits Pot |',
+    '| **#2** | **Straight Flush** | 9♥ 8♥ 7♥ 6♥ 5♥ | 36 | 0.00139% (72,192 : 1) | 37,260 | 0.0279% (3,589 : 1) | Highest Top Card Wins (5-High Steel Wheel Is Lowest) |',
+    '| **#3** | **Four Of A Kind (Quads)** | Q♠ Q♥ Q♦ Q♣ 7♠ | 624 | 0.0240% (4,164 : 1) | 224,848 | 0.168% (594 : 1) | Higher Quad Rank Wins; If On Board, Highest 5th Card Kicker Wins |',
+    '| **#4** | **Full House (Boat)** | J♠ J♥ J♦ 4♣ 4♠ | 3,744 | 0.1441% (693 : 1) | 3,473,184 | 2.60% (37.5 : 1) | Higher Three-Of-A-Kind Rank Wins First, Then Higher Pair |',
+    '| **#5** | **Flush** | A♦ J♦ 8♦ 5♦ 2♦ | 5,108 | 0.1965% (508 : 1) | 4,047,644 | 3.03% (32.1 : 1) | Compare Highest Card Down Through The 5th Flush Card |',
+    '| **#6** | **Straight** | T♠ 9♦ 8♥ 7♣ 6♠ | 10,200 | 0.3925% (254 : 1) | 6,180,020 | 4.62% (20.6 : 1) | Highest Top Card Wins (A-K-Q-J-T Broadway Best; 5-4-3-2-A Wheel Lowest) |',
+    '| **#7** | **Three Of A Kind (Trips/Set)** | 8♠ 8♥ 8♦ K♣ 3♠ | 54,912 | 2.1128% (46.3 : 1) | 6,461,620 | 4.83% (19.7 : 1) | Higher Trips Rank Wins, Then Highest 4th And 5th Kickers |',
+    '| **#8** | **Two Pair** | A♠ A♣ 9♥ 9♦ K♠ | 123,552 | 4.7539% (20.0 : 1) | 31,433,400 | 23.50% (3.26 : 1) | Highest Top Pair Wins, Then Second Pair, Then Single 5th Card Kicker |',
+    '| **#9** | **One Pair** | K♥ K♦ Q♠ 8♣ 4♥ | 1,098,240 | 42.2569% (1.37 : 1) | 58,627,800 | 43.82% (1.28 : 1) | Higher Pair Rank Wins, Then Compare 3 Kickers In Descending Order |',
+    '| **#10** | **High Card** | A♠ Q♦ 9♣ 6♥ 3♠ | 1,302,540 | 50.1177% (0.995 : 1) | 23,294,460 | 17.41% (4.74 : 1) | Compare Highest Individual Card Down Through The 5th Card |',
+    '',
+    '## Short Deck (6+ Hold\'em), Omaha Must-Use-Two & Lowball Hand Rankings',
+    '- **Short Deck (6+ Hold\'em - 36 Cards, 376,992 Combos)**: Removing 2s Through 5s Reduces Flush Combos To 1,280 (0.340%) Vs Full House Combos At 1,728 (0.458%), So **A Flush Beats A Full House** And A-6-7-8-9 Plays As The Lowest Straight.',
+    '- **Omaha Mandatory Two-Card Rule (PLO4 / PLO5 / PLO6)**: Every Player Must Use **Exactly 2 Hole Cards And Exactly 3 Board Cards**. Holding A Single Ace Of Spades With Four Spades On The Board Is Not A Flush.',
+    '- **Ace-To-Five (California) Lowball (Omaha Hi-Lo / Stud Hi-Lo / Razz)**: Straights And Flushes Do Not Count Against The Low, And Aces Play Low. The Nut Wheel Is **5-4-3-2-A**.',
+    '- **Deuce-To-Seven (Kansas City) Lowball (2-7 Triple Draw / NL 2-7 Single Draw)**: Straights And Flushes Count Against Your Low, And Aces Play High Only (A-5-4-3-2 Is A Straight, Not A Low). The Nut Hand Is **7-5-4-3-2 Not All Of One Suit (#1 Wheel)**.',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format US Regional Poker Market Strategy Guides (/poker-rooms/guides and /poker-rooms/guides/[city]) as Markdown
+ */
+export function renderMarketGuidesIndexMarkdown() {
+  return [
+    '# US Regional Live Poker Market Strategy Guides (Top 12 Destinations)',
+    '',
+    `> Source: [US Regional Live Poker Market Guides on Smarter.Poker](https://smarter.poker/poker-rooms/guides) | As Of ${MARKET_GUIDES_AS_OF}`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Comprehensive Cash Game Rake, Time-Charge, Buy-In Cap, And Venue Strategy Guides Across The ${POKER_MARKET_GUIDES.length} Largest US Live Poker Markets, Connected Directly To Smarter.Poker's Live Venue Directory And Interactive Rake & Bankroll Calculators.`,
+    '',
+    '## Regional Poker Market Comparison Matrix',
+    '| Regional Market | State | Active Rooms & Tables | Typical Rake / Time-Charge Model | Signature Stakes | Direct Guide URL |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...POKER_MARKET_GUIDES.map(
+      (m) => `| **${m.regionName}** | ${m.stateCode} | ${m.activeRoomsEstimate} | ${m.typicalRakeModel} | ${m.signatureStakes} | [https://smarter.poker/poker-rooms/guides/${m.slug}](https://smarter.poker/poker-rooms/guides/${m.slug}) |`
+    ),
+    '',
+  ].join('\n');
+}
+
+export function renderMarketGuideCityMarkdown(slug) {
+  const market = POKER_MARKET_GUIDES.find((m) => m.slug === slug);
+  if (!market) return null;
+  const url = `https://smarter.poker/poker-rooms/guides/${market.slug}`;
+  return [
+    `# ${market.h1} | Smarter.Poker`,
+    '',
+    `> Source: [${market.regionName} Live Poker Guide on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    market.summary,
+    '',
+    '## Regional Market Specifications',
+    `- **Region**: ${market.regionName} (${market.stateCode})`,
+    `- **Active Card Rooms & Tables**: ${market.activeRoomsEstimate}`,
+    `- **Typical Rake / Time-Charge Structure**: ${market.typicalRakeModel}`,
+    `- **Signature Cash Game Stakes & Caps**: ${market.signatureStakes}`,
+    `- **Peak Tournament Season & Major Series**: ${market.peakSeasonAndSeries}`,
+    '',
+    '## Flagship Poker Rooms In This Market',
+    '| Venue Name | City | Table Count | Signature Games & Highlights |',
+    '| :--- | :--- | :--- | :--- |',
+    ...(market.topVenueHighlights || []).map(
+      (v) => `| **${v.name}** | ${v.city} | ${v.tables} | ${v.knownFor} |`
+    ),
+    '',
+    '## Regional Cash Game & Tournament Strategy Tips',
+    ...(market.playerStrategyTips || []).map((t, i) => `${i + 1}. ${t}`),
+    '',
+    '## Frequently Asked Questions',
+    ...(market.faqs || []).flatMap((f) => [`### ${f.q}`, f.a, '']),
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    `- **All Regional Market Guides**: [https://smarter.poker/poker-rooms/guides](https://smarter.poker/poker-rooms/guides)`,
+    '',
+  ].join('\n');
+}
+
 
 
 
