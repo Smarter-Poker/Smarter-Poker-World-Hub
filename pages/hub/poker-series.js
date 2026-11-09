@@ -777,14 +777,16 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(directorySchema) }} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     '@context': 'https://schema.org',
-                    ...datasetSchema({
-                        path: '/hub/poker-series',
-                        name: 'Smarter.Poker Live Poker Tournament Series Directory Dataset',
-                        description: 'Live And Upcoming Multi-Event Poker Tournament Series, Casino Festivals, And Regional Circuit Stops Across North America.',
-                        keywords: ['Live Poker Series', 'Poker Tournament Festivals', 'WSOP Circuit Series', 'WPT Series Schedules'],
-                        variableMeasured: ['Series Date Range', 'Main Event Buy-In', 'Total Series Guarantee', 'Event Count'],
-                    }),
-                    ...faqSchema(POKER_SERIES_FAQS, '/hub/poker-series'),
+                    '@graph': [
+                        datasetSchema({
+                            path: '/hub/poker-series',
+                            name: 'Smarter.Poker Live Poker Tournament Series Directory Dataset',
+                            description: 'Live And Upcoming Multi-Event Poker Tournament Series, Casino Festivals, And Regional Circuit Stops Across North America.',
+                            keywords: ['Live Poker Series', 'Poker Tournament Festivals', 'WSOP Circuit Series', 'WPT Series Schedules'],
+                            variableMeasured: ['Series Date Range', 'Main Event Buy-In', 'Total Series Guarantee', 'Event Count'],
+                        }),
+                        faqSchema(POKER_SERIES_FAQS, '/hub/poker-series'),
+                    ].filter(Boolean),
                 }) }} />
             </Head>
 
