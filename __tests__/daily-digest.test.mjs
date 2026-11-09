@@ -797,3 +797,21 @@ test('an event funded over or under becomes one tracked Needs Your Attention ite
     const throwing = { rpc: async () => { throw new Error('socket closed'); } };
     assert.deepEqual(await loadFreeBuyFunding(throwing, '2026-11-06'), { day: '2026-11-06', error: 'socket closed' });
 });
+
+test('the engine line keeps the live build, since when and the 4 AM cutover verdict together', async () => {
+    const { engineCutoverRow } = await import('../src/lib/dailyDigest/render.mjs');
+    assert.equal(engineCutoverRow(fixture()), null);
+    const sealed = { live_build: '8bd8eef3', live_since_ct: 'Nov 9 04:01', cutover_day: '2026-11-09', cutover: 'sealed' };
+    assert.deepEqual(engineCutoverRow(fixture({ engine_cutover: sealed })),
+        ['Live Engine Build', '8bd8eef3', 'since Nov 9 04:01 Central; 2026-11-09 4 AM cutover: Happened', false]);
+    const missed = { live_build: '391f7bc0', live_since_ct: 'Nov 7 15:22', cutover_day: '2026-11-08', cutover: 'missed', owed_build: 'c4370778', reason: 'no preparation run' };
+    const row = engineCutoverRow(fixture({ engine_cutover: missed }));
+    assert.equal(row[1], '391f7bc0');
+    assert.equal(row[2], 'since Nov 7 15:22 Central; 2026-11-08 4 AM cutover: Missed; owed c4370778; no preparation run');
+    assert.equal(row[3], true);
+    const html = buildHtml(fixture({ engine_cutover: missed }));
+    assert.match(html, /Engine Build And 4 AM Cutover/);
+    assert.match(html, /Live Engine Build<\/td><td[^>]*><span[^>]*>391f7bc0<\/span>/);
+    assert.match(buildText(fixture({ engine_cutover: missed })), /Live Engine Build: 391f7bc0  \(since Nov 7 15:22 Central; 2026-11-08 4 AM cutover: Missed/);
+    assert.equal(engineCutoverRow(fixture({ engine_cutover: { ...missed, resolved_at: '2026-11-09T10:02:00Z' } }))[3], false);
+});
