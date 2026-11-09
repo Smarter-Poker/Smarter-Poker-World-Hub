@@ -141,11 +141,62 @@ export function summarizeAlertFixes(sourceEvents, rows) {
     });
 }
 
+function originalEventIds(values) {
+    if (!Array.isArray(values) || values.some((id) => !/^[1-9]\d*$/.test(String(id)) || !Number.isSafeInteger(Number(id)))) return null;
+    const ids = values.map((id) => String(Number(id)));
+    return new Set(ids).size === ids.length ? ids.sort() : null;
+}
+
+/** Accept proof only for every exact original record in the displayed cohort. */
+export function canonicalAlertFixes(sourceEvents, proof) {
+    if (proof?.version !== 1 || proof.linkage_complete !== true || !Array.isArray(proof.groups)
+        || proof.groups.length !== sourceEvents.length) return null;
+    const byName = new Map(proof.groups.map((group) => [group?.alertname, group]));
+    if (byName.size !== proof.groups.length || new Set(sourceEvents.map((g) => g.alertname)).size !== sourceEvents.length) return null;
+    const result = [];
+    const seenIds = new Set();
+    for (const source of sourceEvents) {
+        const group = byName.get(source.alertname);
+        const ids = originalEventIds(source.event_ids);
+        const groupIds = originalEventIds(group?.event_ids);
+        if (!ids || !groupIds || JSON.stringify(ids) !== JSON.stringify(groupIds)
+            || group.total !== ids.length || !Array.isArray(group.proofs)) return null;
+        if (ids.some((id) => seenIds.has(id))) return null;
+        ids.forEach((id) => seenIds.add(id));
+        const proofIds = originalEventIds(group.proofs.map((row) => row?.event_id));
+        if (!proofIds || JSON.stringify(ids) !== JSON.stringify(proofIds)) return null;
+        let reviewed = 0;
+        let verified = 0;
+        const fixes = new Set();
+        for (const row of group.proofs) {
+            if (typeof row.reviewed !== 'boolean' || typeof row.verified !== 'boolean') return null;
+            if (row.reviewed) reviewed++;
+            if (row.verified) {
+                if (!row.reviewed || typeof row.kind !== 'string' || !row.kind.trim()
+                    || typeof row.reference !== 'string' || !row.reference.trim()) return null;
+                verified++;
+                fixes.add(row.reference);
+            }
+        }
+        if (group.reviewed !== reviewed || group.verified !== verified || !Array.isArray(group.fixes)
+            || group.fixes.some((fix) => typeof fix !== 'string')
+            || JSON.stringify([...fixes].sort()) !== JSON.stringify([...new Set(group.fixes)].sort())) return null;
+        result.push({ alertname: source.alertname, total: ids.length, verified, fixes: [...fixes] });
+    }
+    return result;
+}
+
 export async function loadAlertFixes(sb, digest) {
     try {
         const item = (digest?.attention || []).find((it) => it.rule === 'critical_alert_rising');
         const groups = item?.detail?.source_events;
         if (!item || !Array.isArray(groups) || !groups.length) return;
+        if (Object.hasOwn(item, 'canonical_alert_proof')) {
+            const fixes = canonicalAlertFixes(groups, item.canonical_alert_proof);
+            item.fixes = fixes || summarizeAlertFixes(groups, []);
+            if (!fixes) item.canonical_alert_proof_error = 'Original alert proof is incomplete or inconsistent.';
+            return;
+        }
         const ids = [...new Set(groups.flatMap((g) => (Array.isArray(g.event_ids) ? g.event_ids : [])))];
         const rows = [];
         for (let i = 0; i < ids.length; i += 200) {
