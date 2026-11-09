@@ -104,6 +104,11 @@ export default function ChunkLoadRecovery() {
             right: 0,
             zIndex: 999999,
             padding: '14px 24px',
+            // Status-bar inset (2026-11-09). This banner mounts at top:0 on
+            // every page and carries the Reload button - the only control
+            // on it - so on a notched iPhone it must clear the status bar.
+            paddingTop: 'calc(14px + env(safe-area-inset-top, 0px))',
+            boxSizing: 'border-box',
             background: 'linear-gradient(135deg, #0d1117 0%, #161b22 100%)',
             borderBottom: '2px solid #1877f2',
             color: '#e4e6eb',

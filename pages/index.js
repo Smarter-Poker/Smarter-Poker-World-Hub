@@ -400,6 +400,16 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 16px',
+    // STATUS-BAR INSET (2026-11-09). The viewport is viewport-fit=cover and
+    // index.css deliberately does NOT put the top inset on <body> - every
+    // fixed/sticky bar owns its own, or they double-count (see the note in
+    // src/index.css). This nav never claimed one, so on a notched iPhone,
+    // and in the installed PWA where the status bar is black-translucent,
+    // the Sign Up / Sign In buttons painted under the clock and Wi-Fi icons
+    // and could not be tapped. Shorthand first, then padding-top, or the
+    // shorthand resets it.
+    paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))',
+    boxSizing: 'border-box',
     position: 'sticky',
     top: 0,
     zIndex: 100,
@@ -472,6 +482,11 @@ const styles = {
     top: 0, left: 0, right: 0, bottom: 0,
     background: '#05080c',
     zIndex: 200,
+    // Same inset, same reason (2026-11-09). The overlay pins its content to
+    // flex-start and overlayCloseBtn sits at top:8px inside it - the only
+    // way out of the overlay - so without this it lands under the status bar.
+    paddingTop: 'env(safe-area-inset-top, 0px)',
+    boxSizing: 'border-box',
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'center',

@@ -350,6 +350,12 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 32px;
+    /* Status-bar inset (2026-11-09). <body> deliberately carries no top
+       inset, so each sticky/fixed bar owns its own. This is the topmost
+       chrome on the console, so without it the header controls paint
+       under the iPhone status bar. padding-top must follow the shorthand. */
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    box-sizing: border-box;
     background:
         repeating-linear-gradient(94deg, rgba(255,255,255,.025) 0 1px, transparent 1px 7px),
         linear-gradient(180deg, rgba(48,66,76,.96), rgba(8,17,23,.97) 38%, rgba(2,7,10,.98));
