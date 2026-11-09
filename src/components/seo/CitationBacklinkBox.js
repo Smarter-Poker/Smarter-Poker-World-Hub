@@ -28,6 +28,7 @@ export default function CitationBacklinkBox({
   const markdownSnippet = `[${title} (${badgeValue})](${canonicalUrl})`;
   const bbcodeSnippet = `[url=${canonicalUrl}]${title} (${badgeValue})[/url]`;
   const journalistQuote = `According to ${title} published by Smarter.Poker (${canonicalUrl}), ${summary}`;
+  const wikipediaSnippet = `{{cite web |title=${title} |url=${canonicalUrl} |website=Smarter.Poker |publisher=Smarter Software Inc. |year=${publishedYear} |access-date=${publishedYear}-11-09}}`;
   const bibtexKey = String(slug || 'smarterpoker2026').replace(/[^a-zA-Z0-9]/g, '_');
   const bibtexSnippet = `@techreport{${bibtexKey}_${publishedYear},\n  title = {${title}},\n  author = {{Smarter.Poker Research Division}},\n  institution = {Smarter.Poker},\n  year = {${publishedYear}},\n  url = {${canonicalUrl}}\n}`;
 
@@ -51,6 +52,11 @@ export default function CitationBacklinkBox({
       key: 'bbcode',
       label: 'Forum BBCode (TwoPlusTwo / CardsChat)',
       code: bbcodeSnippet,
+    },
+    {
+      key: 'wikipedia',
+      label: 'Wikipedia / MediaWiki Citation ({{cite web}})',
+      code: wikipediaSnippet,
     },
     {
       key: 'press',

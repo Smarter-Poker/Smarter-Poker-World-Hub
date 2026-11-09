@@ -37,6 +37,9 @@ import {
   getComparePage,
   pageSources,
 } from '../../content/compare/pages.js';
+import { getBacklinkOpportunitiesPayload } from '../seo/backlinkCatalog.mjs';
+import { getDatasetCatalogPayload } from '../seo/datasetCatalog.mjs';
+import { generateOutreachPackage } from '../seo/outreachEngine.mjs';
 
 export function parseCardToken(str) {
   const match = String(str || '').trim().match(/^(10|[2-9TJQKA])([shdc])$/i);
@@ -518,6 +521,42 @@ export const MCP_TOOLS = [
           type: 'number',
           description: 'Current pot size on the flop or turn (default: 10).',
           default: 10,
+        },
+      },
+    },
+  },
+  {
+    name: 'get_citation_and_backlink_kit',
+    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, Zenodo/DataCite metadata, Twitch/YouTube streamer chatbot commands (!odds, !icm, !potodds), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        campaign: {
+          type: 'string',
+          enum: [
+            'all',
+            'unlinked-brand',
+            'competitor-404',
+            'cardroom-awards',
+            'cpa-tax-w2g',
+            'dealer-schools',
+            'edu-quant-clubs',
+            'podcast-show-notes',
+            'multilingual',
+          ],
+          description: 'Optional outreach or syndication campaign filter (default: "all").',
+          default: 'all',
+        },
+        lang: {
+          type: 'string',
+          enum: ['en', 'es', 'pt', 'de', 'fr', 'it', 'ja'],
+          description: 'Language code for localized HTML/Markdown/BBCode/iframe embed generation (default: "en").',
+          default: 'en',
+        },
+        target: {
+          type: 'string',
+          description: 'Optional target publication, cardroom, or blog name for personalized outreach templates.',
+          default: 'Your Publication',
         },
       },
     },
@@ -1867,6 +1906,43 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 three_street_geometric_pct: geo3Pct,
                 interactive_calculator_url: `${base}/tools/spr-calculator`,
                 markdown_url: `${base}/tools/spr-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_citation_and_backlink_kit': {
+      const campaignArg = args?.campaign && args.campaign !== 'all' ? String(args.campaign) : '';
+      const langArg = String(args?.lang || 'en');
+      const targetArg = String(args?.target || 'Your Publication');
+      const outreach = generateOutreachPackage({
+        campaign: campaignArg,
+        lang: langArg,
+        target: targetArg,
+      });
+      const datasetCatalog = getDatasetCatalogPayload();
+      const opportunities = getBacklinkOpportunitiesPayload();
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                embed_portal_url: `${base}/tools/embeds`,
+                badge_api_url: `${base}/api/seo/badge`,
+                dataset_catalog_url: `${base}/api/datasets/catalog`,
+                outreach_generator_url: `${base}/api/seo/outreach-generator`,
+                streamer_chatbot_url: `${base}/api/stream/cmd`,
+                research_json_feed_url: `${base}/api/feeds/research`,
+                outreach_package: outreach,
+                wikipedia_citation_targets: datasetCatalog.wikipedia_citation_targets,
+                zenodo_metadata: datasetCatalog.zenodo_metadata,
+                backlink_opportunities_summary: opportunities.counts,
               },
               null,
               2

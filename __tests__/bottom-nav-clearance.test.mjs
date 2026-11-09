@@ -194,16 +194,16 @@ test('all 198 fixed-footer physical routes resolve to one exact-artwork family',
     return owners.length ? [{ route, owners }] : [];
   });
 
-  // 198 after Video Library Phase 8 adds the owner control panel.
+  // 199 after Video Library adds the channels index route.
   // Both channel and watch pages carry the Video Library footer.
-  assert.equal(applicable.length, 198);
+  assert.equal(applicable.length, 199);
   for (const { route, owners } of applicable) {
     assert.equal(owners.length, 1, `${route} resolves to ${owners.map((owner) => owner.id).join(', ')}`);
     assert.ok(owners[0].artwork, `${route} resolved to a legacy footer`);
   }
 
   const matrix = fs.readFileSync(path.join(ROOT, 'docs/world-hub-footer-route-matrix.md'), 'utf8');
-  assert.match(matrix, /\*\*Total applicable physical routes: 198\.\*\*/);
+  assert.match(matrix, /\*\*Total applicable physical routes: 199\.\*\*/);
   for (const { route } of applicable) {
     assert.ok(matrix.includes(`| \`${route}\` |`), `${route} is missing from the route matrix`);
   }

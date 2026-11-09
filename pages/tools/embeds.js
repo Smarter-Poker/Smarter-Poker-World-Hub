@@ -130,6 +130,91 @@ export const PARTNER_BADGES = [
     targetUrl: 'https://smarter.poker/compare/best-poker-club-apps',
     altText: 'Private Club Platform: Smarter.Poker Club Arena',
   },
+  {
+    id: 'badge-award-top50',
+    title: '2026 Top 50 US Live Poker Room Official Award Badge',
+    description: 'For poker rooms and casino resorts recognized in the 2026 US Live Poker Room Rake & Jackpot Benchmark Report.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-top50',
+    targetUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
+    altText: '2026 Top 50 US Poker Room: Smarter.Poker Official Award',
+  },
+  {
+    id: 'badge-award-texas',
+    title: '2026 Top Texas Social Card Club Award Badge',
+    description: 'For Texas social poker clubs recognized in the 2026 Cardroom Waitlist Turnover & Utilization Index.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-texas',
+    targetUrl: 'https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark',
+    altText: '2026 Top Texas Card Club: Smarter.Poker Verified Index',
+  },
+  {
+    id: 'badge-award-cpa',
+    title: 'Form W-2G & Schedule C Tax Resource Badge (For CPAs)',
+    description: 'For gaming CPA firms, tax attorneys, and financial advisors linking to the free Form W-2G poker session tax ledger.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-cpa',
+    targetUrl: 'https://smarter.poker/features/bankroll-tax-tracker',
+    altText: 'Form W-2G Tax Resource: Smarter.Poker Toke Tracker',
+  },
+  {
+    id: 'badge-award-dealer',
+    title: 'Certified Casino Dealer Resource Badge',
+    description: 'For casino dealer schools, hospitality programs, and dealer communities linking to the free Toke Tracker and study tools.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-dealer',
+    targetUrl: 'https://smarter.poker/features/poker-dealer-toke-tracker',
+    altText: 'Certified Dealer Resource: Smarter.Poker Academy',
+  },
+  {
+    id: 'badge-award-edu',
+    title: 'University Game Theory & Quantitative Dataset Badge',
+    description: 'For university game theory syllabi, quantitative finance clubs, and open-source poker research repositories.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-edu',
+    targetUrl: 'https://smarter.poker/api/datasets/catalog',
+    altText: 'Quantitative Game Theory: Smarter.Poker Open Dataset',
+  },
+];
+
+export const STREAM_CHAT_COMMANDS = [
+  {
+    id: 'cmd-odds',
+    command: '!odds',
+    title: 'Preflop Matchup & Draw Equity Command (!odds AA vs KK)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=odds&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/poker-odds-calculator',
+  },
+  {
+    id: 'cmd-potodds',
+    command: '!potodds',
+    title: 'Pot Odds & Minimum Defense Frequency Command (!potodds 100 50)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=potodds&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/pot-odds-calculator',
+  },
+  {
+    id: 'cmd-pushfold',
+    command: '!pushfold',
+    title: '10BB Short-Stack Nash Push/Fold Command (!pushfold)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=pushfold&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/push-fold-calculator',
+  },
+  {
+    id: 'cmd-icm',
+    command: '!icm',
+    title: 'Tournament Final Table ICM Bubble Factor Command (!icm)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=icm&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/icm-calculator',
+  },
+  {
+    id: 'cmd-bounty',
+    command: '!bounty',
+    title: 'PKO & Mystery Bounty Chip Equivalent Command (!bounty)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bounty&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/bounty-calculator',
+  },
+  {
+    id: 'cmd-winrate',
+    command: '!winrate',
+    title: 'Poker Bankroll Risk Of Ruin & Variance Command (!winrate)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=winrate&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/poker-winrate-calculator',
+  },
 ];
 
 export async function getServerSideProps({ req, res, query }) {
@@ -449,6 +534,174 @@ export default function WebmasterEmbedPortal() {
                   </article>
                 );
               })}
+            </div>
+          </section>
+
+          {/* Twitch & YouTube Streamer Nightbot / StreamElements Chatbot Commands */}
+          <section aria-labelledby="streamer-bot-heading" style={{ marginTop: '48px' }}>
+            <h2 id="streamer-bot-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
+              Twitch & YouTube Streamer Chatbot Commands
+            </h2>
+            <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
+              Poker Streamers And Vloggers Can Add Real-Time Poker Math Commands To Nightbot, StreamElements, Or Fossabot In 10 Seconds. Every Response Includes Direct Canonical Attribution To Smarter.Poker Solvers.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
+              {STREAM_CHAT_COMMANDS.map((item) => {
+                const isCmdCopied = copiedId === item.id;
+                return (
+                  <article
+                    key={item.id}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(168, 85, 247, 0.25)',
+                      borderRadius: '12px',
+                      padding: '18px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#c084fc', fontFamily: 'monospace' }}>
+                        {item.command}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                            navigator.clipboard.writeText(item.nightbot);
+                            setCopiedId(item.id);
+                            setTimeout(() => setCopiedId(null), 2500);
+                          }
+                        }}
+                        style={{
+                          background: isCmdCopied ? '#059669' : '#7e22ce',
+                          color: '#fff',
+                          border: 0,
+                          borderRadius: '6px',
+                          padding: '5px 10px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isCmdCopied ? 'Copied!' : 'Copy Nightbot Command'}
+                      </button>
+                    </div>
+                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.8)', margin: '0 0 10px 0' }}>
+                      {item.title}
+                    </p>
+                    <pre
+                      style={{
+                        margin: 0,
+                        padding: '8px 10px',
+                        background: '#06060c',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        color: '#d8b4fe',
+                        fontSize: '0.76rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-all',
+                      }}
+                    >
+                      {item.nightbot}
+                    </pre>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Open Datasets, JSON Feed & Syndication APIs */}
+          <section
+            aria-labelledby="syndication-apis-heading"
+            style={{
+              marginTop: '48px',
+              padding: '24px',
+              background: 'rgba(16, 185, 129, 0.04)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: '14px',
+            }}
+          >
+            <h2 id="syndication-apis-heading" style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 10px 0', color: '#34d399' }}>
+              Open Datasets, JSON Feed 1.1 & Multilingual Syndication APIs
+            </h2>
+            <p style={{ fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.55, margin: '0 0 16px 0' }}>
+              Developers, Academic Researchers, And International Poker Portals Can Ingest Smarter.Poker Citations, Structured Datasets, Zenodo/DataCite Metadata, And Localized Embeds In 7 Languages Directly Via REST Or MCP:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <a
+                href="/api/datasets/catalog"
+                style={{
+                  padding: '8px 14px',
+                  background: '#064e3b',
+                  border: '1px solid #10b981',
+                  borderRadius: '6px',
+                  color: '#ecfdf5',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Open Dataset Catalog API
+              </a>
+              <a
+                href="/api/datasets/catalog?format=cff"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #38bdf8',
+                  borderRadius: '6px',
+                  color: '#bae6fd',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Academic Citation File Format Manifest
+              </a>
+              <a
+                href="/api/feeds/research"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #38bdf8',
+                  borderRadius: '6px',
+                  color: '#bae6fd',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Research & Calculator JSON Feed 1.1
+              </a>
+              <a
+                href="/api/seo/outreach-generator"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #a855f7',
+                  borderRadius: '6px',
+                  color: '#e9d5ff',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Multilingual Outreach & Snippet Generator API
+              </a>
+              <a
+                href="/api/ai/backlink-opportunities"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #f59e0b',
+                  borderRadius: '6px',
+                  color: '#fde68a',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                AI Backlink & Citation Catalog API
+              </a>
             </div>
           </section>
 
