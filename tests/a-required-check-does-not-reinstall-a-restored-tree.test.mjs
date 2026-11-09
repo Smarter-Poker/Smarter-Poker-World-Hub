@@ -62,8 +62,14 @@ test('the three required checks that install are the ones cached', () => {
   const typecheck = jobsOf(gate).find((j) => j.name === 'type-check');
   assert.ok(typecheck, 'the type-check job disappeared');
   assert.match(typecheck.body, /key: nm-wh-typecheck-/);
+  // The point is that each still HAS a node_modules cache, not what it is
+  // called. On 2026-11-09 the undefined-identifier guard moved off its own
+  // `nm-wh-guard-` key onto the `nm-wh-noscripts-` key that build-safety-gate
+  // writes on main. A key only that job wrote could never be restored —
+  // GitHub scopes a branch's cache to that branch — so every run reinstalled
+  // cold, which is the exact thing this law exists to prevent.
   for (const f of ['undefined-identifier-guard.yml', 'silent-write-guard.yml']) {
-    assert.match(readFileSync(join(DIR, f), 'utf8'), /key: nm-wh-guard-/, `${f} lost its cache`);
+    assert.match(readFileSync(join(DIR, f), 'utf8'), /key: nm-wh-[a-z]+-/, `${f} lost its cache`);
   }
 });
 

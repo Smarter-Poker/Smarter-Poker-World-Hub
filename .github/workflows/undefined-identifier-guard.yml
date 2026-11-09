@@ -52,23 +52,45 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24.12.0'
           cache: 'npm'
 
-      # node_modules cached and the install skipped on a hit (2026-09-04) -
-      # see the note on the TypeScript Check job in build-safety-gate.yml.
-      # Its own key: this tree is a full install on Node 22, not the
-      # --ignore-scripts Node 20 tree the typecheck restores.
+      # THIS JOB FAILED ON EVERY PULL REQUEST UNTIL 2026-11-09, for three
+      # reasons that compounded:
+      #
+      #   1. A cache this job writes is never restorable. GitHub scopes a cache
+      #      saved on a branch to that branch; only a cache saved on the DEFAULT
+      #      branch is readable from every pull request. This job is
+      #      `pull_request` only (see the note above), so `nm-wh-guard-*` was
+      #      written on PR branches and read by nobody. Every run was a cold,
+      #      full install.
+      #   2. That full install was a plain `npm ci` on Node 22. `canvas` ships
+      #      no prebuilt binary for that ABI, so npm built it from source, which
+      #      needs pixman and cairo. The hosted runner has neither, so npm ci
+      #      exited 1 before the check this job exists to run ever started. The
+      #      jobs that install the same way on Node 24 are fine, because a
+      #      prebuild exists there and nothing is compiled. Measured, not
+      #      assumed: shared-schema-lineage (Node 24, plain `npm ci`) installs
+      #      1178 packages in 31 seconds and passes.
+      #   3. The checker needs none of it. It imports eslint, the TypeScript
+      #      parser and globals - all pure JavaScript. `canvas` is used by one
+      #      standalone card-drawing script and nothing on this path.
+      #
+      # Fixed by restoring the cache that `build-safety-gate.yml` writes on
+      # main (`nm-wh-noscripts`, Node 24, --ignore-scripts). That key IS written
+      # on the default branch, so it restores here, and the node version is
+      # matched to it so the tree is the one that was cached. On a miss the
+      # install no longer builds a native module it does not use.
       - name: Restore node_modules
         id: nm-cache
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: nm-wh-guard-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.nm-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit
+        run: npm ci --ignore-scripts --prefer-offline --no-audit
         env:
           HUSKY: '0'
 

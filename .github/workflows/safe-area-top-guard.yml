@@ -1,0 +1,53 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  Safe-Area Top Guard                                                     ║
+# ╠══════════════════════════════════════════════════════════════════════════╣
+# ║  The viewport is viewport-fit=cover, so the page starts UNDER the iPhone ║
+# ║  status bar. src/index.css deliberately puts NO top inset on <body>      ║
+# ║  (removed 2026-09-07 — it double-counted). The law is one sentence:      ║
+# ║                                                                          ║
+# ║      EVERY TOP-ANCHORED BAR OWNS ITS OWN env(safe-area-inset-top).       ║
+# ║      THE BODY OWNS NONE.                                                 ║
+# ║                                                                          ║
+# ║  On 2026-11-09 five bars had never claimed one — the landing page's      ║
+# ║  Sign Up / Sign In buttons were untappable under the status bar. This    ║
+# ║  job fails any PR that removes an inset, puts one back on <body>, adds   ║
+# ║  a new top bar without one, or renders a known dormant one.             ║
+# ║                                                                          ║
+# ║  Logic and the "how do I fix this" text live in                          ║
+# ║  scripts/check-safe-area-top.mjs. Pure static scan: no network, no       ║
+# ║  install, no build — a couple of seconds, and it cannot flake.           ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+name: Safe-Area Top Guard
+
+on:
+  pull_request:
+    branches: [main]
+    # NEVER add paths-ignore to `pull_request`. This is a REQUIRED check:
+    # a PR that never reports this context is a PR that never merges.
+    # (Same reasoning as .github/workflows/audit-marker-guard.yml.)
+
+concurrency:
+  group: safe-area-top-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Top bars own their safe-area inset
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No `npm ci`: the guard reads files with node:fs and nothing else.
+      - name: Run the guard
+        run: node scripts/check-safe-area-top.mjs
