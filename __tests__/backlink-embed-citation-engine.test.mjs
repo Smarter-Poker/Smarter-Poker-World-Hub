@@ -96,6 +96,22 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators, 10 SVG ba
     assert.ok(embedsSrc.includes(`id: '${cmdId}'`), `embeds.js includes streamer command ${cmdId}`);
   }
 
+  const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
+  assert.equal(embedUrls.length, 11, 'all 11 widgets define embedUrl');
+  for (const url of embedUrls) {
+    assert.ok(
+      url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
+      `Expected canonical /tools/*?embed=true URL, got ${url}`
+    );
+  }
+
+  const nextConfigSrc = read('next.config.js');
+  assert.ok(
+    nextConfigSrc.includes("source: '/tools/:path*'") &&
+      nextConfigSrc.includes("frame-ancestors 'self' https: http:"),
+    'next.config.js must allow cross-origin iframe embedding on /tools/:path*'
+  );
+
   const md = renderEmbedsMarkdown();
   assert.ok(md.includes('Pot Odds, Implied Odds & MDF Calculator'));
   assert.ok(md.includes('Short-Stack Push/Fold Nash Equilibrium Chart'));
