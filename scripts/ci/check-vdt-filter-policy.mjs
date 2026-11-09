@@ -9,10 +9,11 @@
  * rows publicly; that bug shipped twice (public/venue/[id].js, late-reg-cron.js,
  * both fixed 2026-08-14). This check stops the third time.
  */
+import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
-const ROOT = new URL('../..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const API_DIR = join(ROOT, 'pages', 'api');
 const files = [];
 (function walk(d) {

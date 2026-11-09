@@ -20,6 +20,7 @@
  * is never told their seat is being dealt again.
  */
 
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -36,7 +37,7 @@ import {
 } from '../src/lib/resumeRoute.js';
 import { eventToTypeKey, isUrgentType } from '../src/lib/push/push-prefs.js';
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 
 class MemoryStorage {

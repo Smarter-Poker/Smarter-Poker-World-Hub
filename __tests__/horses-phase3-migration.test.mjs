@@ -328,6 +328,7 @@ test('the probe rows are written inside a savepoint that is rolled back', () => 
 
 test('the version sorts above every applied migration and collides with none', () => {
   const files = readdirSync(MIGRATION_DIR).filter((f) => f.endsWith('.sql'));
+  assert.ok(files.length >= 1, `Expected migration files, found ${files.length} — a loop over nothing proves nothing`);
   const mine = files.find((f) => f.includes('ca_horse_fleet_command'));
   assert.ok(mine, 'the fleet command migration is not in supabase/migrations');
   const version = mine.slice(0, 14);

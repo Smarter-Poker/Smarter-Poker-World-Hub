@@ -2,16 +2,18 @@
 // and a caller that reads `resp.ok` false as "no data" renders an empty list
 // with no error. That is how the live viewer list's Recent Chats stayed empty
 // (2026-11-07). Every in-repo caller of a POST-only Messenger route must POST.
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const root = new URL('..', import.meta.url).pathname;
+const root = fileURLToPath(new URL('..', import.meta.url));
 const routes = readdirSync(join(root, 'pages/api/messenger'))
     .filter(name => name.endsWith('.js'))
     .filter(name => /req\.method !== 'POST'/.test(readFileSync(join(root, 'pages/api/messenger', name), 'utf8')))
     .map(name => name.replace(/\.js$/, ''));
+assert.ok(routes.length >= 15, `Expected the messenger API routes, found ${routes.length} — a loop over nothing proves nothing`);
 
 function walk(dir, out = []) {
     for (const name of readdirSync(dir)) {

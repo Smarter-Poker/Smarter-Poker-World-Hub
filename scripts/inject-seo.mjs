@@ -296,7 +296,6 @@ const SEO_CONFIG = {
     },
 
 
-
     // ═══ Hub — Memory Games Sub-pages ═══
     'hub/memory-games/achievements.js': {
         title: 'Memory Games Achievements',

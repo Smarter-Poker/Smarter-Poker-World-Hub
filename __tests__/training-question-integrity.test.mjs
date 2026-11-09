@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,7 +13,7 @@ import {
 
 const require = createRequire(import.meta.url);
 const parser = require('@babel/parser');
-const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 
 test('standard poker decisions are served with four meaningful choices', () => {

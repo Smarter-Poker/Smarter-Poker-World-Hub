@@ -46,6 +46,7 @@ test('legacy client-callable solver extraction RPCs stay retired', () => {
   const migrations = fs.readdirSync(migrationsDirectory)
     .filter((filename) => filename.endsWith('.sql'))
     .sort();
+  assert.ok(migrations.length >= 1, `Expected solver migrations, found ${migrations.length} — a loop over nothing proves nothing`);
 
   for (const rpc of RETIRED_SOLVER_RPCS) {
     let lastOperation = null;

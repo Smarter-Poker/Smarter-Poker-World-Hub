@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /** Reserve a migration version against this tree, origin/main, and every remote branch. */
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const ROOT = resolve(new URL('..', import.meta.url).pathname);
+const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const DIR = join(ROOT, 'supabase', 'migrations');
 const sh = (args, fallback = '') => {
   try {

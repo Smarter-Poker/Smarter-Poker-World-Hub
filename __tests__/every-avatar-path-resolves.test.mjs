@@ -121,6 +121,7 @@ test('public/avatars carries no PNG that a webp already replaces', () => {
     const dir = join(ROOT, 'public/avatars', tier);
     if (!existsSync(dir)) continue;
     const files = new Set(readdirSync(dir));
+    assert.ok(files.size >= 1, `Expected avatar files in ${dir}, found ${files.size} — a loop over nothing proves nothing`);
     for (const f of files) {
       if (f.endsWith('.png') && files.has(f.replace(/\.png$/, '.webp'))) {
         both.push(`avatars/${tier}/${f}`);

@@ -1,7 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 
-const ROOT = resolve(dirname(new URL(import.meta.url).pathname), '..');
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_OUTPUT = resolve(ROOT, '.agent/audits/2026-08-31-training-phase-2-runtime.json');
 
 function option(name, fallback) {

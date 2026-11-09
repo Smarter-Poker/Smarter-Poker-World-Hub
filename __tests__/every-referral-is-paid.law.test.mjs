@@ -13,6 +13,7 @@
  * pinned there by tests/every-referral-is-paid.law.test.ts. These pins keep
  * every World Hub door feeding it.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -24,7 +25,7 @@ import {
     signupHrefFor,
 } from '../src/lib/pendingSignupCodes.mjs';
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 
 test('a referral is a player number or a Referral Crew code, never a promo code', () => {
