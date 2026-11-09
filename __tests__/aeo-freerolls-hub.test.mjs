@@ -84,11 +84,20 @@ test('Freerolls hub: builds complete Schema.org graph with SportsEvent, HowTo, F
   const eventNode = nodes.find(n => Array.isArray(n['@type']) ? n['@type'].includes('SportsEvent') : n['@type'] === 'SportsEvent');
   assert.ok(eventNode, 'Must contain SportsEvent node');
   assert.equal(eventNode.isAccessibleForFree, true, 'Event must be accessible for free');
+  assert.ok(eventNode.startDate, 'EventSeries must declare ISO 8601 startDate');
+  assert.ok(eventNode.endDate, 'EventSeries must declare ISO 8601 endDate');
+  assert.equal(eventNode.eventSchedule['@type'], 'Schedule', 'EventSeries must declare Schedule');
   assert.equal(eventNode.offers.price, '0', 'Offer price must be 0');
   assert.equal(eventNode.offers.category, 'Free Entry', 'Offer category must be Free Entry');
   assert.ok(eventNode.sameAs.length >= 4, 'Event must inherit Wikidata sameAs links');
   assert.ok(Array.isArray(eventNode.subEvent), 'EventSeries must declare subEvent array');
   assert.equal(eventNode.subEvent.length, 5, 'Must contain 5 daily/weekly sub-events');
+  for (const sub of eventNode.subEvent) {
+    assert.ok(sub.startDate, `SubEvent ${sub.name} must declare ISO 8601 startDate`);
+    assert.ok(sub.endDate, `SubEvent ${sub.name} must declare ISO 8601 endDate`);
+    assert.equal(sub.eventSchedule['@type'], 'Schedule', `SubEvent ${sub.name} must declare Schedule`);
+    assert.ok(sub.location, `SubEvent ${sub.name} must declare location`);
+  }
   const morningOpener = eventNode.subEvent.find(e => e.name.includes('Morning Opener'));
   assert.ok(morningOpener, 'Must include Morning Opener freeroll');
   assert.equal(morningOpener.isAccessibleForFree, true, 'SubEvent must be free');

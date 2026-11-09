@@ -787,7 +787,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                 <meta property="og:description" content="Browse traveling poker tours, upcoming stops, and tournament circuits in one national directory." />
                 <meta property="og:url" content="https://smarter.poker/hub/poker-tours" />
             
-                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     "@context": "https://schema.org",
                     "@type": "ItemList",
                     "itemListElement": [...tours, ...houseSeries]
@@ -804,14 +804,14 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                 })}} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     '@context': 'https://schema.org',
-                    ...datasetSchema({
-                        path: '/hub/poker-tours',
-                        name: 'Smarter.Poker Major Traveling Poker Tours & Circuits Dataset',
-                        description: 'National Directory Of Major Traveling Poker Tours, Circuit Stops, And Championship Festivals Including WSOP, WPT, MSPT, RGPS, And PokerGO Tour.',
-                        keywords: ['Poker Tours', 'WSOP Circuit', 'World Poker Tour', 'Mid-States Poker Tour', 'RunGood Poker Series'],
-                        variableMeasured: ['Tour Stop Dates', 'Host Venue Location', 'Main Event Buy-In', 'Series Schedule'],
-                    }),
                     '@graph': [
+                        datasetSchema({
+                            path: '/hub/poker-tours',
+                            name: 'Smarter.Poker Major Traveling Poker Tours & Circuits Dataset',
+                            description: 'National Directory Of Major Traveling Poker Tours, Circuit Stops, And Championship Festivals Including WSOP, WPT, MSPT, RGPS, And PokerGO Tour.',
+                            keywords: ['Poker Tours', 'WSOP Circuit', 'World Poker Tour', 'Mid-States Poker Tour', 'RunGood Poker Series'],
+                            variableMeasured: ['Tour Stop Dates', 'Host Venue Location', 'Main Event Buy-In', 'Series Schedule'],
+                        }),
                         {
                             '@type': 'CollectionPage',
                             '@id': 'https://smarter.poker/hub/poker-tours#page',
@@ -824,7 +824,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             },
                         },
                         faqSchema(POKER_TOURS_FAQS, '/hub/poker-tours'),
-                    ],
+                    ].filter(Boolean),
                 }) }} />
 </Head>
 

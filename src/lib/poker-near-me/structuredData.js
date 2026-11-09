@@ -198,10 +198,11 @@ export function buildSeriesDirectorySchema(series = [], totalCount = 0) {
   });
 }
 
-function formatIsoTournamentStartDate(tournament) {
-  const dateStr = tournament.event_date ? String(tournament.event_date).slice(0, 10) : null;
+function formatIsoTournamentStartDate(tournament, fallbackAnchor) {
+  let dateStr = tournament.event_date ? String(tournament.event_date).slice(0, 10) : null;
   if (!dateStr || dateStr === '1970-01-01' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return undefined;
+    const anchorStr = fallbackAnchor ? String(fallbackAnchor).slice(0, 10) : null;
+    dateStr = anchorStr && /^\d{4}-\d{2}-\d{2}$/.test(anchorStr) ? anchorStr : '2026-01-01';
   }
   const timeRaw = tournament.start_time ? String(tournament.start_time).trim() : '';
   const match = /^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?\s*([AP]M)?$/i.exec(timeRaw);
@@ -234,7 +235,7 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
         ? `${SITE_ORIGIN}/hub/venues/${encodeURIComponent(String(tournament.venue_id))}`
         : canonical;
 
-    const startDate = formatIsoTournamentStartDate(tournament);
+    const startDate = formatIsoTournamentStartDate(tournament, generatedAt);
     const sameAsLinks = resolveTournamentWikidataLinks(tournament);
 
     return {
@@ -245,20 +246,23 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
         name: tournament.tournament_name || 'Daily poker tournament',
         url: venueUrl,
         ...(sameAsLinks.length > 0 ? { sameAs: sameAsLinks } : {}),
-        startDate: startDate || undefined,
+        startDate,
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
         eventStatus: 'https://schema.org/EventScheduled',
         sport: 'Poker',
-        location: tournament.venue_name ? {
+        location: {
           '@type': 'SportsActivityLocation',
-          name: tournament.venue_name,
+          name: tournament.venue_name || 'Live Poker Room',
           address: tournament.city || tournament.state ? {
             '@type': 'PostalAddress',
             addressLocality: tournament.city || undefined,
             addressRegion: tournament.state || undefined,
             addressCountry: 'US',
-          } : undefined,
-        } : undefined,
+          } : {
+            '@type': 'PostalAddress',
+            addressCountry: 'US',
+          },
+        },
         offers: tournament.buy_in != null ? {
           '@type': 'Offer',
           price: Number(tournament.buy_in) || 0,

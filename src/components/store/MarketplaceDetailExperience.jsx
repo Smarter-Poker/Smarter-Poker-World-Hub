@@ -32,7 +32,15 @@ function absoluteMarketplaceUrl(value) {
 // fields can originate in the database, so escape every character with HTML
 // significance before placing JSON-LD inside a script element.
 function serializeStructuredData(value) {
-  return JSON.stringify(value ?? {})
+  const normalized = Array.isArray(value)
+    ? {
+        '@context': 'https://schema.org',
+        '@graph': value
+          .filter((node) => node && typeof node === 'object')
+          .map(({ '@context': _context, ...node }) => node),
+      }
+    : (value ?? {});
+  return JSON.stringify(normalized)
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
     .replace(/&/g, '\\u0026')
