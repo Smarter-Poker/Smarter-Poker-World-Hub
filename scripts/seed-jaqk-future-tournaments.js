@@ -5,11 +5,12 @@
  *
  * Run: node scripts/seed-jaqk-future-tournaments.js
  */
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 
 // Load env
-const envPath = new URL('../.env.local', import.meta.url).pathname;
+const envPath = fileURLToPath(new URL('../.env.local', import.meta.url));
 const envVars = {};
 readFileSync(envPath, 'utf-8').split('\n').forEach(line => {
     const m = line.match(/^([A-Z_]+)="?([^"]*)"?$/);

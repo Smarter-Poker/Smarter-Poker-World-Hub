@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
@@ -338,7 +339,7 @@ test('deployed Home Games moderation rewrite selects the local authoritative ali
   const mod = { exports: {} };
   new Function('require', 'module', 'exports', code)(name => {
     const target = new URL(name + '.js', aliasPath);
-    assert.equal(target.pathname, new URL('../pages/api/commander/home-games/groups/[id]/posts.js', import.meta.url).pathname);
+    assert.equal(target.pathname, fileURLToPath(new URL('../pages/api/commander/home-games/groups/[id]/posts.js', import.meta.url)));
     return { default: actual, __esModule: true };
   }, mod, mod.exports);
   assert.equal(mod.exports.default, actual, 'alias is the same handler, no copied auth/write logic');

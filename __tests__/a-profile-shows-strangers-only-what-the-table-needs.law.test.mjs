@@ -18,6 +18,7 @@
  *      `profiles(...)` or a /rest/v1/profiles URL. A plain update that sets
  *      one is fine: UPDATE needs no SELECT on the column it writes.
  */
+import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -25,7 +26,7 @@ import { join, relative } from 'node:path';
 import { readOwnProfile, OWNER_PROFILE_RPC } from '../src/lib/ownProfile.js';
 import { OWNER_ONLY_PROFILE_COLUMNS, SAFE_PROFILE_COLUMNS } from '../src/lib/profileColumns.js';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 function fakeClient(row, error = null) {
   const calls = [];

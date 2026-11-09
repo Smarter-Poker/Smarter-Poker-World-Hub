@@ -16,12 +16,13 @@
  * If any of these files is missing or has the wrong shape, future agents
  * (or autofix bots) will get loud failures instead of silent regressions.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const exists = (rel) => fs.existsSync(path.join(REPO, rel));
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 const sizeOf = (rel) => fs.statSync(path.join(REPO, rel)).size;

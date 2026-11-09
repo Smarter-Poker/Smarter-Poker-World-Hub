@@ -18,6 +18,7 @@ test('all 107 canonical games have exactly one bespoke casino-realism render', (
     assert.equal(new Set(gameIds).size, 107);
 
     const files = readdirSync(artDirectory).filter((file) => file.endsWith('.webp')).sort();
+    assert.ok(files.length >= 1, `Expected catalog files, found ${files.length} — a loop over nothing proves nothing`);
     const expected = gameIds.map((id) => `${id}.webp`).sort();
     assert.deepEqual(files, expected);
 

@@ -3,13 +3,14 @@
 // traces the packed Chromium, puppeteer-core and the linux-x64 binaries in
 // while every other route keeps its excludes, the dependency is pinned exact,
 // and the dispatcher carries the hourly workers route beside Phase 7.
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const read = (rel) => readFileSync(path.join(REPO, rel), 'utf8');
 const vercel = JSON.parse(read('vercel.json'));
 const pkg = JSON.parse(read('package.json'));

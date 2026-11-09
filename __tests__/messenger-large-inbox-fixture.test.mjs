@@ -3,6 +3,7 @@
 // run on 2026-11-06 (fixtures/messenger-large-inbox-20261106), refuse inputs
 // that could be interpolated into SQL, and only ever name the designated test
 // identities.
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -71,7 +72,7 @@ test('seed refuses to run twice and cleanup refuses data it does not own', () =>
 });
 
 test('the CLI prints SQL and nothing else', () => {
-  const script = new URL('../scripts/dev/messenger-large-inbox.mjs', import.meta.url).pathname;
+  const script = fileURLToPath(new URL('../scripts/dev/messenger-large-inbox.mjs', import.meta.url));
   const out = execFileSync(process.execPath, [script, 'cleanup', '--tag', '20261106', '--count', '720'], { encoding: 'utf8' });
   assert.equal(out, cleanupSql({ tag: '20261106', count: 720 }));
   assert.throws(() => execFileSync(process.execPath, [script, 'seed', '--tag', 'x'], { stdio: 'pipe' }));

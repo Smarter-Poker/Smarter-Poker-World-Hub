@@ -11,12 +11,13 @@
  * users per run. See the block comment above those tests for why that costs
  * real money.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const exists = (rel) => fs.existsSync(path.join(REPO, rel));
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 

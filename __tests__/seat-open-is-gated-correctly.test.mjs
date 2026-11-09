@@ -175,6 +175,7 @@ test('the engine reaches the current database owner that writes the seat-open ev
     assert.match(engine, /supabase\.rpc\('fn_offer_open_seat'/,
         'the engine no longer reaches the canonical offer transaction');
     const candidates = readdirSync(join(sibling, 'supabase/migrations')).filter((name) => name.endsWith('.sql')).sort().reverse();
+    assert.ok(candidates.length >= 1, `Expected migration candidates, found ${candidates.length} — a loop over nothing proves nothing`);
     let owner;
     for (const name of candidates) {
         const sql = readFileSync(join(sibling, 'supabase/migrations', name), 'utf8');

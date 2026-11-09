@@ -3419,6 +3419,7 @@ const WRAPPER_EXEMPT = new Set(['generate-avatars.js']);
 
 test('contract: every /horses route including operator-admin goes through the wrapper', () => {
   const files = fs.readdirSync(ROUTE_DIR).filter((f) => f.endsWith('.js') && !WRAPPER_EXEMPT.has(f));
+  assert.ok(files.length >= 20, `Expected the horse API routes, found ${files.length} — a loop over nothing proves nothing`);
   assert.ok(files.includes('operator-admin.js'), 'the new route must be in the sweep');
   for (const file of files) {
     const text = source(path.join(ROUTE_DIR, file));
