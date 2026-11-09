@@ -64,7 +64,10 @@ export async function runDraftAutosave() {
   const report = {
     observedAt: new Date().toISOString(), status: 'running', checks: [], cleanup: 'not-needed',
     limitation: 'Authenticated deployed API with the real continuity controller. Keystroke rendering, '
-      + 'the composer textarea and cross-tab storage events are browser behaviour and are not asserted here.',
+      + 'the composer textarea and cross-tab storage events are browser behaviour and are not asserted here. '
+      + 'The fixture carries one message each because a conversation with no messages is not listed by '
+      + 'fn_get_user_conversations, so a whole-workspace read does not carry its state; such a draft is '
+      + 'recovered only by opening that conversation by id.',
   };
   let fixture, session, post, sentMessageId = null;
   try {
@@ -153,13 +156,19 @@ export async function runDraftAutosave() {
     report.checks.push('Two conversations each kept their own draft');
 
     // ── 4. A reload recovers both from the account, not from the device ─
+    // Two reloads, because the surfaces perform two different reads: the whole
+    // workspace when the app loads, and one conversation when it is opened.
     const reloaded = makeController(makeStorage());
-    const afterReload = await reloaded.read();
-    assert.equal(afterReload, null, 'A full read returns the whole workspace');
+    await reloaded.read();
     assert.equal(draftOf(reloaded, fixture.a), textA, 'Draft A did not survive a reload with empty device storage');
     assert.equal(draftOf(reloaded, fixture.b), textB, 'Draft B did not survive a reload with empty device storage');
     assert.equal(reloaded.state(fixture.a).draft.dirty, false, 'A recovered draft must not be marked unsaved');
-    report.checks.push('A fresh client with empty device storage recovered both drafts from the account');
+
+    const opened = makeController(makeStorage());
+    await opened.read(fixture.a);
+    assert.equal(draftOf(opened, fixture.a), textA, 'Opening the conversation did not recover its draft');
+    report.checks.push('A fresh client with empty device storage recovered both drafts from the account, '
+      + 'through a whole-workspace read and through opening one conversation');
 
     // ── 5. The draft belongs to this account and this conversation ──────
     const direct = await post('/api/messenger/continuity', { action: 'read', conversationId: fixture.a });
