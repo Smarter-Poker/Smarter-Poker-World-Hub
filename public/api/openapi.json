@@ -205,8 +205,8 @@
     "/api/mcp": {
       "post": {
         "operationId": "callMcpRpc",
-        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution",
-        "description": "Executes Model Context Protocol (MCP) tool calls including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus raw Markdown ingestion for /tools/plo-bet-calculator, /tools/payout-calculator, /tools/rake-calculator, /tools/3bet-calculator, /rules, /games, /learn/poker-hand-rankings, and /poker-rooms/guides.",
+        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (26 Tools & 12 Resource Templates)",
+        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 26 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus resources/read and resources/templates/list across 12 URI templates.",
         "requestBody": {
           "required": true,
           "content": {
@@ -281,7 +281,7 @@
                     "summary": "Verified Smarter.Poker MCP Server Discovery Response",
                     "value": {
                       "name": "smarter-poker-mcp-server",
-                      "version": "1.0.0",
+                      "version": "1.5.0",
                       "protocolVersion": "2024-11-05",
                       "status": "active",
                       "citation_url": "https://smarter.poker/api/mcp",
@@ -1493,7 +1493,7 @@
       "get": {
         "operationId": "getAiCrawlerStatus",
         "summary": "AI Crawler Classification & Grounding Corpus Health",
-        "description": "Classifies incoming AI bot User-Agents and returns real-time counts of lessons, starting hands, glossary terms, comparisons, research reports, and MCP tools.",
+        "description": "Classifies incoming AI bot User-Agents and returns real-time counts of lessons, starting hands, glossary terms, comparisons, research reports, TDA rules, game variants, regional guides, interactive calculators, and MCP tools.",
         "responses": {
           "200": {
             "description": "Crawler attribution and corpus inventory.",
@@ -1518,6 +1518,96 @@
         },
         "x-ai-citation-url": "https://smarter.poker/verification-methodology",
         "x-ai-markdown-url": "https://smarter.poker/verification-methodology.md"
+      }
+    },
+    "/api/stream/cmd": {
+      "get": {
+        "operationId": "executeStreamerChatbotCommand",
+        "summary": "Twitch & YouTube Streamer Chatbot Commands (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule)",
+        "description": "Returns single-line plain-text (<380 chars) or JSON poker solver and TDA rule responses for Nightbot, StreamElements, Fossabot, and MooBot livestream chat integrations.",
+        "parameters": [
+          {
+            "name": "cmd",
+            "in": "query",
+            "description": "Command selector: odds, potodds, pushfold, icm, bounty, winrate, plo, rake, 3bet, rule, or help.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "help"],
+              "default": "help"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Free-text argument string passed from chat (e.g. 'AA vs KK', '100 50', 'BTN 12', 'string bet').",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single-line plain-text or JSON chatbot response with canonical smarter.poker citation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Streamer Chatbot Command Response",
+                    "value": {
+                      "ok": true,
+                      "command": "odds",
+                      "text": "Smarter.Poker Equity: AA vs KK = 81.9% vs 18.1% | Full Calculator: https://smarter.poker/tools/poker-odds-calculator"
+                    }
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/tools/embeds",
+        "x-ai-markdown-url": "https://smarter.poker/tools/embeds.md"
+      }
+    },
+    "/api/datasets/catalog": {
+      "get": {
+        "operationId": "getOpenDatasetCatalog",
+        "summary": "Open CC-BY 4.0 Quantitative Poker Dataset Catalog, Zenodo & Wikipedia Citations",
+        "description": "Returns Schema.org DataCatalog JSON-LD, Zenodo/DataCite metadata, CITATION.cff, and MediaWiki citation templates across 15 empirical poker studies and 9 Wikipedia target pages.",
+        "responses": {
+          "200": {
+            "description": "Dataset catalog and academic citation payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Open Dataset Catalog Response",
+                    "value": {
+                      "ok": true,
+                      "datasets_count": 15,
+                      "wikipedia_targets_count": 9,
+                      "citation_url": "https://smarter.poker/research"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/research",
+        "x-ai-markdown-url": "https://smarter.poker/research.md"
       }
     }
   },

@@ -41,8 +41,11 @@ test('Phase 22: all 4 live discovery hubs wire FAQPage and SpeakableSpecificatio
 
   const series = fs.readFileSync(path.resolve('pages/hub/poker-series.js'), 'utf8');
   assert.ok(series.includes('faqSchema(POKER_SERIES_FAQS'), 'poker-series.js must include faqSchema');
+  assert.ok(series.includes("'@graph': normalizeJsonLdGraph(["), 'poker-series.js must wrap Dataset and FAQPage inside @graph, with the Organization and WebSite nodes they reference');
+  assert.ok(!series.includes('...faqSchema(POKER_SERIES_FAQS'), 'poker-series.js must not overwrite Dataset @type by spreading faqSchema');
 
   const tours = fs.readFileSync(path.resolve('pages/hub/poker-tours.js'), 'utf8');
   assert.ok(tours.includes('faqSchema(POKER_TOURS_FAQS'), 'poker-tours.js must include faqSchema');
   assert.ok(tours.includes('SpeakableSpecification'), 'poker-tours.js must include SpeakableSpecification');
+  assert.ok(!tours.includes('...datasetSchema({'), 'poker-tours.js must include datasetSchema inside @graph rather than spreading at root');
 });
