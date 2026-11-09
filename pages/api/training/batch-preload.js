@@ -948,9 +948,8 @@ export default async function handler(req, res) {
           if (createDuelRequested || duelPayload) {
               try {
                   const servedQuestionIds = (delivery.questions || []).map((q) => String(q.id));
-                  const userName = _authUser.user_metadata?.username
-                      || _authUser.user_metadata?.full_name
-                      || (_authUser.email ? _authUser.email.split('@')[0] : '')
+                  const userName = _authUser.user_metadata?.display_name
+                      || _authUser.user_metadata?.username
                       || 'Player';
                   const activeDuelId = duelPayload?.duelId
                       || `duel_${String(delivery.attemptId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24)}`;
