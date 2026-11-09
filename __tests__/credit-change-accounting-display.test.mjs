@@ -55,6 +55,7 @@ const Bubble = compile('../src/components/messenger/MessageBubble.js', name => {
     if (name === '../../lib/messenger/messageMedia.mjs') return messageMedia;
     if (name === '../../lib/messenger/liveInvite.mjs') return liveInvite;
     if (name === '../../lib/messenger/callReceipt.mjs') return callReceipt;
+    if (name === './MediaViewer') return { default: () => null, ATTACHMENT_ATTRIBUTE: 'data-message-attachment', __esModule: true };
     return require(name);
 }, undefined, 'MessageBubble');
 const render = result => renderToStaticMarkup(React.createElement(Card,

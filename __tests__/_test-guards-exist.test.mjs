@@ -848,6 +848,7 @@ import './twilio-status-webhook.test.mjs';
 import './sms-carrier-refused-numbers.test.mjs';
 import './digest-shows-the-fix.test.mjs';
 import './notifications-is-the-top-menu-setting.law.test.mjs';
+import './backlink-embed-citation-engine.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

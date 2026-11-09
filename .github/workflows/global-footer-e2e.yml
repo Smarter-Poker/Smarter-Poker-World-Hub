@@ -301,7 +301,13 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install Locked Verification Dependencies
-        run: npm ci
+        # --ignore-scripts (2026-11-09): these three jobs are workflow_dispatch
+        # only, so they have never actually installed. On Node 22 a scripted
+        # install compiles `canvas` from source — no prebuild exists for that
+        # ABI — and the runner has no pixman or cairo, so the first person to
+        # dispatch one would have hit a failure that has nothing to do with the
+        # verification. The third job here already installed this way.
+        run: npm ci --ignore-scripts
       - name: Install Chromium For Scoped Live Proof
         run: npx playwright install --with-deps chromium
       - name: Verify Published Phase 5 With The Existing CI Test Identity
@@ -333,7 +339,13 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install Locked Verification Dependencies
-        run: npm ci
+        # --ignore-scripts (2026-11-09): these three jobs are workflow_dispatch
+        # only, so they have never actually installed. On Node 22 a scripted
+        # install compiles `canvas` from source — no prebuild exists for that
+        # ABI — and the runner has no pixman or cairo, so the first person to
+        # dispatch one would have hit a failure that has nothing to do with the
+        # verification. The third job here already installed this way.
+        run: npm ci --ignore-scripts
       - name: Install Chromium For Scoped Live Proof
         run: npx playwright install --with-deps chromium
       - name: Verify Published Phase 6 With The Existing CI Test Identity
