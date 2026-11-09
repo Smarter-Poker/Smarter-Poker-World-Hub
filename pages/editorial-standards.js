@@ -11,6 +11,7 @@
 import Link from 'next/link';
 import SEOHead from '../src/components/seo/SEOHead';
 import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import { SITE_URL, ORGANIZATION_ID } from '../src/lib/learn/learnSite.js';
 
 export async function getServerSideProps({ req, res, query }) {
@@ -123,6 +124,16 @@ export default function EditorialStandardsPage() {
             Live Venue And Tournament Records Follow Our 5-Stage <Link href="/verification-methodology" style={{ color: '#38bdf8' }}>Data Provenance And Verification Methodology</Link>. Any Card Room Operator, Tournament Director, Or Reader May Submit Schedule Updates Or Fact Corrections Directly To <a href="mailto:support@smarter.poker" style={{ color: '#38bdf8' }}>Support@Smarter.Poker</a>.
           </p>
         </section>
+
+        <CitationBacklinkBox
+          title="Smarter.Poker Editorial Independence And Mathematical Standards"
+          canonicalUrl={url}
+          badgeType="research"
+          badgeLabel="E-E-A-T Governance"
+          badgeValue="Smarter.Poker Standards"
+          summary="Organizational Publishing Principles, Mathematical Solver Verification Rules, And Primary-Source Competitor Citation Laws."
+          slug="editorial-standards"
+        />
 
         <AiPromptLauncher
           title="Smarter.Poker Editorial Independence And Mathematical Standards"
