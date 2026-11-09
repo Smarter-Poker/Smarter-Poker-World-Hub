@@ -473,6 +473,41 @@ export default function HomeGamesByState({
             }),
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: [
+                {
+                  '@type': 'Question',
+                  name: `How Do I Find A Private Poker Home Game In ${stateName}?`,
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: `Browse The Publicly Listed Poker Home Games In ${stateName} Above, Select Any Local Club Card To View Its Stakes And Schedule, And Submit An RSVP Seat Request Directly To The Verified Host.`,
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: `Are Host Residential Addresses In ${stateName} Kept Private?`,
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: `Yes. Smarter.Poker Never Publishes Exact Residential Street Addresses Or Raw Home Coordinates On Public Directory Pages. Exact Locations Are Shared Only After The Host Approves A Player's RSVP Seat Request.`,
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: `What Free Tools Can Home Game Hosts In ${stateName} Use?`,
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: `Hosts In ${stateName} Can List Their Club Free On Smarter.Poker And Use Our Free Tournament Blind Structure Calculator (https://smarter.poker/tools/blind-structure-calculator) And Multi-Way Side Pot Calculator (https://smarter.poker/tools/side-pot-calculator) At The Table.`,
+                  },
+                },
+              ],
+            }).replace(/</g, '\\u003c'),
+          }}
+        />
       </Head>
 
       <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />
@@ -608,6 +643,38 @@ export default function HomeGamesByState({
                       className="block py-1 text-[#C4B5FD] hover:text-white transition-colors"
                     >
                       View All States →
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="rounded-xl bg-[#132240]/60 border border-[#1E293B] p-4">
+                <h2 className="text-xs uppercase tracking-wider text-[#94A3B8] mb-3">
+                  Free Host &amp; Table Tools
+                </h2>
+                <ul className="space-y-1.5 text-sm">
+                  <li>
+                    <Link
+                      href="/tools/blind-structure-calculator"
+                      className="block py-1 text-[#C4B5FD] hover:text-white transition-colors"
+                    >
+                      Blind Structure Calculator →
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/tools/side-pot-calculator"
+                      className="block py-1 text-[#C4B5FD] hover:text-white transition-colors"
+                    >
+                      Side Pot Calculator →
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/tools"
+                      className="block py-1 text-[#94A3B8] hover:text-white transition-colors"
+                    >
+                      All Free Poker Tools →
                     </Link>
                   </li>
                 </ul>

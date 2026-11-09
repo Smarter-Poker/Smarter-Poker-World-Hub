@@ -11,12 +11,14 @@ import {
   generateSitemapXml,
   GLOSSARY_PAGES,
   LEARN_PAGES,
+  RESEARCH_PAGES,
   sendSitemapXmlResponse,
 } from '../src/lib/seo/sitemapBuilders.mjs';
 
 export async function getServerSideProps({ req, res }) {
   const sitemap = generateSitemapXml([
     ...LEARN_PAGES,
+    ...RESEARCH_PAGES,
     ...GLOSSARY_PAGES,
   ]);
 
