@@ -1190,38 +1190,6 @@ export function renderEmbedsMarkdown({ canonicalUrl = 'https://smarter.poker/too
     '<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="https://smarter.poker/tools/preflop-ranges" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">Smarter.Poker GTO Preflop Ranges</a></p>',
     '```',
     '',
-    '### 4. Pot Odds, Implied Odds & MDF Calculator',
-    '- Purpose: Instant pot odds, break-even equity percentage, minimum defense frequency (MDF), and outs-to-equity calculator.',
-    '- Embed URL: `https://smarter.poker/tools/pot-odds-calculator`',
-    '- Canonical Target: `https://smarter.poker/tools/pot-odds-calculator`',
-    '',
-    '### 5. Short-Stack Push/Fold Nash Equilibrium Chart',
-    '- Purpose: Interactive 3BB to 20BB short-stack tournament push/fold Nash equilibrium solver chart across every table position.',
-    '- Embed URL: `https://smarter.poker/tools/push-fold-calculator`',
-    '- Canonical Target: `https://smarter.poker/tools/push-fold-calculator`',
-    '',
-    '### 6. Poker Bankroll & Risk Of Ruin Calculator',
-    '- Purpose: Variance simulator and Risk of Ruin (RoR) calculator computing required buy-ins from BB/100 winrate and standard deviation.',
-    '- Embed URL: `https://smarter.poker/tools/bankroll-calculator`',
-    '- Canonical Target: `https://smarter.poker/tools/bankroll-calculator`',
-    '',
-    '### 7. PKO & Mystery Bounty Chip Equity Calculator',
-    '- Purpose: Progressive Knockout (PKO) and Mystery Bounty chip conversion and calling-equity adjustment calculator.',
-    '- Embed URL: `https://smarter.poker/tools/bounty-calculator`',
-    '- Canonical Target: `https://smarter.poker/tools/bounty-calculator`',
-    '',
-    '### 8. Poker Winrate (BB/100 To $/Hr) & Volume Calculator',
-    '- Purpose: Converts online BB/100 and live hourly winrates into projected monthly and annual earnings with confidence intervals.',
-    '- Embed URL: `https://smarter.poker/tools/poker-winrate-calculator`',
-    '- Canonical Target: `https://smarter.poker/tools/poker-winrate-calculator`',
-    '',
-    '## Dynamic SVG Authority & Partner Backlink Badges',
-    '- Verified Poker Room Badge: `https://smarter.poker/api/seo/badge?type=venue` -> links to `https://smarter.poker/hub/poker-near-me/lobby`',
-    '- Powered By Club Commander Badge: `https://smarter.poker/api/seo/badge?type=commander` -> links to `https://smarter.poker/compare/best-poker-room-management-software`',
-    '- Empirical Research Citation Badge: `https://smarter.poker/api/seo/badge?type=research` -> links to `https://smarter.poker/research`',
-    '- GTO Math Verified Solver Badge: `https://smarter.poker/api/seo/badge?type=gto` -> links to `https://smarter.poker/tools/preflop-ranges`',
-    '- Private Club Platform Badge: `https://smarter.poker/api/seo/badge?type=club` -> links to `https://smarter.poker/compare/best-poker-club-apps`',
-    '',
     '## Integration Guide For CMS Platforms',
     '- WordPress: Add a Custom HTML block in Gutenberg or Elementor and paste the iframe snippet directly.',
     '- Ghost: Add an HTML card in the editor and insert the embed code.',
@@ -2201,5 +2169,235 @@ export function renderPokerWinrateCalculatorMarkdown({
     '',
   ].join('\n');
 }
+
+/**
+ * Format Master Poker Tools & Calculators Directory (/tools) as clean structured Markdown
+ */
+export function renderToolsDirectoryMarkdown() {
+  return [
+    '# Smarter.Poker Interactive Poker Tools, GTO Solvers & Math Calculators Directory',
+    '',
+    '> Source: [Interactive Poker Tools & Calculators Directory on Smarter.Poker](https://smarter.poker/tools)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Smarter.Poker Provides Ten 100% Free, Browser-Native Poker Math Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities With Instant Server-Side Rendering And Direct Markdown (.md) API Endpoints For AI Assistants.',
+    '',
+    '## Complete Suite Of Free Poker Calculators & Solvers',
+    '| Tool Name | Canonical URL | Markdown Endpoint | Core Mathematical Function |',
+    '| :--- | :--- | :--- | :--- |',
+    '| Multiway Poker Odds & Equity Calculator | https://smarter.poker/tools/poker-odds-calculator | https://smarter.poker/tools/poker-odds-calculator.md | Exact Combinatorial & Monte Carlo Equity For NLH, PLO4, PLO5, PLO6 & Short Deck |',
+    '| Tournament ICM & Final Table Deal Calculator | https://smarter.poker/tools/icm-calculator | https://smarter.poker/tools/icm-calculator.md | Malmuth-Harville Tournament Prize Pool $EV, Risk Premium & Chop Equity |',
+    '| 13x13 GTO Preflop Range Matrix & Position Hub | https://smarter.poker/tools/preflop-ranges | https://smarter.poker/tools/preflop-ranges.md | Unexploitable 100BB 6-Max Raise First In (RFI), 3-Bet & 4-Bet Ranges |',
+    '| Pot Odds, Required Equity & MDF Calculator | https://smarter.poker/tools/pot-odds-calculator | https://smarter.poker/tools/pot-odds-calculator.md | Break-Even Calling Equity, Minimum Defense Frequency (MDF) & Draw Outs |',
+    '| Bankroll Management & Risk Of Ruin Calculator | https://smarter.poker/tools/bankroll-calculator | https://smarter.poker/tools/bankroll-calculator.md | Exact Risk Of Ruin (RoR) Probability & Required Buy-Ins By Variance |',
+    '| Short-Stack Push/Fold Nash Equilibrium Chart | https://smarter.poker/tools/push-fold-calculator | https://smarter.poker/tools/push-fold-calculator.md | 5BB To 20BB Tournament All-In Shove & Call Ranges With Big Blind Antes |',
+    '| PKO & Mystery Bounty Chip Equity Calculator | https://smarter.poker/tools/bounty-calculator | https://smarter.poker/tools/bounty-calculator.md | Progressive Knockout Bounty Power Factor & Chip-Equivalent Equity Discount |',
+    '| Live & Online Winrate (BB/100 To $/Hr) Calculator | https://smarter.poker/tools/poker-winrate-calculator | https://smarter.poker/tools/poker-winrate-calculator.md | Converts Online BB/100 And Live $/Hr Winrates With Confidence Intervals |',
+    '| Multi-Way All-In Main & Side Pot Calculator | https://smarter.poker/tools/side-pot-calculator | https://smarter.poker/tools/side-pot-calculator.md | Exact Main Pot And Side Pot Slicing With Dead Blinds/Antes For Up To 9 Players |',
+    '| Tournament Blind Structure & Chip Distribution Generator | https://smarter.poker/tools/blind-structure-calculator | https://smarter.poker/tools/blind-structure-calculator.md | Custom Tournament Clock Schedule, Big Blind Ante Progression & Starting Chip Breakdown |',
+    '| Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator | https://smarter.poker/tools/spr-calculator | https://smarter.poker/tools/spr-calculator.md | Exact Effective SPR Zone Classification & 1/2/3-Street Geometric All-In Bet Sizing |',
+    '| Embeddable Webmaster Poker Widgets | https://smarter.poker/tools/embeds | https://smarter.poker/tools/embeds.md | Zero-Dependency Responsive Iframe Widgets For Poker Blogs, Forums & Discord Communities |',
+    '',
+    '## 100BB 6-Max Positional GTO Preflop Charts',
+    '- **Under The Gun (UTG - 14.9% RFI)**: https://smarter.poker/tools/preflop-ranges/utg',
+    '- **Middle Position (MP - 18.1% RFI)**: https://smarter.poker/tools/preflop-ranges/mp',
+    '- **Hijack (HJ - 22.0% RFI)**: https://smarter.poker/tools/preflop-ranges/hj',
+    '- **Cutoff (CO - 28.5% RFI)**: https://smarter.poker/tools/preflop-ranges/co',
+    '- **Button (BTN - 44.6% RFI)**: https://smarter.poker/tools/preflop-ranges/btn',
+    '- **Small Blind (SB - 41.9% RFI)**: https://smarter.poker/tools/preflop-ranges/sb',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Multi-Way All-In Main & Side Pot Calculator (/tools/side-pot-calculator) as clean structured Markdown
+ */
+export function renderSidePotCalculatorMarkdown({
+  stacks = '2500,6000,12000,12000',
+  deadMoney = 450,
+} = {}) {
+  const rawStacks = String(stacks || '2500,6000,12000,12000')
+    .split(',')
+    .map((s) => Math.max(0, Math.round(Number(s.trim()) || 0)))
+    .filter((n) => n > 0)
+    .slice(0, 9);
+  const effectiveStacks = rawStacks.length >= 2 ? rawStacks : [2500, 6000, 12000, 12000];
+  const safeDead = Math.max(0, Math.round(Number(deadMoney) || 0));
+
+  const players = effectiveStacks.map((amt, idx) => ({
+    id: idx + 1,
+    name: `Player ${idx + 1}`,
+    committed: amt,
+  }));
+
+  const uniqueLevels = [...new Set(players.map((p) => p.committed))].sort((a, b) => a - b);
+  const pots = [];
+  let prevLevel = 0;
+
+  uniqueLevels.forEach((level, idx) => {
+    const slice = level - prevLevel;
+    const eligible = players.filter((p) => p.committed >= level);
+    const deadAdded = idx === 0 ? safeDead : 0;
+    const potAmount = slice * eligible.length + deadAdded;
+    pots.push({
+      name: idx === 0 ? 'Main Pot' : `Side Pot ${idx}`,
+      capPerPlayer: slice,
+      cumulativeCap: level,
+      eligibleCount: eligible.length,
+      eligibleNames: eligible.map((p) => p.name).join(', '),
+      deadAdded,
+      totalChips: potAmount,
+      isUncalledReturn: eligible.length === 1,
+    });
+    prevLevel = level;
+  });
+
+  const totalPot = pots.reduce((sum, p) => sum + p.totalChips, 0);
+
+  return [
+    '# Poker Side Pot & Multi-Way All-In Payout Calculator',
+    '',
+    '> Source: [Poker Side Pot Calculator on Smarter.Poker](https://smarter.poker/tools/side-pot-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `When Multiple Players Are All-In With Unequal Chip Stacks, Poker Rules Slice Contributions Into A Main Pot And Sequential Side Pots So No Player Can Win More From Any Opponent Than The Exact Chip Amount That Player Risked. Dead Money (Folded Blinds, Antes, Or Prior Street Bets Totaling ${safeDead.toLocaleString('en-US')} Chips) Always Goes Into The Main Pot. Across Commitments Of [${effectiveStacks.join(', ')}], Total Chips In Play Equal ${totalPot.toLocaleString('en-US')}.`,
+    '',
+    '## Pre-Computed Multi-Way Side Pot Breakdown',
+    '| Pot Tier | Per-Player Slice | Cumulative Stack Cap | Dead Money Added | Total Pot Chips | Eligible Contenders |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...pots.map(
+      (p) =>
+        `| ${p.name}${p.isUncalledReturn ? ' (Uncalled Overbet Return)' : ''} | ${p.capPerPlayer.toLocaleString('en-US')} | ${p.cumulativeCap.toLocaleString('en-US')} | ${p.deadAdded.toLocaleString('en-US')} | ${p.totalChips.toLocaleString('en-US')} | ${p.eligibleNames} (${p.eligibleCount} ${p.eligibleCount === 1 ? 'Player' : 'Players'}) |`
+    ),
+    '',
+    '## Official Robert\'s Rules Of Poker & TDA Side Pot Rules',
+    '- **Equal Contribution Rule**: Each Pot Contains Equal Chip Contributions From Every Active Player Who Reaches That Stack Threshold.',
+    '- **Dead Money Placement**: Folded Blinds, Big Blind Antes, And Chips Contributed By Players Who Subsequently Folded Are Consolidated Into The Main Pot.',
+    '- **Uncalled Overbet Return**: If The Largest Stack Exceeds Every Other Player\'s Commitment, The Excess Chips Are Returned Immediately As An Uncalled Bet And Never Enter A Side Pot.',
+    '- **Odd Chip Award Order**: In Split Pots, Any Odd Chip Of The Smallest Denomination Used In The Game Goes To The First Winning Player Left Of The Button (Or High Card By Suit In Stud/Razz).',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Poker Tournament Blind Structure & Chip Distribution Generator (/tools/blind-structure-calculator) as clean structured Markdown
+ */
+export function renderBlindStructureCalculatorMarkdown({
+  players = 18,
+  targetHours = 4,
+  startingStack = 20000,
+  levelMinutes = 20,
+  anteFormat = 'bb-ante',
+} = {}) {
+  const safePlayers = Math.max(2, Math.min(500, Math.round(Number(players) || 18)));
+  const safeHours = Math.max(1, Math.min(14, Number(targetHours) || 4));
+  const safeStack = Math.max(1000, Math.round(Number(startingStack) || 20000));
+  const safeLevelMins = Math.max(5, Math.min(60, Math.round(Number(levelMinutes) || 20)));
+  const useBbAnte = String(anteFormat || 'bb-ante').toLowerCase() !== 'no-ante';
+  const totalChipsInPlay = safePlayers * safeStack;
+  const targetEndBigBlind = Math.max(200, Math.round(totalChipsInPlay / 25));
+
+  const STANDARD_LEVELS = [
+    { level: 1, sb: 100, bb: 100, ante: useBbAnte ? 100 : 0 },
+    { level: 2, sb: 100, bb: 200, ante: useBbAnte ? 200 : 0 },
+    { level: 3, sb: 200, bb: 300, ante: useBbAnte ? 300 : 0 },
+    { level: 4, sb: 200, bb: 400, ante: useBbAnte ? 400 : 0 },
+    { level: 5, sb: 300, bb: 600, ante: useBbAnte ? 600 : 0 },
+    { level: 6, sb: 400, bb: 800, ante: useBbAnte ? 800 : 0 },
+    { level: 7, sb: 500, bb: 1000, ante: useBbAnte ? 1000 : 0 },
+    { level: 8, sb: 600, bb: 1200, ante: useBbAnte ? 1200 : 0 },
+    { level: 9, sb: 800, bb: 1600, ante: useBbAnte ? 1600 : 0 },
+    { level: 10, sb: 1000, bb: 2000, ante: useBbAnte ? 2000 : 0 },
+    { level: 11, sb: 1500, bb: 3000, ante: useBbAnte ? 3000 : 0 },
+    { level: 12, sb: 2000, bb: 4000, ante: useBbAnte ? 4000 : 0 },
+    { level: 13, sb: 3000, bb: 6000, ante: useBbAnte ? 6000 : 0 },
+    { level: 14, sb: 4000, bb: 8000, ante: useBbAnte ? 8000 : 0 },
+    { level: 15, sb: 5000, bb: 10000, ante: useBbAnte ? 10000 : 0 },
+    { level: 16, sb: 8000, bb: 16000, ante: useBbAnte ? 16000 : 0 },
+    { level: 17, sb: 10000, bb: 20000, ante: useBbAnte ? 20000 : 0 },
+    { level: 18, sb: 15000, bb: 30000, ante: useBbAnte ? 30000 : 0 },
+  ];
+
+  return [
+    '# Poker Tournament Blind Structure & Chip Distribution Generator',
+    '',
+    '> Source: [Tournament Blind Structure Calculator on Smarter.Poker](https://smarter.poker/tools/blind-structure-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `A Poker Tournament Terminates Predictably When Total Chips In Play Equal Approximately 20 To 30 Big Blinds. For ${safePlayers} Players With A ${safeStack.toLocaleString('en-US')} Starting Stack (${totalChipsInPlay.toLocaleString('en-US')} Total Chips In Play), The Tournament Reaches Heads-Up Completion Around A ${targetEndBigBlind.toLocaleString('en-US')} Big Blind Level Across ${safeHours} Hours Using ${safeLevelMins}-Minute Blind Levels.`,
+    '',
+    '## Generated Tournament Blind Schedule',
+    '| Level | Small Blind | Big Blind | Big Blind Ante | Orbit Cost | Starting Stack In BBs | Elapsed Time |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...STANDARD_LEVELS.map((l) => {
+      const orbitCost = l.sb + l.bb + l.ante;
+      const startBbs = (safeStack / l.bb).toFixed(1);
+      const elapsedMins = (l.level - 1) * safeLevelMins;
+      return `| Level ${l.level} | ${l.sb.toLocaleString('en-US')} | ${l.bb.toLocaleString('en-US')} | ${l.ante.toLocaleString('en-US')} | ${orbitCost.toLocaleString('en-US')} | ${startBbs} BB | ${elapsedMins} Mins |`;
+    }),
+    '',
+    '## TDA Standard Chip Color & Starting Stack Distribution (20,000 Stack)',
+    '| Chip Denomination | Standard TDA Color | Quantity Per Player | Value Per Player | Color-Up / Removal Level |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| 100 Chip | Black | 10 Chips | 1,000 | End Of Level 6 (Before 500/1,000) |',
+    '| 500 Chip | Purple | 8 Chips | 4,000 | End Of Level 10 (Before 1,500/3,000) |',
+    '| 1,000 Chip | Yellow / Gold | 10 Chips | 10,000 | End Of Level 15 (Before 8,000/16,000) |',
+    '| 5,000 Chip | Orange / Grey | 1 Chip (+ Color-Up Reserve) | 5,000 | Remains In Play Until Final Hand |',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Format Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator (/tools/spr-calculator) as clean structured Markdown
+ */
+export function renderSprCalculatorMarkdown({
+  pot = 100,
+  effectiveStack = 450,
+} = {}) {
+  const safePot = Math.max(1, Number(pot) || 100);
+  const safeStack = Math.max(1, Number(effectiveStack) || 450);
+  const spr = safeStack / safePot;
+
+  const geo1 = (((Math.pow(1 + 2 * spr, 1) - 1) / 2) * 100).toFixed(1);
+  const geo2 = (((Math.pow(1 + 2 * spr, 1 / 2) - 1) / 2) * 100).toFixed(1);
+  const geo3 = (((Math.pow(1 + 2 * spr, 1 / 3) - 1) / 2) * 100).toFixed(1);
+
+  const sprZone =
+    spr <= 2.5
+      ? 'Low SPR Commitment Zone (SPR <= 2.5 - Top Pair And Overpairs Are Automatically Stack-Committed)'
+      : spr <= 6.5
+      ? 'Medium SPR Tactical Zone (SPR 2.5 To 6.5 - Two-Street Value Hands & Strong Draws Dominate)'
+      : 'Deep SPR Implied Odds Zone (SPR > 6.5 - Nut Draws, Sets, And Suited Connectors Gain Maximum Realization)';
+
+  return [
+    '# Poker Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator',
+    '',
+    '> Source: [SPR & Geometric Bet Sizing Calculator on Smarter.Poker](https://smarter.poker/tools/spr-calculator)',
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Stack-To-Pot Ratio (SPR = Effective Stack / Flop Pot) Governs Postflop Commitment Thresholds And Optimal Multi-Street Geometric Bet Sizing: s = 0.5 * ((1 + 2 * SPR)^(1/N) - 1). With A ${safePot} Pot And ${safeStack} Effective Stack, SPR Equals ${spr.toFixed(2)} (${sprZone}), Requiring Equal Bet Sizes Of ${geo2}% Pot Over 2 Streets Or ${geo3}% Pot Over 3 Streets To Put All Chips In Smoothly.`,
+    '',
+    '## Live SPR & Geometric Sizing Output',
+    `- **Current Pot Size**: ${safePot}`,
+    `- **Effective Remaining Stack**: ${safeStack}`,
+    `- **Exact Stack-To-Pot Ratio (SPR)**: ${spr.toFixed(2)}`,
+    `- **SPR Strategic Zone**: ${sprZone}`,
+    `- **1-Street All-In Overbet Sizing**: ${geo1}% Of Pot`,
+    `- **2-Street Geometric Sizing (Flop + Turn Or Turn + River)**: ${geo2}% Of Pot Per Street`,
+    `- **3-Street Geometric Sizing (Flop + Turn + River)**: ${geo3}% Of Pot Per Street`,
+    '',
+    '## Geometric Bet Sizing Reference Table Across Common SPR Values',
+    '| Flop SPR | Typical Preflop Scenario (100BB) | 1-Street Jam % | 2-Street Geometric % | 3-Street Geometric % | Commitment Threshold |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| 1.0 SPR | 4-Bet Pot (22BB In, 45BB Pot) | 100.0% Pot | 36.6% Pot | 22.1% Pot | Any Pair / High Draw Committed |',
+    '| 2.0 SPR | 4-Bet Or Large 3-Bet Pot | 200.0% Pot | 61.8% Pot | 35.5% Pot | Overpairs & Top Pair Top Kicker |',
+    '| 4.0 SPR | Standard 3-Bet Pot (10BB 3-Bet) | 400.0% Pot | 100.0% Pot | 54.0% Pot | Strong Top Pair / Overpairs / Combo Draws |',
+    '| 6.5 SPR | Multiway Single-Raised Pot | 650.0% Pot | 137.1% Pot | 70.1% Pot | Two Pair+ For 3 Streets |',
+    '| 13.0 SPR | Heads-Up Single-Raised Pot (3BB Open) | 1300.0% Pot | 209.8% Pot | 99.3% Pot | Sets, Straights, Flushes & Polarized Bluffs |',
+    '| 20.0 SPR | Deepstack 150BB-200BB Cash Game | 2000.0% Pot | 270.2% Pot | 121.0% Pot | Nut Holdings Only (Avoid 1-Pair Stack-Offs) |',
+    '',
+  ].join('\n');
+}
+
 
 

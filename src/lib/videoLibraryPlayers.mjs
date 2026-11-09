@@ -8,18 +8,18 @@ import { watchUrl } from './videoLibraryWatch.mjs';
  * Never infer a person from a surname, channel owner, nickname or partial name.
  */
 export const VIDEO_LIBRARY_PLAYERS = Object.freeze([
-    ['andrew-neeme', 'Andrew Neeme'],
-    ['brad-owen', 'Brad Owen'],
-    ['chance-kornuth', 'Chance Kornuth'],
-    ['daniel-negreanu', 'Daniel Negreanu'],
-    ['doug-polk', 'Doug Polk'],
-    ['garrett-adelstein', 'Garrett Adelstein'],
-    ['jason-koon', 'Jason Koon'],
-    ['lex-veldhuis', 'Lex Veldhuis'],
-    ['phil-hellmuth', 'Phil Hellmuth'],
-    ['phil-ivey', 'Phil Ivey'],
-    ['tom-dwan', 'Tom Dwan'],
-].map(([id, name]) => Object.freeze({ id, name, path: `/hub/video-library/players/${id}` })));
+    ['andrew-neeme', 'Andrew Neeme', 'https://www.wikidata.org/wiki/Q65029855'],
+    ['brad-owen', 'Brad Owen', 'https://www.wikidata.org/wiki/Q113585258'],
+    ['chance-kornuth', 'Chance Kornuth', 'https://www.wikidata.org/wiki/Q20740748'],
+    ['daniel-negreanu', 'Daniel Negreanu', 'https://www.wikidata.org/wiki/Q296401'],
+    ['doug-polk', 'Doug Polk', 'https://www.wikidata.org/wiki/Q17306386'],
+    ['garrett-adelstein', 'Garrett Adelstein', 'https://www.wikidata.org/wiki/Q64010282'],
+    ['jason-koon', 'Jason Koon', 'https://www.wikidata.org/wiki/Q28037447'],
+    ['lex-veldhuis', 'Lex Veldhuis', 'https://www.wikidata.org/wiki/Q1822211'],
+    ['phil-hellmuth', 'Phil Hellmuth', 'https://www.wikidata.org/wiki/Q311442'],
+    ['phil-ivey', 'Phil Ivey', 'https://www.wikidata.org/wiki/Q312013'],
+    ['tom-dwan', 'Tom Dwan', 'https://www.wikidata.org/wiki/Q459049'],
+].map(([id, name, wikidataUrl]) => Object.freeze({ id, name, path: `/hub/video-library/players/${id}`, wikidataUrl })));
 
 const byId = new Map(VIDEO_LIBRARY_PLAYERS.map(player => [player.id, player]));
 const normalizedText = value => String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
@@ -60,6 +60,7 @@ export function buildPlayerJsonLd(player, videos = []) {
         name: player.name,
         description: `Poker Player Named In Published Video Titles Or Tags.`,
         url,
+        ...(player.wikidataUrl ? { sameAs: [player.wikidataUrl] } : {}),
     };
     const breadcrumbs = buildVideoLibraryBreadcrumbs([
         ['World Hub', '/hub'],

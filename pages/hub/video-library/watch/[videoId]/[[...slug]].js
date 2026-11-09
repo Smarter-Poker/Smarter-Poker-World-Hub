@@ -62,6 +62,7 @@ import {
     normaliseVideoRow,
     readableDate,
     readableDuration,
+    renderVideoWatchMarkdown,
     videoThumbnailUrl,
     watchPath,
     watchUrl,
@@ -87,7 +88,7 @@ function pickCard(video) {
     };
 }
 
-export async function getServerSideProps({ params, res }) {
+export async function getServerSideProps({ req, query, params, res }) {
     const videoId = String(params?.videoId || '');
     if (!YOUTUBE_VIDEO_ID_RE.test(videoId) || BLOCKED_VIDEO_LIBRARY_IDS.includes(videoId)) {
         res.setHeader('Cache-Control', 'public, s-maxage=60');
@@ -166,6 +167,24 @@ export async function getServerSideProps({ params, res }) {
             }
         }
         const description = buildWatchDescription(video, channel.name);
+        const acceptHeader = String(req?.headers?.accept || '');
+        const isMarkdownRequested =
+            acceptHeader.includes('text/markdown') ||
+            query?.format === 'md' ||
+            req?.url?.includes('format=md');
+        if (isMarkdownRequested) {
+            const mdContent = renderVideoWatchMarkdown(video, {
+                channelName: channel.name,
+                channelHref,
+                description,
+            });
+            res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+            res.setHeader('Vary', 'Accept');
+            res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600');
+            res.write(mdContent);
+            res.end();
+            return { props: {} };
+        }
         res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600');
         return {
             props: {
@@ -173,6 +192,8 @@ export async function getServerSideProps({ params, res }) {
                     videoId: video.videoId,
                     source: video.source || null,
                     title: video.title,
+                    rawTitle: video.rawTitle || video.title,
+                    tags: Array.isArray(video.tags) ? video.tags : [],
                     type: video.type,
                     duration: video.duration || '',
                     views: video.views || '',

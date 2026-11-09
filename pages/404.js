@@ -5,6 +5,12 @@ import SEOHead from '../src/components/seo/SEOHead';
 
 const RECOVERY_ROUTES = [
     {
+        title: 'All Free Poker Tools & Solvers',
+        subtitle: '9 Interactive Calculators, ICM Solvers & GTO Range Tools',
+        href: '/tools',
+        badge: 'Tools Hub',
+    },
+    {
         title: 'Poker Odds Calculator',
         subtitle: 'Instant Holdem & Omaha Equity Engine',
         href: '/tools/poker-odds-calculator',
@@ -17,16 +23,34 @@ const RECOVERY_ROUTES = [
         badge: 'GTO Matrix',
     },
     {
+        title: '169 Starting Hand Guides',
+        subtitle: 'Combinatorics, 100BB Ranges & Head-To-Head Matchups',
+        href: '/learn/hands',
+        badge: 'Encyclopedia',
+    },
+    {
         title: 'Live Poker Rooms Directory',
         subtitle: 'Verified Poker Rooms, Cash Games & Daily Schedules',
         href: '/hub/poker-near-me/lobby',
         badge: 'Live Directory',
     },
     {
-        title: 'Club Arena Free Games',
-        subtitle: 'Play Online Club Poker, Tournaments & Ring Games',
-        href: '/hub/club-arena',
-        badge: 'Play Live',
+        title: 'Poker Industry Research Hub',
+        subtitle: '15 Empirical Benchmarks On Rake, ICM, PKO & Tokes',
+        href: '/research',
+        badge: '15 Studies',
+    },
+    {
+        title: 'Daily $2,000 Freerolls',
+        subtitle: 'Free Daily Tournaments With Zero Deposit Required',
+        href: '/freerolls',
+        badge: 'Free Prizes',
+    },
+    {
+        title: 'Poker Video Library',
+        subtitle: 'Curated Cash Game Streams, Final Tables & Pro Profiles',
+        href: '/hub/video-library',
+        badge: 'Watch Free',
     },
 ];
 

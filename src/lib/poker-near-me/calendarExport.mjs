@@ -3,6 +3,7 @@
  * Generates standards-compliant .ics (iCalendar) payloads and Google Calendar web intent URLs
  * for poker tournament series and festivals.
  */
+import { parseStopDates } from '../../utils/tourGeoUtils.js';
 
 function cleanIcsText(str) {
   if (!str) return '';
@@ -253,4 +254,114 @@ export function buildFreerollGoogleCalendarUrl(event = {}) {
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
+
+/**
+ * Builds standard RFC 5545 iCalendar feed (.ics) for a Poker Tour and all of its scheduled stops.
+ */
+export function buildTourIcs({ seo = {}, stops = [], events = [] } = {}) {
+  const code = String(seo?.code || 'TOUR').trim().toUpperCase();
+  const tourName = String(seo?.name || `${code} Poker Tour`).trim();
+  const canonicalPath = seo?.canonical || `/hub/tours/${encodeURIComponent(code)}`;
+  const tourUrl = canonicalPath.startsWith('http')
+    ? canonicalPath
+    : `https://smarter.poker${canonicalPath}`;
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+  const dateToYmdObj = (dt) => {
+    if (!(dt instanceof Date) || Number.isNaN(dt.getTime())) return null;
+    return {
+      year: dt.getUTCFullYear(),
+      month: dt.getUTCMonth() + 1,
+      day: dt.getUTCDate(),
+    };
+  };
+
+  const vevents = [];
+
+  for (let i = 0; i < (stops || []).length; i += 1) {
+    const stop = stops[i];
+    if (!stop || !stop.name) continue;
+    let range = null;
+    try {
+      range = parseStopDates(stop.dates);
+    } catch {
+      range = null;
+    }
+    const startObj = dateToYmdObj(range?.start);
+    if (!startObj) continue;
+    const endObj = dateToYmdObj(range?.end) || startObj;
+    const exclusiveEnd = addDays(endObj, 1);
+
+    const dtStart = formatIcsDay(startObj);
+    const dtEnd = formatIcsDay(exclusiveEnd);
+    const uid = `tour-${code.toLowerCase()}-stop-${i + 1}@smarter.poker`;
+    const location = cleanIcsText([stop.venue, stop.location].filter(Boolean).join(', '));
+    const descParts = [
+      `${tourName} (${code}) - ${stop.name}`,
+      location ? `Venue: ${[stop.venue, stop.location].filter(Boolean).join(', ')}` : '',
+      stop.buyin_range ? `Buy-In Range: ${stop.buyin_range}` : stop.buyin ? `Buy-In: $${Number(stop.buyin).toLocaleString('en-US')}` : '',
+      stop.flagship ? `Flagship Main Event: ${stop.flagship}` : '',
+      `Full Tour Schedule & Live Updates: ${tourUrl}`,
+    ].filter(Boolean);
+
+    vevents.push(
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${dtStart}`,
+      `DTEND;VALUE=DATE:${dtEnd}`,
+      `SUMMARY:${cleanIcsText(`${stop.name} (${code})`)}`,
+      `DESCRIPTION:${cleanIcsText(descParts.join('\n'))}`,
+      location ? `LOCATION:${location}` : '',
+      `URL:${tourUrl}`,
+      'STATUS:CONFIRMED',
+      'TRANSP:TRANSPARENT',
+      'END:VEVENT'
+    );
+  }
+
+  if (vevents.length === 0 && Array.isArray(events)) {
+    for (let i = 0; i < events.length; i += 1) {
+      const ev = events[i];
+      if (!ev || !ev.name) continue;
+      let range = null;
+      try {
+        range = parseStopDates(ev.dates);
+      } catch {
+        range = null;
+      }
+      const startObj = dateToYmdObj(range?.start);
+      if (!startObj) continue;
+      const endObj = dateToYmdObj(range?.end) || startObj;
+      const exclusiveEnd = addDays(endObj, 1);
+      vevents.push(
+        'BEGIN:VEVENT',
+        `UID:tour-${code.toLowerCase()}-event-${i + 1}@smarter.poker`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART;VALUE=DATE:${formatIcsDay(startObj)}`,
+        `DTEND;VALUE=DATE:${formatIcsDay(exclusiveEnd)}`,
+        `SUMMARY:${cleanIcsText(`${ev.name} (${code})`)}`,
+        `DESCRIPTION:${cleanIcsText(`${tourName} Event: ${ev.name}${ev.buyin ? ` ($${Number(ev.buyin).toLocaleString('en-US')} Buy-In)` : ''}. Schedule: ${tourUrl}`)}`,
+        `URL:${tourUrl}`,
+        'STATUS:CONFIRMED',
+        'TRANSP:TRANSPARENT',
+        'END:VEVENT'
+      );
+    }
+  }
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Smarter Software//Smarter.Poker Tours//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${cleanIcsText(`${tourName} (${code}) Schedule | Smarter.Poker`)}`,
+    'X-WR-TIMEZONE:America/Chicago',
+    `X-WR-CALDESC:${cleanIcsText(`Official ${tourName} (${code}) Stop Schedule And Series Dates Tracked On Smarter.Poker.`)}`,
+    ...vevents.filter(Boolean),
+    'END:VCALENDAR',
+  ].join('\r\n');
+}
+
 

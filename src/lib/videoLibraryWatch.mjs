@@ -258,9 +258,16 @@ export function xmlEscape(value) {
 export function videoSitemapEntry(video, channelName) {
     const seconds = durationSeconds(video.duration);
     const published = videoPublicationDate(video.publishedAt);
+    const viewCount = Number.isSafeInteger(video.viewsCount) && video.viewsCount > 0 ? video.viewsCount : null;
+    const tags = Array.isArray(video.tags)
+        ? video.tags
+              .filter(tag => typeof tag === 'string' && tag.trim().length > 0 && tag.trim().length <= 60)
+              .slice(0, 10)
+        : [];
     const lines = [
         '  <url>',
         `    <loc>${xmlEscape(watchUrl(video))}</loc>`,
+        ...(published ? [`    <lastmod>${published}</lastmod>`] : []),
         '    <video:video>',
         `      <video:thumbnail_loc>${xmlEscape(videoThumbnailUrl(video))}</video:thumbnail_loc>`,
         `      <video:title>${xmlEscape(video.title)}</video:title>`,
@@ -268,9 +275,49 @@ export function videoSitemapEntry(video, channelName) {
         `      <video:player_loc>${xmlEscape(`https://www.youtube-nocookie.com/embed/${video.videoId}`)}</video:player_loc>`,
         ...(seconds > 0 && seconds <= 28800 ? [`      <video:duration>${seconds}</video:duration>`] : []),
         ...(published ? [`      <video:publication_date>${published}</video:publication_date>`] : []),
+        ...(viewCount ? [`      <video:view_count>${viewCount}</video:view_count>`] : []),
+        ...(video.madeForKids !== true ? ['      <video:family_friendly>yes</video:family_friendly>'] : []),
+        ...tags.map(tag => `      <video:tag>${xmlEscape(tag.trim())}</video:tag>`),
         ...(channelName ? [`      <video:uploader>${xmlEscape(channelName)}</video:uploader>`] : []),
         '    </video:video>',
         '  </url>',
     ];
     return lines.join('\n');
+}
+
+/**
+ * Render clean structured Markdown for a Video Library watch page (/hub/video-library/watch/[videoId]).
+ */
+export function renderVideoWatchMarkdown(video, { channelName = '', channelHref = null, description = '' } = {}) {
+    if (!video) return '';
+    const canonical = watchUrl(video);
+    const seconds = durationSeconds(video.duration);
+    const lengthLabel = readableDuration(seconds) || video.duration || 'Unknown';
+    const pubLabel = readableDate(video.publishedAt) || 'Verified Catalog Entry';
+    const typeLabel = VIDEO_TYPE_LABELS[video.type] || 'Poker';
+    return [
+        `# ${video.title}`,
+        '',
+        `> Source: [${video.title} on Smarter.Poker Video Library](${canonical})`,
+        '',
+        '## Video Summary',
+        description || buildWatchDescription(video, channelName),
+        '',
+        '## Verified Video Metadata',
+        `- **Video ID**: \`${video.videoId}\``,
+        `- **Canonical Watch URL**: ${canonical}`,
+        `- **Embed Player URL**: https://www.youtube-nocookie.com/embed/${video.videoId}`,
+        `- **Category**: ${typeLabel}`,
+        ...(channelName ? [`- **Channel**: ${channelHref ? `[${channelName}](https://smarter.poker${channelHref})` : channelName}`] : []),
+        `- **Published Date**: ${pubLabel}`,
+        `- **Duration**: ${lengthLabel}`,
+        ...(video.views ? [`- **Views**: ${video.views}`] : []),
+        '',
+        '## Connected Smarter.Poker Training & Video Hubs',
+        '- **Browse Video Library**: https://smarter.poker/hub/video-library',
+        '- **Browse Poker Channels**: https://smarter.poker/hub/video-library/channels',
+        '- **Browse Poker Players**: https://smarter.poker/hub/video-library/players',
+        '- **Interactive Poker Calculators**: https://smarter.poker/tools',
+        '',
+    ].join('\n');
 }
