@@ -9,10 +9,14 @@ import { fileURLToPath } from 'node:url';
 
 import { renderBadgeSvg, escapeXml } from '../pages/api/seo/badge.js';
 import { renderEmbedsMarkdown } from '../src/lib/seo/markdownIngestion.mjs';
+import { buildResearchJsonFeed } from '../pages/api/feeds/research.js';
+import { buildRssFeedXml } from '../pages/feed.xml.js';
 import {
   DEAD_TOOL_REPLACEMENTS,
   DIRECTORY_NETWORK_TARGETS,
   JOURNALIST_PR_ANGLES,
+  OPEN_DATASET_AND_ACADEMIC_MIRRORS,
+  INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS,
   getBacklinkOpportunitiesPayload,
 } from '../src/lib/seo/backlinkCatalog.mjs';
 
@@ -71,24 +75,72 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 8 calculators and 5 SVG b
   assert.ok(md.includes('Dynamic SVG Authority & Partner Backlink Badges'));
 });
 
-test('Research detail pages wire CitationBacklinkBox with HTML, Badge, Markdown, Press, and BibTeX formats', () => {
+test('Research, Starting Hands, Glossary, and Calculator pages wire CitationBacklinkBox with HTML, Badge, Markdown, BBCode, Press, and BibTeX formats', () => {
   const boxSrc = read('src/components/seo/CitationBacklinkBox.js');
   assert.ok(boxSrc.includes('HTML Contextual Backlink'));
   assert.ok(boxSrc.includes('SVG Authority Badge Embed'));
   assert.ok(boxSrc.includes('Markdown / Substack Citation'));
+  assert.ok(boxSrc.includes('Forum BBCode (TwoPlusTwo / CardsChat)'));
   assert.ok(boxSrc.includes('Journalist / Media Attribution Quote'));
   assert.ok(boxSrc.includes('Academic / Game Theory BibTeX'));
 
-  const researchSlugSrc = read('pages/research/[slug].js');
-  assert.ok(researchSlugSrc.includes('CitationBacklinkBox'), 'pages/research/[slug].js renders CitationBacklinkBox');
+  const wiredPages = [
+    'pages/research/[slug].js',
+    'pages/research/index.js',
+    'pages/learn/hands/[hand].js',
+    'pages/glossary/[term].js',
+    'pages/tools/pot-odds-calculator.js',
+    'pages/tools/push-fold-calculator.js',
+    'pages/tools/bankroll-calculator.js',
+    'pages/tools/bounty-calculator.js',
+    'pages/tools/poker-winrate-calculator.js',
+    'pages/tools/preflop-ranges/index.js',
+  ];
+
+  for (const pagePath of wiredPages) {
+    const pageSrc = read(pagePath);
+    assert.ok(pageSrc.includes('CitationBacklinkBox'), `${pagePath} renders CitationBacklinkBox`);
+  }
 });
 
-test('Backlink & Dead-Tool Replacement Catalog maps legacy poker tools, directories, and PR studies to live routes', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 8 calculators with canonical backlinks', () => {
+  const jsonFeed = buildResearchJsonFeed();
+  assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
+  assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
+  assert.equal(jsonFeed.items.length, 23);
+
+  for (const item of jsonFeed.items) {
+    assert.match(item.url, /^https:\/\/smarter\.poker\//);
+    assert.ok(item.content_html.includes('<a href="https://smarter.poker/'), 'includes canonical HTML backlink');
+    assert.ok(item.content_html.includes('https://smarter.poker/api/seo/badge'), 'includes SVG authority badge');
+  }
+
+  const rssXml = buildRssFeedXml();
+  for (const calcPath of [
+    '/tools/poker-odds-calculator',
+    '/tools/icm-calculator',
+    '/tools/preflop-ranges',
+    '/tools/pot-odds-calculator',
+    '/tools/push-fold-calculator',
+    '/tools/bankroll-calculator',
+    '/tools/bounty-calculator',
+    '/tools/poker-winrate-calculator',
+    '/research/us-live-poker-room-rake-and-jackpot-benchmark',
+  ]) {
+    assert.ok(rssXml.includes(`https://smarter.poker${calcPath}`), `RSS feed includes ${calcPath}`);
+  }
+});
+
+test('Backlink & Dead-Tool Replacement Catalog maps legacy poker tools, directories, open dataset mirrors, and PR studies to live routes', () => {
   const payload = getBacklinkOpportunitiesPayload();
   assert.equal(payload.counts.deadToolReplacements, DEAD_TOOL_REPLACEMENTS.length);
-  assert.ok(DEAD_TOOL_REPLACEMENTS.length >= 5);
+  assert.equal(payload.counts.openDatasetMirrors, OPEN_DATASET_AND_ACADEMIC_MIRRORS.length);
+  assert.equal(payload.counts.institutionalChannels, INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS.length);
+  assert.ok(DEAD_TOOL_REPLACEMENTS.length >= 7);
   assert.ok(DIRECTORY_NETWORK_TARGETS.length >= 4);
   assert.ok(JOURNALIST_PR_ANGLES.length >= 4);
+  assert.ok(OPEN_DATASET_AND_ACADEMIC_MIRRORS.length >= 3);
+  assert.ok(INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS.length >= 3);
 
   for (const item of DEAD_TOOL_REPLACEMENTS) {
     assert.match(item.replacementUrl, /^https:\/\/smarter\.poker\//);

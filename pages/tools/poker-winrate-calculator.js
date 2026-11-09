@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const STAKES_WINRATE_BENCHMARKS = [
@@ -337,6 +338,16 @@ export default function PokerWinrateCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Poker Winrate, BB/100 & Hourly Rate Calculator"
+          canonicalUrl={canonicalUrl}
+          badgeType="gto"
+          badgeLabel="Session Analytics Engine"
+          badgeValue="BB/100 To $/Hr Converter"
+          summary="Interactive Live And Online Poker Winrate Converter Between BB/100 Hands And Hourly Dollar Winrate ($/Hr)."
+          slug="poker-winrate-calculator"
+        />
 
         <AiPromptLauncher
           title="Poker Winrate, BB/100 & Hourly Rate Calculator"

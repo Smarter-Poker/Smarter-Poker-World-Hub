@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const STANDARD_BET_SIZES = [
@@ -355,6 +356,16 @@ export default function PotOddsCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Poker Pot Odds, Required Equity & MDF Calculator"
+          canonicalUrl={canonicalUrl}
+          badgeType="gto"
+          badgeLabel="GTO Math Engine"
+          badgeValue="Pot Odds & MDF Solver"
+          summary="Interactive Pot Odds, Required Calling Equity, Minimum Defense Frequency (MDF), And Hypergeometric Outs Calculator."
+          slug="pot-odds-calculator"
+        />
 
         <AiPromptLauncher
           title="Poker Pot Odds, Required Equity & MDF Calculator"

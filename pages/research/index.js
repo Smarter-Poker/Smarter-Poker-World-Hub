@@ -10,6 +10,7 @@
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import {
   RESEARCH_REPORTS,
@@ -135,6 +136,16 @@ export default function ResearchIndexPage() {
             </article>
           ))}
         </div>
+
+        <CitationBacklinkBox
+          title="Smarter.Poker Original Poker Industry Research Hub"
+          canonicalUrl={url}
+          badgeType="research"
+          badgeLabel="Empirical Data Source"
+          badgeValue="Smarter.Poker Research"
+          summary="15 First-Party Poker Industry Benchmarks Covering US Cardroom Rake, Tournament Guarantees, Waitlist Turnover, W-2G Tax Reporting, And Solver Frequencies."
+          slug="smarter-poker-research-hub"
+        />
 
         <AiPromptLauncher
           title="Smarter.Poker Original Poker Industry Research Hub"

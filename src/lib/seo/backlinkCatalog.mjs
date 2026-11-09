@@ -98,6 +98,40 @@ export const DEAD_TOOL_REPLACEMENTS = [
     outreachTemplate:
       'Hi — I saw your live poker travel guide and wanted to share our continuously verified US Poker Room & Tournament Series directory (https://smarter.poker/hub/poker-near-me/lobby) along with our Las Vegas (https://smarter.poker/compare/best-poker-rooms-in-las-vegas), Texas (https://smarter.poker/compare/best-poker-rooms-in-texas), and Airport Layover (https://smarter.poker/compare/best-poker-rooms-near-major-airports) benchmarks.',
   },
+  {
+    id: 'propokertools-oracle',
+    legacyToolName: 'ProPokerTools Odds Oracle Web Simulator',
+    legacyDomains: ['propokertools.com', 'propokertools.com/simulations'],
+    status: 'Legacy Java/Flash web simulator retired; desktop Odds Oracle discontinued',
+    category: 'Multiway Hold\'em & Omaha Equity Calculators',
+    replacementUrl: 'https://smarter.poker/tools/poker-odds-calculator',
+    comparisonUrl: 'https://smarter.poker/tools/pot-odds-calculator',
+    recommendedAnchorText: 'Smarter.Poker Multiway Hold\'em & PLO Equity Simulator',
+    searchFootprints: [
+      '"propokertools.com/simulations" poker',
+      '"ProPokerTools" broken link OR alternative',
+    ],
+    outreachSubject: 'Broken ProPokerTools Simulation Link On Your Strategy Page',
+    outreachTemplate:
+      'Hi — your Omaha/Hold\'em math guide links to propokertools.com/simulations, which retired its online simulator. You can point readers to our free browser Multiway Equity Calculator (https://smarter.poker/tools/poker-odds-calculator) and Pot Odds & MDF Calculator (https://smarter.poker/tools/pot-odds-calculator) as a modern zero-install replacement.',
+  },
+  {
+    id: 'legacy-pko-bounty-spreadsheets',
+    legacyToolName: 'Broken Google Sheets PKO & Mystery Bounty Calculators',
+    legacyDomains: ['docs.google.com/spreadsheets'],
+    status: 'View-only or deleted community PKO chip conversion spreadsheets',
+    category: 'PKO & Mystery Bounty Calculators',
+    replacementUrl: 'https://smarter.poker/tools/bounty-calculator',
+    comparisonUrl: 'https://smarter.poker/research/mystery-bounty-vs-progressive-knockout-pko-ev-study',
+    recommendedAnchorText: 'Smarter.Poker PKO & Mystery Bounty Chip Equity Calculator',
+    searchFootprints: [
+      '"bounty calculator" poker spreadsheet broken',
+      '"PKO chip conversion" calculator poker',
+    ],
+    outreachSubject: 'Interactive PKO & Mystery Bounty Calculator For Your Tournament Guide',
+    outreachTemplate:
+      'Hi — I noticed your knockout tournament article references a static bounty conversion sheet. We built an interactive PKO & Mystery Bounty Chip Equity Calculator at https://smarter.poker/tools/bounty-calculator paired with our empirical PKO vs. Mystery Bounty EV study (https://smarter.poker/research/mystery-bounty-vs-progressive-knockout-pko-ev-study) that you can link to or embed for free.',
+  },
 ];
 
 export const DIRECTORY_NETWORK_TARGETS = [
@@ -189,6 +223,63 @@ export const JOURNALIST_PR_ANGLES = [
   },
 ];
 
+export const OPEN_DATASET_AND_ACADEMIC_MIRRORS = [
+  {
+    id: 'zenodo-cern-doi',
+    platform: 'Zenodo (CERN) & Figshare DOI Minting',
+    domainAuthority: 'DR 91+ (doi.org / zenodo.org)',
+    sourceUrl: 'https://smarter.poker/research',
+    feedUrl: 'https://smarter.poker/api/feeds/research',
+    strategy:
+      'Publish the 15 Smarter.Poker empirical research studies and raw Markdown tables as open CC-BY 4.0 datasets with permanent doi.org academic identifiers linking back to https://smarter.poker/research.',
+  },
+  {
+    id: 'huggingface-kaggle-datasets',
+    platform: 'HuggingFace Datasets & Kaggle Open Poker Benchmarks',
+    domainAuthority: 'DR 90+ (huggingface.co / kaggle.com)',
+    sourceUrl: 'https://smarter.poker/learn/hands',
+    feedUrl: 'https://smarter.poker/tools/preflop-ranges',
+    strategy:
+      'Syndicate the 169 Canonical Starting Hand dataset (https://smarter.poker/learn/hands) and 100BB 6-Max GTO Preflop Range matrices (https://smarter.poker/tools/preflop-ranges) with dataset cards pointing to Smarter.Poker.',
+  },
+  {
+    id: 'wikipedia-citation-replacement',
+    platform: 'Wikipedia & Wikimedia Dead-Citation Replacements',
+    domainAuthority: 'DR 98 (en.wikipedia.org / wikidata.org)',
+    sourceUrl: 'https://smarter.poker/glossary',
+    feedUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
+    strategy:
+      'Replace dead citations on Wikipedia pages (Independent Chip Model, Pot odds, Texas hold \'em starting hands, Cardroom, Rake) with Smarter.Poker empirical studies and mathematical glossary pages.',
+  },
+];
+
+export const INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS = [
+  {
+    id: 'mcp-agent-registries',
+    channel: 'Official Model Context Protocol (MCP) Server Directories',
+    targets: ['smithery.ai', 'glama.ai/mcp/servers', 'mcp.so', 'pulsemcp.com', 'github.com/modelcontextprotocol/servers'],
+    canonicalTarget: 'https://smarter.poker/api/mcp',
+    valueProposition:
+      'Register Smarter.Poker\'s zero-auth 18-tool MCP server and /.well-known/mcp-registry.json so developer directories and AI agent hubs link directly to https://smarter.poker.',
+  },
+  {
+    id: 'collegiate-quant-clubs',
+    channel: 'University (.edu) Poker, Game Theory, & Quant Trading Clubs',
+    targets: ['MIT Pokerbots', 'CMU Computer Poker', 'Stanford Quant & Poker Club', 'UC Berkeley Poker Club', 'Wharton Poker Club'],
+    canonicalTarget: 'https://smarter.poker/tools/embeds',
+    valueProposition:
+      'Provide free zero-script GTO calculator embeds (https://smarter.poker/tools/embeds), BibTeX citations, and Club Arena private tournament hosting for collegiate .edu syllabus and club resource pages.',
+  },
+  {
+    id: 'regional-tourism-guides',
+    channel: 'Convention Bureaus, Airport Layover Blogs, & Regional Travel Guides',
+    targets: ['Las Vegas Travel Blogs', 'Texas Entertainment Guides', 'Florida Casino Guides', 'Aviation Layover Blogs'],
+    canonicalTarget: 'https://smarter.poker/compare/best-poker-rooms-near-major-airports',
+    valueProposition:
+      'Link regional travel guides to verified state/city cardroom comparisons (https://smarter.poker/compare/best-poker-rooms-in-las-vegas, https://smarter.poker/compare/best-poker-rooms-in-texas, https://smarter.poker/compare/best-poker-rooms-in-florida, https://smarter.poker/compare/best-poker-rooms-in-california).',
+  },
+];
+
 export function getBacklinkOpportunitiesPayload() {
   return {
     generatedAt: '2026-11-09',
@@ -196,14 +287,19 @@ export function getBacklinkOpportunitiesPayload() {
     embedPortalUrl: 'https://smarter.poker/tools/embeds',
     badgeApiEndpoint: 'https://smarter.poker/api/seo/badge',
     researchHubUrl: 'https://smarter.poker/research',
+    researchJsonFeedUrl: 'https://smarter.poker/api/feeds/research',
     comparisonsHubUrl: 'https://smarter.poker/compare',
     counts: {
       deadToolReplacements: DEAD_TOOL_REPLACEMENTS.length,
       directoryTargets: DIRECTORY_NETWORK_TARGETS.length,
       journalistPrAngles: JOURNALIST_PR_ANGLES.length,
+      openDatasetMirrors: OPEN_DATASET_AND_ACADEMIC_MIRRORS.length,
+      institutionalChannels: INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS.length,
     },
     deadToolReplacements: DEAD_TOOL_REPLACEMENTS,
     directoryTargets: DIRECTORY_NETWORK_TARGETS,
     journalistPrAngles: JOURNALIST_PR_ANGLES,
+    openDatasetMirrors: OPEN_DATASET_AND_ACADEMIC_MIRRORS,
+    institutionalChannels: INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS,
   };
 }

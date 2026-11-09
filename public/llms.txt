@@ -236,6 +236,9 @@ Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck
 - **Editorial Standards & Mathematical Governance**: https://smarter.poker/editorial-standards (Raw Markdown: https://smarter.poker/editorial-standards.md)
 - **Multilingual AI Grounding Corpus**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt | German: https://smarter.poker/llms-de.txt | French: https://smarter.poker/llms-fr.txt | Italian: https://smarter.poker/llms-it.txt | Japanese: https://smarter.poker/llms-ja.txt)
 - **AI Crawler Attribution & Corpus Health**: https://smarter.poker/api/ai/crawler-status
+- **JSON Feed 1.1 Research & Calculator Syndication**: https://smarter.poker/api/feeds/research (RSS 2.0: https://smarter.poker/feed.xml)
+- **Dynamic SVG Authority & Partner Backlink Badges**: https://smarter.poker/api/seo/badge (Embed Portal: https://smarter.poker/tools/embeds)
+- **Backlink, Dead-Tool Replacement, & Digital PR Discovery API**: https://smarter.poker/api/ai/backlink-opportunities
 
 ## The company
 

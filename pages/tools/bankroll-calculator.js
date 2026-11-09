@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const VARIANCE_BENCHMARKS = [
@@ -288,6 +289,16 @@ export default function BankrollCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Poker Bankroll Management & Risk Of Ruin Calculator"
+          canonicalUrl={canonicalUrl}
+          badgeType="gto"
+          badgeLabel="Variance & RoR Engine"
+          badgeValue="Bankroll & Kelly Solver"
+          summary="Interactive Poker Bankroll Risk Of Ruin, Standard Deviation Variance, And Kelly Criterion Calculator."
+          slug="bankroll-calculator"
+        />
 
         <AiPromptLauncher
           title="Poker Bankroll Management & Risk Of Ruin Calculator"
