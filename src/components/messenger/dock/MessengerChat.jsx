@@ -7,12 +7,10 @@ import { visibleMessageBoundary, isMessageId, CONTINUITY_PREFIX } from './messen
 import { createMessengerSendOperation, restoreMessengerSendOperations, performMessengerSend,
     mergeMessengerPendingMessages, reconcileMessengerMessage, messengerOperationMessage, acknowledgeMessengerSend } from './messengerSendOperation.mjs';
 import { persistReadWithRetry, readFailureMessage } from '../../../lib/messengerReadRetry.mjs';
+import { parseMessageMedia } from '../../../lib/messenger/messageMedia.mjs';
 
 const MESSAGE_ROUTES = { 'get-messages': '/api/messenger/get-messages', 'mark-read': '/api/messenger/mark-read' };
-function safeMedia(content) {
-    const match = /^\[(Image|Video|GIF|Audio)\]\((https:\/\/[^\s)]+)\)/i.exec(content || '');
-    return match ? { kind: match[1].toLowerCase(), url: match[2] } : null;
-}
+const safeMedia = content => parseMessageMedia(content);
 export default function MessengerChat({ actorId, identity, conversation, services, continuityOwner, onMinimize, onClose, onRead }) {
     const id = conversation.id;
     const [messages, setMessages] = useState([]);
