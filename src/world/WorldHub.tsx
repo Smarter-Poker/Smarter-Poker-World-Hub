@@ -239,8 +239,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         () => getHiddenCardIds()
     );
 
-    // OWNER-ONLY CARDS (Dan, 2026-10-11): Club Commander, Personal Assistant,
-    // Training and Trivia are hidden from every account except Dan's. See
+    // OWNER-ONLY CARDS (Dan, 2026-10-11; Training unhidden 2026-11-09):
+    // Club Commander, Personal Assistant, and Trivia are hidden from every
+    // account except Dan's. Training Games are visible to everyone. See
     // src/config/ownerOnlyHubCards.js. Re-checked once the profile effect
     // confirms who is signed in.
     const [ownerOnlyHiddenIds, setOwnerOnlyHiddenIds] = useState<string[]>(

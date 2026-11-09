@@ -1247,6 +1247,26 @@ const nextConfig = {
           },
         ],
       },
+      // [Webmaster Calculator Embeds] Public poker calculators under /tools/*
+      // are designed to be embedded via <iframe> on external blogs, forums,
+      // cardroom websites, and educational portals (see /tools/embeds).
+      // Allow cross-origin framing via frame-ancestors 'self' https: http: on
+      // /tools/* while preserving object-src 'none', base-uri 'self', and
+      // form-action 'self'. Per W3C CSP3 §6.2.2.1, browsers ignore
+      // X-Frame-Options when Content-Security-Policy includes frame-ancestors.
+      {
+        source: '/tools/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: enforcedCsp.replace("frame-ancestors 'self'", "frame-ancestors 'self' https: http:"),
+          },
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: `${csp.replace("frame-ancestors 'self'", "frame-ancestors 'self' https: http:")}; ${reportingDirectives}`,
+          },
+        ],
+      },
     ];
   },
 

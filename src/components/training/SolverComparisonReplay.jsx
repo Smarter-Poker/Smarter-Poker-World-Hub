@@ -200,8 +200,12 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                 correctAction: handData.correctAction || evAnalysis?.bestAction,
                 userAction: handData.action,
                 position: handData.heroPosition === 'BTN' || handData.heroPosition === 'CO' ? 'IP' : 'OOP',
+                heroPosition: handData.heroPosition || null,
                 street,
-                spotType: 'cbet',
+                spotType: handData.spotType || 'cbet',
+                potSize: handData.potSize || 6,
+                effectiveStack: handData.effectiveStack || 100,
+                solverPolicy: handData.solverPolicy || null,
             });
         } catch {
             return null;

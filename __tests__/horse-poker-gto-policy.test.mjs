@@ -3,8 +3,13 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 import {
+  analyzeBlockers,
+  analyzeBoardTexture,
+  calculatePotGeometry,
+  getCacheStats,
   getPostflopStrategy,
   getPreflopPolicy,
+  getStackDepthStrategy,
   makeGTODecision,
 } from '../src/lib/poker-engine/brain/HorsePokerGTO.js';
 import { SolverPolicyService } from '../src/services/SolverPolicyService.js';
@@ -126,4 +131,59 @@ test('brain barrel wires the production live observer before exporting the route
   assert.ok(exportsStart > injection, 'observer injection must happen before barrel exports');
   assert.doesNotMatch(routerSource, /not yet extracted|safe fallback/i);
   assert.doesNotMatch(holdemSource, /not yet extracted|\bstub\b/i);
+});
+
+test('HorsePokerGTO blocker and pot-geometry helpers handle postflop and lowercase streets accurately', () => {
+  // Preflop empty board guard must not push cards into blocksOverpairs
+  const preflopBlockers = analyzeBlockers(['As', 'Kh'], []);
+  assert.equal(preflopBlockers.blocksNutFlush, false);
+  assert.equal(preflopBlockers.blocksNutStraight, false);
+  assert.deepEqual(preflopBlockers.blocksOverpairs, []);
+
+  // Nut flush + nut straight + top set blocker detection on connected two-tone board
+  const postflopBlockers = analyzeBlockers(['As', 'Qc'], ['Js', 'Ts', '9d']);
+  assert.equal(postflopBlockers.blocksNutFlush, true, 'As blocks nut spade flush on two-spade flop');
+  assert.equal(postflopBlockers.blocksNutStraight, true, 'Qc/As blocks top of J-T-9 straight window');
+  assert.ok(postflopBlockers.bluffValue >= 25);
+
+  // Top set vs lower set blocker distinction
+  const topSetBlocker = analyzeBlockers(['Kh', '4d'], ['Ks', '7c', '2d']);
+  assert.equal(topSetBlocker.blocksTopSet, true);
+  const bottomSetBlocker = analyzeBlockers(['2h', '4d'], ['Ks', '7c', '2d']);
+  assert.equal(bottomSetBlocker.blocksTopSet, false);
+  assert.equal(bottomSetBlocker.blocksSets, true);
+
+  // Case-insensitive street handling in calculatePotGeometry
+  const flopGeoLower = calculatePotGeometry(10, 90, 'flop');
+  const flopGeoUpper = calculatePotGeometry(10, 90, 'Flop');
+  assert.equal(flopGeoLower.streetsLeft, 3);
+  assert.equal(flopGeoLower.geometricSize, flopGeoUpper.geometricSize);
+
+  const turnGeoLower = calculatePotGeometry(20, 60, 'turn');
+  assert.equal(turnGeoLower.streetsLeft, 2);
+
+  const tex = analyzeBoardTexture(['Qs', 'Js', '2d']);
+  assert.equal(tex.flushPossibility, 'backdoor');
+  assert.equal(getStackDepthStrategy(8).mode, 'push_fold');
+  const cacheStats = getCacheStats();
+  assert.equal(typeof cacheStats.size, 'number');
+  assert.equal(cacheStats.max, 200);
+});
+
+test('Training StrategyExplainer, FeedbackCard, Replay, and UDT integrate HorsePokerGTO skills', () => {
+  const explainer = fs.readFileSync('src/engines/StrategyExplainer.js', 'utf8');
+  const feedbackCard = fs.readFileSync('src/components/training/FeedbackCard.tsx', 'utf8');
+  const replay = fs.readFileSync('src/components/training/SolverComparisonReplay.jsx', 'utf8');
+  const udt = fs.readFileSync('src/components/training/games/UniversalDynamicTable.jsx', 'utf8');
+
+  assert.match(explainer, /from '\.\.\/lib\/poker-engine\/brain\/HorsePokerGTO\.js'/);
+  assert.match(explainer, /analyzeBlockers\(holeCards, board\)/);
+  assert.match(explainer, /calculatePotGeometry\(numericPot, numericStack, street/);
+  assert.match(explainer, /horseBrainAnalysis/);
+
+  assert.match(feedbackCard, /strategyInsight\?\.horseBrainAnalysis/);
+  assert.doesNotMatch(feedbackCard, /case 'All-In': return '<img /);
+
+  assert.match(replay, /solverPolicy: handData\.solverPolicy \|\| null/);
+  assert.match(udt, /HORSE BRAIN GTO:/);
 });

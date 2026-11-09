@@ -11,6 +11,94 @@
  */
 
 import { classifyHandClass, classifyBoardTexture } from './PostflopStrategyEngine';
+import {
+    analyzeBlockers,
+    analyzeBoardTexture,
+    calculatePotGeometry,
+    getStackDepthStrategy,
+    getPositionRange,
+} from '../lib/poker-engine/brain/HorsePokerGTO.js';
+
+const SUIT_FALLBACK_ORDER = ['s', 'h', 'd', 'c'];
+
+/**
+ * Normalize board input (array of card strings, space-separated string, or compact string)
+ * into an array of 2-character card strings like ['Qd', '7c', '2s'].
+ */
+function normalizeExplainerBoard(board) {
+    if (Array.isArray(board)) {
+        return board
+            .map(c => (typeof c === 'string' ? c.trim() : ''))
+            .filter(c => c.length >= 2)
+            .map(c => `${c[0].toUpperCase()}${c[1].toLowerCase()}`);
+    }
+    if (typeof board === 'string') {
+        const trimmed = board.trim();
+        if (!trimmed) return [];
+        const tokens = trimmed.includes(' ')
+            ? trimmed.split(/\s+/).filter(Boolean)
+            : (trimmed.match(/[2-9TJQKA][shdc]/gi) || []);
+        return tokens
+            .filter(c => c.length >= 2)
+            .map(c => `${c[0].toUpperCase()}${c[1].toLowerCase()}`);
+    }
+    return [];
+}
+
+/**
+ * Normalize holeCards input (2-card array, space-separated string, 4-char string 'AhKd',
+ * or hand class notation like 'AKs', 'AKo', 'TT') into a 2-card array ['Ah', 'Kd'].
+ */
+function normalizeExplainerHoleCards(holeCards, boardCards = []) {
+    if (Array.isArray(holeCards)) {
+        const cleaned = holeCards
+            .map(c => (typeof c === 'string' ? c.trim() : ''))
+            .filter(c => c.length >= 2)
+            .map(c => `${c[0].toUpperCase()}${c[1].toLowerCase()}`);
+        if (cleaned.length >= 2) return cleaned.slice(0, 2);
+    }
+    if (typeof holeCards === 'string') {
+        const trimmed = holeCards.trim();
+        if (!trimmed) return [];
+        // Explicit 2-card tokens (e.g. 'Ah Kd' or 'AhKd')
+        const explicitCards = trimmed.match(/[2-9TJQKA][shdc]/gi);
+        if (explicitCards && explicitCards.length >= 2 && (trimmed.length >= 4 || trimmed.includes(' '))) {
+            return explicitCards.slice(0, 2).map(c => `${c[0].toUpperCase()}${c[1].toLowerCase()}`);
+        }
+        // Hand-class notation: 'AA', 'AKs', 'AKo'
+        const classMatch = trimmed.match(/^([2-9TJQKA])([2-9TJQKA])([so])?$/i);
+        if (classMatch) {
+            const r1 = classMatch[1].toUpperCase();
+            const r2 = classMatch[2].toUpperCase();
+            const suitedness = (classMatch[3] || '').toLowerCase();
+            const usedCards = new Set(boardCards.map(c => `${c[0].toUpperCase()}${c[1].toLowerCase()}`));
+            if (r1 === r2) {
+                const available = SUIT_FALLBACK_ORDER.filter(s => !usedCards.has(`${r1}${s}`));
+                const s1 = available[0] || 's';
+                const s2 = available[1] || 'h';
+                return [`${r1}${s1}`, `${r2}${s2}`];
+            }
+            if (suitedness === 's') {
+                // Pick a suit where neither card collides with the board; prefer a suit present on board for realistic flush interaction
+                const boardSuitCounts = {};
+                boardCards.forEach(c => {
+                    const s = c[1]?.toLowerCase();
+                    if (s) boardSuitCounts[s] = (boardSuitCounts[s] || 0) + 1;
+                });
+                const candidateSuits = [...SUIT_FALLBACK_ORDER].sort(
+                    (a, b) => (boardSuitCounts[b] || 0) - (boardSuitCounts[a] || 0)
+                );
+                const chosenSuit = candidateSuits.find(s => !usedCards.has(`${r1}${s}`) && !usedCards.has(`${r2}${s}`)) || 's';
+                return [`${r1}${chosenSuit}`, `${r2}${chosenSuit}`];
+            }
+            // Offsuit
+            const s1 = SUIT_FALLBACK_ORDER.find(s => !usedCards.has(`${r1}${s}`)) || 's';
+            const s2 = SUIT_FALLBACK_ORDER.find(s => s !== s1 && !usedCards.has(`${r2}${s}`)) || 'd';
+            return [`${r1}${s1}`, `${r2}${s2}`];
+        }
+    }
+    return [];
+}
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HAND CLASS PROPERTIES
@@ -214,55 +302,107 @@ const TEXTURE_REASONING = {
 /**
  * Generate a human-readable explanation of WHY the solver takes a specific action.
  *
- * @param {Object} params
- * @param {string[]} params.holeCards - e.g. ['Ah', 'Kd']
- * @param {string[]} params.board - e.g. ['Qd', '7c', '2s']
- * @param {string} params.correctAction - e.g. 'Bet 33%', 'Check', 'Fold'
- * @param {string} params.userAction - what the user actually chose
- * @param {string} params.position - 'IP' or 'OOP'
- * @param {string} params.street - 'flop', 'turn', 'river'
- * @param {string} params.spotType - 'cbet', 'checkraise', 'facing_bet', etc.
- * @param {number} params.betFrequency - solver bet frequency 0-100
- * @param {Object} params.frequencies - { actionId: pct } full frequency map
- * @param {boolean} params.is3BetPot - whether this is a 3-bet pot
- * @returns {Object} { explanation: string, keyFactors: string[], strategicConcept: string }
+ * @param {Object} [params]
+ * @param {string[]|string} [params.holeCards] - e.g. ['Ah', 'Kd'] or 'AKs'
+ * @param {string[]|string} [params.board] - e.g. ['Qd', '7c', '2s'] or 'Qd 7c 2s'
+ * @param {string} [params.correctAction] - e.g. 'Bet 33%', 'Check', 'Fold'
+ * @param {string} [params.userAction] - what the user actually chose
+ * @param {string} [params.position] - 'IP' or 'OOP'
+ * @param {string|null} [params.heroPosition] - 'BTN', 'CO', 'BB', etc.
+ * @param {string} [params.street] - 'flop', 'turn', 'river'
+ * @param {string} [params.spotType] - 'cbet', 'checkraise', 'facing_bet', etc.
+ * @param {number} [params.betFrequency] - solver bet frequency 0-100
+ * @param {Object} [params.frequencies] - { actionId: pct } full frequency map
+ * @param {boolean} [params.is3BetPot] - whether this is a 3-bet pot
+ * @param {number} [params.potSize] - pot size in BB
+ * @param {number} [params.effectiveStack] - effective stack in BB
+ * @param {Object|null} [params.solverPolicy] - canonical solver policy envelope
+ * @returns {Object} { explanation: string, keyFactors: string[], strategicConcept: string, handClass: string, boardTexture: string, horseBrainAnalysis: any }
  */
-export function explainStrategy(params) {
+export function explainStrategy(params = {}) {
     const {
-        holeCards, board, correctAction, userAction,
-        position, street, spotType, betFrequency,
-        frequencies, is3BetPot
-    } = params;
+        holeCards: rawHoleCards,
+        board: rawBoard,
+        correctAction = '',
+        userAction = '',
+        position = 'IP',
+        heroPosition = null,
+        street = 'flop',
+        spotType = 'cbet',
+        betFrequency,
+        frequencies,
+        is3BetPot = false,
+        potSize = 6,
+        effectiveStack = 100,
+        solverPolicy = null,
+    } = params || {};
 
     try {
+        const board = normalizeExplainerBoard(rawBoard);
+        const holeCards = normalizeExplainerHoleCards(rawHoleCards, board);
+
         // Classify hand and board
         let handClass = 'air';
-        try { handClass = classifyHandClass(holeCards, board) || 'air'; } catch (e) { console.warn('[App] Handled exception:', e); }
+        try {
+            if (holeCards.length >= 2 && board.length >= 3) {
+                handClass = classifyHandClass(holeCards, board) || 'air';
+            }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
 
         let boardTexture = 'dry_rainbow_high';
         try {
-            // Build minimal board analysis
-            const boardRanks = board.map(c => c[0]);
-            const boardSuits = board.map(c => c[1]);
-            const uniqueSuits = new Set(boardSuits).size;
-            const rankOrder = 'AKQJT98765432';
-            const rankValues = boardRanks.map(r => 14 - rankOrder.indexOf(r));
-            const avgRank = rankValues.reduce((s, v) => s + v, 0) / rankValues.length;
-            const isHigh = avgRank >= 9;
-            const rankCounts = {};
-            boardRanks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-            const hasPair = Object.values(rankCounts || {}).some(c => c >= 2);
-            const sorted = [...rankValues].sort((a, b) => b - a);
-            const isConnected = sorted[0] - sorted[sorted.length - 1] <= 4;
+            if (board.length >= 3) {
+                const boardRanks = board.map(c => c[0]);
+                const boardSuits = board.map(c => c[1]);
+                const uniqueSuits = new Set(boardSuits).size;
+                const rankOrder = 'AKQJT98765432';
+                const rankValues = boardRanks.map(r => 14 - rankOrder.indexOf(r));
+                const avgRank = rankValues.reduce((s, v) => s + v, 0) / rankValues.length;
+                const isHigh = avgRank >= 9;
+                const rankCounts = {};
+                boardRanks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
+                const hasPair = Object.values(rankCounts || {}).some(c => c >= 2);
+                const sorted = [...rankValues].sort((a, b) => b - a);
+                const isConnected = sorted[0] - sorted[sorted.length - 1] <= 4;
 
-            if (hasPair) boardTexture = isHigh ? 'paired_high' : 'paired_low';
-            else if (uniqueSuits === 1) boardTexture = isHigh ? 'monotone_high' : 'monotone_low';
-            else if (isConnected && sorted[0] >= 10) boardTexture = 'broadway_dry';
-            else if (isConnected && sorted[0] <= 8) boardTexture = 'low_connected';
-            else if (isConnected) boardTexture = 'connected_wet';
-            else if (uniqueSuits === 2) boardTexture = isHigh ? 'two_tone_high' : 'two_tone_low';
-            else boardTexture = isHigh ? 'dry_rainbow_high' : 'dry_rainbow_low';
+                if (hasPair) boardTexture = isHigh ? 'paired_high' : 'paired_low';
+                else if (uniqueSuits === 1) boardTexture = isHigh ? 'monotone_high' : 'monotone_low';
+                else if (isConnected && sorted[0] >= 10) boardTexture = 'broadway_dry';
+                else if (isConnected && sorted[0] <= 8) boardTexture = 'low_connected';
+                else if (isConnected) boardTexture = 'connected_wet';
+                else if (uniqueSuits === 2) boardTexture = isHigh ? 'two_tone_high' : 'two_tone_low';
+                else boardTexture = isHigh ? 'dry_rainbow_high' : 'dry_rainbow_low';
+            }
         } catch (e) { console.warn('[App] Handled exception:', e); }
+
+        // Horse Brain GTO & Solver Skill Integration
+        const blockers = analyzeBlockers(holeCards, board);
+        const horseBoardMetrics = analyzeBoardTexture(board);
+        const numericPot = Number.isFinite(Number(potSize)) && Number(potSize) > 0 ? Number(potSize) : 6;
+        const numericStack = Number.isFinite(Number(effectiveStack)) && Number(effectiveStack) > 0 ? Number(effectiveStack) : 100;
+        const potGeometry = calculatePotGeometry(numericPot, numericStack, street || 'flop');
+        const stackStrategy = getStackDepthStrategy(numericStack);
+        const canonicalPos = heroPosition || (position === 'OOP' ? 'BB' : 'BTN');
+        const positionRangeWidth = getPositionRange(
+            canonicalPos,
+            spotType === 'facing_bet' || spotType === 'checkraise' || position === 'OOP' ? 'defending' : 'opening',
+        );
+        const solverPolicySummary = solverPolicy && typeof solverPolicy === 'object'
+            ? {
+                recommendedAction: solverPolicy.recommendedAction?.label || solverPolicy.recommendedAction?.action || null,
+                policyKind: solverPolicy.kind || null,
+                consumerId: solverPolicy.consumerId || null,
+            }
+            : null;
+
+        const horseBrainAnalysis = {
+            blockers,
+            boardMetrics: horseBoardMetrics,
+            potGeometry,
+            stackStrategy,
+            positionRangeWidth,
+            solverPolicySummary,
+        };
 
         const handMeta = HAND_CLASS_META[handClass] || HAND_CLASS_META.air;
         const textureMeta = TEXTURE_REASONING[boardTexture] || TEXTURE_REASONING.dry_rainbow_high;
@@ -409,12 +549,36 @@ export function explainStrategy(params) {
             keyFactors.push('3-bet pot dynamics');
         }
 
+        // ●●● HORSE BRAIN BLOCKER & POT GEOMETRY ENRICHMENT ●●●●●●
+        if (blockers.blocksNutFlush) {
+            sentences.push('Holding the nut-flush blocker significantly reduces villain\'s nutted combinations and elevates bluff and call EV.');
+            keyFactors.push('Nut flush blocker');
+        }
+        if (blockers.blocksNutStraight) {
+            sentences.push('Your hand blocks key top-straight combinations in villain\'s continuing range.');
+            keyFactors.push('Nut straight blocker');
+        }
+        if (blockers.blocksTopSet && !handMeta.canValue) {
+            keyFactors.push('Blocks top set');
+        }
+        if (board.length >= 3 && potGeometry && Number.isFinite(potGeometry.spr)) {
+            const geoPct = Math.round(potGeometry.geometricSize * 100);
+            if (isBetting && (handMeta.canValue || handMeta.canBluff)) {
+                sentences.push(`At SPR ${potGeometry.spr.toFixed(1)}, geometric pot growth requires ~${geoPct}% pot per street (${potGeometry.strategy.replace(/_/g, ' ')} commitment).`);
+            }
+            keyFactors.push(`SPR ${potGeometry.spr.toFixed(1)} (${geoPct}% geo)`);
+        }
+        if (stackStrategy?.mode === 'push_fold' || stackStrategy?.mode === 'short_stack') {
+            keyFactors.push(`Stack mode: ${stackStrategy.mode.replace(/_/g, ' ')}`);
+        }
+
         return {
             explanation: sentences.join(' '),
             keyFactors,
             strategicConcept,
             handClass,
             boardTexture,
+            horseBrainAnalysis,
         };
     } catch (e) {
         return {
@@ -423,6 +587,7 @@ export function explainStrategy(params) {
             strategicConcept: '',
             handClass: 'unknown',
             boardTexture: 'unknown',
+            horseBrainAnalysis: null,
         };
     }
 }

@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 357,
+    "dependencyFiles": 359,
     "componentFiles": 53,
     "hookFiles": 14,
     "ctas": 388,
     "dialogs": 12,
-    "persistenceFiles": 79,
+    "persistenceFiles": 80,
     "realtimeFiles": 6,
-    "tests": 174,
-    "markerCandidates": 342,
-    "possibleUnwiredFunctions": 398,
+    "tests": 176,
+    "markerCandidates": 343,
+    "possibleUnwiredFunctions": 399,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 228,
     "routeStateUnassignedGaps": 0,
@@ -5190,6 +5190,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -5198,6 +5199,7 @@
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
         "src/lib/idbCacheStore.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -5206,6 +5208,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
@@ -5216,13 +5219,18 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "states": {
         "loading": {
@@ -5275,6 +5283,7 @@
             "src/engines/MultiStreetHandManager.js",
             "src/hooks/useGTOTrainer.js",
             "src/lib/clubArenaTheme.js",
+            "src/lib/poker-engine/brain/HorsePokerGTO.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/difficultyQuestionContract.mjs",
             "src/lib/training/handClassStrategy.js",
@@ -5282,8 +5291,12 @@
             "src/lib/training/offlineQuestionCache.js",
             "src/lib/training/questionContract.mjs",
             "src/lib/training/solverPolicyContract.js",
+            "src/lib/training/solverRowIdentity.mjs",
+            "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
-            "src/utils/pokerHandEvaluator.js"
+            "src/utils/pokerHandEvaluator.js",
+            "src/utils/trainingApiUtils.js",
+            "src/utils/v2Matrix.js"
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
@@ -5325,7 +5338,10 @@
             "src/lib/training/handClassStrategy.js",
             "src/lib/training/solverDecisionEvidence.js",
             "src/lib/training/solverPolicyContract.js",
+            "src/lib/training/solverRowIdentity.mjs",
+            "src/services/SolverPolicyService.js",
             "src/utils/pokerHandEvaluator.js",
+            "src/utils/trainingApiUtils.js",
             "src/utils/trainingSounds.js"
           ],
           "tests": [
@@ -5375,7 +5391,8 @@
             "src/components/training/TrainingQuestionReport.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/hooks/useSpacedRepetition.js",
-            "src/lib/authUtils.js"
+            "src/lib/authUtils.js",
+            "src/lib/training/solverMatrixTrust.js"
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
@@ -5404,7 +5421,8 @@
             "src/lib/scrollLock.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
-            "src/utils/shareCard.js"
+            "src/utils/shareCard.js",
+            "src/utils/v2Matrix.js"
           ],
           "tests": [
             "__tests__/every-lesson-answers-first.law.test.mjs",
@@ -5526,6 +5544,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -5541,6 +5560,7 @@
         "src/lib/headerStats.js",
         "src/lib/idbCacheStore.js",
         "src/lib/ownProfile.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -5556,6 +5576,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/handHistoryEntry.js",
@@ -5564,15 +5585,20 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
         "src/stores/toastStore.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "states": {
         "loading": {
@@ -5629,6 +5655,7 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/clubArenaTheme.js",
             "src/lib/ownProfile.js",
+            "src/lib/poker-engine/brain/HorsePokerGTO.js",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/difficultyQuestionContract.mjs",
@@ -5637,8 +5664,12 @@
             "src/lib/training/offlineQuestionCache.js",
             "src/lib/training/questionContract.mjs",
             "src/lib/training/solverPolicyContract.js",
+            "src/lib/training/solverRowIdentity.mjs",
+            "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
-            "src/utils/pokerHandEvaluator.js"
+            "src/utils/pokerHandEvaluator.js",
+            "src/utils/trainingApiUtils.js",
+            "src/utils/v2Matrix.js"
           ],
           "tests": [
             "__tests__/training-auxiliary-launch-wiring.test.mjs",
@@ -5679,9 +5710,12 @@
             "src/lib/training/handClassStrategy.js",
             "src/lib/training/solverDecisionEvidence.js",
             "src/lib/training/solverPolicyContract.js",
+            "src/lib/training/solverRowIdentity.mjs",
+            "src/services/SolverPolicyService.js",
             "src/services/avatar-service.js",
             "src/stores/toastStore.js",
             "src/utils/pokerHandEvaluator.js",
+            "src/utils/trainingApiUtils.js",
             "src/utils/trainingSounds.js"
           ],
           "tests": [
@@ -5729,6 +5763,7 @@
             "src/hooks/useSpacedRepetition.js",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/training/solverMatrixTrust.js",
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
           ],
@@ -5759,7 +5794,8 @@
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/services/avatar-service.js",
-            "src/utils/shareCard.js"
+            "src/utils/shareCard.js",
+            "src/utils/v2Matrix.js"
           ],
           "tests": [
             "__tests__/training-auxiliary-launch-wiring.test.mjs",
@@ -11709,6 +11745,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -11717,6 +11754,7 @@
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
         "src/lib/idbCacheStore.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -11731,6 +11769,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/handHistoryEntry.js",
@@ -11740,13 +11779,18 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "states": {
         "loading": {
@@ -11792,6 +11836,7 @@
             "src/engines/MultiStreetHandManager.js",
             "src/hooks/useGTOTrainer.js",
             "src/lib/clubArenaTheme.js",
+            "src/lib/poker-engine/brain/HorsePokerGTO.js",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/difficultyQuestionContract.mjs",
@@ -11800,8 +11845,12 @@
             "src/lib/training/offlineQuestionCache.js",
             "src/lib/training/questionContract.mjs",
             "src/lib/training/solverPolicyContract.js",
+            "src/lib/training/solverRowIdentity.mjs",
+            "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
-            "src/utils/pokerHandEvaluator.js"
+            "src/utils/pokerHandEvaluator.js",
+            "src/utils/trainingApiUtils.js",
+            "src/utils/v2Matrix.js"
           ],
           "tests": [
             "__tests__/training-session-config-contract.test.mjs",
@@ -11835,7 +11884,10 @@
             "src/lib/training/handClassStrategy.js",
             "src/lib/training/solverDecisionEvidence.js",
             "src/lib/training/solverPolicyContract.js",
+            "src/lib/training/solverRowIdentity.mjs",
+            "src/services/SolverPolicyService.js",
             "src/utils/pokerHandEvaluator.js",
+            "src/utils/trainingApiUtils.js",
             "src/utils/trainingSounds.js"
           ],
           "tests": [
@@ -11871,7 +11923,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/hooks/useSpacedRepetition.js",
             "src/lib/authUtils.js",
-            "src/lib/training/practiceSession.js"
+            "src/lib/training/practiceSession.js",
+            "src/lib/training/solverMatrixTrust.js"
           ],
           "tests": [
             "__tests__/training-session-config-contract.test.mjs",
@@ -11894,7 +11947,8 @@
             "src/lib/scrollLock.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
-            "src/utils/shareCard.js"
+            "src/utils/shareCard.js",
+            "src/utils/v2Matrix.js"
           ],
           "tests": [
             "__tests__/training-session-config-contract.test.mjs",
@@ -14152,6 +14206,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -14160,6 +14215,7 @@
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
         "src/lib/idbCacheStore.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -14174,6 +14230,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/handHistoryEntry.js",
@@ -14182,13 +14239,18 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "states": {
         "loading": {
@@ -14236,6 +14298,7 @@
             "src/engines/MultiStreetHandManager.js",
             "src/hooks/useGTOTrainer.js",
             "src/lib/clubArenaTheme.js",
+            "src/lib/poker-engine/brain/HorsePokerGTO.js",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/difficultyQuestionContract.mjs",
@@ -14244,8 +14307,12 @@
             "src/lib/training/offlineQuestionCache.js",
             "src/lib/training/questionContract.mjs",
             "src/lib/training/solverPolicyContract.js",
+            "src/lib/training/solverRowIdentity.mjs",
+            "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
-            "src/utils/pokerHandEvaluator.js"
+            "src/utils/pokerHandEvaluator.js",
+            "src/utils/trainingApiUtils.js",
+            "src/utils/v2Matrix.js"
           ],
           "tests": [
             "__tests__/training-auxiliary-launch-wiring.test.mjs",
@@ -14280,7 +14347,10 @@
             "src/lib/training/handClassStrategy.js",
             "src/lib/training/solverDecisionEvidence.js",
             "src/lib/training/solverPolicyContract.js",
+            "src/lib/training/solverRowIdentity.mjs",
+            "src/services/SolverPolicyService.js",
             "src/utils/pokerHandEvaluator.js",
+            "src/utils/trainingApiUtils.js",
             "src/utils/trainingSounds.js"
           ],
           "tests": [
@@ -14316,7 +14386,8 @@
             "src/components/training/TrainingQuestionReport.jsx",
             "src/hooks/useGTOTrainer.js",
             "src/hooks/useSpacedRepetition.js",
-            "src/lib/authUtils.js"
+            "src/lib/authUtils.js",
+            "src/lib/training/solverMatrixTrust.js"
           ],
           "tests": [
             "__tests__/training-auxiliary-launch-wiring.test.mjs",
@@ -14338,7 +14409,8 @@
             "src/lib/scrollLock.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
-            "src/utils/shareCard.js"
+            "src/utils/shareCard.js",
+            "src/utils/v2Matrix.js"
           ],
           "tests": [
             "__tests__/training-auxiliary-launch-wiring.test.mjs",
@@ -41052,6 +41124,7 @@
         "src/engine/EventBus.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/GTOScoreEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/hooks/useGTOWScore.js",
         "src/lib/clubArenaTheme.js",
         "src/lib/tableAvatars.js",
@@ -41069,7 +41142,7 @@
         {
           "element": "button",
           "name": "poppedOut ? `Dock ${title} panel` : `Pop out ${title} panel`",
-          "line": 1308,
+          "line": 1309,
           "handler": "onTogglePop",
           "destination": null,
           "type": "button",
@@ -41079,7 +41152,7 @@
         {
           "element": "button",
           "name": "Back to Training",
-          "line": 3363,
+          "line": 3364,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -41089,7 +41162,7 @@
         {
           "element": "button",
           "name": "!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')",
-          "line": 3395,
+          "line": 3396,
           "handler": "() => {\n                                if (solverFrequencyVerified) setRngMode(v => !v);\n                            }",
           "destination": null,
           "type": null,
@@ -41099,7 +41172,7 @@
         {
           "element": "button",
           "name": "`Randomiser direction: ${rngTheme.label}`",
-          "line": 3411,
+          "line": 3412,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -41109,7 +41182,7 @@
         {
           "element": "button",
           "name": "trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'",
-          "line": 3676,
+          "line": 3677,
           "handler": "onConfigClick",
           "destination": null,
           "type": null,
@@ -41119,7 +41192,7 @@
         {
           "element": "button",
           "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-          "line": 4833,
+          "line": 4834,
           "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
           "destination": null,
           "type": null,
@@ -41129,7 +41202,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5042,
+          "line": 5043,
           "handler": "() => rngAvailable && setRngMode(!rngMode)",
           "destination": null,
           "type": null,
@@ -41139,7 +41212,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5046,
+          "line": 5047,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -41149,7 +41222,7 @@
         {
           "element": "button",
           "name": "Quit Session",
-          "line": 5054,
+          "line": 5055,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -41159,7 +41232,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5139,
+          "line": 5140,
           "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
           "destination": null,
           "type": null,
@@ -41169,7 +41242,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5477,
+          "line": 5478,
           "handler": "() => setDeepAnalysisOpen(v => !v)",
           "destination": null,
           "type": null,
@@ -41179,7 +41252,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5683,
+          "line": 5684,
           "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
           "destination": null,
           "type": null,
@@ -41189,7 +41262,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5696,
+          "line": 5697,
           "handler": "() => setShowRangeGrid(!showRangeGrid)",
           "destination": null,
           "type": null,
@@ -41199,7 +41272,7 @@
         {
           "element": "button",
           "name": "Prev",
-          "line": 6512,
+          "line": 6550,
           "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
           "destination": null,
           "type": null,
@@ -41209,7 +41282,7 @@
         {
           "element": "button",
           "name": "Next",
-          "line": 6519,
+          "line": 6557,
           "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
           "destination": null,
           "type": null,
@@ -41219,7 +41292,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 6526,
+          "line": 6564,
           "handler": "() => setShowMistakeReview(false)",
           "destination": null,
           "type": null,
@@ -41259,7 +41332,7 @@
       "functions": [
         {
           "name": "ClassificationSVGIcon",
-          "line": 59,
+          "line": 60,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41267,7 +41340,7 @@
         },
         {
           "name": "classifyBoardTexture",
-          "line": 81,
+          "line": 82,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41275,7 +41348,7 @@
         },
         {
           "name": "explanationMatchesScenario",
-          "line": 288,
+          "line": 289,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41283,7 +41356,7 @@
         },
         {
           "name": "rangeActionMetadata",
-          "line": 350,
+          "line": 351,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -41291,7 +41364,7 @@
         },
         {
           "name": "RangeMatrixViewer",
-          "line": 354,
+          "line": 355,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41299,7 +41372,7 @@
         },
         {
           "name": "formatSolverActionLabel",
-          "line": 514,
+          "line": 515,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41307,7 +41380,7 @@
         },
         {
           "name": "StreakToast",
-          "line": 534,
+          "line": 535,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41315,7 +41388,7 @@
         },
         {
           "name": "SeatAvatar",
-          "line": 619,
+          "line": 620,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41323,7 +41396,7 @@
         },
         {
           "name": "getTablePortraitSrc",
-          "line": 663,
+          "line": 664,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41331,7 +41404,7 @@
         },
         {
           "name": "getCardPath",
-          "line": 670,
+          "line": 671,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41339,7 +41412,7 @@
         },
         {
           "name": "evaluateHandStrength",
-          "line": 693,
+          "line": 694,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41347,7 +41420,7 @@
         },
         {
           "name": "getHeroSeatIndex",
-          "line": 731,
+          "line": 732,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -41355,7 +41428,7 @@
         },
         {
           "name": "positionSeatIndex",
-          "line": 789,
+          "line": 790,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41363,7 +41436,7 @@
         },
         {
           "name": "CountdownTimer",
-          "line": 815,
+          "line": 816,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41371,7 +41444,7 @@
         },
         {
           "name": "detectActionType",
-          "line": 959,
+          "line": 960,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -41379,7 +41452,7 @@
         },
         {
           "name": "LoadingSkeleton",
-          "line": 993,
+          "line": 994,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41387,7 +41460,7 @@
         },
         {
           "name": "FrequencyBar",
-          "line": 1097,
+          "line": 1098,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41395,7 +41468,7 @@
         },
         {
           "name": "ClassificationFlashBanner",
-          "line": 1137,
+          "line": 1138,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41403,7 +41476,7 @@
         },
         {
           "name": "EVLossTicker",
-          "line": 1236,
+          "line": 1237,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41411,7 +41484,7 @@
         },
         {
           "name": "InfoPanelShell",
-          "line": 1296,
+          "line": 1297,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -41419,7 +41492,7 @@
         },
         {
           "name": "UniversalDynamicTable",
-          "line": 1417,
+          "line": 1418,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41427,7 +41500,7 @@
         },
         {
           "name": "getFeedbackQuestion",
-          "line": 1616,
+          "line": 1617,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -41435,7 +41508,7 @@
         },
         {
           "name": "check",
-          "line": 1646,
+          "line": 1647,
           "references": 27,
           "exported": false,
           "defaultExport": false,
@@ -41443,7 +41516,7 @@
         },
         {
           "name": "rng",
-          "line": 1819,
+          "line": 1820,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41451,7 +41524,7 @@
         },
         {
           "name": "handleModeKey",
-          "line": 2202,
+          "line": 2203,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41459,7 +41532,7 @@
         },
         {
           "name": "dealerButtonSeatIndex",
-          "line": 2283,
+          "line": 2284,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41467,7 +41540,7 @@
         },
         {
           "name": "isBinary",
-          "line": 2569,
+          "line": 2570,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41475,7 +41548,7 @@
         },
         {
           "name": "handleKeyDown",
-          "line": 2722,
+          "line": 2723,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41483,7 +41556,7 @@
         },
         {
           "name": "getActionButtonStyle",
-          "line": 2851,
+          "line": 2852,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41491,7 +41564,7 @@
         },
         {
           "name": "entryMatchesSeat",
-          "line": 3801,
+          "line": 3802,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41499,7 +41572,7 @@
         },
         {
           "name": "pick",
-          "line": 4478,
+          "line": 4479,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -41507,7 +41580,7 @@
         },
         {
           "name": "mistakeFeedback",
-          "line": 5543,
+          "line": 5544,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -41515,7 +41588,7 @@
         },
         {
           "name": "getRank",
-          "line": 700,
+          "line": 701,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41523,7 +41596,7 @@
         },
         {
           "name": "getSuit",
-          "line": 701,
+          "line": 702,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41534,7 +41607,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 774,
+          "line": 775,
           "excerpt": "* getHeroSeatIndex's `?? 0` fallback is right for hero -- hero must sit",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -41543,7 +41616,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1557,
+          "line": 1558,
           "excerpt": "// Fallback: standard Supabase key pattern",
           "disposition": "identity-or-persistence-resilience",
           "review": "documented-follow-up",
@@ -41552,7 +41625,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1565,
+          "line": 1566,
           "excerpt": "} catch { /* silent fallback */ }",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -41561,7 +41634,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1584,
+          "line": 1585,
           "excerpt": "} catch { /* silent fallback */ }",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -41570,7 +41643,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1790,
+          "line": 1791,
           "excerpt": "return ['As', 'Ks']; // Fallback",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -41578,7 +41651,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2389,
+          "line": 2390,
           "excerpt": "// not fabricate one from a fallback answer: it both hints the result",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -41587,7 +41660,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 4346,
+          "line": 4347,
           "excerpt": "The denominator counts the dealing placeholder too --",
           "disposition": "poker-normalization-or-ui-state",
           "review": "accepted",
@@ -41595,7 +41668,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 4362,
+          "line": 4363,
           "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -41603,7 +41676,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 5818,
+          "line": 5819,
           "excerpt": "// Fallback to basic classifier",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -47642,6 +47715,82 @@
       ]
     },
     {
+      "file": "src/engines/StrategyExplainer.js",
+      "imports": [
+        "src/engines/PostflopStrategyEngine.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "normalizeExplainerBoard",
+          "line": 28,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalizeExplainerHoleCards",
+          "line": 52,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "explainStrategy",
+          "line": 322,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "explainStrategyBrief",
+          "line": 598,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
       "file": "src/engines/deterministicEnginePatches.js",
       "imports": [
         "src/lib/training/cacheTruthContract.mjs",
@@ -50847,6 +50996,268 @@
       ],
       "possibleUnwiredFunctions": [],
       "markers": []
+    },
+    {
+      "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+      "imports": [
+        "src/services/SolverPolicyService.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 1,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "getSupabase",
+          "line": 25,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getSolverPolicyService",
+          "line": 32,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "cacheGet",
+          "line": 50,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "cacheSet",
+          "line": 61,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getCacheStats",
+          "line": 78,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getHorseHash",
+          "line": 86,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseCard",
+          "line": 101,
+          "references": 8,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "formatHand",
+          "line": 110,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getPreflopPolicy",
+          "line": 147,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getPreflopRange",
+          "line": 206,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getPostflopStrategy",
+          "line": 217,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "constructOpponentRange",
+          "line": 304,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "analyzeBlockers",
+          "line": 347,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "analyzeBoardTexture",
+          "line": 459,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getPositionRange",
+          "line": 543,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getSolverSizing",
+          "line": 567,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getSizingTell",
+          "line": 596,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "calculatePotGeometry",
+          "line": 616,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getICMAdjustment",
+          "line": 650,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getStackDepthStrategy",
+          "line": 696,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getBlindPressure",
+          "line": 741,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "recordSessionAction",
+          "line": 782,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getSessionAdjustment",
+          "line": 805,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "analyzeTableDynamics",
+          "line": 861,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getHeatCheck",
+          "line": 908,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "makeGTODecision",
+          "line": 951,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "getCacheStats"
+      ],
+      "markers": [
+        {
+          "kind": "FALLBACK",
+          "line": 103,
+          "excerpt": "return { rank: '2', suit: 'c', value: 0 }; // Safe fallback",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
+        }
+      ]
     },
     {
       "file": "src/lib/push-client.js",
@@ -64849,6 +65260,10 @@
     },
     {
       "from": "src/components/training/games/UniversalDynamicTable.jsx",
+      "to": "src/engines/StrategyExplainer.js"
+    },
+    {
+      "from": "src/components/training/games/UniversalDynamicTable.jsx",
       "to": "src/hooks/useGTOWScore.js"
     },
     {
@@ -65424,6 +65839,14 @@
       "to": "src/engines/HandStrengthEngine.js"
     },
     {
+      "from": "src/engines/StrategyExplainer.js",
+      "to": "src/engines/PostflopStrategyEngine.js"
+    },
+    {
+      "from": "src/engines/StrategyExplainer.js",
+      "to": "src/lib/poker-engine/brain/HorsePokerGTO.js"
+    },
+    {
       "from": "src/hooks/useCurrentUser.js",
       "to": "src/contexts/AvatarContext.jsx"
     },
@@ -65586,6 +66009,10 @@
     {
       "from": "src/lib/idbCacheStore.js",
       "to": "src/lib/idbCacheStore.js"
+    },
+    {
+      "from": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+      "to": "src/services/SolverPolicyService.js"
     },
     {
       "from": "src/lib/push-client.js",
@@ -65963,12 +66390,14 @@
     "__tests__/gsc-series5-phase3.test.mjs",
     "__tests__/gsc-series5-phase7.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
+    "__tests__/horse-poker-gto-policy.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
     "__tests__/llms-full-txt-standards.test.mjs",
     "__tests__/llms-txt-states-the-entity.law.test.mjs",
     "__tests__/markdown-ingestion.test.mjs",
     "__tests__/no-slide-to-see.law.test.mjs",
+    "__tests__/owner-only-hub-cards.test.mjs",
     "__tests__/page-tutorials.test.mjs",
     "__tests__/phase23-calculator-schema.test.mjs",
     "__tests__/phases-35-50-aeo.test.mjs",
@@ -66811,6 +67240,17 @@
         "updates": 0,
         "deletes": 0,
         "rpc": 1
+      }
+    },
+    {
+      "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 1,
+        "rpc": 0
       }
     },
     {
@@ -71195,11 +71635,11 @@
       "effectRef": "src/components/training/VerifiedToolGateway.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:1308:1",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:1309:1",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "poppedOut ? `Dock ${title} panel` : `Pop out ${title} panel`",
-      "line": 1308,
+      "line": 1309,
       "handler": "onTogglePop",
       "destination": null,
       "type": "button",
@@ -71208,11 +71648,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3363:2",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3364:2",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Back to Training",
-      "line": 3363,
+      "line": 3364,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -71221,11 +71661,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3395:3",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3396:3",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')",
-      "line": 3395,
+      "line": 3396,
       "handler": "() => {\n                                if (solverFrequencyVerified) setRngMode(v => !v);\n                            }",
       "destination": null,
       "type": null,
@@ -71234,11 +71674,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3411:4",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3412:4",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "`Randomiser direction: ${rngTheme.label}`",
-      "line": 3411,
+      "line": 3412,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -71247,11 +71687,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3676:5",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3677:5",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'",
-      "line": 3676,
+      "line": 3677,
       "handler": "onConfigClick",
       "destination": null,
       "type": null,
@@ -71260,11 +71700,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:4833:6",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:4834:6",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-      "line": 4833,
+      "line": 4834,
       "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
       "destination": null,
       "type": null,
@@ -71273,11 +71713,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5042:7",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5043:7",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5042,
+      "line": 5043,
       "handler": "() => rngAvailable && setRngMode(!rngMode)",
       "destination": null,
       "type": null,
@@ -71286,11 +71726,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5046:8",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5047:8",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5046,
+      "line": 5047,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -71299,11 +71739,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5054:9",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5055:9",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Quit Session",
-      "line": 5054,
+      "line": 5055,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -71312,11 +71752,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5139:10",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5140:10",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5139,
+      "line": 5140,
       "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
       "destination": null,
       "type": null,
@@ -71325,11 +71765,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5477:11",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5478:11",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5477,
+      "line": 5478,
       "handler": "() => setDeepAnalysisOpen(v => !v)",
       "destination": null,
       "type": null,
@@ -71338,11 +71778,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5683:12",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5684:12",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5683,
+      "line": 5684,
       "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
       "destination": null,
       "type": null,
@@ -71351,11 +71791,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5696:13",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5697:13",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5696,
+      "line": 5697,
       "handler": "() => setShowRangeGrid(!showRangeGrid)",
       "destination": null,
       "type": null,
@@ -71364,11 +71804,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6512:14",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6550:14",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Prev",
-      "line": 6512,
+      "line": 6550,
       "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
       "destination": null,
       "type": null,
@@ -71377,11 +71817,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6519:15",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6557:15",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Next",
-      "line": 6519,
+      "line": 6557,
       "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
       "destination": null,
       "type": null,
@@ -71390,11 +71830,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6526:16",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6564:16",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Close",
-      "line": 6526,
+      "line": 6564,
       "handler": "() => setShowMistakeReview(false)",
       "destination": null,
       "type": null,
@@ -72268,6 +72708,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
         "__tests__/training-projection-authority-package-c.test.mjs"
       ]
@@ -75524,6 +75965,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -75532,6 +75974,7 @@
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
         "src/lib/idbCacheStore.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -75540,6 +75983,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
@@ -75550,13 +75994,18 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
         "/api/training/analytics",
@@ -75641,6 +76090,17 @@
           }
         },
         {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/scrollLock.js",
           "writes": {
             "localStorage": 0,
@@ -75660,6 +76120,17 @@
             "updates": 0,
             "deletes": 1,
             "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
           }
         },
         {
@@ -75732,6 +76203,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -75747,6 +76219,7 @@
         "src/lib/headerStats.js",
         "src/lib/idbCacheStore.js",
         "src/lib/ownProfile.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -75762,6 +76235,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/handHistoryEntry.js",
@@ -75770,15 +76244,20 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
         "src/stores/toastStore.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
         "/api/auth/ensure-profile",
@@ -75912,6 +76391,17 @@
           }
         },
         {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/scrollLock.js",
           "writes": {
             "localStorage": 0,
@@ -75931,6 +76421,17 @@
             "updates": 0,
             "deletes": 1,
             "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
           }
         },
         {
@@ -80202,6 +80703,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -80210,6 +80712,7 @@
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
         "src/lib/idbCacheStore.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -80224,6 +80727,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/handHistoryEntry.js",
@@ -80233,13 +80737,18 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
         "/api/training/analytics",
@@ -80336,6 +80845,17 @@
           }
         },
         {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/scrollLock.js",
           "writes": {
             "localStorage": 0,
@@ -80355,6 +80875,17 @@
             "updates": 0,
             "deletes": 1,
             "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
           }
         },
         {
@@ -81864,6 +82395,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -81872,6 +82404,7 @@
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
         "src/lib/idbCacheStore.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
@@ -81886,6 +82419,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/handHistoryEntry.js",
@@ -81894,13 +82428,18 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
         "/api/training/analytics",
@@ -81985,6 +82524,17 @@
           }
         },
         {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/scrollLock.js",
           "writes": {
             "localStorage": 0,
@@ -82004,6 +82554,17 @@
             "updates": 0,
             "deletes": 1,
             "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
           }
         },
         {
@@ -85695,6 +86256,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ]
     },
@@ -85835,14 +86397,21 @@
         "src/components/training/games/UniversalDynamicTable.jsx",
         "src/components/training/games/potMath.js",
         "src/components/training/rangeGridData.js",
+        "src/config/postflopSolverData.js",
         "src/contexts/TrainingSettingsContext.jsx",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
+        "src/engines/BoardTextureEngine.js",
+        "src/engines/DeckEngine.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/GTOScoreEngine.js",
+        "src/engines/HandStrengthEngine.js",
+        "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/hooks/useGTOWScore.js",
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -85850,13 +86419,19 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
-        "src/utils/pokerHandEvaluator.js"
+        "src/utils/pokerHandEvaluator.js",
+        "src/utils/trainingApiUtils.js",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -85898,6 +86473,17 @@
           }
         },
         {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -85906,6 +86492,17 @@
             "updates": 0,
             "deletes": 1,
             "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
           }
         }
       ],
@@ -85953,6 +86550,7 @@
         "src/engines/LeakDetector.js",
         "src/engines/MultiStreetHandManager.js",
         "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/engines/positionOrder.js",
         "src/hooks/useGTOTrainer.js",
         "src/hooks/useGTOWScore.js",
@@ -85960,6 +86558,7 @@
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
         "src/lib/idbCacheStore.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/scrollLock.js",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
@@ -85968,6 +86567,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/handHistoryEntry.js",
@@ -85976,13 +86576,18 @@
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/sessionConfigContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
         "src/utils/pokerHandEvaluator.js",
         "src/utils/shareCard.js",
-        "src/utils/trainingSounds.js"
+        "src/utils/trainingApiUtils.js",
+        "src/utils/trainingSounds.js",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
         "/api/training/analytics",
@@ -86067,6 +86672,17 @@
           }
         },
         {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/scrollLock.js",
           "writes": {
             "localStorage": 0,
@@ -86086,6 +86702,17 @@
             "updates": 0,
             "deletes": 1,
             "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
           }
         },
         {
@@ -86658,13 +87285,20 @@
         "src/components/training/games/UniversalDynamicTable.jsx",
         "src/components/training/games/potMath.js",
         "src/components/training/rangeGridData.js",
+        "src/config/postflopSolverData.js",
         "src/data/AVATAR_LIBRARY.js",
         "src/engine/EventBus.js",
+        "src/engines/BoardTextureEngine.js",
+        "src/engines/DeckEngine.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/GTOScoreEngine.js",
+        "src/engines/HandStrengthEngine.js",
+        "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
         "src/hooks/useGTOWScore.js",
         "src/lib/authUtils.js",
         "src/lib/clubArenaTheme.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
         "src/lib/sessionAnalytics.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -86672,12 +87306,18 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/clubArenaTableGeometry.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/handClassStrategy.js",
         "src/lib/training/rngDecisionContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
+        "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
-        "src/utils/pokerHandEvaluator.js"
+        "src/utils/pokerHandEvaluator.js",
+        "src/utils/trainingApiUtils.js",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -86708,6 +87348,17 @@
           }
         },
         {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/lib/training/boundedTrainingFetch.js",
           "writes": {
             "localStorage": 0,
@@ -86717,11 +87368,23 @@
             "deletes": 1,
             "rpc": 0
           }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
       "tests": [
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
+        "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-immersive-gameplay.test.mjs",
@@ -88123,6 +88786,55 @@
       ]
     },
     {
+      "file": "src/engines/StrategyExplainer.js",
+      "reachableFiles": [
+        "src/config/postflopSolverData.js",
+        "src/engines/BoardTextureEngine.js",
+        "src/engines/DeckEngine.js",
+        "src/engines/HandStrengthEngine.js",
+        "src/engines/PostflopStrategyEngine.js",
+        "src/engines/StrategyExplainer.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
+        "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
+        "src/lib/training/solverMatrixTrust.js",
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
+        "src/services/SolverPolicyService.js",
+        "src/utils/trainingApiUtils.js",
+        "src/utils/v2Matrix.js"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/horse-poker-gto-policy.test.mjs"
+      ]
+    },
+    {
       "file": "src/engines/deterministicEnginePatches.js",
       "reachableFiles": [
         "src/engines/deterministicEnginePatches.js",
@@ -89279,6 +89991,49 @@
       ],
       "realtime": [],
       "tests": []
+    },
+    {
+      "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+      "reachableFiles": [
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
+        "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
+        "src/lib/training/solverMatrixTrust.js",
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
+        "src/services/SolverPolicyService.js",
+        "src/utils/trainingApiUtils.js",
+        "src/utils/v2Matrix.js"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/horse-poker-gto-policy.test.mjs"
+      ]
     },
     {
       "file": "src/lib/push-client.js",
@@ -90674,6 +91429,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-retired-analysis-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -90796,6 +91552,7 @@
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/gsc-series5-phase7.test.mjs",
+        "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
         "__tests__/page-tutorials.test.mjs",
@@ -91981,7 +92738,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 774,
+        "line": 775,
         "excerpt": "* getHeroSeatIndex's `?? 0` fallback is right for hero -- hero must sit",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -91991,7 +92748,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 1557,
+        "line": 1558,
         "excerpt": "// Fallback: standard Supabase key pattern",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
@@ -92001,7 +92758,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 1565,
+        "line": 1566,
         "excerpt": "} catch { /* silent fallback */ }",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -92011,7 +92768,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 1584,
+        "line": 1585,
         "excerpt": "} catch { /* silent fallback */ }",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -92021,7 +92778,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 1790,
+        "line": 1791,
         "excerpt": "return ['As', 'Ks']; // Fallback",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -92030,7 +92787,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 2389,
+        "line": 2390,
         "excerpt": "// not fabricate one from a fallback answer: it both hints the result",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -92040,7 +92797,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4346,
+        "line": 4347,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -92049,7 +92806,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4362,
+        "line": 4363,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -92058,7 +92815,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 5818,
+        "line": 5819,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -93253,6 +94010,15 @@
         "review": "documented-follow-up",
         "followUpPhase": 15,
         "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
+      },
+      {
+        "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+        "kind": "FALLBACK",
+        "line": 103,
+        "excerpt": "return { rank: '2', suit: 'c', value: 0 }; // Safe fallback",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
         "file": "src/lib/serverAuth.js",
@@ -97871,6 +98637,21 @@
           "src/components/messenger/MessageBubble.js",
           "src/components/notifications/HubNotificationsFeed.jsx",
           "src/hooks/useUnreadCount.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+        "name": "getCacheStats",
+        "line": 78,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "test-or-audit-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
+        "externalReferenceFiles": [
+          "__tests__/horse-poker-gto-policy.test.mjs"
         ]
       },
       {
@@ -101501,7 +102282,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 774,
+        "line": 775,
         "excerpt": "* getHeroSeatIndex's `?? 0` fallback is right for hero -- hero must sit",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -101511,7 +102292,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 1557,
+        "line": 1558,
         "excerpt": "// Fallback: standard Supabase key pattern",
         "disposition": "identity-or-persistence-resilience",
         "review": "documented-follow-up",
@@ -101521,7 +102302,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 1565,
+        "line": 1566,
         "excerpt": "} catch { /* silent fallback */ }",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -101531,7 +102312,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 1584,
+        "line": 1585,
         "excerpt": "} catch { /* silent fallback */ }",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -101541,7 +102322,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 1790,
+        "line": 1791,
         "excerpt": "return ['As', 'Ks']; // Fallback",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -101550,7 +102331,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 2389,
+        "line": 2390,
         "excerpt": "// not fabricate one from a fallback answer: it both hints the result",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -101560,7 +102341,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4346,
+        "line": 4347,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -101569,7 +102350,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4362,
+        "line": 4363,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -101578,7 +102359,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 5818,
+        "line": 5819,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -102773,6 +103554,15 @@
         "review": "documented-follow-up",
         "followUpPhase": 15,
         "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
+      },
+      {
+        "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+        "kind": "FALLBACK",
+        "line": 103,
+        "excerpt": "return { rank: '2', suit: 'c', value: 0 }; // Safe fallback",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
         "file": "src/lib/serverAuth.js",
@@ -107391,6 +108181,21 @@
           "src/components/messenger/MessageBubble.js",
           "src/components/notifications/HubNotificationsFeed.jsx",
           "src/hooks/useUnreadCount.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+        "name": "getCacheStats",
+        "line": 78,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "test-or-audit-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is intentionally consumed only by an automated test or audit harness.",
+        "externalReferenceFiles": [
+          "__tests__/horse-poker-gto-policy.test.mjs"
         ]
       },
       {
