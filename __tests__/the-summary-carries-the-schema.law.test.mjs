@@ -96,6 +96,7 @@ test('a page that already publishes a graph is not given a second one by acciden
   const walk = (dir, out = []) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       if (e.name === 'api' || e.name === 'node_modules') continue;
+  assert.ok(walk.length >= 1, `Expected schema files, found ${walk.length} — a loop over nothing proves nothing`);
       const p = path.join(dir, e.name);
       if (e.isDirectory()) walk(p, out);
       else if (e.name.endsWith('.js')) out.push(p);

@@ -43,12 +43,13 @@
  * no node_modules), and only lints target paths that actually exist, so it
  * behaves in a partial checkout instead of exploding.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const REPO_ROOT = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO_ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 
 // The Personal Assistant surface: pages, API routes, hooks, libs and the
 // shared chrome that renders on top of it.

@@ -6,6 +6,7 @@
  * referred signups did) lost it. These pins prove the shared helper redeems
  * and clears correctly, and that BOTH verification doors call it.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -16,7 +17,7 @@ import {
     redeemPendingSignupCodes,
 } from '../src/lib/pendingSignupCodes.mjs';
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 
 function memoryStorage(seed = {}) {

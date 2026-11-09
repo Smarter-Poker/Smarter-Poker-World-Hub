@@ -76,6 +76,7 @@ test('retired video utilities cannot bypass the managed Reel publisher', () => {
   const videoUtilityNames = readdirSync(scriptsDirectory)
     .filter(name => /(?:video|reel|clip)/i.test(name))
     .filter(name => /\.(?:c?js|mjs)$/.test(name));
+  assert.ok(videoUtilityNames.length >= 1, `Expected video utility scripts, found ${videoUtilityNames.length} — a loop over nothing proves nothing`);
   const directManagedWrites = [];
   for (const name of videoUtilityNames) {
     const source = readFileSync(new URL(name, scriptsDirectory), 'utf8');

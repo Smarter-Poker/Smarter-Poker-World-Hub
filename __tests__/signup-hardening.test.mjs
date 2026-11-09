@@ -18,12 +18,13 @@
  * If any check fails, signup is at risk of regressing into the
  * silent-failure mode that bricked it from 2026-04-24 to 2026-05-03.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const REPO_ROOT = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO_ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8');
 
 test('geo-block JSON OR middleware.ts allow /auth/ and /api/auth/', () => {

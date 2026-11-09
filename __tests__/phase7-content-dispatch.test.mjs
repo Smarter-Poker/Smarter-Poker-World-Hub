@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,7 +10,7 @@ import test from 'node:test';
 // guard, the two service-role RPCs and the seven disabled mode rows.
 // Companion of phase6-content-dispatch.test.mjs.
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const dispatcher = fs.readFileSync(path.join(REPO, 'scripts', 'openclaw-cron-dispatcher.py'), 'utf8');
 const MIGRATION = 'supabase/migrations/20260930052057_phase7_puzzles_answer_once_and_reveal_once.sql';
 const migration = fs.readFileSync(path.join(REPO, MIGRATION), 'utf8');

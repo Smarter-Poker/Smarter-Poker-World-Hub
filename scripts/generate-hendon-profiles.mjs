@@ -2,6 +2,7 @@
  * GENERATE HENDONMOB MOCKUPS FOR ALL HORSES
  * Maps realistic tournament statistics to all 308 horses based on their specialty.
  */
+
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { fileURLToPath } from 'url';

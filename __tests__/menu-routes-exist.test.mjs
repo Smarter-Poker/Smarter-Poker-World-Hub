@@ -36,13 +36,14 @@
  * floor, or the well-known sentinel routes missing) and SKIPS with an
  * explanation instead of failing. It only ever fails against a full tree.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
-const REPO_ROOT = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO_ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const PAGES_DIR = path.join(REPO_ROOT, 'pages');
 const PUBLIC_DIR = path.join(REPO_ROOT, 'public');
 const MENU_CONFIG = path.join(REPO_ROOT, 'src/config/hamburgerMenus.js');

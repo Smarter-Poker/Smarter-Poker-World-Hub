@@ -1,9 +1,10 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-const root = resolve(new URL('..', import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const source = readFileSync(resolve(root, 'src/components/horses/dynamicPanels.js'), 'utf8');
 const modules = [...source.matchAll(/dynamic\(\s*\(\) => import\('\.\/(\w+Panel)'\)/g)]
   .map((match) => match[1]);

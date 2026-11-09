@@ -31,13 +31,14 @@
  *      handed every member every other member's balance and chip flows -
  *      asks the database's own club-staff rule before it reads either.
  */
+import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { OWNER_ONLY_PROFILE_COLUMNS, SENSITIVE_PROFILE_COLUMNS } from '../src/lib/profileColumns.js';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PRIVATE = new Set([...OWNER_ONLY_PROFILE_COLUMNS, ...SENSITIVE_PROFILE_COLUMNS]);
 
 // Reviewed 2026-10-06. Each entry says why the read never reaches a stranger.

@@ -14,12 +14,13 @@
  * If you genuinely need to remove one of these files, also remove it
  * from this list AND add a replacement that handles the same flow.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const REPO_ROOT = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO_ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 
 const CRITICAL_AUTH_FILES = [
     'pages/auth/callback.js',
