@@ -9,6 +9,7 @@
 import { LESSONS, LEARN_MODIFIED, lessonPath } from '../src/content/learn/lessons.js';
 import { COMPARE_PAGES, AS_OF as COMPARE_AS_OF, comparePath } from '../src/content/compare/pages.js';
 import { GLOSSARY_TERMS, glossaryTermPath } from '../src/content/glossary/terms.js';
+import { RESEARCH_REPORTS, researchPath } from '../src/content/research/reports.js';
 import { SITE_URL, sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
 import { xmlEscape } from '../src/lib/videoLibraryWatch.mjs';
 
@@ -118,9 +119,44 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
+        title: 'Poker Pot Odds, Required Equity & MDF Calculator',
+        link: `${SITE_URL}/tools/pot-odds-calculator`,
+        description: 'Calculate Pot Odds Ratios, Break-Even Calling Equity, Minimum Defense Frequency (MDF), And Hypergeometric Draw Outs.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Push/Fold Short-Stack Nash Equilibrium Calculator',
+        link: `${SITE_URL}/tools/push-fold-calculator`,
+        description: 'Interactive 3BB To 20BB Short-Stack Nash Equilibrium Open-Shove And Big-Blind Call Ranges With Sklansky-Chubukov Benchmarks.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Bankroll Management & Risk Of Ruin Calculator',
+        link: `${SITE_URL}/tools/bankroll-calculator`,
+        description: 'Compute Risk Of Ruin, Standard Deviation Downswing Confidence Intervals, And Kelly Criterion Bankroll Sizing.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'PKO & Mystery Bounty Chip Equity Calculator',
+        link: `${SITE_URL}/tools/bounty-calculator`,
+        description: 'Convert Progressive Knockout (PKO) And Mystery Bounty Envelopes Into Exact Tournament Chip Equivalents And Calling Odds.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Winrate, BB/100 & Hourly Rate Calculator',
+        link: `${SITE_URL}/tools/poker-winrate-calculator`,
+        description: 'Convert Live And Online Poker Winrates Between BB/100 Hands And Hourly Dollar Winrates ($/Hr) With Variance Confidence Bands.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
         title: 'Free Poker Webmaster Widgets & Embed Center',
         link: `${SITE_URL}/tools/embeds`,
-        description: 'Embed Free Responsive Poker Odds Calculators, ICM Solvers, And GTO Preflop Charts On Any Website Or Blog.',
+        description: 'Embed Free Responsive Poker Odds Calculators, ICM Solvers, GTO Preflop Charts, And Verified SVG Authority Badges On Any Website Or Blog.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
@@ -185,6 +221,20 @@ export function buildRssFeedXml() {
                 description: page.description || '',
                 category: 'Poker Software Comparison',
                 pubDate: compareDate,
+            };
+        }),
+        ...RESEARCH_REPORTS.map((report) => {
+            const url = `${SITE_URL}${researchPath(report.slug)}`;
+            const reportDate = report.modifiedDate
+                ? new Date(`${report.modifiedDate}T00:00:00Z`).toUTCString()
+                : learnDate;
+            return {
+                title: report.title,
+                link: url,
+                guid: url,
+                description: report.summary || '',
+                category: report.category || 'Poker Industry Research',
+                pubDate: reportDate,
             };
         }),
         ...FEATURE_ITEMS.map((item) => ({

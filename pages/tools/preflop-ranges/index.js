@@ -13,6 +13,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
 import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
@@ -706,6 +707,16 @@ export default function PreflopRangeMatrixHub({
               </Link>
             </div>
           </div>
+
+          <CitationBacklinkBox
+            title={`GTO Preflop Range Matrix: ${posData.name} (${posData.abbrev})`}
+            canonicalUrl={`https://smarter.poker${canonicalPath}`}
+            badgeType="gto"
+            badgeLabel="100BB 6-Max GTO Matrix"
+            badgeValue={`${posData.abbrev} Preflop Range`}
+            summary={`${posData.desc} 6-Max No Limit Hold'em At 100 Big Blinds Depth.`}
+            slug={`preflop-ranges-${posData.abbrev.toLowerCase()}`}
+          />
 
           <AiPromptLauncher
             title={`GTO Preflop Range Matrix: ${posData.name} (${posData.abbrev})`}

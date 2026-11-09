@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const PKO_STAGE_CONVERSIONS = [
@@ -350,6 +351,16 @@ export default function BountyCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="PKO & Mystery Bounty Chip Equity Calculator"
+          canonicalUrl={canonicalUrl}
+          badgeType="gto"
+          badgeLabel="Tournament Bounty Solver"
+          badgeValue="PKO & Mystery Bounty"
+          summary="Interactive Progressive Knockout (PKO) And Mystery Bounty Chip Conversion, Bounty Power Factor, And Calling Odds Calculator."
+          slug="bounty-calculator"
+        />
 
         <AiPromptLauncher
           title="PKO & Mystery Bounty Chip Equity Calculator"

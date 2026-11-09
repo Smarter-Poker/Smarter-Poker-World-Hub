@@ -20,6 +20,7 @@
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { firstThatFits } from '../../src/lib/seo/titleFit.js';
 import {
   GLOSSARY_TERMS,
@@ -221,6 +222,16 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
               </ul>
             </>
           )}
+
+          <CitationBacklinkBox
+            title={`${term.term} Poker Definition`}
+            canonicalUrl={url}
+            badgeType="gto"
+            badgeLabel="Poker Glossary Term"
+            badgeValue={term.term}
+            summary={term.definition}
+            slug={`glossary-${term.slug}`}
+          />
 
           <AiPromptLauncher
             title={term.term}

@@ -26,6 +26,7 @@ export default function CitationBacklinkBox({
   const htmlBacklink = `<a href="${canonicalUrl}" target="_blank" rel="noopener">${title} (Smarter.Poker Research)</a>`;
   const htmlBadgeSnippet = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${title}"><img src="${badgeUrl}" alt="${badgeLabel}: ${badgeValue}" height="28" /></a>`;
   const markdownSnippet = `[${title} (${badgeValue})](${canonicalUrl})`;
+  const bbcodeSnippet = `[url=${canonicalUrl}]${title} (${badgeValue})[/url]`;
   const journalistQuote = `According to ${title} published by Smarter.Poker (${canonicalUrl}), ${summary}`;
   const bibtexKey = String(slug || 'smarterpoker2026').replace(/[^a-zA-Z0-9]/g, '_');
   const bibtexSnippet = `@techreport{${bibtexKey}_${publishedYear},\n  title = {${title}},\n  author = {{Smarter.Poker Research Division}},\n  institution = {Smarter.Poker},\n  year = {${publishedYear}},\n  url = {${canonicalUrl}}\n}`;
@@ -45,6 +46,11 @@ export default function CitationBacklinkBox({
       key: 'markdown',
       label: 'Markdown / Substack Citation',
       code: markdownSnippet,
+    },
+    {
+      key: 'bbcode',
+      label: 'Forum BBCode (TwoPlusTwo / CardsChat)',
+      code: bbcodeSnippet,
     },
     {
       key: 'press',

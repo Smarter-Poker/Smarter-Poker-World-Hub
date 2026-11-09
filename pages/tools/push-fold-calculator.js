@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const POSITION_SHOVE_BENCHMARKS = [
@@ -385,6 +386,16 @@ export default function PushFoldCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Poker Push/Fold Short-Stack Nash Equilibrium Calculator"
+          canonicalUrl={canonicalUrl}
+          badgeType="gto"
+          badgeLabel="Nash Equilibrium Solver"
+          badgeValue="3BB-20BB Push/Fold"
+          summary="Interactive Short-Stack Push/Fold Nash Equilibrium Range Calculator And Sklansky-Chubukov Benchmarks Across 3BB To 20BB."
+          slug="push-fold-calculator"
+        />
 
         <AiPromptLauncher
           title="Poker Push/Fold Short-Stack Chart Calculator"

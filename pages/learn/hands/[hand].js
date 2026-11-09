@@ -10,6 +10,7 @@
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import {
   SITE_URL,
   LEARN_URL,
@@ -254,6 +255,16 @@ export default function StartingHandDetailPage({ hand }) {
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title={`How To Play ${hand.name} (${hand.code}) In Texas Hold'em`}
+          canonicalUrl={url}
+          badgeType="gto"
+          badgeLabel="169 Starting Hand Guide"
+          badgeValue={`${hand.code} GTO Chart`}
+          summary={hand.summary}
+          slug={`hand-${hand.slug}`}
+        />
 
         <AiPromptLauncher
           title={`How To Play ${hand.name} (${hand.code})`}
