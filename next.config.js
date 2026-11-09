@@ -1541,6 +1541,10 @@ const nextConfig = {
           destination: '/hub/tours/:code?format=md',
         },
         {
+          source: '/hub/tours/:code.ics',
+          destination: '/hub/tours/:code?format=ics',
+        },
+        {
           source: '/hub/poker-near-me/in.md',
           destination: '/hub/poker-near-me/in?format=md',
         },
@@ -1591,6 +1595,22 @@ const nextConfig = {
         {
           source: '/tools/poker-winrate-calculator.md',
           destination: '/tools/poker-winrate-calculator?format=md',
+        },
+        {
+          source: '/tools.md',
+          destination: '/tools?format=md',
+        },
+        {
+          source: '/tools/side-pot-calculator.md',
+          destination: '/tools/side-pot-calculator?format=md',
+        },
+        {
+          source: '/tools/blind-structure-calculator.md',
+          destination: '/tools/blind-structure-calculator?format=md',
+        },
+        {
+          source: '/tools/spr-calculator.md',
+          destination: '/tools/spr-calculator?format=md',
         },
         {
           source: '/openapi.json',
@@ -1699,6 +1719,14 @@ const nextConfig = {
         {
           source: '/hub/video-library.md',
           destination: '/features/interactive-video-coaching?format=md',
+        },
+        {
+          source: '/hub/video-library/watch/:videoId/:slug.md',
+          destination: '/hub/video-library/watch/:videoId/:slug?format=md',
+        },
+        {
+          source: '/hub/video-library/watch/:videoId.md',
+          destination: '/hub/video-library/watch/:videoId?format=md',
         },
         {
           source: '/hub.md',

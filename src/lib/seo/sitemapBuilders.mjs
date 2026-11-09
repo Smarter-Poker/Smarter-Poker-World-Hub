@@ -30,6 +30,7 @@ import { LESSONS, LEARN_CATEGORIES } from '../../content/learn/lessons.js';
 import { LEARN_PATH, lessonPath, learnCategoryPath } from '../learn/learnSite.js';
 import { STARTING_HANDS } from '../../content/learn/hands.js';
 import { RESEARCH_REPORTS } from '../../content/research/reports.js';
+import { VIDEO_LIBRARY_PLAYERS } from '../videoLibraryPlayers.mjs';
 
 export const SITE_URL = 'https://smarter.poker';
 export const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -78,6 +79,9 @@ export const STATIC_PAGES = [
   { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
   { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/video-library/channels', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/video-library/players', priority: '0.8', changefreq: 'weekly' },
+  ...VIDEO_LIBRARY_PLAYERS.map((p) => ({ path: p.path, priority: '0.75', changefreq: 'weekly' })),
   { path: '/hub/diamond-store', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/vip-membership', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/vip-membership/monthly', priority: '0.8', changefreq: 'weekly' },
@@ -99,6 +103,7 @@ export const STATIC_PAGES = [
   { path: '/hub/poker-tools', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/training/icm-calculator', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/training/equity-calculator', priority: '0.8', changefreq: 'weekly' },
+  { path: '/tools', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/poker-odds-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/icm-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/pot-odds-calculator', priority: '0.9', changefreq: 'weekly' },
@@ -106,6 +111,9 @@ export const STATIC_PAGES = [
   { path: '/tools/push-fold-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/bounty-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/poker-winrate-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/side-pot-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/blind-structure-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/spr-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges/utg', priority: '0.85', changefreq: 'monthly' },
   { path: '/tools/preflop-ranges/mp', priority: '0.85', changefreq: 'monthly' },

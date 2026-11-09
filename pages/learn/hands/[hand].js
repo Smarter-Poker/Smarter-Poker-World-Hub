@@ -17,7 +17,7 @@ import {
   ORGANIZATION_ID,
   LEARN_MODIFIED,
 } from '../../../src/lib/learn/learnSite.js';
-import { STARTING_HANDS, HANDS_BASE_PATH, handPath, getStartingHand } from '../../../src/content/learn/hands.js';
+import { STARTING_HANDS, HANDS_BASE_PATH, handPath, getStartingHand, getExpandedHandMatchups } from '../../../src/content/learn/hands.js';
 
 export async function getStaticPaths() {
   return {
@@ -201,7 +201,7 @@ export default function StartingHandDetailPage({ hand }) {
           </h2>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
             <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
-              All-In Preflop Equity Benchmarks For {hand.code}
+              All-In Preflop Equity Benchmarks For {hand.code} Across Key Holdings
             </caption>
             <thead>
               <tr style={{ borderBottom: '1px solid #1e293b', color: '#38bdf8', textAlign: 'left' }}>
@@ -209,15 +209,32 @@ export default function StartingHandDetailPage({ hand }) {
                 <th scope="col" style={{ padding: '10px 14px' }}>{hand.code} Equity</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Opponent Equity</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Tie Frequency</th>
+                <th scope="col" style={{ padding: '10px 14px' }}>Interactive Simulation</th>
               </tr>
             </thead>
             <tbody>
-              {hand.matchups.map((m) => (
+              {getExpandedHandMatchups(hand).map((m) => (
                 <tr key={m.villain} style={{ borderBottom: '1px solid #1e293b' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#f8fafc' }}>{m.villain}</td>
+                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#f8fafc' }}>
+                    {m.villainSlug ? (
+                      <Link href={`/learn/hands/${m.villainSlug}`} style={{ color: '#f8fafc', textDecoration: 'none' }}>
+                        {m.villain}
+                      </Link>
+                    ) : (
+                      m.villain
+                    )}
+                  </td>
                   <td style={{ padding: '10px 14px', color: '#34d399', fontWeight: 700 }}>{m.heroEquity}</td>
                   <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{m.villainEquity}</td>
                   <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{m.tie}</td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <Link
+                      href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)}&hand2=${encodeURIComponent(m.villainCode)}`}
+                      style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}
+                    >
+                      Simulate {hand.code} Vs {m.villainCode}
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

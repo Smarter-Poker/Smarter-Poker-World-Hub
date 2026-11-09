@@ -144,8 +144,8 @@ test('Phase 39 & 40: First-party Research Reports and Editorial Standards render
   assert.ok(renderEditorialStandardsMarkdown().includes('Mathematical Verification Standards'));
 });
 
-test('Phase 41: Competitor Comparison Matrix includes 25 verified pages', () => {
-  assert.equal(COMPARE_PAGES.length, 25);
+test('Phase 41: Competitor Comparison Matrix includes 30 verified pages', () => {
+  assert.equal(COMPARE_PAGES.length, 30);
   for (const slug of [
     'smarter-poker-vs-run-it-once',
     'smarter-poker-vs-upswing-poker',
@@ -153,18 +153,24 @@ test('Phase 41: Competitor Comparison Matrix includes 25 verified pages', () => 
     'smarter-poker-vs-holdem-manager-3',
     'smarter-poker-vs-piosolver',
     'smarter-poker-vs-monkersolver',
+    'smarter-poker-vs-holdem-resources-calculator',
+    'smarter-poker-vs-flopzilla',
+    'wynn-vs-venetian-poker-las-vegas',
+    'borgata-vs-parx-poker',
+    'best-poker-rooms-in-florida',
   ]) {
     assert.ok(COMPARE_PAGES.some((p) => p.slug === slug), `includes ${slug}`);
   }
 });
 
-test('Phase 44: MCP Server exposes 18 tools and 8 resource templates plus .well-known/mcp-registry.json', async () => {
-  assert.equal(MCP_TOOLS.length, 18);
+test('Phase 44: MCP Server exposes 21 tools and 8 resource templates plus .well-known/mcp-registry.json', async () => {
+  assert.equal(MCP_TOOLS.length, 21);
   assert.equal(MCP_RESOURCE_TEMPLATES.length, 8);
 
   const handResult = await executeMcpTool('lookup_starting_hand', { hand: '72o' });
   const handJson = JSON.parse(handResult.content[0].text);
   assert.equal(handJson.slug, 'seven-deuce-offsuit');
+  assert.ok(handJson.expanded_matchups.length >= 8);
 
   const reportResult = await executeMcpTool('get_research_report', {
     slug: 'mystery-bounty-vs-pko-ev-and-bounty-power-factor-study',
@@ -193,7 +199,7 @@ test('Phase 44: MCP Server exposes 18 tools and 8 resource templates plus .well-
 
   const registry = JSON.parse(read('public/.well-known/mcp-registry.json'));
   assert.equal(registry.name, 'io.github.smarter-poker/mcp-server');
-  assert.equal(registry.tools_count, 18);
+  assert.equal(registry.tools_count, 21);
 });
 
 test('Phase 35, 42, 43, 47, 48, 49: next.config.js, knowledge-graph, corpus, and crawler-status routes exist', () => {

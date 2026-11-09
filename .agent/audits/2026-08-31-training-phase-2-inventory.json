@@ -97021,12 +97021,16 @@
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
           "pages/tools/bankroll-calculator.js",
+          "pages/tools/blind-structure-calculator.js",
           "pages/tools/bounty-calculator.js",
           "pages/tools/embeds.js",
+          "pages/tools/index.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges/index.js",
           "pages/tools/push-fold-calculator.js",
+          "pages/tools/side-pot-calculator.js",
+          "pages/tools/spr-calculator.js",
           "src/lib/seo/summarySchema.js"
         ]
       },
@@ -106533,12 +106537,16 @@
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
           "pages/tools/bankroll-calculator.js",
+          "pages/tools/blind-structure-calculator.js",
           "pages/tools/bounty-calculator.js",
           "pages/tools/embeds.js",
+          "pages/tools/index.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges/index.js",
           "pages/tools/push-fold-calculator.js",
+          "pages/tools/side-pot-calculator.js",
+          "pages/tools/spr-calculator.js",
           "src/lib/seo/summarySchema.js"
         ]
       },

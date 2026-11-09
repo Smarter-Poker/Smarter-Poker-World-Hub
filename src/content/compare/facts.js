@@ -299,6 +299,46 @@ export const SOURCES = {
     title: 'MonkerSolver Multiway Solver Official Site',
     kind: 'maker',
   },
+  hrcSite: {
+    url: 'https://www.holdemresources.net/',
+    title: 'HoldemResources Calculator Official Site',
+    kind: 'maker',
+  },
+  flopzillaSite: {
+    url: 'https://www.flopzilla.com/',
+    title: 'Flopzilla Range Analysis Software Official Site',
+    kind: 'maker',
+  },
+  wynnSite: {
+    url: 'https://www.wynnlasvegas.com/casino/poker',
+    title: 'Wynn Las Vegas Poker Room Official Site',
+    kind: 'maker',
+  },
+  venetianSite: {
+    url: 'https://www.venetianlasvegas.com/casino/poker.html',
+    title: 'The Venetian Las Vegas Poker Room Official Site',
+    kind: 'maker',
+  },
+  borgataSite: {
+    url: 'https://borgata.mgmresorts.com/en/casino/poker.html',
+    title: 'Borgata Hotel Casino And Spa Poker Room Official Site',
+    kind: 'maker',
+  },
+  parxSite: {
+    url: 'https://www.parxcasino.com/poker',
+    title: 'Parx Casino Poker Room Official Site',
+    kind: 'maker',
+  },
+  seminoleHardRockSite: {
+    url: 'https://casino.hardrock.com/hollywood/casino/poker',
+    title: 'Seminole Hard Rock Hollywood Poker Room Official Site',
+    kind: 'maker',
+  },
+  bestbetJaxSite: {
+    url: 'https://www.bestbetjax.com/',
+    title: 'Bestbet Jacksonville Poker Room Official Site',
+    kind: 'maker',
+  },
 
   // Smarter.Poker, read from the live site
   spHome: { url: 'https://smarter.poker/', title: 'Smarter.Poker Home Page', kind: 'own' },
@@ -791,6 +831,28 @@ export const PRODUCTS = {
       platforms: fact('Windows And Mac Java Desktop Software', 'monkersolverSite'),
     },
   },
+  holdemResources: {
+    name: 'HoldemResources Calculator',
+    facts: {
+      pricing: fact('Monthly And Annual Subscription Licensing For Desktop Software', 'hrcSite'),
+      freeTier: fact('14-Day Free Trial License Available On Official Website', 'hrcSite'),
+      training: fact('Preflop Nash Equilibrium Push-Fold, 3-Bet And Postflop Monte Carlo Tree Modes', 'hrcSite'),
+      solver: fact('Multi-Table Tournament ICM, PKO Bounty And Future Game Simulation (FGS) Solver', 'hrcSite'),
+      handReview: fact('Batch Hand History Import For Tournament Push-Fold And ICM Leak Detection', 'hrcSite'),
+      platforms: fact('Windows, Mac And Linux Desktop Software', 'hrcSite'),
+    },
+  },
+  flopzilla: {
+    name: 'Flopzilla',
+    facts: {
+      pricing: fact('One-Time Desktop Software Purchase At $25 Including FlopzillaPro', 'flopzillaSite'),
+      freeTier: fact('7-Day Free Trial On Windows Desktop', 'flopzillaSite'),
+      training: fact('Interactive Board Texture Hit-Frequency And Range Filtering Explorer', 'flopzillaSite'),
+      solver: fact('Range-Versus-Board And Multiway Range-Versus-Range Combinatorial Equity Matrix', 'flopzillaSite'),
+      handReview: fact('Custom Hand-Versus-Range Street-By-Street Equity Breakdown And Pie Charts', 'flopzillaSite'),
+      platforms: fact('Windows Desktop Software', 'flopzillaSite'),
+    },
+  },
 
   // ─── Bankroll trackers ───────────────────────────────────────────────────
   bankrollManager: {
@@ -959,6 +1021,84 @@ export const PRODUCTS = {
       feeModel: fact('Standard Mid-Atlantic Pot Rake', 'liveCasinoMdSite'),
       hours: fact('Open 24 Hours Daily', 'liveCasinoMdSite'),
       amenities: fact('Adjacent To BWI Thurgood Marshall Airport, Direct Mall Access And Luxury Hotel', 'liveCasinoMdSite'),
+    },
+  },
+  wynn: {
+    name: 'Wynn Las Vegas Poker Room',
+    facts: {
+      location: fact('3131 Las Vegas Boulevard South, Las Vegas, Nevada', 'wynnSite'),
+      tables: fact('28 Dedicated Poker Tables At Encore', 'wynnSite'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha And Mixed Games", 'wynnSite'),
+      stakes: fact('$1/$3, $2/$5, $5/$10 And High-Stakes Cash Games', 'wynnSite'),
+      tournaments: fact('Home Of The Wynn Millions, Wynn Classic And WPT World Championship', 'wynnSite'),
+      feeModel: fact('Traditional Nevada Pot Rake With No Hourly Seat Fee', 'wynnSite'),
+      hours: fact('Open 24 Hours Daily', 'wynnSite'),
+      amenities: fact('Encore Luxury Resort Setting, Tableside Dining, Valet Parking And USB Charging', 'wynnSite'),
+    },
+  },
+  venetian: {
+    name: 'The Venetian Poker Room',
+    facts: {
+      location: fact('3355 Las Vegas Boulevard South, Las Vegas, Nevada', 'venetianSite'),
+      tables: fact('50 Dedicated Poker Tables At Grand Canal Shoppes', 'venetianSite'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha And Omaha Hi-Lo", 'venetianSite'),
+      stakes: fact('$1/$3, $2/$5, $5/$10 And Regular Promotions', 'venetianSite'),
+      tournaments: fact('DeepStack Extravaganza Series And Daily Multi-Table Tournaments', 'venetianSite'),
+      feeModel: fact('Traditional Nevada Pot Rake With High Hand Promotions', 'venetianSite'),
+      hours: fact('Open 24 Hours Daily', 'venetianSite'),
+      amenities: fact('Dedicated Streaming Studio, Self-Serve Beverage Station, Restrooms And Sports Screens', 'venetianSite'),
+    },
+  },
+  borgata: {
+    name: 'Borgata Poker Room',
+    facts: {
+      location: fact('1 Borgata Way, Atlantic City, New Jersey', 'borgataSite'),
+      tables: fact('50+ Dedicated Poker Tables', 'borgataSite'),
+      games: fact("No-Limit Hold'em, Limit Hold'em, Pot-Limit Omaha And Stud", 'borgataSite'),
+      stakes: fact('$1/$3, $2/$5, $5/$10 And High-Limit Mixed Games', 'borgataSite'),
+      tournaments: fact('Borgata Poker Open, Daily Guaranteed Tournaments And East Coast Series', 'borgataSite'),
+      feeModel: fact('Standard New Jersey Casino Pot Rake And MGM Rewards Comps', 'borgataSite'),
+      hours: fact('Open 24 Hours Daily', 'borgataSite'),
+      amenities: fact('East Coast Flagship Poker Room, Tableside Service And MGM Resort Dining', 'borgataSite'),
+    },
+  },
+  parx: {
+    name: 'Parx Casino Poker Room',
+    facts: {
+      location: fact('2999 Street Road, Bensalem, Pennsylvania', 'parxSite'),
+      tables: fact('48 Dedicated Poker Tables', 'parxSite'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha And High-Stakes Mixed Games", 'parxSite'),
+      stakes: fact('$1/$3, $2/$5, $10/$10 PLO And Tuesday Big Stax Action', 'parxSite'),
+      tournaments: fact('Big Stax Championship Series And Weekly Guaranteed Tournaments', 'parxSite'),
+      feeModel: fact('Standard Pennsylvania Casino Pot Rake', 'parxSite'),
+      hours: fact('Open 24 Hours Daily', 'parxSite'),
+      amenities: fact('Premier Greater Philadelphia Poker Room, Dedicated Cashier And Dining Lounge', 'parxSite'),
+    },
+  },
+  seminoleHardRock: {
+    name: 'Seminole Hard Rock Hollywood Poker Room',
+    facts: {
+      location: fact('1 Seminole Way, Hollywood, Florida', 'seminoleHardRockSite'),
+      tables: fact('45 Dedicated Poker Tables', 'seminoleHardRockSite'),
+      games: fact("No-Limit Hold'em, Limit Hold'em, Pot-Limit Omaha And Big O", 'seminoleHardRockSite'),
+      stakes: fact('$1/$2, $2/$5, $5/$10 And High-Stakes PLO', 'seminoleHardRockSite'),
+      tournaments: fact('Showdown, Rock N Roll Poker Open, Lucky Hearts Open And Daily Events', 'seminoleHardRockSite'),
+      feeModel: fact('Florida Pot Rake With High Hand Promotional Drops', 'seminoleHardRockSite'),
+      hours: fact('Open 24 Hours Daily', 'seminoleHardRockSite'),
+      amenities: fact('Guitar Hotel Resort Complex, Private Cage, Free Wi-Fi And Tableside Service', 'seminoleHardRockSite'),
+    },
+  },
+  bestbetJax: {
+    name: 'Bestbet Jacksonville Poker Room',
+    facts: {
+      location: fact('201 Monument Road, Jacksonville, Florida', 'bestbetJaxSite'),
+      tables: fact('60+ Dedicated Poker Tables', 'bestbetJaxSite'),
+      games: fact("No-Limit Hold'em, Pot-Limit Omaha, Omaha Hi-Lo And 7-Card Stud", 'bestbetJaxSite'),
+      stakes: fact('$1/$2, $2/$5, $5/$10 And Livestreamed High-Stakes Cash Games', 'bestbetJaxSite'),
+      tournaments: fact('WPT Bestbet Scramble, Seasonal Series And Daily Tournaments', 'bestbetJaxSite'),
+      feeModel: fact('Florida Cardroom Pot Rake With Jackpot And High Hand Promotions', 'bestbetJaxSite'),
+      hours: fact('Open 24 Hours Daily', 'bestbetJaxSite'),
+      amenities: fact('Broadcast Studio, Sushi Bar, Full Restaurant And Simulcast Racing', 'bestbetJaxSite'),
     },
   },
 };
