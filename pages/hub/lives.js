@@ -309,7 +309,6 @@ export default function LivesPage({ livesListing = null }) {
         const idx = streams.findIndex(s => s.id === router.query.id);
         if (idx !== -1) {
             setCurrentIndex(idx);
-            router.replace('/hub/lives', undefined, { shallow: true });
         }
     }, [streams, router.isReady, router.query.id]);
 
@@ -546,7 +545,7 @@ export default function LivesPage({ livesListing = null }) {
             <SEOHead
                 title="Live Streams - Watch Poker Live"
                 description="Watch Live Poker Streams And Events On Smarter.Poker: Players Streaming Their Own Sessions And Tournament Coverage, With Chat Beside The Player. Free To Watch, No Account Needed, And Nothing On It Is A Wager."
-                canonical="/hub/lives"
+                canonical={currentStream && router.query.id ? `/hub/lives?id=${encodeURIComponent(currentStream.id)}` : '/hub/lives'}
             />
 
             <div
@@ -788,8 +787,8 @@ export default function LivesPage({ livesListing = null }) {
                             opacity: Math.abs(idx - currentIndex) <= 1 ? 1 : 0,
                         }}
                     >
-                        {/* Video Player */}
-                        {stream.video_url ? (
+                        {/* Video Player — only mount active <video> element so offscreen slides use poster images */}
+                        {stream.video_url && idx === currentIndex ? (
                             <video
                                 ref={el => videoRefs.current[idx] = el}
                                 src={stream.video_url}

@@ -62,7 +62,7 @@ export default function VideoLearningLoop({
             {saved ? 'In Study List' : 'Add To Study List'}
           </button>
         ) : null}
-        {fullVideoHref ? <Link href={fullVideoHref}>Open Full Lesson</Link> : null}
+        {fullVideoHref ? <Link href={fullVideoHref} rel={fullVideoHref.includes('?') ? 'nofollow' : undefined}>Open Full Lesson</Link> : null}
         <button type="button" onClick={onAskGeeves}>Ask Geeves To Explain</button>
         <Link href={quizHref || trainingHref}>Take A Quick Quiz</Link>
         <Link href={sandboxHref}>Practice In Sandbox</Link>

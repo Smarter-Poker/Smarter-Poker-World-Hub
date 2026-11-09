@@ -21,11 +21,13 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-test('SEOHead defines normalizeCanonicalUrl that strips query strings, hashes, and trailing slashes', () => {
+test('SEOHead defines normalizeCanonicalUrl that strips query strings, hashes, and trailing slashes while preserving watch ?id= on reels and lives', () => {
   const seoCode = read('vendor/commander-shared/src/components/seo/SEOHead.js');
   assert.match(seoCode, /export function normalizeCanonicalUrl\(canonicalTarget\)/);
   assert.match(seoCode, /\.split\('#'\)\[0\]\.split\('\?'\)\[0\]/);
   assert.match(seoCode, /\.replace\(\/\\\/\+\$\/, ''\)/);
+  assert.match(seoCode, /baseCanonical === `\$\{SITE_URL\}\/hub\/reels` \|\| baseCanonical === `\$\{SITE_URL\}\/hub\/lives`/);
+  assert.match(seoCode, /return `\$\{baseCanonical\}\?id=\$\{encodeURIComponent\(watchId\)\}`/);
 });
 
 test('SEOHead emits hreflang="en-US" and hreflang="x-default" alternate links on indexable canonical pages', () => {

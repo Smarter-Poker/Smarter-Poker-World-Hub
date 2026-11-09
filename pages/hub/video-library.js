@@ -2039,7 +2039,8 @@ export default function VideoLibraryPage() {
             <SEOHead
                 title="Poker Video Library: Strategy And Coverage"
                 description="A Curated Poker Video Library On Smarter.Poker: Strategy Content, Tournament Coverage And Training Videos, With Watch History And AI Tactical Analysis. Free To Watch."
-                canonical="/hub/video-library"
+                canonical={selectedVideo && requestedQueryVideoId ? watchPath(selectedVideo) : '/hub/video-library'}
+                noindex={Boolean(rawRequestedQueryVideoId || router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort)}
                 jsonLd={VIDEO_LIBRARY_SCHEMA}
             />
 

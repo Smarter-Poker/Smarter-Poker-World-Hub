@@ -112,6 +112,7 @@ export async function getServerSideProps({ params, res }) {
             .from('video_library_public_catalog')
             .select(VIDEO_ROW_FIELDS)
             .eq('youtube_video_id', videoId)
+            .limit(1)
             .maybeSingle();
         if (error) throw error;
 
@@ -341,7 +342,18 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                 ogType="video.other"
                 noindex={!indexable}
                 jsonLd={jsonLd}
-            />
+            >
+                {indexable && (
+                    <>
+                        <meta key="og-video" property="og:video" content={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}`} />
+                        <meta key="og-video-url" property="og:video:url" content={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}`} />
+                        <meta key="og-video-secure-url" property="og:video:secure_url" content={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}`} />
+                        <meta key="og-video-type" property="og:video:type" content="text/html" />
+                        <meta key="og-video-width" property="og:video:width" content={seconds > 0 && seconds <= 180 ? '405' : '1280'} />
+                        <meta key="og-video-height" property="og:video:height" content="720" />
+                    </>
+                )}
+            </SEOHead>
             <div className="video-library-page">
                 <HubPageShell className="video-library" maxWidth={1760} header={header}>
                     <article className="vl-watch-page" data-video-id={video.videoId}>
@@ -398,7 +410,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                 <div className="vl-hud" role="group" aria-label="Video actions">
                                     <Link href={videoLibrarySocialShareHref(video)} className="vl-hud-link">Share To Feed</Link>
                                     <button type="button" disabled={!(relatedVideos[0] || channelVideos[0])} onClick={() => playbackQueue.enqueueNext(relatedVideos[0] || channelVideos[0], video)}>Queue Next Video</button>
-                                    <Link href={libraryHref} className="vl-hud-link is-primary">Save, Playlists And Training</Link>
+                                    <Link href={libraryHref} rel="nofollow" className="vl-hud-link is-primary">Save, Playlists And Training</Link>
                                     <button type="button" onClick={share}>
                                         {shareState === 'copied' ? 'Link Copied' : shareState === 'failed' ? 'Copy Failed' : 'Share'}
                                     </button>
@@ -417,7 +429,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                     <WatchDescription key={video.videoId} text={description} />
                                     <dl>
                                         <div><dt>Channel</dt><dd>{channelHref ? <Link href={channelHref}>{channel.name}</Link> : channel.name}</dd></div>
-                                        <div><dt>Type</dt><dd><Link href={`/hub/video-library?type=${encodeURIComponent(video.type)}`}>{typeLabel}</Link></dd></div>
+                                        <div><dt>Type</dt><dd><Link href={`/hub/video-library?type=${encodeURIComponent(video.type)}`} rel="nofollow">{typeLabel}</Link></dd></div>
                                         {published && <div><dt>Published</dt><dd>{published}</dd></div>}
                                         {seconds > 0 && <div><dt>Length</dt><dd>{readableDuration(seconds)}</dd></div>}
                                         {views && <div><dt>Views On YouTube</dt><dd>{views.replace(/\s*Views$/i, '')}</dd></div>}
