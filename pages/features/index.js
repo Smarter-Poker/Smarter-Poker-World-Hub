@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 
 export const ALL_FEATURES = [
   {
@@ -350,6 +351,17 @@ export default function FeaturesIndexPage() {
             ))}
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Smarter.Poker Platform Features & Free Poker Tools Directory"
+          canonicalUrl="https://smarter.poker/features"
+          badgeType="commander"
+          badgeLabel="Poker Ecosystem Directory"
+          badgeValue="Smarter.Poker Platform"
+          summary="Complete index of Smarter.Poker free tools: Form W-2G Tax Ledger, Dealer Toke Tracker, Jarvis AI Coach, Club Commander, and GTO Calculators."
+          publishedYear="2026"
+          slug="smarter-poker-features-directory"
+        />
       </div>
     </>
   );

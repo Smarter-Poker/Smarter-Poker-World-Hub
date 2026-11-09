@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 79,
     "realtimeFiles": 6,
-    "tests": 172,
+    "tests": 174,
     "markerCandidates": 342,
     "possibleUnwiredFunctions": 398,
     "routeStateCells": 752,
@@ -4677,6 +4677,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4708,6 +4709,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4746,6 +4748,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4772,6 +4775,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4804,6 +4808,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4839,6 +4844,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4856,6 +4862,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4878,6 +4885,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4889,6 +4897,7 @@
         }
       },
       "existingTests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -7666,6 +7675,8 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-daily-challenge-authority.test.mjs",
@@ -7683,6 +7694,8 @@
             "src/lib/training/solverPolicyContract.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-daily-challenge-authority.test.mjs",
@@ -7701,6 +7714,8 @@
             "src/lib/training/solverPolicyContract.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-daily-challenge-authority.test.mjs",
@@ -7717,6 +7732,8 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-daily-challenge-authority.test.mjs",
@@ -7733,6 +7750,8 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-daily-challenge-authority.test.mjs",
@@ -7751,6 +7770,8 @@
             "src/lib/training/cacheTruthContract.mjs"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-daily-challenge-authority.test.mjs",
@@ -7766,6 +7787,8 @@
             "src/components/training/ConnectionToast.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-daily-challenge-authority.test.mjs",
@@ -7784,6 +7807,8 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
             "__tests__/training-daily-challenge-authority.test.mjs",
@@ -7794,6 +7819,8 @@
         }
       },
       "existingTests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/daily-challenges-casino-realism.test.mjs",
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
         "__tests__/training-daily-challenge-authority.test.mjs",
@@ -10849,6 +10876,7 @@
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -10884,6 +10912,7 @@
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -10925,6 +10954,7 @@
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -10953,6 +10983,7 @@
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -10988,6 +11019,7 @@
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -11027,6 +11059,7 @@
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -11047,6 +11080,7 @@
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -11071,6 +11105,7 @@
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -11084,6 +11119,7 @@
       },
       "existingTests": [
         "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-leaderboard-authority.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
@@ -16624,6 +16660,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
@@ -16652,6 +16689,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
@@ -16687,6 +16725,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
@@ -16711,6 +16750,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
@@ -16740,6 +16780,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
@@ -16772,6 +16813,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
@@ -16786,6 +16828,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
@@ -16805,6 +16848,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
@@ -16813,6 +16857,7 @@
         }
       },
       "existingTests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-projection-authority-package-c.test.mjs",
         "__tests__/training-retired-client-mutations.test.mjs",
@@ -18465,6 +18510,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18499,6 +18545,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18537,6 +18584,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18564,6 +18612,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18597,6 +18646,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18634,6 +18684,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18653,6 +18704,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18678,6 +18730,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18690,6 +18743,7 @@
         }
       },
       "existingTests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -37665,7 +37719,7 @@
         {
           "element": "a",
           "name": "All Webmaster Widgets & Badges",
-          "line": 108,
+          "line": 114,
           "handler": null,
           "destination": "/tools/embeds",
           "type": null,
@@ -37675,7 +37729,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 150,
+          "line": 156,
           "handler": "() => handleCopy(item.key, item.code)",
           "destination": null,
           "type": "button",
@@ -37723,7 +37777,7 @@
         },
         {
           "name": "handleCopy",
-          "line": 67,
+          "line": 73,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -65895,6 +65949,8 @@
     "__tests__/aeo-dynamic-og-cards.test.mjs",
     "__tests__/aeo-freerolls-global-wiring.test.mjs",
     "__tests__/aeo-tool-schemas.test.mjs",
+    "__tests__/aeo-traffic-expansion-master.test.mjs",
+    "__tests__/backlink-embed-citation-engine.test.mjs",
     "__tests__/daily-challenges-casino-realism.test.mjs",
     "__tests__/every-glossary-term-has-a-page.law.test.mjs",
     "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
@@ -70268,11 +70324,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:108:1",
+      "id": "src/components/seo/CitationBacklinkBox.js:114:1",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "a",
       "name": "All Webmaster Widgets & Badges",
-      "line": 108,
+      "line": 114,
       "handler": null,
       "destination": "/tools/embeds",
       "type": null,
@@ -70281,11 +70337,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:150:2",
+      "id": "src/components/seo/CitationBacklinkBox.js:156:2",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 150,
+      "line": 156,
       "handler": "() => handleCopy(item.key, item.code)",
       "destination": null,
       "type": "button",
@@ -72137,6 +72193,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -73511,6 +73568,7 @@
       "realtime": [],
       "tests": [
         "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-leaderboard-authority.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
@@ -74965,6 +75023,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -75387,6 +75446,7 @@
         }
       ],
       "tests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -77577,6 +77637,8 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/daily-challenges-casino-realism.test.mjs",
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
         "__tests__/training-daily-challenge-authority.test.mjs",
@@ -79639,6 +79701,7 @@
       ],
       "tests": [
         "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-leaderboard-authority.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
@@ -83143,6 +83206,7 @@
         }
       ],
       "tests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/training-projection-authority-package-c.test.mjs",
         "__tests__/training-retired-client-mutations.test.mjs",
         "__tests__/training-streak-settlement-ui.test.mjs"
@@ -85032,6 +85096,7 @@
         }
       ],
       "tests": [
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -85436,7 +85501,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/backlink-embed-citation-engine.test.mjs"
+      ]
     },
     {
       "file": "src/components/seo/HubPageSummary.js",
@@ -90723,6 +90790,8 @@
         "__tests__/aeo-dynamic-og-cards.test.mjs",
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
+        "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",

@@ -172,7 +172,7 @@ test('Phase 4 of 6: Home Games Geo FAQPage + Host Tools and Poker Tour RFC 5545 
 });
 
 test('Phase 5 of 6: 21 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery routes', async () => {
-  assert.equal(MCP_TOOLS.length, 21);
+  assert.equal(MCP_TOOLS.length, 22);
 
   const sidePotRes = await executeMcpTool('calculate_side_pots', {
     contributions: [

@@ -14,7 +14,7 @@
  * - theme: 'dark' | 'blue' | 'emerald' | 'gold' (default: preset per type)
  */
 
-const PRESETS = {
+export const BADGE_PRESETS = {
   venue: {
     label: 'Verified Poker Room',
     value: 'Smarter.Poker Directory',
@@ -50,7 +50,49 @@ const PRESETS = {
     value: 'Smarter.Poker TDA & RROP',
     accent: '#f2b84b',
   },
+  'award-top50': {
+    label: 'US Live Poker Room Index',
+    value: 'Smarter.Poker Directory',
+    accent: '#f59e0b',
+  },
+  'award-texas': {
+    label: 'Texas Card Room Benchmark',
+    value: 'Smarter.Poker Directory',
+    accent: '#10b981',
+  },
+  'award-vegas': {
+    label: 'Las Vegas Room Benchmark',
+    value: 'Smarter.Poker Directory',
+    accent: '#f59e0b',
+  },
+  'award-florida': {
+    label: 'Florida Room Benchmark',
+    value: 'Smarter.Poker Directory',
+    accent: '#38bdf8',
+  },
+  'award-california': {
+    label: 'California Room Benchmark',
+    value: 'Smarter.Poker Directory',
+    accent: '#3b82f6',
+  },
+  'award-cpa': {
+    label: 'Form W-2G Tax Ledger',
+    value: 'Smarter.Poker Bankroll Tool',
+    accent: '#10b981',
+  },
+  'award-dealer': {
+    label: 'Dealer Toke & Shift Tool',
+    value: 'Smarter.Poker Toke Tracker',
+    accent: '#a855f7',
+  },
+  'award-edu': {
+    label: 'Poker Math & ICM Dataset',
+    value: 'Smarter.Poker Research',
+    accent: '#38bdf8',
+  },
 };
+
+const PRESETS = BADGE_PRESETS;
 
 const THEME_ACCENTS = {
   emerald: '#10b981',

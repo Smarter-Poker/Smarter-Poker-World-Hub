@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import {
@@ -1014,6 +1015,17 @@ export default function CompareHubPage() {
             ))}
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Smarter.Poker Vs. Legacy Poker Software & Platforms"
+          canonicalUrl="https://smarter.poker/compare"
+          badgeType="research"
+          badgeLabel="Verified Comparison Matrix"
+          badgeValue="Smarter.Poker Benchmarks"
+          summary="Side-by-side verified comparison of Smarter.Poker free browser solvers, $2,000 daily freerolls, and 324+ live room tools against legacy paid poker software."
+          publishedYear="2026"
+          slug="smarter-poker-comparison-index"
+        />
 
       </main>
     </div>

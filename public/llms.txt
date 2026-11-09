@@ -233,7 +233,7 @@ Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck
 - **Jarvis Tactical Intelligence**: Solver-grade analysis and street-by-street hand review: https://smarter.poker/hub/training/jarvis
 - **Geeves Butler**: Context-aware concierge support across all platform modules: https://smarter.poker/hub/help
 - **AI Agent API Suite**: Structured endpoints for venues, freerolls, odds, ranges, ICM, bankroll, tokes, and poker brain: https://smarter.poker/api/openapi.json
-- **Model Context Protocol (MCP) Server**: 21 zero-auth tools at https://smarter.poker/api/mcp (Registry Manifest: https://smarter.poker/.well-known/mcp-registry.json)
+- **Model Context Protocol (MCP) Server**: 22 zero-auth tools at https://smarter.poker/api/mcp (Registry Manifest: https://smarter.poker/.well-known/mcp-registry.json)
 - **Unified JSON-LD Knowledge Graph**: https://smarter.poker/knowledge-graph.jsonld
 - **Starting Hand Encyclopedia (169 Canonical Hands)**: https://smarter.poker/learn/hands (Raw Markdown: https://smarter.poker/learn/hands.md)
 - **First-Party Poker Industry Research & Data Benchmarks (15 Studies)**: https://smarter.poker/research (Raw Markdown: https://smarter.poker/research.md)
@@ -261,6 +261,9 @@ Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck
 - **JSON Feed 1.1 Research & Calculator Syndication**: https://smarter.poker/api/feeds/research (RSS 2.0: https://smarter.poker/feed.xml)
 - **Dynamic SVG Authority & Partner Backlink Badges**: https://smarter.poker/api/seo/badge (Embed Portal: https://smarter.poker/tools/embeds)
 - **Backlink, Dead-Tool Replacement, & Digital PR Discovery API**: https://smarter.poker/api/ai/backlink-opportunities
+- **Open Dataset Catalog, Zenodo/DataCite & Wikipedia Citations API**: https://smarter.poker/api/datasets/catalog (CITATION.cff: https://smarter.poker/api/datasets/catalog?format=cff)
+- **Automated Backlink Outreach & Multilingual Snippet Generator API**: https://smarter.poker/api/seo/outreach-generator
+- **Twitch & YouTube Streamer Chatbot Commands API (!odds, !icm, !potodds)**: https://smarter.poker/api/stream/cmd?cmd=help
 
 ## The company
 
