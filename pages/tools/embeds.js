@@ -782,6 +782,101 @@ export default function WebmasterEmbedPortal() {
             </div>
           </section>
 
+          {/* Open Datasets, JSON Feed & Syndication APIs */}
+          <section
+            aria-labelledby="syndication-apis-heading"
+            style={{
+              marginTop: '48px',
+              padding: '24px',
+              background: 'rgba(16, 185, 129, 0.04)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: '14px',
+            }}
+          >
+            <h2 id="syndication-apis-heading" style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 10px 0', color: '#34d399' }}>
+              Open Datasets, JSON Feed 1.1 & Multilingual Syndication APIs
+            </h2>
+            <p style={{ fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.55, margin: '0 0 16px 0' }}>
+              Developers, Academic Researchers, And International Poker Portals Can Ingest Smarter.Poker Citations, Structured Datasets, Zenodo/DataCite Metadata, And Localized Embeds In 7 Languages Directly Via REST Or MCP:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <a
+                href="/api/datasets/catalog"
+                style={{
+                  padding: '8px 14px',
+                  background: '#064e3b',
+                  border: '1px solid #10b981',
+                  borderRadius: '6px',
+                  color: '#ecfdf5',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Open Dataset Catalog API
+              </a>
+              <a
+                href="/api/datasets/catalog?format=cff"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #38bdf8',
+                  borderRadius: '6px',
+                  color: '#bae6fd',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Academic Citation File Format Manifest
+              </a>
+              <a
+                href="/api/feeds/research"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #38bdf8',
+                  borderRadius: '6px',
+                  color: '#bae6fd',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Research & Calculator JSON Feed 1.1
+              </a>
+              <a
+                href="/api/seo/outreach-generator"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #a855f7',
+                  borderRadius: '6px',
+                  color: '#e9d5ff',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Multilingual Outreach & Snippet Generator API
+              </a>
+              <a
+                href="/api/ai/backlink-opportunities"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #f59e0b',
+                  borderRadius: '6px',
+                  color: '#fde68a',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                AI Backlink & Citation Catalog API
+              </a>
+            </div>
+          </section>
           {/* Frequently Asked Questions */}
           <section
             aria-label="Frequently Asked Questions"

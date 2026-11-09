@@ -449,32 +449,32 @@ export function renderHomeGameGeoMarkdown(cleanPath) {
   ].join('\n');
 }
 
-export function renderHubToolMarkdown(targetPath) {
+export function renderHubToolMarkdown(targetPath, query = {}) {
   const cleanPath = '/' + String(targetPath || '').replace(/^\/+/, '').replace(/\.md$/i, '');
 
   if (cleanPath === '/tools') {
     return renderToolsDirectoryMarkdown();
   }
   if (cleanPath === '/tools/side-pot-calculator') {
-    return renderSidePotCalculatorMarkdown();
+    return renderSidePotCalculatorMarkdown(query);
   }
   if (cleanPath === '/tools/blind-structure-calculator') {
-    return renderBlindStructureCalculatorMarkdown();
+    return renderBlindStructureCalculatorMarkdown(query);
   }
   if (cleanPath === '/tools/spr-calculator') {
-    return renderSprCalculatorMarkdown();
+    return renderSprCalculatorMarkdown(query);
   }
   if (cleanPath === '/tools/plo-bet-calculator') {
-    return renderPloBetCalculatorMarkdown();
+    return renderPloBetCalculatorMarkdown(query);
   }
   if (cleanPath === '/tools/payout-calculator') {
-    return renderPayoutCalculatorMarkdown();
+    return renderPayoutCalculatorMarkdown(query);
   }
   if (cleanPath === '/tools/rake-calculator') {
-    return renderRakeCalculatorMarkdown();
+    return renderRakeCalculatorMarkdown(query);
   }
   if (cleanPath === '/tools/3bet-calculator') {
-    return renderThreeBetCalculatorMarkdown();
+    return renderThreeBetCalculatorMarkdown(query);
   }
   if (cleanPath === '/rules') {
     return renderRulesIndexMarkdown();
@@ -647,7 +647,7 @@ export default function handler(req, res) {
     targetPath = `/hub/${section}`;
   }
 
-  const md = renderHubToolMarkdown(targetPath);
+  const md = renderHubToolMarkdown(targetPath, req.query);
   if (!md) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     return res.status(404).send('World Hub tool Markdown representation not found');

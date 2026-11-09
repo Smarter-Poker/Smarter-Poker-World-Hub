@@ -586,3 +586,37 @@ export default function PayoutCalculatorPage({
     </div>
   );
 }
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = req?.headers?.accept || '';
+  const isMarkdownRequested =
+    accept.includes('text/markdown') ||
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    req?.url?.includes('format=md');
+
+  if (isMarkdownRequested) {
+    const { renderPayoutCalculatorMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderPayoutCalculatorMarkdown({
+      entries: query?.entries || query?.totalEntries || 100,
+      buyIn: query?.buyIn || 100,
+      paidPct: query?.paidPct || 15,
+    });
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+
+  return {
+    props: {
+      initialEntries: Number(query?.entries || query?.totalEntries) || 45,
+      initialRebuysAddOns: query?.rebuys !== undefined ? Number(query.rebuys) : 15,
+      initialBuyIn: Number(query?.buyIn) || 100,
+      initialHouseFee: query?.houseFee !== undefined ? Number(query.houseFee) : 15,
+      initialAddedMoney: query?.addedMoney !== undefined ? Number(query.addedMoney) : 500,
+      initialPresetId: String(query?.preset || 'top-15-tda'),
+    },
+  };
+}

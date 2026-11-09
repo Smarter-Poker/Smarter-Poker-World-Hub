@@ -511,3 +511,41 @@ export default function RakeCalculatorPage({
     </div>
   );
 }
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = req?.headers?.accept || '';
+  const isMarkdownRequested =
+    accept.includes('text/markdown') ||
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    req?.url?.includes('format=md');
+
+  if (isMarkdownRequested) {
+    const { renderRakeCalculatorMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderRakeCalculatorMarkdown({
+      bigBlind: query?.bigBlind || query?.bb || 5,
+      rakeCap: query?.rakeCap || query?.cap || 6,
+      promoDrop: query?.promoDrop !== undefined ? query.promoDrop : 2,
+      potsWonPerHour: query?.potsWonPerHour || 3.5,
+      timeChargeHalfHour: query?.timeChargeHalfHour || query?.timeCharge || 7,
+      handsPerHour: query?.handsPerHour || 30,
+    });
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+
+  return {
+    props: {
+      initialBigBlind: Number(query?.bigBlind || query?.bb) || 5,
+      initialRakePercent: query?.rakePercent !== undefined ? Number(query.rakePercent) : 10,
+      initialRakeCap: query?.rakeCap !== undefined ? Number(query.rakeCap) : 6,
+      initialPromoDrop: query?.promoDrop !== undefined ? Number(query.promoDrop) : 2,
+      initialHandsPerHour: Number(query?.handsPerHour) || 28,
+      initialPotsWonPerHour: Number(query?.potsWonPerHour) || 3.5,
+      initialTimeChargeHalfHour: query?.timeChargeHalfHour !== undefined ? Number(query.timeChargeHalfHour) : 7,
+    },
+  };
+}

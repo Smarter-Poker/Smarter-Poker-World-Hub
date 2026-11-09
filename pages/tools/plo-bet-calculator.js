@@ -700,3 +700,40 @@ export default function PloBetCalculatorPage({
     </div>
   );
 }
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = req?.headers?.accept || '';
+  const isMarkdownRequested =
+    accept.includes('text/markdown') ||
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    req?.url?.includes('format=md');
+
+  if (isMarkdownRequested) {
+    const { renderPloBetCalculatorMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderPloBetCalculatorMarkdown({
+      previousPot: query?.previousPot || query?.pot || 1.5,
+      lastBet: query?.lastBet || query?.bet || 1.0,
+      trailCalls: query?.trailCalls || query?.trail || 0,
+      heroAlreadyIn: query?.heroAlreadyIn || query?.hero || 0,
+    });
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+
+  return {
+    props: {
+      initialPreviousPot: Number(query?.previousPot || query?.pot) || 20,
+      initialLastBet: Number(query?.lastBet || query?.bet) || 15,
+      initialTrailCalls: query?.trailCalls !== undefined ? Number(query.trailCalls) : 0,
+      initialHeroAlreadyIn: query?.heroAlreadyIn !== undefined ? Number(query.heroAlreadyIn) : 0,
+      initialBombPotPool: Number(query?.bombPotPool) || 160,
+      initialRiverBetToCall: Number(query?.riverBetToCall) || 120,
+      initialBoard1Equity: query?.board1Equity !== undefined ? Number(query.board1Equity) : 100,
+      initialBoard2Equity: query?.board2Equity !== undefined ? Number(query.board2Equity) : 25,
+    },
+  };
+}

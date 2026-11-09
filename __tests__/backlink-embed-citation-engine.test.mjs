@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 import { renderBadgeSvg, escapeXml, BADGE_PRESETS } from '../pages/api/seo/badge.js';
 import { renderEmbedsMarkdown } from '../src/lib/seo/markdownIngestion.mjs';
+import { renderHubToolMarkdown } from '../pages/api/hub-tool-markdown.js';
 import { buildResearchJsonFeed } from '../pages/api/feeds/research.js';
 import { buildRssFeedXml } from '../pages/feed.xml.js';
 import {
@@ -115,7 +116,10 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
   ]) {
     assert.ok(embedsSrc.includes(`id: '${cmdId}'`), `embeds.js includes streamer command ${cmdId}`);
   }
+  assert.ok(embedsSrc.includes('STREAM_CHAT_COMMANDS.map'), 'embeds.js renders STREAM_CHAT_COMMANDS in JSX');
+  assert.ok(embedsSrc.includes('Copy Nightbot Command'), 'embeds.js renders Copy Nightbot Command button');
   assert.ok(embedsSrc.includes('id="streamer-commands-heading"'), 'embeds.js renders streamer commands JSX section');
+  assert.ok(embedsSrc.includes('syndication-apis-heading'), 'embeds.js renders Open Datasets & Syndication APIs section');
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
   assert.equal(embedUrls.length, 15, 'all 15 widgets define embedUrl');
@@ -132,8 +136,21 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
       nextConfigSrc.includes("frame-ancestors 'self' https: http:"),
     'next.config.js must allow cross-origin iframe embedding on /tools/:path*'
   );
+  assert.ok(
+    nextConfigSrc.includes("source: '/api/seo/backlink-opportunities'") &&
+      nextConfigSrc.includes("destination: '/api/ai/backlink-opportunities'"),
+    'next.config.js must rewrite /api/seo/backlink-opportunities to /api/ai/backlink-opportunities'
+  );
 
   const md = renderEmbedsMarkdown();
+  const mdEmbedUrls = [...md.matchAll(/- Embed URL: `([^`]+)`/g)].map((m) => m[1]);
+  assert.equal(mdEmbedUrls.length, 15, 'renderEmbedsMarkdown lists 15 Embed URLs');
+  for (const url of mdEmbedUrls) {
+    assert.ok(
+      url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
+      `Expected renderEmbedsMarkdown Embed URL to use /tools/*?embed=true, got ${url}`
+    );
+  }
   assert.ok(md.includes('Pot Odds, Implied Odds & MDF Calculator'));
   assert.ok(md.includes('Short-Stack Push/Fold Nash Equilibrium Chart'));
   assert.ok(md.includes('Poker Bankroll & Risk Of Ruin Calculator'));
@@ -350,3 +367,45 @@ test('MCP Server executes get_citation_and_backlink_kit tool with full outreach,
   assert.ok(parsed.outreach_package.campaigns[0].renderedSubject.includes('MIT Pokerbots'));
   assert.ok(parsed.wikipedia_citation_targets.length >= 6);
 });
+
+test('All 15 interactive calculators export getServerSideProps and renderHubToolMarkdown forwards dynamic query parameters', () => {
+  const calculatorPages = [
+    'pages/tools/poker-odds-calculator.js',
+    'pages/tools/icm-calculator.js',
+    'pages/tools/preflop-ranges/index.js',
+    'pages/tools/pot-odds-calculator.js',
+    'pages/tools/push-fold-calculator.js',
+    'pages/tools/bankroll-calculator.js',
+    'pages/tools/bounty-calculator.js',
+    'pages/tools/poker-winrate-calculator.js',
+    'pages/tools/side-pot-calculator.js',
+    'pages/tools/blind-structure-calculator.js',
+    'pages/tools/spr-calculator.js',
+    'pages/tools/plo-bet-calculator.js',
+    'pages/tools/payout-calculator.js',
+    'pages/tools/rake-calculator.js',
+    'pages/tools/3bet-calculator.js',
+  ];
+
+  for (const rel of calculatorPages) {
+    const src = read(rel);
+    assert.ok(src.includes('export async function getServerSideProps'), `${rel} must export getServerSideProps`);
+  }
+
+  const payoutMd = renderHubToolMarkdown('/tools/payout-calculator', { entries: 200, buyIn: 500 });
+  assert.ok(payoutMd.includes('200-Entry Poker Tournament At $500 Net Buy-In'), 'payout-calculator.md reflects entries & buyIn query');
+  assert.ok(payoutMd.includes('$100,000 Prize Pool'), 'payout-calculator.md computes dynamic prize pool');
+
+  const ploMd = renderHubToolMarkdown('/tools/plo-bet-calculator', { previousPot: 10, lastBet: 5 });
+  assert.ok(ploMd.includes('Previous Pot = 10 BB, Facing Bet = 5 BB'), 'plo-bet-calculator.md reflects previousPot & lastBet query');
+  assert.ok(ploMd.includes('25.0 BB'), 'plo-bet-calculator.md computes 3*5 + 10 = 25.0 BB');
+
+  const rakeMd = renderHubToolMarkdown('/tools/rake-calculator', { bigBlind: 10, rakeCap: 8, promoDrop: 2, potsWonPerHour: 4 });
+  assert.ok(rakeMd.includes('At A $10 Big Blind Game With A $8 Rake Cap + $2 Promo Drop'), 'rake-calculator.md reflects dynamic rake inputs');
+  assert.ok(rakeMd.includes('$40.00/Hr'), 'rake-calculator.md computes dynamic hourly pot rake');
+
+  const threeBetMd = renderHubToolMarkdown('/tools/3bet-calculator', { openSize: 3, threeBetSize: 10.5 });
+  assert.ok(threeBetMd.includes('Against A 3 BB Preflop Open'), '3bet-calculator.md reflects openSize query');
+  assert.ok(threeBetMd.includes('A 3-Bet To 10.5 BB'), '3bet-calculator.md reflects threeBetSize query');
+});
+

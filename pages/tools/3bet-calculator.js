@@ -455,3 +455,34 @@ export default function ThreeBetCalculatorPage({
     </div>
   );
 }
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = req?.headers?.accept || '';
+  const isMarkdownRequested =
+    accept.includes('text/markdown') ||
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    req?.url?.includes('format=md');
+
+  if (isMarkdownRequested) {
+    const { renderThreeBetCalculatorMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
+    const mdContent = renderThreeBetCalculatorMarkdown({
+      openSize: query?.openSize || query?.openSizeBb || 2.5,
+      threeBetSize: query?.threeBetSize || 8.0,
+    });
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Vary', 'Accept');
+    res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+
+  return {
+    props: {
+      initialOpenSizeBb: Number(query?.openSize || query?.openSizeBb) || 2.5,
+      initialCallersBetween: query?.callers !== undefined ? Number(query.callers) : 0,
+      initialEffectiveStackBb: Number(query?.stack || query?.effectiveStackBb) || 100,
+      initialPosition: String(query?.position || 'IP').toUpperCase() === 'OOP' ? 'OOP' : 'IP',
+    },
+  };
+}
