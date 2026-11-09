@@ -177,6 +177,8 @@ function createDeliveryFamilyKey(gameId, level, trainerConfig) {
     gameMode: String(trainerConfig?.gameMode || 'full').toLowerCase(),
     targetStreet: String(trainerConfig?.targetStreet || trainerConfig?.street || '').toLowerCase() || null,
     handSelection: String(trainerConfig?.handSelection || 'all').toLowerCase(),
+    variant: String(trainerConfig?.variant || '').toLowerCase() || null,
+    duelToken: String(trainerConfig?.duelToken || '').trim() || null,
     custom: isCustomTrainerConfig(trainerConfig) ? {
       gameType: String(trainerConfig?.gameType || 'cash').toLowerCase(),
       stackDepth: Number(trainerConfig?.stackDepth) || 100,
@@ -980,6 +982,12 @@ export default function useGTOTrainer(
         params.set('difficulty', resolveDeliveryDifficulty(trainerConfig));
         if (trainerConfig?.gameMode === 'street' && trainerConfig?.targetStreet) {
           params.set('targetStreet', trainerConfig.targetStreet);
+        }
+        if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
+          params.set('variant', String(trainerConfig.variant).toLowerCase());
+        }
+        if (trainerConfig?.duelToken && typeof trainerConfig.duelToken === 'string') {
+          params.set('duelToken', trainerConfig.duelToken.trim());
         }
 
         apiUrl = `/api/training/batch-preload?${params}`;

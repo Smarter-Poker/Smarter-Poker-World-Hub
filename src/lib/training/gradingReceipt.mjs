@@ -509,3 +509,86 @@ export function deriveReceiptRng(payload, submittedRng) {
     roll: expectedRoll,
   };
 }
+
+export function createSignedTrainingDuelToken({
+  duelId,
+  gameId,
+  level = 1,
+  variant = 'nlh',
+  targetHands = 5,
+  questionIds = [],
+  challengerId = '',
+  challengerName = '',
+  challengerAttemptId = '',
+  nowMs = Date.now(),
+  ttlSeconds = 60 * 60 * 24 * 7,
+  secret,
+} = {}) {
+  const normalizedIds = (Array.isArray(questionIds) ? questionIds : [])
+    .map((id) => String(id || '').trim())
+    .filter(Boolean)
+    .slice(0, 30);
+  if (!gameId || normalizedIds.length === 0) {
+    receiptFailure('Duel challenges require a valid gameId and questionIds list.', 'TRAINING_DUEL_TOKEN_INVALID');
+  }
+  const nowSeconds = Math.floor(Number(nowMs) / 1000);
+  const signingSecret = receiptSecret(secret);
+  const payload = {
+    v: 'sp-training-duel-v1',
+    duelId: String(duelId || randomUUID()).slice(0, 80),
+    gameId: String(gameId).slice(0, 80),
+    level: Math.min(12, Math.max(1, Number(level) || 1)),
+    variant: ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(variant || '').toLowerCase())
+      ? String(variant).toLowerCase()
+      : 'nlh',
+    targetHands: Math.min(30, Math.max(1, Number(targetHands) || normalizedIds.length)),
+    questionIds: normalizedIds,
+    challengerId: String(challengerId || '').slice(0, 80),
+    challengerName: String(challengerName || 'Challenger').slice(0, 48),
+    challengerAttemptId: String(challengerAttemptId || '').slice(0, 80),
+    iat: nowSeconds,
+    exp: nowSeconds + Math.max(300, Math.min(60 * 60 * 24 * 14, Math.floor(Number(ttlSeconds) || 604800))),
+  };
+  const encodedPayload = encodePayload(payload);
+  return `${encodedPayload}.${signPayload(encodedPayload, signingSecret)}`;
+}
+
+export function verifyTrainingDuelToken(token, { secret, nowMs = Date.now() } = {}) {
+  if (typeof token !== 'string' || token.length < 16 || token.length > 8192) {
+    return null;
+  }
+  const parts = token.trim().split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return null;
+  }
+  const [encodedPayload, suppliedSignature] = parts;
+  let expectedSignature;
+  try {
+    expectedSignature = signPayload(encodedPayload, receiptSecret(secret));
+  } catch {
+    return null;
+  }
+  if (!safeSignatureMatch(suppliedSignature, expectedSignature)) {
+    return null;
+  }
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+  if (
+    payload?.v !== 'sp-training-duel-v1'
+    || !payload?.duelId
+    || !payload?.gameId
+    || !Array.isArray(payload?.questionIds)
+    || payload.questionIds.length === 0
+  ) {
+    return null;
+  }
+  const nowSeconds = Math.floor(Number(nowMs) / 1000);
+  if (Number.isFinite(payload.exp) && payload.exp <= nowSeconds) {
+    return null;
+  }
+  return payload;
+}

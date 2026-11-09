@@ -1021,6 +1021,7 @@ function GodModeArenaInner({
   // one-arena case IS the focused arena. Multi-table passes false for the
   // tables the player is not currently looking at.
   isFocused = true,
+  onTableStateChange = null,
 }) {
   // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // SPECIALIZED TRAINERS (Phase 14) -> Safely moved to exported wrapper
@@ -1408,6 +1409,30 @@ function GodModeArenaInner({
     setTimerMode(next.timer);
     setGamePhase('playing');
   }, [initialConfig, bootstrapSessionConfig]);
+
+  // Multi-table focus & status synchronization: notify parent table manager when
+  // this table is awaiting a decision, showing feedback (answered), or completed.
+  useEffect(() => {
+    if (typeof onTableStateChange !== 'function') return;
+    const awaitingDecision =
+      gamePhase === 'playing' && !gameComplete && !showFeedback && Boolean(currentQuestion);
+    onTableStateChange({
+      gameId: String(gameId || ''),
+      awaitingDecision,
+      showFeedback: Boolean(showFeedback),
+      gameComplete: Boolean(gameComplete),
+      questionNumber: Number(questionNumber) || 1,
+      questionId: currentQuestion?.id || null,
+    });
+  }, [
+    onTableStateChange,
+    gameId,
+    gamePhase,
+    gameComplete,
+    showFeedback,
+    currentQuestion?.id,
+    questionNumber,
+  ]);
 
   // ●●● Phase 2: Adaptive Difficulty Level (1-10) ●●●
   // Phase 50: Enhanced adaptive difficulty using GTOW metrics
@@ -4732,6 +4757,7 @@ function GodModeArenaInner({
                   gameId={gameId}
                   gameName={gameName}
                   trainingSessionId={trainingSessionId}
+                  isFocused={isFocused}
                   streak={streak}
                   question={questionWithFilteredOptions}
                   level={currentLevel}
@@ -4835,6 +4861,7 @@ function GodModeArenaInner({
             gameId={gameId}
             gameName={gameName}
             trainingSessionId={trainingSessionId}
+            isFocused={isFocused}
             streak={streak}
             question={questionWithFilteredOptions}
             level={currentLevel}

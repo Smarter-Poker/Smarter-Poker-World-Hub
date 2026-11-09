@@ -1018,6 +1018,31 @@ function AnalyzedHandRow({ hand, index }) {
                   <span>{tip.text}</span>
                 </div>
               ))}
+              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                <a
+                  data-train-this-hand="true"
+                  data-hand-id={hand.id}
+                  href={
+                    hand?._solverAudit?.drillHref ||
+                    `/hub/training/arena/${/mtt|tournament/i.test(String(hand.gameType || '')) ? 'mtt-002' : 'cash-002'}?level=1&syncedHandId=${encodeURIComponent(hand.id)}&syncedHeroCards=${encodeURIComponent((hand.heroCards || []).join(''))}&syncedBoard=${encodeURIComponent((hand.board || []).join(''))}`
+                  }
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 14px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(52, 211, 153, 0.5)',
+                    background: 'rgba(16, 185, 129, 0.18)',
+                    color: '#6ee7b7',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Train This Hand →
+                </a>
+              </div>
             </div>
           </motion.div>
         )}

@@ -1244,6 +1244,10 @@ export class DeterministicGTOEngine {
             seenIds,
         });
 
+        if (['plo4', 'plo5', 'plo6'].includes(String(gameConfig?.variant || '').toLowerCase())) {
+            return curatedFallback();
+        }
+
         // ═══ SCENARIO (psychology + table selection): deterministic question bank ═══
         if (gameConfig.sourceOfTruth === 'SCENARIO' || gameConfig.engine === 'SCENARIO') {
             return this.generateScenarioBatch({ gameId, level, count, seenIds });

@@ -141,6 +141,7 @@ export default function GameUIRouter({
     // Phase 351+: Pre-decision hints & concept reminders
     getPreDecisionPreview = null,
     getKeyConceptReminders = null,
+    isFocused = true,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -180,6 +181,7 @@ export default function GameUIRouter({
             gameType={gameType}
             gameTitle={gameName}
             trainingSessionId={trainingSessionId}
+            isFocused={isFocused}
             streak={streak || 0}
             // GTOW scoring props
             moveClassification={moveClassification}

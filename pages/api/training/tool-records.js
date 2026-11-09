@@ -2,6 +2,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
+import { verifyTrainingDuelToken } from '../../../src/lib/training/gradingReceipt.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -37,9 +38,140 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const toolId = String(req.query.toolId || '');
       const recordType = req.query.recordType ? String(req.query.recordType) : '';
+      const duelToken = typeof req.query.duelToken === 'string' ? req.query.duelToken.trim() : '';
       const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
       if (!SAFE_ID.test(toolId) || (recordType && !SAFE_ID.test(recordType))) {
         return res.status(400).json({ success: false, error: 'Invalid tool or record type' });
+      }
+
+      if (toolId === 'async-duel' && duelToken) {
+        const duelPayload = verifyTrainingDuelToken(duelToken);
+        if (!duelPayload) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid or expired duel challenge token.',
+            code: 'TRAINING_DUEL_TOKEN_INVALID',
+          });
+        }
+        const { data: duelRows, error: duelErr } = await getSupabase()
+          .from('training_tool_records')
+          .select('id, user_id, record_key, data, created_at, updated_at')
+          .eq('tool_id', 'async-duel')
+          .ilike('record_key', `${duelPayload.duelId}%`)
+          .order('created_at', { ascending: true })
+          .limit(20);
+        if (duelErr) throw duelErr;
+
+        const participants = Array.isArray(duelRows) ? duelRows : [];
+        const challengerRecord = participants.find(
+          (r) => String(r?.data?.attemptId || '') === String(duelPayload.challengerAttemptId || '')
+        ) || participants[0] || null;
+        const opponentRecord = participants.find(
+          (r) => r?.data?.attemptId && String(r.data.attemptId) !== String(duelPayload.challengerAttemptId || '')
+        ) || null;
+
+        const challengerAttemptId = String(
+          challengerRecord?.data?.attemptId || duelPayload.challengerAttemptId || ''
+        );
+        const opponentAttemptId = String(opponentRecord?.data?.attemptId || '');
+        const attemptIds = [challengerAttemptId, opponentAttemptId].filter(Boolean);
+
+        let answerRows = [];
+        if (attemptIds.length > 0) {
+          const { data: answers, error: ansErr } = await getSupabase()
+            .from('training_answers')
+            .select('attempt_id, user_id, question_id, hand_ordinal, answer_id, is_correct, ev_loss, classification, selected_frequency, optimal_frequency, solver_verified')
+            .in('attempt_id', attemptIds)
+            .order('hand_ordinal', { ascending: true });
+          if (ansErr) throw ansErr;
+          answerRows = Array.isArray(answers) ? answers : [];
+        }
+
+        const buildPlayerSummary = (attemptId, fallbackName, roleLabel) => {
+          const rowsForAttempt = attemptId
+            ? answerRows.filter((row) => String(row.attempt_id) === String(attemptId))
+            : [];
+          const byQuestion = new Map();
+          for (const row of rowsForAttempt) {
+            const key = String(row.question_id || row.hand_ordinal);
+            if (!byQuestion.has(key)) byQuestion.set(key, row);
+          }
+          const uniqueAnswers = Array.from(byQuestion.values());
+          const handsAnswered = uniqueAnswers.length;
+          const correctCount = uniqueAnswers.filter((r) => Boolean(r.is_correct)).length;
+          const totalEvLoss = Number(
+            uniqueAnswers.reduce((sum, r) => sum + (Number(r.ev_loss) || 0), 0).toFixed(2)
+          );
+          const accuracyPct = handsAnswered > 0
+            ? Math.round((correctCount / handsAnswered) * 100)
+            : 0;
+          return {
+            role: roleLabel,
+            name: fallbackName,
+            attemptId: attemptId || null,
+            handsAnswered,
+            correctCount,
+            accuracyPct,
+            totalEvLoss,
+            avgEvLoss: handsAnswered > 0 ? Number((totalEvLoss / handsAnswered).toFixed(2)) : 0,
+            grades: uniqueAnswers.map((r) => ({
+              questionId: r.question_id,
+              handOrdinal: r.hand_ordinal,
+              answerId: r.answer_id,
+              isCorrect: Boolean(r.is_correct),
+              evLoss: Number(r.ev_loss) || 0,
+              classification: r.classification || (r.is_correct ? 'best' : 'mistake'),
+              solverVerified: Boolean(r.solver_verified),
+            })),
+          };
+        };
+
+        const challengerSummary = buildPlayerSummary(
+          challengerAttemptId,
+          challengerRecord?.data?.participantName || duelPayload.challengerName || 'Challenger',
+          'Challenger'
+        );
+        const opponentSummary = buildPlayerSummary(
+          opponentAttemptId,
+          opponentRecord?.data?.participantName || (opponentAttemptId ? 'Opponent' : 'Awaiting Opponent'),
+          'Opponent'
+        );
+
+        let status = 'awaiting_opponent';
+        let winner = null;
+        if (challengerSummary.handsAnswered > 0 && opponentSummary.handsAnswered > 0) {
+          status = 'completed';
+          if (challengerSummary.accuracyPct > opponentSummary.accuracyPct) {
+            winner = 'Challenger';
+          } else if (opponentSummary.accuracyPct > challengerSummary.accuracyPct) {
+            winner = 'Opponent';
+          } else if (challengerSummary.totalEvLoss < opponentSummary.totalEvLoss) {
+            winner = 'Challenger';
+          } else if (opponentSummary.totalEvLoss < challengerSummary.totalEvLoss) {
+            winner = 'Opponent';
+          } else {
+            winner = 'Tie';
+          }
+        } else if (challengerSummary.handsAnswered > 0 || opponentSummary.handsAnswered > 0 || opponentAttemptId) {
+          status = 'in_progress';
+        }
+
+        return res.status(200).json({
+          success: true,
+          duelScoreboard: {
+            duelId: duelPayload.duelId,
+            gameId: duelPayload.gameId,
+            level: duelPayload.level,
+            variant: duelPayload.variant || 'nlh',
+            targetHands: duelPayload.targetHands || duelPayload.questionIds.length,
+            questionIds: duelPayload.questionIds,
+            status,
+            winner,
+            challenger: challengerSummary,
+            opponent: opponentSummary,
+          },
+          records: participants,
+        });
       }
 
       let query = getSupabase()

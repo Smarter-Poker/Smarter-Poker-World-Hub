@@ -29,6 +29,8 @@ import {
 } from '../../../src/lib/training/trainingPersistence.mjs';
 import {
     createTrainingSessionId,
+    createSignedTrainingDuelToken,
+    verifyTrainingDuelToken,
 } from '../../../src/lib/training/gradingReceipt.mjs';
 import { trainingMasteryMinimum } from '../../../src/lib/training/sessionAttemptContract.mjs';
 import {
@@ -164,10 +166,30 @@ export default async function handler(req, res) {
           handOrdinalStart: rawHandOrdinalStart,
           gameMode: rawGameMode,
           handSelection: rawHandSelection,
+          variant: rawVariant,
+          duelToken: rawDuelToken,
+          createDuel: rawCreateDuel,
           attestationContinuationRule: rawAttestationContinuationRule,
           attestationContinuationPrecommit: rawAttestationContinuationPrecommit,
       } = req.query;
       const gameId = sanitizeParam(rawGameId, 100);
+      const normalizedRawVariant = sanitizeParam(rawVariant, 16)?.toLowerCase() || '';
+      const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(normalizedRawVariant)
+          ? normalizedRawVariant
+          : null;
+      const createDuelRequested = String(rawCreateDuel || '') === '1';
+      const trimmedDuelToken = typeof rawDuelToken === 'string' ? rawDuelToken.trim() : '';
+      const duelPayload = trimmedDuelToken ? verifyTrainingDuelToken(trimmedDuelToken) : null;
+      if (trimmedDuelToken && (!duelPayload || String(duelPayload.gameId) !== String(gameId))) {
+          return res.status(400).json({
+              success: false,
+              error: 'Invalid or expired duel challenge token for this game.',
+              code: 'TRAINING_DUEL_TOKEN_INVALID',
+          });
+      }
+      const effectiveVariant = duelPayload?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(duelPayload.variant))
+          ? String(duelPayload.variant)
+          : requestedVariant;
       const attestationContinuationRequested =
           rawAttestationContinuationRule !== undefined
           || rawAttestationContinuationPrecommit !== undefined;
@@ -284,6 +306,8 @@ export default async function handler(req, res) {
               gameMode,
               handSelection,
               targetStreet: enforcedTargetStreet,
+              ...(effectiveVariant ? { variant: effectiveVariant } : {}),
+              ...(duelPayload?.duelId ? { duelId: String(duelPayload.duelId) } : {}),
               ...(attestationContinuationPrecommit
                   ? { attestationContinuationCohort: attestationContinuationPrecommit }
                   : {}),
@@ -345,32 +369,39 @@ export default async function handler(req, res) {
           // fetch the pool, then shuffle, then slice.
           // ●●● SEEN-QUESTION EXCLUSION (fail-safe, non-blocking) ●●●
           let seenIds = new Set();
-          try {
-              const { data: seen } = await runTrainingPersistenceQuery(
-                  () => getSupabase()
-                      .from('user_seen_questions')
-                      .select('question_id')
-                      .eq('user_id', _authUser.id)
-                      .eq('game_id', gameId)
-                      .limit(2000),
-                  { label: 'BatchPreload:seen-read' },
-              );
-              seenIds = new Set((seen || []).map((r) => r.question_id));
-          } catch (e) {
-              console.warn('[BatchPreload] Seen history unavailable; continuing without exclusion:', e.message);
+          if (!duelPayload) {
+              try {
+                  const { data: seen } = await runTrainingPersistenceQuery(
+                      () => getSupabase()
+                          .from('user_seen_questions')
+                          .select('question_id')
+                          .eq('user_id', _authUser.id)
+                          .eq('game_id', gameId)
+                          .limit(2000),
+                      { label: 'BatchPreload:seen-read' },
+                  );
+                  seenIds = new Set((seen || []).map((r) => r.question_id));
+              } catch (e) {
+                  console.warn('[BatchPreload] Seen history unavailable; continuing without exclusion:', e.message);
+              }
           }
 
           // Fetch questions from cache (over-fetch so seen-filtering has room)
           let questions;
           try {
               const cacheResult = await runTrainingPersistenceQuery(
-                  () => getSupabase()
-                      .from('training_question_cache')
-                      .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
-                      .eq('game_id', gameId)
-                      .eq('level', gameLevel)
-                      .in('quality_status', ['active', 'active_fallback'])
-                      .limit(Math.max(100, candidateQuestionCount * 3)),
+                  () => {
+                      let query = getSupabase()
+                          .from('training_question_cache')
+                          .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
+                          .eq('game_id', gameId)
+                          .eq('level', gameLevel)
+                          .in('quality_status', ['active', 'active_fallback']);
+                      if (duelPayload?.questionIds?.length > 0) {
+                          query = query.in('question_id', duelPayload.questionIds);
+                      }
+                      return query.limit(Math.max(100, candidateQuestionCount * 3));
+                  },
                   { label: 'BatchPreload:cache-read' },
               );
               questions = cacheResult.data;
@@ -403,12 +434,35 @@ export default async function handler(req, res) {
               hydratedCacheRows.slice(0, candidateQuestionCount * 3),
               declaredCfg,
           );
+          const targetVariantFilter = effectiveVariant
+              || (['cash-005', 'cash-015', 'mtt-018'].includes(gameId) ? 'plo4' : null);
+          const expectedHoleCardCount = targetVariantFilter === 'plo6' ? 6
+              : targetVariantFilter === 'plo5' ? 5
+              : targetVariantFilter === 'plo4' ? 4
+              : targetVariantFilter === 'nlh' ? 2
+              : null;
+          const requiresPkoScenarioTelemetry = ['mtt-005', 'mtt-020'].includes(gameId);
+          const requiresExploitScenarioTelemetry = ['adv-003', 'adv-015', 'adv-016', 'cash-020'].includes(gameId);
           const authorityEligibleRows = contractedRows
               .map((row) => ({
                   ...row,
                   question_data: normalizeCampaignQuestionWithoutFabrication(row?.question_data),
               }))
-              .filter((row) => row.question_data);
+              .filter((row) => {
+                  const q = row.question_data;
+                  if (!q) return false;
+                  if (expectedHoleCardCount !== null) {
+                      const cards = Array.isArray(q.heroCards) ? q.heroCards : [];
+                      if (cards.length !== expectedHoleCardCount) return false;
+                  }
+                  if (requiresPkoScenarioTelemetry && !Number.isFinite(Number(q.scenario?.bountyBb))) {
+                      return false;
+                  }
+                  if (requiresExploitScenarioTelemetry && !Number.isFinite(Number(q.scenario?.villainStats?.vpip))) {
+                      return false;
+                  }
+                  return true;
+              });
           // An explicit street target is a hard training contract, not a hint.
           // Applying it only to generated rows meant a warm cache silently
           // ignored the user's Turn/Flop/River selection whenever it already
@@ -443,7 +497,9 @@ export default async function handler(req, res) {
 
           if (cachedQuestions.length < candidateQuestionCount
               || attestationContinuationPrecommit) {
-              const pioConfig = declaredCfg;
+              const pioConfig = effectiveVariant && declaredCfg
+                  ? { ...declaredCfg, variant: effectiveVariant }
+                  : declaredCfg;
               const gameCfg = getGameCfg(gameId);
 
               // ●●● SOLVER SCENARIO MAP: Route game to correct solver levels/spots ●●●
@@ -707,11 +763,12 @@ export default async function handler(req, res) {
           const canonicalPairs = [];
           const canonicalQuestionIds = new Set();
           const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
-              : pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO';
+              : (pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' && !['plo4', 'plo5', 'plo6'].includes(effectiveVariant || '')) ? 'CHART' : 'PIO';
           const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
               : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
           for (const question of configuredCandidates) {
               if (!attestationContinuationPrecommit
+                  && !duelPayload
                   && canonicalPairs.length >= questionCount) break;
               const original = originalCacheRowByQuestionId.get(String(question?.id));
               const questionId = String(original?.question_id || question?.id || '');
@@ -761,6 +818,21 @@ export default async function handler(req, res) {
                   success: false,
                   error: `Only ${canonicalPairs.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
                   code: 'TRAINING_ATTEMPT_QUESTION_SHORTFALL',
+              });
+          }
+
+          if (duelPayload?.questionIds?.length > 0) {
+              const duelOrder = new Map(
+                  duelPayload.questionIds.map((id, idx) => [String(id), idx]),
+              );
+              canonicalPairs.sort((a, b) => {
+                  const idxA = duelOrder.has(String(a?.row?.question_id))
+                      ? duelOrder.get(String(a.row.question_id))
+                      : 9999;
+                  const idxB = duelOrder.has(String(b?.row?.question_id))
+                      ? duelOrder.get(String(b.row.question_id))
+                      : 9999;
+                  return idxA - idxB;
               });
           }
 
@@ -872,6 +944,77 @@ export default async function handler(req, res) {
               return res.status(503).json(trainingPersistenceUnavailableBody());
           }
 
+          let duelResponse = null;
+          if (createDuelRequested || duelPayload) {
+              try {
+                  const servedQuestionIds = (delivery.questions || []).map((q) => String(q.id));
+                  const userName = _authUser.user_metadata?.username
+                      || _authUser.user_metadata?.full_name
+                      || (_authUser.email ? _authUser.email.split('@')[0] : '')
+                      || 'Player';
+                  const activeDuelId = duelPayload?.duelId
+                      || `duel_${String(delivery.attemptId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24)}`;
+                  const activeDuelToken = duelPayload
+                      ? trimmedDuelToken
+                      : createSignedTrainingDuelToken({
+                          duelId: activeDuelId,
+                          gameId,
+                          level: gameLevel,
+                          variant: effectiveVariant || 'nlh',
+                          targetHands: servedQuestionIds.length,
+                          questionIds: servedQuestionIds,
+                          challengerId: _authUser.id,
+                          challengerName: userName,
+                          challengerAttemptId: delivery.attemptId,
+                      });
+                  const role = duelPayload && String(delivery.attemptId) !== String(duelPayload.challengerAttemptId)
+                      ? 'opponent'
+                      : 'challenger';
+                  const recordKey = `${activeDuelId}_${String(delivery.attemptId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16)}`.slice(0, 150);
+                  await getSupabase()
+                      .from('training_tool_records')
+                      .upsert({
+                          user_id: _authUser.id,
+                          tool_id: 'async-duel',
+                          record_type: 'participant',
+                          record_key: recordKey,
+                          data: {
+                              duelId: activeDuelId,
+                              duelToken: activeDuelToken,
+                              gameId,
+                              level: gameLevel,
+                              variant: effectiveVariant || 'nlh',
+                              targetHands: servedQuestionIds.length,
+                              questionIds: duelPayload?.questionIds || servedQuestionIds,
+                              challengerId: duelPayload?.challengerId || _authUser.id,
+                              challengerName: duelPayload?.challengerName || userName,
+                              challengerAttemptId: duelPayload?.challengerAttemptId || delivery.attemptId,
+                              participantId: _authUser.id,
+                              participantName: userName,
+                              attemptId: delivery.attemptId,
+                              sessionId: trainingSessionId,
+                              role,
+                              updatedAt: new Date().toISOString(),
+                          },
+                          updated_at: new Date().toISOString(),
+                      }, { onConflict: 'user_id,tool_id,record_key' });
+                  duelResponse = {
+                      duelId: activeDuelId,
+                      duelToken: activeDuelToken,
+                      gameId,
+                      level: gameLevel,
+                      variant: effectiveVariant || 'nlh',
+                      targetHands: servedQuestionIds.length,
+                      questionIds: duelPayload?.questionIds || servedQuestionIds,
+                      challengerAttemptId: duelPayload?.challengerAttemptId || delivery.attemptId,
+                      attemptId: delivery.attemptId,
+                      role,
+                  };
+              } catch (duelRecordErr) {
+                  console.warn('[BatchPreload] Non-fatal duel record persistence warning:', duelRecordErr?.message || duelRecordErr);
+              }
+          }
+
           return res.status(200).json({
               success: true,
               gameId,
@@ -882,6 +1025,7 @@ export default async function handler(req, res) {
               targetHands: delivery.targetHands,
               count: delivery.questions.length,
               questions: delivery.questions,
+              ...(duelResponse ? { duel: duelResponse } : {}),
               ...(attestationContinuationCohort
                   ? { attestationContinuationCohort }
                   : {}),
