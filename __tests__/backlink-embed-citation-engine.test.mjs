@@ -59,7 +59,7 @@ test('Dynamic SVG Authority & Annual Award Badge generator renders valid, access
   assert.equal(escapeXml('A & B < C > "D" \'E\''), 'A &amp; B &lt; C &gt; &quot;D&quot; &apos;E&apos;');
 });
 
-test('Webmaster Embed Portal (/tools/embeds) ships all 8 calculators, 10 SVG backlink/award badges, and 6 streamer bot commands', () => {
+test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators, 10 SVG backlink/award badges, and 6 streamer bot commands', () => {
   const embedsSrc = read('pages/tools/embeds.js');
   for (const widgetId of [
     'odds-calculator',
@@ -70,6 +70,9 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 8 calculators, 10 SVG bac
     'bankroll-calculator',
     'bounty-calculator',
     'poker-winrate-calculator',
+    'side-pot-calculator',
+    'blind-structure-calculator',
+    'spr-calculator',
   ]) {
     assert.ok(embedsSrc.includes(`id: '${widgetId}'`), `embeds.js includes ${widgetId}`);
   }
@@ -99,6 +102,9 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 8 calculators, 10 SVG bac
   assert.ok(md.includes('Poker Bankroll & Risk Of Ruin Calculator'));
   assert.ok(md.includes('PKO & Mystery Bounty Chip Equity Calculator'));
   assert.ok(md.includes('Poker Winrate (BB/100 To $/Hr) & Volume Calculator'));
+  assert.ok(md.includes('Multi-Way All-In Main & Side Pot Calculator'));
+  assert.ok(md.includes('Tournament Blind Structure & Chip Distribution Generator'));
+  assert.ok(md.includes('Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator'));
   assert.ok(md.includes('Dynamic SVG Authority, Partner & 2026 Annual Award Backlink Badges'));
   assert.ok(md.includes('Twitch & YouTube Streamer Chatbot Commands'));
 });
@@ -128,11 +134,15 @@ test('All 20 authority page templates wire CitationBacklinkBox with 7 citation f
     'src/components/features/FeatureLanderLayout.js',
     'pages/editorial-standards.js',
     'pages/verification-methodology.js',
+    'pages/tools/index.js',
     'pages/tools/pot-odds-calculator.js',
     'pages/tools/push-fold-calculator.js',
     'pages/tools/bankroll-calculator.js',
     'pages/tools/bounty-calculator.js',
     'pages/tools/poker-winrate-calculator.js',
+    'pages/tools/side-pot-calculator.js',
+    'pages/tools/blind-structure-calculator.js',
+    'pages/tools/spr-calculator.js',
     'pages/tools/preflop-ranges/index.js',
   ];
 
@@ -142,11 +152,11 @@ test('All 20 authority page templates wire CitationBacklinkBox with 7 citation f
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 8 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 11 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 23);
+  assert.equal(jsonFeed.items.length, 26);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);
@@ -164,6 +174,9 @@ test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 
     '/tools/bankroll-calculator',
     '/tools/bounty-calculator',
     '/tools/poker-winrate-calculator',
+    '/tools/side-pot-calculator',
+    '/tools/blind-structure-calculator',
+    '/tools/spr-calculator',
     '/research/us-live-poker-room-rake-and-jackpot-benchmark',
   ]) {
     assert.ok(rssXml.includes(`https://smarter.poker${calcPath}`), `RSS feed includes ${calcPath}`);

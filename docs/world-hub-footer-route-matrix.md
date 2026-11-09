@@ -169,11 +169,11 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/u/[username]` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/my-venues` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
 | `/hub/video-library` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
+| `/hub/video-library/channels` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/video-library/owner` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/video-library/players` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/video-library/players/[playerId]` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/video-library/playlists/[playlistId]` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
-| `/hub/video-library/channels` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/video-library/channels/[channelId]` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/video-library/watch/[videoId]/[[...slug]]` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/poker-tools` | Odds Calculator | App-shell legacy/generic footer | `footer-odds-calculator-v2.png` | PASS | PASS |

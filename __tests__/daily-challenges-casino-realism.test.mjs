@@ -11,6 +11,10 @@ const trainingApi = read('pages/api/training/hand-of-the-day.js');
 const trainingCss = read('src/styles/training/daily-challenge-casino.module.css');
 const goalsPage = read('pages/hub/training/daily-goals.js');
 const goalsCss = read('src/styles/training/daily-goals-casino.module.css');
+const challengesPage = read('pages/hub/training/challenges.js');
+const challengesCss = read('src/styles/training/challenges-casino.module.css');
+const challengesWidget = read('src/components/training/ChallengesWidget.jsx');
+const trainingSignInPrompt = read('src/components/training/TrainingSignInPrompt.jsx');
 const triviaPage = read('pages/hub/trivia/[mode].js');
 const memoryPage = read('pages/hub/memory-games.js');
 const memoryCss = read('src/styles/worlds/memory-games.css');
@@ -28,6 +32,15 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
   assert.match(trainingPage, /styles\.feltTable/);
   assert.match(trainingPage, /styles\.resultDrawer/);
   assert.match(goalsPage, /daily-goals-casino\.module\.css/);
+  assert.match(challengesPage, /challenges-casino\.module\.css/);
+  assert.match(challengesPage, /casinoStyles\.marquee/);
+  assert.match(challengesPage, /casinoStyles\.subpageNav/);
+  assert.match(trainingPage, /styles\.subpageNav/);
+  assert.match(goalsPage, /casinoStyles\.subpageNav/);
+  assert.match(challengesWidget, /#25c8ff/i);
+  assert.match(challengesWidget, /#f2b84b/i);
+  assert.match(challengesWidget, /borderRadius:\s*'2px'/);
+  assert.match(trainingSignInPrompt, /borderRadius:\s*2/);
   assert.match(triviaPage, /trivia-daily-casino/);
   assert.match(memoryPage, /function DailyLocalPracticeCard/);
   assert.match(memoryPage, /className="preflop-daily-card/);
@@ -35,7 +48,7 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
   assert.match(memoryCss, /body\.world-preflop-charts \.preflop-daily-card/);
   assert.match(personalQuiz, /daily-personal-quiz-casino\.module\.css/);
 
-  for (const css of [trainingCss, goalsCss, personalQuizCss, memoryCss]) {
+  for (const css of [trainingCss, goalsCss, challengesCss, personalQuizCss, memoryCss]) {
     assert.match(css, /#25c8ff/i, 'Electric cyan token is required');
     assert.match(css, /#f2b84b|#f4c44e/i, 'Vault gold token is required');
     assert.match(css, /border-radius:\s*2px/i, 'Physical straight-edged controls are required');
@@ -101,12 +114,13 @@ test('Daily Challenge grading, solver evidence, EV, and rewards remain server au
 });
 
 test('Daily layouts are mobile first, accessible, and motion safe', () => {
-  for (const css of [trainingCss, goalsCss, personalQuizCss]) {
+  for (const css of [trainingCss, goalsCss, challengesCss, personalQuizCss]) {
     assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
     assert.match(css, /@media \(forced-colors: active\)/);
   }
   assert.match(trainingCss, /min-height:\s*44px/);
   assert.match(goalsCss, /min-height:\s*50px/);
+  assert.match(challengesCss, /min-height:\s*44px/);
   assert.match(personalQuizCss, /min-height:\s*46px/);
   // Daily Trivia and the entry-cost popup open on the shared console dialog,
   // which owns the dialog role, aria-modal, the focus trap and the focus rings.
@@ -132,7 +146,7 @@ test('Daily Trivia popups and rewards share the upgraded physical controls', () 
 });
 
 test('new Daily Challenges presentation copy contains no em dash characters', () => {
-  for (const source of [trainingPage, trainingCss, goalsCss, personalQuiz, personalQuizCss]) {
+  for (const source of [trainingPage, trainingCss, goalsCss, challengesPage, challengesCss, challengesWidget, personalQuiz, personalQuizCss]) {
     assert.equal(source.includes('\u2014'), false);
   }
 });

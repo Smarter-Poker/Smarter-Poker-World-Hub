@@ -13,6 +13,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const TDA_CHIP_DISTRIBUTION = [
@@ -466,6 +467,16 @@ export default function BlindStructureCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Poker Tournament Blind Structure & Chip Distribution Generator"
+          canonicalUrl={canonicalUrl}
+          badgeType="commander"
+          badgeLabel="Tournament Clock Engine"
+          badgeValue="TDA Blind & Chip Generator"
+          summary="Interactive Poker Tournament Blind Structure Generator With Big Blind Ante Progressions, Color-Up Levels, And Starting Stack Chip Breakdowns."
+          slug="blind-structure-calculator"
+        />
 
         <AiPromptLauncher
           title="Poker Tournament Blind Structure & Chip Distribution Generator"

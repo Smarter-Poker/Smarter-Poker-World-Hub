@@ -162,7 +162,7 @@ test('all 13 requested worlds use exact approved artwork and unique six-destinat
   );
 });
 
-test('all 198 fixed-footer physical routes resolve to one exact-artwork family', () => {
+test('all 199 fixed-footer physical routes resolve to one exact-artwork family', () => {
   // The five Marketplace store-tab routes are one page component and own a
   // single in-flow commerce footer. They are excluded from the fixed-artwork
   // family for the same reason Page 1 is.
@@ -194,7 +194,7 @@ test('all 198 fixed-footer physical routes resolve to one exact-artwork family',
     return owners.length ? [{ route, owners }] : [];
   });
 
-  // 199 after Video Library adds the channels index route.
+  // 199 after Video Library Phase 8 adds the owner control panel and channels directory.
   // Both channel and watch pages carry the Video Library footer.
   assert.equal(applicable.length, 199);
   for (const { route, owners } of applicable) {
