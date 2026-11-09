@@ -25312,7 +25312,7 @@
         {
           "element": "link",
           "name": "Hand Of The Day",
-          "line": 76,
+          "line": 77,
           "handler": null,
           "destination": "/hub/training/daily-challenge",
           "type": null,
@@ -25322,7 +25322,7 @@
         {
           "element": "link",
           "name": "Daily Goals Vault",
-          "line": 79,
+          "line": 80,
           "handler": null,
           "destination": "/hub/training/daily-goals",
           "type": null,
@@ -25332,7 +25332,7 @@
         {
           "element": "link",
           "name": "Weekly & Monthly Goals",
-          "line": 82,
+          "line": 83,
           "handler": null,
           "destination": "/hub/training/challenges",
           "type": null,
@@ -25342,7 +25342,7 @@
         {
           "element": "link",
           "name": "Training Arena",
-          "line": 85,
+          "line": 86,
           "handler": null,
           "destination": "/hub/training",
           "type": null,
@@ -25352,7 +25352,7 @@
         {
           "element": "link",
           "name": "Sign In",
-          "line": 168,
+          "line": 169,
           "handler": null,
           "destination": "/auth/signup",
           "type": null,
@@ -25392,7 +25392,7 @@
       "functions": [
         {
           "name": "TargetIcon",
-          "line": 41,
+          "line": 42,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -25400,7 +25400,7 @@
         },
         {
           "name": "CalendarIcon",
-          "line": 50,
+          "line": 51,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -25408,7 +25408,7 @@
         },
         {
           "name": "CalendarMonthIcon",
-          "line": 60,
+          "line": 61,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -25416,7 +25416,7 @@
         },
         {
           "name": "SubpageNavigation",
-          "line": 73,
+          "line": 74,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -25424,7 +25424,7 @@
         },
         {
           "name": "ChallengesPage",
-          "line": 92,
+          "line": 93,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -25432,7 +25432,7 @@
         },
         {
           "name": "getProgressPercent",
-          "line": 131,
+          "line": 132,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26262,7 +26262,7 @@
         {
           "element": "button",
           "name": "Back To Training",
-          "line": 219,
+          "line": 220,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26272,7 +26272,7 @@
         {
           "element": "link",
           "name": "Hand Of The Day",
-          "line": 234,
+          "line": 235,
           "handler": null,
           "destination": "/hub/training/daily-challenge",
           "type": null,
@@ -26282,7 +26282,7 @@
         {
           "element": "link",
           "name": "Daily Goals Vault",
-          "line": 237,
+          "line": 238,
           "handler": null,
           "destination": "/hub/training/daily-goals",
           "type": null,
@@ -26292,7 +26292,7 @@
         {
           "element": "link",
           "name": "Weekly & Monthly Goals",
-          "line": 240,
+          "line": 241,
           "handler": null,
           "destination": "/hub/training/challenges",
           "type": null,
@@ -26302,7 +26302,7 @@
         {
           "element": "button",
           "name": "Sign In",
-          "line": 261,
+          "line": 262,
           "handler": "() => router.push('/auth/login?redirect=/hub/training/daily-goals')",
           "destination": null,
           "type": "button",
@@ -26342,7 +26342,7 @@
       "functions": [
         {
           "name": "_Svg",
-          "line": 34,
+          "line": 35,
           "references": 17,
           "exported": false,
           "defaultExport": false,
@@ -26350,7 +26350,7 @@
         },
         {
           "name": "TargetIcon",
-          "line": 37,
+          "line": 38,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -26358,14 +26358,6 @@
         },
         {
           "name": "TrendingUpIcon",
-          "line": 38,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "BoltIcon",
           "line": 39,
           "references": 2,
           "exported": false,
@@ -26373,7 +26365,7 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "GamepadIcon",
+          "name": "BoltIcon",
           "line": 40,
           "references": 2,
           "exported": false,
@@ -26381,8 +26373,16 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "FlameIcon",
+          "name": "GamepadIcon",
           "line": 41,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "FlameIcon",
+          "line": 42,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26390,14 +26390,6 @@
         },
         {
           "name": "CrownIcon",
-          "line": 42,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "CheckIcon",
           "line": 43,
           "references": 2,
           "exported": false,
@@ -26405,7 +26397,7 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "BackArrowIcon",
+          "name": "CheckIcon",
           "line": 44,
           "references": 2,
           "exported": false,
@@ -26413,7 +26405,7 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "GoalIcon",
+          "name": "BackArrowIcon",
           "line": 45,
           "references": 2,
           "exported": false,
@@ -26421,8 +26413,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "GoalIcon",
+          "line": 46,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "generateGoals",
-          "line": 56,
+          "line": 57,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26430,7 +26430,7 @@
         },
         {
           "name": "DailyGoalsPage",
-          "line": 144,
+          "line": 145,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -66730,11 +66730,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/challenges.js:76:1",
+      "id": "pages/hub/training/challenges.js:77:1",
       "file": "pages/hub/training/challenges.js",
       "element": "link",
       "name": "Hand Of The Day",
-      "line": 76,
+      "line": 77,
       "handler": null,
       "destination": "/hub/training/daily-challenge",
       "type": null,
@@ -66743,11 +66743,11 @@
       "effectRef": "pages/hub/training/challenges.js"
     },
     {
-      "id": "pages/hub/training/challenges.js:79:2",
+      "id": "pages/hub/training/challenges.js:80:2",
       "file": "pages/hub/training/challenges.js",
       "element": "link",
       "name": "Daily Goals Vault",
-      "line": 79,
+      "line": 80,
       "handler": null,
       "destination": "/hub/training/daily-goals",
       "type": null,
@@ -66756,11 +66756,11 @@
       "effectRef": "pages/hub/training/challenges.js"
     },
     {
-      "id": "pages/hub/training/challenges.js:82:3",
+      "id": "pages/hub/training/challenges.js:83:3",
       "file": "pages/hub/training/challenges.js",
       "element": "link",
       "name": "Weekly & Monthly Goals",
-      "line": 82,
+      "line": 83,
       "handler": null,
       "destination": "/hub/training/challenges",
       "type": null,
@@ -66769,11 +66769,11 @@
       "effectRef": "pages/hub/training/challenges.js"
     },
     {
-      "id": "pages/hub/training/challenges.js:85:4",
+      "id": "pages/hub/training/challenges.js:86:4",
       "file": "pages/hub/training/challenges.js",
       "element": "link",
       "name": "Training Arena",
-      "line": 85,
+      "line": 86,
       "handler": null,
       "destination": "/hub/training",
       "type": null,
@@ -66782,11 +66782,11 @@
       "effectRef": "pages/hub/training/challenges.js"
     },
     {
-      "id": "pages/hub/training/challenges.js:168:5",
+      "id": "pages/hub/training/challenges.js:169:5",
       "file": "pages/hub/training/challenges.js",
       "element": "link",
       "name": "Sign In",
-      "line": 168,
+      "line": 169,
       "handler": null,
       "destination": "/auth/signup",
       "type": null,
@@ -67003,11 +67003,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-goals.js:219:1",
+      "id": "pages/hub/training/daily-goals.js:220:1",
       "file": "pages/hub/training/daily-goals.js",
       "element": "button",
       "name": "Back To Training",
-      "line": 219,
+      "line": 220,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -67016,11 +67016,11 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/daily-goals.js:234:2",
+      "id": "pages/hub/training/daily-goals.js:235:2",
       "file": "pages/hub/training/daily-goals.js",
       "element": "link",
       "name": "Hand Of The Day",
-      "line": 234,
+      "line": 235,
       "handler": null,
       "destination": "/hub/training/daily-challenge",
       "type": null,
@@ -67029,11 +67029,11 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/daily-goals.js:237:3",
+      "id": "pages/hub/training/daily-goals.js:238:3",
       "file": "pages/hub/training/daily-goals.js",
       "element": "link",
       "name": "Daily Goals Vault",
-      "line": 237,
+      "line": 238,
       "handler": null,
       "destination": "/hub/training/daily-goals",
       "type": null,
@@ -67042,11 +67042,11 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/daily-goals.js:240:4",
+      "id": "pages/hub/training/daily-goals.js:241:4",
       "file": "pages/hub/training/daily-goals.js",
       "element": "link",
       "name": "Weekly & Monthly Goals",
-      "line": 240,
+      "line": 241,
       "handler": null,
       "destination": "/hub/training/challenges",
       "type": null,
@@ -67055,11 +67055,11 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/daily-goals.js:261:5",
+      "id": "pages/hub/training/daily-goals.js:262:5",
       "file": "pages/hub/training/daily-goals.js",
       "element": "button",
       "name": "Sign In",
-      "line": 261,
+      "line": 262,
       "handler": "() => router.push('/auth/login?redirect=/hub/training/daily-goals')",
       "destination": null,
       "type": "button",
@@ -94167,7 +94167,7 @@
       {
         "file": "pages/hub/training/challenges.js",
         "name": "ChallengesPage",
-        "line": 92,
+        "line": 93,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -94258,7 +94258,7 @@
       {
         "file": "pages/hub/training/daily-goals.js",
         "name": "DailyGoalsPage",
-        "line": 144,
+        "line": 145,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -103683,7 +103683,7 @@
       {
         "file": "pages/hub/training/challenges.js",
         "name": "ChallengesPage",
-        "line": 92,
+        "line": 93,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -103774,7 +103774,7 @@
       {
         "file": "pages/hub/training/daily-goals.js",
         "name": "DailyGoalsPage",
-        "line": 144,
+        "line": 145,
         "references": 1,
         "exported": true,
         "defaultExport": true,

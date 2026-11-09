@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-9 - hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-DAILY-GOALS-A11Y-1 - semantic SVG icons and accessible daily goal plates
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -336,7 +337,7 @@ export default function DailyGoalsPage() {
                   </div>
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       color: '#8ca4b0',
                       textTransform: 'uppercase',
                       letterSpacing: '0.1em',
@@ -373,7 +374,7 @@ export default function DailyGoalsPage() {
                   >
                     {streakDays}
                   </div>
-                  <div style={{ fontSize: 11, color: '#8ca4b0', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+                  <div style={{ fontSize: 12, color: '#8ca4b0', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
                     Day Streak
                   </div>
                 </div>
@@ -461,7 +462,7 @@ export default function DailyGoalsPage() {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 700,
                             color: '#39d59b',
                             marginTop: 8,

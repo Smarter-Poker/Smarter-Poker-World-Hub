@@ -8,6 +8,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-5 - hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-2 - hex sweep batch 6: extended palette literals routed
+// TRAIN-CHALLENGES-A11Y-1 - semantic SVG icons and accessible challenge plates
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
