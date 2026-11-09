@@ -14,6 +14,7 @@
 
 import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
+import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 
 const SITE_URL = 'https://smarter.poker';
 const CANONICAL_PATH = '/verification-methodology';
@@ -171,6 +172,16 @@ export default function VerificationMethodologyPage() {
               <a href="/.well-known/security.txt" style={styles.link}>Security Disclosure Policy (RFC 9116)</a>.
             </p>
           </section>
+
+          <CitationBacklinkBox
+            title="Smarter.Poker Data Provenance And Verification Methodology"
+            canonicalUrl={CANONICAL_URL}
+            badgeType="research"
+            badgeLabel="Data Provenance"
+            badgeValue="Verified By Smarter.Poker"
+            summary="Primary-Source Verification Rules For 324+ Live Poker Rooms, Tournament Schedules, Software Comparisons, And Deterministic GTO Math."
+            slug="verification-methodology"
+          />
 
           <p style={styles.compliance}>
             Free To Play. 18+. No Real-Money Gambling. Club Chips Have No Cash Value.

@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../seo/SEOHead';
 import AiPromptLauncher from '../seo/AiPromptLauncher';
+import CitationBacklinkBox from '../seo/CitationBacklinkBox';
 
 const FEATURE_SEMANTIC_MESH = {
   '/features/preflop-charts-matrix': {
@@ -531,6 +532,16 @@ export default function FeatureLanderLayout({
               </div>
             </section>
           )}
+
+          <CitationBacklinkBox
+            title={metaTitle || title}
+            canonicalUrl={`https://smarter.poker${canonical}`}
+            badgeType={canonical === '/features/club-commander' ? 'commander' : canonical === '/features/private-poker-clubs' ? 'club' : 'gto'}
+            badgeLabel="Smarter.Poker Platform"
+            badgeValue={title}
+            summary={description}
+            slug={String(canonical || 'feature').replace(/^\/features\//, 'feature-')}
+          />
 
           <AiPromptLauncher
             title={metaTitle || title}

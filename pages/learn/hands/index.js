@@ -11,6 +11,7 @@
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import {
   SITE_URL,
   LEARN_URL,
@@ -124,6 +125,16 @@ export default function StartingHandsIndexPage() {
             </tbody>
           </table>
         </div>
+
+        <CitationBacklinkBox
+          title="Texas Hold'Em Starting Hand Encyclopedia And GTO Strategy Matrix"
+          canonicalUrl={PAGE_URL}
+          badgeType="gto"
+          badgeLabel="169 Starting Hand Matrix"
+          badgeValue="Smarter.Poker GTO"
+          summary="All 169 Canonical Texas Hold'em Starting Hand Strategy Guides Covering Exact Deal Probabilities, Preflop Rankings, Positional GTO Actions, And Matchup Equities."
+          slug="starting-hand-encyclopedia"
+        />
 
         <AiPromptLauncher
           title="Smarter.Poker Starting Hand Encyclopedia"
