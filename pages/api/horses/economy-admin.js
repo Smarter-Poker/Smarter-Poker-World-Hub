@@ -200,7 +200,10 @@ async function burnin(db, query) {
     db.from('ca_drift_incidents').select('id', { count: 'exact', head: true }).like('dedupe_key', 'tourney-cashout-blocked:%').gt('detected_at', since).neq('status', 'resolved'),
     db.from('ca_settlements').select('id', { count: 'exact', head: true }).eq('state', 'failed').gt('updated_at', since),
     db.from('ca_settlements').select('id', { count: 'exact', head: true }).not('state', 'in', '(final,failed)').lt('updated_at', new Date(Date.now() - 10 * 60000).toISOString()).gt('updated_at', since),
-    db.rpc('fn_ca_verify_ledger_chain', { p_limit: 50000 }),
+    // The live function's only parameter is p_last_n bigint (read from pg_proc
+    // 2026-10-20). p_limit matched no signature, PostgREST answered PGRST202 and
+    // the whole Burn-In panel returned 503 on every request.
+    db.rpc('fn_ca_verify_ledger_chain', { p_last_n: 50000 }),
     db.from('ca_guard_inventory').select('id', { count: 'exact', head: true }).eq('active', true),
     db.from('ca_detector_runs').select('ran_at,detail').eq('detector', 'fn_ca_money_rpc_drift').order('ran_at', { ascending: false }).limit(1),
     db.from('ca_supply_snapshots').select('unexplained,taken_at').order('taken_at', { ascending: false }).limit(1),
