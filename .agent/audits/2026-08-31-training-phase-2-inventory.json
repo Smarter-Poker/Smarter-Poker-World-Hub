@@ -14,7 +14,7 @@
     "dependencyFiles": 355,
     "componentFiles": 51,
     "hookFiles": 14,
-    "ctas": 352,
+    "ctas": 362,
     "dialogs": 12,
     "persistenceFiles": 79,
     "realtimeFiles": 6,
@@ -22,7 +22,7 @@
     "markerCandidates": 342,
     "possibleUnwiredFunctions": 398,
     "routeStateCells": 752,
-    "routeStateCoverageGaps": 227,
+    "routeStateCoverageGaps": 228,
     "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
@@ -1304,7 +1304,7 @@
         "success": true,
         "authExpiry": true
       },
-      "ctaCount": 1,
+      "ctaCount": 5,
       "dialogCount": 0,
       "apiReferences": [
         "/api/training/challenges"
@@ -1545,7 +1545,7 @@
         "success": true,
         "authExpiry": true
       },
-      "ctaCount": 5,
+      "ctaCount": 8,
       "dialogCount": 0,
       "apiReferences": [
         "/api/training/hand-of-the-day",
@@ -1579,7 +1579,7 @@
       "gameExpansions": 0,
       "states": {
         "loading": true,
-        "empty": true,
+        "empty": false,
         "error": true,
         "retry": false,
         "offline": false,
@@ -1587,7 +1587,7 @@
         "success": true,
         "authExpiry": true
       },
-      "ctaCount": 2,
+      "ctaCount": 5,
       "dialogCount": 0,
       "apiReferences": [
         "/api/training/daily-bonus",
@@ -6653,6 +6653,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -6686,6 +6687,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -6724,6 +6726,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -6751,6 +6754,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -6783,6 +6787,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -6818,6 +6823,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -6836,6 +6842,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -6859,6 +6866,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -6870,6 +6878,7 @@
         }
       },
       "existingTests": [
+        "__tests__/daily-challenges-casino-realism.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-phase-11.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -7829,15 +7838,14 @@
           ]
         },
         "empty": {
-          "status": "implemented-or-detected",
-          "evidence": [
-            "pages/hub/training/daily-goals.js"
-          ],
+          "status": "coverage-gap",
+          "evidence": [],
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -7921,7 +7929,9 @@
         "__tests__/training-daily-goals-authority.test.mjs",
         "__tests__/training-history-outage-honesty.test.mjs"
       ],
-      "uncoveredStates": []
+      "uncoveredStates": [
+        "empty"
+      ]
     },
     {
       "route": "/hub/training/drill-builder",
@@ -25289,7 +25299,10 @@
         "src/lib/authUtils.js"
       ],
       "links": [
-        "/hub/training/challenges"
+        "/hub/training",
+        "/hub/training/challenges",
+        "/hub/training/daily-challenge",
+        "/hub/training/daily-goals"
       ],
       "apiReferences": [
         "/api/training/challenges"
@@ -25298,8 +25311,48 @@
       "ctas": [
         {
           "element": "link",
+          "name": "Hand Of The Day",
+          "line": 77,
+          "handler": null,
+          "destination": "/hub/training/daily-challenge",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Daily Goals Vault",
+          "line": 80,
+          "handler": null,
+          "destination": "/hub/training/daily-goals",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Weekly & Monthly Goals",
+          "line": 83,
+          "handler": null,
+          "destination": "/hub/training/challenges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Training Arena",
+          "line": 86,
+          "handler": null,
+          "destination": "/hub/training",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
           "name": "Sign In",
-          "line": 140,
+          "line": 169,
           "handler": null,
           "destination": "/auth/signup",
           "type": null,
@@ -25339,15 +25392,15 @@
       "functions": [
         {
           "name": "TargetIcon",
-          "line": 48,
-          "references": 3,
+          "line": 42,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "CalendarIcon",
-          "line": 57,
+          "line": 51,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -25355,15 +25408,23 @@
         },
         {
           "name": "CalendarMonthIcon",
-          "line": 67,
+          "line": 61,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "SubpageNavigation",
+          "line": 74,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "ChallengesPage",
-          "line": 79,
+          "line": 93,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -25371,7 +25432,7 @@
         },
         {
           "name": "getProgressPercent",
-          "line": 118,
+          "line": 132,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -25997,7 +26058,9 @@
       ],
       "links": [
         "/hub/training",
-        "/hub/training/daily-challenge"
+        "/hub/training/challenges",
+        "/hub/training/daily-challenge",
+        "/hub/training/daily-goals"
       ],
       "apiReferences": [
         "/api/training/hand-of-the-day",
@@ -26009,7 +26072,7 @@
         {
           "element": "button",
           "name": "Back To Training",
-          "line": 457,
+          "line": 458,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26017,9 +26080,39 @@
           "wiring": "handler"
         },
         {
+          "element": "link",
+          "name": "Hand Of The Day",
+          "line": 471,
+          "handler": null,
+          "destination": "/hub/training/daily-challenge",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Daily Goals Vault",
+          "line": 474,
+          "handler": null,
+          "destination": "/hub/training/daily-goals",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Weekly & Monthly Goals",
+          "line": 477,
+          "handler": null,
+          "destination": "/hub/training/challenges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
           "element": "button",
           "name": "Retry Loading Today's Challenge",
-          "line": 487,
+          "line": 499,
           "handler": "fetchChallenge",
           "destination": null,
           "type": "button",
@@ -26029,7 +26122,7 @@
         {
           "element": "button",
           "name": "Retry Saving Daily Challenge Completion",
-          "line": 677,
+          "line": 689,
           "handler": "() => completeDailyAttempt(\n                            activeAttemptId,\n                            completionResponseTimeRef.current,\n                          )",
           "destination": null,
           "type": "button",
@@ -26039,7 +26132,7 @@
         {
           "element": "button",
           "name": "Continue To Training Hub",
-          "line": 691,
+          "line": 703,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26049,7 +26142,7 @@
         {
           "element": "button",
           "name": "Continue To Training Hub",
-          "line": 711,
+          "line": 723,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26089,7 +26182,7 @@
       "functions": [
         {
           "name": "handToCards",
-          "line": 36,
+          "line": 37,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26097,7 +26190,7 @@
         },
         {
           "name": "CountdownTimer",
-          "line": 63,
+          "line": 64,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26105,7 +26198,7 @@
         },
         {
           "name": "StreakCalendar",
-          "line": 96,
+          "line": 97,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26113,7 +26206,7 @@
         },
         {
           "name": "DailyChallengePage",
-          "line": 129,
+          "line": 130,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -26121,7 +26214,7 @@
         },
         {
           "name": "tick",
-          "line": 68,
+          "line": 69,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26134,7 +26227,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 54,
+          "line": 55,
           "excerpt": "// Fallback: try parseCards",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -26155,7 +26248,10 @@
         "src/lib/trivia/getTodayCST.js"
       ],
       "links": [
-        "/hub/training"
+        "/hub/training",
+        "/hub/training/challenges",
+        "/hub/training/daily-challenge",
+        "/hub/training/daily-goals"
       ],
       "apiReferences": [
         "/api/training/daily-bonus",
@@ -26166,7 +26262,7 @@
         {
           "element": "button",
           "name": "Back To Training",
-          "line": 246,
+          "line": 220,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26174,9 +26270,39 @@
           "wiring": "handler"
         },
         {
+          "element": "link",
+          "name": "Hand Of The Day",
+          "line": 235,
+          "handler": null,
+          "destination": "/hub/training/daily-challenge",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Daily Goals Vault",
+          "line": 238,
+          "handler": null,
+          "destination": "/hub/training/daily-goals",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Weekly & Monthly Goals",
+          "line": 241,
+          "handler": null,
+          "destination": "/hub/training/challenges",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
           "element": "button",
           "name": "Sign In",
-          "line": 290,
+          "line": 262,
           "handler": "() => router.push('/auth/login?redirect=/hub/training/daily-goals')",
           "destination": null,
           "type": "button",
@@ -26191,7 +26317,7 @@
       },
       "states": {
         "loading": true,
-        "empty": true,
+        "empty": false,
         "error": true,
         "retry": false,
         "offline": false,
@@ -26216,7 +26342,7 @@
       "functions": [
         {
           "name": "_Svg",
-          "line": 40,
+          "line": 35,
           "references": 17,
           "exported": false,
           "defaultExport": false,
@@ -26224,7 +26350,7 @@
         },
         {
           "name": "TargetIcon",
-          "line": 43,
+          "line": 38,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -26232,7 +26358,7 @@
         },
         {
           "name": "TrendingUpIcon",
-          "line": 44,
+          "line": 39,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26240,7 +26366,7 @@
         },
         {
           "name": "BoltIcon",
-          "line": 45,
+          "line": 40,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26248,7 +26374,7 @@
         },
         {
           "name": "GamepadIcon",
-          "line": 46,
+          "line": 41,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26256,7 +26382,7 @@
         },
         {
           "name": "FlameIcon",
-          "line": 47,
+          "line": 42,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26264,7 +26390,7 @@
         },
         {
           "name": "CrownIcon",
-          "line": 48,
+          "line": 43,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26272,7 +26398,7 @@
         },
         {
           "name": "CheckIcon",
-          "line": 49,
+          "line": 44,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26280,7 +26406,7 @@
         },
         {
           "name": "BackArrowIcon",
-          "line": 50,
+          "line": 45,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26288,15 +26414,15 @@
         },
         {
           "name": "GoalIcon",
-          "line": 51,
-          "references": 4,
+          "line": 46,
+          "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "generateGoals",
-          "line": 62,
+          "line": 57,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26304,7 +26430,7 @@
         },
         {
           "name": "DailyGoalsPage",
-          "line": 150,
+          "line": 145,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -40306,7 +40432,7 @@
         {
           "element": "link",
           "name": "Sign In",
-          "line": 47,
+          "line": 48,
           "handler": null,
           "destination": "trainingSignInHref(returnPath)",
           "type": null,
@@ -66604,11 +66730,63 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/challenges.js:140:1",
+      "id": "pages/hub/training/challenges.js:77:1",
+      "file": "pages/hub/training/challenges.js",
+      "element": "link",
+      "name": "Hand Of The Day",
+      "line": 77,
+      "handler": null,
+      "destination": "/hub/training/daily-challenge",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/challenges.js"
+    },
+    {
+      "id": "pages/hub/training/challenges.js:80:2",
+      "file": "pages/hub/training/challenges.js",
+      "element": "link",
+      "name": "Daily Goals Vault",
+      "line": 80,
+      "handler": null,
+      "destination": "/hub/training/daily-goals",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/challenges.js"
+    },
+    {
+      "id": "pages/hub/training/challenges.js:83:3",
+      "file": "pages/hub/training/challenges.js",
+      "element": "link",
+      "name": "Weekly & Monthly Goals",
+      "line": 83,
+      "handler": null,
+      "destination": "/hub/training/challenges",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/challenges.js"
+    },
+    {
+      "id": "pages/hub/training/challenges.js:86:4",
+      "file": "pages/hub/training/challenges.js",
+      "element": "link",
+      "name": "Training Arena",
+      "line": 86,
+      "handler": null,
+      "destination": "/hub/training",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/challenges.js"
+    },
+    {
+      "id": "pages/hub/training/challenges.js:169:5",
       "file": "pages/hub/training/challenges.js",
       "element": "link",
       "name": "Sign In",
-      "line": 140,
+      "line": 169,
       "handler": null,
       "destination": "/auth/signup",
       "type": null,
@@ -66721,11 +66899,11 @@
       "effectRef": "pages/hub/training/custom-solve.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:457:1",
+      "id": "pages/hub/training/daily-challenge.js:458:1",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Back To Training",
-      "line": 457,
+      "line": 458,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -66734,11 +66912,50 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:487:2",
+      "id": "pages/hub/training/daily-challenge.js:471:2",
+      "file": "pages/hub/training/daily-challenge.js",
+      "element": "link",
+      "name": "Hand Of The Day",
+      "line": 471,
+      "handler": null,
+      "destination": "/hub/training/daily-challenge",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/daily-challenge.js"
+    },
+    {
+      "id": "pages/hub/training/daily-challenge.js:474:3",
+      "file": "pages/hub/training/daily-challenge.js",
+      "element": "link",
+      "name": "Daily Goals Vault",
+      "line": 474,
+      "handler": null,
+      "destination": "/hub/training/daily-goals",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/daily-challenge.js"
+    },
+    {
+      "id": "pages/hub/training/daily-challenge.js:477:4",
+      "file": "pages/hub/training/daily-challenge.js",
+      "element": "link",
+      "name": "Weekly & Monthly Goals",
+      "line": 477,
+      "handler": null,
+      "destination": "/hub/training/challenges",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/daily-challenge.js"
+    },
+    {
+      "id": "pages/hub/training/daily-challenge.js:499:5",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Retry Loading Today's Challenge",
-      "line": 487,
+      "line": 499,
       "handler": "fetchChallenge",
       "destination": null,
       "type": "button",
@@ -66747,11 +66964,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:677:3",
+      "id": "pages/hub/training/daily-challenge.js:689:6",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Retry Saving Daily Challenge Completion",
-      "line": 677,
+      "line": 689,
       "handler": "() => completeDailyAttempt(\n                            activeAttemptId,\n                            completionResponseTimeRef.current,\n                          )",
       "destination": null,
       "type": "button",
@@ -66760,11 +66977,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:691:4",
+      "id": "pages/hub/training/daily-challenge.js:703:7",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Continue To Training Hub",
-      "line": 691,
+      "line": 703,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -66773,11 +66990,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-challenge.js:711:5",
+      "id": "pages/hub/training/daily-challenge.js:723:8",
       "file": "pages/hub/training/daily-challenge.js",
       "element": "button",
       "name": "Continue To Training Hub",
-      "line": 711,
+      "line": 723,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -66786,11 +67003,11 @@
       "effectRef": "pages/hub/training/daily-challenge.js"
     },
     {
-      "id": "pages/hub/training/daily-goals.js:246:1",
+      "id": "pages/hub/training/daily-goals.js:220:1",
       "file": "pages/hub/training/daily-goals.js",
       "element": "button",
       "name": "Back To Training",
-      "line": 246,
+      "line": 220,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -66799,11 +67016,50 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/daily-goals.js:290:2",
+      "id": "pages/hub/training/daily-goals.js:235:2",
+      "file": "pages/hub/training/daily-goals.js",
+      "element": "link",
+      "name": "Hand Of The Day",
+      "line": 235,
+      "handler": null,
+      "destination": "/hub/training/daily-challenge",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/daily-goals.js"
+    },
+    {
+      "id": "pages/hub/training/daily-goals.js:238:3",
+      "file": "pages/hub/training/daily-goals.js",
+      "element": "link",
+      "name": "Daily Goals Vault",
+      "line": 238,
+      "handler": null,
+      "destination": "/hub/training/daily-goals",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/daily-goals.js"
+    },
+    {
+      "id": "pages/hub/training/daily-goals.js:241:4",
+      "file": "pages/hub/training/daily-goals.js",
+      "element": "link",
+      "name": "Weekly & Monthly Goals",
+      "line": 241,
+      "handler": null,
+      "destination": "/hub/training/challenges",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "pages/hub/training/daily-goals.js"
+    },
+    {
+      "id": "pages/hub/training/daily-goals.js:262:5",
       "file": "pages/hub/training/daily-goals.js",
       "element": "button",
       "name": "Sign In",
-      "line": 290,
+      "line": 262,
       "handler": "() => router.push('/auth/login?redirect=/hub/training/daily-goals')",
       "destination": null,
       "type": "button",
@@ -70127,11 +70383,11 @@
       "effectRef": "src/components/training/TrainingQuestionReport.jsx"
     },
     {
-      "id": "src/components/training/TrainingSignInPrompt.jsx:47:1",
+      "id": "src/components/training/TrainingSignInPrompt.jsx:48:1",
       "file": "src/components/training/TrainingSignInPrompt.jsx",
       "element": "link",
       "name": "Sign In",
-      "line": 47,
+      "line": 48,
       "handler": null,
       "destination": "trainingSignInHref(returnPath)",
       "type": null,
@@ -71600,6 +71856,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/daily-challenges-casino-realism.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-phase-11.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -76006,6 +76263,7 @@
         }
       ],
       "tests": [
+        "__tests__/daily-challenges-casino-realism.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-phase-11.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -85497,6 +85755,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/daily-challenges-casino-realism.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
       ]
     },
@@ -90134,7 +90393,7 @@
       {
         "file": "pages/hub/training/daily-challenge.js",
         "kind": "FALLBACK",
-        "line": 54,
+        "line": 55,
         "excerpt": "// Fallback: try parseCards",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -93908,7 +94167,7 @@
       {
         "file": "pages/hub/training/challenges.js",
         "name": "ChallengesPage",
-        "line": 79,
+        "line": 93,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -93986,7 +94245,7 @@
       {
         "file": "pages/hub/training/daily-challenge.js",
         "name": "DailyChallengePage",
-        "line": 129,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -93999,7 +94258,7 @@
       {
         "file": "pages/hub/training/daily-goals.js",
         "name": "DailyGoalsPage",
-        "line": 150,
+        "line": 145,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -99650,7 +99909,7 @@
       {
         "file": "pages/hub/training/daily-challenge.js",
         "kind": "FALLBACK",
-        "line": 54,
+        "line": 55,
         "excerpt": "// Fallback: try parseCards",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -103424,7 +103683,7 @@
       {
         "file": "pages/hub/training/challenges.js",
         "name": "ChallengesPage",
-        "line": 79,
+        "line": 93,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -103502,7 +103761,7 @@
       {
         "file": "pages/hub/training/daily-challenge.js",
         "name": "DailyChallengePage",
-        "line": 129,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -103515,7 +103774,7 @@
       {
         "file": "pages/hub/training/daily-goals.js",
         "name": "DailyGoalsPage",
-        "line": 150,
+        "line": 145,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -109123,6 +109382,15 @@
           {
             "state": "stale",
             "followUpPhase": 8
+          }
+        ]
+      },
+      {
+        "route": "/hub/training/daily-goals",
+        "states": [
+          {
+            "state": "empty",
+            "followUpPhase": 7
           }
         ]
       },

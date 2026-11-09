@@ -11,6 +11,12 @@
 import { getHubPageSummaries } from '../../src/lib/seo/hubPageSummariesData.js';
 import { SCHEMA_ROUTES } from '../../src/lib/seo/summarySchema.js';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY.js';
+import {
+  renderToolsDirectoryMarkdown,
+  renderSidePotCalculatorMarkdown,
+  renderBlindStructureCalculatorMarkdown,
+  renderSprCalculatorMarkdown,
+} from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SITE = 'https://smarter.poker';
 
@@ -394,6 +400,19 @@ export function renderHomeGameGeoMarkdown(cleanPath) {
 
 export function renderHubToolMarkdown(targetPath) {
   const cleanPath = '/' + String(targetPath || '').replace(/^\/+/, '').replace(/\.md$/i, '');
+
+  if (cleanPath === '/tools') {
+    return renderToolsDirectoryMarkdown();
+  }
+  if (cleanPath === '/tools/side-pot-calculator') {
+    return renderSidePotCalculatorMarkdown();
+  }
+  if (cleanPath === '/tools/blind-structure-calculator') {
+    return renderBlindStructureCalculatorMarkdown();
+  }
+  if (cleanPath === '/tools/spr-calculator') {
+    return renderSprCalculatorMarkdown();
+  }
 
   if (cleanPath === '/hub/vip-membership/compare') {
     return renderVipCompareMarkdown();

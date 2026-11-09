@@ -11,6 +11,7 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const INTERACTIVE_TOOLS = [
@@ -340,6 +341,16 @@ export default function PokerToolsDirectoryPage() {
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Smarter.Poker Interactive Poker Tools & GTO Calculators Suite"
+          canonicalUrl={canonicalUrl}
+          badgeType="gto"
+          badgeLabel="GTO Math & Solvers"
+          badgeValue="12 Free Poker Calculators"
+          summary="Complete Directory Of 12 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
+          slug="poker-tools-suite"
+        />
 
         <AiPromptLauncher
           title="Smarter.Poker Interactive Poker Tools & Calculators Suite"

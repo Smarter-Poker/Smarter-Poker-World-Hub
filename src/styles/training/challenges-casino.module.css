@@ -1,0 +1,386 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAINING CHALLENGES HUB - #SMARTERCASINOREALISM COMMAND DECK
+   Physical machined obsidian/gunmetal shell, electric cyan (#25c8ff),
+   vault gold (#f2b84b), 2px straight-edged controls, and casino felt stage.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.shell {
+  --ch-obsidian: #020608;
+  --ch-gunmetal: #101a20;
+  --ch-chrome: #c8d3da;
+  --ch-cyan: #25c8ff;
+  --ch-gold: #f2b84b;
+  --ch-emerald: #39d59b;
+  --ch-red: #ff5b67;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
+  box-sizing: border-box;
+  padding-bottom: 88px;
+  color: #eef6f9;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(37, 200, 255, 0.12), transparent 34rem),
+    repeating-linear-gradient(90deg, transparent 0 119px, rgba(37, 200, 255, 0.016) 120px),
+    linear-gradient(180deg, #05090c 0%, var(--ch-obsidian) 72%);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.shell :is(h1, h2, h3, p, button, small, span, a) {
+  text-transform: capitalize;
+}
+
+.marquee {
+  position: relative;
+  min-height: 240px;
+  overflow: hidden;
+  border-bottom: 1px solid #5a707c;
+  background: #020608;
+  isolation: isolate;
+}
+
+.marquee::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 52px;
+  content: "";
+  background: linear-gradient(180deg, transparent, #020608);
+  z-index: -1;
+}
+
+.marqueeArtwork {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 8, 0.99) 0%, rgba(2, 6, 8, 0.86) 54%, rgba(2, 6, 8, 0.22) 100%),
+    url('/images/training/casino-realism/mtt-004.webp') center 42% / cover no-repeat;
+  filter: saturate(0.84) contrast(1.1);
+}
+
+.marqueeContent {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 32px;
+}
+
+.titleBlock {
+  max-width: 700px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ch-cyan);
+  font: 700 10px/1.25 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.titleBlock h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 6px;
+  color: #f4f8fa;
+  font: 700 clamp(30px, 8vw, 52px)/0.98 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px #000, 0 0 24px rgba(37, 200, 255, 0.22);
+}
+
+.titleBlock p {
+  max-width: 580px;
+  margin: 0;
+  color: #b5c4cb;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.subpageNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.navPlate,
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #718895;
+  border-radius: 2px;
+  color: #e7f0f4;
+  background: linear-gradient(180deg, #1e2c34 0%, #071016 52%, #111e25 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.2), inset 0 -2px rgba(0, 0, 0, 0.72), 0 0 0 2px rgba(0, 0, 0, 0.65);
+  font: 700 12px/1 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.navPlateActive {
+  border-color: var(--ch-cyan);
+  color: #ffffff;
+  background: linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.26), 0 0 18px rgba(37, 200, 255, 0.22);
+}
+
+.primaryButton {
+  border-color: var(--ch-cyan);
+  background: linear-gradient(180deg, #17688b 0%, #06283a 56%, #0b4059 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.24), inset 0 -2px rgba(0, 0, 0, 0.72), 0 0 22px rgba(37, 200, 255, 0.2);
+}
+
+.navPlate:hover,
+.navPlate:focus-visible,
+.primaryButton:hover,
+.primaryButton:focus-visible {
+  outline: 2px solid var(--ch-cyan);
+  outline-offset: 2px;
+  border-color: #dce7ec;
+  color: #ffffff;
+  box-shadow: inset 0 1px #ffffff, 0 0 20px rgba(37, 200, 255, 0.3);
+}
+
+.commandDeck {
+  width: min(1120px, calc(100% - 24px));
+  margin: 0 auto;
+  padding: 20px 0 36px;
+}
+
+.telemetryBar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 18px;
+  border: 1px solid #536a76;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #111c22, #050b0f);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 12px 36px rgba(0, 0, 0, 0.42);
+}
+
+.telemetryCell {
+  display: grid;
+  gap: 4px;
+  padding: 13px 10px;
+  text-align: center;
+}
+
+.telemetryCell + .telemetryCell {
+  border-left: 1px solid #334750;
+}
+
+.telemetryCell span {
+  color: #8ca4b0;
+  font: 700 10px/1.2 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.telemetryCell strong {
+  color: var(--ch-chrome);
+  font: 800 clamp(18px, 5vw, 26px)/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+.telemetryCell small {
+  color: #90a5af;
+  font: 700 10px/1.2 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.telemetryGold strong {
+  color: var(--ch-gold);
+  text-shadow: 0 0 14px rgba(242, 184, 75, 0.24);
+}
+
+.signInVault {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 44px 24px;
+  border: 1px solid #5d7380;
+  border-left: 4px solid var(--ch-cyan);
+  border-radius: 2px;
+  background:
+    radial-gradient(ellipse at center, rgba(8, 79, 65, 0.35), rgba(2, 10, 14, 0.96) 72%),
+    linear-gradient(145deg, rgba(12, 24, 30, 0.98), rgba(2, 7, 10, 0.99));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 18px 50px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.signInVault h2 {
+  margin: 4px 0 0;
+  color: #f4f8fa;
+  font: 700 clamp(22px, 5vw, 32px)/1.1 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+}
+
+.signInVault p {
+  max-width: 480px;
+  margin: 0 0 8px;
+  color: #a6bac4;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.challengeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.challengeCard {
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid #58717f;
+  border-left: 3px solid var(--ch-cyan);
+  border-radius: 2px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 28%),
+    linear-gradient(180deg, #101d25 0%, #040b10 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.challengeCardMonthly {
+  border-left-color: var(--ch-gold);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.typeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid #486270;
+  border-radius: 2px;
+  background: #071218;
+  color: var(--ch-cyan);
+  font: 700 10px/1.2 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.typeBadgeMonthly {
+  border-color: rgba(242, 184, 75, 0.55);
+  color: var(--ch-gold);
+}
+
+.periodCode {
+  color: #7d96a3;
+  font: 700 10px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+.challengeTitle {
+  margin: 0 0 6px;
+  color: #f2f7fa;
+  font: 700 20px/1.2 var(--font-rajdhani), "Rajdhani", sans-serif;
+}
+
+.challengeDesc {
+  margin: 0 0 16px;
+  color: #9cb0ba;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.progressContainer {
+  margin-bottom: 14px;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 8px;
+  border-radius: 0;
+  background: #020609;
+  box-shadow: inset 0 0 0 1px #29404d;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--ch-cyan), var(--ch-gold));
+  box-shadow: 0 0 12px rgba(37, 200, 255, 0.35);
+}
+
+.progressText {
+  margin-top: 6px;
+  color: #b7c8d1;
+  font: 700 11px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  text-align: right;
+}
+
+.rewardRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #233843;
+}
+
+.statusStamp {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px solid rgba(242, 184, 75, 0.62);
+  border-radius: 2px;
+  background: rgba(242, 184, 75, 0.08);
+  color: var(--ch-gold);
+  font: 700 10px/1.2 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.snapshotStamp {
+  padding: 4px 9px;
+  border: 1px solid #3c5460;
+  border-radius: 2px;
+  background: #071117;
+  color: #9eb3be;
+  font: 700 11px/1.2 ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+@media (max-width: 768px) {
+  .challengeGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .shell,
+  .marquee,
+  .telemetryBar,
+  .signInVault,
+  .challengeCard,
+  .navPlate,
+  .primaryButton {
+    border-color: CanvasText !important;
+    background: Canvas !important;
+    color: CanvasText !important;
+  }
+}

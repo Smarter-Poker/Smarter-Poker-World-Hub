@@ -13,6 +13,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const SPR_BENCHMARK_TABLE = [
@@ -420,6 +421,16 @@ export default function SprCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Poker Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator"
+          canonicalUrl={canonicalUrl}
+          badgeType="gto"
+          badgeLabel="Postflop Geometric Solver"
+          badgeValue="SPR & Multi-Street Bet Sizing"
+          summary="Interactive Stack-To-Pot Ratio (SPR) And Multi-Street Geometric Bet Sizing Calculator For 1-Street, 2-Street, And 3-Street All-In Progressions."
+          slug="spr-calculator"
+        />
 
         <AiPromptLauncher
           title="Poker Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator"

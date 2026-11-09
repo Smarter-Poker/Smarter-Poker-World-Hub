@@ -1,11 +1,12 @@
 /**
- * CHALLENGES WIDGET
- * ═══════════════════════════════════════════════════════════════════════════
+ * CHALLENGES WIDGET (#SMARTERCASINOREALISM)
+ * ---------------------------------------------------------------------------
  * Displays weekly/monthly challenges with progress on training lobby
- * ═══════════════════════════════════════════════════════════════════════════
+ * ---------------------------------------------------------------------------
  */
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { authedFetch } from '../../lib/authUtils';
 
@@ -44,7 +45,7 @@ export default function ChallengesWidget({ userId }) {
         );
     }
 
-    // Get top 2 challenges to show (prioritize incomplete, then completed unclaimed)
+    // Get top challenges to show (prioritize incomplete, then completed unclaimed)
     const displayChallenges = [
         ...challenges.weekly.filter(c => !c.completed).slice(0, 1),
         ...challenges.monthly.filter(c => !c.completed).slice(0, 1),
@@ -59,8 +60,13 @@ export default function ChallengesWidget({ userId }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <span style={styles.title}>Active Challenges</span>
-                <span style={styles.viewAll}>View All →</span>
+                <div style={styles.headerTitleGroup}>
+                    <span style={styles.kicker}>Smarter Casino Realism · Challenge Telemetry</span>
+                    <span style={styles.title}>Active Challenges</span>
+                </div>
+                <Link href="/hub/training/challenges" style={styles.viewAll}>
+                    View All ›
+                </Link>
             </div>
 
             <div style={styles.challengesList}>
@@ -69,13 +75,15 @@ export default function ChallengesWidget({ userId }) {
                         key={challenge.id}
                         style={{
                             ...styles.challengeCard,
-                            borderColor: challenge.completed ? '#FFD700' : 'rgba(255,255,255,0.1)'
+                            borderColor: challenge.completed ? '#f2b84b' : '#2f4552'
                         }}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.1 }}
                     >
-                        <div style={styles.challengeIcon}>{challenge.icon}</div>
+                        <div style={styles.challengeIcon}>
+                            {challenge.challenge_type === 'weekly' ? 'W' : 'M'}
+                        </div>
                         <div style={styles.challengeInfo}>
                             <div style={styles.challengeName}>{challenge.name}</div>
                             <div style={styles.challengeProgress}>
@@ -90,8 +98,8 @@ export default function ChallengesWidget({ userId }) {
                                         ...styles.progressFill,
                                         width: `${challenge.percentage}%`,
                                         background: challenge.completed
-                                            ? 'linear-gradient(90deg, #FFD700, #FF6B35)'
-                                            : '#00E0FF'
+                                            ? 'linear-gradient(90deg, #b87e1b, #f2b84b)'
+                                            : 'linear-gradient(90deg, #0d6a8c, #25c8ff)'
                                     }}
                                 />
                             </div>
@@ -99,14 +107,14 @@ export default function ChallengesWidget({ userId }) {
                         <div style={styles.challengeReward}>
                             {challenge.completed && !challenge.claimed ? (
                                 <span
-                                    style={{ ...styles.diamondReward, color: '#FFD700' }}
+                                    style={{ ...styles.statusBadge, color: '#f2b84b', borderColor: 'rgba(242,184,75,0.45)' }}
                                     title="Claims Reopen After Verified Challenge Settlement Is Certified"
                                 >
                                     Verified Claim Pending
                                 </span>
                             ) : (
-                                <span style={styles.diamondReward}>
-                                    ◆ {challenge.diamond_reward}
+                                <span style={styles.statusBadge}>
+                                    Tracking Paused
                                 </span>
                             )}
                         </div>
@@ -120,25 +128,52 @@ export default function ChallengesWidget({ userId }) {
 const styles = {
     container: {
         margin: '16px',
-        background: 'linear-gradient(180deg, rgba(255,215,0,0.05), transparent)',
-        borderRadius: '16px',
+        background: 'linear-gradient(180deg, #0c171e, #050c10)',
+        borderRadius: '2px',
         padding: '16px',
-        border: '1px solid rgba(255,215,0,0.2)'
+        border: '1px solid #354d5b',
+        boxShadow: 'inset 0 0 0 3px #020608, inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 32px rgba(0,0,0,0.45)'
     },
     header: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '12px'
+        marginBottom: '12px',
+        paddingBottom: '10px',
+        borderBottom: '1px solid #1f333f'
+    },
+    headerTitleGroup: {
+        display: 'grid',
+        gap: '2px'
+    },
+    kicker: {
+        fontSize: '9px',
+        fontWeight: 700,
+        letterSpacing: '0.14em',
+        textTransform: 'uppercase',
+        color: '#f2b84b',
+        fontFamily: 'var(--font-orbitron), Orbitron, sans-serif'
     },
     title: {
-        fontSize: '16px',
+        fontSize: '18px',
         fontWeight: 700,
-        color: '#FFD700'
+        color: '#f0f7fa',
+        fontFamily: 'var(--font-rajdhani), Rajdhani, sans-serif'
     },
     viewAll: {
-        fontSize: '12px',
-        color: '#9ca3af',
+        display: 'inline-flex',
+        alignItems: 'center',
+        minHeight: '34px',
+        padding: '0 12px',
+        border: '1px solid #25c8ff',
+        borderRadius: '2px',
+        background: 'linear-gradient(180deg, #102a38, #07131a)',
+        fontSize: '11px',
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: '#dff6ff',
+        textDecoration: 'none',
         cursor: 'pointer'
     },
     challengesList: {
@@ -149,38 +184,53 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        background: '#1a1a1a',
+        background: 'linear-gradient(180deg, #101d25, #070e13)',
         padding: '12px',
-        borderRadius: '12px',
-        border: '1px solid'
+        borderRadius: '2px',
+        border: '1px solid #2f4552',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
     },
     challengeIcon: {
-        fontSize: '28px'
+        width: '36px',
+        height: '36px',
+        display: 'grid',
+        placeItems: 'center',
+        border: '1px solid #3c5665',
+        borderRadius: '2px',
+        background: '#050c10',
+        color: '#25c8ff',
+        fontSize: '13px',
+        fontWeight: 800,
+        fontFamily: 'var(--font-orbitron), Orbitron, sans-serif'
     },
     challengeInfo: {
         flex: 1
     },
     challengeName: {
         fontSize: '14px',
-        fontWeight: 600,
+        fontWeight: 700,
         marginBottom: '4px',
-        color: '#fff'
+        color: '#edf5f8'
     },
     challengeProgress: {
         fontSize: '12px',
-        color: '#9ca3af',
+        color: '#8da3af',
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        marginBottom: '6px'
+        marginBottom: '6px',
+        fontFamily: 'ui-monospace, SFMono-Regular, monospace'
     },
     challengeType: {
-        fontSize: '12px',
-        color: '#6b7280'
+        fontSize: '10px',
+        color: '#f2b84b',
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em'
     },
     progressBar: {
-        height: '4px',
-        background: 'rgba(255,255,255,0.1)',
+        height: '6px',
+        background: '#03080b',
+        border: '1px solid #263944',
         borderRadius: '2px',
         overflow: 'hidden'
     },
@@ -192,24 +242,25 @@ const styles = {
     challengeReward: {
         textAlign: 'right'
     },
-    diamondReward: {
-        fontSize: '14px',
-        fontWeight: 600,
-        color: '#00E0FF'
-    },
-    claimButton: {
-        padding: '6px 16px',
-        background: 'linear-gradient(135deg, #FFD700, #FF6B35)',
-        border: 'none',
-        borderRadius: '6px',
-        color: '#000',
+    statusBadge: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '4px 8px',
+        border: '1px solid rgba(37,200,255,0.35)',
+        borderRadius: '2px',
+        background: 'rgba(37,200,255,0.08)',
+        fontSize: '10px',
         fontWeight: 700,
-        fontSize: '13px',
-        cursor: 'pointer'
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: '#7ddfff'
     },
     loadingText: {
-        color: '#9ca3af',
+        color: '#8da3af',
         textAlign: 'center',
-        padding: '20px'
+        padding: '20px',
+        fontSize: '12px',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase'
     }
 };
