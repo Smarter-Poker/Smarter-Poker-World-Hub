@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import './reels-seo.test.mjs';
 import './video-library-breadcrumbs.test.mjs';
 import './video-library-mobile-phase8-delivery.test.mjs';
@@ -661,7 +662,7 @@ import './a-reel-never-says-who-made-it.law.test.mjs';
 // Players attest a Sports Reel topic the way a horse does (World Hub #2150).
 import './players-share-sports-reels.test.mjs';
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 
 const REQUIRED_TEST_FILES = [
     '__tests__/auth-routes-exist.test.mjs',

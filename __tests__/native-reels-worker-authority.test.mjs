@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {mkdir,mkdtemp,rm,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -31,7 +32,7 @@ test('unknown publish acknowledgment reads durable state before deleting bytes',
  await assert.rejects(()=>processNativePost(initial(),refused.dependencies),/revoked/);assert.equal(refused.calls.includes('discard'),true);
 });
 test('streamed native download observes redirect denial, file-size rejection and finite deadline',async()=>{
- const base=new URL('../work/native-worker-test/',import.meta.url).pathname;await mkdir(base,{recursive:true});const dir=await mkdtemp(join(base,'run-'));const output=join(dir,'source');
+ const base=fileURLToPath(new URL('../work/native-worker-test/', import.meta.url));await mkdir(base,{recursive:true});const dir=await mkdtemp(join(base,'run-'));const output=join(dir,'source');
  try{
   await downloadNativeSource(source,output,{fetchImpl:async(url,options)=>{assert.equal(options.redirect,'error');assert.equal(options.credentials,'omit');return new Response(new Uint8Array([1,2,3]));}});
   assert.equal((await readFile(output)).length,3);

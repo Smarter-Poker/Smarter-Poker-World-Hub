@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -10,7 +11,7 @@ const {
   patchNextGoogleFontLoaderSource,
 } = require('../scripts/next-google-font-loader-patch.cjs');
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 
 test('Google font URLs keep their declared extension with query or hash suffixes', () => {
   assert.equal(

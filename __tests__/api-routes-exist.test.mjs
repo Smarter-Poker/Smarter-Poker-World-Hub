@@ -46,12 +46,13 @@
  * route looks dead and the output is noise. The test detects a partial
  * pages/api tree and SKIPS with an explanation rather than failing.
  */
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const REPO_ROOT = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO_ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const API_DIR = path.join(REPO_ROOT, 'pages', 'api');
 const SCAN_DIRS = ['pages', 'src', 'components'];
 const EXTS = ['.js', '.jsx', '.ts', '.tsx'];

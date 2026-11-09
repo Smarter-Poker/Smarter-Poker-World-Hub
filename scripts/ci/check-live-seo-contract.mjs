@@ -384,7 +384,7 @@ async function main() {
   );
 }
 
-const invokedDirectly = process.argv[1] && new URL(`file://${process.argv[1]}`).pathname === new URL(import.meta.url).pathname;
+const invokedDirectly = process.argv[1] && new URL(`file://${process.argv[1]}`).pathname === fileURLToPath(import.meta.url);
 if (invokedDirectly) {
   main()
     .catch((e) => fail(`checker crashed: ${e.stack || e.message}`))

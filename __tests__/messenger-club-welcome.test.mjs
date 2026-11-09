@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { executeClubWelcomeRequest } from '../src/lib/clubWelcomeMessages.mjs';
@@ -56,7 +57,7 @@ test('bounded local cache compression cannot change Vercel or development cache 
  const start=source.indexOf('webpack: (')+'webpack: '.length;const end=source.indexOf('  // swcMinify',start);
  assert.ok(start>0&&end>start);
  const callback=source.slice(start,end).trim().replace(/,$/,'');
- const config={webpack:vm.runInNewContext('('+callback+')',{process,require:createRequire(import.meta.url),__dirname:new URL('..',import.meta.url).pathname})};
+ const config={webpack:vm.runInNewContext('('+callback+')',{process,require:createRequire(import.meta.url),__dirname:fileURLToPath(new URL('..', import.meta.url))})};
  const original={flag:process.env.SMARTER_COMPRESS_LOCAL_BUILD_CACHE,vercel:process.env.VERCEL};
  const cache=(dev)=>config.webpack({resolve:{alias:{}},cache:{type:'filesystem',compression:false}},{dev,isServer:true}).cache;
  try{

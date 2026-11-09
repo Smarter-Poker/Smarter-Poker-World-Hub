@@ -7,12 +7,13 @@
 // country, so /api/auth/ensure-profile always found an existing row and its
 // insert (the only code that copied them) never ran: 33 of 33 recent signups
 // had lost their state. These checks keep every link of that chain wired.
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const MIGRATIONS = path.join(ROOT, 'supabase/migrations');
 

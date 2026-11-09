@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -5,7 +6,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 
-const root = process.env.RETIRED_PROVIDER_TEST_ROOT || path.resolve(new URL('..', import.meta.url).pathname);
+const root = process.env.RETIRED_PROVIDER_TEST_ROOT || path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const provider = ['sen', 'try'].join('');
 const retired = new RegExp('@' + provider + '/|\\b' + provider + '[\\w.-]*|(?:NEXT_PUBLIC_|VITE_)?' + provider + '_[A-Z_]+|(?:get|with|reportTo)' + provider + '\\w*', 'i');

@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,7 +13,7 @@ import test from 'node:test';
 // recipient variable exists on the workers VM. Companion of
 // phase7-content-dispatch.test.mjs and phase6-content-dispatch.test.mjs.
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const dispatcher = fs.readFileSync(path.join(REPO, 'scripts', 'openclaw-cron-dispatcher.py'), 'utf8');
 
 const assignmentBlock = (name, open = '{', close = '}') => {

@@ -273,6 +273,7 @@ jobs:
           node --test
           __tests__/messenger-media-attachments.test.mjs
           __tests__/messenger-preview-is-plain-text.test.mjs
+          __tests__/a-test-that-reads-nothing-fails.law.test.mjs
           __tests__/messenger-draft-autosave-live-safety.test.mjs
 
       - name: Accounting Push Receipt And Ownership Contracts
