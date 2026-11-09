@@ -21,8 +21,11 @@ export async function verifyDigestLive({ day, expectedSha, fetchImpl = fetch }) 
     const html = await response.text();
     if (!/text\/html/.test(response.headers.get('content-type') || '')) throw new Error('Digest did not return HTML');
     if (!/no-store/.test(response.headers.get('cache-control') || '')) throw new Error('Digest response can be cached');
-    for (const section of ['Real Player Totals', 'Diamond Spins', 'Free Buy And Guarantee Funding']) {
+    for (const section of ['Daily Update', 'Weekly Update', 'Monthly Update', 'Real Player Totals', 'Diamond Spins', 'Free Buy And Guarantee Funding']) {
         if (!html.includes(section)) throw new Error(`Missing ${section}`);
+    }
+    if (!(html.indexOf('Daily Update') < html.indexOf('Weekly Update') && html.indexOf('Weekly Update') < html.indexOf('Monthly Update'))) {
+        throw new Error('Top update cards out of order');
     }
     if (/Player totals could not be built|Report Unavailable|canceling statement|statement timeout/i.test(html)) throw new Error('A live report section failed');
     return { day, revision: identity.version, deploymentId: identity.deploymentId, reportBytes: Buffer.byteLength(html), playerTotals: 'rendered', spins: 'rendered', freeBuyFunding: 'rendered', observedAt: new Date().toISOString() };
