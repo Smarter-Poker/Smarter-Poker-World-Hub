@@ -280,6 +280,81 @@ export const INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS = [
   },
 ];
 
+export const BACKLINK_EXECUTION_TODO_CHECKLIST = [
+  {
+    id: 'unlinked-brand-reclamation',
+    priority: 'P0 (Highest Conversion Rate: 30%+)',
+    title: 'Unlinked Brand Mention Reclamation Loop',
+    searchQuery: '"Smarter.Poker" OR "Smarter Poker" OR "Club Commander" -site:smarter.poker',
+    targetLandingUrl: 'https://smarter.poker/about',
+    actionPlan:
+      'Monitor weekly web and forum mentions of Smarter.Poker, Club Commander, and Poker Near Me that lack a hyperlink, and send a 2-sentence thank-you outreach email supplying the exact canonical URL.',
+  },
+  {
+    id: 'competitor-404-hijacking',
+    priority: 'P0 (Immediate Broken-Link Replacement)',
+    title: 'Competitor 404 Broken-Backlink Hijacking',
+    searchQuery: 'site:pokeratlas.com OR site:bravopokerlive.com OR site:pocketfives.com HTTP 404 inbound links',
+    targetLandingUrl: 'https://smarter.poker/compare',
+    actionPlan:
+      'Export external pages linking to dead 404 URLs on legacy poker directories and training sites, and offer webmasters the live Smarter.Poker calculator, research study, or venue directory equivalent.',
+  },
+  {
+    id: 'annual-cardroom-award-badges',
+    priority: 'P1 (High-Authority Real Casino & Cardroom Backlinks)',
+    title: 'Annual Top 50 US Poker Rooms & Regional Card Club Award Badges',
+    searchQuery: 'https://smarter.poker/api/seo/badge?type=venue&theme=gold',
+    targetLandingUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
+    actionPlan:
+      'Issue verified gold SVG award badges to top-ranked poker rooms in Las Vegas, Texas, Florida, and California so venue webmasters embed the badge on their homepage with a dofollow link to our benchmark study.',
+  },
+  {
+    id: 'gaming-cpa-tax-w2g-outreach',
+    priority: 'P1 (High-DR Finance, Legal & Accounting Backlinks)',
+    title: 'Gaming CPA, Tax Attorney & Enrolled Agent Form W-2G Resource Links',
+    searchQuery: '"Form W-2G" poker tax accountant resources OR "gambling losses Schedule C"',
+    targetLandingUrl: 'https://smarter.poker/features/bankroll-tax-tracker',
+    actionPlan:
+      'Pitch our free Form W-2G Tax Ledger (https://smarter.poker/features/bankroll-tax-tracker) and W-2G Reporting Benchmark (https://smarter.poker/research/us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark) to CPA firms and tax guides.',
+  },
+  {
+    id: 'casino-dealer-schools',
+    priority: 'P1 (Vocational & Hospitality Education Backlinks)',
+    title: 'Casino Dealer Schools & Hospitality Career Center Resource Links',
+    searchQuery: '"poker dealer school" student resources OR "casino dealing school"',
+    targetLandingUrl: 'https://smarter.poker/features/poker-dealer-toke-tracker',
+    actionPlan:
+      'Provide casino dealing schools and hospitality programs with our free Dealer Toke & Shift Tracker (https://smarter.poker/features/poker-dealer-toke-tracker) and Dealer Toke Benchmark (https://smarter.poker/research/poker-dealer-toke-and-hourly-rate-benchmark).',
+  },
+  {
+    id: 'npm-pypi-open-source-packages',
+    priority: 'P1 (DR 92+ Developer Registry Backlinks)',
+    title: 'Open-Source npmjs.com & pypi.org MCP & Poker Math Package Listings',
+    searchQuery: 'npmjs.com / pypi.org @smarter-poker/mcp-connector',
+    targetLandingUrl: 'https://smarter.poker/api/mcp',
+    actionPlan:
+      'Publish lightweight open-source CLI/MCP wrapper packages on npmjs.com (DR 93) and pypi.org (DR 92) whose repository, homepage, and README metadata link to https://smarter.poker and https://smarter.poker/api/mcp.',
+  },
+  {
+    id: 'streamer-obs-chatbot-commands',
+    priority: 'P2 (Recurring YouTube Description & Twitch Panel Backlinks)',
+    title: 'Twitch / YouTube Streamer OBS Overlay & !odds / !icm Chatbot Integration',
+    searchQuery: 'poker vloggers twitch streamers live hand analysis',
+    targetLandingUrl: 'https://smarter.poker/tools/poker-odds-calculator',
+    actionPlan:
+      'Supply poker livestreamers and YouTube vloggers with a free Nightbot/StreamElements !odds and !icm command plus transparent OBS equity overlay in exchange for a permanent link in their video descriptions.',
+  },
+  {
+    id: 'multilingual-international-syndication',
+    priority: 'P2 (Global Non-English Poker Portal Backlinks)',
+    title: 'Multilingual International Poker Portal Syndication (ES, PT, DE, FR, IT, JA)',
+    searchQuery: 'calculadora de odds poker / calculadora ICM poker gratis',
+    targetLandingUrl: 'https://smarter.poker/tools/embeds',
+    actionPlan:
+      'Pitch Brazilian, Spanish, Latin American, German, French, Italian, and Japanese poker portals using our localized grounding corpora (https://smarter.poker/llms-es.txt, https://smarter.poker/llms-pt.txt) and free iframe embeds (https://smarter.poker/tools/embeds).',
+  },
+];
+
 export function getBacklinkOpportunitiesPayload() {
   return {
     generatedAt: '2026-11-09',
@@ -295,11 +370,13 @@ export function getBacklinkOpportunitiesPayload() {
       journalistPrAngles: JOURNALIST_PR_ANGLES.length,
       openDatasetMirrors: OPEN_DATASET_AND_ACADEMIC_MIRRORS.length,
       institutionalChannels: INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS.length,
+      executionTodoChecklist: BACKLINK_EXECUTION_TODO_CHECKLIST.length,
     },
     deadToolReplacements: DEAD_TOOL_REPLACEMENTS,
     directoryTargets: DIRECTORY_NETWORK_TARGETS,
     journalistPrAngles: JOURNALIST_PR_ANGLES,
     openDatasetMirrors: OPEN_DATASET_AND_ACADEMIC_MIRRORS,
     institutionalChannels: INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS,
+    executionTodoChecklist: BACKLINK_EXECUTION_TODO_CHECKLIST,
   };
 }

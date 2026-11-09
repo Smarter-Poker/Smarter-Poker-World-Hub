@@ -17,6 +17,7 @@ import {
   JOURNALIST_PR_ANGLES,
   OPEN_DATASET_AND_ACADEMIC_MIRRORS,
   INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS,
+  BACKLINK_EXECUTION_TODO_CHECKLIST,
   getBacklinkOpportunitiesPayload,
 } from '../src/lib/seo/backlinkCatalog.mjs';
 
@@ -88,7 +89,12 @@ test('Research, Starting Hands, Glossary, and Calculator pages wire CitationBack
     'pages/research/[slug].js',
     'pages/research/index.js',
     'pages/learn/hands/[hand].js',
+    'pages/learn/hands/index.js',
+    'pages/learn/[topic].js',
     'pages/glossary/[term].js',
+    'src/components/features/FeatureLanderLayout.js',
+    'pages/editorial-standards.js',
+    'pages/verification-methodology.js',
     'pages/tools/pot-odds-calculator.js',
     'pages/tools/push-fold-calculator.js',
     'pages/tools/bankroll-calculator.js',
@@ -136,11 +142,18 @@ test('Backlink & Dead-Tool Replacement Catalog maps legacy poker tools, director
   assert.equal(payload.counts.deadToolReplacements, DEAD_TOOL_REPLACEMENTS.length);
   assert.equal(payload.counts.openDatasetMirrors, OPEN_DATASET_AND_ACADEMIC_MIRRORS.length);
   assert.equal(payload.counts.institutionalChannels, INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS.length);
+  assert.equal(payload.counts.executionTodoChecklist, BACKLINK_EXECUTION_TODO_CHECKLIST.length);
   assert.ok(DEAD_TOOL_REPLACEMENTS.length >= 7);
   assert.ok(DIRECTORY_NETWORK_TARGETS.length >= 4);
   assert.ok(JOURNALIST_PR_ANGLES.length >= 4);
   assert.ok(OPEN_DATASET_AND_ACADEMIC_MIRRORS.length >= 3);
   assert.ok(INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS.length >= 3);
+  assert.ok(BACKLINK_EXECUTION_TODO_CHECKLIST.length >= 8);
+
+  for (const todo of BACKLINK_EXECUTION_TODO_CHECKLIST) {
+    assert.match(todo.targetLandingUrl, /^https:\/\/smarter\.poker\//);
+    assert.ok(todo.actionPlan.length > 20);
+  }
 
   for (const item of DEAD_TOOL_REPLACEMENTS) {
     assert.match(item.replacementUrl, /^https:\/\/smarter\.poker\//);

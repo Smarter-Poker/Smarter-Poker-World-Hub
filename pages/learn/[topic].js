@@ -26,6 +26,7 @@
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { firstThatFits } from '../../src/lib/seo/titleFit.js';
 import {
   LEARN_PATH,
@@ -335,6 +336,16 @@ export default function LessonPage({ lesson, related, glossary, cta }) {
               </li>
             </ul>
           </section>
+
+          <CitationBacklinkBox
+            title={lesson.title}
+            canonicalUrl={`${SITE_URL}${lessonPath(lesson.slug)}`}
+            badgeType="gto"
+            badgeLabel="GTO Strategy Lesson"
+            badgeValue={lesson.category || 'Smarter.Poker Strategy'}
+            summary={lesson.summary}
+            slug={`lesson-${lesson.slug}`}
+          />
 
           <AiPromptLauncher
             title={lesson.title}
