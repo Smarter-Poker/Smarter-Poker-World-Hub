@@ -2058,7 +2058,11 @@ export default function useGTOTrainer(
 
       // ═══ PHASE 251: Generate structured explanation for rich UI rendering ═══
       try {
-        const structured = postAnswerInsights.generateStructuredExplanation(
+        const serverStructured =
+          feedback?.structuredExplanation && typeof feedback.structuredExplanation === 'object'
+            ? { ...feedback.structuredExplanation }
+            : null;
+        const boundaryStructured = postAnswerInsights.generateStructuredExplanation(
           selectedOptionId,
           correctAnswer,
           currentQuestion.frequencies || {},
@@ -2068,16 +2072,82 @@ export default function useGTOTrainer(
           scenario,
           fullExplanation
         );
-        // Phase 256: Attach spot difficulty estimation
-        try {
-          structured.spotDifficulty = postAnswerInsights.estimateSpotDifficulty(
-            currentQuestion.frequencies || {},
-            scenario.street || 'flop',
-            scenario.stackDepth,
-            scenario.nodeType || ''
-          );
-        } catch (_e) {
-          console.warn('[App] Handled exception:', _e?.message || _e);
+        const stLower = String(scenario.street || 'flop').toLowerCase();
+        const nodeLower = String(scenario.nodeType || scenario.spotType || '').toLowerCase();
+        const corrLower = String(correctText || correctAnswer || '').toLowerCase();
+        const selLower = String(selectedText || selectedOptionId || '').toLowerCase();
+        const inferredConcept =
+          nodeLower.includes('3bet')
+            ? '3-Bet Pot Dynamics'
+            : nodeLower.includes('cbet') || nodeLower.includes('continuation')
+              ? 'Continuation Betting'
+              : nodeLower.includes('checkraise') || nodeLower.includes('xr')
+                ? 'Check-Raise Strategy'
+                : stLower === 'preflop'
+                  ? 'Preflop Range Discipline'
+                  : stLower === 'river'
+                    ? 'River Polarized Sizing'
+                    : stLower === 'turn'
+                      ? 'Turn Barrel Geometry'
+                      : 'GTO Postflop Equilibrium';
+        const optimalFreqNum = Number(
+          currentQuestion.frequencies?.[correctAnswer] ??
+            serverEvidence?.optimalFrequency ??
+            0
+        );
+        const fallbackTakeaway = fullExplanation
+          ? String(fullExplanation).split(/[.!?](?:\s|$)/)[0]?.trim() + '.'
+          : isCorrect
+            ? `${correctText} is the highest-EV play in this ${stLower} spot.`
+            : `Prefer ${correctText}${optimalFreqNum > 0 ? ` (${Math.round(optimalFreqNum)}%)` : ''} over ${selectedText} in this ${stLower} node.`;
+        const fallbackFix = !isCorrect
+          ? corrLower.includes('fold') && (selLower.includes('call') || selLower.includes('raise'))
+            ? `Tighten your continuing threshold facing pressure when range equity is capped.`
+            : (corrLower.includes('bet') || corrLower.includes('raise')) &&
+                (selLower.includes('check') || selLower.includes('call'))
+              ? `Shift toward proactive aggression (${correctText}) to deny equity and build the pot.`
+              : `Align your action frequency with ${correctText} in this ${stLower} configuration.`
+          : null;
+
+        const structured = boundaryStructured || serverStructured || {
+          isCorrect,
+          correctAction: correctAnswer,
+          primary: correctText || correctAnswer,
+          concept: inferredConcept,
+          takeaway: fallbackTakeaway,
+          fix: fallbackFix,
+        };
+        if (structured && typeof structured === 'object') {
+          if (structured.isCorrect === undefined) structured.isCorrect = isCorrect;
+          if (!structured.correctAction) structured.correctAction = correctAnswer;
+          if (!structured.primary) structured.primary = correctText || correctAnswer;
+          if (!structured.concept) structured.concept = inferredConcept;
+          if (!structured.takeaway) structured.takeaway = fallbackTakeaway;
+          if (!isCorrect && !structured.fix && fallbackFix) structured.fix = fallbackFix;
+          // Phase 256: Attach spot difficulty estimation
+          try {
+            const estDiff = postAnswerInsights.estimateSpotDifficulty(
+              currentQuestion.frequencies || {},
+              scenario.street || 'flop',
+              scenario.stackDepth,
+              scenario.nodeType || ''
+            );
+            if (estDiff) {
+              structured.spotDifficulty = estDiff;
+            } else if (!structured.spotDifficulty) {
+              const freqVals = Object.values(currentQuestion.frequencies || {})
+                .map((v) => Number(v))
+                .filter((v) => Number.isFinite(v) && v > 0);
+              const maxFreq = freqVals.length > 0 ? Math.max(...freqVals) : 85;
+              const diffScore = maxFreq >= 85 ? 3 : maxFreq >= 60 ? 5 : 8;
+              structured.spotDifficulty = {
+                difficulty: diffScore,
+                label: diffScore >= 7 ? 'Complex Mix' : diffScore >= 5 ? 'Mixed Spot' : 'Standard Spot',
+              };
+            }
+          } catch (_e) {
+            console.warn('[App] Handled exception:', _e?.message || _e);
+          }
         }
         setStructuredExplanation(structured);
       } catch (e) {
@@ -3673,46 +3743,106 @@ export default function useGTOTrainer(
     // ═══ PHASE 261-270: Deep coaching intelligence ═══
     getTeachingPrinciple: (street, nodeType, correctAction, handStrength, texture) => {
       try {
-        return postAnswerInsights.getTeachingPrinciple(
+        const fromBoundary = postAnswerInsights.getTeachingPrinciple(
           street,
           nodeType,
           correctAction,
           handStrength,
           texture
         );
+        if (fromBoundary) return fromBoundary;
+        const st = String(street || 'flop').toLowerCase();
+        const act = String(correctAction || '').toLowerCase();
+        if (act.includes('fold')) {
+          return {
+            principle: `On the ${st}, disciplined folds preserve stack EV when range equity falls below pot-odds continuation thresholds.`,
+          };
+        }
+        if (act.includes('bet') || act.includes('raise') || act.includes('all')) {
+          return {
+            principle: `Proactive aggression on the ${st} leverages range and nut advantage to deny villain equity and build geometric pot growth.`,
+          };
+        }
+        return {
+          principle: `Pot-control and range protection on the ${st} keep villain's bluffs live while preventing bloated pots out of equilibrium.`,
+        };
       } catch (e) {
         return null;
       }
     },
     getPositionReminder: (heroPosition, street, nodeType) => {
       try {
-        return postAnswerInsights.getPositionReminder(heroPosition, street, nodeType);
+        const fromBoundary = postAnswerInsights.getPositionReminder(heroPosition, street, nodeType);
+        if (fromBoundary) return fromBoundary;
+        const pos = String(heroPosition || '').toUpperCase();
+        if (!pos) return null;
+        const isOOP = pos === 'SB' || pos === 'BB' || pos === 'UTG' || pos === 'EP';
+        return {
+          tip: isOOP
+            ? `Acting from ${pos} requires tighter polarization and higher check frequencies to protect your capped lines.`
+            : `Acting in position from ${pos} grants superior equity realization-utilize positional leverage to pressure capped checks.`,
+        };
       } catch (e) {
         return null;
       }
     },
     getTextureStrategyGuide: (texture, street, heroPosition, villainPosition) => {
       try {
-        return postAnswerInsights.getTextureStrategyGuide(
+        const fromBoundary = postAnswerInsights.getTextureStrategyGuide(
           texture,
           street,
           heroPosition,
           villainPosition
         );
+        if (fromBoundary) return fromBoundary;
+        if (!texture) return null;
+        const texStr =
+          typeof texture === 'string'
+            ? texture
+            : [texture.suitTexture, texture.connectTexture].filter(Boolean).join(' ');
+        if (!texStr) return null;
+        const lower = texStr.toLowerCase();
+        return {
+          strategy: lower.includes('monotone') || lower.includes('dynamic') || lower.includes('wet')
+            ? `Dynamic / ${texStr} boards compress range advantage-size down or check more frequently without nut blockers.`
+            : `Static / ${texStr} boards favor the preflop aggressor-employ high-frequency small c-bets to deny raw overcard equity.`,
+        };
       } catch (e) {
         return null;
       }
     },
     getSPRStrategyGuide: (estimatedPot, stackDepth) => {
       try {
-        return postAnswerInsights.getSPRStrategyGuide(estimatedPot, stackDepth);
+        const fromBoundary = postAnswerInsights.getSPRStrategyGuide(estimatedPot, stackDepth);
+        if (fromBoundary) return fromBoundary;
+        const pot = Number(estimatedPot) || 6;
+        const stack = Number(stackDepth) || 100;
+        const spr = pot > 0 ? stack / pot : 10;
+        if (!Number.isFinite(spr) || spr <= 0) return null;
+        return {
+          spr,
+          guidance:
+            spr <= 3
+              ? 'Low SPR commitment zone-top pair+ and high-equity draws play for stacks across 1-2 geometric streets.'
+              : spr <= 8
+                ? 'Medium SPR-two-pair+ targets full commitment while single-pair hands require selective pot control.'
+                : 'Deep SPR-nut advantage dominates; avoid over-committing one-pair hands against multi-street polar aggression.',
+        };
       } catch (e) {
         return null;
       }
     },
     getVillainRangeNarration: (street, nodeType, villainActions) => {
       try {
-        return postAnswerInsights.getVillainRangeNarration(street, nodeType, villainActions);
+        const fromBoundary = postAnswerInsights.getVillainRangeNarration(street, nodeType, villainActions);
+        if (fromBoundary) return fromBoundary;
+        const st = String(street || 'flop').toLowerCase();
+        const nd = String(nodeType || '').toLowerCase();
+        return {
+          narration: nd.includes('3bet')
+            ? `In 3-bet configurations on the ${st}, villain's range is condensed toward broadways, suited aces, and medium-to-high pocket pairs.`
+            : `On the ${st}, villain's continuing range weights suited connectors, pocket pairs, and high-card broadways that interact with board texture.`,
+        };
       } catch (e) {
         return null;
       }
@@ -3725,13 +3855,23 @@ export default function useGTOTrainer(
       stackDepth
     ) => {
       try {
-        return postAnswerInsights.getMultiStreetPlanningGuide(
+        const fromBoundary = postAnswerInsights.getMultiStreetPlanningGuide(
           street,
           handStrength,
           optimalAction,
           estimatedPot,
           stackDepth
         );
+        if (fromBoundary) return fromBoundary;
+        const st = String(street || 'flop').toLowerCase();
+        if (st === 'river') {
+          return {
+            plan: 'Final street decision-evaluate blocker removal against villain’s folding and bluff-catching thresholds.',
+          };
+        }
+        return {
+          plan: `Plan turn/river barrel runouts before acting on the ${st}: identify which rank/suit shifts accelerate aggression vs check-back.`,
+        };
       } catch (e) {
         return null;
       }
@@ -3976,7 +4116,15 @@ export default function useGTOTrainer(
     },
     getRangeConstructionDrill: (position, nodeType) => {
       try {
-        return postAnswerInsights.getRangeConstructionDrill(position, nodeType);
+        const fromBoundary = postAnswerInsights.getRangeConstructionDrill(position, nodeType);
+        if (fromBoundary) return fromBoundary;
+        const pos = String(position || 'CO').toUpperCase();
+        const is3Bet = String(nodeType || '').toLowerCase().includes('3bet');
+        return {
+          tip: is3Bet
+            ? `From ${pos} in 3-bet nodes, construct a balanced linear-or-polar range anchored around suited wheel/broadway blockers.`
+            : `Opening and continuing from ${pos} favors suited connectivity and high-card blockers that retain playability across runouts.`,
+        };
       } catch (e) {
         return null;
       }
@@ -4016,7 +4164,12 @@ export default function useGTOTrainer(
     },
     getHandReadingDrill: (street, villainActions) => {
       try {
-        return postAnswerInsights.getHandReadingDrill(street, villainActions);
+        const fromBoundary = postAnswerInsights.getHandReadingDrill(street, villainActions);
+        if (fromBoundary) return fromBoundary;
+        const st = String(street || 'flop').toLowerCase();
+        return {
+          keyPrinciple: `Narrow villain's ${st} range by discounting combinations that would have taken a different sizing or line on earlier actions.`,
+        };
       } catch (e) {
         return null;
       }
@@ -4046,7 +4199,7 @@ export default function useGTOTrainer(
       handCategory
     ) => {
       try {
-        return postAnswerInsights.getOptimalLineNarration(
+        const fromBoundary = postAnswerInsights.getOptimalLineNarration(
           correctAction,
           frequencies,
           street,
@@ -4054,6 +4207,13 @@ export default function useGTOTrainer(
           heroPosition,
           handCategory
         );
+        if (fromBoundary) return fromBoundary;
+        if (!correctAction) return null;
+        const st = String(street || 'flop').toLowerCase();
+        const pos = heroPosition ? ` from ${heroPosition}` : '';
+        return {
+          narration: `GTO equilibrium selects ${correctAction}${pos} on the ${st} to maximize EV across all range combinations.`,
+        };
       } catch (e) {
         return null;
       }

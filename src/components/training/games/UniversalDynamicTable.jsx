@@ -1861,6 +1861,37 @@ function UniversalDynamicTable({
     const [panelPoppedOut, setPanelPoppedOut] = React.useState(false);
     const togglePanelPopOut = useCallback(() => setPanelPoppedOut(v => !v), []);
 
+    // Club Arena 4-Color Deck & Felt Theme Preferences (persisted in localStorage)
+    const [fourColorDeck, setFourColorDeck] = React.useState(false);
+    const [feltTheme, setFeltTheme] = React.useState('carbon');
+    const [heroActionFlight, setHeroActionFlight] = React.useState(null);
+    useEffect(() => {
+        try {
+            if (typeof window === 'undefined') return;
+            const savedFour = localStorage.getItem('sp_training_four_color');
+            if (savedFour === 'true') setFourColorDeck(true);
+            const savedFelt = localStorage.getItem('sp_training_felt_theme');
+            if (savedFelt && ['carbon', 'emerald', 'sapphire', 'crimson'].includes(savedFelt)) {
+                setFeltTheme(savedFelt);
+            }
+        } catch { /* non-blocking storage read */ }
+    }, []);
+    const toggleFourColorDeck = useCallback(() => {
+        setFourColorDeck(prev => {
+            const next = !prev;
+            try { localStorage.setItem('sp_training_four_color', String(next)); } catch {}
+            return next;
+        });
+    }, []);
+    const cycleFeltTheme = useCallback(() => {
+        const order = ['carbon', 'emerald', 'sapphire', 'crimson'];
+        setFeltTheme(prev => {
+            const next = order[(order.indexOf(prev) + 1) % order.length] || 'carbon';
+            try { localStorage.setItem('sp_training_felt_theme', next); } catch {}
+            return next;
+        });
+    }, []);
+
     // H2: Memoize mode bar tabs to prevent re-creates on every render
     const MODE_TABS = useMemo(() => [
         { id: 'trainer', icon: '', label: 'Trainer'},
@@ -2834,6 +2865,17 @@ function UniversalDynamicTable({
                 betsmall: 'bet',
             }[actKind] || 'call';
             SoundEngine.play(soundKey);
+            if (soundKey === 'call' || soundKey === 'bet' || soundKey === 'raise' || soundKey === 'allin') {
+                const sizeMatch = optLabel.match(/(\d+(?:\.\d+)?)\s*(?:bb|%|x)/i);
+                const chipAmount = sizeMatch
+                    ? parseFloat(sizeMatch[1])
+                    : (soundKey === 'allin' ? (heroStack || 100) : Math.max(2, Math.round((pot || 6) * 0.5)));
+                setHeroActionFlight({
+                    key: `${questionNumber}-${Date.now()}`,
+                    amount: chipAmount,
+                    label: optLabel.slice(0, 18),
+                });
+            }
         } catch { /* non-blocking audio */ }
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
         // GTOW parity #38: hand the grader the action the dice selected. It is
@@ -2943,6 +2985,7 @@ function UniversalDynamicTable({
         setDeepAnalysisOpen(false);
         answerSubmittedRef.current = false;
         setTimeExpired(null);
+        setHeroActionFlight(null);
     }, [decisionKey]);
 
     // ARENA_HAND_LOADED is a per-HAND event, so it stays keyed on the hand.
@@ -3878,7 +3921,20 @@ function UniversalDynamicTable({
                 {/* THE FELT — inset into the rail above. Purely decorative and
                     pointer-transparent; every seat, chip and card is drawn on
                     top of it in the same percentage coordinate space. */}
-                <div style={{ ...styles.feltSurface, inset: ui(15) }} />
+                <div
+                    data-training-felt-theme={feltTheme}
+                    style={{
+                        ...styles.feltSurface,
+                        inset: ui(15),
+                        ...(feltTheme === 'emerald'
+                            ? { background: 'radial-gradient(ellipse at 50% 42%, rgba(16, 185, 129, 0.22) 0%, rgba(5, 80, 58, 0.14) 55%, transparent 80%)' }
+                            : feltTheme === 'sapphire'
+                                ? { background: 'radial-gradient(ellipse at 50% 42%, rgba(14, 165, 233, 0.24) 0%, rgba(12, 74, 110, 0.15) 55%, transparent 80%)' }
+                                : feltTheme === 'crimson'
+                                    ? { background: 'radial-gradient(ellipse at 50% 42%, rgba(225, 29, 72, 0.22) 0%, rgba(110, 18, 42, 0.14) 55%, transparent 80%)' }
+                                    : null),
+                    }}
+                />
 
                 {/* FELT BRAND — the game name burned into the centre of the
                     felt with the product mark beneath it, the way a real table
@@ -4108,6 +4164,58 @@ function UniversalDynamicTable({
                                     }}>
                                         {stackSize} BB
                                     </div>
+                                    {/* PKO Bounty & Exploitative Villain Read Badge */}
+                                    {!isHero && index === villainSeatIndex && (() => {
+                                        const gId = String(gameId || '').toLowerCase();
+                                        const isPkoSpot = gId === 'mtt-005' || gId === 'mtt-020' || Boolean(scenario?.bounty || scenario?.isPKO || /bounty|pko/i.test(String(gameTitle || '')));
+                                        const isExploitSpot = gId === 'adv-003' || gId === 'adv-015' || gId === 'adv-016' || gId === 'cash-020' || Boolean(scenario?.villainProfile || scenario?.archetype);
+                                        if (isPkoSpot) {
+                                            return (
+                                                <div
+                                                    data-training-bounty-badge="true"
+                                                    style={{
+                                                        marginTop: 1,
+                                                        fontSize: Math.max(9, ui(8.5)),
+                                                        fontWeight: 900,
+                                                        letterSpacing: 0.5,
+                                                        color: '#fbbf24',
+                                                        background: 'rgba(251,191,36,0.14)',
+                                                        border: '1px solid rgba(251,191,36,0.45)',
+                                                        borderRadius: 4,
+                                                        padding: '0 4px',
+                                                        lineHeight: 1.25,
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                >
+                                                    ★ BOUNTY
+                                                </div>
+                                            );
+                                        }
+                                        if (isExploitSpot) {
+                                            const readLabel = String(scenario?.villainProfile || scenario?.archetype || 'POOL READ').slice(0, 11).toUpperCase();
+                                            return (
+                                                <div
+                                                    data-training-villain-hud="true"
+                                                    style={{
+                                                        marginTop: 1,
+                                                        fontSize: Math.max(9, ui(8.5)),
+                                                        fontWeight: 900,
+                                                        letterSpacing: 0.4,
+                                                        color: '#38bdf8',
+                                                        background: 'rgba(56,189,248,0.14)',
+                                                        border: '1px solid rgba(56,189,248,0.4)',
+                                                        borderRadius: 4,
+                                                        padding: '0 4px',
+                                                        lineHeight: 1.25,
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                >
+                                                    {readLabel}
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
 
                                     {/* Dealer Button — rendered at table level per
                                         DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
@@ -4171,7 +4279,15 @@ function UniversalDynamicTable({
                                                             borderRadius: 6,
                                                             transformOrigin: 'bottom center',
                                                             boxShadow: '0 8px 18px rgba(0,0,0,0.76)',
-                                                            border: '2px solid rgba(255,255,255,0.9)',
+                                                            border: fourColorDeck && typeof card === 'string' && card.length >= 2
+                                                                ? (card[1].toLowerCase() === 'd'
+                                                                    ? '2px solid #38bdf8'
+                                                                    : card[1].toLowerCase() === 'c'
+                                                                        ? '2px solid #22c55e'
+                                                                        : card[1].toLowerCase() === 'h'
+                                                                            ? '2px solid #f87171'
+                                                                            : '2px solid rgba(255,255,255,0.92)')
+                                                                : '2px solid rgba(255,255,255,0.9)',
                                                         }}
                                                     />
                                                 );
@@ -4450,6 +4566,15 @@ function UniversalDynamicTable({
                                             ...(isNewStreetCard ? {
                                                 boxShadow: '0 0 12px 3px rgba(251, 146, 60, 0.5), 0 0 24px 6px rgba(251, 146, 60, 0.2)',
                                             } : {}),
+                                            ...(fourColorDeck && typeof card === 'string' && card.length >= 2 ? {
+                                                outline: card[1].toLowerCase() === 'd'
+                                                    ? '2px solid #38bdf8'
+                                                    : card[1].toLowerCase() === 'c'
+                                                        ? '2px solid #22c55e'
+                                                        : card[1].toLowerCase() === 'h'
+                                                            ? '2px solid #f87171'
+                                                            : 'none',
+                                            } : {}),
                                         }}
                                     />
                                     {/* New card indicator dot */}
@@ -4575,13 +4700,72 @@ function UniversalDynamicTable({
                             {displayPot}
                             <span style={{ fontSize: Math.max(12, ui(9)), fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginLeft: -ui(3) }}>BB</span>
                         </span>
-                        {/* SPR + Pot Odds */}
+                        {/* SPR + Pot Odds + Tournament ICM Indicator */}
                         <div style={styles.potOverlayRow}>
                             {spr && <span style={styles.potOverlayBadge}>SPR: {spr}</span>}
                             {potOdds && <span style={styles.potOverlayBadge}>Odds: {potOdds}%</span>}
+                            {(() => {
+                                const gId = String(gameId || '').toLowerCase();
+                                const isIcmSpot = ['mtt-001', 'mtt-002', 'mtt-003', 'mtt-004', 'mtt-006', 'mtt-013', 'final-table-sim'].includes(gId)
+                                    || Boolean(scenario?.icmPressure || scenario?.isICM || /icm|bubble|satellite|final table/i.test(String(gameTitle || '')));
+                                if (!isIcmSpot) return null;
+                                return (
+                                    <span
+                                        data-training-icm-badge="true"
+                                        style={{
+                                            ...styles.potOverlayBadge,
+                                            color: '#f59e0b',
+                                            borderColor: 'rgba(245, 158, 11, 0.45)',
+                                            background: 'rgba(245, 158, 11, 0.14)',
+                                        }}
+                                    >
+                                        ICM
+                                    </span>
+                                );
+                            })()}
                         </div>
                     </motion.div>
                 )}
+
+                {/* HERO ACTION CHIP FLIGHT — animates when Hero calls, bets, raises, or shoves */}
+                <AnimatePresence>
+                    {heroActionFlight && (
+                        <motion.div
+                            key={heroActionFlight.key}
+                            className="sp-club-gto-chip-flight"
+                            data-training-hero-chip-flight="true"
+                            initial={reduceMotion
+                                ? { top: `${potPlacement.topPct}%`, left: '50%', opacity: 1, scale: 1 }
+                                : { top: '82%', left: '50%', opacity: 0.95, scale: 0.75 }}
+                            animate={{ top: `${potPlacement.topPct}%`, left: '50%', opacity: [1, 1, 0], scale: [1, 1.08, 0.9] }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: reduceMotion ? 0.01 : 0.48, ease: [0.22, 0.9, 0.3, 1] }}
+                            style={{
+                                ...styles.chipStack,
+                                x: '-50%',
+                                y: '-50%',
+                                zIndex: 18,
+                                pointerEvents: 'none',
+                                gap: ui(4),
+                                padding: `${ui(2)}px ${ui(7)}px ${ui(2)}px ${ui(3)}px`,
+                                borderRadius: ui(10),
+                            }}
+                        >
+                            <span
+                                className="sp-club-gto-chip-disc"
+                                style={{
+                                    ...styles.chipDisc,
+                                    ...getClubArenaChipStyle(heroActionFlight.amount),
+                                    width: ui(13),
+                                    height: ui(13),
+                                }}
+                            />
+                            <span style={{ ...styles.chipAmount, fontSize: Math.max(12, ui(11)) }}>
+                                {heroActionFlight.amount} BB
+                            </span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 </div> {/* END basicTable */}
 
                 {/* ═══ FELT CORNER RAIL ═══════════════════════════════════
@@ -5044,10 +5228,58 @@ function UniversalDynamicTable({
                                     actionPresentation={rangeModeGrid.actionPresentation}
                                 />
                             ) : (
-                                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textAlign: 'center', padding: '12px 8px', lineHeight: 1.5 }}>
-                                    No Solver Range Matrix For This Spot.
-                                    <br />
-                                    Range Data Loads With Solved Spots.
+                                <div style={{ padding: '4px 4px 8px' }}>
+                                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', textAlign: 'center', marginBottom: 6 }}>
+                                        Positional 13×13 Hand Matrix • Hero Hand Highlighted ({handNotationFromCards(fq?.heroCards || heroCards) || 'Hero'})
+                                    </div>
+                                    <div
+                                        data-training-reference-matrix="true"
+                                        style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(13, minmax(0, 1fr))',
+                                            gap: 1.5,
+                                            maxWidth: 312,
+                                            margin: '0 auto',
+                                        }}
+                                    >
+                                        {['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'].map((r1, ri) =>
+                                            ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'].map((r2, ci) => {
+                                                const cellHand = ri === ci ? `${r1}${r2}` : (ri < ci ? `${r1}${r2}s` : `${r2}${r1}o`);
+                                                const activeHeroHand = handNotationFromCards(fq?.heroCards || heroCards);
+                                                const isHeroCell = activeHeroHand === cellHand;
+                                                const isPair = ri === ci;
+                                                const isSuited = ri < ci;
+                                                return (
+                                                    <div
+                                                        key={cellHand}
+                                                        title={cellHand}
+                                                        style={{
+                                                            height: 18,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: 8.5,
+                                                            fontWeight: isHeroCell ? 900 : 600,
+                                                            borderRadius: 2,
+                                                            color: isHeroCell ? '#ffffff' : 'rgba(255,255,255,0.68)',
+                                                            background: isHeroCell
+                                                                ? 'rgba(0, 212, 255, 0.42)'
+                                                                : isPair
+                                                                    ? 'rgba(168, 85, 247, 0.16)'
+                                                                    : isSuited
+                                                                        ? 'rgba(34, 197, 94, 0.12)'
+                                                                        : 'rgba(255, 255, 255, 0.04)',
+                                                            border: isHeroCell
+                                                                ? '1.5px solid #00d4ff'
+                                                                : '1px solid rgba(255,255,255,0.06)',
+                                                        }}
+                                                    >
+                                                        {cellHand}
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </InfoPanelShell>
@@ -5199,6 +5431,24 @@ function UniversalDynamicTable({
                                         {rngHighLow === 'high' ? '◆ Dial: HIGH (first action at 100)' : '◆ Dial: LOW (first action at 1)'}
                                     </button>
                                 )}
+                                <button
+                                    data-training-four-color-toggle="true"
+                                    onClick={toggleFourColorDeck}
+                                    style={{
+                                        ...styles.settingsBtn,
+                                        color: fourColorDeck ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
+                                        borderColor: fourColorDeck ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)',
+                                    }}
+                                >
+                                    {fourColorDeck ? '♠♥♦♣ 4-Color Deck: ON' : '♠♥♦♣ 4-Color Deck: OFF'}
+                                </button>
+                                <button
+                                    data-training-felt-theme-toggle="true"
+                                    onClick={cycleFeltTheme}
+                                    style={styles.settingsBtn}
+                                >
+                                    {`◆ Club Arena Felt: ${feltTheme.charAt(0).toUpperCase() + feltTheme.slice(1)}`}
+                                </button>
                                 {onExit && (
                                     <button onClick={onExit} style={{ ...styles.settingsBtn, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}>
                                          Quit Session

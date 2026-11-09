@@ -10,6 +10,33 @@ const capabilityRows = [
   ['Heads-Up Curriculum', 'Available'],
 ];
 
+const duelArenas = [
+  {
+    id: 'mtt-015',
+    title: 'Heads-Up Duel',
+    format: 'HU Tournament · Wide Ranges',
+    href: '/hub/training/arena/mtt-015?level=1&source=pvp-lobby',
+  },
+  {
+    id: 'cash-002',
+    title: '3-Bet Pot Battle',
+    format: '6-Max Cash · 100BB Deep',
+    href: '/hub/training/arena/cash-002?level=1&source=pvp-lobby',
+  },
+  {
+    id: 'mtt-004',
+    title: 'Final Table ICM Duel',
+    format: 'MTT Pay-Jump Pressure',
+    href: '/hub/training/arena/mtt-004?level=1&source=pvp-lobby',
+  },
+  {
+    id: 'spins-001',
+    title: 'Hyper Spin Opener',
+    format: '3-Max Short-Stack Speed',
+    href: '/hub/training/arena/spins-001?level=1&source=pvp-lobby',
+  },
+];
+
 /**
  * Until a server-authoritative realtime match service exists, this page must
  * not manufacture a queue, scores, opponents, ratings, prizes, or match
@@ -50,6 +77,20 @@ export default function PvPLobbyPage() {
               <a href={PRACTICE_ROUTE} style={{ display: 'inline-flex', minHeight: 50, alignItems: 'center', justifyContent: 'center', padding: '0 22px', marginTop: 18, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 9px 22px rgba(0,0,0,.4)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
                 Enter Heads-Up Training →
               </a>
+            </div>
+
+            <div data-pvp-duel-arenas="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginTop: 18 }}>
+              {duelArenas.map((duel) => (
+                <div key={duel.id} style={{ padding: '16px', border: '1px solid rgba(132,213,242,.2)', background: 'rgba(5,14,22,.72)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 10 }}>
+                  <div>
+                    <div style={{ color: '#82e7ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{duel.format}</div>
+                    <div style={{ marginTop: 4, color: '#f0f9ff', fontSize: 14, fontWeight: 900 }}>{duel.title}</div>
+                  </div>
+                  <a href={duel.href} style={{ display: 'inline-flex', minHeight: 36, alignItems: 'center', padding: '0 12px', border: '1px solid rgba(165,239,255,.45)', background: 'rgba(22,55,74,.55)', color: '#d8f6ff', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>
+                    Launch Format →
+                  </a>
+                </div>
+              ))}
             </div>
           </div>
         </section>
