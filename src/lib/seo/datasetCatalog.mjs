@@ -31,12 +31,12 @@ export const WIKIPEDIA_CITATION_TARGETS = [
     wikipediaArticle: 'Pot odds',
     wikipediaUrl: 'https://en.wikipedia.org/wiki/Pot_odds',
     sectionTarget: 'References / Minimum Defense Frequency',
-    canonicalSourceUrl: 'https://smarter.poker/learn/pot-odds-and-equity',
+    canonicalSourceUrl: 'https://smarter.poker/learn/pot-odds',
     calculatorUrl: 'https://smarter.poker/tools/pot-odds-calculator',
     citeWebTemplate:
       '{{cite web |title=Pot Odds, Implied Odds & Minimum Defense Frequency Calculator |url=https://smarter.poker/tools/pot-odds-calculator |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
     citeTechreportTemplate:
-      '{{cite techreport |title=Pot Odds And Equity Mathematical Reference |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/learn/pot-odds-and-equity}}',
+      '{{cite techreport |title=Pot Odds And Equity Mathematical Reference |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/learn/pot-odds}}',
   },
   {
     id: 'wiki-starting-hands',
