@@ -42,8 +42,14 @@ export function allowedDraftRequest(method, address, body, fixture) {
   if (!fixture || target.origin !== APP_ORIGIN || target.search || target.hash || method !== 'POST') return false;
   const owned = id => id === fixture.a || id === fixture.b;
   if (target.pathname === '/api/messenger/continuity') {
+    // The controller sends `workspace` on both read shapes, and a
+    // whole-workspace read carries no conversationId at all.
+    if (body?.action === 'read') {
+      const keys = Object.keys(body).sort().join(',');
+      if (keys === 'action,workspace') return body.workspace?.workspace === 'social';
+      return keys === 'action,conversationId,workspace' && owned(body.conversationId) && body.workspace?.workspace === 'social';
+    }
     if (!owned(body?.conversationId)) return false;
-    if (body.action === 'read') return Object.keys(body).sort().join(',') === 'action,conversationId';
     return body.action === 'write' && body.field === 'draft'
       && Number.isSafeInteger(body.expectedRevision) && body.expectedRevision >= 0
       && body.value && typeof body.value.text === 'string' && body.value.replyToId === null
@@ -127,17 +133,28 @@ export async function runDraftAutosave() {
       return new Promise(resolve => setTimeout(() => resolve(controller.write(conversationId, 'draft')), SURFACE_DEBOUNCE_MS));
     };
     const draftOf = (controller, id) => controller.state(id).draft.text;
+    // A read that fails is recorded on the controller rather than thrown, so
+    // every read is asserted to have actually happened. Without this a refused
+    // request reads as an empty draft and a lost draft reads as a pass.
+    const readOk = async (controller, conversationId = null) => {
+      await controller.read(conversationId);
+      const failures = [...controller.errors.values()].filter(e => e.read);
+      assert.deepEqual(failures.map(e => e.message), [],
+        `A continuity read failed instead of returning state${conversationId ? ` for ${conversationId}` : ''}`);
+    };
 
     const textA = `${FIXTURE_TITLE}: Draft A ${randomUUID()}`;
     const textB = `${FIXTURE_TITLE}: Draft B ${randomUUID()}`;
 
     // ── 1. A fresh fixture holds no draft ───────────────────────────────
     const typist = makeController(makeStorage());
-    await typist.read(fixture.a);
-    await typist.read(fixture.b);
+    await readOk(typist, fixture.a);
+    await readOk(typist, fixture.b);
     assert.equal(draftOf(typist, fixture.a), '', 'Fixture A already contains a draft');
     assert.equal(draftOf(typist, fixture.b), '', 'Fixture B already contains a draft');
-    report.checks.push('Both fixture conversations started with no stored draft');
+    assert.equal(typist.state(fixture.a).draft.revision, 0, 'Fixture A is not fresh; inspect the owning outcome before reuse');
+    assert.equal(typist.state(fixture.b).draft.revision, 0, 'Fixture B is not fresh; inspect the owning outcome before reuse');
+    report.checks.push('Both fixture conversations started with no stored draft, from reads that succeeded');
 
     // ── 2. Typing saves after the debounce, with no prompt to press ─────
     typist.edit(fixture.a, 'draft', { text: `${FIXTURE_TITLE}: partial`, replyToId: null });
@@ -159,13 +176,13 @@ export async function runDraftAutosave() {
     // Two reloads, because the surfaces perform two different reads: the whole
     // workspace when the app loads, and one conversation when it is opened.
     const reloaded = makeController(makeStorage());
-    await reloaded.read();
+    await readOk(reloaded);
     assert.equal(draftOf(reloaded, fixture.a), textA, 'Draft A did not survive a reload with empty device storage');
     assert.equal(draftOf(reloaded, fixture.b), textB, 'Draft B did not survive a reload with empty device storage');
     assert.equal(reloaded.state(fixture.a).draft.dirty, false, 'A recovered draft must not be marked unsaved');
 
     const opened = makeController(makeStorage());
-    await opened.read(fixture.a);
+    await readOk(opened, fixture.a);
     assert.equal(draftOf(opened, fixture.a), textA, 'Opening the conversation did not recover its draft');
     report.checks.push('A fresh client with empty device storage recovered both drafts from the account, '
       + 'through a whole-workspace read and through opening one conversation');
@@ -185,7 +202,7 @@ export async function runDraftAutosave() {
 
     // ── 6. A stale write is a conflict that keeps the typed text ────────
     const conflicted = makeController(makeStorage());
-    await conflicted.read(fixture.a);
+    await readOk(conflicted, fixture.a);
     conflicted.state(fixture.a).draft.revision = 0; // a device that missed the newer revision
     const localText = `${FIXTURE_TITLE}: Conflicting local ${randomUUID()}`;
     conflicted.edit(fixture.a, 'draft', { text: localText, replyToId: null });
@@ -214,7 +231,7 @@ export async function runDraftAutosave() {
 
     // ── 8. Sending clears the draft, and no pending save restores it ────
     const sender = makeController(makeStorage());
-    await sender.read(fixture.a);
+    await readOk(sender, fixture.a);
     assert.equal(draftOf(sender, fixture.a), textA, 'The draft to be sent was not loaded');
     const outgoing = `${FIXTURE_TITLE}: Sent ${randomUUID()}`;
     sender.edit(fixture.a, 'draft', { text: outgoing, replyToId: null });
@@ -229,14 +246,14 @@ export async function runDraftAutosave() {
     await sender.write(fixture.a, 'draft');
     assert.equal(draftOf(sender, fixture.a), '', 'A pending save restored the sent draft');
     const afterSend = makeController(makeStorage());
-    await afterSend.read(fixture.a);
+    await readOk(afterSend, fixture.a);
     assert.equal(draftOf(afterSend, fixture.a), '', 'The account still holds the draft that was already sent');
     report.checks.push('Sending cleared the draft and no pending save restored it');
 
     // ── 9. Clearing B leaves the fixture as it was found ────────────────
     await typeInto(reloaded, fixture.b, '');
     const finalRead = makeController(makeStorage());
-    await finalRead.read();
+    await readOk(finalRead);
     assert.equal(draftOf(finalRead, fixture.a), '', 'Fixture A was not left empty');
     assert.equal(draftOf(finalRead, fixture.b), '', 'Fixture B was not left empty');
     report.cleanup = sentMessageId ? 'fixture drafts cleared; one fixture message retained for the owning cleanup' : 'fixture drafts cleared';
