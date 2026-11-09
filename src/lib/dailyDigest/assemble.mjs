@@ -146,7 +146,7 @@ export async function loadAlertFixes(sb, digest) {
         const item = (digest?.attention || []).find((it) => it.rule === 'critical_alert_rising');
         const groups = item?.detail?.source_events;
         if (!item || !Array.isArray(groups) || !groups.length) return;
-        const ids = [...new Set(groups.flatMap((g) => (Array.isArray(g.event_ids) ? g.event_ids : [])))].slice(0, 2000);
+        const ids = [...new Set(groups.flatMap((g) => (Array.isArray(g.event_ids) ? g.event_ids : [])))];
         const rows = [];
         for (let i = 0; i < ids.length; i += 200) {
             const { data, error } = await sb.from('operational_alert_events')
@@ -156,6 +156,35 @@ export async function loadAlertFixes(sb, digest) {
         }
         item.fixes = summarizeAlertFixes(groups, rows);
     } catch { /* the digest never fails on this annotation */ }
+}
+
+export async function loadWeeklySummary(sb, day) {
+    try {
+        if (!sb?.from || !day) return null;
+        const toTs = Date.parse(`${day}T00:00:00.000Z`);
+        if (Number.isNaN(toTs)) return null;
+        const from = new Date(toTs - 6 * 86400000).toISOString().slice(0, 10);
+        const { data, error } = await sb.from('sp_daily_metrics')
+            .select('day, metrics').gte('day', from).lte('day', day).limit(7);
+        if (error || !Array.isArray(data) || !data.length) return null;
+        const sum = (fn) => data.reduce((acc, r) => acc + (Number(fn(r.metrics || {})) || 0), 0);
+        return {
+            from,
+            to: day,
+            revenue_usd: sum((m) => m?.sales?.revenue_usd),
+            cash_rake: sum((m) => m?.money?.cash_rake),
+            tournament_rake: sum((m) => m?.money?.tournament_rake),
+            rakeback_paid: sum((m) => m?.money?.rakeback_paid),
+            signups: sum((m) => m?.growth?.signups),
+            hands: sum((m) => m?.play?.hands),
+            diamonds_given: sum((m) => m?.diamonds?.given_out),
+            diamonds_taken: sum((m) => m?.diamonds?.taken_in),
+            minted: sum((m) => m?.money?.minted),
+            burned: sum((m) => m?.money?.burned),
+        };
+    } catch {
+        return null;
+    }
 }
 
 /** Time the report loads may keep retrying, out of the route's 300 s. */
@@ -217,6 +246,9 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
         }
     }
     await loadAlertFixes(sb, digest);
+    if (digest && !digest.week) {
+        digest.week = await loadWeeklySummary(sb, day);
+    }
     const undelivered = await loadUndeliveredTexts(sb, day);
     if (digest) digest.undelivered_texts = undelivered;
     if (digest && undelivered && !undelivered.error && undelivered.total > 0) {

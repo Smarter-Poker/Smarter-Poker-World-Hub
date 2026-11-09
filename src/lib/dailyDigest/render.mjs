@@ -387,6 +387,77 @@ function listCard(title, rows) {
 }
 
 /**
+ * Daily Update, Weekly Update, and Monthly Update (Dan 2026-11-09):
+ * Directly below Needs Your Attention, render Daily Update, Weekly Update,
+ * and Monthly Update in that exact order.
+ */
+export function dailyUpdateRows(digest) {
+    const m = digest?.metrics || {};
+    const cashRake = Number(get(m, 'money.cash_rake')) || 0;
+    const tourneyRake = Number(get(m, 'money.tournament_rake')) || 0;
+    return [
+        ['Revenue', fmtUsd(get(m, 'sales.revenue_usd')), ''],
+        ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Cash ${fmtNum(cashRake)}, tournament and spin ${fmtNum(tourneyRake)}`],
+        ['Rakeback Paid', fmtNum(get(m, 'money.rakeback_paid')), ''],
+        ['Real Player Signups', fmtInt(get(m, 'growth.signups')), `${fmtInt(get(m, 'growth.active_humans'))} active real players`],
+        ['Hands Dealt', fmtInt(get(m, 'play.hands')), `Cash ${fmtInt(get(m, 'play.hands_cash'))}, tournament ${fmtInt(get(m, 'play.hands_tournament'))}`],
+        ['Horse Net Result (BB)', fmtNum(get(m, 'play.horse_net_bb')), 'House exposure through the horse fleet'],
+        ['Diamonds Given Out / Taken In', `${fmtInt(get(m, 'diamonds.given_out'))} / ${fmtInt(get(m, 'diamonds.taken_in'))}`, ''],
+        ['Chips Minted / Burned', `${fmtNum(get(m, 'money.minted'))} / ${fmtNum(get(m, 'money.burned'))}`, ''],
+    ];
+}
+
+function sumSeries(digest, key, fallbackPath) {
+    const pts = digest?.series?.[key];
+    if (Array.isArray(pts) && pts.length) {
+        return pts.reduce((acc, p) => acc + (Number(p?.v) || 0), 0);
+    }
+    return Number(get(digest?.metrics || {}, fallbackPath)) || 0;
+}
+
+export function weeklyUpdateRows(digest) {
+    const m = digest?.metrics || {};
+    const w = digest?.week || {
+        from: null,
+        to: null,
+        revenue_usd: sumSeries(digest, 'revenue_usd', 'sales.revenue_usd'),
+        cash_rake: sumSeries(digest, 'cash_rake', 'money.cash_rake'),
+        tournament_rake: sumSeries(digest, 'tournament_rake', 'money.tournament_rake'),
+        rakeback_paid: Number(get(m, 'money.rakeback_paid')) || 0,
+        signups: sumSeries(digest, 'signups', 'growth.signups'),
+        hands: sumSeries(digest, 'hands', 'play.hands'),
+        diamonds_given: sumSeries(digest, 'diamonds_given', 'diamonds.given_out'),
+        diamonds_taken: sumSeries(digest, 'diamonds_taken', 'diamonds.taken_in'),
+        minted: Number(get(m, 'money.minted')) || 0,
+        burned: Number(get(m, 'money.burned')) || 0,
+    };
+    const cashRake = Number(w.cash_rake) || 0;
+    const tourneyRake = Number(w.tournament_rake) || 0;
+    const rangeSub = w.from && w.to ? `${w.from} To ${w.to}` : 'Last 7 days';
+    return [
+        ['Revenue', fmtUsd(w.revenue_usd), rangeSub],
+        ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Cash ${fmtNum(cashRake)}, tournament and spin ${fmtNum(tourneyRake)}`],
+        ['Rakeback Paid', fmtNum(w.rakeback_paid), ''],
+        ['Real Player Signups', fmtInt(w.signups), ''],
+        ['Hands Dealt', fmtInt(w.hands), ''],
+        ['Diamonds Given Out / Taken In', `${fmtInt(w.diamonds_given)} / ${fmtInt(w.diamonds_taken)}`, ''],
+        ['Chips Minted / Burned', `${fmtNum(w.minted)} / ${fmtNum(w.burned)}`, ''],
+    ];
+}
+
+export function monthlyUpdateRows(digest) {
+    const mtd = digest?.mtd || {};
+    const cashRake = Number(mtd.cash_rake) || 0;
+    const tourneyRake = Number(mtd.tournament_rake) || 0;
+    return [
+        ['Revenue', fmtUsd(mtd.revenue_usd), `Projected month end ${fmtUsd(mtd.projected_revenue_usd)}`],
+        ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Projected month end ${fmtNum(mtd.projected_rake)}`],
+        ['Real Player Signups', fmtInt(mtd.signups), `${fmtInt(mtd.days)} days recorded this month`],
+        ['Horse Net Result (BB)', fmtNum(mtd.horse_net_bb), 'House exposure through the horse fleet'],
+    ];
+}
+
+/**
  * Free Buy And Guarantee Funding (fn_sp_digest_free_buy_funding, Dan
  * 2026-11-06): every guaranteed event and Midway Free Buy that started on the
  * Central day, required against posted. Guaranteed: H = max(0, G - C), C the
@@ -479,14 +550,10 @@ export function buildHtml(digest, opts = {}) {
     }
     body += attentionHtml(digest);
 
-    // Month to date + projection
-    const mtd = digest.mtd || {};
-    body += listCard('Month To Date', [
-        ['Revenue', fmtUsd(mtd.revenue_usd), `Projected month end ${fmtUsd(mtd.projected_revenue_usd)}`],
-        ['Rake (Cash + Tournament)', fmtNum((Number(mtd.cash_rake) || 0) + (Number(mtd.tournament_rake) || 0)), `Projected month end ${fmtNum(mtd.projected_rake)}`],
-        ['Real Player Signups', fmtInt(mtd.signups), `${fmtInt(mtd.days)} days recorded this month`],
-        ['Horse Net Result (BB)', fmtNum(mtd.horse_net_bb), 'House exposure through the horse fleet'],
-    ]);
+    // Daily Update, Weekly Update, then Monthly Update directly below Needs Your Attention
+    body += listCard('Daily Update', dailyUpdateRows(digest));
+    body += listCard('Weekly Update', weeklyUpdateRows(digest));
+    body += listCard('Monthly Update', monthlyUpdateRows(digest));
 
     body += playerTotalsCard(digest, opts);
     body += playerPeriodCards(digest);
@@ -497,20 +564,6 @@ export function buildHtml(digest, opts = {}) {
     body += freeBuyFundingCard(digest);
     if (!opts.email) body += horseRosterCard(digest);
     else body += listCard('Horse Roster', horseRosterRows(digest).slice(0, 6));
-
-    if (digest.week) {
-        const w = digest.week;
-        body += listCard(`Week In Review (${w.from} To ${w.to})`, [
-            ['Revenue', fmtUsd(w.revenue_usd), ''],
-            ['Cash Rake', fmtNum(w.cash_rake), ''],
-            ['Tournament And Spin Rake', fmtNum(w.tournament_rake), ''],
-            ['Rakeback Paid', fmtNum(w.rakeback_paid), ''],
-            ['Real Player Signups', fmtInt(w.signups), ''],
-            ['Hands Dealt', fmtInt(w.hands), ''],
-            ['Diamonds Given Out / Taken In', `${fmtInt(w.diamonds_given)} / ${fmtInt(w.diamonds_taken)}`, ''],
-            ['Chips Minted / Burned', `${fmtNum(w.minted)} / ${fmtNum(w.burned)}`, ''],
-        ]);
-    }
 
     for (const def of SECTION_DEFS) {
         body += cardOpen(def.title);
@@ -918,12 +971,12 @@ export function buildText(digest, opts = {}) {
         lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
         for (const line of alertFixLines(it)) lines.push(`    ${line}`);
     }
-    lines.push('', 'MONTH TO DATE');
-    for (const [k, v] of Object.entries(digest.mtd || {})) lines.push(`${k.replace(/_/g, ' ')}: ${fmtNum(v)}`);
-    if (digest.week) {
-        lines.push('', `WEEK IN REVIEW (${digest.week.from} To ${digest.week.to})`);
-        for (const [k, v] of Object.entries(digest.week).filter(([k]) => !['from', 'to'].includes(k))) lines.push(`${k.replace(/_/g, ' ')}: ${fmtNum(v)}`);
-    }
+    lines.push('', 'DAILY UPDATE');
+    for (const [label, value, sub] of dailyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    lines.push('', 'WEEKLY UPDATE');
+    for (const [label, value, sub] of weeklyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    lines.push('', 'MONTHLY UPDATE');
+    for (const [label, value, sub] of monthlyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
     lines.push(...playerTotalsText(digest));
     for (const [title, rows] of spinsSpendRows(digest)) {
         lines.push('', title.toUpperCase());

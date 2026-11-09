@@ -62,7 +62,12 @@ test('html renders every section, escapes untrusted text, has no em dashes', () 
     assert.ok(html.includes('&lt;script&gt;'));
     assert.ok(html.includes('Open The Admin Dashboard'));
     assert.ok(html.includes('View This Digest Online'));
-    assert.ok(html.includes('Month To Date'));
+    assert.ok(html.includes('Daily Update'));
+    assert.ok(html.includes('Weekly Update'));
+    assert.ok(html.includes('Monthly Update'));
+    assert.ok(html.indexOf('Needs Your Attention (3)') < html.indexOf('Daily Update'));
+    assert.ok(html.indexOf('Daily Update') < html.indexOf('Weekly Update'));
+    assert.ok(html.indexOf('Weekly Update') < html.indexOf('Monthly Update'));
     assert.ok(html.includes('Whale Watch'));
     assert.ok(html.includes('Diamond Movements Over 10,000'));
     assert.ok(!html.includes('—'), 'no em dashes');
@@ -74,9 +79,20 @@ test('clean day says nothing needs attention', () => {
     assert.ok(html.includes('Nothing needs your attention.'));
 });
 
-test('monday edition adds the week card', () => {
-    const html = buildHtml(fixture({ week: { from: '2026-10-05', to: '2026-10-11', revenue_usd: 12.5, hands: 1000 } }));
-    assert.ok(html.includes('Week In Review (2026-10-05 To 2026-10-11)'));
+test('daily, weekly and monthly updates render directly under needs your attention in both html and text', () => {
+    const d = fixture({ week: { from: '2026-10-08', to: '2026-10-14', revenue_usd: 12.5, cash_rake: 300000, tournament_rake: 80000, signups: 14, hands: 1000, diamonds_given: 500, diamonds_taken: 100, minted: 200, burned: 50 } });
+    const html = buildHtml(d);
+    assert.ok(html.includes('Daily Update'));
+    assert.ok(html.includes('Weekly Update'));
+    assert.ok(html.includes('Monthly Update'));
+    assert.ok(html.includes('2026-10-08 To 2026-10-14'));
+    assert.ok(html.indexOf('Needs Your Attention (3)') < html.indexOf('Daily Update'));
+    assert.ok(html.indexOf('Daily Update') < html.indexOf('Weekly Update'));
+    assert.ok(html.indexOf('Weekly Update') < html.indexOf('Monthly Update'));
+    const text = buildText(d);
+    assert.ok(text.indexOf('NEEDS YOUR ATTENTION (3)') < text.indexOf('DAILY UPDATE'));
+    assert.ok(text.indexOf('DAILY UPDATE') < text.indexOf('WEEKLY UPDATE'));
+    assert.ok(text.indexOf('WEEKLY UPDATE') < text.indexOf('MONTHLY UPDATE'));
 });
 
 test('rows compare with the prior day and the 7 day average', () => {
@@ -578,7 +594,7 @@ test('explicit live verification rejects wrong revisions and broken sections wit
     const response = html => new Response(html, { headers: { 'content-type': 'text/html', 'cache-control': 'no-store' } });
     const fetchImpl = async (url, opts) => {
         calls.push([url, opts]);
-        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Real Player Totals Diamond Spins Free Buy And Guarantee Funding');
+        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding');
     };
     try {
         const report = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl });
@@ -591,7 +607,7 @@ test('explicit live verification rejects wrong revisions and broken sections wit
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: 'b'.repeat(40), fetchImpl }), /revision differs/);
         assert.equal(calls.length, 1, 'a wrong deployment never reads the report');
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url =>
-            url.endsWith('/api/health') ? Response.json({ version: sha }) : response('Real Player Totals Diamond Spins Free Buy And Guarantee Funding Report Unavailable') }), /section failed/);
+            url.endsWith('/api/health') ? Response.json({ version: sha }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding Report Unavailable') }), /section failed/);
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url => {
             if (url.endsWith('/api/health')) return Response.json({ version: sha });
             throw new Error(`network failure at ${url}`);
