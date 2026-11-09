@@ -347,28 +347,48 @@ export function constructOpponentRange(actions, position) {
 export function analyzeBlockers(holeCards, board) {
     if (!Array.isArray(holeCards)) holeCards = [];
     if (!Array.isArray(board)) board = [];
-    if (holeCards.length === 0 && board.length === 0) return { blocksNutFlush: false, blocksNutStraight: false, blocksSets: false, blockerScore: 0 };
+    if (holeCards.length === 0 && board.length === 0) {
+        return {
+            blocksNutFlush: false,
+            blocksNutStraight: false,
+            blocksTopSet: false,
+            blocksSets: false,
+            blocksOverpairs: [],
+            bluffValue: 0,
+            blockerScore: 0,
+        };
+    }
     const allCards = [...holeCards, ...board].map(parseCard);
     const heroCards = holeCards.map(parseCard);
+    const boardCards = board.map(parseCard);
 
     // Check for key blockers
     const blockers = {
         blocksNutFlush: false,
         blocksNutStraight: false,
         blocksTopSet: false,
+        blocksSets: false,
         blocksOverpairs: [],
-        bluffValue: 0
+        bluffValue: 0,
+        blockerScore: 0,
     };
 
-    // Check flush blockers
+    if (boardCards.length === 0) {
+        return blockers;
+    }
+
+    // Check flush blockers (3+ cards of a suit across board/hand or 2+ on board with Hero Ace of that suit)
+    const boardSuitCounts = {};
+    for (const card of boardCards) {
+        boardSuitCounts[card.suit] = (boardSuitCounts[card.suit] || 0) + 1;
+    }
     const suitCounts = {};
     for (const card of allCards) {
         suitCounts[card.suit] = (suitCounts[card.suit] || 0) + 1;
     }
 
     for (const suit of SUITS) {
-        if (suitCounts[suit] >= 3) {
-            // Potential flush on board
+        if (suitCounts[suit] >= 3 || (boardSuitCounts[suit] >= 2 && heroCards.some(c => c.rank === 'A' && c.suit === suit))) {
             const heroHasAce = heroCards.some(c => c.rank === 'A' && c.suit === suit);
             if (heroHasAce) {
                 blockers.blocksNutFlush = true;
@@ -377,8 +397,8 @@ export function analyzeBlockers(holeCards, board) {
         }
     }
 
-    // Check if we block overpairs
-    const boardHighCard = Math.max(...board.map(c => parseCard(c).value));
+    // Check if we block overpairs and top set
+    const boardHighCard = Math.max(...boardCards.map(c => c.value));
     for (const card of heroCards) {
         if (card.value > boardHighCard) {
             blockers.blocksOverpairs.push(card.rank);
@@ -386,15 +406,44 @@ export function analyzeBlockers(holeCards, board) {
         }
     }
 
-    // Check top set blocker
-    const boardRanks = board.map(c => parseCard(c).rank);
+    // Check set blockers (top board rank or any board rank)
+    const boardRanks = boardCards.map(c => c.rank);
+    const topBoardRank = RANKS[boardHighCard];
     for (const card of heroCards) {
         if (boardRanks.includes(card.rank)) {
-            blockers.blocksTopSet = true;
-            blockers.bluffValue += 10;
+            blockers.blocksSets = true;
+            if (card.rank === topBoardRank) {
+                blockers.blocksTopSet = true;
+                blockers.bluffValue += 10;
+            } else {
+                blockers.bluffValue += 5;
+            }
         }
     }
 
+    // Check nut straight blockers when board has 3+ connected/semi-connected ranks in a 5-card window
+    if (boardCards.length >= 3) {
+        const uniqueBoardVals = [...new Set(boardCards.map(c => c.value))];
+        if (uniqueBoardVals.includes(12)) uniqueBoardVals.push(-1); // wheel Ace
+        const heroVals = new Set(heroCards.map(c => c.value));
+        for (let high = 12; high >= 3; high--) {
+            const windowVals = [high - 4, high - 3, high - 2, high - 1, high];
+            const boardInWindow = windowVals.filter(v => uniqueBoardVals.includes(v));
+            if (boardInWindow.length >= 3) {
+                const missingVals = windowVals.filter(v => !uniqueBoardVals.includes(v));
+                const blocksWindowTop = missingVals.length > 0
+                    ? missingVals.some(v => heroVals.has(v === -1 ? 12 : v))
+                    : heroVals.has(high);
+                if (blocksWindowTop) {
+                    blockers.blocksNutStraight = true;
+                    blockers.bluffValue += 10;
+                }
+                break;
+            }
+        }
+    }
+
+    blockers.blockerScore = blockers.bluffValue;
     return blockers;
 }
 
@@ -569,8 +618,9 @@ export function calculatePotGeometry(potSize, effectiveStack, street) {
     if (typeof effectiveStack !== 'number' || !isFinite(effectiveStack) || effectiveStack <= 0) effectiveStack = 1;
     const spr = effectiveStack / potSize;
 
-    // Streets remaining
-    const streetsLeft = street === 'Flop' ? 3 : street === 'Turn' ? 2 : 1;
+    // Streets remaining (case-insensitive for 'flop'/'Flop', 'turn'/'Turn', 'river'/'River')
+    const normalizedStreet = String(street || '').trim().toLowerCase();
+    const streetsLeft = normalizedStreet === 'flop' ? 3 : normalizedStreet === 'turn' ? 2 : 1;
 
     // Calculate geometric sizing to get stacks in by river
     // Formula: (1 + size)^streets = (stack + pot) / pot

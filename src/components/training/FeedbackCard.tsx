@@ -202,34 +202,51 @@ export function FeedbackCard({
                 deepDive.equityAnalysis = `${scenario.heroPosition} vs ${scenario.villainPosition}${scenario.heroHand ? ` with ${scenario.heroHand}` : ''}. ${result.evDiff ? `Your play costs ${Math.abs(result.evDiff).toFixed(2)} BB in EV.` : ''}`;
             }
 
-            // ═══ Enhanced Strategy Explanation (StrategyExplainer engine) ═══
-            let strategyInsight: { explanation: string; keyFactors: string[]; strategicConcept: string } | null = null;
+            // ═══ Enhanced Strategy Explanation (StrategyExplainer + Horse Brain GTO) ═══
+            let strategyInsight: {
+                explanation: string;
+                keyFactors: string[];
+                strategicConcept: string;
+                horseBrainAnalysis?: any;
+            } | null = null;
             try {
-                const holeCards = scenario.heroHand
-                    ? (typeof scenario.heroHand === 'string' && scenario.heroHand.length === 4
-                        ? [scenario.heroHand.slice(0, 2), scenario.heroHand.slice(2, 4)]
-                        : scenario.heroHand)
-                    : null;
-                const board = Array.isArray(scenario.board) ? scenario.board : [];
+                const rawHoleCards =
+                    (question as any).heroCards ||
+                    (question as any).cards ||
+                    (scenario as any).heroCards ||
+                    scenario.heroHand ||
+                    null;
+                const board = Array.isArray(scenario.board)
+                    ? scenario.board
+                    : Array.isArray((question as any).boardCards)
+                        ? (question as any).boardCards
+                        : typeof scenario.board === 'string'
+                            ? scenario.board.trim().split(/\s+/).filter(Boolean)
+                            : [];
+                const boardStr = Array.isArray(board) ? board.join(' ') : '';
 
-                if (holeCards && board.length >= 3) {
+                if (rawHoleCards && board.length >= 3) {
                     strategyInsight = explainStrategy({
-                        holeCards: holeCards as string[],
+                        holeCards: rawHoleCards as string[],
                         board,
                         correctAction: result.gtoLine?.action || '',
                         userAction: result.userAction?.action || '',
                         position: (scenario.heroPosition === 'BB' || scenario.heroPosition === 'SB') ? 'OOP' : 'IP',
-                        street: _detectStreet(typeof scenario.board === 'string' ? scenario.board : undefined),
+                        heroPosition: scenario.heroPosition || null,
+                        street: _detectStreet(boardStr),
                         spotType: scenario.spotType || 'cbet',
                         betFrequency: result.gtoLine?.frequency ?? 0,
                         frequencies: question.gtoFrequencies || {},
                         is3BetPot: scenario.is3BetPot || false,
+                        potSize: scenario.pot || (scenario as any).potSize || 6,
+                        effectiveStack: scenario.heroStack || (scenario as any).stackDepth || (scenario as any).effectiveStack || 100,
+                        solverPolicy: (question as any).solverPolicy || null,
                     });
                 }
             } catch (e) { console.warn('[App] Handled exception:', e); }
 
             const keyTakeaway = strategyInsight?.keyFactors?.length
-                ? strategyInsight.keyFactors.slice(0, 3).join(' • ')
+                ? strategyInsight.keyFactors.slice(0, 4).join(' • ')
                 : coaching.concepts.length > 0
                     ? `Key concepts: ${coaching.concepts.map((c: string) => c.replace(/_/g, ' ')).join(', ')}.`
                     : (result.isCorrect ? 'Solid play - keep it up.' : `Review ${result.gtoLine.action} in this spot type.`);
@@ -240,6 +257,20 @@ export function FeedbackCard({
             if (strategyInsight?.strategicConcept) {
                 deepDive.rangeConsiderations = (deepDive.rangeConsiderations || '') +
                     ` Strategic concept: ${strategyInsight.strategicConcept}.`;
+            }
+            if (strategyInsight?.horseBrainAnalysis) {
+                const hb = strategyInsight.horseBrainAnalysis;
+                const blockerNotes: string[] = [];
+                if (hb.blockers?.blocksNutFlush) blockerNotes.push('Nut flush blocker');
+                if (hb.blockers?.blocksNutStraight) blockerNotes.push('Nut straight blocker');
+                if (hb.blockers?.blocksTopSet) blockerNotes.push('Top set blocker');
+                if (blockerNotes.length > 0 || hb.blockers?.bluffValue > 0) {
+                    deepDive.equityAnalysis = `${deepDive.equityAnalysis ? `${deepDive.equityAnalysis} ` : ''}Horse Brain Blockers: ${blockerNotes.length > 0 ? blockerNotes.join(', ') : 'Overcard blockers'} (Blocker Score: ${hb.blockers.bluffValue}).`;
+                }
+                if (hb.potGeometry && Number.isFinite(hb.potGeometry.spr)) {
+                    const geoPct = Math.round(hb.potGeometry.geometricSize * 100);
+                    deepDive.boardTexture = `${deepDive.boardTexture ? `${deepDive.boardTexture} ` : ''}Pot Geometry: SPR ${hb.potGeometry.spr.toFixed(1)} (~${geoPct}% geometric sizing, ${String(hb.potGeometry.strategy || '').replace(/_/g, ' ')}).`;
+                }
             }
 
             setEngineExplanation({
@@ -906,12 +937,12 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
 
 function getActionIcon(action: string): string {
     switch (action) {
-        case 'Fold': return '';
+        case 'Fold': return '✕';
         case 'Check': return '✓';
-        case 'Call': return '';
-        case 'Raise': return '';
-        case 'All-In': return '<img src="/images/diamond.webp" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>';
-        default: return '?';
+        case 'Call': return '=';
+        case 'Raise': return '↑';
+        case 'All-In': return '▲';
+        default: return '•';
     }
 }
 

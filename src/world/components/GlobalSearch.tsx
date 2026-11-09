@@ -3,6 +3,26 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
+import { POKER_IQ_ORBS, COMMANDER_ORB, TOKE_TRACKER_ORB } from '../../orbs/manifest/registry';
+import { getOwnerOnlyHiddenCardIds } from '../../config/ownerOnlyHubCards';
+import { getAuthUser } from '../../lib/authUtils';
+import { TRAINING_LIBRARY } from '../../data/TRAINING_LIBRARY';
+
+interface SearchResultItem {
+    id: string;
+    label: string;
+    subtitle: string;
+    route: string;
+    hardNav?: boolean;
+}
+
+function resolveOrbRoute(orbId: string): { route: string; hardNav?: boolean } {
+    if (orbId === 'club-arena') return { route: '/hub/club-arena', hardNav: true };
+    if (orbId === 'poker-near-me') return { route: '/hub/poker-near-me/lobby' };
+    if (orbId === 'toke-tracker') return { route: '/hub/toke-tracker' };
+    return { route: `/hub/${orbId}` };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔍 SEARCH ORB BUTTON — Same size as other HUD orbs
@@ -83,9 +103,19 @@ interface SearchOverlayProps {
 }
 
 export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
+    const router = useRouter();
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState<string[]>([]);
+    const [results, setResults] = useState<SearchResultItem[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    const navigateToResult = (item: SearchResultItem) => {
+        onClose();
+        if (item.hardNav && typeof window !== 'undefined') {
+            window.location.href = item.route;
+            return;
+        }
+        router.push(item.route);
+    };
 
     // Focus input when opened
     useEffect(() => {
@@ -111,21 +141,56 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
-    // Mock search results
+    // Real search across visible World Hub cards and Training Games library
     useEffect(() => {
-        if (query.trim()) {
-            // Simulate search
-            const mockResults = [
-                'Social Media',
-                'Poker Arena',
-                'Training Games',
-                'Trivia',
-                'Bankroll Manager',
-            ].filter(r => r.toLowerCase().includes(query.toLowerCase()));
-            setResults(mockResults);
-        } else {
+        const q = query.trim().toLowerCase();
+        if (!q) {
             setResults([]);
+            return;
         }
+
+        const ownerOnlyHidden = new Set(getOwnerOnlyHiddenCardIds(getAuthUser()?.id));
+        const allOrbs = [TOKE_TRACKER_ORB, COMMANDER_ORB, ...POKER_IQ_ORBS].filter(
+            (orb) => orb && !ownerOnlyHidden.has(orb.id)
+        );
+
+        const hubMatches: SearchResultItem[] = allOrbs
+            .filter(
+                (orb) =>
+                    orb.label.toLowerCase().includes(q) ||
+                    orb.id.toLowerCase().includes(q) ||
+                    (orb.description || '').toLowerCase().includes(q)
+            )
+            .map((orb) => {
+                const { route, hardNav } = resolveOrbRoute(orb.id);
+                return {
+                    id: `hub-${orb.id}`,
+                    label: orb.label,
+                    subtitle: 'World Hub',
+                    route,
+                    hardNav,
+                };
+            });
+
+        const trainingMatches: SearchResultItem[] = Array.isArray(TRAINING_LIBRARY)
+            ? TRAINING_LIBRARY.filter(
+                  (game: any) =>
+                      game &&
+                      ((game.name || '').toLowerCase().includes(q) ||
+                          (game.category || '').toLowerCase().includes(q) ||
+                          (game.id || '').toLowerCase().includes(q) ||
+                          (game.description || '').toLowerCase().includes(q))
+              )
+                  .slice(0, 8)
+                  .map((game: any) => ({
+                      id: `train-${game.id}`,
+                      label: game.name,
+                      subtitle: `Training • ${game.category || 'GTO'}`,
+                      route: `/hub/training?autoLaunch=${encodeURIComponent(game.id)}`,
+                  }))
+            : [];
+
+        setResults([...hubMatches, ...trainingMatches]);
     }, [query]);
 
     if (!isOpen) return null;
@@ -186,7 +251,13 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                         type="text"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
-                        placeholder="Search Clubs, Players, Content..."
+                        onKeyDown={e => {
+                            if (e.key === 'Enter' && results.length > 0) {
+                                e.preventDefault();
+                                navigateToResult(results[0]);
+                            }
+                        }}
+                        placeholder="Search Hub, Training Games, Tools..."
                         style={{
                             flex: 1,
                             background: 'transparent',
@@ -216,14 +287,14 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     <div style={{ padding: '8px 0', maxHeight: 300, overflowY: 'auto' }}>
                         {results.map((result, index) => (
                             <div
-                                key={result}
-                                onClick={() => {
-                                    console.log('Selected:', result);
-                                    onClose();
-                                }}
+                                key={result.id}
+                                onClick={() => navigateToResult(result)}
                                 style={{
                                     padding: '12px 20px',
                                     cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
                                     background: index === 0 ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
                                     transition: 'background 0.2s ease',
                                 }}
@@ -234,8 +305,11 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                     e.currentTarget.style.background = index === 0 ? 'rgba(0, 212, 255, 0.1)' : 'transparent';
                                 }}
                             >
-                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#ffffff' }}>
-                                    {result}
+                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#ffffff', fontWeight: 600 }}>
+                                    {result.label}
+                                </span>
+                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(0, 212, 255, 0.85)' }}>
+                                    {result.subtitle}
                                 </span>
                             </div>
                         ))}

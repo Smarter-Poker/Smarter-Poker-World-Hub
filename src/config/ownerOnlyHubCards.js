@@ -1,12 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   OWNER-ONLY WORLD HUB CARDS (Dan, 2026-10-11)
+   OWNER-ONLY WORLD HUB CARDS (Dan, 2026-10-11; Training unhidden 2026-11-09)
 
-   Dan, verbatim: "HIDE ALL OF THE FOLLOWING WORLD HUB CARDS TO ALL USERS
-   EXCEPT FOR MY ACCOUNT UNTIL FURTHER NOTICE. CLUB COMMANDER, PERSONAL
-   ASSISTANT, TRAINING GAMES AND TRIVIA GAMES."
-
-   These cards are removed from the World Hub carousel, the quick-launch
-   footer and the Customize My Hub list for every account except Dan's.
+   Club Commander, Personal Assistant, and Trivia remain hidden from the
+   World Hub carousel and the Customize My Hub list for every account except
+   Dan's. Training Games are public for all accounts.
    This hides the CARDS only; it does not lock the pages behind them.
 
    To bring a card back for everyone, delete its id from
@@ -16,7 +13,6 @@
 export const OWNER_ONLY_HUB_CARD_IDS = Object.freeze([
     'club-commander',
     'personal-assistant',
-    'training',
     'trivia',
 ]);
 

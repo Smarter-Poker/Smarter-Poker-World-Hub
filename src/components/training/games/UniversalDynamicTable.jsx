@@ -27,6 +27,7 @@ import ActionButton from '../../poker/ActionButton';
 import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MODES } from '../../../utils/actionGrouper';
 import { toEngineDifficulty } from '../../../engines/DifficultyEngine';
 import { formatSignedScore } from '../../../engines/GTOScoreEngine';
+import { explainStrategy } from '../../../engines/StrategyExplainer';
 import {
     buildRangeActionPresentation,
     buildRangeGridData,
@@ -6131,6 +6132,43 @@ function UniversalDynamicTable({
                                     if (!drill) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 12, lineHeight: 1.5, color: 'var(--sp-accent-amber)' }}>
                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>HAND READING: </span>{drill.keyPrinciple}
+                                    </div>);
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* Horse Brain GTO & Blocker Analysis */}
+                            {(() => {
+                                try {
+                                    const sc = fScenario;
+                                    const rawHole = fq?.heroCards || fq?.cards || sc?.heroCards || sc?.heroHand || null;
+                                    const rawBoard = fq?.boardCards || sc?.boardCards || sc?.board || null;
+                                    if (!rawHole || !rawBoard) return null;
+                                    const insight = explainStrategy({
+                                        holeCards: rawHole,
+                                        board: rawBoard,
+                                        correctAction: structuredExplanation?.correctAction || fq?.correctAnswer || '',
+                                        userAction: selectedAnswer || '',
+                                        position: (sc.heroPosition === 'BB' || sc.heroPosition === 'SB') ? 'OOP' : 'IP',
+                                        heroPosition: sc.heroPosition || sc.position || null,
+                                        street: sc.street || 'flop',
+                                        spotType: sc.nodeType || sc.spotType || 'cbet',
+                                        potSize: sc.potSize || sc.estimatedPot || 6,
+                                        effectiveStack: sc.stackDepth || sc.effectiveStack || 100,
+                                        solverPolicy: fq?.solverPolicy || null,
+                                    });
+                                    const hb = insight?.horseBrainAnalysis;
+                                    if (!hb) return null;
+                                    const parts = [];
+                                    if (hb.blockers?.blocksNutFlush) parts.push('Blocks nut flush');
+                                    if (hb.blockers?.blocksNutStraight) parts.push('Blocks nut straight');
+                                    if (hb.blockers?.blocksTopSet) parts.push('Blocks top set');
+                                    if (hb.potGeometry && Number.isFinite(hb.potGeometry.spr)) {
+                                        const geoPct = Math.round(hb.potGeometry.geometricSize * 100);
+                                        parts.push(`Geo sizing ~${geoPct}% pot (${String(hb.potGeometry.strategy || '').replace(/_/g, ' ')})`);
+                                    }
+                                    if (parts.length === 0) return null;
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(0,212,255,0.05)', borderRadius: 8, border: '1px solid rgba(0,212,255,0.14)', fontSize: 12, lineHeight: 1.5, color: 'var(--sp-accent-cyan)' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>HORSE BRAIN GTO: </span>{parts.join(' · ')}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
