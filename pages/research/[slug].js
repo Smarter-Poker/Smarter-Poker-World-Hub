@@ -11,6 +11,7 @@
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
 import {
   RESEARCH_REPORTS,
@@ -217,6 +218,17 @@ export default function ResearchReportDetailPage({ report }) {
             ))}
           </ul>
         </section>
+
+        <CitationBacklinkBox
+          title={report.title}
+          canonicalUrl={url}
+          badgeType="research"
+          badgeLabel="Empirical Data Source"
+          badgeValue={report.shortTitle || 'Smarter.Poker Research'}
+          summary={report.summary}
+          publishedYear={String(report.publishedDate || '2026').slice(0, 4)}
+          slug={report.slug}
+        />
 
         <AiPromptLauncher
           title={report.title}

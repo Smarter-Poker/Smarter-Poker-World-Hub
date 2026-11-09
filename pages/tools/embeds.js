@@ -37,6 +37,99 @@ const WIDGETS = [
     width: '100%',
     creditAnchor: 'Smarter.Poker GTO Preflop Ranges',
   },
+  {
+    id: 'pot-odds-calculator',
+    title: 'Pot Odds, Implied Odds & MDF Calculator',
+    description: 'Instant pot odds, break-even equity percentage, minimum defense frequency (MDF), and outs-to-equity calculator for cash games and tournaments.',
+    embedUrl: 'https://smarter.poker/tools/pot-odds-calculator',
+    landerUrl: 'https://smarter.poker/tools/pot-odds-calculator',
+    height: 740,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Pot Odds & MDF Calculator',
+  },
+  {
+    id: 'push-fold-calculator',
+    title: 'Short-Stack Push/Fold Nash Equilibrium Chart',
+    description: 'Interactive 3BB to 20BB short-stack tournament push/fold Nash equilibrium solver chart across every table position with ante adjustments.',
+    embedUrl: 'https://smarter.poker/tools/push-fold-calculator',
+    landerUrl: 'https://smarter.poker/tools/push-fold-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Push/Fold Nash Chart',
+  },
+  {
+    id: 'bankroll-calculator',
+    title: 'Poker Bankroll & Risk Of Ruin Calculator',
+    description: 'Variance simulator and Risk of Ruin (RoR) calculator computing required buy-ins from BB/100 winrate and standard deviation.',
+    embedUrl: 'https://smarter.poker/tools/bankroll-calculator',
+    landerUrl: 'https://smarter.poker/tools/bankroll-calculator',
+    height: 720,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Bankroll & Risk Of Ruin Calculator',
+  },
+  {
+    id: 'bounty-calculator',
+    title: 'PKO & Mystery Bounty Chip Equity Calculator',
+    description: 'Progressive Knockout (PKO) and Mystery Bounty chip conversion and calling-equity adjustment calculator using bounty power factors.',
+    embedUrl: 'https://smarter.poker/tools/bounty-calculator',
+    landerUrl: 'https://smarter.poker/tools/bounty-calculator',
+    height: 740,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker PKO & Mystery Bounty Calculator',
+  },
+  {
+    id: 'poker-winrate-calculator',
+    title: 'Poker Winrate (BB/100 To $/Hr) & Volume Calculator',
+    description: 'Converts online BB/100 and live hourly winrates into projected monthly and annual earnings with confidence intervals.',
+    embedUrl: 'https://smarter.poker/tools/poker-winrate-calculator',
+    landerUrl: 'https://smarter.poker/tools/poker-winrate-calculator',
+    height: 720,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Winrate & Hourly Earnings Calculator',
+  },
+];
+
+export const PARTNER_BADGES = [
+  {
+    id: 'badge-venue',
+    title: 'Verified Live Poker Room Badge',
+    description: 'For casinos, Texas social poker clubs, and charity rooms listed in the Smarter.Poker directory.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=venue',
+    targetUrl: 'https://smarter.poker/hub/poker-near-me/lobby',
+    altText: 'Verified Poker Room: Smarter.Poker Directory',
+  },
+  {
+    id: 'badge-commander',
+    title: 'Powered By Club Commander Waitlist Badge',
+    description: 'For card rooms running live waitlists, tournament clocks, and seat alerts with Club Commander.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=commander',
+    targetUrl: 'https://smarter.poker/compare/best-poker-room-management-software',
+    altText: 'Live Waitlist & Clocks: Powered By Club Commander',
+  },
+  {
+    id: 'badge-research',
+    title: 'Smarter.Poker Empirical Research Citation Badge',
+    description: 'For journalists, Substack writers, and poker bloggers citing Smarter.Poker industry benchmark studies.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=research',
+    targetUrl: 'https://smarter.poker/research',
+    altText: 'Empirical Data Source: Smarter.Poker Research',
+  },
+  {
+    id: 'badge-gto',
+    title: 'GTO Math Verified Solver Badge',
+    description: 'For strategy articles, hand breakdowns, and training posts referencing Smarter.Poker GTO preflop and ICM ranges.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=gto',
+    targetUrl: 'https://smarter.poker/tools/preflop-ranges',
+    altText: 'GTO Math Verified: Smarter.Poker Solver',
+  },
+  {
+    id: 'badge-club',
+    title: 'Smarter.Poker Club Arena Partner Badge',
+    description: 'For private online poker clubs, home game hosts, and league organizers running games on Club Arena.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=club',
+    targetUrl: 'https://smarter.poker/compare/best-poker-club-apps',
+    altText: 'Private Club Platform: Smarter.Poker Club Arena',
+  },
 ];
 
 export async function getServerSideProps({ req, res, query }) {
@@ -258,6 +351,97 @@ export default function WebmasterEmbedPortal() {
                         ) : (
                           <>
                             <Copy size={14} /> Copy Embed Code
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Verified Partner & Venue SVG Backlink Badges */}
+          <section aria-labelledby="partner-badges-heading" style={{ marginTop: '48px' }}>
+            <h2 id="partner-badges-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
+              Verified Partner, Venue & Media Attribution Badges
+            </h2>
+            <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
+              Card Rooms, Club Operators, Strategy Bloggers, And Journalists Can Embed These Lightweight Dynamic SVG Badges On Their Websites, Footers, Or GitHub Readmes With Direct Canonical Attribution.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {PARTNER_BADGES.map((badge) => {
+                const badgeSnippet = `<a href="${badge.targetUrl}" target="_blank" rel="noopener" title="${badge.altText}"><img src="${badge.badgeUrl}" alt="${badge.altText}" height="28" /></a>`;
+                const isBadgeCopied = copiedId === badge.id;
+                return (
+                  <article
+                    key={badge.id}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(56, 189, 248, 0.18)',
+                      borderRadius: '14px',
+                      padding: '22px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '10px' }}>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>{badge.title}</h3>
+                      <img src={badge.badgeUrl} alt={badge.altText} height="28" style={{ display: 'block' }} />
+                    </div>
+                    <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.72)', margin: '0 0 12px 0' }}>
+                      {badge.description}
+                    </p>
+                    <div style={{ position: 'relative' }}>
+                      <textarea
+                        readOnly
+                        value={badgeSnippet}
+                        aria-label={`HTML Badge Embed Code for ${badge.title}`}
+                        style={{
+                          width: '100%',
+                          height: '64px',
+                          background: '#06060c',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '8px',
+                          padding: '10px',
+                          color: '#7dd3fc',
+                          fontFamily: 'monospace',
+                          fontSize: '0.82rem',
+                          resize: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                            navigator.clipboard.writeText(badgeSnippet);
+                            setCopiedId(badge.id);
+                            setTimeout(() => setCopiedId(null), 2500);
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: isBadgeCopied ? '#059669' : '#0284c7',
+                          color: '#fff',
+                          border: 0,
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isBadgeCopied ? (
+                          <>
+                            <Check size={14} /> Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} /> Copy Badge HTML
                           </>
                         )}
                       </button>
