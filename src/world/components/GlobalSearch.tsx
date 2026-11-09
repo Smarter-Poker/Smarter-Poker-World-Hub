@@ -149,8 +149,17 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             return;
         }
 
+        const mockResults = [
+            { id: 'hub-social-media', label: 'Social Media', subtitle: 'World Hub', route: '/hub/social-media' },
+            { id: 'hub-club-arena', label: 'Poker Arena', subtitle: 'World Hub', route: '/hub/club-arena', hardNav: true },
+            { id: 'hub-training', label: 'GTO Training', subtitle: 'World Hub', route: '/hub/training' },
+            { id: 'hub-news', label: 'News & Strategy', subtitle: 'World Hub', route: '/hub/news' },
+            { id: 'hub-poker-near-me', label: 'Poker Near Me', subtitle: 'World Hub', route: '/hub/poker-near-me/lobby' },
+        ].filter((item) => item.label.toLowerCase().includes(q));
+
         const ownerOnlyHidden = new Set(getOwnerOnlyHiddenCardIds(getAuthUser()?.id));
-        const allOrbs = [TOKE_TRACKER_ORB, COMMANDER_ORB, ...POKER_IQ_ORBS].filter(
+        const rawOrbs = [TOKE_TRACKER_ORB, COMMANDER_ORB, ...POKER_IQ_ORBS];
+        const allOrbs = rawOrbs.filter(
             (orb) => orb && !ownerOnlyHidden.has(orb.id)
         );
 
@@ -172,6 +181,10 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 };
             });
 
+        const fallbackHubMatches = mockResults.filter(
+            (item) => !hubMatches.some((existing) => existing.route === item.route)
+        );
+
         const trainingMatches: SearchResultItem[] = Array.isArray(TRAINING_LIBRARY)
             ? TRAINING_LIBRARY.filter(
                   (game: any) =>
@@ -190,7 +203,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                   }))
             : [];
 
-        setResults([...hubMatches, ...trainingMatches]);
+        setResults([...hubMatches, ...fallbackHubMatches, ...trainingMatches]);
     }, [query]);
 
     if (!isOpen) return null;
