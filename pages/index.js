@@ -408,7 +408,6 @@ const styles = {
     // the Sign Up / Sign In buttons painted under the clock and Wi-Fi icons
     // and could not be tapped. Shorthand first, then padding-top, or the
     // shorthand resets it.
-    paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))',
     boxSizing: 'border-box',
     position: 'sticky',
     top: 0,
