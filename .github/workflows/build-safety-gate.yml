@@ -275,6 +275,7 @@ jobs:
           __tests__/messenger-preview-is-plain-text.test.mjs
           __tests__/messenger-viewer-gestures.test.mjs
           __tests__/messenger-draft-autosave-live-safety.test.mjs
+          __tests__/ci-install-and-cache-law.test.mjs
 
       - name: Accounting Push Receipt And Ownership Contracts
         run: >-
