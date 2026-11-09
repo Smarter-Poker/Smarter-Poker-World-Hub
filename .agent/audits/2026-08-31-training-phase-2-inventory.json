@@ -32012,7 +32012,7 @@
         {
           "element": "a",
           "name": "Enter Heads-Up Training →",
-          "line": 185,
+          "line": 183,
           "handler": null,
           "destination": "PRACTICE_ROUTE",
           "type": null,
@@ -32022,7 +32022,7 @@
         {
           "element": "a",
           "name": "Launch Format →",
-          "line": 198,
+          "line": 196,
           "handler": null,
           "destination": "duel.href",
           "type": null,
@@ -32032,7 +32032,7 @@
         {
           "element": "button",
           "name": "Mint Signed Duel",
-          "line": 201,
+          "line": 199,
           "handler": "() => handleCreateSignedDuel(duel.id)",
           "destination": null,
           "type": "button",
@@ -32042,7 +32042,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 249,
+          "line": 247,
           "handler": "() => handleCreateSignedDuel(selectedGameId)",
           "destination": null,
           "type": "button",
@@ -32052,7 +32052,7 @@
         {
           "element": "a",
           "name": "Play Challenger Hands →",
-          "line": 278,
+          "line": 276,
           "handler": null,
           "destination": "buildDuelArenaHref(activeDuel, 'challenger')",
           "type": null,
@@ -32062,7 +32062,7 @@
         {
           "element": "a",
           "name": "Accept & Play As Opponent →",
-          "line": 285,
+          "line": 283,
           "handler": null,
           "destination": "buildDuelArenaHref(activeDuel, 'opponent')",
           "type": null,
@@ -32072,7 +32072,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 305,
+          "line": 303,
           "handler": "() => loadScoreboard(duelTokenInput)",
           "destination": null,
           "type": "button",
@@ -32128,7 +32128,7 @@
         },
         {
           "name": "handleCreateSignedDuel",
-          "line": 103,
+          "line": 102,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -32136,7 +32136,7 @@
         },
         {
           "name": "buildDuelArenaHref",
-          "line": 138,
+          "line": 136,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -32149,7 +32149,7 @@
       "markers": [
         {
           "kind": "SIMULATED",
-          "line": 171,
+          "line": 169,
           "excerpt": "<p style={{ margin: 0, maxWidth: 700, color: '#b8cad7', lineHeight: 1.7 }}>Real-Player Matchmaking Is Not Connected To A Production Realtime Match Service. The Lobby Will Not Present Simulated Searches, Invented Opponents, Random Scores, Ra",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -32157,7 +32157,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 302,
+          "line": 300,
           "excerpt": "placeholder=\"Paste Signed Duel Token To Inspect Two-Player Server Scoreboard\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -69897,11 +69897,11 @@
       "effectRef": "pages/hub/training/progress.js"
     },
     {
-      "id": "pages/hub/training/pvp-lobby.js:185:1",
+      "id": "pages/hub/training/pvp-lobby.js:183:1",
       "file": "pages/hub/training/pvp-lobby.js",
       "element": "a",
       "name": "Enter Heads-Up Training →",
-      "line": 185,
+      "line": 183,
       "handler": null,
       "destination": "PRACTICE_ROUTE",
       "type": null,
@@ -69910,11 +69910,11 @@
       "effectRef": "pages/hub/training/pvp-lobby.js"
     },
     {
-      "id": "pages/hub/training/pvp-lobby.js:198:2",
+      "id": "pages/hub/training/pvp-lobby.js:196:2",
       "file": "pages/hub/training/pvp-lobby.js",
       "element": "a",
       "name": "Launch Format →",
-      "line": 198,
+      "line": 196,
       "handler": null,
       "destination": "duel.href",
       "type": null,
@@ -69923,11 +69923,11 @@
       "effectRef": "pages/hub/training/pvp-lobby.js"
     },
     {
-      "id": "pages/hub/training/pvp-lobby.js:201:3",
+      "id": "pages/hub/training/pvp-lobby.js:199:3",
       "file": "pages/hub/training/pvp-lobby.js",
       "element": "button",
       "name": "Mint Signed Duel",
-      "line": 201,
+      "line": 199,
       "handler": "() => handleCreateSignedDuel(duel.id)",
       "destination": null,
       "type": "button",
@@ -69936,11 +69936,11 @@
       "effectRef": "pages/hub/training/pvp-lobby.js"
     },
     {
-      "id": "pages/hub/training/pvp-lobby.js:249:4",
+      "id": "pages/hub/training/pvp-lobby.js:247:4",
       "file": "pages/hub/training/pvp-lobby.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 249,
+      "line": 247,
       "handler": "() => handleCreateSignedDuel(selectedGameId)",
       "destination": null,
       "type": "button",
@@ -69949,11 +69949,11 @@
       "effectRef": "pages/hub/training/pvp-lobby.js"
     },
     {
-      "id": "pages/hub/training/pvp-lobby.js:278:5",
+      "id": "pages/hub/training/pvp-lobby.js:276:5",
       "file": "pages/hub/training/pvp-lobby.js",
       "element": "a",
       "name": "Play Challenger Hands →",
-      "line": 278,
+      "line": 276,
       "handler": null,
       "destination": "buildDuelArenaHref(activeDuel, 'challenger')",
       "type": null,
@@ -69962,11 +69962,11 @@
       "effectRef": "pages/hub/training/pvp-lobby.js"
     },
     {
-      "id": "pages/hub/training/pvp-lobby.js:285:6",
+      "id": "pages/hub/training/pvp-lobby.js:283:6",
       "file": "pages/hub/training/pvp-lobby.js",
       "element": "a",
       "name": "Accept & Play As Opponent →",
-      "line": 285,
+      "line": 283,
       "handler": null,
       "destination": "buildDuelArenaHref(activeDuel, 'opponent')",
       "type": null,
@@ -69975,11 +69975,11 @@
       "effectRef": "pages/hub/training/pvp-lobby.js"
     },
     {
-      "id": "pages/hub/training/pvp-lobby.js:305:7",
+      "id": "pages/hub/training/pvp-lobby.js:303:7",
       "file": "pages/hub/training/pvp-lobby.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 305,
+      "line": 303,
       "handler": "() => loadScoreboard(duelTokenInput)",
       "destination": null,
       "type": "button",
@@ -93019,7 +93019,7 @@
       {
         "file": "pages/hub/training/pvp-lobby.js",
         "kind": "SIMULATED",
-        "line": 171,
+        "line": 169,
         "excerpt": "<p style={{ margin: 0, maxWidth: 700, color: '#b8cad7', lineHeight: 1.7 }}>Real-Player Matchmaking Is Not Connected To A Production Realtime Match Service. The Lobby Will Not Present Simulated Searches, Invented Opponents, Random Scores, Ra",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -93028,7 +93028,7 @@
       {
         "file": "pages/hub/training/pvp-lobby.js",
         "kind": "PLACEHOLDER",
-        "line": 302,
+        "line": 300,
         "excerpt": "placeholder=\"Paste Signed Duel Token To Inspect Two-Player Server Scoreboard\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -102651,7 +102651,7 @@
       {
         "file": "pages/hub/training/pvp-lobby.js",
         "kind": "SIMULATED",
-        "line": 171,
+        "line": 169,
         "excerpt": "<p style={{ margin: 0, maxWidth: 700, color: '#b8cad7', lineHeight: 1.7 }}>Real-Player Matchmaking Is Not Connected To A Production Realtime Match Service. The Lobby Will Not Present Simulated Searches, Invented Opponents, Random Scores, Ra",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -102660,7 +102660,7 @@
       {
         "file": "pages/hub/training/pvp-lobby.js",
         "kind": "PLACEHOLDER",
-        "line": 302,
+        "line": 300,
         "excerpt": "placeholder=\"Paste Signed Duel Token To Inspect Two-Player Server Scoreboard\"",
         "disposition": "ui-input-copy",
         "review": "accepted",

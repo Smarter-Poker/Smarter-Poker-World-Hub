@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 
 const PRACTICE_ROUTE = '/hub/training/arena/mtt-015?level=1&source=pvp-lobby';
 
@@ -73,9 +73,8 @@ export default function PvPLobbyPage() {
         setLoadingScoreboard(false);
         return;
       }
-      const res = await fetch(
-        `/api/training/tool-records?toolId=async-duel&duelToken=${encodeURIComponent(cleanToken)}`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
+      const res = await authedFetch(
+        `/api/training/tool-records?toolId=async-duel&duelToken=${encodeURIComponent(cleanToken)}`
       );
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -113,9 +112,8 @@ export default function PvPLobbyPage() {
         return;
       }
       const sessionSeed = `duel_seed_${Date.now().toString(36)}`;
-      const res = await fetch(
-        `/api/training/batch-preload?gameId=${encodeURIComponent(targetGame)}&level=1&variant=${encodeURIComponent(selectedVariant)}&sessionId=${encodeURIComponent(sessionSeed)}&createDuel=1`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
+      const res = await authedFetch(
+        `/api/training/batch-preload?gameId=${encodeURIComponent(targetGame)}&level=1&variant=${encodeURIComponent(selectedVariant)}&sessionId=${encodeURIComponent(sessionSeed)}&createDuel=1`
       );
       const json = await res.json();
       if (!res.ok || !json.success || !json.duel?.duelToken) {

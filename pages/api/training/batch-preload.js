@@ -398,7 +398,7 @@ export default async function handler(req, res) {
                           .eq('level', gameLevel)
                           .in('quality_status', ['active', 'active_fallback']);
                       if (duelPayload?.questionIds?.length > 0) {
-                          query = query.in('question_id', duelPayload.questionIds);
+                          query = query.in('question_id', duelPayload.questionIds.slice(0, 30));
                       }
                       return query.limit(Math.max(100, candidateQuestionCount * 3));
                   },

@@ -81,7 +81,7 @@ export default async function handler(req, res) {
           const { data: answers, error: ansErr } = await getSupabase()
             .from('training_answers')
             .select('attempt_id, user_id, question_id, hand_ordinal, answer_id, is_correct, ev_loss, classification, selected_frequency, optimal_frequency, solver_verified')
-            .in('attempt_id', attemptIds)
+            .in('attempt_id', attemptIds.slice(0, 4))
             .order('hand_ordinal', { ascending: true });
           if (ansErr) throw ansErr;
           answerRows = Array.isArray(answers) ? answers : [];
