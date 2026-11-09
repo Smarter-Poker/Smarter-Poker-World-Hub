@@ -188,7 +188,7 @@ export async function runDraftAutosave() {
       + 'through a whole-workspace read and through opening one conversation');
 
     // ── 5. The draft belongs to this account and this conversation ──────
-    const direct = await post('/api/messenger/continuity', { action: 'read', conversationId: fixture.a });
+    const direct = await post('/api/messenger/continuity', { action: 'read', conversationId: fixture.a, workspace: { workspace: 'social', folder: 'messages' } });
     const state = direct.body.state || direct.body.states?.[fixture.a];
     assert.equal(state.draft.text, textA, 'Direct API read returned a different draft');
     assert.notEqual(textA, textB, 'Fixture texts must differ for the scoping check to mean anything');
