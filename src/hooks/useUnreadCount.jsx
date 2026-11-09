@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { isLiveInvite, liveInviteHref } from '../lib/messenger/liveInvite.mjs';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 import { listenBroadcast, broadcastSync, BROADCAST_TAB_ID } from '../lib/broadcastSync';

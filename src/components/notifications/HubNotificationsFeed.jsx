@@ -48,6 +48,7 @@
  */
 
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { liveInviteHref } from '../../lib/messenger/liveInvite.mjs';
 import { persistNotificationReads } from '../../lib/notificationReads.mjs';
 import SEOHead from '../../components/seo/SEOHead';
 import { ThumbsUp, Heart, MessageCircle, AtSign, UserPlus, UserCheck, Eye, Radio, Spade, Bell, Share2, Star, Trophy, Banknote, ShieldCheck, Users, Megaphone, Gift, TrendingUp, Zap, Trash2, X } from 'lucide-react';
