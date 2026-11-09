@@ -201,11 +201,10 @@ export function buildSeriesDirectorySchema(series = [], totalCount = 0) {
   });
 }
 
-function formatIsoTournamentStartDate(tournament, fallbackAnchor) {
-  let dateStr = tournament.event_date ? String(tournament.event_date).slice(0, 10) : null;
+function formatIsoTournamentStartDate(tournament) {
+  const dateStr = tournament.event_date ? String(tournament.event_date).slice(0, 10) : null;
   if (!dateStr || dateStr === '1970-01-01' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    const anchorStr = fallbackAnchor ? String(fallbackAnchor).slice(0, 10) : null;
-    dateStr = anchorStr && /^\d{4}-\d{2}-\d{2}$/.test(anchorStr) ? anchorStr : '2026-01-01';
+    return undefined;
   }
   const timeRaw = tournament.start_time ? String(tournament.start_time).trim() : '';
   const match = /^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?\s*([AP]M)?$/i.exec(timeRaw);
@@ -225,7 +224,15 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
   const canonical = options.canonical || `${SITE_ORIGIN}/hub/daily-tournaments`;
   const pageName = options.pageName || 'Daily Poker Tournaments';
   const pageDescription = options.pageDescription || 'Browse recurring daily poker tournament schedules from verified poker venues and home games.';
-  const items = tournaments.slice(0, 50).map((tournament, index) => {
+  // Google requires startDate and location for Event rich results, and a row
+  // the page shows without a date or a venue supports neither. Such a row is
+  // left out of the markup entirely rather than published with invented
+  // values (the generation day, "Live Poker Room") the page never shows
+  // (structured data audit, 2026-11-09).
+  const supported = tournaments.filter(
+    (tournament) => Boolean(formatIsoTournamentStartDate(tournament)) && Boolean(tournament.venue_name)
+  );
+  const items = supported.slice(0, 50).map((tournament, index) => {
     const isHomeGame = tournament.is_home_game || String(tournament.venue_id || '').startsWith('home_game_');
     const rawHomeId = String(tournament.venue_id || '').replace(/^home_game_/, '');
     const venueUrl = isHomeGame
@@ -238,7 +245,7 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
         ? `${SITE_ORIGIN}/hub/venues/${encodeURIComponent(String(tournament.venue_id))}`
         : canonical;
 
-    const startDate = formatIsoTournamentStartDate(tournament, generatedAt);
+    const startDate = formatIsoTournamentStartDate(tournament);
     const sameAsLinks = resolveTournamentWikidataLinks(tournament);
 
     return {
@@ -255,16 +262,13 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
         sport: 'Poker',
         location: {
           '@type': 'SportsActivityLocation',
-          name: tournament.venue_name || 'Live Poker Room',
+          name: tournament.venue_name,
           address: tournament.city || tournament.state ? {
             '@type': 'PostalAddress',
             addressLocality: tournament.city || undefined,
             addressRegion: tournament.state || undefined,
             addressCountry: 'US',
-          } : {
-            '@type': 'PostalAddress',
-            addressCountry: 'US',
-          },
+          } : undefined,
         },
         offers: tournament.buy_in != null ? {
           '@type': 'Offer',
