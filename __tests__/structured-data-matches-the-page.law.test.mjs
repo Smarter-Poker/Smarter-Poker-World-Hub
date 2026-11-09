@@ -100,6 +100,48 @@ test('the shared schema builders drop a FAQPage with no questions and a list wit
   assert.equal(one.mainEntity.itemListElement.length, 1);
 });
 
+test('a tournament row without a real date or venue publishes no SportsEvent at all', async () => {
+  const { buildDailyTournamentSchema } = await import('../src/lib/poker-near-me/structuredData.js');
+  const full = { tournament_name: 'Daily Deepstack', venue_id: '1', venue_name: 'Room', city: 'Austin', state: 'TX', event_date: '2026-11-14', start_time: '7:00 PM', buy_in: 150 };
+  const noDate = { tournament_name: 'Wednesday Nightly', venue_id: '2', venue_name: 'The Lodge', city: 'Austin', state: 'TX', start_time: '7:00 PM', buy_in: 100 };
+  const epochDate = { ...noDate, tournament_name: 'Epoch Nightly', event_date: '1970-01-01' };
+  const noVenue = { tournament_name: 'Mystery Bounty', venue_id: '3', event_date: '2026-11-15', start_time: '2:00 PM', buy_in: 200 };
+
+  // The page shows these rows without a date or a venue, so the markup may
+  // not invent one: no generation-day startDate, no '2026-01-01' anchor, no
+  // 'Live Poker Room' placeholder (structured data audit, 2026-11-09).
+  const incomplete = buildDailyTournamentSchema([noDate, epochDate, noVenue], '2026-11-09T00:00:00Z');
+  assert.equal(incomplete.mainEntity, undefined, 'no supported rows, no ItemList');
+  const text = JSON.stringify(incomplete);
+  assert.ok(!text.includes('SportsEvent'), 'no SportsEvent node for unsupported rows');
+  assert.ok(!text.includes('Live Poker Room'), 'no placeholder venue name');
+  assert.ok(!text.includes('2026-01-01'), 'no invented anchor date');
+
+  // A fully populated row keeps the exact node it published before the
+  // filter existed, whether or not unsupported rows sit beside it.
+  const mixed = buildDailyTournamentSchema([noDate, full, noVenue], '2026-11-09T00:00:00Z');
+  assert.equal(mixed.mainEntity.itemListElement.length, 1, 'only the supported row is listed');
+  assert.deepEqual(mixed.mainEntity.itemListElement[0], {
+    '@type': 'ListItem',
+    position: 1,
+    item: {
+      '@type': 'SportsEvent',
+      name: 'Daily Deepstack',
+      url: 'https://smarter.poker/hub/venues/1',
+      startDate: '2026-11-14T19:00:00',
+      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      eventStatus: 'https://schema.org/EventScheduled',
+      sport: 'Poker',
+      location: {
+        '@type': 'SportsActivityLocation',
+        name: 'Room',
+        address: { '@type': 'PostalAddress', addressLocality: 'Austin', addressRegion: 'TX', addressCountry: 'US' },
+      },
+      offers: { '@type': 'Offer', price: 150, priceCurrency: 'USD', availability: 'https://schema.org/InStock', url: 'https://smarter.poker/hub/venues/1' },
+    },
+  });
+});
+
 // ─── Part 2: the JSON-LD document for each page type is valid ──────────────
 
 /** Compile a JSX module the way the other component tests do, with import stubs. */

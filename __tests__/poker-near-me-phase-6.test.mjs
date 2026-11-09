@@ -86,6 +86,8 @@ test('series and daily directories publish canonical structured result lists', (
     is_home_game: true,
     home_group_slug: 'friday-poker',
     venue_name: 'Friday Poker Club',
+    event_date: '2026-09-04',
+    start_time: '7:00 PM',
     city: 'Austin',
     state: 'TX',
     buy_in: 80,

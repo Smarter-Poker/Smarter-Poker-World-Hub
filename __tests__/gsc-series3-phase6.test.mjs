@@ -57,6 +57,7 @@ test('Phase 6: buildDailyTournamentSchema injects sameAs entity links into Sport
       buy_in: 240,
       start_time: '12:00 PM',
       day_of_week: 'Wednesday',
+      event_date: '2026-10-21',
     },
   ];
 
