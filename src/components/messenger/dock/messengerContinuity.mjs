@@ -59,6 +59,13 @@ export function createContinuityController({ actorId, workspace, storage, reques
     let readGeneration = 0;
     let mutationVersion = 0;
     const savedStates = new Map();
+    const draftSyncTimers = new Map();
+    // A draft reaches the account on its own, a moment after typing stops.
+    // It used to wait for the person to press a "Save Draft To Account"
+    // button, so a banner offering that button sat above the composer the
+    // whole time anyone was writing. Typing is the intent; nobody should
+    // have to confirm it.
+    const DRAFT_SYNC_IDLE_MS = 2500;
     const controller = { pins: [], saved: [], hasMoreSaved: false, nextSavedCursor: null, loading: false, errors, records };
     const notify = () => { if (isCurrent()) changed(); };
     const state = conversationId => {
@@ -162,6 +169,28 @@ export function createContinuityController({ actorId, workspace, storage, reques
         if (!valid(field, next)) return;
         record[field] = next;
         remember(conversationId); notify();
+        if (field === 'draft') scheduleDraftSync(conversationId);
+        return true;
+    };
+    const scheduleDraftSync = conversationId => {
+        if (typeof setTimeout !== 'function') return;
+        clearTimeout(draftSyncTimers.get(conversationId));
+        draftSyncTimers.set(conversationId, setTimeout(() => {
+            draftSyncTimers.delete(conversationId);
+            controller.syncDraft(conversationId);
+        }, DRAFT_SYNC_IDLE_MS));
+    };
+    // Exposed so a surface can push the draft up before it goes away
+    // (closing a thread, a backgrounded tab) without waiting out the idle.
+    controller.syncDraft = conversationId => {
+        if (typeof clearTimeout === 'function') clearTimeout(draftSyncTimers.get(conversationId));
+        draftSyncTimers.delete(conversationId);
+        if (!isCurrent() || !isMessageId(conversationId)) return false;
+        const draft = state(conversationId).draft;
+        // A conflict is the person's to resolve; a clean draft has nothing
+        // to send. Neither is retried behind their back.
+        if (!draft.dirty || draft.conflict) return false;
+        void controller.write(conversationId, 'draft');
         return true;
     };
     controller.write = async (conversationId, field, value, expectedRevision) => {
