@@ -29,6 +29,7 @@ function dailyHydrationFixture() {
     '../../src/lib/home-games/urls': { homeGameUrl: () => '#' },
     '../../src/lib/poker-near-me/structuredData': { buildDailyTournamentSchema: () => null, serializePokerJsonLd: () => 'null' },
     '../../src/lib/seo/hubPageSchema': { datasetSchema: () => [], faqSchema: () => [] },
+    '../../src/components/seo/SEOHead': { __esModule: true, default: chrome, normalizeJsonLdGraph: (graph) => graph },
     '../../src/components/poker-near-me/PokerNearMeConsole': { PokerNearMeConsoleIcon: chrome },
   };
   const code = ts.transpileModule(source, { compilerOptions: { esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
