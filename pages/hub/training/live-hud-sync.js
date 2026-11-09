@@ -8,6 +8,33 @@ const statusRows = [
   ['Imported Hands', 'Available'],
 ];
 
+const clubArenaSyncRoutes = [
+  {
+    title: 'Hand History Import',
+    subtitle: 'Upload Club Arena Or Standard Hand Histories For Audited Decision Review.',
+    href: '/hub/training/hand-history-upload',
+    cta: 'Open Hand History Import →',
+  },
+  {
+    title: 'Replay Theater',
+    subtitle: 'Step Through Imported Hands Street By Street On The Interactive Felt.',
+    href: '/hub/training/replay-theater',
+    cta: 'Open Replay Theater →',
+  },
+  {
+    title: 'Session Dashboard',
+    subtitle: 'Review Verified EV Loss, Accuracy, And Positional Leaks Across Completed Drills.',
+    href: '/hub/training/session-dashboard',
+    cta: 'Open Session Dashboard →',
+  },
+  {
+    title: 'Club Arena Cash Blueprint',
+    subtitle: 'Drill 6-Max Cash Game Spots On The Full Club Arena Table Layout.',
+    href: '/hub/training/arena/cash-001?level=1',
+    cta: 'Launch Cash Blueprint →',
+  },
+];
+
 /**
  * There is no production beacon discovery or pairing API today. The previous
  * page generated a beacon name, signal, battery level, and firmware with
@@ -49,6 +76,20 @@ export default function LiveHudSyncPage() {
               <a href="/hub/training/hand-history-upload" style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 18, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
                 Open Hand History Import →
               </a>
+            </div>
+
+            <div data-live-hud-sync-workflows="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 20 }}>
+              {clubArenaSyncRoutes.map((item) => (
+                <div key={item.href} style={{ padding: '18px', border: '1px solid rgba(132,213,242,.2)', background: 'rgba(5,14,22,.72)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }}>
+                  <div>
+                    <div style={{ color: '#e6f6ff', fontSize: 14, fontWeight: 900 }}>{item.title}</div>
+                    <p style={{ margin: '6px 0 0', color: '#9bb4c4', fontSize: 12, lineHeight: 1.55 }}>{item.subtitle}</p>
+                  </div>
+                  <a href={item.href} style={{ display: 'inline-flex', minHeight: 38, alignItems: 'center', padding: '0 14px', border: '1px solid rgba(165,239,255,.45)', background: 'rgba(22,55,74,.55)', color: '#d8f6ff', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>
+                    {item.cta}
+                  </a>
+                </div>
+              ))}
             </div>
           </div>
         </section>

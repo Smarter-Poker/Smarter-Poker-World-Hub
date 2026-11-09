@@ -242,6 +242,32 @@ export default function MultiTablePage() {
   const activeGameId =
     focusedGameId && visibleGames.includes(focusedGameId) ? focusedGameId : visibleGames[0];
 
+  // Keyboard table-focus switching: '[' / ']' or Alt+1..Alt+4 moves active focus between visible tables
+  useEffect(() => {
+    if (!isStarted || showSummary || visibleGames.length <= 1) return undefined;
+    const onKeyDown = (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.altKey && e.key >= '1' && e.key <= '4') {
+        const idx = Number(e.key) - 1;
+        if (visibleGames[idx]) {
+          e.preventDefault();
+          setFocusedGameId(visibleGames[idx]);
+        }
+        return;
+      }
+      if (e.key === '[' || e.key === ']') {
+        e.preventDefault();
+        const curIdx = Math.max(0, visibleGames.indexOf(activeGameId));
+        const nextIdx = e.key === ']'
+          ? (curIdx + 1) % visibleGames.length
+          : (curIdx - 1 + visibleGames.length) % visibleGames.length;
+        setFocusedGameId(visibleGames[nextIdx]);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isStarted, showSummary, visibleGames, activeGameId]);
+
   // Listen for session-complete events from each table (NOT from ourselves)
   useEffect(() => {
     const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (event) => {
@@ -827,6 +853,22 @@ export default function MultiTablePage() {
               >
                 {tableCount}-TABLE MODE
               </span>
+              {!isPhone && (
+                <span
+                  data-multi-table-hotkey-hint="true"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--sp-fg-dim)',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  Keys: [ / ] Switch Table
+                </span>
+              )}
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 12 }}>
                 <span style={{ color: 'var(--sp-accent-green)' }}>Hands: {combinedStats.totalHands}</span>
                 <span style={{ color: 'var(--sp-accent-amber)' }}>Correct: {combinedStats.totalCorrect}</span>

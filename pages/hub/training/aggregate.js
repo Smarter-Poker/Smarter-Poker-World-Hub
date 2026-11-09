@@ -91,6 +91,9 @@ export default function AggregateReports() {
             <button type="button" className="aggregate-primary" onClick={() => router.push('/hub/training/solutions')}>
               Open Audited Solutions
             </button>
+            <button type="button" className="aggregate-secondary" onClick={() => router.push('/hub/training/reports')}>
+              Open Verified Player Reports
+            </button>
             <button type="button" className="aggregate-secondary" onClick={() => router.push('/hub/training')}>
               Return To Training Hub
             </button>
