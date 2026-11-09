@@ -470,7 +470,7 @@ export default function HomeGamesByState({
                 { '@type': 'ListItem', position: 3, name: 'By State', item: 'https://smarter.poker/hub/home-games/in' },
                 { '@type': 'ListItem', position: 4, name: stateName, item: canonical },
               ],
-            }),
+            }).replace(/</g, '\\u003c'),
           }}
         />
         <script

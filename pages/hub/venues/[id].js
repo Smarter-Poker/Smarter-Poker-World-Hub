@@ -292,19 +292,18 @@ function buildVenueJsonLd(venue, canonical, image) {
         const buyInVal = Number(item.buy_in);
         let eventStart = undefined;
         const dateStr = item.event_date ? String(item.event_date).slice(0, 10) : null;
-        if (dateStr && dateStr !== '1970-01-01' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          const timeRaw = item.start_time ? String(item.start_time).trim() : '';
-          const match = /^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?\s*([AP]M)?$/i.exec(timeRaw);
-          if (match) {
-            let hour = parseInt(match[1], 10);
-            const minute = match[2];
-            const period = (match[3] || '').toUpperCase();
-            if (period === 'PM' && hour !== 12) hour += 12;
-            if (period === 'AM' && hour === 12) hour = 0;
-            eventStart = `${dateStr}T${String(hour).padStart(2, '0')}:${minute}:00`;
-          } else {
-            eventStart = `${dateStr}T12:00:00`;
-          }
+        if (!dateStr || dateStr === '1970-01-01' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+        const timeRaw = item.start_time ? String(item.start_time).trim() : '';
+        const match = /^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?\s*([AP]M)?$/i.exec(timeRaw);
+        if (match) {
+          let hour = parseInt(match[1], 10);
+          const minute = match[2];
+          const period = (match[3] || '').toUpperCase();
+          if (period === 'PM' && hour !== 12) hour += 12;
+          if (period === 'AM' && hour === 12) hour = 0;
+          eventStart = `${dateStr}T${String(hour).padStart(2, '0')}:${minute}:00`;
+        } else {
+          eventStart = `${dateStr}T12:00:00`;
         }
         eventNodes.push({
           '@type': 'SportsEvent',

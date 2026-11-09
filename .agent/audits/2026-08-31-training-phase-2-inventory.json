@@ -15309,6 +15309,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15324,6 +15325,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15343,6 +15345,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15360,6 +15363,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15376,6 +15380,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15392,6 +15397,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15406,6 +15412,7 @@
             "src/components/training/ConnectionToast.js"
           ],
           "tests": [
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15422,6 +15429,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/backlink-embed-citation-engine.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15432,6 +15440,7 @@
         }
       },
       "existingTests": [
+        "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
@@ -83655,6 +83664,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -88987,6 +88997,7 @@
       "tests": [
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
+        "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs"
