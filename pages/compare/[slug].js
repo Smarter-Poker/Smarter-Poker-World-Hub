@@ -20,6 +20,7 @@
 import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { COMPARE_CSS } from '../../src/components/compare/CompareStyles';
 import {
   CHECKED_LABEL,
@@ -220,6 +221,17 @@ export default function ComparePage({ slug }) {
             title={page.h1}
             canonicalUrl={`https://smarter.poker${comparePath(page.slug)}`}
             markdownUrl={`https://smarter.poker${comparePath(page.slug)}.md`}
+          />
+
+          <CitationBacklinkBox
+            title={page.h1}
+            canonicalUrl={`https://smarter.poker${comparePath(page.slug)}`}
+            badgeType="research"
+            badgeLabel="Verified Comparison"
+            badgeValue="Smarter.Poker Benchmarks"
+            summary={page.description}
+            publishedYear="2026"
+            slug={`compare-${page.slug}`}
           />
 
           <p className="cmp-compliance">Free To Play. 18+. Diamonds And Chips Have No Cash Value.</p>

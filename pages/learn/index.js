@@ -19,6 +19,7 @@
 
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -148,6 +149,17 @@ export default function LearnIndex({ count, groups }) {
               </ul>
             </section>
           ))}
+
+          <CitationBacklinkBox
+            title="Smarter.Poker Strategy Lessons & GTO Curriculum Index"
+            canonicalUrl="https://smarter.poker/learn"
+            badgeType="gto"
+            badgeLabel="GTO Curriculum Index"
+            badgeValue="Smarter.Poker Academy"
+            summary="Complete solver-backed poker strategy curriculum covering preflop charts, pot odds, minimum defense frequency, ICM pressure, and live cardroom mastery."
+            publishedYear="2026"
+            slug="smarter-poker-learn-curriculum-index"
+          />
 
           <p style={styles.compliance}>Free To Play. 18+. No Real Money Gambling. Chips And Diamonds Have No Cash Value.</p>
         </div>

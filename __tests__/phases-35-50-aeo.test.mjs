@@ -164,7 +164,7 @@ test('Phase 41: Competitor Comparison Matrix includes 30 verified pages', () => 
 });
 
 test('Phase 44: MCP Server exposes 21 tools and 8 resource templates plus .well-known/mcp-registry.json', async () => {
-  assert.equal(MCP_TOOLS.length, 21);
+  assert.equal(MCP_TOOLS.length, 22);
   assert.equal(MCP_RESOURCE_TEMPLATES.length, 8);
 
   const handResult = await executeMcpTool('lookup_starting_hand', { hand: '72o' });
@@ -199,7 +199,7 @@ test('Phase 44: MCP Server exposes 21 tools and 8 resource templates plus .well-
 
   const registry = JSON.parse(read('public/.well-known/mcp-registry.json'));
   assert.equal(registry.name, 'io.github.smarter-poker/mcp-server');
-  assert.equal(registry.tools_count, 21);
+  assert.equal(registry.tools_count, 22);
 });
 
 test('Phase 35, 42, 43, 47, 48, 49: next.config.js, knowledge-graph, corpus, and crawler-status routes exist', () => {

@@ -363,6 +363,9 @@ export function getBacklinkOpportunitiesPayload() {
     badgeApiEndpoint: 'https://smarter.poker/api/seo/badge',
     researchHubUrl: 'https://smarter.poker/research',
     researchJsonFeedUrl: 'https://smarter.poker/api/feeds/research',
+    datasetCatalogUrl: 'https://smarter.poker/api/datasets/catalog',
+    outreachGeneratorUrl: 'https://smarter.poker/api/seo/outreach-generator',
+    streamerChatbotUrl: 'https://smarter.poker/api/stream/cmd',
     comparisonsHubUrl: 'https://smarter.poker/compare',
     counts: {
       deadToolReplacements: DEAD_TOOL_REPLACEMENTS.length,

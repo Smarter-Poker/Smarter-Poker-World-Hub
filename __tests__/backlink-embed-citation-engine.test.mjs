@@ -7,10 +7,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { renderBadgeSvg, escapeXml } from '../pages/api/seo/badge.js';
+import { renderBadgeSvg, escapeXml, BADGE_PRESETS } from '../pages/api/seo/badge.js';
 import { renderEmbedsMarkdown } from '../src/lib/seo/markdownIngestion.mjs';
 import { buildResearchJsonFeed } from '../pages/api/feeds/research.js';
 import { buildRssFeedXml } from '../pages/feed.xml.js';
+import {
+  getDatasetCatalogPayload,
+  buildZenodoMetadata,
+  buildCitationCff,
+  buildDataCatalogJsonLd,
+  WIKIPEDIA_CITATION_TARGETS,
+} from '../src/lib/seo/datasetCatalog.mjs';
+import {
+  generateOutreachPackage,
+  OUTREACH_CAMPAIGNS,
+  SUPPORTED_OUTREACH_LANGUAGES,
+} from '../src/lib/seo/outreachEngine.mjs';
+import { evaluateStreamCommand, STREAMER_BOT_COMMANDS } from '../pages/api/stream/cmd.js';
+import { executeMcpTool } from '../src/lib/mcp/mcpServer.mjs';
 import {
   DEAD_TOOL_REPLACEMENTS,
   DIRECTORY_NETWORK_TARGETS,
@@ -24,8 +38,11 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-test('Dynamic SVG Authority Badge generator renders valid, accessible SVG across all 5 presets', () => {
-  for (const type of ['venue', 'commander', 'research', 'gto', 'club']) {
+test('Dynamic SVG Authority & Annual Award Badge generator renders valid, accessible SVG across all 13 presets', () => {
+  const presetKeys = Object.keys(BADGE_PRESETS);
+  assert.equal(presetKeys.length, 13);
+
+  for (const type of presetKeys) {
     const svg = renderBadgeSvg({ type });
     assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'), `${type} badge is valid SVG`);
     assert.ok(svg.includes('role="img"'), `${type} badge includes role="img"`);
@@ -42,7 +59,7 @@ test('Dynamic SVG Authority Badge generator renders valid, accessible SVG across
   assert.equal(escapeXml('A & B < C > "D" \'E\''), 'A &amp; B &lt; C &gt; &quot;D&quot; &apos;E&apos;');
 });
 
-test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators and 5 SVG backlink badges', () => {
+test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators, 10 SVG backlink/award badges, and 6 streamer bot commands', () => {
   const embedsSrc = read('pages/tools/embeds.js');
   for (const widgetId of [
     'odds-calculator',
@@ -66,8 +83,17 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators and 5 SVG 
     'badge-research',
     'badge-gto',
     'badge-club',
+    'badge-award-top50',
+    'badge-award-texas',
+    'badge-award-cpa',
+    'badge-award-dealer',
+    'badge-award-edu',
   ]) {
     assert.ok(embedsSrc.includes(`id: '${badgeId}'`), `embeds.js includes ${badgeId}`);
+  }
+
+  for (const cmdId of ['cmd-odds', 'cmd-potodds', 'cmd-pushfold', 'cmd-icm', 'cmd-bounty', 'cmd-winrate']) {
+    assert.ok(embedsSrc.includes(`id: '${cmdId}'`), `embeds.js includes streamer command ${cmdId}`);
   }
 
   const md = renderEmbedsMarkdown();
@@ -79,15 +105,17 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators and 5 SVG 
   assert.ok(md.includes('Multi-Way All-In Main & Side Pot Calculator'));
   assert.ok(md.includes('Tournament Blind Structure & Chip Distribution Generator'));
   assert.ok(md.includes('Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator'));
-  assert.ok(md.includes('Dynamic SVG Authority & Partner Backlink Badges'));
+  assert.ok(md.includes('Dynamic SVG Authority, Partner & 2026 Annual Award Backlink Badges'));
+  assert.ok(md.includes('Twitch & YouTube Streamer Chatbot Commands'));
 });
 
-test('Research, Starting Hands, Glossary, and Calculator pages wire CitationBacklinkBox with HTML, Badge, Markdown, BBCode, Press, and BibTeX formats', () => {
+test('All 20 authority page templates wire CitationBacklinkBox with 7 citation formats including Wikipedia {{cite web}}', () => {
   const boxSrc = read('src/components/seo/CitationBacklinkBox.js');
   assert.ok(boxSrc.includes('HTML Contextual Backlink'));
   assert.ok(boxSrc.includes('SVG Authority Badge Embed'));
   assert.ok(boxSrc.includes('Markdown / Substack Citation'));
   assert.ok(boxSrc.includes('Forum BBCode (TwoPlusTwo / CardsChat)'));
+  assert.ok(boxSrc.includes('Wikipedia / MediaWiki Citation ({{cite web}})'));
   assert.ok(boxSrc.includes('Journalist / Media Attribution Quote'));
   assert.ok(boxSrc.includes('Academic / Game Theory BibTeX'));
 
@@ -97,7 +125,12 @@ test('Research, Starting Hands, Glossary, and Calculator pages wire CitationBack
     'pages/learn/hands/[hand].js',
     'pages/learn/hands/index.js',
     'pages/learn/[topic].js',
+    'pages/learn/index.js',
     'pages/glossary/[term].js',
+    'pages/glossary/index.js',
+    'pages/compare/[slug].js',
+    'pages/compare/index.js',
+    'pages/features/index.js',
     'src/components/features/FeatureLanderLayout.js',
     'pages/editorial-standards.js',
     'pages/verification-methodology.js',
@@ -174,4 +207,82 @@ test('Backlink & Dead-Tool Replacement Catalog maps legacy poker tools, director
     assert.ok(item.outreachTemplate.includes('https://smarter.poker/'));
     assert.ok(item.searchFootprints.length >= 2);
   }
+});
+
+test('Open Dataset Catalog (/api/datasets/catalog) serves Schema.org DataCatalog, Zenodo metadata, CITATION.cff, provenance rights, and Wikipedia citations', () => {
+  const payload = getDatasetCatalogPayload();
+  assert.equal(payload.datasets_count, 15);
+  assert.equal(payload.wikipedia_targets_count, WIKIPEDIA_CITATION_TARGETS.length);
+  assert.ok(WIKIPEDIA_CITATION_TARGETS.length >= 6);
+  assert.ok(payload.provenance_and_redistribution_rights);
+  assert.ok(payload.provenance_and_redistribution_rights.included_first_party_scope.length >= 4);
+  assert.ok(payload.provenance_and_redistribution_rights.excluded_from_bulk_redistribution.length >= 2);
+  assert.ok(payload.provenance_and_redistribution_rights.wikipedia_editorial_compliance_policy.includes('WP:COI'));
+
+  const zenodo = buildZenodoMetadata();
+  assert.equal(zenodo.upload_type, 'dataset');
+  assert.equal(zenodo.license, 'cc-by-4.0');
+
+  const cff = buildCitationCff();
+  assert.ok(cff.includes('cff-version: 1.2.0'));
+  assert.ok(cff.includes('https://smarter.poker/research'));
+
+  const jsonLd = buildDataCatalogJsonLd();
+  assert.equal(jsonLd['@type'], 'DataCatalog');
+  assert.equal(jsonLd.dataset.length, 15);
+
+  for (const wiki of WIKIPEDIA_CITATION_TARGETS) {
+    assert.ok(wiki.citeWebTemplate.includes('{{cite web'));
+    assert.ok(wiki.citeTechreportTemplate.includes('{{cite techreport'));
+    assert.match(wiki.canonicalSourceUrl, /^https:\/\/smarter\.poker\//);
+  }
+});
+
+test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-generator) generates localized snippets across 7 languages', () => {
+  const pkg = generateOutreachPackage({
+    campaign: 'cardroom-awards',
+    lang: 'es',
+    target: 'The Lodge Card Club',
+  });
+  assert.equal(pkg.campaigns_count, 1);
+  assert.equal(pkg.requested_language, 'es');
+  assert.equal(pkg.supported_languages.length, 7);
+  assert.equal(Object.keys(SUPPORTED_OUTREACH_LANGUAGES).length, 7);
+  assert.equal(OUTREACH_CAMPAIGNS.length, 8);
+  assert.ok(pkg.campaigns[0].renderedSubject.includes('The Lodge Card Club'));
+  assert.ok(pkg.campaigns[0].renderedBody.includes('The Lodge Card Club'));
+  assert.ok(pkg.campaigns[0].localizedSnippets.htmlBacklink.includes('hreflang="es"'));
+  assert.equal(pkg.multilingual_bundles.length, 7);
+});
+
+test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, and !winrate', () => {
+  assert.equal(STREAMER_BOT_COMMANDS.length, 6);
+
+  const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
+  assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
+  assert.ok(oddsRes.text.includes('https://smarter.poker/tools/poker-odds-calculator'));
+
+  const potOddsRes = evaluateStreamCommand({ cmd: 'potodds', pot: '100', bet: '50' });
+  assert.ok(potOddsRes.text.includes('Required Equity = 25.0%'));
+  assert.ok(potOddsRes.text.includes('Minimum Defense Frequency (MDF) = 66.7%'));
+
+  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'help']) {
+    const res = evaluateStreamCommand({ cmd });
+    assert.ok(res.text.includes('https://smarter.poker/tools/'), `${cmd} includes canonical tool URL`);
+  }
+});
+
+test('MCP Server executes get_citation_and_backlink_kit tool with full outreach, Wikipedia, and Zenodo payloads', async () => {
+  const res = await executeMcpTool('get_citation_and_backlink_kit', {
+    campaign: 'edu-quant-clubs',
+    lang: 'de',
+    target: 'MIT Pokerbots',
+  });
+  assert.ok(Array.isArray(res.content));
+  const parsed = JSON.parse(res.content[0].text);
+  assert.equal(parsed.embed_portal_url, 'https://smarter.poker/tools/embeds');
+  assert.equal(parsed.dataset_catalog_url, 'https://smarter.poker/api/datasets/catalog');
+  assert.equal(parsed.outreach_package.requested_language, 'de');
+  assert.ok(parsed.outreach_package.campaigns[0].renderedSubject.includes('MIT Pokerbots'));
+  assert.ok(parsed.wikipedia_citation_targets.length >= 6);
 });
