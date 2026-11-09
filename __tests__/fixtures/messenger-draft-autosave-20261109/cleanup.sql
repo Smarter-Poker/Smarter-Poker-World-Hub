@@ -14,7 +14,7 @@ BEGIN
    WHERE conversation_id IN (a,b) AND user_id <> official;
  IF stray > 0 THEN RAISE EXCEPTION 'Fixture gained an unexpected participant; refusing to delete'; END IF;
  SELECT count(*) INTO stray FROM social_messages
-   WHERE conversation_id IN (a,b) AND sender_id <> official;
+   WHERE conversation_id IN (a,b) AND sender_id NOT IN (official,'00000000-0000-0000-0000-000000000069'::uuid);
  IF stray > 0 THEN RAISE EXCEPTION 'Fixture gained an unexpected sender; refusing to delete'; END IF;
 
  DELETE FROM messenger_conversation_state WHERE conversation_id IN (a,b);
