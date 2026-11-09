@@ -8,6 +8,7 @@ import {
 import {
   renderLearnIndexMarkdown,
   renderLearnLessonMarkdown,
+  renderPokerHandRankingsMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
 
 export function renderLearnCategoryMarkdown(categorySlug) {
@@ -80,6 +81,14 @@ export default function handler(req, res) {
 
   if (!slug || slug === 'index') {
     const md = renderLearnIndexMarkdown();
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Vary', 'Accept');
+    return res.status(200).send(md);
+  }
+
+  if (slug === 'poker-hand-rankings') {
+    const md = renderPokerHandRankingsMarkdown();
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.setHeader('Vary', 'Accept');

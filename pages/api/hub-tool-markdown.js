@@ -16,6 +16,17 @@ import {
   renderSidePotCalculatorMarkdown,
   renderBlindStructureCalculatorMarkdown,
   renderSprCalculatorMarkdown,
+  renderPloBetCalculatorMarkdown,
+  renderPayoutCalculatorMarkdown,
+  renderRakeCalculatorMarkdown,
+  renderThreeBetCalculatorMarkdown,
+  renderRulesIndexMarkdown,
+  renderRuleDetailMarkdown,
+  renderGamesIndexMarkdown,
+  renderGameVariantMarkdown,
+  renderPokerHandRankingsMarkdown,
+  renderMarketGuidesIndexMarkdown,
+  renderMarketGuideCityMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SITE = 'https://smarter.poker';
@@ -328,6 +339,46 @@ const CUSTOM_SURFACE_MARKDOWN = {
       },
     ],
   },
+  '/hub/training/daily-challenge': {
+    title: 'Daily GTO Poker Hand Challenge & Solver EV Benchmark | Smarter.Poker',
+    lead: 'Solve 3 Solver-Verified Game Theory Optimal (GTO) Poker Scenarios Every 24 Hours Across Cash Game, Tournament ICM, And Multi-Street Postflop Spots. Earn Up To 60 Promotional Diamonds Daily While Building Verified Streak Multipliers.',
+    sections: [
+      {
+        heading: 'Daily GTO Challenge Structure & Solver Methodology',
+        bullets: [
+          '**3 Daily Hands**: Every 24-Hour UTC Cycle Publishes 3 Calibrated GTO Spots Spanning Preflop/Flop C-Betting, Turn Barrel & Bluff-Catching, And River Value/Bluff Sizing.',
+          '**Solver EV Loss Grading**: Every Action Is Evaluated Against Full-Tree CFR Equilibrium Frequencies (10,000+ Iterations, 0.05% Exploitability Target) Measuring Exact Big Blind EV Loss.',
+          '**Connected Training Vaults**: Track Cumulative Milestones In The [Achievements Vault](/hub/training/achievements), Consecutive Flame Multipliers In The [Streaks Vault](/hub/training/streaks), And Weekly Rankings On The [Training Leaderboard](/hub/training/leaderboard).',
+        ],
+      },
+    ],
+  },
+  '/hub/training/achievements': {
+    title: 'GTO Poker Training Achievements & Mastery Badges Vault | Smarter.Poker',
+    lead: 'Unlock 36 Verified GTO Poker Training Achievements Across Volume, Accuracy, Streaks, Mastery, And Exploration Tiers To Earn Over 2,800 Promotional Diamond Rewards.',
+    sections: [
+      {
+        heading: 'Achievement Categories & Diamond Bounties',
+        bullets: [
+          '**Volume & Accuracy Milestones**: Earn Verified Badges From First Win Through 1,000+ Hands Played And 90%+ GTO Accuracy Sessions.',
+          '**Streak & Mastery Trophies**: Complete 7-Day, 30-Day, And 100-Day Consecutive Training Streaks And Master All 100 Scenarios In The GTO Library.',
+        ],
+      },
+    ],
+  },
+  '/hub/training/streaks': {
+    title: 'GTO Poker Training Streaks, Flame Multipliers & Freeze Tokens | Smarter.Poker',
+    lead: 'Track Consecutive Daily GTO Poker Training Streaks, Unlock Up To 2.0x Diamond Reward Multipliers, View Your 12-Week Activity Heatmap, And Protect Active Runs With Streak Freeze Tokens.',
+    sections: [
+      {
+        heading: 'Streak Multiplier Tiers & Milestones',
+        bullets: [
+          '**Multiplier Progression**: Reach 3 Days (1.1x), 7 Days (1.25x), 14 Days (1.5x), 30 Days (1.75x), And 100+ Consecutive Days (2.0x Maximum Diamond Multiplier).',
+          '**Streak Freeze Protection**: Hold Up To 3 Streak Freeze Tokens Purchased With Earned Promotional Diamonds To Safeguard Active Streaks During Travel.',
+        ],
+      },
+    ],
+  },
 };
 
 export function renderCustomSurfaceMarkdown(cleanPath, spec) {
@@ -412,6 +463,42 @@ export function renderHubToolMarkdown(targetPath) {
   }
   if (cleanPath === '/tools/spr-calculator') {
     return renderSprCalculatorMarkdown();
+  }
+  if (cleanPath === '/tools/plo-bet-calculator') {
+    return renderPloBetCalculatorMarkdown();
+  }
+  if (cleanPath === '/tools/payout-calculator') {
+    return renderPayoutCalculatorMarkdown();
+  }
+  if (cleanPath === '/tools/rake-calculator') {
+    return renderRakeCalculatorMarkdown();
+  }
+  if (cleanPath === '/tools/3bet-calculator') {
+    return renderThreeBetCalculatorMarkdown();
+  }
+  if (cleanPath === '/rules') {
+    return renderRulesIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/rules/')) {
+    const slug = cleanPath.slice('/rules/'.length);
+    return renderRuleDetailMarkdown(slug);
+  }
+  if (cleanPath === '/games') {
+    return renderGamesIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/games/')) {
+    const slug = cleanPath.slice('/games/'.length);
+    return renderGameVariantMarkdown(slug);
+  }
+  if (cleanPath === '/learn/poker-hand-rankings') {
+    return renderPokerHandRankingsMarkdown();
+  }
+  if (cleanPath === '/poker-rooms/guides') {
+    return renderMarketGuidesIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/poker-rooms/guides/')) {
+    const slug = cleanPath.slice('/poker-rooms/guides/'.length);
+    return renderMarketGuideCityMarkdown(slug);
   }
 
   if (cleanPath === '/hub/vip-membership/compare') {

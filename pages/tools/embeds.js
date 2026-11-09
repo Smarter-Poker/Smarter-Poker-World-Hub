@@ -117,6 +117,46 @@ const WIDGETS = [
     width: '100%',
     creditAnchor: 'Smarter.Poker SPR & Geometric Sizing Calculator',
   },
+  {
+    id: 'plo-bet-calculator',
+    title: 'Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Calculator',
+    description: 'Calculates exact Pot-Limit Omaha maximum bet and raise sizes using the 3x plus trail formula and solves double-board bomb pot split equity.',
+    embedUrl: 'https://smarter.poker/tools/plo-bet-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/plo-bet-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker PLO Max Bet & Bomb Pot Calculator',
+  },
+  {
+    id: 'payout-calculator',
+    title: 'Tournament Payout & Prize Pool Distribution Calculator',
+    description: 'Generates TDA-compliant tournament prize pool payouts across Top 10%, Top 15%, Top 20%, and Winner-Take-All structures with ICM bubble factors.',
+    embedUrl: 'https://smarter.poker/tools/payout-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/payout-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Tournament Payout Calculator',
+  },
+  {
+    id: 'rake-calculator',
+    title: 'Live Cash Game Rake & Time-Charge Calculator',
+    description: 'Compares casino percentage pot drop rake plus jackpot drops against timed seat collection in $/Hr, BB/100 drag, and 1,000-hour annual cost.',
+    embedUrl: 'https://smarter.poker/tools/rake-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/rake-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Live Cash Rake Calculator',
+  },
+  {
+    id: '3bet-calculator',
+    title: 'GTO Preflop 3-Bet, Squeeze, 4-Bet & MDF Calculator',
+    description: 'Calculates solver-approved In-Position and Out-Of-Position 3-bet, multiway squeeze, and 4-bet sizing in big blinds with villain MDF.',
+    embedUrl: 'https://smarter.poker/tools/3bet-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/3bet-calculator',
+    height: 740,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker GTO 3-Bet & 4-Bet Calculator',
+  },
 ];
 
 export const PARTNER_BADGES = [
@@ -159,6 +199,22 @@ export const PARTNER_BADGES = [
     badgeUrl: 'https://smarter.poker/api/seo/badge?type=club',
     targetUrl: 'https://smarter.poker/compare/best-poker-club-apps',
     altText: 'Private Club Platform: Smarter.Poker Club Arena',
+  },
+  {
+    id: 'badge-daily',
+    title: 'Daily GTO Hand Challenge Verified Badge',
+    description: 'For training blogs, study Discord servers, and hand recap posts linking to the Smarter.Poker Daily GTO Challenge.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=daily',
+    targetUrl: 'https://smarter.poker/hub/training/daily-challenge',
+    altText: 'Daily GTO Challenge: Solver Verified On Smarter.Poker',
+  },
+  {
+    id: 'badge-rules',
+    title: 'Official Poker Rules & TDA Authority Badge',
+    description: 'For tournament directors, card room rulebooks, and floor ruling guides citing Smarter.Poker Official Rules.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=rules',
+    targetUrl: 'https://smarter.poker/rules',
+    altText: 'Official Poker Rules: Smarter.Poker TDA & RROP',
   },
   {
     id: 'badge-award-top50',
@@ -564,174 +620,6 @@ export default function WebmasterEmbedPortal() {
                   </article>
                 );
               })}
-            </div>
-          </section>
-
-          {/* Twitch & YouTube Streamer Nightbot / StreamElements Chatbot Commands */}
-          <section aria-labelledby="streamer-bot-heading" style={{ marginTop: '48px' }}>
-            <h2 id="streamer-bot-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
-              Twitch & YouTube Streamer Chatbot Commands
-            </h2>
-            <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
-              Poker Streamers And Vloggers Can Add Real-Time Poker Math Commands To Nightbot, StreamElements, Or Fossabot In 10 Seconds. Every Response Includes Direct Canonical Attribution To Smarter.Poker Solvers.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
-              {STREAM_CHAT_COMMANDS.map((item) => {
-                const isCmdCopied = copiedId === item.id;
-                return (
-                  <article
-                    key={item.id}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(168, 85, 247, 0.25)',
-                      borderRadius: '12px',
-                      padding: '18px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#c084fc', fontFamily: 'monospace' }}>
-                        {item.command}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                            navigator.clipboard.writeText(item.nightbot);
-                            setCopiedId(item.id);
-                            setTimeout(() => setCopiedId(null), 2500);
-                          }
-                        }}
-                        style={{
-                          background: isCmdCopied ? '#059669' : '#7e22ce',
-                          color: '#fff',
-                          border: 0,
-                          borderRadius: '6px',
-                          padding: '5px 10px',
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {isCmdCopied ? 'Copied!' : 'Copy Nightbot Command'}
-                      </button>
-                    </div>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.8)', margin: '0 0 10px 0' }}>
-                      {item.title}
-                    </p>
-                    <pre
-                      style={{
-                        margin: 0,
-                        padding: '8px 10px',
-                        background: '#06060c',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '6px',
-                        color: '#d8b4fe',
-                        fontSize: '0.76rem',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-all',
-                      }}
-                    >
-                      {item.nightbot}
-                    </pre>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Open Datasets, JSON Feed & Syndication APIs */}
-          <section
-            aria-labelledby="syndication-apis-heading"
-            style={{
-              marginTop: '48px',
-              padding: '24px',
-              background: 'rgba(16, 185, 129, 0.04)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
-              borderRadius: '14px',
-            }}
-          >
-            <h2 id="syndication-apis-heading" style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 10px 0', color: '#34d399' }}>
-              Open Datasets, JSON Feed 1.1 & Multilingual Syndication APIs
-            </h2>
-            <p style={{ fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.55, margin: '0 0 16px 0' }}>
-              Developers, Academic Researchers, And International Poker Portals Can Ingest Smarter.Poker Citations, Structured Datasets, Zenodo/DataCite Metadata, And Localized Embeds In 7 Languages Directly Via REST Or MCP:
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <a
-                href="/api/datasets/catalog"
-                style={{
-                  padding: '8px 14px',
-                  background: '#064e3b',
-                  border: '1px solid #10b981',
-                  borderRadius: '6px',
-                  color: '#ecfdf5',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                Open Dataset Catalog API
-              </a>
-              <a
-                href="/api/datasets/catalog?format=cff"
-                style={{
-                  padding: '8px 14px',
-                  background: '#0f172a',
-                  border: '1px solid #38bdf8',
-                  borderRadius: '6px',
-                  color: '#bae6fd',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                Academic Citation File Format Manifest
-              </a>
-              <a
-                href="/api/feeds/research"
-                style={{
-                  padding: '8px 14px',
-                  background: '#0f172a',
-                  border: '1px solid #38bdf8',
-                  borderRadius: '6px',
-                  color: '#bae6fd',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                Research & Calculator JSON Feed 1.1
-              </a>
-              <a
-                href="/api/seo/outreach-generator"
-                style={{
-                  padding: '8px 14px',
-                  background: '#0f172a',
-                  border: '1px solid #a855f7',
-                  borderRadius: '6px',
-                  color: '#e9d5ff',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                Multilingual Outreach & Snippet Generator API
-              </a>
-              <a
-                href="/api/ai/backlink-opportunities"
-                style={{
-                  padding: '8px 14px',
-                  background: '#0f172a',
-                  border: '1px solid #f59e0b',
-                  borderRadius: '6px',
-                  color: '#fde68a',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                AI Backlink & Citation Catalog API
-              </a>
             </div>
           </section>
 

@@ -1,13 +1,14 @@
 /**
- * Training Achievements Page
+ * Training Achievements Page - #SmarterCasinoRealism Vault
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * View all achievements and progress
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// TRAIN-CSS-TOKENS-BATCH5-1 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH5-1 - hex sweep batch 5: literals routed to --sp-* tokens
 import SEOHead from '../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -18,7 +19,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-// TRAIN-WIRE-EMPTY-2c — adoption: shared empty-state primitive
+import casinoStyles from '../../../src/styles/training/achievements-casino.module.css';
+// TRAIN-WIRE-EMPTY-2c - adoption: shared empty-state primitive
 
 const RARITY_COLORS = {
   common: 'var(--sp-fg-muted)',
@@ -29,7 +31,7 @@ const RARITY_COLORS = {
 };
 
 // BUG FIX (TRAIN-ACHIEVEMENTS-A11Y-1): replaced emoji map with SVG icon
-// components — emojis are not announced consistently by screen readers
+// components - emojis are not announced consistently by screen readers
 // and don't theme via currentColor. Same surface-specific a11y pattern
 // as PR #320 (skill-tree), #322 (progress), #324 (leaderboard), #327
 // (daily-challenge). Categories remain: accuracy / streak / volume / mastery.
@@ -137,7 +139,7 @@ export default function TrainingAchievements() {
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
-  // SWR-backed achievements fetch — only fires when user is known
+  // SWR-backed achievements fetch - only fires when user is known
   const swrKey = user ? `/api/training/achievements?userId=${user.id}` : null;
   const { data: swrData, isLoading: loading, error: swrError, mutate: mutateAchievements } = useSWR(swrKey, (url) =>
     authedFetch(url)
@@ -176,23 +178,47 @@ export default function TrainingAchievements() {
         canonical="/hub/training/achievements"
       />
 
-      <div className="sp-training-journey sp-training-journey--achievements" style={styles.container}>
+      <div className={`sp-training-journey sp-training-journey--achievements ${casinoStyles.shell}`} style={styles.container}>
         <UniversalHeader pageDepth={2} />
 
-        <div className="sp-journey-main" style={styles.content}>
-          {/* TRAIN-ACHIEVEMENTS-A11Y-1: semantic h1 with SVG medal icon replaces
-              the prior bare '★ Training Achievements' string. Icon has
-              aria-hidden so the heading reads cleanly as 'Training Achievements'. */}
-          <h1 className="sp-journey-title" style={styles.title}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-              <MedalIcon size={26} />
-              Training Achievements
-            </span>
-          </h1>
+        <header className={casinoStyles.marquee}>
+          <div className={casinoStyles.marqueeArtwork} aria-hidden="true" />
+          <div className={casinoStyles.marqueeContent}>
+            <span className={casinoStyles.eyebrow}>Casino Realism Vault · Milestone Ledger</span>
+            {/* TRAIN-ACHIEVEMENTS-A11Y-1: semantic h1 with SVG medal icon replaces
+                the prior bare '★ Training Achievements' string. Icon has
+                aria-hidden so the heading reads cleanly as 'Training Achievements'. */}
+            <h1 className="sp-journey-title" style={styles.title}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+                <MedalIcon size={26} />
+                Training Achievements
+              </span>
+            </h1>
 
+            <nav className={casinoStyles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
+              <Link href="/hub/training/daily-challenge" className={casinoStyles.navPlate}>
+                Hand Of The Day
+              </Link>
+              <Link href="/hub/training/daily-goals" className={casinoStyles.navPlate}>
+                Daily Goals Vault
+              </Link>
+              <Link href="/hub/training/challenges" className={casinoStyles.navPlate}>
+                Weekly &amp; Monthly Goals
+              </Link>
+              <Link href="/hub/training/achievements" className={`${casinoStyles.navPlate} ${casinoStyles.navPlateActive}`}>
+                Achievements Vault
+              </Link>
+              <Link href="/hub/training/streaks" className={casinoStyles.navPlate}>
+                Streaks Vault
+              </Link>
+            </nav>
+          </div>
+        </header>
+
+        <div className={`sp-journey-main ${casinoStyles.mainDeck}`} style={styles.content}>
           {/* Stats Overview */}
           <div className="sp-journey-stat-grid sp-journey-stat-grid--compact" style={styles.statsRow}>
-            <div className="sp-journey-stat-card" style={styles.statBox}>
+            <div className={`sp-journey-stat-card ${casinoStyles.statCard}`} style={styles.statBox}>
               {/* TRAIN-ACHIEVEMENTS-A11Y-1: role=status so screen readers
                   announce unlock-count updates after SESSION_END refetch. */}
               <div style={styles.statValue} role="status" aria-label={`${historicalUnlockedCount} historical achievement snapshots`}>
@@ -200,8 +226,8 @@ export default function TrainingAchievements() {
               </div>
               <div style={styles.statLabel}>Historical Snapshots</div>
             </div>
-            <div className="sp-journey-stat-card" style={styles.statBox}>
-              <div style={{ ...styles.statValue, color: '#00E0FF', fontSize: 16 }} role="status">Paused</div>
+            <div className={`sp-journey-stat-card ${casinoStyles.statCard}`} style={styles.statBox}>
+              <div style={{ ...styles.statValue, color: '#25c8ff', fontSize: 16 }} role="status">Paused</div>
               <div style={styles.statLabel}>New Achievement Awards</div>
             </div>
           </div>
@@ -212,6 +238,7 @@ export default function TrainingAchievements() {
               <button
                 key={cat}
                 type="button"
+                className={activeCategory === cat ? `${casinoStyles.filterPlate} ${casinoStyles.filterPlateActive}` : casinoStyles.filterPlate}
                 style={activeCategory === cat ? styles.filterActive : styles.filterBtn}
                 onClick={() => setActiveCategory(cat)}
                 aria-label={`Filter by ${cat === 'all' ? 'all categories' : cat}`}
@@ -241,14 +268,14 @@ export default function TrainingAchievements() {
             </div>
           ) : (
             <div className="sp-journey-achievement-grid" style={styles.grid}>
-              {filteredAchievements.map((ach, i) => (
+              {filteredAchievements.map((ach) => (
                 <div
                   key={ach.id}
-                  className="sp-journey-achievement-card"
+                  className={`sp-journey-achievement-card ${casinoStyles.achCard}`}
                   style={{
                     ...styles.achCard,
-                    opacity: ach.historicallyUnlocked ? 0.82 : 0.5,
-                    borderColor: ach.historicallyUnlocked ? RARITY_COLORS[ach.rarity] : '#333',
+                    opacity: ach.historicallyUnlocked ? 0.92 : 0.65,
+                    borderColor: ach.historicallyUnlocked ? RARITY_COLORS[ach.rarity] : '#465d6a',
                   }}
                 >
                   {/* TRAIN-ACHIEVEMENTS-A11Y-1: ach.icon may be an emoji string
@@ -305,37 +332,46 @@ export default function TrainingAchievements() {
 
 const styles = {
   container: {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: '#0a0a0a',
-    color: '#FFFFFF',
+    minHeight: '100dvh',
+    paddingBottom: 70,
+    width: '100%',
+    maxWidth: '100vw',
+    overflowX: 'clip',
+    boxSizing: 'border-box',
+    background: '#020608',
+    color: '#eef6f9',
   },
   content: {
-    maxWidth: '800px',
+    maxWidth: '1040px',
     margin: '0 auto',
-    padding: '80px 24px 40px',
+    padding: '24px 20px 44px',
   },
   title: {
-    fontSize: '28px',
-    fontWeight: 700,
-    marginBottom: '24px',
-    textAlign: 'center',
+    fontSize: '30px',
+    fontWeight: 800,
+    marginBottom: '8px',
+    textAlign: 'left',
+    color: '#f4f8fa',
   },
   statsRow: {
     display: 'flex',
     gap: '16px',
     justifyContent: 'center',
     marginBottom: '24px',
+    flexWrap: 'wrap',
   },
   statBox: {
-    padding: '16px 32px',
-    background: '#1a1a1a',
-    borderRadius: '12px',
+    padding: '18px 32px',
+    background: 'linear-gradient(180deg, #101a20, #050b0f)',
+    border: '1px solid #536a76',
+    borderLeft: '3px solid #25c8ff',
+    borderRadius: '2px',
     textAlign: 'center',
   },
   statValue: {
     fontSize: '24px',
-    fontWeight: 700,
-    color: 'var(--sp-accent-amber)',
+    fontWeight: 800,
+    color: '#f2b84b',
   },
   statLabel: {
     fontSize: '12px',
@@ -350,23 +386,25 @@ const styles = {
     marginBottom: '24px',
   },
   filterBtn: {
+    minHeight: '44px',
     padding: '8px 16px',
-    background: 'transparent',
-    border: '1px solid #333',
-    borderRadius: '8px',
+    background: 'linear-gradient(180deg, #1e2c34 0%, #071016 52%, #111e25 100%)',
+    border: '1px solid #536a76',
+    borderRadius: '2px',
     color: 'var(--sp-fg-muted)',
     fontSize: '12px',
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: 'pointer',
   },
   filterActive: {
+    minHeight: '44px',
     padding: '8px 16px',
-    background: '#00E0FF',
-    border: '1px solid #00E0FF',
-    borderRadius: '8px',
-    color: '#000',
+    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
+    border: '1px solid #25c8ff',
+    borderRadius: '2px',
+    color: '#ffffff',
     fontSize: '12px',
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: 'pointer',
   },
   loading: {
@@ -383,20 +421,23 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
-    padding: '16px',
-    background: '#1a1a1a',
-    border: '2px solid #333',
-    borderRadius: '12px',
+    padding: '18px',
+    background: 'linear-gradient(180deg, #101a20 0%, #040b10 100%)',
+    border: '1px solid #58717f',
+    borderLeft: '3px solid #25c8ff',
+    borderRadius: '2px',
   },
   achIcon: {
     fontSize: '32px',
+    color: '#f2b84b',
   },
   achInfo: {
     flex: 1,
   },
   achName: {
     fontSize: '16px',
-    fontWeight: 600,
+    fontWeight: 700,
+    color: '#f2f7fa',
   },
   achDesc: {
     fontSize: '13px',
@@ -416,7 +457,7 @@ const styles = {
   diamonds: {
     fontSize: '18px',
     fontWeight: 700,
-    color: '#00E0FF',
+    color: '#25c8ff',
   },
   unlocked: {
     color: 'var(--sp-accent-green)',
@@ -428,13 +469,13 @@ const styles = {
   empty: {
     textAlign: 'center',
     padding: '40px',
-    color: '#666',
+    color: '#8ca4b0',
   },
   backLink: {
     display: 'block',
     textAlign: 'center',
     marginTop: '32px',
-    color: '#00E0FF',
+    color: '#25c8ff',
     textDecoration: 'none',
   },
 };

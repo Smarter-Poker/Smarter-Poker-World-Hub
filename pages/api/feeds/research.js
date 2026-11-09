@@ -94,6 +94,34 @@ const SYNDICATED_CALCULATORS = [
     summary: 'Compute Exact Flop SPR, Commitment Thresholds, And 1-Street, 2-Street, And 3-Street Geometric Bet Sizing Percentages.',
     badgeValue: 'SPR & Geometric Bet Solver',
   },
+  {
+    slug: 'plo-bet-calculator',
+    title: 'Smarter.Poker Pot-Limit Omaha (PLO) Max Bet & Double-Board Bomb Pot Calculator',
+    url: `${SITE_URL}/tools/plo-bet-calculator`,
+    summary: 'Calculate Exact Pot-Limit Maximum Raise Totals (3x + Trail + Pot) And Double-Board Bomb Pot Split Equity.',
+    badgeValue: 'PLO Max Bet & Bomb Pot',
+  },
+  {
+    slug: 'payout-calculator',
+    title: 'Smarter.Poker Tournament Payout & Prize Pool Distribution Calculator',
+    url: `${SITE_URL}/tools/payout-calculator`,
+    summary: 'Generate WSOP And TDA Power-Law Tournament Payout Schedules, Pay Jumps, And Bubble Multipliers.',
+    badgeValue: 'MTT Payout Curve Engine',
+  },
+  {
+    slug: 'rake-calculator',
+    title: 'Smarter.Poker Live Cash Game Rake, Promo Drop & Time-Charge Calculator',
+    url: `${SITE_URL}/tools/rake-calculator`,
+    summary: 'Compare Percentage Pot Rake, California Flat Flop Drop, And Texas Time-Charge Impact On Hourly Winrate.',
+    badgeValue: 'Live Rake & Time Solver',
+  },
+  {
+    slug: '3bet-calculator',
+    title: 'Smarter.Poker Preflop 3-Bet, 4-Bet Sizing & Minimum Defense Calculator',
+    url: `${SITE_URL}/tools/3bet-calculator`,
+    summary: 'Calculate Solver-Backed IP/OOP 3-Bet And 4-Bet Sizing, Break-Even Fold Equity, And Value-To-Bluff Ratios.',
+    badgeValue: '3-Bet & 4-Bet MDF Solver',
+  },
 ];
 
 export function buildResearchJsonFeed() {

@@ -38,9 +38,9 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-test('Dynamic SVG Authority & Annual Award Badge generator renders valid, accessible SVG across all 13 presets', () => {
+test('Dynamic SVG Authority & Annual Award Badge generator renders valid, accessible SVG across all 15 presets', () => {
   const presetKeys = Object.keys(BADGE_PRESETS);
-  assert.equal(presetKeys.length, 13);
+  assert.equal(presetKeys.length, 15);
 
   for (const type of presetKeys) {
     const svg = renderBadgeSvg({ type });
@@ -59,7 +59,7 @@ test('Dynamic SVG Authority & Annual Award Badge generator renders valid, access
   assert.equal(escapeXml('A & B < C > "D" \'E\''), 'A &amp; B &lt; C &gt; &quot;D&quot; &apos;E&apos;');
 });
 
-test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators, 10 SVG backlink/award badges, and 6 streamer bot commands', () => {
+test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG backlink/award badges, and 6 streamer bot commands', () => {
   const embedsSrc = read('pages/tools/embeds.js');
   for (const widgetId of [
     'odds-calculator',
@@ -73,6 +73,10 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators, 10 SVG ba
     'side-pot-calculator',
     'blind-structure-calculator',
     'spr-calculator',
+    'plo-bet-calculator',
+    'payout-calculator',
+    'rake-calculator',
+    '3bet-calculator',
   ]) {
     assert.ok(embedsSrc.includes(`id: '${widgetId}'`), `embeds.js includes ${widgetId}`);
   }
@@ -83,6 +87,8 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators, 10 SVG ba
     'badge-research',
     'badge-gto',
     'badge-club',
+    'badge-daily',
+    'badge-rules',
     'badge-award-top50',
     'badge-award-texas',
     'badge-award-cpa',
@@ -97,7 +103,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators, 10 SVG ba
   }
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.equal(embedUrls.length, 11, 'all 11 widgets define embedUrl');
+  assert.equal(embedUrls.length, 15, 'all 15 widgets define embedUrl');
   for (const url of embedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -121,11 +127,15 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 11 calculators, 10 SVG ba
   assert.ok(md.includes('Multi-Way All-In Main & Side Pot Calculator'));
   assert.ok(md.includes('Tournament Blind Structure & Chip Distribution Generator'));
   assert.ok(md.includes('Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator'));
+  assert.ok(md.includes('Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Calculator'));
+  assert.ok(md.includes('Tournament Payout & Prize Pool Distribution Calculator'));
+  assert.ok(md.includes('Live Cash Game Rake & Time-Charge Calculator'));
+  assert.ok(md.includes('GTO Preflop 3-Bet, Squeeze, 4-Bet & MDF Calculator'));
   assert.ok(md.includes('Dynamic SVG Authority, Partner & 2026 Annual Award Backlink Badges'));
   assert.ok(md.includes('Twitch & YouTube Streamer Chatbot Commands'));
 });
 
-test('All 20 authority page templates wire CitationBacklinkBox with 7 citation formats including Wikipedia {{cite web}}', () => {
+test('All authority page templates wire CitationBacklinkBox with 7 citation formats including Wikipedia {{cite web}}', () => {
   const boxSrc = read('src/components/seo/CitationBacklinkBox.js');
   assert.ok(boxSrc.includes('HTML Contextual Backlink'));
   assert.ok(boxSrc.includes('SVG Authority Badge Embed'));
@@ -142,11 +152,18 @@ test('All 20 authority page templates wire CitationBacklinkBox with 7 citation f
     'pages/learn/hands/index.js',
     'pages/learn/[topic].js',
     'pages/learn/index.js',
+    'pages/learn/poker-hand-rankings.js',
     'pages/glossary/[term].js',
     'pages/glossary/index.js',
     'pages/compare/[slug].js',
     'pages/compare/index.js',
     'pages/features/index.js',
+    'pages/rules/index.js',
+    'pages/rules/[slug].js',
+    'pages/games/index.js',
+    'pages/games/[variant].js',
+    'pages/poker-rooms/guides/index.js',
+    'pages/poker-rooms/guides/[city].js',
     'src/components/features/FeatureLanderLayout.js',
     'pages/editorial-standards.js',
     'pages/verification-methodology.js',
@@ -159,7 +176,12 @@ test('All 20 authority page templates wire CitationBacklinkBox with 7 citation f
     'pages/tools/side-pot-calculator.js',
     'pages/tools/blind-structure-calculator.js',
     'pages/tools/spr-calculator.js',
+    'pages/tools/plo-bet-calculator.js',
+    'pages/tools/payout-calculator.js',
+    'pages/tools/rake-calculator.js',
+    'pages/tools/3bet-calculator.js',
     'pages/tools/preflop-ranges/index.js',
+    'pages/hub/training/daily-challenge.js',
   ];
 
   for (const pagePath of wiredPages) {
@@ -168,11 +190,11 @@ test('All 20 authority page templates wire CitationBacklinkBox with 7 citation f
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 11 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 15 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 26);
+  assert.equal(jsonFeed.items.length, 30);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);
@@ -193,6 +215,14 @@ test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 
     '/tools/side-pot-calculator',
     '/tools/blind-structure-calculator',
     '/tools/spr-calculator',
+    '/tools/plo-bet-calculator',
+    '/tools/payout-calculator',
+    '/tools/rake-calculator',
+    '/tools/3bet-calculator',
+    '/learn/poker-hand-rankings',
+    '/rules/showdown-order-who-shows-first',
+    '/games/texas-holdem',
+    '/poker-rooms/guides/las-vegas-nevada',
     '/research/us-live-poker-room-rake-and-jackpot-benchmark',
   ]) {
     assert.ok(rssXml.includes(`https://smarter.poker${calcPath}`), `RSS feed includes ${calcPath}`);

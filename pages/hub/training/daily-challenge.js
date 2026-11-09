@@ -26,6 +26,8 @@ import TrainingSignInPrompt from '../../../src/components/training/TrainingSignI
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+import DailyPersonalQuiz from '../../../src/components/training/DailyPersonalQuiz';
+import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 import styles from '../../../src/styles/training/daily-challenge-casino.module.css';
 // TRAIN-WIRE-FX-4d - adoption: feedback hook for daily-challenge.fresh.js
@@ -477,6 +479,12 @@ export default function DailyChallengePage() {
                 <Link href="/hub/training/challenges" className={styles.navPlate}>
                   Weekly &amp; Monthly Goals
                 </Link>
+                <Link href="/hub/training/achievements" className={styles.navPlate}>
+                  Achievements Vault
+                </Link>
+                <Link href="/hub/training/streaks" className={styles.navPlate}>
+                  Streaks Vault
+                </Link>
               </nav>
             </div>
             <div className={styles.clockBay}>
@@ -740,6 +748,55 @@ export default function DailyChallengePage() {
               <span>Check Back Soon For The Next Audited Spot.</span>
             </div>
           )}
+
+          <DailyPersonalQuiz />
+
+          <section className={styles.referenceSection} aria-labelledby="daily-challenge-methodology-heading">
+            <div className={styles.referenceHeader}>
+              <span>Casino Realism Reference · Solver Methodology</span>
+              <h2 id="daily-challenge-methodology-heading">
+                Daily GTO Hand Challenge Reference &amp; Solver Methodology
+              </h2>
+              <p>
+                Every Daily Hand Of The Day On Smarter.Poker Presents One Canonical No-Limit Holdem
+                Or Tournament Decision Spot Sealed With A Cryptographic Grading Receipt And Audited
+                Against Game-Theoretic Equilibrium Baselines.
+              </p>
+            </div>
+            <div className={styles.referenceGrid}>
+              <article className={styles.referenceCard}>
+                <h3>Signed Policy Delivery</h3>
+                <p>
+                  Each Daily Spot Rotates At Midnight Central Time With A Verifiable Policy Checksum
+                  So Every Player Evaluates Identical Board Texture, Stack Depth, And Street Context.
+                </p>
+              </article>
+              <article className={styles.referenceCard}>
+                <h3>Server-Authoritative Grading</h3>
+                <p>
+                  Action Selections Are Graded Exclusively On The Server Before Revealing Equilibrium
+                  Action Frequencies, Expected Value Loss Telemetry, And Strategic Explanations.
+                </p>
+              </article>
+              <article className={styles.referenceCard}>
+                <h3>Verified Streak Ledger</h3>
+                <p>
+                  Consecutive Daily Completions And Personal Weakness Drills Feed Directly Into Your
+                  Permanent Training Ledger, Daily Goals Vault, And Milestone Streak Records.
+                </p>
+              </article>
+            </div>
+            <CitationBacklinkBox
+              title="Daily GTO Poker Hand Challenge & Solver Reference"
+              canonicalUrl="https://smarter.poker/hub/training/daily-challenge"
+              badgeType="daily"
+              badgeLabel="Daily GTO Challenge"
+              badgeValue="Solver Verified On Smarter.Poker"
+              summary="Daily canonical Texas Holdem solver spot with cryptographic grading receipts, EV loss telemetry, and streak verification."
+              publishedYear="2026"
+              slug="daily-gto-poker-challenge"
+            />
+          </section>
         </div>
       </main>
       <ConnectionToast />

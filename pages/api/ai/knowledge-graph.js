@@ -18,6 +18,9 @@ import { LESSONS, LEARN_CATEGORIES } from '../../../src/content/learn/lessons.js
 import { STARTING_HANDS } from '../../../src/content/learn/hands.js';
 import { RESEARCH_REPORTS } from '../../../src/content/research/reports.js';
 import { COMPARE_PAGES, AS_OF } from '../../../src/content/compare/pages.js';
+import { POKER_RULES, RULES_AS_OF } from '../../../src/content/rules/rules.js';
+import { POKER_VARIANTS, GAMES_AS_OF } from '../../../src/content/games/variants.js';
+import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF } from '../../../src/content/guides/markets.js';
 import { SCHEMA_ROUTES } from '../../../src/lib/seo/summarySchema.js';
 import { getHubPageSummaries } from '../../../src/lib/seo/hubPageSummariesData.js';
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY.js';
@@ -248,6 +251,33 @@ export function buildKnowledgeGraph() {
         dateModified: AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
         numberOfItems: COMPARE_PAGES.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/rules#encyclopedia`,
+        name: 'Smarter.Poker Official Poker Rules & Casino Floor Rulings Encyclopedia (TDA & RROP)',
+        url: `${SITE}/rules`,
+        dateModified: RULES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: POKER_RULES.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/games#variants`,
+        name: 'Smarter.Poker Poker Variants & Mixed Games Encyclopedia',
+        url: `${SITE}/games`,
+        dateModified: GAMES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: POKER_VARIANTS.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/poker-rooms/guides#markets`,
+        name: 'Smarter.Poker US Regional Live Poker Market Strategy Guides',
+        url: `${SITE}/poker-rooms/guides`,
+        dateModified: MARKET_GUIDES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: POKER_MARKET_GUIDES.length,
       },
       ...RESEARCH_REPORTS.map((r) => ({
         '@type': 'Report',

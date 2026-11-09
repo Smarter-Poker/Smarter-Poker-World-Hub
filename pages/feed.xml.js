@@ -10,6 +10,9 @@ import { LESSONS, LEARN_MODIFIED, lessonPath } from '../src/content/learn/lesson
 import { COMPARE_PAGES, AS_OF as COMPARE_AS_OF, comparePath } from '../src/content/compare/pages.js';
 import { GLOSSARY_TERMS, glossaryTermPath } from '../src/content/glossary/terms.js';
 import { RESEARCH_REPORTS, researchPath } from '../src/content/research/reports.js';
+import { POKER_RULES, rulePath } from '../src/content/rules/rules.js';
+import { POKER_VARIANTS, gameVariantPath } from '../src/content/games/variants.js';
+import { POKER_MARKET_GUIDES, marketGuidePath } from '../src/content/guides/markets.js';
 import { SITE_URL, sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
 import { xmlEscape } from '../src/lib/videoLibraryWatch.mjs';
 
@@ -175,6 +178,41 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
+        title: 'Pot-Limit Omaha (PLO) Max Bet & Double-Board Bomb Pot Calculator',
+        link: `${SITE_URL}/tools/plo-bet-calculator`,
+        description: 'Compute Exact Pot-Limit Maximum Raise Totals (3x + Trail + Pot) And Double-Board Bomb Pot Split Equity.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Tournament Payout & Prize Pool Distribution Calculator',
+        link: `${SITE_URL}/tools/payout-calculator`,
+        description: 'Generate WSOP And TDA Power-Law Tournament Payout Schedules, Pay Jumps, And Bubble Multipliers.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Live Cash Game Rake, Promo Drop & Time-Charge Calculator',
+        link: `${SITE_URL}/tools/rake-calculator`,
+        description: 'Compare Percentage Pot Rake, California Flat Flop Drop, And Texas Time-Charge Impact On Hourly Winrate.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Preflop 3-Bet, 4-Bet Sizing & Minimum Defense Calculator',
+        link: `${SITE_URL}/tools/3bet-calculator`,
+        description: 'Calculate Solver-Backed IP/OOP 3-Bet And 4-Bet Sizing, Break-Even Fold Equity, And Value-To-Bluff Ratios.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Official Poker Hand Rankings Chart & Tie-Breaker Cheat Sheet',
+        link: `${SITE_URL}/learn/poker-hand-rankings`,
+        description: 'Complete 52-Card High Hand Rankings, 5-Card And 7-Card Combinatorics, Short Deck 6+ Rules, Omaha Must-Use-Two Rules, And Lowball Systems.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
         title: 'Interactive 169-Hand GTO Preflop Range Matrix',
         link: `${SITE_URL}/tools/preflop-ranges`,
         description: 'Study Opening, 3-Bet, And Big Blind Defense Preflop Charts Across Stack Depths And Positions.',
@@ -263,6 +301,39 @@ export function buildRssFeedXml() {
                 description: report.summary || '',
                 category: report.category || 'Poker Industry Research',
                 pubDate: reportDate,
+            };
+        }),
+        ...POKER_RULES.map((rule) => {
+            const url = `${SITE_URL}${rulePath(rule.slug)}`;
+            return {
+                title: `${rule.title} (${rule.tdaRef})`,
+                link: url,
+                guid: url,
+                description: rule.summary || '',
+                category: `Official Poker Rules (${rule.category})`,
+                pubDate: learnDate,
+            };
+        }),
+        ...POKER_VARIANTS.map((variant) => {
+            const url = `${SITE_URL}${gameVariantPath(variant.slug)}`;
+            return {
+                title: `${variant.name} Rules, Hand Rankings & Strategy`,
+                link: url,
+                guid: url,
+                description: variant.summary || '',
+                category: `Poker Variants (${variant.category})`,
+                pubDate: learnDate,
+            };
+        }),
+        ...POKER_MARKET_GUIDES.map((market) => {
+            const url = `${SITE_URL}${marketGuidePath(market.slug)}`;
+            return {
+                title: market.title,
+                link: url,
+                guid: url,
+                description: market.summary || '',
+                category: 'Regional Live Poker Market Guides',
+                pubDate: learnDate,
             };
         }),
         ...FEATURE_ITEMS.map((item) => ({

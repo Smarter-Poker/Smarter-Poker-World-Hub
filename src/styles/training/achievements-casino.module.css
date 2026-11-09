@@ -1,0 +1,172 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAINING ACHIEVEMENTS VAULT - #SMARTERCASINOREALISM COMMAND DECK
+   Physical machined obsidian/gunmetal shell, electric cyan (#25c8ff),
+   vault gold (#f2b84b), 2px straight-edged controls, and casino felt stage.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.shell {
+  --ach-obsidian: #020608;
+  --ach-gunmetal: #101a20;
+  --ach-chrome: #c8d3da;
+  --ach-cyan: #25c8ff;
+  --ach-gold: #f2b84b;
+  --ach-emerald: #39d59b;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
+  box-sizing: border-box;
+  padding-bottom: 88px;
+  color: #eef6f9;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(37, 200, 255, 0.12), transparent 34rem),
+    repeating-linear-gradient(90deg, transparent 0 119px, rgba(37, 200, 255, 0.016) 120px),
+    linear-gradient(180deg, #05090c 0%, var(--ach-obsidian) 72%);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.shell :is(h1, h2, h3, p, button, small, span, a) {
+  text-transform: capitalize;
+}
+
+.marquee {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+  border-bottom: 1px solid #5a707c;
+  background: #020608;
+  isolation: isolate;
+}
+
+.marquee::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 52px;
+  content: "";
+  background: linear-gradient(180deg, transparent, #020608);
+  z-index: -1;
+}
+
+.marqueeArtwork {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 8, 0.99) 0%, rgba(2, 6, 8, 0.86) 54%, rgba(2, 6, 8, 0.22) 100%),
+    url('/images/training/casino-realism/mtt-004.webp') center 42% / cover no-repeat;
+  filter: saturate(0.84) contrast(1.1);
+}
+
+.marqueeContent {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  width: min(1040px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 28px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ach-cyan);
+  font: 700 12px/1.25 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.subpageNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.navPlate,
+.filterPlate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #718895;
+  border-radius: 2px;
+  color: #e7f0f4;
+  background: linear-gradient(180deg, #1e2c34 0%, #071016 52%, #111e25 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.2), inset 0 -2px rgba(0, 0, 0, 0.72), 0 0 0 2px rgba(0, 0, 0, 0.65);
+  font: 700 12px/1 var(--font-orbitron), "Orbitron", "Arial Narrow", sans-serif;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.navPlateActive,
+.filterPlateActive {
+  border-color: var(--ach-cyan);
+  color: #ffffff;
+  background: linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.26), 0 0 18px rgba(37, 200, 255, 0.22);
+}
+
+.navPlate:hover,
+.navPlate:focus-visible,
+.filterPlate:hover,
+.filterPlate:focus-visible {
+  outline: 2px solid var(--ach-cyan);
+  outline-offset: 2px;
+  border-color: #dce7ec;
+  color: #ffffff;
+  box-shadow: inset 0 1px #ffffff, 0 0 20px rgba(37, 200, 255, 0.3);
+}
+
+.mainDeck {
+  width: min(1040px, calc(100% - 24px));
+  margin: 0 auto;
+  padding: 20px 0 40px;
+}
+
+.statCard {
+  padding: 18px 28px;
+  border: 1px solid #536a76;
+  border-left: 3px solid var(--ach-cyan);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #101a20, #050b0f);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 12px 32px rgba(0, 0, 0, 0.42);
+  text-align: center;
+}
+
+.achCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #58717f;
+  border-left: 3px solid var(--ach-cyan);
+  border-radius: 2px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 28%),
+    linear-gradient(180deg, #101a20 0%, #040b10 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .shell,
+  .marquee,
+  .statCard,
+  .achCard,
+  .navPlate,
+  .filterPlate {
+    border-color: CanvasText !important;
+    background: Canvas !important;
+    color: CanvasText !important;
+  }
+}
