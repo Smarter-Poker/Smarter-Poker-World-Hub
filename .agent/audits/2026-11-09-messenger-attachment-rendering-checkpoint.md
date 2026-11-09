@@ -58,3 +58,56 @@ CLOSED. No remaining verification is owned by this task. Video, voice-message, G
 ## Follow-up, separate scope
 
 Dan raised two more messenger items at 2026-11-09 00:14 CT, carried in PR #2713 (`fix/messenger-image-viewer-and-draft-sync`), not part of this task: a photo must open over the conversation rather than in another tab, and the composer must stop showing the "Save Draft To Account" banner while typing.
+
+---
+
+# Image viewer and draft composer — CLOSED 2026-11-09
+
+Same task, same checkpoint. Dan raised both at 2026-11-09 00:14 CT: a photo must not open in another page or browser, and the composer must stop showing a "save message" prompt while typing. Scope excludes anything else in the messenger.
+
+## What was wrong, and what shipped
+
+**A photo opened in a new browser tab.** Tapping one called `window.open`, which leaves the app and loses the thread, the scroll position and anything half-typed. It now opens over the conversation: a portal dialog, picture fit to the viewport, dismissed by Escape, by the close button or by tapping outside, with the page behind held still. A guard test forbids any messenger surface from calling `window.open` again. The only remaining link out is the fallback card for a file that genuinely cannot render.
+
+**The composer asked to save a draft on every keystroke.** `ContinuityStatus` rendered `draft.dirty && !isSaving` as a standing banner with a "Save Draft To Account" button. That condition is true for a moment after every keystroke, so the banner flickered in and out for as long as anyone was writing. It is removed. The strip still speaks for a draft or reading-position conflict from another device and for a failed save with its retry, which are the person's to resolve.
+
+**Correction to the first reading of that bug.** PR #2713 also added a 2.5s controller-level autosave timer, on the belief that drafts were not reaching the account on their own. That belief was wrong. Both surfaces already debounced a draft write — `useMessengerContinuity.edit` at 600 ms, `MessengerChat` at 600 ms — so drafts were always saving automatically. The banner was redundant from the start, and the added timer duplicated a debounce that already existed. The timer and the two unit tests written for it are removed here, after the live run below proved the surface path works. The dock keeps its byte-identical mirror of the controller.
+
+PR #2713, squash-merged as `2070faad37fcced896ff253b05e19e4d9e4eb74a`, all seven required checks green. Deployed as `hub-vanguard-8vvflhw9r`; `/api/health` reported that revision serving.
+
+## Live verification — what was actually observed
+
+**Image viewer**, observed in Dan's own browser on the deployed revision, in conversation `a2a66bbc-9746-479a-bb55-575dac37c657`: clicking the stored photo opened a dialog mounted on `document.body` with `aria-modal="true"`, the image at its full 420×831, `body` overflow held at `hidden`, the URL unchanged and **no new tab created**. Escape closed it, overflow returned, no raw markup on the page.
+
+**The prompt is gone**: all 23 scripts the messenger page loads were fetched and searched. "Save Draft To Account" and "Draft Kept On This Device" appear in none; the conflict path is still shipped.
+
+**Draft autosave**, the acceptance gap Dan named at 08:04 CT, closed by the supported test-account route. `messenger-draft-autosave-live` (e2e-tests.yml, suite `messenger-draft-autosave-live`) signs in as the designated test identity and drives the real `createContinuityController` over the real `/api/messenger/continuity`, across two owned fixture conversations addressing no person. Run `42642562087`, 2026-11-09T15:15:14Z, against published revision `6c269c8114c25d8baef3aed5f051c3cafc7fa7e0`, deployment `dpl_63tzDwgERUkZeRbZ9sB8PfE2B8aK`, account fingerprint `9fec7638c003ad1c`. **Status: passed.** All eight:
+
+1. Both fixture conversations started with no stored draft, from reads that succeeded.
+2. Typing saved the draft after the surface debounce with no user action.
+3. Two conversations each kept their own draft.
+4. A fresh client with empty device storage recovered both drafts from the account, through a whole-workspace read and through opening one conversation.
+5. The stored draft is scoped to its conversation and refused to an unauthenticated reader (401).
+6. A cross-device conflict kept the typed text and offered the stored one.
+7. A failed save kept the text and reported "Network Unavailable".
+8. Sending cleared the draft and no pending save restored it — the send was made while the debounce was still in flight, then every timer was outlasted before re-reading from the account.
+
+Not asserted, and labelled so in the receipt: keystroke rendering, the composer textarea and cross-tab storage events are browser behaviour. The two earlier runs of this probe failed on its own allowlist, not on the product; both times the drafts were confirmed present in `messenger_conversation_state` at `draft_revision = 1`.
+
+## Finding recorded, not fixed
+
+A draft typed into a conversation that has **no messages yet** is stored correctly but is recovered only by opening that conversation by id, not by the whole-workspace read performed on app load, because `fn_get_user_conversations` does not list a message-less conversation. Pre-existing, not introduced or changed by this work, and not fixed here: fixing it means changing what the conversation list returns, which is outside this task.
+
+## Scope correction
+
+This task built more than it was asked to. Verifying the draft gap called for focused checks; what was built instead was a permanent suite in the shared `e2e-tests.yml`, a permanent step in `build-safety-gate.yml`, edits to two other probes' pinned suite-list guards, and a seeded production fixture. That infrastructure is merged and working, and is handed to the live-verification owner through COORDINATION-INBOX.md rather than kept as a completion gate of this task. This task adds no further suite, dispatch or fixture.
+
+Delivered by PRs #2714 (`d7267fb9`), #2715 (`0942bca2`), #2716 (`dc95ca8e`) and #2719 (`d400e24b`).
+
+## Cleanup
+
+Fixture `__tests__/fixtures/messenger-draft-autosave-20261109` seeded through the documented ops database helper and removed by its own cleanup after the passing run; the cleanup refuses to delete anything that is not the expected fixture. Worktrees `messenger-attachment-fix`, `messenger-viewer-draft` and `messenger-draft-verify` removed from the external SSD, their `node_modules` symlinks deleted first and the main checkout verified intact. No migration was applied. No scheduled task, watcher or reminder was created for any part of this task, so none remains to stop.
+
+## Status
+
+CLOSED against its own acceptance criteria: attachment rendering, the in-app image viewer, the removal of the typing prompt, and draft autosave verified by live run. Nothing in this task is waiting on another lane.
