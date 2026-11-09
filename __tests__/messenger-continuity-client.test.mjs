@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { CONTINUITY_PREFIX, createContinuityController, readLocalContinuity, visibleMessageBoundary } from '../src/lib/messengerContinuity.mjs';
@@ -230,4 +230,44 @@ test('an obsolete receipt retains a queued explicit saved intent for manual retr
     assert.equal(calls.length, 1);
     const failure = controller.errors.get(`${conversation}:saved:${message}`); assert.equal(failure.value.saved, false);
     await controller.retry(failure); assert.equal(calls[1].expectedRevision, 2); assert.equal(calls[1].value.saved, false);
+});
+
+// TYPING IS THE INTENT (2026-11-09). A draft used to reach the account only
+// when the person pressed a button, so a banner offering that button sat over
+// the composer for as long as anyone was writing. The controller now sends it
+// on its own once typing stops.
+test('a draft reaches the account on its own shortly after typing stops', async () => {
+    mock.timers.enable({ apis: ['setTimeout'] });
+    try {
+        const { controller, calls } = setup();
+        controller.edit(conversation, 'draft', { text: 'Half a thou', replyToId: null });
+        controller.edit(conversation, 'draft', { text: 'Half a thought', replyToId: null });
+        assert.equal(calls.length, 0, 'nothing is sent mid-keystroke');
+        mock.timers.tick(2500);
+        await tick(); await tick();
+        assert.equal(calls.length, 1, 'one write, after the typing settles');
+        assert.equal(calls[0].field, 'draft');
+        assert.equal(calls[0].value.text, 'Half a thought');
+        assert.equal(controller.state(conversation).draft.dirty, false);
+    } finally { mock.timers.reset(); }
+});
+
+test('the automatic draft sync leaves a conflict for the person and never resends a clean draft', async () => {
+    const { controller, calls } = setup();
+    controller.state(conversation).draft = { text: 'Mine', replyToId: null, revision: 1, dirty: true, conflict: true };
+    assert.equal(controller.syncDraft(conversation), false);
+    assert.equal(calls.length, 0);
+
+    const clean = setup();
+    assert.equal(clean.controller.syncDraft(conversation), false);
+    assert.equal(clean.calls.length, 0);
+});
+
+test('the composer is never asked to save a draft', () => {
+    const status = fs.readFileSync(new URL('../src/components/messenger/ContinuityStatus.js', import.meta.url), 'utf8');
+    assert.equal(/Save Draft To Account/.test(status), false);
+    assert.equal(/Draft Kept On This Device/.test(status), false);
+    // The conflict and failure paths still speak.
+    assert.match(status, /Your Draft Changed In Another Tab Or Device/);
+    assert.match(status, /Retry Continuity/);
 });
