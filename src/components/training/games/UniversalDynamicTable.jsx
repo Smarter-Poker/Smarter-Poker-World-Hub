@@ -255,6 +255,68 @@ const SoundEngine = {
                     osc.start(now); osc.stop(now + 0.9);
                     break;
                 }
+                case 'fold': {
+                    // Club Arena card-muck slide
+                    const muck = ctx.createBufferSource();
+                    const muckBuf = ctx.createBuffer(1, ctx.sampleRate * 0.09, ctx.sampleRate);
+                    const muckData = muckBuf.getChannelData(0);
+                    for (let i = 0; i < muckData.length; i++) {
+                        muckData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / muckData.length, 1.6);
+                    }
+                    muck.buffer = muckBuf;
+                    const muckGain = ctx.createGain();
+                    muckGain.gain.setValueAtTime(0.07, now);
+                    muckGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+                    muck.connect(muckGain);
+                    muckGain.connect(ctx.destination);
+                    muck.start(now);
+                    return;
+                }
+                case 'check': {
+                    // Club Arena double felt tap
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(175, now);
+                    osc.frequency.setValueAtTime(155, now + 0.06);
+                    gain.gain.setValueAtTime(0.09, now);
+                    gain.gain.exponentialRampToValueAtTime(0.015, now + 0.05);
+                    gain.gain.setValueAtTime(0.08, now + 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.start(now); osc.stop(now + 0.12);
+                    break;
+                }
+                case 'call': {
+                    // Club Arena single ceramic chip clink
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(2480, now);
+                    osc.frequency.setValueAtTime(3120, now + 0.03);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+                    osc.start(now); osc.stop(now + 0.11);
+                    break;
+                }
+                case 'bet':
+                case 'raise': {
+                    // Club Arena multi-chip stack riffle
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(2200, now);
+                    osc.frequency.setValueAtTime(2760, now + 0.035);
+                    osc.frequency.setValueAtTime(3320, now + 0.07);
+                    gain.gain.setValueAtTime(0.07, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+                    osc.start(now); osc.stop(now + 0.16);
+                    break;
+                }
+                case 'allin': {
+                    // Club Arena heavy all-in chip shove
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(140, now);
+                    osc.frequency.setValueAtTime(2640, now + 0.045);
+                    osc.frequency.setValueAtTime(3520, now + 0.09);
+                    gain.gain.setValueAtTime(0.11, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                    osc.start(now); osc.stop(now + 0.22);
+                    break;
+                }
                 default:
                     osc.frequency.setValueAtTime(440, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
@@ -959,16 +1021,68 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
 
 function detectActionType(text) {
     const lower = (text || '').toLowerCase().trim();
-    if (/fold/i.test(lower)) return 'fold';
+    if (/fold/i.test(lower) && !/\b(never|don'?t|avoid)\s+fold/i.test(lower)) return 'fold';
     if (/check/i.test(lower)) return 'check';
-    if (/call/i.test(lower)) return 'call';
+    if (/call|limp|flat|complete/i.test(lower)) return 'call';
     if (/all[- ]?in|shove|push|jam/i.test(lower)) return 'allin';
     if (/overbet|1[2-9]\d%|[2-9]\d\d%/i.test(lower)) return 'overbet';
-    if (/raise|3[- ]?bet|4[- ]?bet/i.test(lower)) return 'raise';
-    if (/bet\s*pot|bet\s*100%/i.test(lower)) return 'betpot';
+    if (/raise|open|squeeze|iso|3[- ]?bet|4[- ]?bet|5[- ]?bet|^r\d+%?$/i.test(lower)) return 'raise';
+    if (/bet\s*pot|bet\s*100%|^pot$/i.test(lower)) return 'betpot';
     if (/bet\s*(6[0-9]|7[0-9]|8[0-9]|9[0-9])%/i.test(lower)) return 'betlarge';
-    if (/bet/i.test(lower)) return 'betsmall';
+    if (/bet|c-?bet|donk|lead|probe|^b\d+%?$/i.test(lower)) return 'betsmall';
     return 'neutral';
+}
+
+// Club Arena colored-up casino chip denominations (src/lib/chipDenominations.ts)
+// White = 1, Red = 5, Green = 25, Black = 100, Purple = 500, Yellow = 1000
+function getClubArenaChipStyle(rawAmount) {
+    const amt = Math.abs(Number(rawAmount) || 0);
+    if (amt >= 500) {
+        return {
+            '--chip-face': 'radial-gradient(circle at 34% 27%, #f5f3ff 0 18%, #7c3aed 21% 45%, #ede9fe 48% 58%, #5b21b6 61% 76%, #ddd6fe 79%)',
+            '--chip-rim': '#ddd6fe',
+            '--chip-edge-1': '#5b21b6',
+            '--chip-edge-2': '#1c1c2e',
+        };
+    }
+    if (amt >= 100) {
+        return {
+            '--chip-face': 'radial-gradient(circle at 34% 27%, #fef3c7 0 18%, #1c1c2e 21% 45%, #f59e0b 48% 58%, #0a0a14 61% 76%, #fbbf24 79%)',
+            '--chip-rim': '#f59e0b',
+            '--chip-edge-1': '#0a0a14',
+            '--chip-edge-2': '#14532d',
+        };
+    }
+    if (amt >= 25) {
+        return {
+            '--chip-face': 'radial-gradient(circle at 34% 27%, #f0fdf4 0 18%, #22c55e 21% 45%, #dcfce7 48% 58%, #15803d 61% 76%, #bbf7d0 79%)',
+            '--chip-rim': '#dcfce7',
+            '--chip-edge-1': '#14532d',
+            '--chip-edge-2': '#991b1b',
+        };
+    }
+    if (amt >= 5) {
+        return {
+            '--chip-face': 'radial-gradient(circle at 34% 27%, #fff1f2 0 18%, #ef4444 21% 45%, #fee2e2 48% 58%, #b91c1c 61% 76%, #fecaca 79%)',
+            '--chip-rim': '#fee2e2',
+            '--chip-edge-1': '#991b1b',
+            '--chip-edge-2': '#6b7280',
+        };
+    }
+    if (amt >= 1) {
+        return {
+            '--chip-face': 'radial-gradient(circle at 34% 27%, #ffffff 0 18%, #f2f3f5 21% 45%, #1d4ed8 48% 58%, #cbd5e1 61% 76%, #ffffff 79%)',
+            '--chip-rim': '#e2e8f0',
+            '--chip-edge-1': '#1e40af',
+            '--chip-edge-2': '#64748b',
+        };
+    }
+    return {
+        '--chip-face': 'radial-gradient(circle at 34% 27%, #f0f9ff 0 18%, #38bdf8 21% 45%, #e0f2fe 48% 58%, #0284c7 61% 76%, #bae6fd 79%)',
+        '--chip-rim': '#bae6fd',
+        '--chip-edge-1': '#0369a1',
+        '--chip-edge-2': '#0c4a6e',
+    };
 }
 
 // Phase 28: GTO Wizard-style color-coded action buttons with sizing differentiation
@@ -1773,7 +1887,7 @@ function UniversalDynamicTable({
     const board = question?.boardCards || scenario.boardCards || scenario.board || '';
     const rawHeroCards = question?.heroCards || scenario.heroHand || scenario.heroCards || 'AsKs';
     const heroCards = useMemo(() => {
-        if (Array.isArray(rawHeroCards)) return rawHeroCards;
+        if (Array.isArray(rawHeroCards) && rawHeroCards.length >= 2) return rawHeroCards;
         if (typeof rawHeroCards === 'string' && rawHeroCards.length >= 4) {
             return [rawHeroCards.substring(0, 2), rawHeroCards.substring(2, 4)];
         }
@@ -2702,6 +2816,25 @@ function UniversalDynamicTable({
             );
         }
         setSelectedAnswer(resolvedId);
+        // Play immediate Club Arena poker table action sound (fold/check/call/bet/raise/allin)
+        try {
+            const matchedOpt = (displayOptions || []).find(o => (o.id || o) === answerId || (o.id || o) === resolvedId)
+                || (options || []).find(o => (o.id || o) === resolvedId || (o.id || o) === answerId);
+            const optLabel = typeof matchedOpt === 'string' ? matchedOpt : (matchedOpt?.text || matchedOpt?.label || String(resolvedId || ''));
+            const actKind = detectActionType(optLabel);
+            const soundKey = {
+                fold: 'fold',
+                check: 'check',
+                call: 'call',
+                allin: 'allin',
+                raise: 'raise',
+                overbet: 'bet',
+                betpot: 'bet',
+                betlarge: 'bet',
+                betsmall: 'bet',
+            }[actKind] || 'call';
+            SoundEngine.play(soundKey);
+        } catch { /* non-blocking audio */ }
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
         // GTOW parity #38: hand the grader the action the dice selected. It is
         // ignored entirely when RNG mode is off, so the default grading path is
@@ -2712,7 +2845,7 @@ function UniversalDynamicTable({
             : null;
         if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed, ...(rngMeta || {}), ...(extraMeta || {}) });
         try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, gradingPending: true }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [showFeedback, selectedAnswer, groupingMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngAvailable]);
+    }, [showFeedback, selectedAnswer, groupingMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngAvailable, displayOptions, options]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED answer handler (1-9, F/C/R).
     // Advancing is deliberately button-only so feedback can never disappear
@@ -3187,8 +3320,8 @@ function UniversalDynamicTable({
                 .sp-club-gto-chip-disc {
                     position: relative;
                     z-index: 2;
-                    background: radial-gradient(circle at 34% 27%,#fff 0 19%,#cbd3d6 22% 43%,#f8fafb 46% 57%,#77858b 60% 75%,#d9e1e3 78%) !important;
-                    border: 1px solid #d8e2e5 !important;
+                    background: var(--chip-face, radial-gradient(circle at 34% 27%,#fff 0 19%,#cbd3d6 22% 43%,#f8fafb 46% 57%,#77858b 60% 75%,#d9e1e3 78%)) !important;
+                    border: 1px solid var(--chip-rim, #d8e2e5) !important;
                     box-shadow: 0 3px 3px rgba(0,0,0,.72), inset 0 0 0 1px rgba(0,0,0,.34) !important;
                 }
                 .sp-club-gto-chip-disc::before,
@@ -3199,12 +3332,12 @@ function UniversalDynamicTable({
                     left: -1px;
                     width: 100%;
                     height: 100%;
-                    border: 1px solid #aab6bb;
+                    border: 1px solid var(--chip-rim, #aab6bb);
                     border-radius: 50%;
-                    background: #5f6d73;
+                    background: var(--chip-edge-1, #5f6d73);
                 }
                 .sp-club-gto-chip-disc::before { top: 2px; }
-                .sp-club-gto-chip-disc::after { top: 4px; box-shadow: 0 3px 3px rgba(0,0,0,.62); }
+                .sp-club-gto-chip-disc::after { top: 4px; background: var(--chip-edge-2, #475569); box-shadow: 0 3px 3px rgba(0,0,0,.62); }
                 .sp-club-gto-board {
                     perspective: 700px;
                     filter: drop-shadow(0 8px 10px rgba(0,0,0,.52));
@@ -3232,9 +3365,14 @@ function UniversalDynamicTable({
                     background: linear-gradient(180deg,#1aa2ff,#0879ef 56%,#004aa8) !important;
                 }
                 .sp-club-gto-actions [data-action='raise']:not(:disabled),
-                .sp-club-gto-actions [data-action='bet']:not(:disabled),
-                .sp-club-gto-actions [data-action='allin']:not(:disabled) {
+                .sp-club-gto-actions [data-action='bet']:not(:disabled) {
                     background: linear-gradient(180deg,#14df75,#00ad4e 56%,#006d30) !important;
+                }
+                .sp-club-gto-actions [data-action='allin']:not(:disabled) {
+                    background: linear-gradient(180deg,#fbbf24 0%,#d97706 52%,#92400e 100%) !important;
+                }
+                .sp-club-gto-actions [data-action='neutral']:not(:disabled) {
+                    background: linear-gradient(180deg,#2563eb 0%,#1d4ed8 56%,#1e3a8a 100%) !important;
                 }
                 .sp-training-feedback {
                     scrollbar-color: rgba(83, 242, 160, .6) rgba(0, 0, 0, .28);
@@ -3838,7 +3976,7 @@ function UniversalDynamicTable({
                                 ? { width: 57, height: 80, step: 23 }
                                 : heroCards.length === 4
                                     ? { width: 60, height: 84, step: 25 }
-                                    : { width: 44, height: 62, step: 32 };
+                                    : { width: isMobile ? 50 : 58, height: isMobile ? 70 : 81, step: isMobile ? 35 : 40 };
                         const vilCardW = Math.round(33 * (64 / 92));
                         const vilCardH = isNarrow ? 28 : (isMobile ? 30 : 33);
                         const bubbleH = ui(26);
@@ -4241,7 +4379,15 @@ function UniversalDynamicTable({
                                     borderRadius: ui(10),
                                 }}
                             >
-                                <span className="sp-club-gto-chip-disc" style={{ ...styles.chipDisc, width: ui(13), height: ui(13) }} />
+                                <span
+                                    className="sp-club-gto-chip-disc"
+                                    style={{
+                                        ...styles.chipDisc,
+                                        ...getClubArenaChipStyle(amount),
+                                        width: ui(13),
+                                        height: ui(13),
+                                    }}
+                                />
                                 <span style={{ ...styles.chipAmount, fontSize: Math.max(12, ui(11)) }}>{amount}</span>
                             </motion.div>
                         );
@@ -4414,16 +4560,18 @@ function UniversalDynamicTable({
                             color: 'var(--sp-fg)',
                             fontVariantNumeric: 'tabular-nums',
                         }}>
-                            <span style={{
-                                width: ui(14),
-                                height: ui(14),
-                                borderRadius: '50%',
-                                background: 'radial-gradient(circle at 34% 28%, #eaf7ff 0%, #7fd6ef 45%, #1c7f9c 100%)',
-                                border: '1px solid rgba(0,0,0,0.5)',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.6)',
-                                flexShrink: 0,
-                            }} />
-                            <span style={{ fontSize: Math.max(12, ui(10)), fontWeight: 800, letterSpacing: 1.1, color: 'rgba(255,255,255,0.72)' }}>POT</span>
+                            <span
+                                className="sp-club-gto-chip-disc"
+                                style={{
+                                    ...styles.chipDisc,
+                                    ...getClubArenaChipStyle(displayPot),
+                                    width: ui(14),
+                                    height: ui(14),
+                                    borderRadius: '50%',
+                                    flexShrink: 0,
+                                }}
+                            />
+                            <span style={{ fontSize: Math.max(12, ui(10)), fontWeight: 900, letterSpacing: 1.1, color: '#f5a623' }}>POT</span>
                             {displayPot}
                             <span style={{ fontSize: Math.max(12, ui(9)), fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginLeft: -ui(3) }}>BB</span>
                         </span>

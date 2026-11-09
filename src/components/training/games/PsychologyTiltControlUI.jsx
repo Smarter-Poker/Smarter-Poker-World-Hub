@@ -35,6 +35,9 @@ export default function PsychologyTiltControlUI({ gameId, question, onAnswer, sh
     };
 
     const currentTilt = tiltLevels[tiltLevel] || tiltLevels['Medium'];
+    const scenarioPos = question?.scenario?.heroPosition || 'BTN';
+    const scenarioStack = question?.scenario?.heroStack || 100;
+    const scenarioPot = question?.scenario?.pot || 12.5;
 
     return (
         <div
@@ -42,39 +45,64 @@ export default function PsychologyTiltControlUI({ gameId, question, onAnswer, sh
             data-training-ui="psychology-scenario"
             style={styles.wrapper}
         >
-            {/* Tilt Meter — only meaningful when the question carries emotional metadata */}
-            {hasMetadata && (
-            <div style={styles.tiltSection}>
-                <div style={styles.tiltHeader}>
-                    <span style={styles.tiltLabel}>Tilt Level</span>
-                    <span style={{ ...styles.tiltValue, color: currentTilt.color }}>
-                        {tiltLevel}
-                    </span>
-                </div>
-
-                <div style={styles.tiltMeter}>
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${currentTilt.value}%` }}
-                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                        style={{ ...styles.tiltFill, background: currentTilt.color }}
-                    />
-                </div>
-
-                <div style={styles.emotionalRow}>
-                    <div style={styles.emotionalChip}>
-                        <span style={styles.emotionalLabel}>Emotional State</span>
-                        <span style={styles.emotionalValue}>{emotionalState}</span>
+            {/* Club Arena Live Table Context Rail */}
+            <div style={styles.arenaStageHeader}>
+                <div style={styles.arenaFeltStrip}>
+                    <div style={styles.arenaSeatCluster}>
+                        <div style={styles.dealerPuck}>D</div>
+                        <div style={styles.heroPlate}>
+                            <span style={styles.heroPlateRole}>HERO ({scenarioPos})</span>
+                            <span style={styles.heroPlateStack}>{scenarioStack} BB</span>
+                        </div>
                     </div>
-                    <div style={styles.emotionalChip}>
-                        <span style={styles.emotionalLabel}>Trigger</span>
-                        <span style={styles.emotionalValue}>{triggerType}</span>
+                    <div style={styles.arenaCenterBadge}>
+                        <span style={styles.arenaWaterMark}>CLUB ARENA • MENTAL GAME LAB</span>
+                        <div style={styles.arenaPotPill}>
+                            <span style={styles.arenaPotChip} />
+                            <span style={styles.arenaPotLabel}>POT</span>
+                            <span style={styles.arenaPotValue}>{scenarioPot} BB</span>
+                        </div>
+                    </div>
+                    <div style={styles.arenaHandCounter}>
+                        <span style={styles.arenaHandLabel}>DECISION</span>
+                        <span style={styles.arenaHandValue}>{questionNumber || 1} / {totalQuestions || 25}</span>
                     </div>
                 </div>
+
+                {/* Tilt Meter — rendered when the question carries emotional telemetry */}
+                {hasMetadata && (
+                    <div style={styles.tiltSection}>
+                        <div style={styles.tiltHeader}>
+                            <span style={styles.tiltLabel}>Tilt Pressure Telemetry</span>
+                            <span style={{ ...styles.tiltValue, color: currentTilt.color }}>
+                                {tiltLevel}
+                            </span>
+                        </div>
+
+                        <div style={styles.tiltMeter}>
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${currentTilt.value}%` }}
+                                transition={{ duration: 0.8, ease: 'easeOut' }}
+                                style={{ ...styles.tiltFill, background: currentTilt.color }}
+                            />
+                        </div>
+
+                        <div style={styles.emotionalRow}>
+                            <div style={styles.emotionalChip}>
+                                <span style={styles.emotionalLabel}>Emotional State</span>
+                                <span style={styles.emotionalValue}>{emotionalState}</span>
+                            </div>
+                            <div style={styles.emotionalChip}>
+                                <span style={styles.emotionalLabel}>Trigger</span>
+                                <span style={styles.emotionalValue}>{triggerType}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-            )}
 
-            {/* Standard Millionaire Question UI */}
+            {/* Club Arena Scenario Decision Card */}
             <GTOQuestionCard
                 gameId={gameId}
                 question={question}
@@ -94,14 +122,149 @@ export default function PsychologyTiltControlUI({ gameId, question, onAnswer, sh
 const styles = {
     wrapper: {
         width: '100%',
+        maxWidth: 1180,
+        margin: '0 auto',
+    },
+
+    arenaStageHeader: {
+        marginBottom: 14,
+        padding: '12px 16px',
+        background: 'radial-gradient(circle at 50% 15%, rgba(56,146,177,0.22), transparent 55%), linear-gradient(180deg, rgba(18,39,50,0.96) 0%, rgba(7,16,25,0.98) 100%)',
+        border: '1px solid rgba(112,230,255,0.34)',
+        borderRadius: 12,
+        boxShadow: '0 14px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.14)',
+    },
+
+    arenaFeltStrip: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+
+    arenaSeatCluster: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+    },
+
+    dealerPuck: {
+        width: 24,
+        height: 24,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle at 35% 30%, #fffef5 0%, #f5d061 55%, #b47d17 100%)',
+        border: '1.5px solid #4a3000',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.65)',
+        color: '#1a1200',
+        fontSize: 12,
+        fontWeight: 900,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    heroPlate: {
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '4px 12px',
+        borderRadius: 8,
+        background: 'linear-gradient(180deg, rgba(24,36,48,0.96), rgba(8,14,22,0.98))',
+        border: '1px solid rgba(255,199,84,0.65)',
+        boxShadow: '0 0 12px rgba(255,178,44,0.25)',
+    },
+
+    heroPlateRole: {
+        fontSize: 12,
+        fontWeight: 800,
+        color: '#f8fafc',
+        letterSpacing: 0.6,
+    },
+
+    heroPlateStack: {
+        fontSize: 12,
+        fontWeight: 900,
+        color: '#fbbf24',
+        fontVariantNumeric: 'tabular-nums',
+    },
+
+    arenaCenterBadge: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
+    },
+
+    arenaWaterMark: {
+        fontSize: 12,
+        fontWeight: 800,
+        letterSpacing: 1.8,
+        color: 'rgba(142,216,235,0.78)',
+        textTransform: 'uppercase',
+    },
+
+    arenaPotPill: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '3px 12px',
+        borderRadius: 999,
+        background: 'rgba(4,9,18,0.88)',
+        border: '1px solid rgba(0,212,255,0.28)',
+    },
+
+    arenaPotChip: {
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle at 34% 27%, #fff1f2 0 18%, #ef4444 21% 45%, #fee2e2 48% 58%, #b91c1c 61% 76%, #fecaca 79%)',
+        border: '1px solid #fee2e2',
+    },
+
+    arenaPotLabel: {
+        fontSize: 12,
+        fontWeight: 900,
+        color: '#f5a623',
+        letterSpacing: 1,
+    },
+
+    arenaPotValue: {
+        fontSize: 13,
+        fontWeight: 800,
+        color: '#f8fafc',
+        fontVariantNumeric: 'tabular-nums',
+    },
+
+    arenaHandCounter: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        padding: '4px 10px',
+        borderRadius: 8,
+        background: 'rgba(2,8,14,0.75)',
+        border: '1px solid rgba(142,216,235,0.22)',
+    },
+
+    arenaHandLabel: {
+        fontSize: 12,
+        fontWeight: 800,
+        color: '#8ed8eb',
+        letterSpacing: 1,
+    },
+
+    arenaHandValue: {
+        fontSize: 13,
+        fontWeight: 900,
+        color: '#f8fafc',
+        fontVariantNumeric: 'tabular-nums',
     },
 
     tiltSection: {
-        marginBottom: 24,
-        padding: 20,
-        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05))',
-        borderRadius: 16,
-        border: '1px solid rgba(239, 68, 68, 0.3)',
+        marginTop: 12,
+        padding: 14,
+        background: 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(7,16,25,0.92))',
+        borderRadius: 10,
+        border: '1px solid rgba(239, 68, 68, 0.32)',
     },
 
     tiltHeader: {
