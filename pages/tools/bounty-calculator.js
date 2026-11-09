@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const PKO_STAGE_CONVERSIONS = [
@@ -28,6 +29,24 @@ const MYSTERY_BOUNTY_EXAMPLES = [
   { scenario: 'Top Jackpot Envelope Still Unclaimed (15 Players Left)', avgEnvelope: '2.2x Base Buy-In', chipEquivPct: '120%+ Starting Stack', callAdjustment: 'Call 18% To 25% Wider When Covering', strategyNote: 'Aggressively Isolate Short Stacks' },
   { scenario: 'Top Jackpot Envelope Already Pulled Early', avgEnvelope: '0.55x Base Buy-In', chipEquivPct: '28% Starting Stack', callAdjustment: 'Revert Near Standard MTT ICM Ranges', strategyNote: 'Avoid High-Variance Marginal Calls' },
   { scenario: 'Short Stack Covered By All Opponents (Cannot Win Bounty)', avgEnvelope: '0.0x Effective Value', chipEquivPct: '0 Chips Won On Shove', callAdjustment: 'Zero Bounty Discount (Tighter Shove Range)', strategyNote: 'Shove High-Card Equity Hands Only' },
+];
+
+const BOUNTY_CALCULATOR_FAQS = [
+  {
+    question: 'How Do You Convert A PKO Bounty Into Tournament Chips?',
+    answer:
+      'In A Standard 50% Progressive Knockout (PKO) Tournament, An Initial Starting Knockout Is Worth Exactly 33.3% (One-Third) Of A Starting Stack In Chips. If The Starting Stack Is 20,000 Chips, Each Starting Bounty Unit Adds 6,667 Extra Chips To The Pot When You Cover The All-In Player.',
+  },
+  {
+    question: 'How Does Bounty Power Change Required Calling Equity?',
+    answer:
+      'Add The Bounty Chip Equivalent Directly To The Current Pot Before Dividing Your Call Size: Adjusted Required Equity = Call / (PotBeforeCall + Call + BountyChips). This Reduces Break-Even Calling Equity By 5% To 20% Depending On Stack Size.',
+  },
+  {
+    question: 'How Do Mystery Bounty Calculations Differ From PKO Tournaments?',
+    answer:
+      'In A Mystery Bounty Tournament, Bounties Only Activate In The Money And Have Zero Progressive Head Growth. You Calculate The Average Remaining Envelope Value And Convert It Into Chip Equity Relative To The Remaining Regular Prize Pool.',
+  },
 ];
 
 export default function BountyCalculatorPage({
@@ -95,23 +114,7 @@ export default function BountyCalculatorPage({
         ['Poker Tools', '/tools/poker-odds-calculator'],
         ['PKO & Mystery Bounty Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Do You Convert A PKO Bounty Into Tournament Chips?',
-          answer:
-            'In A Standard 50% Progressive Knockout (PKO) Tournament, An Initial Starting Knockout Is Worth Exactly 33.3% (One-Third) Of A Starting Stack In Chips. If The Starting Stack Is 20,000 Chips, Each Starting Bounty Unit Adds 6,667 Extra Chips To The Pot When You Cover The All-In Player.',
-        },
-        {
-          question: 'How Does Bounty Power Change Required Calling Equity?',
-          answer:
-            'Add The Bounty Chip Equivalent Directly To The Current Pot Before Dividing Your Call Size: Adjusted Required Equity = Call / (PotBeforeCall + Call + BountyChips). This Reduces Break-Even Calling Equity By 5% To 20% Depending On Stack Size.',
-        },
-        {
-          question: 'How Do Mystery Bounty Calculations Differ From PKO Tournaments?',
-          answer:
-            'In A Mystery Bounty Tournament, Bounties Only Activate In The Money And Have Zero Progressive Head Growth. You Calculate The Average Remaining Envelope Value And Convert It Into Chip Equity Relative To The Remaining Regular Prize Pool.',
-        },
-      ],
+      faqs: BOUNTY_CALCULATOR_FAQS,
       steps: [
         {
           name: 'Enter Tournament Starting Stack And Initial Bounty',
@@ -351,6 +354,8 @@ export default function BountyCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={BOUNTY_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="PKO & Mystery Bounty Chip Equity Calculator"

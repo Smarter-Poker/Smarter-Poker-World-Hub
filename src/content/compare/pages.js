@@ -1810,6 +1810,8 @@ export function productUrl(productId) {
 // Never Review or AggregateRating: nothing here is a rating.
 
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+/** The share card every comparison page serves as og:image, so the Article image is the page's own image. */
+export const COMPARE_ARTICLE_IMAGE = `${SITE_URL}/images/og-card.jpg`;
 export const WEBSITE_ID = `${SITE_URL}/#website`;
 export const COMPARE_INDEX_TITLE = 'Poker Room And Software Comparisons';
 
@@ -1835,9 +1837,14 @@ export function compareJsonLd(page) {
       description: page.description,
       url,
       mainEntityOfPage: url,
+      image: COMPARE_ARTICLE_IMAGE,
       datePublished: AS_OF,
       dateModified: AS_OF,
       inLanguage: 'en-US',
+      // The organization is the author: the pages carry no byline and name
+      // no person, and an Article without an author is incomplete for
+      // Google's Article guidance. Never a Person.
+      author: { '@id': ORGANIZATION_ID },
       publisher: { '@id': ORGANIZATION_ID },
       isPartOf: { '@id': WEBSITE_ID },
     },

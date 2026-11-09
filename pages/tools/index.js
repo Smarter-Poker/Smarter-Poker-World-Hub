@@ -12,6 +12,7 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const INTERACTIVE_TOOLS = [
@@ -170,6 +171,24 @@ const POSITIONAL_CHARTS = [
   { pos: 'SB', slug: 'sb', rfi: '41.9%', combos: '556 Combos', floor: '3BB Raise-Or-Fold Strategy Vs Big Blind Across 41.9% Of All Starting Hands' },
 ];
 
+const TOOLS_FAQS = [
+  {
+    question: 'Are All Smarter.Poker Calculators And GTO Range Tools Free To Use?',
+    answer:
+      'Yes. Every Calculator Under /tools On Smarter.Poker Is 100% Free To Use Directly In Your Browser On Desktop And Mobile With Zero Paywalls, Zero Subscriptions, And Instant Server-Rendered Output.',
+  },
+  {
+    question: 'Can AI Assistants Query Smarter.Poker Calculators Via Markdown Or MCP?',
+    answer:
+      'Yes. Append .md Or ?format=md With Query Parameters To Any Calculator URL Under /tools To Receive Pre-Computed Markdown Tables, Or Invoke The Smarter.Poker MCP Server At /api/mcp.',
+  },
+  {
+    question: 'Which Poker Math Calculators Are Included In The Smarter.Poker Directory?',
+    answer:
+      'The Suite Includes Multiway Equity, Malmuth-Harville ICM, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Bankroll Risk Of Ruin, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, And SPR Geometric Sizing.',
+  },
+];
+
 export default function PokerToolsDirectoryPage() {
   const canonicalPath = '/tools';
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
@@ -188,23 +207,7 @@ export default function PokerToolsDirectoryPage() {
         ['Hub', '/hub'],
         ['Poker Tools & Calculators', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'Are All Smarter.Poker Calculators And GTO Range Tools Free To Use?',
-          answer:
-            'Yes. Every Calculator Under /tools On Smarter.Poker Is 100% Free To Use Directly In Your Browser On Desktop And Mobile With Zero Paywalls, Zero Subscriptions, And Instant Server-Rendered Output.',
-        },
-        {
-          question: 'Can AI Assistants Query Smarter.Poker Calculators Via Markdown Or MCP?',
-          answer:
-            'Yes. Append .md Or ?format=md With Query Parameters To Any Calculator URL Under /tools To Receive Pre-Computed Markdown Tables, Or Invoke The Smarter.Poker MCP Server At /api/mcp.',
-        },
-        {
-          question: 'Which Poker Math Calculators Are Included In The Smarter.Poker Directory?',
-          answer:
-            'The Suite Includes Multiway Equity, Malmuth-Harville ICM, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Bankroll Risk Of Ruin, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, And SPR Geometric Sizing.',
-        },
-      ],
+      faqs: TOOLS_FAQS,
     });
 
     return [
@@ -390,6 +393,8 @@ export default function PokerToolsDirectoryPage() {
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={TOOLS_FAQS} />
 
         <CitationBacklinkBox
           title="Smarter.Poker Interactive Poker Tools & GTO Calculators Suite"

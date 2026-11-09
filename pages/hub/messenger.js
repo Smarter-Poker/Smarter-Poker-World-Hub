@@ -9,25 +9,6 @@ import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
-const MESSENGER_FAQS = [
-    {
-        question: 'Can I Make Free Video Calls On Smarter.Poker Messenger?',
-        answer: 'Yes. Smarter.Poker Messenger includes built-in WebRTC peer-to-peer video calling and audio calls with zero call time limits or software downloads required.',
-    },
-    {
-        question: 'Does Smarter.Poker Support Table FaceTime And Voice Chat?',
-        answer: 'Yes. Live table audio, video FaceTime sidecars, and private study rooms are integrated directly into private clubs and study groups for hands-free strategy discussion.',
-    },
-    {
-        question: 'Can I Share Hand Histories In Chat?',
-        answer: 'Yes. Players can embed interactive hand replays directly into direct messages and group chats from PokerStars, GGPoker, 888, and Smarter.Poker.',
-    },
-    {
-        question: 'Is Smarter.Poker Messenger Free For Poker Clubs And Study Groups?',
-        answer: 'Yes. Smarter.Poker Messenger is 100% free with unlimited direct messaging, group channels, study groups, reactions, and push notifications.',
-    },
-];
-
 const MESSENGER_SCHEMA = hubProductSchema({
     path: '/hub/messenger',
     name: 'Smarter.Poker Messenger & Video Calls',
@@ -36,7 +17,6 @@ const MESSENGER_SCHEMA = hubProductSchema({
     applicationCategory: 'CommunicationApplication',
     applicationSubCategory: 'InstantMessagingApplication',
     trail: [['Hub', '/hub'], ['Messenger', '/hub/messenger']],
-    faqs: MESSENGER_FAQS,
 });
 import Link from 'next/link';
 import { useRouter } from 'next/router';

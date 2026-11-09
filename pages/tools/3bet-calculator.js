@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const THREE_BET_BENCHMARK_TABLE = [
@@ -56,6 +57,24 @@ const THREE_BET_BENCHMARK_TABLE = [
     villainMdf: '35.0% Continue',
     optimal4BetSize: 'All-In Jam At 100 BB Or 45 BB Deepstack',
     valueToBluffRatio: '2.0 : 1 Heavily Value-Driven Against Loose Live Pools',
+  },
+];
+
+const THREE_BET_CALCULATOR_FAQS = [
+  {
+    question: 'What Is The Standard GTO 3-Bet Size In Position Vs Out Of Position?',
+    answer:
+      'At 100 Big Blinds Effective Depth, Solver-Approved GTO 3-Bet Sizing Is 3.0x The Open Size When In Position (For Example, 7.5 BB Against A 2.5 BB Open) And 4.0x The Open Size When Out Of Position In The Blinds (10.0 BB Against A 2.5 BB Open).',
+  },
+  {
+    question: 'How Much Should You Add To A 3-Bet Squeeze For Each Caller?',
+    answer:
+      'Add 1.0x The Original Open Raise Size For Every Cold-Caller In Between, Plus An Extra 0.5x When Out Of Position Or Deeper Than 140 Big Blinds. Against A 2.5 BB Open And 1 Caller, Squeeze To 10.0 BB In Position (4x) Or 12.5 BB From The Blinds (5x).',
+  },
+  {
+    question: 'What Is The Optimal 4-Bet Size In 100BB No-Limit Hold\'em?',
+    answer:
+      'When In Position Facing An Out-Of-Position 3-Bet, Optimal 4-Bet Sizing Is 2.1x To 2.2x The 3-Bet Size. When Out Of Position Facing An In-Position 3-Bet, Size Up To 2.4x To 2.5x The 3-Bet Size, Or Commit All-In Whenever A 4-Bet Exceeds 35% Of Your Effective Stack.',
   },
 ];
 
@@ -144,23 +163,7 @@ export default function ThreeBetCalculatorPage({
         ['Poker Tools', '/tools'],
         ['3-Bet & 4-Bet Sizing Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'What Is The Standard GTO 3-Bet Size In Position Vs Out Of Position?',
-          answer:
-            'At 100 Big Blinds Effective Depth, Solver-Approved GTO 3-Bet Sizing Is 3.0x The Open Size When In Position (For Example, 7.5 BB Against A 2.5 BB Open) And 4.0x The Open Size When Out Of Position In The Blinds (10.0 BB Against A 2.5 BB Open).',
-        },
-        {
-          question: 'How Much Should You Add To A 3-Bet Squeeze For Each Caller?',
-          answer:
-            'Add 1.0x The Original Open Raise Size For Every Cold-Caller In Between, Plus An Extra 0.5x When Out Of Position Or Deeper Than 140 Big Blinds. Against A 2.5 BB Open And 1 Caller, Squeeze To 10.0 BB In Position (4x) Or 12.5 BB From The Blinds (5x).',
-        },
-        {
-          question: 'What Is The Optimal 4-Bet Size In 100BB No-Limit Hold\'em?',
-          answer:
-            'When In Position Facing An Out-Of-Position 3-Bet, Optimal 4-Bet Sizing Is 2.1x To 2.2x The 3-Bet Size. When Out Of Position Facing An In-Position 3-Bet, Size Up To 2.4x To 2.5x The 3-Bet Size, Or Commit All-In Whenever A 4-Bet Exceeds 35% Of Your Effective Stack.',
-        },
-      ],
+      faqs: THREE_BET_CALCULATOR_FAQS,
       howTo: {
         name: 'How To Calculate Optimal 3-Bet, Squeeze, And 4-Bet Sizes',
         description: pageDesc,
@@ -435,6 +438,8 @@ export default function ThreeBetCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={THREE_BET_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="GTO Preflop 3-Bet, Squeeze, 4-Bet & Minimum Defense Calculator"

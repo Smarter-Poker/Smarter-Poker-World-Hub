@@ -63,6 +63,7 @@ import {
 import { homeGameUrl } from '../../src/lib/home-games/urls';
 import { US_STATES_BY_CODE } from '../../src/lib/home-games/locationUtils';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import FaqSection from '../../src/components/seo/FaqSection';
 
 const PAGE_SIZE = 12;
 
@@ -977,6 +978,7 @@ export default function HomeGamesPage() {
                 />
             </div>
 
+            <FaqSection faqs={HOME_GAMES_FAQS} />
             <HubPageSummary page="home-games" />
         </>
     );

@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const SPR_BENCHMARK_TABLE = [
@@ -64,6 +65,24 @@ const SPR_BENCHMARK_TABLE = [
     geo2: '270.2% Pot',
     geo3: '121.0% Pot',
     commitmentRule: 'Nut Flushes, Sets, And Straights Dominate; One-Pair Hands Exercise Pot Control',
+  },
+];
+
+const SPR_CALCULATOR_FAQS = [
+  {
+    question: 'How Do You Calculate Stack-To-Pot Ratio (SPR) In Poker?',
+    answer:
+      'Divide The Effective Remaining Chip Stack (The Smaller Stack Between The Active Contenders) By The Current Pot Size At The Start Of The Street: SPR = Effective Stack / Pot Size. A 400 Stack Into A 100 Flop Pot Equals An SPR Of 4.0.',
+  },
+  {
+    question: 'What Is The Geometric Bet Sizing Formula In GTO Poker?',
+    answer:
+      'Geometric Bet Sizing Computes The Exact Constant Pot Percentage Bet (s) Required To Put All Remaining Chips Into The Pot Across N Streets: s = 0.5 * ((1 + 2 * SPR)^(1 / N) - 1). At SPR 4.0 Over 3 Streets, Geometric Sizing Is 54.0% Pot On Flop, Turn, And River.',
+  },
+  {
+    question: 'What SPR Is Considered Stack-Committed For Top Pair Or Overpairs?',
+    answer:
+      'When Flop SPR Is 3.0 Or Lower (Typical In 3-Bet And 4-Bet Pots), Overpairs And Top Pair Top Kicker Are Generally Stack-Committed Against Balanced Ranges. Above SPR 8.0, One-Pair Hands Must Exercise Pot Control.',
   },
 ];
 
@@ -147,23 +166,7 @@ export default function SprCalculatorPage({
         ['Poker Tools', '/tools'],
         ['SPR & Geometric Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Do You Calculate Stack-To-Pot Ratio (SPR) In Poker?',
-          answer:
-            'Divide The Effective Remaining Chip Stack (The Smaller Stack Between The Active Contenders) By The Current Pot Size At The Start Of The Street: SPR = Effective Stack / Pot Size. A 400 Stack Into A 100 Flop Pot Equals An SPR Of 4.0.',
-        },
-        {
-          question: 'What Is The Geometric Bet Sizing Formula In GTO Poker?',
-          answer:
-            'Geometric Bet Sizing Computes The Exact Constant Pot Percentage Bet (s) Required To Put All Remaining Chips Into The Pot Across N Streets: s = 0.5 * ((1 + 2 * SPR)^(1 / N) - 1). At SPR 4.0 Over 3 Streets, Geometric Sizing Is 54.0% Pot On Flop, Turn, And River.',
-        },
-        {
-          question: 'What SPR Is Considered Stack-Committed For Top Pair Or Overpairs?',
-          answer:
-            'When Flop SPR Is 3.0 Or Lower (Typical In 3-Bet And 4-Bet Pots), Overpairs And Top Pair Top Kicker Are Generally Stack-Committed Against Balanced Ranges. Above SPR 8.0, One-Pair Hands Must Exercise Pot Control.',
-        },
-      ],
+      faqs: SPR_CALCULATOR_FAQS,
       steps: [
         {
           name: 'Enter Current Pot Size And Effective Remaining Stack',
@@ -421,6 +424,8 @@ export default function SprCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={SPR_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Poker Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator"

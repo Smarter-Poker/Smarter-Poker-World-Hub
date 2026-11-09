@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const STAKES_WINRATE_BENCHMARKS = [
@@ -30,6 +31,24 @@ const SAMPLE_SIZE_CONFIDENCE = [
   { sampleHands: '50,000 Hands (1.5 Years Live Full-Time)', stdError85: '±3.80 BB/100', ci95Width: '±7.45 BB/100', probLossAt4Bb: '14.6% Chance In Red', statisticalReliability: 'Moderate Confidence' },
   { sampleHands: '100,000 Hands (Online Quarterly Volume)', stdError85: '±2.69 BB/100', ci95Width: '±5.27 BB/100', probLossAt4Bb: '6.8% Chance In Red', statisticalReliability: 'Strong Winrate Proof' },
   { sampleHands: '250,000 Hands (Multi-Year / High Volume)', stdError85: '±1.70 BB/100', ci95Width: '±3.33 BB/100', probLossAt4Bb: '0.9% Chance In Red', statisticalReliability: 'Institutional Grade Certainty' },
+];
+
+const POKER_WINRATE_CALCULATOR_FAQS = [
+  {
+    question: 'How Do You Convert Live Poker Hourly Rate Into BB/100?',
+    answer:
+      'Divide Your Hourly Dollar Winrate By The Big Blind Size To Find Big Blinds Won Per Hour (BB/Hr), Then Multiply By 100 And Divide By Hands Dealt Per Hour (Typically 27 To 30 Hands Per Hour In Live Cash Games). Winning $50/Hr At $2/$5 (10 BB/Hr At 28 Hands/Hr) Equals 35.7 BB/100.',
+  },
+  {
+    question: 'What Is A Good BB/100 Winrate In Live Vs. Online Cash Games?',
+    answer:
+      'In Live $1/$3 And $2/$5 No-Limit Hold\'em, Strong Winning Players Achieve 7 To 12 BB/100 (2 To 3.5 Big Blinds Per Hour). In Competitive Online 6-Max Cash Games, A Sustainable Winning Rate Is 3 To 6 BB/100 Compensated By Multi-Tabling 300+ Hands Per Hour.',
+  },
+  {
+    question: 'How Many Hands Are Needed To Prove Your True Poker Winrate?',
+    answer:
+      'Because Cash Game Standard Deviation Averages 75 To 85 BB/100, A 10,000-Hand Sample Carries A 95% Confidence Interval Of Plus Or Minus 16.7 BB/100. At Least 50,000 To 100,000 Hands Are Required To Narrow The Margin Of Error Below Plus Or Minus 5.3 BB/100.',
+  },
 ];
 
 export default function PokerWinrateCalculatorPage({
@@ -97,23 +116,7 @@ export default function PokerWinrateCalculatorPage({
         ['Poker Tools', '/tools/poker-odds-calculator'],
         ['Poker Winrate & BB/100 Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Do You Convert Live Poker Hourly Rate Into BB/100?',
-          answer:
-            'Divide Your Hourly Dollar Winrate By The Big Blind Size To Find Big Blinds Won Per Hour (BB/Hr), Then Multiply By 100 And Divide By Hands Dealt Per Hour (Typically 27 To 30 Hands Per Hour In Live Cash Games). Winning $50/Hr At $2/$5 (10 BB/Hr At 28 Hands/Hr) Equals 35.7 BB/100.',
-        },
-        {
-          question: 'What Is A Good BB/100 Winrate In Live Vs. Online Cash Games?',
-          answer:
-            'In Live $1/$3 And $2/$5 No-Limit Hold\'em, Strong Winning Players Achieve 7 To 12 BB/100 (2 To 3.5 Big Blinds Per Hour). In Competitive Online 6-Max Cash Games, A Sustainable Winning Rate Is 3 To 6 BB/100 Compensated By Multi-Tabling 300+ Hands Per Hour.',
-        },
-        {
-          question: 'How Many Hands Are Needed To Prove Your True Poker Winrate?',
-          answer:
-            'Because Cash Game Standard Deviation Averages 75 To 85 BB/100, A 10,000-Hand Sample Carries A 95% Confidence Interval Of Plus Or Minus 16.7 BB/100. At Least 50,000 To 100,000 Hands Are Required To Narrow The Margin Of Error Below Plus Or Minus 5.3 BB/100.',
-        },
-      ],
+      faqs: POKER_WINRATE_CALCULATOR_FAQS,
       steps: [
         {
           name: 'Enter Total Net Profit And Big Blind Size',
@@ -338,6 +341,8 @@ export default function PokerWinrateCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={POKER_WINRATE_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Poker Winrate, BB/100 & Hourly Rate Calculator"

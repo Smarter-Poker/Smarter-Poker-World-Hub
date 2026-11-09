@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const REGIONAL_RAKE_BENCHMARK_TABLE = [
@@ -52,6 +53,24 @@ const REGIONAL_RAKE_BENCHMARK_TABLE = [
     tableHourlyExtracted: 'Fixed $126 - $162 / Hr Across 9 Seats',
     perPlayerCostPerHr: 'Fixed $14 - $18 / Hr (1.4 - 1.8 BB/Hr)',
     costInBbPer100: '5.0 To 6.4 BB/100 (Lowest Rake Burden)',
+  },
+];
+
+const RAKE_CALCULATOR_FAQS = [
+  {
+    question: 'How Much Rake Does A Live Cash Game Player Pay Per Hour?',
+    answer:
+      'In A Standard US Casino $1/$3 Or $2/$5 Cash Game With A 10% Up To $6 Cap Plus $2 Bad Beat Jackpot Drop, An Active Player Winning 3.5 Pots Per Hour Pays Roughly $21 To $26 Per Hour In Total Rake And Promotional Drops, Equivalent To $21,000 To $26,000 Over 1,000 Hours.',
+  },
+  {
+    question: 'Is Timed Seat Charge Cheaper Than Percentage Pot Rake?',
+    answer:
+      'For Loose Or Aggressive Players Who Win 3.5 Or More Pots Per Hour, A $12 To $14 Per Hour Timed Seat Collection Saves $8 To $14 Per Hour ($8,000 To $14,000 Annually) Compared To A $6+$2 Pot Drop. Tight Players Who Win Fewer Than 2 Pots Per Hour Pay Less Under Percentage Drop Rake.',
+  },
+  {
+    question: 'How Do You Convert Live Cash Game Rake Into BB/100?',
+    answer:
+      'Divide Your Hourly Rake Paid In Dollars By The Big Blind Size To Find Big Blinds Raked Per Hour, Then Multiply By 100 And Divide By Hands Dealt Per Hour (Typically 28 Hands/Hr Live). Paying $21/Hr At $2/$5 (4.2 BB/Hr) Equals 15.0 BB/100.',
   },
 ];
 
@@ -139,23 +158,7 @@ export default function RakeCalculatorPage({
         ['Poker Tools', '/tools'],
         ['Live Cash Rake Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Much Rake Does A Live Cash Game Player Pay Per Hour?',
-          answer:
-            'In A Standard US Casino $1/$3 Or $2/$5 Cash Game With A 10% Up To $6 Cap Plus $2 Bad Beat Jackpot Drop, An Active Player Winning 3.5 Pots Per Hour Pays Roughly $21 To $26 Per Hour In Total Rake And Promotional Drops, Equivalent To $21,000 To $26,000 Over 1,000 Hours.',
-        },
-        {
-          question: 'Is Timed Seat Charge Cheaper Than Percentage Pot Rake?',
-          answer:
-            'For Loose Or Aggressive Players Who Win 3.5 Or More Pots Per Hour, A $12 To $14 Per Hour Timed Seat Collection Saves $8 To $14 Per Hour ($8,000 To $14,000 Annually) Compared To A $6+$2 Pot Drop. Tight Players Who Win Fewer Than 2 Pots Per Hour Pay Less Under Percentage Drop Rake.',
-        },
-        {
-          question: 'How Do You Convert Live Cash Game Rake Into BB/100?',
-          answer:
-            'Divide Your Hourly Rake Paid In Dollars By The Big Blind Size To Find Big Blinds Raked Per Hour, Then Multiply By 100 And Divide By Hands Dealt Per Hour (Typically 28 Hands/Hr Live). Paying $21/Hr At $2/$5 (4.2 BB/Hr) Equals 15.0 BB/100.',
-        },
-      ],
+      faqs: RAKE_CALCULATOR_FAQS,
       howTo: {
         name: 'How To Compare Percentage Pot Drop Rake Vs Timed Seat Charge',
         description: pageDesc,
@@ -491,6 +494,8 @@ export default function RakeCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={RAKE_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Live Cash Game Rake & Time-Charge Comparison Calculator"

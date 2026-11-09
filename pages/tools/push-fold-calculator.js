@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const POSITION_SHOVE_BENCHMARKS = [
@@ -42,6 +43,24 @@ const POSITION_BASE_FACTORS = {
   BTN: { label: 'Button (BTN)', playersLeft: 2, base10bb: 48.2, callTightness: 23.4 },
   SB: { label: 'Small Blind (SB)', playersLeft: 1, base10bb: 64.8, callTightness: 36.0 },
 };
+
+const PUSH_FOLD_CALCULATOR_FAQS = [
+  {
+    question: 'When Should You Enter Push/Fold Mode In A Poker Tournament?',
+    answer:
+      'Players Typically Transition Into Strict Push/Fold Strategy Below 12 To 15 Big Blinds. At This Stack Depth, Non-All-In Open Raises Risk 20% Or More Of Your Stack Without Leaving Room To Maneuver Postflop.',
+  },
+  {
+    question: 'How Do Big Blind Antes Affect Push/Fold Ranges?',
+    answer:
+      'A Standard 100% Big Blind Ante (12.5% Per Player At An 8-Handed Table) Increases The Uncontested Dead Money From 1.5 BB To 2.5 BB, Widening Optimal Open-Shove Ranges By 25% To 40% In Late Position.',
+  },
+  {
+    question: 'Why Is Calling An All-In Tighter Than Shoving Yourself?',
+    answer:
+      'When You Open-Shove, You Benefit From Both Fold Equity And Showdown Equity. When Calling An Existing All-In, Fold Equity Is Zero And You Rely Entirely On Raw Card Equity Against A Concentrated Range.',
+  },
+];
 
 export default function PushFoldCalculatorPage({
   initialStackBb = 10,
@@ -123,23 +142,7 @@ export default function PushFoldCalculatorPage({
         ['Poker Tools', '/tools/poker-odds-calculator'],
         ['Push/Fold Short-Stack Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'When Should You Enter Push/Fold Mode In A Poker Tournament?',
-          answer:
-            'Players Typically Transition Into Strict Push/Fold Strategy Below 12 To 15 Big Blinds. At This Stack Depth, Non-All-In Open Raises Risk 20% Or More Of Your Stack Without Leaving Room To Maneuver Postflop.',
-        },
-        {
-          question: 'How Do Big Blind Antes Affect Push/Fold Ranges?',
-          answer:
-            'A Standard 100% Big Blind Ante (12.5% Per Player At An 8-Handed Table) Increases The Uncontested Dead Money From 1.5 BB To 2.5 BB, Widening Optimal Open-Shove Ranges By 25% To 40% In Late Position.',
-        },
-        {
-          question: 'Why Is Calling An All-In Tighter Than Shoving Yourself?',
-          answer:
-            'When You Open-Shove, You Benefit From Both Fold Equity And Showdown Equity. When Calling An Existing All-In, Fold Equity Is Zero And You Rely Entirely On Raw Card Equity Against A Concentrated Range.',
-        },
-      ],
+      faqs: PUSH_FOLD_CALCULATOR_FAQS,
       steps: [
         {
           name: 'Enter Effective Stack Size In Big Blinds (BB)',
@@ -386,6 +389,8 @@ export default function PushFoldCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={PUSH_FOLD_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Poker Push/Fold Short-Stack Nash Equilibrium Calculator"

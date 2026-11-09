@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const TDA_CHIP_DISTRIBUTION = [
@@ -42,6 +43,24 @@ const BASE_BLIND_PROGRESSION = [
   { level: 16, sb: 8000, bb: 16000 },
   { level: 17, sb: 10000, bb: 20000 },
   { level: 18, sb: 15000, bb: 30000 },
+];
+
+const BLIND_STRUCTURE_CALCULATOR_FAQS = [
+  {
+    question: 'How Do You Calculate When A Poker Tournament Will End?',
+    answer:
+      'A No-Limit Hold\'em Tournament Almost Always Concludes When Total Chips In Play Equal Between 20 And 30 Big Blinds. Multiply Total Entries By The Starting Stack And Divide By 25 To Find The Approximate Final Big Blind Level.',
+  },
+  {
+    question: 'How Many Poker Chips Should Each Player Start With In A Home Game?',
+    answer:
+      'Under Standard Tournament Directors Association (TDA) Guidelines, Each Player Should Receive 28 To 32 Physical Chips Across 3 To 4 Denominations (For Example: Ten 100s, Eight 500s, Ten 1,000s, And One 5,000 Chip For A 20,000 Starting Stack).',
+  },
+  {
+    question: 'Should Home Poker Tournaments Use A Big Blind Ante?',
+    answer:
+      'Yes. Posting A Single Big Blind Ante Equal To The Big Blind Size Dramatically Speeds Up Dealing Pace By 15% To 20%, Eliminates Small-Chip Making-Change Delays, And Enforces Proper Short-Stack Action.',
+  },
 ];
 
 export default function BlindStructureCalculatorPage({
@@ -124,23 +143,7 @@ export default function BlindStructureCalculatorPage({
         ['Poker Tools', '/tools'],
         ['Blind Structure Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Do You Calculate When A Poker Tournament Will End?',
-          answer:
-            'A No-Limit Hold\'em Tournament Almost Always Concludes When Total Chips In Play Equal Between 20 And 30 Big Blinds. Multiply Total Entries By The Starting Stack And Divide By 25 To Find The Approximate Final Big Blind Level.',
-        },
-        {
-          question: 'How Many Poker Chips Should Each Player Start With In A Home Game?',
-          answer:
-            'Under Standard Tournament Directors Association (TDA) Guidelines, Each Player Should Receive 28 To 32 Physical Chips Across 3 To 4 Denominations (For Example: Ten 100s, Eight 500s, Ten 1,000s, And One 5,000 Chip For A 20,000 Starting Stack).',
-        },
-        {
-          question: 'Should Home Poker Tournaments Use A Big Blind Ante?',
-          answer:
-            'Yes. Posting A Single Big Blind Ante Equal To The Big Blind Size Dramatically Speeds Up Dealing Pace By 15% To 20%, Eliminates Small-Chip Making-Change Delays, And Enforces Proper Short-Stack Action.',
-        },
-      ],
+      faqs: BLIND_STRUCTURE_CALCULATOR_FAQS,
       steps: [
         {
           name: 'Configure Entrants, Starting Stack, And Level Length',
@@ -467,6 +470,8 @@ export default function BlindStructureCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={BLIND_STRUCTURE_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Poker Tournament Blind Structure & Chip Distribution Generator"

@@ -25,7 +25,8 @@
  * is, what the page will show, and where the neighbouring pages are.
  */
 import Link from 'next/link';
-import { TOUR_TYPE_LABELS } from '../../lib/seo/tourPageSeo';
+import { TOUR_TYPE_LABELS, tourFaqs } from '../../lib/seo/tourPageSeo';
+import FaqSection from './FaqSection';
 
 export default function TourPageSummary({ code, name, type, website, stops = [], events = [], facts = null }) {
   const label = (name || '').trim() || `${code} Poker Tour`;
@@ -162,6 +163,7 @@ export default function TourPageSummary({ code, name, type, website, stops = [],
           </li>
         )}
       </ul>
+      <FaqSection faqs={tourFaqs({ code, name, stops: stopList })} id="tour-faq" />
       <p style={styles.compliance}>
         Schedules And Results Come From The Tour Operators And Can Change. 18+.{' '}
         <Link href="/terms" style={styles.inlineLink}>Terms</Link>

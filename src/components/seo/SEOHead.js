@@ -40,10 +40,15 @@ export function normalizeJsonLdGraph(jsonLd) {
   const hasOrgNode = cleaned.some((n) => n && n['@id'] === 'https://smarter.poker/#organization');
   const hasWebsiteNode = cleaned.some((n) => n && n['@id'] === 'https://smarter.poker/#website');
   const prefix = [];
-  if (!hasOrgNode && serialized.includes('https://smarter.poker/#organization')) {
+  const needsWebsite = !hasWebsiteNode && serialized.includes('https://smarter.poker/#website');
+  // The WebSite node names the Organization as its publisher, so a graph that
+  // needs the WebSite needs the Organization too; without this a page that
+  // only pointed at #website shipped a dangling #organization reference
+  // (structured data audit, 2026-11-09).
+  if (!hasOrgNode && (needsWebsite || serialized.includes('https://smarter.poker/#organization'))) {
     prefix.push(schemas.organization);
   }
-  if (!hasWebsiteNode && serialized.includes('https://smarter.poker/#website')) {
+  if (needsWebsite) {
     prefix.push(schemas.website);
   }
   return prefix.length > 0 ? [...prefix, ...cleaned] : cleaned;

@@ -34,7 +34,7 @@ test('Phase 22: buildDailyTournamentSchema and buildSeriesDirectorySchema includ
 
 test('Phase 22: all 4 live discovery hubs wire FAQPage and SpeakableSpecification into their markup', () => {
   const eventsCal = fs.readFileSync(path.resolve('pages/hub/events-calendar.js'), 'utf8');
-  assert.ok(eventsCal.includes('faqs: ['), 'events-calendar.js must pass faqs to hubCollectionSchema');
+  assert.ok(eventsCal.includes('faqs: EVENTS_CALENDAR_FAQS'), 'events-calendar.js must pass faqs to hubCollectionSchema');
 
   const daily = fs.readFileSync(path.resolve('pages/hub/daily-tournaments.js'), 'utf8');
   assert.ok(daily.includes('faqSchema(DAILY_TOURNAMENTS_FAQS'), 'daily-tournaments.js must include faqSchema');

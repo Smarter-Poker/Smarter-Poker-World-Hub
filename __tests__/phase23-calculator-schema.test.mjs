@@ -15,7 +15,7 @@ test('Phase 23: all interactive calculators and range labs emit hubProductSchema
   for (const rel of files) {
     const src = fs.readFileSync(path.resolve(rel), 'utf8');
     assert.ok(src.includes('hubProductSchema('), `${rel} must use hubProductSchema()`);
-    assert.ok(src.includes('faqs:'), `${rel} must provide faqs to hubProductSchema`);
+    assert.match(src, /\bfaqs\s*[:,]/, `${rel} must provide faqs to hubProductSchema`);
     assert.ok(src.includes('howTo:'), `${rel} must provide howTo steps to hubProductSchema`);
   }
 });
