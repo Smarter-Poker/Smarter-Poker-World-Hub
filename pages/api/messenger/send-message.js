@@ -4,8 +4,11 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeMessage } from '../../../src/utils/messageSanitizer';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { notifyNewMessage } from '../../../src/lib/notify';
+import { parseMessageMedia } from '../../../src/lib/messenger/messageMedia.mjs';
 import { randomUUID } from 'node:crypto';
 import { authorizeMessengerConversation } from '../../../src/lib/messengerWorkspace.mjs';
+
+const ATTACHMENT_PREVIEW = { image: 'a photo', video: 'a video', gif: 'a GIF', audio: 'a voice message' };
 
 const isUUID = value => typeof value === 'string'
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
@@ -273,8 +276,14 @@ export default async function handler(req, res) {
                       senderProfile?.username || 'Someone';
 
                   // Never put message media or metadata in a lock-screen preview.
-                  const preview =
-                      messageType && messageType !== 'text'
+                  // An attachment is recognised from the content itself, not
+                  // only from message_type: the uploader sends a photo as an
+                  // ordinary text row, so trusting message_type alone put the
+                  // raw storage markup on the lock screen.
+                  const attachment = parseMessageMedia(content);
+                  const preview = attachment
+                      ? `Sent ${ATTACHMENT_PREVIEW[attachment.kind] || 'an attachment'}`
+                      : messageType && messageType !== 'text'
                           ? `Sent ${messageType === 'image' ? 'a photo' : 'an attachment'}`
                           : String(content || '').slice(0, 140);
 

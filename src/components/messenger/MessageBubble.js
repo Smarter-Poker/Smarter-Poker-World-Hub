@@ -6,6 +6,7 @@ import AccountingInvoiceCard from './AccountingInvoiceCard';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
+import { parseMessageMedia, isMediaMessage } from '../../lib/messenger/messageMedia.mjs';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
@@ -148,22 +149,106 @@ export function LinkPreviewCard({ url, isOwn, theme: C = defaultTheme }) {
 LinkPreviewCard.displayName = 'LinkPreviewCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💬 MESSAGE CONTENT (MARKDOWN/HTML DETECTOR)
+// 🖼️ MEDIA ATTACHMENT (PHOTO / VIDEO / GIF / VOICE)
+// Every attachment in the thread is drawn here, from the one dialect in
+// src/lib/messenger/messageMedia.mjs. If the file itself cannot load, the
+// bubble shows a tappable card — never the raw markup it was stored as.
 // ═══════════════════════════════════════════════════════════════════════════
-export function MessageContent({ content }) {
-    if (!content || typeof content !== 'string') return <span>{content}</span>;
+export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
+    const [failed, setFailed] = useState(false);
+    useEffect(() => { setFailed(false); }, [media?.url]);
+    if (!media) return null;
 
-    const gifMatch = content.match(/^\[GIF\]\((.+?)\)$/);
-    if (gifMatch) {
+    const caption = media.caption
+        ? <div style={{ marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{media.caption}</div>
+        : null;
+    const forwarded = media.forwarded
+        ? <span style={{ display: 'block', fontSize: 11, color: '#58a6ff', marginBottom: 4, fontStyle: 'italic' }}>Forwarded</span>
+        : null;
+
+    if (failed) {
         return (
-            <img
-                src={gifMatch[1]}
-                alt="GIF"
-                style={{ maxWidth: 260, maxHeight: 260, borderRadius: 8, display: 'block' }}
-                loading="lazy"
-            />
+            <span>
+                {forwarded}
+                <a
+                    href={media.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+                        borderRadius: 10, textDecoration: 'none',
+                        border: `1px solid ${isOwn ? 'rgba(255,255,255,0.35)' : C.border}`,
+                        color: isOwn ? 'white' : C.text,
+                    }}
+                >
+                    <span style={{ fontSize: 20 }} aria-hidden="true">📎</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>
+                        {media.kind === 'video' ? 'Video' : media.kind === 'audio' ? 'Voice Message' : 'Photo'} · Tap To Open
+                    </span>
+                </a>
+                {caption}
+            </span>
         );
     }
+
+    if (media.kind === 'video') {
+        return (
+            <span>
+                {forwarded}
+                <video
+                    src={media.url}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    onError={() => setFailed(true)}
+                    onClick={e => e.stopPropagation()}
+                    style={{ maxWidth: '100%', maxHeight: 280, borderRadius: 8, display: 'block' }}
+                />
+                {caption}
+            </span>
+        );
+    }
+
+    if (media.kind === 'audio') {
+        return (
+            <span>
+                {forwarded}
+                <AudioMessage src={media.url} isOwn={isOwn} duration={media.duration} theme={C} />
+                {caption}
+            </span>
+        );
+    }
+
+    return (
+        <span>
+            {forwarded}
+            <img
+                src={media.url}
+                alt={media.kind === 'gif' ? 'GIF' : 'Photo Attachment'}
+                loading="lazy"
+                onError={() => setFailed(true)}
+                onClick={e => { e.stopPropagation(); window.open(media.url, '_blank', 'noopener,noreferrer'); }}
+                style={{
+                    maxWidth: media.kind === 'gif' ? 260 : '100%',
+                    maxHeight: media.kind === 'gif' ? 260 : 280,
+                    borderRadius: 8, display: 'block', cursor: 'zoom-in',
+                }}
+            />
+            {caption}
+        </span>
+    );
+}
+MediaAttachment.displayName = 'MediaAttachment';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 💬 MESSAGE CONTENT (MARKDOWN/HTML DETECTOR)
+// ═══════════════════════════════════════════════════════════════════════════
+export function MessageContent({ content, isOwn = false, theme = defaultTheme }) {
+    if (!content || typeof content !== 'string') return <span>{content}</span>;
+
+    const media = parseMessageMedia(content);
+    if (media) return <MediaAttachment media={media} isOwn={isOwn} theme={theme} />;
 
     const isForwarded = content.startsWith('[Forwarded] ');
     const displayContent = isForwarded ? content.slice(12) : content;
@@ -992,46 +1077,7 @@ export function MessageBubble({
                             );
                         }
 
-                        if (content.startsWith('[MEDIA]')) {
-                            const rawMedia = content.replace('[MEDIA]', '');
-                            let mediaUrl = rawMedia;
-                            let mediaType = 'image';
-                            try {
-                                const parsed = JSON.parse(rawMedia);
-                                mediaUrl = parsed.url;
-                                mediaType = parsed.type || 'image';
-                            } catch (_) { /* legacy plain URL fallback */ }
-
-                            if (mediaType === 'video') {
-                                return (
-                                    <video
-                                        src={mediaUrl}
-                                        controls
-                                        style={{ maxWidth: '100%', maxHeight: 280, borderRadius: 8, display: 'block' }}
-                                        onClick={e => e.stopPropagation()}
-                                        preload="metadata"
-                                    />
-                                );
-                            }
-                            return (
-                                <img
-                                    src={mediaUrl}
-                                    alt="Uploaded Media"
-                                    style={{ maxWidth: '100%', maxHeight: 280, borderRadius: 8, display: 'block', cursor: 'zoom-in' }}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(mediaUrl, '_blank');
-                                    }}
-                                    loading="lazy"
-                                />
-                            );
-                        }
-
-                        if (content.startsWith('[AUDIO]')) {
-                            const audioUrl = content.replace('[AUDIO]', '');
-                            return <AudioMessage src={audioUrl} isOwn={isOwn} theme={C} />;
-                        }
-
+                        // A removed message never renders its attachment.
                         if (message.is_deleted) {
                             return (
                                 <span style={{ fontStyle: 'italic', opacity: 0.7 }}>
@@ -1040,12 +1086,17 @@ export function MessageBubble({
                             );
                         }
 
-                        return <MessageContent content={content} />;
+                        // Photos, videos, GIFs and voice notes — current and
+                        // retired payloads alike — go through the one dialect.
+                        const media = parseMessageMedia(content);
+                        if (media) return <MediaAttachment media={media} isOwn={isOwn} theme={C} />;
+
+                        return <MessageContent content={content} isOwn={isOwn} theme={C} />;
                     })()}
                     {(() => {
                         let content = message.content || message.text || '';
                         content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
-                        if (message.is_deleted || content.startsWith('[MEDIA]') || content.startsWith('[AUDIO]') || content.startsWith('[CALL_RECEIPT]') || content.startsWith('[LIVE_INVITE]')) {
+                        if (message.is_deleted || isMediaMessage(content) || content.startsWith('[CALL_RECEIPT]') || content.startsWith('[LIVE_INVITE]')) {
                             return null;
                         }
                         const urls = content.match(URL_REGEX);

@@ -87,6 +87,7 @@ import { requestPushNudge } from '../../src/lib/push/enrollment-nudge.mjs';
 import AccountingInvoiceCard from '../../src/components/messenger/AccountingInvoiceCard';
 import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
+import { encodeMessageMedia } from '../../src/lib/messenger/messageMedia.mjs';
 
 // Default light theme (overridden at component level)
 let C = getTheme(false);
@@ -2394,7 +2395,12 @@ function MessengerPage() {
     // Handle GIF send — sends GIF URL as a message
     const handleGifSend = (gifUrl) => {
         if (!gifUrl) return;
-        handleSendMessage(`[GIF](${gifUrl})`);
+        const encoded = encodeMessageMedia({ kind: 'gif', url: gifUrl });
+        if (!encoded) {
+            setToast({ type: 'error', message: 'That GIF Could Not Be Attached' });
+            return;
+        }
+        handleSendMessage(encoded);
     };
 
     const handleTogglePin = (conversationId) => continuity.write(conversationId, 'pin', !pinnedConvoIds.includes(conversationId));
@@ -2424,9 +2430,15 @@ function MessengerPage() {
         const sameAccount = () => authIdentityRef.current === actorId && authGenerationRef.current === generation;
         const current = () => sameAccount() && workspaceRef.current === scope && activeConversationRef.current?.id === conversationId;
         const blobUrl = URL.createObjectURL(file);
+        const previewContent = contentForUrl(blobUrl);
+        if (!previewContent) {
+            URL.revokeObjectURL(blobUrl);
+            setToast({ type: 'error', message: 'That File Could Not Be Attached' });
+            return;
+        }
         const tempId = `temp-${requestId}`;
         setMessages(previous => [...previous, { id: tempId, request_id: requestId, conversation_id: conversationId,
-            content: contentForUrl(blobUrl), created_at: new Date().toISOString(), sender_id: actorId,
+            content: previewContent, created_at: new Date().toISOString(), sender_id: actorId,
             profiles: profile, status: 'sending' }]);
         setToast({ type: 'info', message: 'Uploading...' });
         try {
@@ -2445,7 +2457,9 @@ function MessengerPage() {
                 if (!result.ok) throw new Error('Upload Did Not Complete');
             } finally { clearTimeout(timeout); }
             if (!sameAccount()) return;
-            await queueMessengerSend(contentForUrl(upload.publicUrl), { actorId, conversationId, requestId, metadata, profile });
+            const sendContent = contentForUrl(upload.publicUrl);
+            if (!sendContent) throw new Error('Upload Produced An Unusable Address');
+            await queueMessengerSend(sendContent, { actorId, conversationId, requestId, metadata, profile });
         } catch (error) {
             if (current()) {
                 setMessages(previous => current() ? previous.filter(message => message.id !== tempId) : previous);
@@ -2473,7 +2487,7 @@ function MessengerPage() {
         return uploadMessengerAttachment(file, {
             fileName: file.name || `media_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
             mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
-            contentForUrl: url => isImage ? `[Image](${url})` : `[Video](${url})`, timeoutMs: 5 * 60 * 1000,
+            contentForUrl: url => encodeMessageMedia({ kind: isImage ? 'image' : 'video', url }), timeoutMs: 5 * 60 * 1000,
         });
     };
 
@@ -2481,7 +2495,7 @@ function MessengerPage() {
         if (!user || !activeConversation || !audioBlob) return;
         return uploadMessengerAttachment(audioBlob, {
             fileName: `voice_${Date.now()}.webm`, mimeType: 'audio/webm',
-            contentForUrl: url => `[Audio](${url})|dur:${durationSeconds || 0}`, timeoutMs: 60000,
+            contentForUrl: url => encodeMessageMedia({ kind: 'audio', url, duration: durationSeconds }), timeoutMs: 60000,
         });
     };
 

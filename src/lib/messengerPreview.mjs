@@ -8,6 +8,8 @@
  * variation selectors are removed, and the two system payloads read as what
  * they are. The message itself is never changed.
  */
+import { parseMessageMedia, mediaPreviewLabel } from './messenger/messageMedia.mjs';
+
 const PICTOGRAPHS = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu;
 const MARKDOWN_MARKERS = /(\*\*|__|~~|`+)/gu;
 const LINE_MARKERS = /^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+(?=\S))/gmu;
@@ -32,6 +34,12 @@ export function messengerPreviewText(value, maxLength = 35) {
   let text = String(value ?? '');
   if (text.startsWith('[LIVE_INVITE]')) return 'Live Stream Invite';
   if (text.startsWith('[CALL_RECEIPT]')) return callReceipt(text.slice('[CALL_RECEIPT]'.length));
+  const media = parseMessageMedia(text);
+  if (media) {
+    const label = mediaPreviewLabel(media.kind);
+    if (!media.caption) return label;
+    text = `${label}: ${media.caption}`;
+  }
   text = text
     .replace(LINK, '$1')
     .replace(LINE_MARKERS, '')

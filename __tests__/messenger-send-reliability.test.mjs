@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 import { verifyAccountingMessage } from '../src/lib/accountingMessage.mjs';
+import { parseMessageMedia } from '../src/lib/messenger/messageMedia.mjs';
 
 const USER = '11111111-1111-4111-8111-111111111111';
 const OTHER = '22222222-2222-4222-8222-222222222222';
@@ -58,6 +59,9 @@ function fixture(options = {}) {
         getServerUserWithFallback: async () => ({ user: options.unauthenticated ? null : { id: USER } }),
         applyRateLimit: () => !options.limited, LIMITS: { write: {} }, reportApiError() {},
         sanitizeMessage: content => content.replace(/<script>.*?<\/script>/g, '[Removed Malicious Code]'),
+        // The real reader: the route recognises an attachment from the
+        // content itself, so the lock screen never shows its markup.
+        parseMessageMedia,
         // Routes authorize one conversation through the same resolve rules.
         authorizeMessengerConversation: (db, userId, conversationId) =>
             mocks.getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId }),
@@ -137,6 +141,17 @@ test('new sends preserve authenticated identity, canonical payload and existing 
     assert.deepEqual(f.access, [{ userId: USER, request: { workspace: 'resolve', conversationId: CONVERSATION } }]);
     assert.equal(f.notifications.length, 1);
     assert.equal(f.notifications[0][3], 'Sent a photo');
+});
+
+test('an attachment sent as ordinary text still reads as an attachment on the lock screen', async () => {
+    const photo = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media-messages/a/b.png';
+    const f = fixture();
+    await f.run({ userId: OTHER, content: `[Image](${photo})` });
+    assert.equal(f.notifications[0][3], 'Sent a photo');
+
+    const voice = fixture();
+    await voice.run({ userId: OTHER, content: `[Audio](${photo})|dur:9` });
+    assert.equal(voice.notifications[0][3], 'Sent a voice message');
 });
 
 test('retry returns the persisted message ID without repeating notifications', async () => {
