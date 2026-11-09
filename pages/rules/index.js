@@ -110,7 +110,7 @@ export default function PokerRulesIndexPage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Official Poker Rules & TDA Floor Rulings Guide"
+        title="Official Poker Rules and TDA Floor Rulings"
         description="Complete Encyclopedia Of 30 Official Poker Rules, Tournament TDA Rulings, And Robert's Rules Of Poker Cash Game Procedures: Showdown Order, String Bets, Side Pots, And Straddles."
         canonical={RULES_BASE_PATH}
         markdownUrl="https://smarter.poker/rules.md"

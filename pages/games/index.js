@@ -111,7 +111,7 @@ export default function PokerGamesIndexPage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Poker Variants & Mixed Games Encyclopedia (15 Games)"
+        title="Poker Variants & Mixed Games Guide"
         description="Complete Rules, Hand Rankings, Betting Structures, And Starting Hand Strategy For 15 Poker Variants: Hold'em, PLO4/5/6, Omaha Hi-Lo, Short Deck, Stud, Razz, 2-7 Triple Draw, And Badugi."
         canonical={GAMES_BASE_PATH}
         markdownUrl="https://smarter.poker/games.md"

@@ -268,7 +268,7 @@ export default function PokerHandRankingsPage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Poker Hand Rankings Cheat Sheet: High, Short Deck & Lowball"
+        title="Poker Hand Rankings & Tie-Breaker Guide"
         description="Official 10-Tier Poker Hand Rankings Cheat Sheet With Exact 5-Card And 7-Card Combinatorics, Short Deck 6+ Rankings (Flush Beats Full House), Omaha 2-Card Rules, And Kicker Tie-Breakers."
         canonical={PAGE_PATH}
         markdownUrl="https://smarter.poker/learn/poker-hand-rankings.md"

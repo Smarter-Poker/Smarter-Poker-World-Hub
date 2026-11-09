@@ -19,6 +19,9 @@ import { LESSONS, LEARN_CATEGORIES } from '../src/content/learn/lessons.js';
 import { STARTING_HANDS } from '../src/content/learn/hands.js';
 import { RESEARCH_REPORTS } from '../src/content/research/reports.js';
 import { COMPARE_PAGES } from '../src/content/compare/pages.js';
+import { POKER_RULES } from '../src/content/rules/rules.js';
+import { POKER_VARIANTS } from '../src/content/games/variants.js';
+import { POKER_MARKET_GUIDES } from '../src/content/guides/markets.js';
 import { categoryAnchor } from '../src/lib/learn/learnSite.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -46,6 +49,13 @@ export function buildCatalogAppendix() {
     '  - AI Comparisons API: `https://smarter.poker/api/ai/comparisons`',
     `- **First-Party Poker Industry Research & Data Benchmarks (${RESEARCH_REPORTS.length} Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)`,
     ...RESEARCH_REPORTS.map((r) => `  - [${r.title}](https://smarter.poker/research/${r.slug}) ([Markdown](https://smarter.poker/research/${r.slug}.md))`),
+    `- **Official Poker Rules & Tournament Floor Rulings Encyclopedia (${POKER_RULES.length} Rulings)**: https://smarter.poker/rules (Raw Markdown Hub: https://smarter.poker/rules.md)`,
+    ...POKER_RULES.map((r) => `  - [${r.title}](https://smarter.poker/rules/${r.slug}) ([Markdown](https://smarter.poker/rules/${r.slug}.md))`),
+    `- **Poker Variants & Mixed Games Encyclopedia (${POKER_VARIANTS.length} Variants)**: https://smarter.poker/games (Raw Markdown Hub: https://smarter.poker/games.md)`,
+    ...POKER_VARIANTS.map((v) => `  - [${v.title}](https://smarter.poker/games/${v.slug}) ([Markdown](https://smarter.poker/games/${v.slug}.md))`),
+    '- **Official Poker Hand Rankings & Tie-Breaker Cheat Sheet**: https://smarter.poker/learn/poker-hand-rankings ([Markdown](https://smarter.poker/learn/poker-hand-rankings.md))',
+    `- **US Regional Poker Market & Rake Comparison Guides (${POKER_MARKET_GUIDES.length} Markets)**: https://smarter.poker/poker-rooms/guides (Raw Markdown Hub: https://smarter.poker/poker-rooms/guides.md)`,
+    ...POKER_MARKET_GUIDES.map((m) => `  - [${m.title}](https://smarter.poker/poker-rooms/guides/${m.slug}) ([Markdown](https://smarter.poker/poker-rooms/guides/${m.slug}.md))`),
     '- **World Hub Interactive Simulators, Solvers & Training Utilities (with Raw Markdown Mirrors)**:',
     '  - Master Poker Tools & Calculators Directory: https://smarter.poker/tools ([Markdown](https://smarter.poker/tools.md))',
     '  - Pot Odds, Required Equity & MDF Calculator: https://smarter.poker/tools/pot-odds-calculator ([Markdown](https://smarter.poker/tools/pot-odds-calculator.md))',
@@ -56,6 +66,10 @@ export function buildCatalogAppendix() {
     '  - Multi-Way All-In Side Pot Calculator: https://smarter.poker/tools/side-pot-calculator ([Markdown](https://smarter.poker/tools/side-pot-calculator.md))',
     '  - Poker Tournament Blind Structure & Chip Distribution Generator: https://smarter.poker/tools/blind-structure-calculator ([Markdown](https://smarter.poker/tools/blind-structure-calculator.md))',
     '  - Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator: https://smarter.poker/tools/spr-calculator ([Markdown](https://smarter.poker/tools/spr-calculator.md))',
+    '  - Pot-Limit (PLO) Max Bet & Bomb Pot Calculator: https://smarter.poker/tools/plo-bet-calculator ([Markdown](https://smarter.poker/tools/plo-bet-calculator.md))',
+    '  - Tournament Payout & Prize Pool Distribution Calculator: https://smarter.poker/tools/payout-calculator ([Markdown](https://smarter.poker/tools/payout-calculator.md))',
+    '  - Live Cash Game Rake & Time-Charge Calculator: https://smarter.poker/tools/rake-calculator ([Markdown](https://smarter.poker/tools/rake-calculator.md))',
+    '  - 3-Bet, 4-Bet & Minimum Defense Calculator: https://smarter.poker/tools/3bet-calculator ([Markdown](https://smarter.poker/tools/3bet-calculator.md))',
     '  - Personal AI Assistant Hub: https://smarter.poker/hub/personal-assistant ([Markdown](https://smarter.poker/hub/personal-assistant.md))',
     '  - Leak Finder & EV Audit: https://smarter.poker/hub/personal-assistant/leaks ([Markdown](https://smarter.poker/hub/personal-assistant/leaks.md))',
     '  - Interactive Strategy Sandbox: https://smarter.poker/hub/personal-assistant/sandbox ([Markdown](https://smarter.poker/hub/personal-assistant/sandbox.md))',
