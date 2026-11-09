@@ -12,6 +12,9 @@ import { STARTING_HANDS } from '../../../src/content/learn/hands';
 import { GLOSSARY_TERMS } from '../../../src/content/glossary/terms';
 import { COMPARE_PAGES, AS_OF } from '../../../src/content/compare/pages';
 import { RESEARCH_REPORTS } from '../../../src/content/research/reports';
+import { POKER_RULES } from '../../../src/content/rules/rules';
+import { POKER_VARIANTS } from '../../../src/content/games/variants';
+import { POKER_MARKET_GUIDES } from '../../../src/content/guides/markets';
 import { MCP_TOOLS, MCP_PROMPTS, MCP_RESOURCE_TEMPLATES } from '../../../src/lib/mcp/mcpServer.mjs';
 
 const SITE = 'https://smarter.poker';
@@ -69,6 +72,10 @@ export default function handler(req, res) {
       glossary_terms: GLOSSARY_TERMS.length,
       competitor_comparisons: COMPARE_PAGES.length,
       research_reports: RESEARCH_REPORTS.length,
+      poker_rules: POKER_RULES.length,
+      game_variants: POKER_VARIANTS.length,
+      regional_market_guides: POKER_MARKET_GUIDES.length,
+      interactive_calculators: 16,
       feature_verticals: 15,
       mcp_tools: MCP_TOOLS.length,
       mcp_prompts: MCP_PROMPTS.length,
@@ -87,10 +94,17 @@ export default function handler(req, res) {
       openapi_json: `${SITE}/api/openapi.json`,
       openapi_root_json: `${SITE}/openapi.json`,
       mcp_endpoint: `${SITE}/api/mcp`,
+      mcp_manifest: `${SITE}/.well-known/mcp.json`,
       mcp_registry: `${SITE}/.well-known/mcp-registry.json`,
       editorial_standards: `${SITE}/editorial-standards`,
       verification_methodology: `${SITE}/verification-methodology`,
       research_hub: `${SITE}/research`,
+      rules_hub: `${SITE}/rules`,
+      games_hub: `${SITE}/games`,
+      market_guides_hub: `${SITE}/poker-rooms/guides`,
+      hand_rankings_guide: `${SITE}/learn/poker-hand-rankings`,
+      tools_hub: `${SITE}/tools`,
+      datasets_catalog: `${SITE}/api/datasets/catalog`,
     },
   });
 }

@@ -171,8 +171,8 @@ test('Phase 4 of 6: Home Games Geo FAQPage + Host Tools and Poker Tour RFC 5545 
   assert.ok(ics.includes('DTSTART;VALUE=DATE:20260526'));
 });
 
-test('Phase 5 of 6: 21 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery routes', async () => {
-  assert.equal(MCP_TOOLS.length, 22);
+test('Phase 5 of 6: 26 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery routes', async () => {
+  assert.equal(MCP_TOOLS.length, 26);
 
   const sidePotRes = await executeMcpTool('calculate_side_pots', {
     contributions: [
@@ -230,7 +230,7 @@ test('Phase 5 of 6: 21 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery
   assert.ok(rss.includes('https://smarter.poker/compare/wynn-vs-venetian-poker-las-vegas'));
 
   const page404 = read('pages/404.js');
-  for (const href of ['/tools', '/learn/hands', '/research', '/freerolls', '/hub/video-library']) {
+  for (const href of ['/tools', '/learn/hands', '/rules', '/games', '/learn/poker-hand-rankings', '/poker-rooms/guides', '/research', '/freerolls', '/hub/video-library']) {
     assert.ok(page404.includes(`href: '${href}'`), `pages/404.js includes ${href}`);
   }
 });

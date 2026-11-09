@@ -6,7 +6,7 @@ import SEOHead from '../src/components/seo/SEOHead';
 const RECOVERY_ROUTES = [
     {
         title: 'All Free Poker Tools & Solvers',
-        subtitle: '9 Interactive Calculators, ICM Solvers & GTO Range Tools',
+        subtitle: '16 Interactive Calculators, ICM Solvers & GTO Range Tools',
         href: '/tools',
         badge: 'Tools Hub',
     },
@@ -27,6 +27,30 @@ const RECOVERY_ROUTES = [
         subtitle: 'Combinatorics, 100BB Ranges & Head-To-Head Matchups',
         href: '/learn/hands',
         badge: 'Encyclopedia',
+    },
+    {
+        title: 'Official Poker Rules & TDA',
+        subtitle: '30 Casino Floor Rulings, Showdown Order & Chip Rules',
+        href: '/rules',
+        badge: '30 Rules',
+    },
+    {
+        title: 'Poker Variants & Mixed Games',
+        subtitle: '15 Complete Game Guides: Holdem, PLO, Short Deck & Stud',
+        href: '/games',
+        badge: '15 Games',
+    },
+    {
+        title: 'Poker Hand Rankings Chart',
+        subtitle: '5-Card & 7-Card Combinatorics, Short Deck & Lowball',
+        href: '/learn/poker-hand-rankings',
+        badge: 'Cheat Sheet',
+    },
+    {
+        title: 'Regional Poker Market Guides',
+        subtitle: '12 US Destination Guides: Vegas, LA, Texas & Florida',
+        href: '/poker-rooms/guides',
+        badge: '12 Markets',
     },
     {
         title: 'Live Poker Rooms Directory',
