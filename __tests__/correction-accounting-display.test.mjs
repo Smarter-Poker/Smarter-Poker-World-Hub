@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import * as accounting from '../src/lib/accountingMessage.mjs';
+import * as messageMedia from '../src/lib/messenger/messageMedia.mjs';
 
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -57,6 +58,7 @@ const Bubble = compile('../src/components/messenger/MessageBubble.js', name => {
     if (name === './Avatar') return { Avatar: () => null };
     if (name === './CashoutRequestActions') return { default: () => null, formatChips: String, __esModule: true };
     if (name === '../../lib/authUtils') return { getAccessToken: () => null, authedFetch: () => { throw new Error('unexpected fetch'); } };
+    if (name === '../../lib/messenger/messageMedia.mjs') return messageMedia;
     return require(name);
 }, undefined, 'MessageBubble');
 function render(proof, extra) {
