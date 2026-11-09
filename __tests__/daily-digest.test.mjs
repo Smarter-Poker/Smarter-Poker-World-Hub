@@ -4,6 +4,64 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildHtml, buildSubject, buildText, esc, trendBars, priorAverage, sectionRows, shortTitle, SECTION_DEFS, horseRosterRows, allowedNumbers, playerTotalsRows, fmtSigned, fmtMinutes, signupsRows, welcomeBackRows, agentScoreboardRows } from '../src/lib/dailyDigest/render.mjs';
 import { signViewToken, verifyViewToken, ownerPhone, digestRecipients, adminRecipients } from '../src/lib/dailyDigest/delivery.mjs';
+import { loadAlertFixes } from '../src/lib/dailyDigest/assemble.mjs';
+
+function alertProofFixture() {
+    const item = {
+        rule: 'critical_alert_rising',
+        detail: { source_events: [{ alertname: 'Tournament.finish', event_ids: [12, 13] }] },
+        canonical_alert_proof: { version: 1, linkage_complete: true, groups: [{
+            alertname: 'Tournament.finish', event_ids: [13, 12], total: 2, reviewed: 2, verified: 1,
+            proofs: [
+                { event_id: 13, reviewed: true, verified: false, kind: 'historical', reference: null },
+                { event_id: 12, reviewed: true, verified: true, kind: 'terminal_receipt', reference: 'terminal receipt 123' },
+            ], fixes: ['terminal receipt 123'],
+        }] },
+    };
+    return { attention: [item] };
+}
+
+test('canonical original receipts reach the per-type fixes without legacy label reads', async () => {
+    const digest = alertProofFixture();
+    await loadAlertFixes({ from() { assert.fail('canonical proof must use the server evidence'); } }, digest);
+    assert.deepEqual(digest.attention[0].fixes, [{ alertname: 'Tournament.finish', total: 2, verified: 1, fixes: ['terminal receipt 123'] }]);
+    const rendered = fixture({ attention: [{ ...digest.attention[0], title: 'Critical tournament alerts' }] });
+    assert.match(buildText(rendered), /Tournament\.finish: 1 of 2 verified fixed/);
+    assert.match(buildHtml(rendered), /terminal receipt 123/);
+});
+
+test('malformed or mismatched canonical proof cannot elevate fixes through labels', async () => {
+    const mutations = [
+        (p) => { p.version = 2; },
+        (p) => { p.linkage_complete = false; },
+        (p) => { p.groups[0].event_ids = [12, 14]; },
+        (p) => { p.groups[0].proofs[0].event_id = 12; },
+        (p) => { p.groups[0].verified = 2; },
+        (p) => { p.groups[0].proofs[1].reviewed = false; },
+        (p) => { p.groups[0].proofs[1].reference = null; },
+        (p) => { p.groups[0].fixes = ['unrelated repair']; },
+        (p) => { p.groups[0].alertname = 'Other.alert'; },
+        (p) => { p.groups[0].event_ids[0] = '1e3'; },
+    ];
+    for (const mutate of mutations) {
+        const digest = alertProofFixture();
+        mutate(digest.attention[0].canonical_alert_proof);
+        await loadAlertFixes({ from() { assert.fail('invalid canonical proof must stay unverified'); } }, digest);
+        assert.equal(digest.attention[0].fixes[0].verified, 0);
+        assert.match(digest.attention[0].canonical_alert_proof_error, /incomplete or inconsistent/);
+    }
+});
+
+test('an older database retains the existing verified-label fallback', async () => {
+    const digest = alertProofFixture();
+    delete digest.attention[0].canonical_alert_proof;
+    const sb = { from() { return { select() { return { async in() { return { data: [
+        { id: 12, investigation_status: 'verified_fixed', investigation: { fixing_pr: 'PR 9' } },
+        { id: 13, investigation_status: 'historical', investigation: {} },
+    ] }; } }; } }; } };
+    await loadAlertFixes(sb, digest);
+    assert.deepEqual(digest.attention[0].fixes, [{ alertname: 'Tournament.finish', total: 2, verified: 1, fixes: ['PR 9'] }]);
+});
 
 function fixture(overrides = {}) {
     return {
@@ -594,11 +652,17 @@ test('explicit live verification rejects wrong revisions and broken sections wit
     const response = html => new Response(html, { headers: { 'content-type': 'text/html', 'cache-control': 'no-store' } });
     const fetchImpl = async (url, opts) => {
         calls.push([url, opts]);
-        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding');
+        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding'
+            + '<div>Tournament.finish: 1,301 of 1,309 verified fixed (Fix: receipt &lt;safe&gt;)</div>'
+            + '<div>CriticalPage.midway_free_buy_missing: 2 of 2 verified fixed</div>');
     };
     try {
         const report = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl });
         assert.equal(report.playerTotals, 'rendered');
+        assert.deepEqual(report.alertFixes, [
+            { alertname: 'Tournament.finish', verified: 1301, total: 1309 },
+            { alertname: 'CriticalPage.midway_free_buy_missing', verified: 2, total: 2 },
+        ]);
         assert.equal(calls.length, 2);
         assert.ok(calls[1][0].startsWith('https://smarter.poker/api/digest/view?t='));
         assert.equal(calls[1][1].redirect, 'error');
