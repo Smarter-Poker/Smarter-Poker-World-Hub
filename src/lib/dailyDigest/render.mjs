@@ -438,6 +438,23 @@ export function freeBuyFundingRows(digest) {
     rows.push(['Open Funding Watch Findings', fmtInt(w.total), kinds || 'None', Number(w.total) > 0]);
     return rows;
 }
+/**
+ * Engine Build And 4 AM Cutover (fn_sp_digest_engine_cutover via
+ * fn_sp_daily_digest's 'engine_cutover' key, Dan 2026-11-08): the live engine
+ * build and since when, and whether the 04:00 Chicago cutover on the morning
+ * after the digest day sealed, was missed, or was not owed. One row; the label
+ * stays beside its value.
+ */
+const CUTOVER_LABEL = { sealed: 'Happened', missed: 'Missed', not_owed: 'Not Needed', unknown: 'Could Not Tell', not_checked: 'Not Checked Yet' };
+export function engineCutoverRow(digest) {
+    const e = digest && digest.engine_cutover;
+    if (!e) return null;
+    const verdict = CUTOVER_LABEL[e.cutover] || 'Unknown';
+    const parts = [`since ${e.live_since_ct || 'unknown'} Central`, `${e.cutover_day || ''} 4 AM cutover: ${verdict}`];
+    if (e.cutover === 'missed') parts.push(`owed ${e.owed_build || 'unknown'}${e.resolved_at ? ', since installed' : ''}${e.reason ? `; ${e.reason}` : ''}`);
+    return ['Live Engine Build', e.live_build || 'Unknown', parts.join('; '), e.cutover === 'missed' && !e.resolved_at];
+}
+
 function freeBuyFundingCard(digest) {
     const rows = freeBuyFundingRows(digest);
     if (!rows.length) return '';
@@ -509,6 +526,8 @@ export function buildHtml(digest, opts = {}) {
             + topListCard('Top Real Players By Rake (Whale Watch)', get(m, 'money.top_human_rakers'), (x) => [x.username, fmtNum(x.rake)]);
         if (def.title === 'Diamonds') body += topListCard('Diamond Movements Over 10,000', get(m, 'diamonds.big_movements'), (x) => [`${x.username || 'unknown'} (${String(x.type).replace(/_/g, ' ')}, ${x.at_ct})`, fmtInt(x.amount)]);
         if (def.title === 'Platform Health') {
+            const cut = engineCutoverRow(digest);
+            if (cut) body += cardOpen('Engine Build And 4 AM Cutover') + rowHtml(cut[0], esc(cut[1]), cut[2], cut[3], false) + cardClose;
             body += topListCard('Top Alerts', get(m, 'health.alerts_top'), (x) => [`${x.alertname} (${x.severity})`, fmtInt(x.n)])
                 + topListCard('Top Client Errors', get(m, 'health.client_errors_top'), (x) => [x.k, fmtInt(x.n)]);
         }
@@ -933,6 +952,10 @@ export function buildText(digest, opts = {}) {
         lines.push(def.title.toUpperCase());
         for (const r of sectionRows(def, digest)) lines.push(`${r.label}: ${r.value}${r.sub ? `  (${r.sub})` : ''}`);
         for (const b of def.breakdowns || []) lines.push(`${b.label}: ${breakdownText(get(digest.metrics, b.path))}`);
+        if (def.title === 'Platform Health') {
+            const cut = engineCutoverRow(digest);
+            if (cut) lines.push(`${cut[0]}: ${cut[1]}  (${cut[2]})`);
+        }
         if (def.title === 'Growth') {
             for (const block of [signupsRows(digest), welcomeBackRows(digest), agentScoreboardRows(digest)]) {
                 if (!block.rows.length) continue;
