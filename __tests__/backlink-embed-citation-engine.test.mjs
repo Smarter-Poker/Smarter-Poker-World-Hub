@@ -26,6 +26,14 @@ import {
 } from '../src/lib/seo/outreachEngine.mjs';
 import { evaluateStreamCommand, STREAMER_BOT_COMMANDS } from '../pages/api/stream/cmd.js';
 import { executeMcpTool } from '../src/lib/mcp/mcpServer.mjs';
+import { COMPARE_PAGES } from '../src/content/compare/pages.js';
+import { RESEARCH_REPORTS } from '../src/content/research/reports.js';
+import { POKER_RULES } from '../src/content/rules/rules.js';
+import { POKER_VARIANTS } from '../src/content/games/variants.js';
+import { POKER_MARKET_GUIDES } from '../src/content/guides/markets.js';
+import { LESSONS } from '../src/content/learn/lessons.js';
+import { GLOSSARY_TERMS } from '../src/content/glossary/terms.js';
+import { STARTING_HANDS } from '../src/content/learn/hands.js';
 import {
   DEAD_TOOL_REPLACEMENTS,
   DIRECTORY_NETWORK_TARGETS,
@@ -408,4 +416,73 @@ test('All 15 interactive calculators export getServerSideProps and renderHubTool
   assert.ok(threeBetMd.includes('Against A 3 BB Preflop Open'), '3bet-calculator.md reflects openSize query');
   assert.ok(threeBetMd.includes('A 3-Bet To 10.5 BB'), '3bet-calculator.md reflects threeBetSize query');
 });
+
+test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outreachEngine, datasetCatalog, llms.txt, and openapi.json', () => {
+  const compareSlugs = new Set(COMPARE_PAGES.map((p) => p.slug));
+  const researchSlugs = new Set(RESEARCH_REPORTS.map((p) => p.slug));
+  const ruleSlugs = new Set(POKER_RULES.map((p) => p.slug));
+  const gameSlugs = new Set(POKER_VARIANTS.map((p) => p.slug));
+  const guideSlugs = new Set(POKER_MARKET_GUIDES.map((p) => p.slug));
+  const lessonSlugs = new Set(LESSONS.map((p) => p.slug));
+  const glossarySlugs = new Set(GLOSSARY_TERMS.map((p) => p.slug));
+  const handSlugs = new Set(STARTING_HANDS.map((p) => p.slug.toLowerCase()));
+
+  for (const item of DEAD_TOOL_REPLACEMENTS) {
+    assert.ok(!item.outreachTemplate.includes('\u2014'), `${item.id} outreachTemplate must not contain em dashes`);
+  }
+
+  const filesToAudit = [
+    'src/lib/seo/backlinkCatalog.mjs',
+    'src/lib/seo/outreachEngine.mjs',
+    'src/lib/seo/datasetCatalog.mjs',
+    'public/llms.txt',
+    'public/api/openapi.json',
+    'pages/tools/embeds.js',
+    'pages/api/feeds/research.js',
+    'pages/feed.xml.js',
+  ];
+
+  for (const rel of filesToAudit) {
+    const txt = read(rel);
+    const urls = [...new Set(txt.match(/https:\/\/smarter\.poker\/[a-zA-Z0-9_\-\/.]+/g) || [])];
+    for (const rawUrl of urls) {
+      const clean = rawUrl.replace(/[.,;:)]+$/, '');
+      const urlPath = clean.replace('https://smarter.poker', '').replace(/\.md$/, '');
+      if (urlPath.startsWith('/compare/') && urlPath !== '/compare') {
+        const s = urlPath.replace('/compare/', '');
+        assert.ok(compareSlugs.has(s), `[${rel}] broken /compare/ slug: ${clean}`);
+      } else if (urlPath.startsWith('/research/') && urlPath !== '/research' && urlPath !== '/research/') {
+        const s = urlPath.replace('/research/', '');
+        assert.ok(researchSlugs.has(s), `[${rel}] broken /research/ slug: ${clean}`);
+      } else if (urlPath.startsWith('/rules/') && urlPath !== '/rules') {
+        const s = urlPath.replace('/rules/', '');
+        assert.ok(ruleSlugs.has(s), `[${rel}] broken /rules/ slug: ${clean}`);
+      } else if (urlPath.startsWith('/games/') && urlPath !== '/games') {
+        const s = urlPath.replace('/games/', '');
+        assert.ok(gameSlugs.has(s), `[${rel}] broken /games/ slug: ${clean}`);
+      } else if (urlPath.startsWith('/poker-rooms/guides/') && urlPath !== '/poker-rooms/guides') {
+        const s = urlPath.replace('/poker-rooms/guides/', '');
+        assert.ok(guideSlugs.has(s), `[${rel}] broken /poker-rooms/guides/ slug: ${clean}`);
+      } else if (urlPath.startsWith('/features/') && urlPath !== '/features') {
+        const s = urlPath.replace('/features/', '');
+        assert.ok(fs.existsSync(path.join(ROOT, `pages/features/${s}.js`)), `[${rel}] broken /features/ route: ${clean}`);
+      } else if (urlPath.startsWith('/learn/hands/') && urlPath !== '/learn/hands') {
+        const s = urlPath.replace('/learn/hands/', '').toLowerCase();
+        assert.ok(handSlugs.has(s), `[${rel}] broken /learn/hands/ slug: ${clean}`);
+      } else if (
+        urlPath.startsWith('/learn/') &&
+        urlPath !== '/learn' &&
+        urlPath !== '/learn/hands' &&
+        urlPath !== '/learn/poker-hand-rankings'
+      ) {
+        const s = urlPath.replace('/learn/', '');
+        assert.ok(lessonSlugs.has(s), `[${rel}] broken /learn/ lesson slug: ${clean}`);
+      } else if (urlPath.startsWith('/glossary/') && urlPath !== '/glossary') {
+        const s = urlPath.replace('/glossary/', '');
+        assert.ok(glossarySlugs.has(s), `[${rel}] broken /glossary/ slug: ${clean}`);
+      }
+    }
+  }
+});
+
 

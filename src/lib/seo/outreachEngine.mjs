@@ -110,7 +110,7 @@ Smarter.Poker Research & Partnerships Team`,
     title: 'Broken Backlink & 404 Legacy Tool Replacement (PokerStove / Equilab / ICMIZER)',
     targetAudience: 'Poker Strategy Blogs, Resource Directories & Forum Sticky Threads Linking To Dead Or Windows-Only Legacy Software',
     destinationUrl: 'https://smarter.poker/tools/poker-odds-calculator',
-    comparisonUrl: 'https://smarter.poker/compare/smarter-poker-vs-equilab-pokerstove',
+    comparisonUrl: 'https://smarter.poker/compare/smarter-poker-vs-equilab',
     badgeType: 'gto',
     searchFootprints: [
       'intitle:"poker tools" OR intitle:"poker resources" "pokerstove.com"',
@@ -124,7 +124,7 @@ Smarter.Poker Research & Partnerships Team`,
 While reviewing your poker strategy resource page, we noticed a link pointing to legacy Windows-only software (PokerStove / Equilab). Since most players now study on mobile and modern browsers without Windows installers, we built a 100% free, zero-download browser replacement that supports Hold'em, PLO4/5/6, Stud, Razz, and Malmuth-Harville ICM:
 
 Direct Calculator: https://smarter.poker/tools/poker-odds-calculator
-Side-By-Side Benchmark Comparison: https://smarter.poker/compare/smarter-poker-vs-equilab-pokerstove
+Side-By-Side Benchmark Comparison: https://smarter.poker/compare/smarter-poker-vs-equilab
 Iframe Widget Embed (If You Want Readers To Calculate Odds On Your Page): https://smarter.poker/tools/embeds
 
 Feel free to swap in or add the web version so mobile and Mac readers have a working calculator.
@@ -156,7 +156,7 @@ If your team would like to link to your listing or display our Live Poker Room I
 <a href="https://smarter.poker/hub/poker-near-me" target="_blank" rel="noopener" title="{{target}} In The Smarter.Poker US Live Poker Room Directory"><img src="https://smarter.poker/api/seo/badge?type=award-top50" alt="US Live Poker Room Index: Smarter.Poker Directory" height="28" /></a>
 
 US Rake & Jackpot Benchmark Study: https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark
-Club Commander Floor & Waitlist Platform: https://smarter.poker/features/club-commander-poker-room-management
+Club Commander Floor & Waitlist Platform: https://smarter.poker/features/club-commander
 
 Best regards,
 Smarter.Poker Live Venue Directory Team`,
@@ -264,7 +264,7 @@ Smarter.Poker Quantitative Research Division`,
 To make hand breakdowns faster for your viewers and chat, we launched two free creator utilities on Smarter.Poker:
 
 1. Show-Notes Attribution Links: Drop exact preflop range, ICM, and pot-odds calculator links into your YouTube/Podcast descriptions so viewers can run the math alongside your episode: https://smarter.poker/tools/poker-odds-calculator
-2. Twitch / YouTube Nightbot & StreamElements Commands (!odds, !icm, !pushfold, !potodds): Add live poker math directly to your stream chat with zero setup: https://smarter.poker/api/stream/cmd?cmd=help
+2. Twitch / YouTube Nightbot & StreamElements Commands (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule): Add live poker math directly to your stream chat with zero setup: https://smarter.poker/api/stream/cmd?cmd=help
 
 All embed codes and streamer widgets are available at: https://smarter.poker/tools/embeds
 

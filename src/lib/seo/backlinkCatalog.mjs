@@ -28,7 +28,7 @@ export const DEAD_TOOL_REPLACEMENTS = [
     ],
     outreachSubject: 'Broken PokerStove Link On Your Poker Resources Page',
     outreachTemplate:
-      'Hi there — I noticed your poker strategy resource guide still links to PokerStove (pokerstove.com), which is no longer active for modern browser and mobile players. We maintain a 100% free, zero-download Multiway Hold\'em & PLO Equity Calculator and Equilab/PokerStove comparison at https://smarter.poker/tools/poker-odds-calculator (and https://smarter.poker/compare/smarter-poker-vs-equilab) if you want a live drop-in replacement for your readers.',
+      'Hi there - I noticed your poker strategy resource guide still links to PokerStove (pokerstove.com), which is no longer active for modern browser and mobile players. We maintain a 100% free, zero-download Multiway Hold\'em & PLO Equity Calculator and Equilab/PokerStove comparison at https://smarter.poker/tools/poker-odds-calculator (and https://smarter.poker/compare/smarter-poker-vs-equilab) if you want a live drop-in replacement for your readers.',
   },
   {
     id: 'sitngo-wizard',
@@ -45,7 +45,7 @@ export const DEAD_TOOL_REPLACEMENTS = [
     ],
     outreachSubject: 'Dead SitNGo Wizard (sngwiz.com) Link On Your Site',
     outreachTemplate:
-      'Hi — while reading your tournament strategy guide, I spotted a link to SitNGo Wizard (sngwiz.com), which has permanently shut down. We host a free browser-based Malmuth-Harville ICM Calculator (https://smarter.poker/tools/icm-calculator), a Short-Stack Nash Push/Fold Chart (https://smarter.poker/tools/push-fold-calculator), and an updated 2026 ICMIZER comparison (https://smarter.poker/compare/smarter-poker-vs-icmizer) that makes a clean live replacement.',
+      'Hi - while reading your tournament strategy guide, I spotted a link to SitNGo Wizard (sngwiz.com), which has permanently shut down. We host a free browser-based Malmuth-Harville ICM Calculator (https://smarter.poker/tools/icm-calculator), a Short-Stack Nash Push/Fold Chart (https://smarter.poker/tools/push-fold-calculator), and an updated 2026 ICMIZER comparison (https://smarter.poker/compare/smarter-poker-vs-icmizer) that makes a clean live replacement.',
   },
   {
     id: 'bluffave',
@@ -62,7 +62,7 @@ export const DEAD_TOOL_REPLACEMENTS = [
     ],
     outreachSubject: 'Updating Your "Play Poker With Friends" List (BluffAve Shut Down)',
     outreachTemplate:
-      'Hi — your article on playing online poker with friends still lists BluffAve, which shut down. We maintain an up-to-date, fact-checked comparison of browser and mobile private club apps (including Smarter.Poker Club Arena, PokerNow, PokerBros, PPPoker, and ClubGG) at https://smarter.poker/compare/best-free-poker-apps-with-friends if you would like to update the dead entry.',
+      'Hi - your article on playing online poker with friends still lists BluffAve, which shut down. We maintain an up-to-date, fact-checked comparison of browser and mobile private club apps (including Smarter.Poker Club Arena, PokerNow, PokerBros, PPPoker, and ClubGG) at https://smarter.poker/compare/best-free-poker-apps-with-friends if you would like to update the dead entry.',
   },
   {
     id: 'floattheturn-pushfold',
@@ -79,7 +79,7 @@ export const DEAD_TOOL_REPLACEMENTS = [
     ],
     outreachSubject: 'Live Replacement For Retired Push/Fold Chart Link',
     outreachTemplate:
-      'Hi — your tournament short-stack article links to an older push/fold chart URL that no longer loads properly. You can link directly to our free interactive 3BB-20BB Nash Equilibrium Push/Fold Calculator at https://smarter.poker/tools/push-fold-calculator (or embed it directly via https://smarter.poker/tools/embeds) at no cost.',
+      'Hi - your tournament short-stack article links to an older push/fold chart URL that no longer loads properly. You can link directly to our free interactive 3BB-20BB Nash Equilibrium Push/Fold Calculator at https://smarter.poker/tools/push-fold-calculator (or embed it directly via https://smarter.poker/tools/embeds) at no cost.',
   },
   {
     id: 'legacy-cardroom-directories',
@@ -96,7 +96,7 @@ export const DEAD_TOOL_REPLACEMENTS = [
     ],
     outreachSubject: 'Updated 2026 Live Poker Room & Waitlist Directory Resource',
     outreachTemplate:
-      'Hi — I saw your live poker travel guide and wanted to share our continuously verified US Poker Room & Tournament Series directory (https://smarter.poker/hub/poker-near-me/lobby) along with our Las Vegas (https://smarter.poker/compare/best-poker-rooms-in-las-vegas), Texas (https://smarter.poker/compare/best-poker-rooms-in-texas), and Airport Layover (https://smarter.poker/compare/best-poker-rooms-near-major-airports) benchmarks.',
+      'Hi - I saw your live poker travel guide and wanted to share our continuously verified US Poker Room & Tournament Series directory (https://smarter.poker/hub/poker-near-me/lobby) along with our Las Vegas (https://smarter.poker/compare/best-poker-rooms-in-las-vegas), Texas (https://smarter.poker/compare/best-poker-rooms-in-texas), and Airport Layover (https://smarter.poker/compare/best-poker-rooms-near-major-airports) benchmarks.',
   },
   {
     id: 'propokertools-oracle',
@@ -113,7 +113,7 @@ export const DEAD_TOOL_REPLACEMENTS = [
     ],
     outreachSubject: 'Broken ProPokerTools Simulation Link On Your Strategy Page',
     outreachTemplate:
-      'Hi — your Omaha/Hold\'em math guide links to propokertools.com/simulations, which retired its online simulator. You can point readers to our free browser Multiway Equity Calculator (https://smarter.poker/tools/poker-odds-calculator) and Pot Odds & MDF Calculator (https://smarter.poker/tools/pot-odds-calculator) as a modern zero-install replacement.',
+      'Hi - your Omaha/Hold\'em math guide links to propokertools.com/simulations, which retired its online simulator. You can point readers to our free browser Multiway Equity Calculator (https://smarter.poker/tools/poker-odds-calculator) and Pot Odds & MDF Calculator (https://smarter.poker/tools/pot-odds-calculator) as a modern zero-install replacement.',
   },
   {
     id: 'legacy-pko-bounty-spreadsheets',
@@ -122,7 +122,7 @@ export const DEAD_TOOL_REPLACEMENTS = [
     status: 'View-only or deleted community PKO chip conversion spreadsheets',
     category: 'PKO & Mystery Bounty Calculators',
     replacementUrl: 'https://smarter.poker/tools/bounty-calculator',
-    comparisonUrl: 'https://smarter.poker/research/mystery-bounty-vs-progressive-knockout-pko-ev-study',
+    comparisonUrl: 'https://smarter.poker/research/mystery-bounty-vs-pko-ev-and-bounty-power-factor-study',
     recommendedAnchorText: 'Smarter.Poker PKO & Mystery Bounty Chip Equity Calculator',
     searchFootprints: [
       '"bounty calculator" poker spreadsheet broken',
@@ -130,7 +130,41 @@ export const DEAD_TOOL_REPLACEMENTS = [
     ],
     outreachSubject: 'Interactive PKO & Mystery Bounty Calculator For Your Tournament Guide',
     outreachTemplate:
-      'Hi — I noticed your knockout tournament article references a static bounty conversion sheet. We built an interactive PKO & Mystery Bounty Chip Equity Calculator at https://smarter.poker/tools/bounty-calculator paired with our empirical PKO vs. Mystery Bounty EV study (https://smarter.poker/research/mystery-bounty-vs-progressive-knockout-pko-ev-study) that you can link to or embed for free.',
+      'Hi - I noticed your knockout tournament article references a static bounty conversion sheet. We built an interactive PKO & Mystery Bounty Chip Equity Calculator at https://smarter.poker/tools/bounty-calculator paired with our empirical PKO vs. Mystery Bounty EV study (https://smarter.poker/research/mystery-bounty-vs-pko-ev-and-bounty-power-factor-study) that you can link to or embed for free.',
+  },
+  {
+    id: 'legacy-plo-pot-calculators',
+    legacyToolName: 'Retired Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Spreadsheets',
+    legacyDomains: ['plocalculator.com', 'omahaplanet.com'],
+    status: 'Legacy Flash/spreadsheet PLO pot-size calculators offline or mobile-broken',
+    category: 'Pot-Limit Omaha & Bomb Pot Calculators',
+    replacementUrl: 'https://smarter.poker/tools/plo-bet-calculator',
+    comparisonUrl: 'https://smarter.poker/games/pot-limit-omaha-plo4',
+    recommendedAnchorText: 'Smarter.Poker Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Calculator',
+    searchFootprints: [
+      '"pot limit omaha calculator" broken link OR spreadsheet',
+      '"how to calculate pot in PLO" dealer tool',
+    ],
+    outreachSubject: 'Free Pot-Limit Omaha (PLO) Max Bet & Bomb Pot Calculator For Your Guide',
+    outreachTemplate:
+      'Hi - while reading your Pot-Limit Omaha guide, I noticed a broken calculator reference. We built a free browser-native PLO Max Bet (3x + Trail) & Double-Board Bomb Pot Calculator at https://smarter.poker/tools/plo-bet-calculator alongside our PLO4/PLO5/PLO6 variant hub (https://smarter.poker/games/pot-limit-omaha-plo4) that your readers can use or embed for free.',
+  },
+  {
+    id: 'legacy-rrop-tda-rule-pdfs',
+    legacyToolName: 'Dead Robert\'s Rules Of Poker (RROP) & Outdated TDA Rule PDFs',
+    legacyDomains: ['pokercoach.us/robrule', 'homepokertourney.com/roberts-rules-of-poker.htm'],
+    status: 'Unindexed or 404 legacy text files and outdated tournament rule links',
+    category: 'Official Poker Rules & Casino Floor Rulings',
+    replacementUrl: 'https://smarter.poker/rules',
+    comparisonUrl: 'https://smarter.poker/learn/poker-hand-rankings',
+    recommendedAnchorText: 'Smarter.Poker Official TDA & Robert\'s Rules Of Poker (RROP) Encyclopedia',
+    searchFootprints: [
+      '"roberts rules of poker" broken link OR 404',
+      '"official poker rules" "string bet" OR "side pot" resource page',
+    ],
+    outreachSubject: 'Searchable 2026 TDA & Robert\'s Rules Of Poker (RROP) Reference For Your Page',
+    outreachTemplate:
+      'Hi - I spotted an older Robert\'s Rules of Poker link on your home game rules page. We maintain a searchable, mobile-ready 30-rule TDA & Cash Game Floor Rulings Encyclopedia at https://smarter.poker/rules (plus our Official Poker Hand Rankings Cheat Sheet at https://smarter.poker/learn/poker-hand-rankings) if you want an updated live reference.',
   },
 ];
 
@@ -260,7 +294,7 @@ export const INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS = [
     targets: ['smithery.ai', 'glama.ai/mcp/servers', 'mcp.so', 'pulsemcp.com', 'github.com/modelcontextprotocol/servers'],
     canonicalTarget: 'https://smarter.poker/api/mcp',
     valueProposition:
-      'Register Smarter.Poker\'s zero-auth 18-tool MCP server and /.well-known/mcp-registry.json so developer directories and AI agent hubs link directly to https://smarter.poker.',
+      'Register Smarter.Poker\'s zero-auth 26-tool MCP server, 12 resource templates, and /.well-known/mcp.json so developer directories and AI agent hubs link directly to https://smarter.poker.',
   },
   {
     id: 'collegiate-quant-clubs',
@@ -276,7 +310,7 @@ export const INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS = [
     targets: ['Las Vegas Travel Blogs', 'Texas Entertainment Guides', 'Florida Casino Guides', 'Aviation Layover Blogs'],
     canonicalTarget: 'https://smarter.poker/compare/best-poker-rooms-near-major-airports',
     valueProposition:
-      'Link regional travel guides to verified state/city cardroom comparisons (https://smarter.poker/compare/best-poker-rooms-in-las-vegas, https://smarter.poker/compare/best-poker-rooms-in-texas, https://smarter.poker/compare/best-poker-rooms-in-florida, https://smarter.poker/compare/best-poker-rooms-in-california).',
+      'Link regional travel guides to verified state/city cardroom comparisons (https://smarter.poker/compare/best-poker-rooms-in-las-vegas, https://smarter.poker/compare/best-poker-rooms-in-texas, https://smarter.poker/compare/best-poker-rooms-in-florida, https://smarter.poker/poker-rooms/guides/los-angeles-california).',
   },
 ];
 
