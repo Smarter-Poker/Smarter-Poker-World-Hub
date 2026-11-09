@@ -61,6 +61,19 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/learn.md';
     } else if (pathname === '/tools/embeds') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/embeds.md';
+    } else if (pathname === '/tools' || pathname === '/tools/index') {
+      resolvedMarkdownUrl = 'https://smarter.poker/tools.md';
+    } else if (
+      pathname === '/tools/pot-odds-calculator' ||
+      pathname === '/tools/bankroll-calculator' ||
+      pathname === '/tools/push-fold-calculator' ||
+      pathname === '/tools/bounty-calculator' ||
+      pathname === '/tools/poker-winrate-calculator' ||
+      pathname === '/tools/side-pot-calculator' ||
+      pathname === '/tools/blind-structure-calculator' ||
+      pathname === '/tools/spr-calculator'
+    ) {
+      resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/poker-odds-calculator.md';
     } else if (pathname === '/hub/venues/[id]' || /^\/hub\/venues\/[^/]+$/.test(pathname)) {
@@ -110,6 +123,13 @@ export default function SEOHead(props) {
     } else if (pathname === '/hub/video-library') {
       if (!props.noindex && (!cleanCanon || !cleanCanon.includes('/hub/video-library/watch/'))) {
         resolvedMarkdownUrl = 'https://smarter.poker/hub/video-library.md';
+      }
+    } else if (
+      pathname === '/hub/video-library/watch/[videoId]/[[...slug]]' ||
+      pathname.startsWith('/hub/video-library/watch/')
+    ) {
+      if (!props.noindex && cleanCanon) {
+        resolvedMarkdownUrl = `${cleanCanon}.md`;
       }
     } else if (pathname === '/hub') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub.md';
@@ -209,8 +229,17 @@ export default function SEOHead(props) {
   // Auto-resolve calendarUrl for known routes that serve clean .ics calendar feeds
   let resolvedCalendarUrl = calendarUrl;
   if (!resolvedCalendarUrl && typeof pathname === 'string') {
+    const cleanCanonForCal = typeof props.canonical === 'string' && props.canonical.startsWith('http')
+      ? props.canonical.replace(/\/$/, '')
+      : typeof props.canonical === 'string' && props.canonical.startsWith('/')
+      ? `https://smarter.poker${props.canonical.replace(/\/$/, '')}`
+      : null;
     if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
       resolvedCalendarUrl = 'https://smarter.poker/freerolls.ics';
+    } else if (pathname === '/hub/tours/[code]' || /^\/hub\/tours\/[^/]+$/.test(pathname)) {
+      if (!props.noindex && cleanCanonForCal) {
+        resolvedCalendarUrl = `${cleanCanonForCal}.ics`;
+      }
     }
   }
 

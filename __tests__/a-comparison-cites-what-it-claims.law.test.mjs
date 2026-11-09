@@ -88,6 +88,11 @@ const EXPECTED_SLUGS = [
   'smarter-poker-vs-holdem-manager-3',
   'smarter-poker-vs-piosolver',
   'smarter-poker-vs-monkersolver',
+  'smarter-poker-vs-holdem-resources-calculator',
+  'smarter-poker-vs-flopzilla',
+  'wynn-vs-venetian-poker-las-vegas',
+  'borgata-vs-parx-poker',
+  'best-poker-rooms-in-florida',
 ];
 
 /** Other names a product goes by in running copy. */
@@ -105,6 +110,12 @@ const ALIASES = {
   southPoint: ['South Point', 'South Point Hotel'],
   liveMaryland: ['Live! Maryland', 'Live! Casino', 'Maryland Live'],
   equilab: ['Equilab'],
+  wynn: ['Wynn Las Vegas'],
+  venetian: ['The Venetian'],
+  borgata: ['Borgata'],
+  parx: ['Parx Casino', 'Parx'],
+  seminoleHardRock: ['Seminole Hard Rock Hollywood'],
+  bestbetJax: ['Bestbet Jacksonville'],
 };
 
 const allFacts = () =>

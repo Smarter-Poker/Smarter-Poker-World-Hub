@@ -139,7 +139,7 @@ function getBuyInTier(amount) {
  * Supabase still arrives over SWR, unchanged.
  */
 export async function getServerSideProps({ params, req, res, query }) {
-  const rawCode = String(params?.code || '').trim().replace(/\.md$/i, '');
+  const rawCode = String(params?.code || '').trim().replace(/\.(md|ics)$/i, '');
   const code = rawCode.toUpperCase();
   if (!/^[A-Z0-9_-]{1,32}$/.test(code)) return { notFound: true };
 
@@ -283,6 +283,22 @@ export async function getServerSideProps({ params, req, res, query }) {
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
     res.setHeader('Vary', 'Accept');
     res.write(mdContent);
+    res.end();
+    return { props: {} };
+  }
+
+  const isCalendarRequested =
+    acceptHeader.includes('text/calendar') ||
+    query?.format === 'ics' ||
+    String(params?.code || '').endsWith('.ics') ||
+    req?.url?.includes('format=ics');
+  if (isCalendarRequested) {
+    const { buildTourIcs } = await import('../../../src/lib/poker-near-me/calendarExport.mjs');
+    const icsContent = buildTourIcs({ seo, stops, events });
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', `inline; filename="${code.toLowerCase()}-schedule.ics"`);
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    res.write(icsContent);
     res.end();
     return { props: {} };
   }
@@ -564,6 +580,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
       canonical={seo.canonical}
       jsonLd={tourSchema({ ...seo, stops })}
       markdownUrl={seo?.canonical ? `https://smarter.poker${seo.canonical}.md` : undefined}
+      calendarUrl={seo?.canonical ? `https://smarter.poker${seo.canonical}.ics` : undefined}
     />
   );
   const seoSummary = (
