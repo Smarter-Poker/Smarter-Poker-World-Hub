@@ -9,31 +9,19 @@
  * they are. The message itself is never changed.
  */
 import { parseMessageMedia, mediaPreviewLabel } from './messenger/messageMedia.mjs';
+import { isLiveInvite } from './messenger/liveInvite.mjs';
+import { isCallReceipt, describeCallReceipt } from './messenger/callReceipt.mjs';
 
 const PICTOGRAPHS = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu;
 const MARKDOWN_MARKERS = /(\*\*|__|~~|`+)/gu;
 const LINE_MARKERS = /^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+(?=\S))/gmu;
 const LINK = /\[([^\]]+)\]\((?:[^)]+)\)/gu;
 
-function callReceipt(raw) {
-  try {
-    const rd = JSON.parse(raw);
-    const kind = rd.type === 'video' ? 'Video Call' : 'Voice Call';
-    const st = rd.status || 'completed';
-    const status =
-      st === 'completed' ? '' : st === 'missed' ? 'Missed ' : st === 'declined' ? 'Declined ' : 'Cancelled ';
-    const dur = Number(rd.duration) || 0;
-    const time = dur > 0 ? (dur >= 60 ? `, ${Math.floor(dur / 60)}m ${dur % 60}s` : `, ${dur}s`) : '';
-    return `${status}${kind}${time}`;
-  } catch {
-    return 'Call';
-  }
-}
 
 export function messengerPreviewText(value, maxLength = 35) {
   let text = String(value ?? '');
-  if (text.startsWith('[LIVE_INVITE]')) return 'Live Stream Invite';
-  if (text.startsWith('[CALL_RECEIPT]')) return callReceipt(text.slice('[CALL_RECEIPT]'.length));
+  if (isLiveInvite(text)) return 'Live Stream Invite';
+  if (isCallReceipt(text)) return describeCallReceipt(text);
   const media = parseMessageMedia(text);
   if (media) {
     const label = mediaPreviewLabel(media.kind);

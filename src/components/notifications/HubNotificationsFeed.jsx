@@ -952,9 +952,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                                         navigate('/hub/lives'); return;
                                     }
                                     if (t === 'live_invite') {
-                                        const raw = (d.content || '').replace('[LIVE_INVITE]', '').trim();
-                                        if (raw) { navigate(`/hub/live/guest?${raw}`); return; }
-                                        navigate('/hub/lives'); return;
+                                        navigate(liveInviteHref(d.content || '')); return;
                                     }
                                     if (t === 'live_scheduled') { navigate('/hub/lives'); return; }
                                 }

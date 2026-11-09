@@ -128,9 +128,8 @@ export function UnreadProvider({ children }) {
                             const data = payload.new.data || {};
                             const content = data.content || '';
                             const senderName = data.sender_name || 'Someone';
-                            if (content.startsWith('[LIVE_INVITE]')) {
-                                const qs = content.replace('[LIVE_INVITE]', '');
-                                const joinUrl = `/hub/live/guest?${qs}`;
+                            if (isLiveInvite(content)) {
+                                const joinUrl = liveInviteHref(content);
                                 toast.action(
                                     `🎥 ${senderName} invited you to join their live stream as a guest co-host!`,
                                     () => {

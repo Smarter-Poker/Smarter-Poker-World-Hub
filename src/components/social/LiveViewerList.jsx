@@ -10,6 +10,7 @@
  *     contacts who are NOT currently watching, so they can be invited.
  */
 import { useState, useEffect, useMemo } from 'react';
+import { encodeLiveInvite } from '../../lib/messenger/liveInvite.mjs';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken } from '../../lib/authUtils';
 
@@ -213,7 +214,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
             }
             const convId = convData.conversationId;
 
-            const inviteQs = `room=${streamId}&invite=${inviteCode}`;
+            const invite = { roomId: streamId, inviteCode: inviteCode };
             const msgResp = await fetch('/api/messenger/send-message', {
                 method: 'POST',
                 headers: {
@@ -222,7 +223,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                 },
                 body: JSON.stringify({
                     conversationId: convId,
-                    content: `[LIVE_INVITE]${inviteQs}`,
+                    content: encodeLiveInvite(invite),
                     message_type: 'text',
                 }),
             });
