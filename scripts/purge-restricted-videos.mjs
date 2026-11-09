@@ -5,7 +5,6 @@
  * Add --confirm to actually delete (default: dry-run)
  */
 
-import { fileURLToPath } from 'node:url';
 import { config } from 'dotenv';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';

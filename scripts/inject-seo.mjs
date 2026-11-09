@@ -8,7 +8,6 @@
  * Usage: node scripts/inject-seo.mjs
  */
 
-import { fileURLToPath } from 'node:url';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -295,7 +294,6 @@ const SEO_CONFIG = {
         canonical: '/hub/diamond-store/wishlist',
         noindex: true,
     },
-
 
 
     // ═══ Hub — Memory Games Sub-pages ═══

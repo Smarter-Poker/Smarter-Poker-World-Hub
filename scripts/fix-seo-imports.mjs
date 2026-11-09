@@ -3,7 +3,6 @@
  * Walks all pages/ and computes the correct path from each file to src/components/seo/SEOHead
  */
 
-import { fileURLToPath } from 'node:url';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

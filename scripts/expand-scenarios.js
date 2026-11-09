@@ -8,7 +8,6 @@
  * Usage: node scripts/expand-scenarios.js
  */
 
-import { fileURLToPath } from 'node:url';
 import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
