@@ -34,10 +34,18 @@ test('configuration demands the explicit mode and two distinct fixture conversat
   assert.equal(SURFACE_DEBOUNCE_MS, 600);
 });
 
-test('only the two owned fixture conversations are reachable', () => {
-  assert.equal(allow('POST', route, { action: 'read', conversationId: fixture.a }), true);
-  assert.equal(allow('POST', route, { action: 'read', conversationId: fixture.b }), true);
-  assert.equal(allow('POST', route, { action: 'read', conversationId: id(99) }), false);
+const social = { workspace: 'social', folder: 'messages' };
+
+test('both read shapes the controller sends are permitted, and only for owned scope', () => {
+  // A refused read is indistinguishable from an empty draft, so the allowlist
+  // must admit exactly what the controller sends: one conversation, or the
+  // whole social workspace.
+  assert.equal(allow('POST', route, { action: 'read', conversationId: fixture.a, workspace: social }), true);
+  assert.equal(allow('POST', route, { action: 'read', conversationId: fixture.b, workspace: social }), true);
+  assert.equal(allow('POST', route, { action: 'read', workspace: social }), true);
+  assert.equal(allow('POST', route, { action: 'read', conversationId: id(99), workspace: social }), false);
+  assert.equal(allow('POST', route, { action: 'read', workspace: { workspace: 'club', clubId: id(5) } }), false);
+  assert.equal(allow('POST', route, { action: 'read', conversationId: fixture.a, workspace: social, savedCursor: {} }), false);
   assert.equal(allow('POST', route, write(id(99), `${FIXTURE_TITLE}: x`)), false);
 });
 
