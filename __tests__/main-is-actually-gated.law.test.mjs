@@ -1,8 +1,8 @@
 // ----------------------------------------------------------------------------
 // main IS ACTUALLY GATED (law, 2026-09-08)
 //
-// scripts/check-branch-protection.mjs:31 names exactly one required status
-// check on main:
+// scripts/check-branch-protection.mjs names the required status checks on main.
+// Until 2026-11-09 there was exactly one:
 //
 //     const REQUIRED_CHECK = 'Audit-marker registry vs. tree';
 //
@@ -42,7 +42,7 @@ test('the required check on main has something to check', () => {
   assert.ok(
     tokens.length > 0,
     'audit-markers.txt has no live tokens, so "Audit-marker registry vs. tree" ' +
-      'cannot fail - and it is the ONLY required check on main. Either add ' +
+      'cannot fail - and it is the oldest required check on main. Either add ' +
       'tokens, or retire the workflow AND remove it from ' +
       'scripts/check-branch-protection.mjs. Do not leave main gated by nothing.'
   );
@@ -106,8 +106,66 @@ test('check-branch-protection still names the check this file is about', () => {
   const mjs = read('scripts/check-branch-protection.mjs');
   assert.match(
     mjs,
-    /REQUIRED_CHECK\s*=\s*'Audit-marker registry vs\. tree'/,
+    /REQUIRED_CHECKS?\s*=[\s\S]{0,400}?'Audit-marker registry vs\. tree'/,
     'if the required check is renamed or replaced, this law needs to follow it ' +
       'to whatever now gates main'
+  );
+});
+
+// ----------------------------------------------------------------------------
+// SAFE-AREA TOP GUARD (law, 2026-11-09)
+//
+// A second check joined the canonical list on 2026-11-09, after the landing
+// page shipped Sign Up / Sign In buttons painting under the iPhone status bar,
+// untappable, because its nav never reserved env(safe-area-inset-top). The
+// rule it enforces was already written down - in a comment in src/index.css.
+// Comments do not fail builds, so the bug shipped anyway.
+//
+// These assertions keep that guard from going the way of the empty registry:
+// present, named where main's gate is recorded, and incapable of silently
+// skipping a pull request.
+// ----------------------------------------------------------------------------
+
+test('the safe-area guard is named where main\'s gate is recorded', () => {
+  const mjs = read('scripts/check-branch-protection.mjs');
+  assert.match(
+    mjs,
+    /'Top bars own their safe-area inset'/,
+    'scripts/check-safe-area-top.mjs gates main via the "main: no rewinds" ' +
+      'ruleset. If it is renamed or retired, update this law and the ruleset ' +
+      'together - do not leave a required context that never reports.'
+  );
+});
+
+test('the safe-area guard cannot skip a pull request', () => {
+  const yml = read('.github/workflows/safe-area-top-guard.yml');
+  const prBlock = yml.slice(yml.indexOf('pull_request:'), yml.indexOf('concurrency:'));
+  assert.ok(prBlock.length > 0, 'could not find the pull_request trigger');
+  assert.doesNotMatch(
+    prBlock,
+    /paths(-ignore)?:/,
+    'a required check that never reports is a pull request that never merges. ' +
+      'The pull_request trigger must stay unfiltered - same law as ' +
+      'audit-marker-guard.yml.'
+  );
+});
+
+test('the safe-area guard actually asserts something', () => {
+  const mjs = read('scripts/check-safe-area-top.mjs');
+  assert.match(
+    mjs,
+    /process\.exit\(1\)/,
+    'the guard must be able to fail. A check that cannot fail is a green light ' +
+      'nobody has looked behind - see the empty registry of 2026-09-08.'
+  );
+  assert.match(
+    mjs,
+    /const CONTRACTS = \[/,
+    'the named-bar contracts are the half of this guard that catches a removal'
+  );
+  const baseline = JSON.parse(read('scripts/safe-area-top-baseline.json'));
+  assert.ok(
+    baseline.files && typeof baseline.files === 'object',
+    'the baseline must exist, or every exempt bar in the tree reads as new'
   );
 });
