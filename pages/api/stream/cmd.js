@@ -62,6 +62,34 @@ export const STREAMER_BOT_COMMANDS = [
     streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=winrate&q=${queryencode}}',
     canonicalToolUrl: 'https://smarter.poker/tools/poker-winrate-calculator',
   },
+  {
+    command: '!plo',
+    description: 'Pot-Limit Omaha (PLO) Maximum Raise Formula (3x + Trail + Pot) & Bomb Pot Math',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=plo&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=plo&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/plo-bet-calculator',
+  },
+  {
+    command: '!rake',
+    description: 'Live Cash Game Rake Cap Vs. Timed Seat Rental BB/100 Drag Comparison',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rake&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=rake&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/rake-calculator',
+  },
+  {
+    command: '!3bet',
+    description: 'Solver-Approved IP/OOP Preflop 3-Bet, Squeeze & 4-Bet Sizing With MDF',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=3bet&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=3bet&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/3bet-calculator',
+  },
+  {
+    command: '!rule',
+    description: 'Official Poker TDA & Robert\'s Rules Of Poker (RROP) Floor Rulings Lookup',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rule&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=rule&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/rules',
+  },
 ];
 
 const PREFLOP_MATCHUPS = [
@@ -146,9 +174,41 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
     };
   }
 
+  if (normalizedCmd === 'plo') {
+    return {
+      command: '!plo',
+      text: `[Smarter.Poker PLO Math] Dealer Pot-Limit Max Raise = (3 x Last Bet) + Trail Calls + Center Pot | Preflop Pot Progression: 3.5BB -> 12BB -> 41BB -> 140BB | PLO & Bomb Pot Tool: https://smarter.poker/tools/plo-bet-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/plo-bet-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'rake') {
+    return {
+      command: '!rake',
+      text: `[Smarter.Poker Rake Math] $1/$3 (10% To $5 Cap + $1 Drop) = ~15.3 BB/100 Drag (~$13.80/Hr) | Texas $13/Hr Time Charge Taxes 0% Of Individual Pots | Compare Live Rake: https://smarter.poker/tools/rake-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/rake-calculator',
+    };
+  }
+
+  if (normalizedCmd === '3bet') {
+    return {
+      command: '!3bet',
+      text: `[Smarter.Poker 3-Bet Math] 100BB Optimal Sizing: IP 3-Bet = 3.0x Open (~7.5BB, 65% Break-Even Fold Eq) | OOP 3-Bet = 4.0x-4.4x (~10.5BB) | +1x Per Caller | Solver Tool: https://smarter.poker/tools/3bet-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/3bet-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'rule') {
+    return {
+      command: '!rule',
+      text: `[Smarter.Poker Floor Rules] TDA & RROP Quick Rulings: Last River Aggressor Shows First (Left Of Button If Checked) | Single Oversized Chip Without "Raise" = Call | 30 Official Rules: https://smarter.poker/rules`,
+      canonicalUrl: 'https://smarter.poker/rules',
+    };
+  }
+
   return {
     command: '!help',
-    text: `[Smarter.Poker Streamer Bot] Commands: !odds, !potodds <pot> <bet>, !pushfold, !icm, !bounty, !winrate | Add To Nightbot Or StreamElements Free: https://smarter.poker/tools/embeds`,
+    text: `[Smarter.Poker Streamer Bot] Commands: !odds, !potodds <pot> <bet>, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule | Add To Nightbot Or StreamElements Free: https://smarter.poker/tools/embeds`,
     canonicalUrl: 'https://smarter.poker/tools/embeds',
   };
 }

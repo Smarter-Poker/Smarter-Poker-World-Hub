@@ -91,6 +91,9 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
     'badge-rules',
     'badge-award-top50',
     'badge-award-texas',
+    'badge-award-vegas',
+    'badge-award-florida',
+    'badge-award-california',
     'badge-award-cpa',
     'badge-award-dealer',
     'badge-award-edu',
@@ -98,9 +101,21 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
     assert.ok(embedsSrc.includes(`id: '${badgeId}'`), `embeds.js includes ${badgeId}`);
   }
 
-  for (const cmdId of ['cmd-odds', 'cmd-potodds', 'cmd-pushfold', 'cmd-icm', 'cmd-bounty', 'cmd-winrate']) {
+  for (const cmdId of [
+    'cmd-odds',
+    'cmd-potodds',
+    'cmd-pushfold',
+    'cmd-icm',
+    'cmd-bounty',
+    'cmd-winrate',
+    'cmd-plo',
+    'cmd-rake',
+    'cmd-3bet',
+    'cmd-rule',
+  ]) {
     assert.ok(embedsSrc.includes(`id: '${cmdId}'`), `embeds.js includes streamer command ${cmdId}`);
   }
+  assert.ok(embedsSrc.includes('id="streamer-commands-heading"'), 'embeds.js renders streamer commands JSX section');
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
   assert.equal(embedUrls.length, 15, 'all 15 widgets define embedUrl');
@@ -301,8 +316,8 @@ test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-ge
   assert.equal(pkg.multilingual_bundles.length, 7);
 });
 
-test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, and !winrate', () => {
-  assert.equal(STREAMER_BOT_COMMANDS.length, 6);
+test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, and !rule', () => {
+  assert.equal(STREAMER_BOT_COMMANDS.length, 10);
 
   const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
   assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
@@ -312,10 +327,13 @@ test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !
   assert.ok(potOddsRes.text.includes('Required Equity = 25.0%'));
   assert.ok(potOddsRes.text.includes('Minimum Defense Frequency (MDF) = 66.7%'));
 
-  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'help']) {
+  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'help']) {
     const res = evaluateStreamCommand({ cmd });
     assert.ok(res.text.includes('https://smarter.poker/tools/'), `${cmd} includes canonical tool URL`);
   }
+
+  const ruleRes = evaluateStreamCommand({ cmd: 'rule' });
+  assert.ok(ruleRes.text.includes('https://smarter.poker/rules'), 'rule command includes canonical /rules URL');
 });
 
 test('MCP Server executes get_citation_and_backlink_kit tool with full outreach, Wikipedia, and Zenodo payloads', async () => {

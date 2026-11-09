@@ -86,6 +86,42 @@ export const WIKIPEDIA_CITATION_TARGETS = [
     citeTechreportTemplate:
       '{{cite techreport |title=Mystery Bounty Vs. PKO EV And Bounty Power Factor Study |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/mystery-bounty-vs-pko-ev-and-bounty-power-factor-study}}',
   },
+  {
+    id: 'wiki-poker-hand-rankings',
+    wikipediaArticle: 'List of poker hands',
+    wikipediaUrl: 'https://en.wikipedia.org/wiki/List_of_poker_hands',
+    sectionTarget: '5-Card & 7-Card Combinatorics / Short Deck 6+ Probabilities',
+    canonicalSourceUrl: 'https://smarter.poker/learn/poker-hand-rankings',
+    calculatorUrl: 'https://smarter.poker/tools/poker-odds-calculator',
+    citeWebTemplate:
+      '{{cite web |title=Official Poker Hand Rankings Chart, Combinatorics & Tie-Breaker Rules |url=https://smarter.poker/learn/poker-hand-rankings |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
+    citeTechreportTemplate:
+      '{{cite techreport |title=Short Deck (6+ Holdem) Equity And Ante Math Benchmark |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/short-deck-6-plus-holdem-equity-and-ante-math-benchmark}}',
+  },
+  {
+    id: 'wiki-omaha-holdem',
+    wikipediaArticle: "Omaha hold 'em",
+    wikipediaUrl: 'https://en.wikipedia.org/wiki/Omaha_hold_%27em',
+    sectionTarget: 'Pot-limit Omaha / PLO4, PLO5 & PLO6 Equity Variance',
+    canonicalSourceUrl: 'https://smarter.poker/games/pot-limit-omaha-plo4',
+    calculatorUrl: 'https://smarter.poker/tools/plo-bet-calculator',
+    citeWebTemplate:
+      '{{cite web |title=4-Card Pot-Limit Omaha (PLO4) Official Rules, Must-Use-Two Rule & Strategy |url=https://smarter.poker/games/pot-limit-omaha-plo4 |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
+    citeTechreportTemplate:
+      '{{cite techreport |title=Pot-Limit Omaha (PLO4, PLO5, PLO6) Equity And Variance Study |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study}}',
+  },
+  {
+    id: 'wiki-betting-in-poker',
+    wikipediaArticle: 'Betting in poker',
+    wikipediaUrl: 'https://en.wikipedia.org/wiki/Betting_in_poker',
+    sectionTarget: 'Pot-limit / Side pots / TDA Floor Rulings',
+    canonicalSourceUrl: 'https://smarter.poker/rules',
+    calculatorUrl: 'https://smarter.poker/tools/side-pot-calculator',
+    citeWebTemplate:
+      '{{cite web |title=Official Poker Rules & Casino Floor Rulings Encyclopedia (TDA & RROP) |url=https://smarter.poker/rules |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
+    citeTechreportTemplate:
+      '{{cite techreport |title=Official Poker Rules & Multi-Way Side Pot Reference |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/tools/side-pot-calculator}}',
+  },
 ];
 
 export function buildZenodoMetadata() {

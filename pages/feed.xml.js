@@ -103,7 +103,7 @@ const TOOL_ITEMS = [
     {
         title: 'Free Poker Tools, GTO Solvers & Math Calculators Directory',
         link: `${SITE_URL}/tools`,
-        description: 'Master Directory Of 9 Interactive Poker Math Calculators, GTO Preflop Range Matrices, ICM Deal Solvers, And Bankroll Variance Engines.',
+        description: 'Master Directory Of 16 Interactive Poker Math Calculators, GTO Preflop Range Matrices, ICM Deal Solvers, And Bankroll Variance Engines.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },

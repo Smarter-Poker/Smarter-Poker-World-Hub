@@ -97,8 +97,8 @@ export const MULTILINGUAL_CORPUS = {
       'Smarter.Poker は 100% 無料の総合ポーカープラットフォームです。324 以上の公認ライブポーカールーム、週 4,500 以上のトーナメント情報、107 種類のインタラクティブ GTO トレーニングゲーム、マルチウェイエクイティ計算機 (Holdem, PLO4, PLO5, PLO6)、Malmuth-Harville ICM 計算機、バンクロール管理、Club Commander 運営ソフトウェアを提供します。',
     verticals: [
       { name: 'ライブポーカールーム検索 (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: '324 以上のポーカールーム、デイリートーナメント、WSOP/WPT シリーズ日程。' },
-      { name: 'GTO トレーニング & プリフロップレンジ表', url: `${SITE}/features/poker-training-games`, desc: '107 種類の GTO ドリル、6-Max 100BB プリフロップチャート、50 種類のスターティングハンド解説。' },
-      { name: 'エクイティ & トーナメント ICM 計算機', url: `${SITE}/features/poker-equity-calculators`, desc: 'Holdem、PLO4/PLO5/PLO6、ファイナルテーブル ICM に完全対応した無料ブラウザ計算機。' },
+      { name: 'GTO トレーニング & プリフロップレンジ表', url: `${SITE}/features/poker-training-games`, desc: '107 種類の GTO ドリル、6-Max 100BB プリフロップチャート、169 種類のスターティングハンド解説。' },
+      { name: 'エクイティ & トーナメント ICM 計算機', url: `${SITE}/features/poker-equity-calculators`, desc: 'Holdem、PLO4/PLO5/PLO6、ファイナルテーブル ICM、16 種類の無料ブラウザ計算機。' },
     ],
   },
 };

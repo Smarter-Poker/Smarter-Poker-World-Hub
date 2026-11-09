@@ -40,6 +40,9 @@ import {
 import { getBacklinkOpportunitiesPayload } from '../seo/backlinkCatalog.mjs';
 import { getDatasetCatalogPayload } from '../seo/datasetCatalog.mjs';
 import { generateOutreachPackage } from '../seo/outreachEngine.mjs';
+import { POKER_RULES, RULES_AS_OF, getRuleBySlug } from '../../content/rules/rules.js';
+import { POKER_VARIANTS, GAMES_AS_OF, getGameVariantBySlug } from '../../content/games/variants.js';
+import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF } from '../../content/guides/markets.js';
 
 export function parseCardToken(str) {
   const match = String(str || '').trim().match(/^(10|[2-9TJQKA])([shdc])$/i);
@@ -527,7 +530,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_citation_and_backlink_kit',
-    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, Zenodo/DataCite metadata, Twitch/YouTube streamer chatbot commands (!odds, !icm, !potodds), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
+    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, Zenodo/DataCite metadata, Twitch/YouTube streamer chatbot commands (!odds, !icm, !potodds, !plo, !rake, !3bet, !rule), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -557,6 +560,89 @@ export const MCP_TOOLS = [
           type: 'string',
           description: 'Optional target publication, cardroom, or blog name for personalized outreach templates.',
           default: 'Your Publication',
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_poker_rule',
+    description: 'Look up official Poker Tournament Directors Association (TDA) and Robert\'s Rules of Poker (RROP) floor rulings across all 30 Smarter.Poker rule guides (showdown order, verbal declarations, oversized chip rule, string bets, action out of turn, short all-in reopening, odd chip award, dead button, rabbit hunting, and more).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Rule slug or keyword (e.g. "showdown-order-who-shows-first", "oversized-chip", "string-bet", "verbal", "reopen"). Omit to list all 30 official floor rulings.',
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_game_variant',
+    description: 'Look up dealing rules, mandatory hole-card usage, betting structures, hand ranking systems, and starting hand strategy tiers across all 15 poker variants (Texas Hold\'em, PLO4, PLO5, PLO6, Big O Hi-Lo, Short Deck 6+, Double-Board PLO Bomb Pots, Pineapple/Crazy Pineapple, 7-Card Stud, Stud Hi-Lo, Razz, 2-7 Triple Draw, NL 2-7 Single Draw, Badugi, H.O.R.S.E. & 8-Game Mix).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        variant: {
+          type: 'string',
+          description: 'Variant slug or keyword (e.g. "pot-limit-omaha-plo4", "short-deck-six-plus", "double-board-plo-bomb-pot", "razz", "badugi"). Omit to list all 15 poker game variants.',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_regional_market_guide',
+    description: 'Retrieve live poker room counts, rake/drop/time-collection structures, buy-in caps, flagship venues, and strategic adjustments across the 12 largest US live poker markets (Las Vegas, Los Angeles, Austin, Houston, Dallas, South Florida, Tampa, Atlantic City, Pennsylvania, Connecticut/New England, Northern California, and Arizona).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        market: {
+          type: 'string',
+          description: 'Market slug, city, or state code (e.g. "las-vegas-nevada", "los-angeles-california", "houston-texas", "TX", "FL"). Omit to list all 12 regional market guides.',
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_plo_max_bet_and_rake',
+    description: 'Compute exact Pot-Limit Omaha (PLO) maximum raise total (3x last bet + trail calls + center pot), preflop 3-bet/4-bet MDF, and live cash game rake cost in $/hr and BB/100 drag.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        previous_pot: {
+          type: 'number',
+          description: 'Center pot before current street betting or previous pot in BBs/dollars (default: 1.5).',
+          default: 1.5,
+        },
+        facing_bet: {
+          type: 'number',
+          description: 'Current bet or raise being faced in BBs/dollars (default: 3.5).',
+          default: 3.5,
+        },
+        trail_calls: {
+          type: 'number',
+          description: 'Total chips called in between the bettor and hero on this street (default: 0).',
+          default: 0,
+        },
+        hero_already_in: {
+          type: 'number',
+          description: 'Chips hero has already posted on the current street (e.g. 1.0 in BB, default: 0).',
+          default: 0,
+        },
+        big_blind_dollars: {
+          type: 'number',
+          description: 'Big blind dollar value for live cash rake BB/100 calculation (default: 3).',
+          default: 3,
+        },
+        rake_cap_dollars: {
+          type: 'number',
+          description: 'Casino max pot rake cap in dollars (default: 5).',
+          default: 5,
+        },
+        promo_drop_dollars: {
+          type: 'number',
+          description: 'Additional bad beat / high-hand promotional drop per pot (default: 1).',
+          default: 1,
         },
       },
     },
@@ -643,6 +729,30 @@ export const MCP_RESOURCE_TEMPLATES = [
     uriTemplate: 'https://smarter.poker/hub/training/{tool}.md',
     name: 'Smarter.Poker World Hub Simulator & Training Tool Markdown',
     description: 'Raw Markdown specification and guide for any interactive World Hub poker simulator or training utility.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/rules/{slug}.md',
+    name: 'Smarter.Poker Official Poker Rule & TDA Floor Ruling Markdown',
+    description: 'Raw Markdown official casino floor ruling, TDA/RROP citation, and common live scenarios for any of the 30 poker rules.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/games/{variant}.md',
+    name: 'Smarter.Poker Game Variant & Mixed Game Guide Markdown',
+    description: 'Raw Markdown dealing rules, betting structures, and starting hand tiers for any of the 15 poker game variants.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/poker-rooms/guides/{city}.md',
+    name: 'Smarter.Poker US Regional Live Poker Market Guide Markdown',
+    description: 'Raw Markdown regional cardroom rake, time-collection, buy-in cap, and venue strategy guide for any of the 12 US poker markets.',
+    mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'https://smarter.poker/tools/{calculator}.md',
+    name: 'Smarter.Poker Interactive Poker Math Calculator Markdown',
+    description: 'Raw Markdown mathematical specification and benchmark tables for any of the 16 free interactive poker calculators.',
     mimeType: 'text/markdown',
   },
 ];
@@ -1943,6 +2053,322 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 wikipedia_citation_targets: datasetCatalog.wikipedia_citation_targets,
                 zenodo_metadata: datasetCatalog.zenodo_metadata,
                 backlink_opportunities_summary: opportunities.counts,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'lookup_poker_rule': {
+      const q = String(args?.query || '').trim().toLowerCase();
+      if (!q) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  as_of: RULES_AS_OF,
+                  rules_hub_url: `${base}/rules`,
+                  markdown_hub_url: `${base}/rules.md`,
+                  hand_rankings_url: `${base}/learn/poker-hand-rankings`,
+                  total_rules: POKER_RULES.length,
+                  rules: POKER_RULES.map((r) => ({
+                    slug: r.slug,
+                    title: r.title,
+                    category: r.category,
+                    tda_reference: r.tdaRef,
+                    summary: r.summary,
+                    url: `${base}/rules/${r.slug}`,
+                    markdown_url: `${base}/rules/${r.slug}.md`,
+                  })),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      const exact = getRuleBySlug(q);
+      const matched =
+        exact ||
+        POKER_RULES.find(
+          (r) =>
+            r.slug.includes(q) ||
+            r.title.toLowerCase().includes(q) ||
+            r.summary.toLowerCase().includes(q) ||
+            r.tdaRef.toLowerCase().includes(q)
+        );
+
+      if (!matched) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: `No poker rule matched "${args?.query}".`,
+                  available_slugs: POKER_RULES.map((r) => r.slug),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                slug: matched.slug,
+                title: matched.title,
+                h1: matched.h1,
+                category: matched.category,
+                tda_reference: matched.tdaRef,
+                summary: matched.summary,
+                floor_ruling: matched.floorRuling,
+                common_scenarios: matched.commonScenarios,
+                faqs: matched.faqs,
+                canonical_url: `${base}/rules/${matched.slug}`,
+                markdown_url: `${base}/rules/${matched.slug}.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'lookup_game_variant': {
+      const q = String(args?.variant || '').trim().toLowerCase();
+      if (!q) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  as_of: GAMES_AS_OF,
+                  games_hub_url: `${base}/games`,
+                  markdown_hub_url: `${base}/games.md`,
+                  total_variants: POKER_VARIANTS.length,
+                  variants: POKER_VARIANTS.map((v) => ({
+                    slug: v.slug,
+                    name: v.name,
+                    category: v.category,
+                    hole_cards: v.holeCards,
+                    board_cards: v.boardCards,
+                    betting_structure: v.bettingStructure,
+                    summary: v.summary,
+                    url: `${base}/games/${v.slug}`,
+                    markdown_url: `${base}/games/${v.slug}.md`,
+                  })),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      const exact = getGameVariantBySlug(q);
+      const matched =
+        exact ||
+        POKER_VARIANTS.find(
+          (v) =>
+            v.slug.includes(q) ||
+            v.name.toLowerCase().includes(q) ||
+            v.title.toLowerCase().includes(q)
+        );
+
+      if (!matched) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: `No poker game variant matched "${args?.variant}".`,
+                  available_slugs: POKER_VARIANTS.map((v) => v.slug),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                slug: matched.slug,
+                name: matched.name,
+                title: matched.title,
+                category: matched.category,
+                hole_cards: matched.holeCards,
+                board_cards: matched.boardCards,
+                betting_structure: matched.bettingStructure,
+                hand_ranking_system: matched.handRankingSystem,
+                summary: matched.summary,
+                rules_overview: matched.rulesOverview,
+                starting_hand_strategy: matched.startingHandStrategy,
+                key_differences_from_holdem: matched.keyDifferencesFromHoldem,
+                faqs: matched.faqs,
+                canonical_url: `${base}/games/${matched.slug}`,
+                markdown_url: `${base}/games/${matched.slug}.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_regional_market_guide': {
+      const q = String(args?.market || '').trim().toLowerCase();
+      if (!q) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  as_of: MARKET_GUIDES_AS_OF,
+                  guides_hub_url: `${base}/poker-rooms/guides`,
+                  markdown_hub_url: `${base}/poker-rooms/guides.md`,
+                  total_markets: POKER_MARKET_GUIDES.length,
+                  markets: POKER_MARKET_GUIDES.map((m) => ({
+                    slug: m.slug,
+                    region_name: m.regionName,
+                    state_code: m.stateCode,
+                    active_rooms_estimate: m.activeRoomsEstimate,
+                    typical_rake_model: m.typicalRakeModel,
+                    signature_stakes: m.signatureStakes,
+                    url: `${base}/poker-rooms/guides/${m.slug}`,
+                    markdown_url: `${base}/poker-rooms/guides/${m.slug}.md`,
+                  })),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      const matched = POKER_MARKET_GUIDES.find(
+        (m) =>
+          m.slug === q ||
+          m.slug.includes(q) ||
+          m.regionName.toLowerCase().includes(q) ||
+          m.stateCode.toLowerCase() === q
+      );
+
+      if (!matched) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: `No regional poker market guide matched "${args?.market}".`,
+                  available_slugs: POKER_MARKET_GUIDES.map((m) => m.slug),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                slug: matched.slug,
+                region_name: matched.regionName,
+                state_code: matched.stateCode,
+                title: matched.title,
+                summary: matched.summary,
+                active_rooms_estimate: matched.activeRoomsEstimate,
+                typical_rake_model: matched.typicalRakeModel,
+                signature_stakes: matched.signatureStakes,
+                peak_season_and_series: matched.peakSeasonAndSeries,
+                top_venue_highlights: matched.topVenueHighlights,
+                player_strategy_tips: matched.playerStrategyTips,
+                faqs: matched.faqs,
+                canonical_url: `${base}/poker-rooms/guides/${matched.slug}`,
+                markdown_url: `${base}/poker-rooms/guides/${matched.slug}.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_plo_max_bet_and_rake': {
+      const prevPot = Math.max(Number(args?.previous_pot) || 1.5, 0);
+      const facingBet = Math.max(Number(args?.facing_bet) || 3.5, 0);
+      const trailCalls = Math.max(Number(args?.trail_calls) || 0, 0);
+      const heroIn = Math.max(Number(args?.hero_already_in) || 0, 0);
+      const maxRaiseTotal = Number((3 * facingBet + trailCalls + prevPot - 2 * heroIn).toFixed(2));
+      const resultingPot = Number((maxRaiseTotal + facingBet + trailCalls + prevPot - heroIn).toFixed(2));
+
+      const bbDollars = Math.max(Number(args?.big_blind_dollars) || 3, 1);
+      const rakeCap = Math.max(Number(args?.rake_cap_dollars) || 5, 0);
+      const promoDrop = Math.max(Number(args?.promo_drop_dollars) || 1, 0);
+      const avgPotsWonPerHour = 3.2;
+      const hourlyRakePaid = Number(((rakeCap * 0.86 + promoDrop) * avgPotsWonPerHour).toFixed(2));
+      const rakeDragBb100 = Number(((hourlyRakePaid / bbDollars / 30) * 100).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                plo_max_bet_calculation: {
+                  previous_pot: prevPot,
+                  facing_bet: facingBet,
+                  trail_calls: trailCalls,
+                  hero_already_in: heroIn,
+                  max_pot_raise_total: maxRaiseTotal,
+                  resulting_pot_after_raise: resultingPot,
+                  dealer_formula: 'Max Raise Total = (3 * Facing Bet) + Trail Calls + Previous Pot - (2 * Hero Already In)',
+                  interactive_calculator_url: `${base}/tools/plo-bet-calculator`,
+                },
+                live_cash_rake_calculation: {
+                  big_blind_dollars: bbDollars,
+                  rake_cap_dollars: rakeCap,
+                  promo_drop_dollars: promoDrop,
+                  estimated_hourly_rake_paid_dollars: hourlyRakePaid,
+                  estimated_rake_drag_bb100: rakeDragBb100,
+                  interactive_calculator_url: `${base}/tools/rake-calculator`,
+                },
               },
               null,
               2

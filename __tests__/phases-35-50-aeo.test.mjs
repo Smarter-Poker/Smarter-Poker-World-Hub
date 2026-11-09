@@ -163,9 +163,9 @@ test('Phase 41: Competitor Comparison Matrix includes 30 verified pages', () => 
   }
 });
 
-test('Phase 44: MCP Server exposes 21 tools and 8 resource templates plus .well-known/mcp-registry.json', async () => {
-  assert.equal(MCP_TOOLS.length, 22);
-  assert.equal(MCP_RESOURCE_TEMPLATES.length, 8);
+test('Phase 44: MCP Server exposes 26 tools and 12 resource templates plus .well-known/mcp-registry.json and .well-known/mcp.json', async () => {
+  assert.equal(MCP_TOOLS.length, 26);
+  assert.equal(MCP_RESOURCE_TEMPLATES.length, 12);
 
   const handResult = await executeMcpTool('lookup_starting_hand', { hand: '72o' });
   const handJson = JSON.parse(handResult.content[0].text);
@@ -197,9 +197,38 @@ test('Phase 44: MCP Server exposes 21 tools and 8 resource templates plus .well-
   assert.equal(bountyJson.bounty_chip_equivalent, 10000);
   assert.ok(bountyJson.bounty_adjusted_required_equity_percent < bountyJson.standard_required_equity_percent);
 
+  const ruleResult = await executeMcpTool('lookup_poker_rule', { query: 'showdown-order-who-shows-first' });
+  const ruleJson = JSON.parse(ruleResult.content[0].text);
+  assert.equal(ruleJson.slug, 'showdown-order-who-shows-first');
+
+  const variantResult = await executeMcpTool('lookup_game_variant', { variant: 'pot-limit-omaha-plo4' });
+  const variantJson = JSON.parse(variantResult.content[0].text);
+  assert.equal(variantJson.slug, 'pot-limit-omaha-plo4');
+
+  const marketResult = await executeMcpTool('get_regional_market_guide', { market: 'las-vegas-nevada' });
+  const marketJson = JSON.parse(marketResult.content[0].text);
+  assert.equal(marketJson.slug, 'las-vegas-nevada');
+
+  const ploRakeResult = await executeMcpTool('calculate_plo_max_bet_and_rake', {
+    previous_pot: 1.5,
+    facing_bet: 3.5,
+    trail_calls: 0,
+    hero_already_in: 0,
+    big_blind_dollars: 3,
+    rake_cap_dollars: 5,
+    promo_drop_dollars: 1,
+  });
+  const ploRakeJson = JSON.parse(ploRakeResult.content[0].text);
+  assert.equal(ploRakeJson.plo_max_bet_calculation.max_pot_raise_total, 12);
+
   const registry = JSON.parse(read('public/.well-known/mcp-registry.json'));
   assert.equal(registry.name, 'io.github.smarter-poker/mcp-server');
-  assert.equal(registry.tools_count, 22);
+  assert.equal(registry.tools_count, 26);
+  assert.equal(registry.resource_templates_count, 12);
+
+  const mcpManifest = JSON.parse(read('public/.well-known/mcp.json'));
+  assert.equal(mcpManifest.tools_count, 26);
+  assert.equal(mcpManifest.resource_templates_count, 12);
 });
 
 test('Phase 35, 42, 43, 47, 48, 49: next.config.js, knowledge-graph, corpus, and crawler-status routes exist', () => {
