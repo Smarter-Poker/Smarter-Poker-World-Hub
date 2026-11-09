@@ -51,6 +51,7 @@ const Bubble = compile('../src/components/messenger/MessageBubble.js', name => {
     if (name === './CashoutRequestActions') return { default: () => null, formatChips: String, __esModule: true };
     if (name === '../../lib/authUtils') return { getAccessToken: () => null, authedFetch: () => { throw new Error('unexpected fetch'); } };
     if (name === '../../lib/messenger/messageMedia.mjs') return messageMedia;
+    if (name === './MediaViewer') return { default: () => null, ATTACHMENT_ATTRIBUTE: 'data-message-attachment', __esModule: true };
     return require(name);
 }, undefined, 'MessageBubble');
 const render = result => renderToStaticMarkup(React.createElement(Card,
