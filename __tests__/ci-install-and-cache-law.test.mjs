@@ -23,6 +23,7 @@ import { join } from 'node:path';
 
 const DIR = '.github/workflows';
 const files = readdirSync(DIR).filter(name => name.endsWith('.yml') || name.endsWith('.yaml'));
+assert.ok(files.length >= 20, `Expected the workflow directory, found ${files.length} — a loop over nothing proves nothing`);
 const sources = new Map(files.map(name => [name, readFileSync(join(DIR, name), 'utf8')]));
 
 // A workflow whose `on:` block pushes to main writes caches every PR can read.
