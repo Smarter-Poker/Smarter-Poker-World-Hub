@@ -3,6 +3,7 @@ const TIMERS = new Set(['relaxed', 'standard', 'quick', 'blitz']);
 const STREETS = new Set(['preflop', 'flop', 'turn', 'river']);
 const TABLE_COUNTS = new Set(['1', '2', '4']);
 const HAND_SELECTIONS = new Set(['all', 'no-trivial', 'close']);
+const VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6']);
 const ENGINE_DIFFICULTY_BY_PRODUCT = {
   beginner: 'simple',
   standard: 'grouped',
@@ -73,6 +74,13 @@ export function normalizeTrainingHandSelection(value, fallback = 'all') {
   return fromSet(HAND_SELECTIONS, value, fromSet(HAND_SELECTIONS, fallback, 'all'));
 }
 
+export function normalizeTrainingVariant(value, fallback = null) {
+  const candidate = lower(value);
+  if (VARIANTS.has(candidate)) return candidate;
+  const fb = lower(fallback);
+  return VARIANTS.has(fb) ? fb : null;
+}
+
 /**
  * Canonical boundary between SessionSetup, Hub routing, Arena state, and the
  * question hook. Preserve unrelated custom-trainer keys while making every
@@ -120,6 +128,10 @@ export function normalizeTrainingSessionConfig(input = {}, defaults = {}) {
       source.handSelection,
       fallback.handSelection,
     ),
+    variant: normalizeTrainingVariant(source.variant, fallback.variant),
+    ...(typeof source.duelToken === 'string' && source.duelToken.trim()
+      ? { duelToken: source.duelToken.trim() }
+      : {}),
     feedbackRule: 'every',
     autoAdvanceUI: 'off',
     autoAdvance: false,

@@ -86,6 +86,13 @@ const HAND_SELECTION_OPTIONS = [
   { id: 'close',      label: 'Close only',  desc: 'Tight decisions' },
 ];
 
+const VARIANT_OPTIONS = [
+  { id: 'nlh',  label: "Hold'em", desc: '2 Cards · NL' },
+  { id: 'plo4', label: 'PLO4',    desc: '4 Cards · PL' },
+  { id: 'plo5', label: 'PLO5',    desc: '5 Cards · PL' },
+  { id: 'plo6', label: 'PLO6',    desc: '6 Cards · PL' },
+];
+
 
 function readPrefs(gameId) {
   if (typeof window === 'undefined') return null;
@@ -133,6 +140,7 @@ export default function SessionSetupModal({
   const [targetStreet, setTargetStreet] = useState('flop');
   const [tables,     setTables]     = useState('1');
   const [handSelection, setHandSelection] = useState('all');
+  const [variant, setVariant] = useState('nlh');
 
   const [stats,       setStats]       = useState(null);
   const [lastSession, setLastSession] = useState(null);
@@ -156,6 +164,8 @@ export default function SessionSetupModal({
     setTargetStreet(saved.targetStreet || 'flop');
     setTables(saved.tables);
     setHandSelection(saved.handSelection);
+    const defaultVariant = ['cash-005', 'cash-015', 'mtt-018'].includes(String(gameId)) ? 'plo4' : 'nlh';
+    setVariant(saved.variant || defaultVariant);
   }, [isOpen, gameId]);
 
   // Pull the 30-day stats + last session from the RPCs shipped in PR #303.
@@ -265,10 +275,11 @@ export default function SessionSetupModal({
       autoAdvanceUI: 'off',
       autoAdvance: false,
       handSelection,
+      variant,
     });
     if (gameId) writePrefs(gameId, prefs);
     onStart?.({ game, ...prefs });
-  }, [game, gameId, difficulty, timer, scope, targetStreet, tables, handSelection, onStart]);
+  }, [game, gameId, difficulty, timer, scope, targetStreet, tables, handSelection, variant, onStart]);
 
   if (!isOpen || !game) return null;
 
@@ -399,6 +410,7 @@ export default function SessionSetupModal({
               <SetupField title="Feedback"><div className="sp-caption"><strong>After Every Answer</strong><br />Correct And Incorrect Results Stay Visible.</div></SetupField>
               <SetupField title="Hand Advance"><div className="sp-caption"><strong>Manual Next Required</strong><br />Click Next When You Finish Reviewing.</div></SetupField>
               <SetupField title="Hand Selection"><PillRow options={HAND_SELECTION_OPTIONS} value={handSelection} onChange={setHandSelection} name="handSelection" /></SetupField>
+              <SetupField title="Poker Variant" wide><PillRow options={VARIANT_OPTIONS} value={variant} onChange={setVariant} name="variant" /></SetupField>
             </div>
 
             <div className="sp-setup-launch">

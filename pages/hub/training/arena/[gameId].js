@@ -124,7 +124,25 @@ export default function TrainingArenaPage() {
     const customLaunch = useMemo(() => {
         if (!router.isReady) return { config: null, error: null };
         try {
-            return { config: customTrainingConfigFromQuery(router.query), error: null };
+            const baseConfig = customTrainingConfigFromQuery(router.query);
+            const rawVariant = typeof router.query.variant === 'string'
+                ? router.query.variant.trim().toLowerCase()
+                : '';
+            const variant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(rawVariant) ? rawVariant : null;
+            const duelToken = typeof router.query.duelToken === 'string' && router.query.duelToken.trim()
+                ? router.query.duelToken.trim()
+                : null;
+            if (!baseConfig && !variant && !duelToken) {
+                return { config: null, error: null };
+            }
+            return {
+                config: {
+                    ...(baseConfig || {}),
+                    ...(variant ? { variant } : {}),
+                    ...(duelToken ? { duelToken } : {}),
+                },
+                error: null,
+            };
         } catch (error) {
             return {
                 config: null,
@@ -248,12 +266,92 @@ export default function TrainingArenaPage() {
         );
     }
 
+    const syncedHandId = typeof router.query.syncedHandId === 'string' ? router.query.syncedHandId.trim() : '';
+    const syncedHeroCards = typeof router.query.syncedHeroCards === 'string' ? router.query.syncedHeroCards.trim() : '';
+    const syncedBoard = typeof router.query.syncedBoard === 'string' ? router.query.syncedBoard.trim() : '';
+    const duelToken = typeof router.query.duelToken === 'string' ? router.query.duelToken.trim() : '';
+
     return (
         <>
             <Head>
                 <title>{gameName} - Level {level} | Smarter.Poker GTO Training</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             </Head>
+            {syncedHandId && (
+                <div
+                    data-synced-hand-banner="true"
+                    data-synced-hand-id={syncedHandId}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        padding: '8px 16px',
+                        background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.2), rgba(6, 78, 59, 0.35))',
+                        borderBottom: '1px solid rgba(52, 211, 153, 0.45)',
+                        color: '#ecfdf5',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        zIndex: 50,
+                    }}
+                >
+                    <span>
+                        ★ Drilling Authenticated Hand #{syncedHandId}
+                        {syncedHeroCards ? ` · Hero: ${syncedHeroCards}` : ''}
+                        {syncedBoard ? ` · Board: ${syncedBoard}` : ''}
+                        {router.query.position ? ` · Position: ${String(router.query.position).toUpperCase()}` : ''}
+                        {router.query.street ? ` · Street: ${String(router.query.street).toUpperCase()}` : ''}
+                    </span>
+                    <a
+                        href="/hub/training/live-hud-sync"
+                        style={{
+                            color: '#6ee7b7',
+                            textDecoration: 'none',
+                            fontWeight: 800,
+                            fontSize: 12,
+                        }}
+                    >
+                        ← Return To Live Hand Sync
+                    </a>
+                </div>
+            )}
+            {duelToken && (
+                <div
+                    data-arena-duel-bar="true"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        padding: '8px 16px',
+                        background: 'linear-gradient(90deg, rgba(14, 165, 233, 0.22), rgba(30, 58, 138, 0.35))',
+                        borderBottom: '1px solid rgba(103, 232, 249, 0.45)',
+                        color: '#f0f9ff',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        zIndex: 50,
+                    }}
+                >
+                    <span>
+                        ◆ Signed Asynchronous Duel Active · Identical Canonical Scenario Sequence & Server Grading
+                    </span>
+                    <a
+                        href={`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`}
+                        style={{
+                            color: '#7dd3fc',
+                            textDecoration: 'none',
+                            fontWeight: 800,
+                            fontSize: 12,
+                        }}
+                    >
+                        View Verified Two-Player Scoreboard →
+                    </a>
+                </div>
+            )}
             <ArenaErrorBoundary>
                 <GodModeArena
                     userId={userId}

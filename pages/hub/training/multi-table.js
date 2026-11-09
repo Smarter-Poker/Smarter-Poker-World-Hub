@@ -81,6 +81,8 @@ export default function MultiTablePage() {
   // rest. Clicking a table makes it the owner; the first table owns it on load
   // so the keyboard works before the player has clicked anything.
   const [focusedGameId, setFocusedGameId] = useState(null);
+  const [tableStates, setTableStates] = useState({});
+  const tableStatesRef = React.useRef({});
 
   // #10: a phone cannot show two felts side by side.
   //
@@ -241,6 +243,63 @@ export default function MultiTablePage() {
   );
   const activeGameId =
     focusedGameId && visibleGames.includes(focusedGameId) ? focusedGameId : visibleGames[0];
+
+  // Automatic focus progression to the next unanswered table when a table's
+  // hand is answered (showFeedback transitions false -> true) or completed.
+  const handleTableStateChange = useCallback(
+    (nextState) => {
+      const id = String(nextState?.gameId || '');
+      if (!id) return;
+      const prev = tableStatesRef.current[id] || null;
+      const unchanged =
+        prev &&
+        prev.awaitingDecision === nextState.awaitingDecision &&
+        prev.showFeedback === nextState.showFeedback &&
+        prev.gameComplete === nextState.gameComplete &&
+        prev.questionNumber === nextState.questionNumber &&
+        prev.questionId === nextState.questionId;
+      if (unchanged) return;
+
+      const updatedMap = {
+        ...tableStatesRef.current,
+        [id]: nextState,
+      };
+      tableStatesRef.current = updatedMap;
+      setTableStates(updatedMap);
+
+      const justAnswered = Boolean(
+        (!prev?.showFeedback && nextState.showFeedback) ||
+          (!prev?.gameComplete && nextState.gameComplete),
+      );
+      const justBecameReady = Boolean(!prev?.awaitingDecision && nextState.awaitingDecision);
+
+      if (justAnswered && visibleGames.length > 1) {
+        const startIdx = Math.max(0, visibleGames.indexOf(id));
+        for (let offset = 1; offset < visibleGames.length; offset += 1) {
+          const candidateId = visibleGames[(startIdx + offset) % visibleGames.length];
+          if (completedTables.has(candidateId)) continue;
+          const candidateState = updatedMap[candidateId];
+          if (!candidateState?.gameComplete && !candidateState?.showFeedback) {
+            setFocusedGameId(candidateId);
+            return;
+          }
+        }
+      } else if (justBecameReady && visibleGames.length > 1) {
+        const currentFocused =
+          focusedGameId && visibleGames.includes(focusedGameId) ? focusedGameId : visibleGames[0];
+        const focusedState = updatedMap[currentFocused];
+        if (
+          currentFocused !== id &&
+          (completedTables.has(currentFocused) ||
+            focusedState?.showFeedback ||
+            focusedState?.gameComplete)
+        ) {
+          setFocusedGameId(id);
+        }
+      }
+    },
+    [visibleGames, completedTables, focusedGameId],
+  );
 
   // Keyboard table-focus switching: '[' / ']' or Alt+1..Alt+4 moves active focus between visible tables
   useEffect(() => {
@@ -955,6 +1014,16 @@ export default function MultiTablePage() {
               {visibleGames.map((gameId, i) => (
                 <div
                   key={gameId}
+                  data-multitable-slot={gameId}
+                  data-multitable-index={i + 1}
+                  data-multitable-focused={gameId === activeGameId ? 'true' : 'false'}
+                  data-multitable-status={
+                    completedTables.has(gameId) || tableStates[gameId]?.gameComplete
+                      ? 'completed'
+                      : tableStates[gameId]?.showFeedback
+                        ? 'answered'
+                        : 'unanswered'
+                  }
                   // #10: clicking anywhere in a table makes it the focus owner.
                   // Capture phase, because the arena's own controls sit on top
                   // and stop propagation on some of their handlers — without
@@ -979,28 +1048,72 @@ export default function MultiTablePage() {
                     position: 'relative',
                   }}
                 >
-                  {/* Table Number Badge */}
+                  {/* Table Number & Focus Badge */}
                   <div
+                    data-multitable-focus-badge={gameId}
                     style={{
                       position: 'absolute',
                       top: 8,
                       left: 8,
                       zIndex: 10,
-                      width: 24,
-                      height: 24,
-                      borderRadius: '50%',
-                      background: 'rgba(0,212,255,0.2)',
-                      border: '1px solid rgba(0,212,255,0.3)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: 'var(--sp-accent-cyan)',
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                      gap: 6,
+                      pointerEvents: 'none',
                     }}
                   >
-                    {i + 1}
+                    <div
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        background: 'rgba(0,212,255,0.2)',
+                        border: '1px solid rgba(0,212,255,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: 'var(--sp-accent-cyan)',
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                      }}
+                    >
+                      {i + 1}
+                    </div>
+                    <span
+                      style={{
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        background:
+                          gameId === activeGameId
+                            ? 'rgba(0, 212, 255, 0.22)'
+                            : tableStates[gameId]?.showFeedback
+                              ? 'rgba(34, 197, 94, 0.18)'
+                              : 'rgba(0, 0, 0, 0.55)',
+                        border:
+                          gameId === activeGameId
+                            ? '1px solid rgba(0, 212, 255, 0.65)'
+                            : tableStates[gameId]?.showFeedback
+                              ? '1px solid rgba(34, 197, 94, 0.45)'
+                              : '1px solid rgba(255, 255, 255, 0.14)',
+                        color:
+                          gameId === activeGameId
+                            ? '#67e8f9'
+                            : tableStates[gameId]?.showFeedback
+                              ? '#86efac'
+                              : '#94a3b8',
+                      }}
+                    >
+                      {gameId === activeGameId
+                        ? 'ACTIVE FOCUS'
+                        : completedTables.has(gameId) || tableStates[gameId]?.gameComplete
+                          ? 'DONE'
+                          : tableStates[gameId]?.showFeedback
+                            ? 'ANSWERED'
+                            : 'UNANSWERED'}
+                    </span>
                   </div>
 
                   {/* The 0.85 down-scale exists to fit a tiled cell. On a
@@ -1034,6 +1147,7 @@ export default function MultiTablePage() {
                       sessionId={`${runId}-${gameId}`}
                       initialConfig={arenaInitialConfig}
                       isFocused={gameId === activeGameId}
+                      onTableStateChange={handleTableStateChange}
                       autoAdvance={false}
                       onComplete={() => {}}
                       onExit={() => setCompletedTables((prev) => new Set([...prev, gameId]))}

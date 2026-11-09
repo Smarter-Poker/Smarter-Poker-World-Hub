@@ -1605,6 +1605,7 @@ function UniversalDynamicTable({
     // Phase 351+: Pre-decision hints
     getPreDecisionPreview = null,
     getKeyConceptReminders = null,
+    isFocused = true,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     /* The player's saved Club Arena theme, for the villain card backs below
@@ -1918,8 +1919,12 @@ function UniversalDynamicTable({
     const board = question?.boardCards || scenario.boardCards || scenario.board || '';
     const rawHeroCards = question?.heroCards || scenario.heroHand || scenario.heroCards || 'AsKs';
     const heroCards = useMemo(() => {
-        if (Array.isArray(rawHeroCards) && rawHeroCards.length >= 2) return rawHeroCards;
+        if (Array.isArray(rawHeroCards) && rawHeroCards.length >= 2) return rawHeroCards.slice(0, 6);
         if (typeof rawHeroCards === 'string' && rawHeroCards.length >= 4) {
+            const matchedCards = rawHeroCards.match(/[2-9TJQKA][hdcs]/gi);
+            if (matchedCards && matchedCards.length >= 2) {
+                return matchedCards.slice(0, 6).map((c) => `${c[0].toUpperCase()}${c[1].toLowerCase()}`);
+            }
             return [rawHeroCards.substring(0, 2), rawHeroCards.substring(2, 4)];
         }
         // Handle 3-char abstract notation: "K8s" (suited), "ATo" (offsuit)
@@ -2346,6 +2351,7 @@ function UniversalDynamicTable({
     // H3: Keyboard shortcut 'M' to cycle through modes
     useEffect(() => {
         const handleModeKey = (e) => {
+            if (!isFocused) return;
             if (e.key === 'm' || e.key === 'M') {
                 if (e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
                 setActiveMode(prev => {
@@ -2359,7 +2365,7 @@ function UniversalDynamicTable({
         };
         window.addEventListener('keydown', handleModeKey);
         return () => window.removeEventListener('keydown', handleModeKey);
-    }, [MODE_TABS, showFeedback]);
+    }, [MODE_TABS, showFeedback, isFocused]);
 
     // Determine player count based on game type.
     //
@@ -2896,6 +2902,7 @@ function UniversalDynamicTable({
     // rendered action buttons so keyboard answers can never diverge from clicks.
     useEffect(() => {
         const handleKeyDown = (e) => {
+            if (!isFocused) return;
             // Don't intercept if user is typing in an input
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
@@ -2946,7 +2953,7 @@ function UniversalDynamicTable({
             window.removeEventListener('keydown', handleKeyDown);
             window.__spUnifiedKeyboard = Math.max(0, (window.__spUnifiedKeyboard || 1) - 1);
         };
-    }, [showFeedback, selectedAnswer, displayOptions, handleAnswerWithGrouping]);
+    }, [showFeedback, selectedAnswer, displayOptions, handleAnswerWithGrouping, isFocused]);
 
     // GTOW parity #38 — while the dice is live it, not the solver's modal
     // action, is what "Best" means for this hand. Every display that used to
@@ -3189,6 +3196,9 @@ function UniversalDynamicTable({
             className="gto-trainer-container"
             data-training-game-id={gameId}
             data-training-ui="club-arena-table"
+            data-table-focused={isFocused ? 'true' : 'false'}
+            data-training-variant={scenario?.variant || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh')}
+            data-training-hole-card-count={heroCards?.length || 2}
             data-training-visual-state={showFeedback ? 'verdict' : 'action'}
             data-training-selected-action={selectedAnswer || ''}
             data-training-street={streetLabel.toLowerCase()}
@@ -3788,6 +3798,169 @@ function UniversalDynamicTable({
                 </span>
             </div>
 
+            {/* AUTHORITATIVE SCENARIO TELEMETRY & VARIANT SELECTOR STRIP */}
+            {(() => {
+                const gId = String(gameId || '').toLowerCase();
+                const currentVariant = String(
+                    scenario?.variant
+                    || trainerConfig?.variant
+                    || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh')
+                ).toLowerCase();
+                const rawBounty = scenario?.bountyBb ?? scenario?.bountyAmount ?? scenario?.bountyChips ?? (typeof scenario?.bounty === 'number' ? scenario.bounty : null);
+                const hasNumericBounty = Number.isFinite(Number(rawBounty)) && Number(rawBounty) > 0;
+                const isPkoSpot = hasNumericBounty || gId === 'mtt-005' || gId === 'mtt-020' || Boolean(scenario?.isPKO || /bounty|pko/i.test(String(gameTitle || '')));
+
+                const rawBubbleFactor = scenario?.bubbleFactor ?? scenario?.icmBubbleFactor ?? null;
+                const hasNumericBubbleFactor = Number.isFinite(Number(rawBubbleFactor)) && Number(rawBubbleFactor) > 0;
+                const rawPayoutPressure = typeof scenario?.payoutPressure === 'string' && scenario.payoutPressure.trim()
+                    ? scenario.payoutPressure.trim()
+                    : (typeof scenario?.icmPressure === 'string' && scenario.icmPressure.trim() ? scenario.icmPressure.trim() : null);
+                const isIcmSpot = hasNumericBubbleFactor || Boolean(rawPayoutPressure) || ['mtt-001', 'mtt-002', 'mtt-003', 'mtt-004', 'mtt-006', 'mtt-007', 'mtt-010', 'mtt-011', 'mtt-012', 'mtt-013', 'mtt-017', 'mtt-023', 'final-table-sim'].includes(gId) || gId.startsWith('sng-') || Boolean(scenario?.isICM || /icm|bubble|satellite|final table|pay jump/i.test(String(gameTitle || '')));
+
+                const statsObj = scenario?.villainStats || scenario?.hudStats || null;
+                const vpipVal = statsObj?.vpip ?? scenario?.vpip ?? null;
+                const pfrVal = statsObj?.pfr ?? scenario?.pfr ?? null;
+                const threeBetVal = statsObj?.threeBet ?? statsObj?.three_bet ?? scenario?.threeBet ?? null;
+                const hasHudStats = Number.isFinite(Number(vpipVal)) && Number.isFinite(Number(pfrVal));
+                const archetypeLabel = String(scenario?.villainProfile || scenario?.archetype || statsObj?.archetype || '').trim();
+
+                const handleSelectVariant = (nextVar) => {
+                    if (typeof window === 'undefined') return;
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('variant', nextVar);
+                    url.searchParams.set('session', `session-${Date.now()}-${nextVar}`);
+                    window.location.assign(url.pathname + url.search);
+                };
+
+                return (
+                    <div
+                        data-training-scenario-telemetry="true"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: 6,
+                            padding: '4px 10px',
+                            background: 'rgba(4, 12, 22, 0.88)',
+                            borderBottom: '1px solid rgba(103, 232, 249, 0.16)',
+                            fontSize: 12,
+                        }}
+                    >
+                        {/* Variant Selector: Hold'em, PLO4, PLO5, PLO6 */}
+                        <div
+                            data-training-variant-selector="true"
+                            role="group"
+                            aria-label="Poker Variant Selector"
+                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
+                            {[
+                                { id: 'nlh', label: "Hold'em" },
+                                { id: 'plo4', label: 'PLO4' },
+                                { id: 'plo5', label: 'PLO5' },
+                                { id: 'plo6', label: 'PLO6' },
+                            ].map((v) => {
+                                const active = currentVariant === v.id;
+                                return (
+                                    <button
+                                        key={v.id}
+                                        type="button"
+                                        data-variant-option={v.id}
+                                        aria-pressed={active}
+                                        onClick={() => handleSelectVariant(v.id)}
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: 5,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: active ? '1px solid rgba(0, 212, 255, 0.7)' : '1px solid rgba(255,255,255,0.12)',
+                                            background: active ? 'rgba(0, 212, 255, 0.18)' : 'rgba(255,255,255,0.04)',
+                                            color: active ? '#67e8f9' : '#94a3b8',
+                                        }}
+                                    >
+                                        {v.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Authoritative Tournament & Opponent Telemetry */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            {/* Bounty Telemetry */}
+                            <span
+                                data-telemetry-bounty="true"
+                                data-bounty-authority={hasNumericBounty ? 'scenario' : isPkoSpot ? 'reference' : 'unavailable'}
+                                data-bounty-value={hasNumericBounty ? String(rawBounty) : ''}
+                                style={{
+                                    padding: '2px 7px',
+                                    borderRadius: 4,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: hasNumericBounty ? '#fbbf24' : '#94a3b8',
+                                    background: hasNumericBounty ? 'rgba(251, 191, 36, 0.14)' : 'rgba(255,255,255,0.04)',
+                                    border: hasNumericBounty ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255,255,255,0.08)',
+                                }}
+                            >
+                                {hasNumericBounty
+                                    ? `Bounty: ${rawBounty} BB (Scenario)`
+                                    : isPkoSpot
+                                        ? 'Bounty: Reference PKO (Amount Unavailable)'
+                                        : 'Bounty: N/A (Non-PKO)'}
+                            </span>
+
+                            {/* ICM / Payout Pressure Telemetry */}
+                            <span
+                                data-telemetry-icm="true"
+                                data-icm-authority={hasNumericBubbleFactor || rawPayoutPressure ? 'scenario' : isIcmSpot ? 'reference' : 'unavailable'}
+                                data-icm-bubble-factor={hasNumericBubbleFactor ? String(rawBubbleFactor) : ''}
+                                style={{
+                                    padding: '2px 7px',
+                                    borderRadius: 4,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: (hasNumericBubbleFactor || rawPayoutPressure) ? '#f59e0b' : '#94a3b8',
+                                    background: (hasNumericBubbleFactor || rawPayoutPressure) ? 'rgba(245, 158, 11, 0.14)' : 'rgba(255,255,255,0.04)',
+                                    border: (hasNumericBubbleFactor || rawPayoutPressure) ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(255,255,255,0.08)',
+                                }}
+                            >
+                                {hasNumericBubbleFactor
+                                    ? `Payout Pressure: BF ${rawBubbleFactor}x${rawPayoutPressure ? ` (${rawPayoutPressure})` : ''}`
+                                    : rawPayoutPressure
+                                        ? `Payout Pressure: ${rawPayoutPressure}`
+                                        : isIcmSpot
+                                            ? 'Payout Pressure: Reference ICM (Payout Vector Unavailable)'
+                                            : 'Payout Pressure: Chip-EV (No ICM)'}
+                            </span>
+
+                            {/* Villain HUD Telemetry */}
+                            <span
+                                data-telemetry-hud="true"
+                                data-hud-authority={hasHudStats ? 'scenario' : archetypeLabel ? 'reference' : 'unavailable'}
+                                data-hud-vpip={hasHudStats ? String(vpipVal) : ''}
+                                data-hud-pfr={hasHudStats ? String(pfrVal) : ''}
+                                data-hud-3bet={hasHudStats && threeBetVal !== null ? String(threeBetVal) : ''}
+                                style={{
+                                    padding: '2px 7px',
+                                    borderRadius: 4,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: hasHudStats ? '#38bdf8' : '#94a3b8',
+                                    background: hasHudStats ? 'rgba(56, 189, 248, 0.14)' : 'rgba(255,255,255,0.04)',
+                                    border: hasHudStats ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255,255,255,0.08)',
+                                }}
+                            >
+                                {hasHudStats
+                                    ? `Villain HUD: VPIP ${vpipVal}% / PFR ${pfrVal}% / 3B ${threeBetVal ?? '--'}%`
+                                    : archetypeLabel
+                                        ? `Villain Read: ${archetypeLabel} (VPIP/PFR Unavailable)`
+                                        : 'Villain HUD: GTO Baseline (VPIP/PFR Unavailable)'}
+                            </span>
+                        </div>
+                    </div>
+                );
+            })()}
+
                         {/* TABLE AREA - Center */}
             <div className="sp-club-gto-table-area" style={{
                 ...styles.tableArea,
@@ -4167,54 +4340,63 @@ function UniversalDynamicTable({
                                     {/* PKO Bounty & Exploitative Villain Read Badge */}
                                     {!isHero && index === villainSeatIndex && (() => {
                                         const gId = String(gameId || '').toLowerCase();
-                                        const isPkoSpot = gId === 'mtt-005' || gId === 'mtt-020' || Boolean(scenario?.bounty || scenario?.isPKO || /bounty|pko/i.test(String(gameTitle || '')));
-                                        const isExploitSpot = gId === 'adv-003' || gId === 'adv-015' || gId === 'adv-016' || gId === 'cash-020' || Boolean(scenario?.villainProfile || scenario?.archetype);
-                                        if (isPkoSpot) {
-                                            return (
-                                                <div
-                                                    data-training-bounty-badge="true"
-                                                    style={{
-                                                        marginTop: 1,
-                                                        fontSize: Math.max(9, ui(8.5)),
-                                                        fontWeight: 900,
-                                                        letterSpacing: 0.5,
-                                                        color: '#fbbf24',
-                                                        background: 'rgba(251,191,36,0.14)',
-                                                        border: '1px solid rgba(251,191,36,0.45)',
-                                                        borderRadius: 4,
-                                                        padding: '0 4px',
-                                                        lineHeight: 1.25,
-                                                        whiteSpace: 'nowrap',
-                                                    }}
-                                                >
-                                                    ★ BOUNTY
-                                                </div>
-                                            );
-                                        }
-                                        if (isExploitSpot) {
-                                            const readLabel = String(scenario?.villainProfile || scenario?.archetype || 'POOL READ').slice(0, 11).toUpperCase();
-                                            return (
-                                                <div
-                                                    data-training-villain-hud="true"
-                                                    style={{
-                                                        marginTop: 1,
-                                                        fontSize: Math.max(9, ui(8.5)),
-                                                        fontWeight: 900,
-                                                        letterSpacing: 0.4,
-                                                        color: '#38bdf8',
-                                                        background: 'rgba(56,189,248,0.14)',
-                                                        border: '1px solid rgba(56,189,248,0.4)',
-                                                        borderRadius: 4,
-                                                        padding: '0 4px',
-                                                        lineHeight: 1.25,
-                                                        whiteSpace: 'nowrap',
-                                                    }}
-                                                >
-                                                    {readLabel}
-                                                </div>
-                                            );
-                                        }
-                                        return null;
+                                        const rawBounty = scenario?.bountyBb ?? scenario?.bountyAmount ?? scenario?.bountyChips ?? (typeof scenario?.bounty === 'number' ? scenario.bounty : null);
+                                        const hasNumericBounty = Number.isFinite(Number(rawBounty)) && Number(rawBounty) > 0;
+                                        const isPkoSpot = hasNumericBounty || gId === 'mtt-005' || gId === 'mtt-020' || Boolean(scenario?.bounty || scenario?.isPKO || /bounty|pko/i.test(String(gameTitle || '')));
+                                        const statsObj = scenario?.villainStats || scenario?.hudStats || null;
+                                        const vpipVal = statsObj?.vpip ?? scenario?.vpip ?? null;
+                                        const pfrVal = statsObj?.pfr ?? scenario?.pfr ?? null;
+                                        const threeBetVal = statsObj?.threeBet ?? statsObj?.three_bet ?? scenario?.threeBet ?? null;
+                                        const hasHudStats = Number.isFinite(Number(vpipVal)) && Number.isFinite(Number(pfrVal));
+                                        const isExploitSpot = hasHudStats || gId === 'adv-003' || gId === 'adv-015' || gId === 'adv-016' || gId === 'cash-020' || Boolean(scenario?.villainProfile || scenario?.archetype);
+                                        return (
+                                            <>
+                                                {isPkoSpot && (
+                                                    <div
+                                                        data-training-bounty-badge="true"
+                                                        data-bounty-authority={hasNumericBounty ? 'scenario' : 'reference'}
+                                                        style={{
+                                                            marginTop: 1,
+                                                            fontSize: 12,
+                                                            fontWeight: 900,
+                                                            letterSpacing: 0.4,
+                                                            color: '#fbbf24',
+                                                            background: 'rgba(251,191,36,0.14)',
+                                                            border: '1px solid rgba(251,191,36,0.45)',
+                                                            borderRadius: 4,
+                                                            padding: '0 4px',
+                                                            lineHeight: 1.25,
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                    >
+                                                        {hasNumericBounty ? `★ ${rawBounty} BB BOUNTY` : '★ REF PKO'}
+                                                    </div>
+                                                )}
+                                                {isExploitSpot && (
+                                                    <div
+                                                        data-training-villain-hud="true"
+                                                        data-hud-authority={hasHudStats ? 'scenario' : 'reference'}
+                                                        style={{
+                                                            marginTop: 1,
+                                                            fontSize: 12,
+                                                            fontWeight: 900,
+                                                            letterSpacing: 0.3,
+                                                            color: '#38bdf8',
+                                                            background: 'rgba(56,189,248,0.14)',
+                                                            border: '1px solid rgba(56,189,248,0.4)',
+                                                            borderRadius: 4,
+                                                            padding: '0 4px',
+                                                            lineHeight: 1.25,
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                    >
+                                                        {hasHudStats
+                                                            ? `${vpipVal}/${pfrVal}/${threeBetVal ?? '--'}`
+                                                            : `REF: ${String(scenario?.villainProfile || scenario?.archetype || 'POOL').slice(0, 8).toUpperCase()}`}
+                                                    </div>
+                                                )}
+                                            </>
+                                        );
                                     })()}
 
                                     {/* Dealer Button — rendered at table level per
@@ -4706,12 +4888,17 @@ function UniversalDynamicTable({
                             {potOdds && <span style={styles.potOverlayBadge}>Odds: {potOdds}%</span>}
                             {(() => {
                                 const gId = String(gameId || '').toLowerCase();
-                                const isIcmSpot = ['mtt-001', 'mtt-002', 'mtt-003', 'mtt-004', 'mtt-006', 'mtt-013', 'final-table-sim'].includes(gId)
+                                const rawBf = scenario?.bubbleFactor ?? scenario?.icmBubbleFactor ?? null;
+                                const hasBf = Number.isFinite(Number(rawBf)) && Number(rawBf) > 0;
+                                const rawPressure = typeof scenario?.payoutPressure === 'string' ? scenario.payoutPressure : null;
+                                const isIcmSpot = hasBf || Boolean(rawPressure) || ['mtt-001', 'mtt-002', 'mtt-003', 'mtt-004', 'mtt-006', 'mtt-007', 'mtt-010', 'mtt-011', 'mtt-012', 'mtt-013', 'mtt-017', 'mtt-023', 'final-table-sim'].includes(gId)
+                                    || gId.startsWith('sng-')
                                     || Boolean(scenario?.icmPressure || scenario?.isICM || /icm|bubble|satellite|final table/i.test(String(gameTitle || '')));
                                 if (!isIcmSpot) return null;
                                 return (
                                     <span
                                         data-training-icm-badge="true"
+                                        data-icm-authority={hasBf || rawPressure ? 'scenario' : 'reference'}
                                         style={{
                                             ...styles.potOverlayBadge,
                                             color: '#f59e0b',
@@ -4719,7 +4906,7 @@ function UniversalDynamicTable({
                                             background: 'rgba(245, 158, 11, 0.14)',
                                         }}
                                     >
-                                        ICM
+                                        {hasBf ? `ICM BF ${rawBf}x` : rawPressure ? `ICM: ${rawPressure}` : 'ICM REF'}
                                     </span>
                                 );
                             })()}
