@@ -126,7 +126,7 @@ export default async function handler(req, res) {
         // 1. Check live table hand_history first
         const { data: liveRow } = await supabase
           .from('hand_history')
-          .select('id, table_id, club_id, hand_number, game_variant, stakes, players, community_cards, actions, pot_total, winners, completed_at, created_at')
+          .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
           .eq('id', requestedHandId)
           .maybeSingle();
 
@@ -139,15 +139,16 @@ export default async function handler(req, res) {
             });
           }
           const normalized = normalizeClubArenaHand(liveRow, user.id);
+          const summary = liveRow.summary && typeof liveRow.summary === 'object' ? liveRow.summary : {};
           const handObj = {
             id: String(normalized?.id || liveRow.id),
             site: 'Club Arena',
-            gameType: liveRow.game_variant || 'Cash',
-            stakes: liveRow.stakes || '1/2',
+            gameType: liveRow.game_variant || summary.format || 'Cash',
+            stakes: summary.stakes || (summary.bigBlind ? `${Number(summary.smallBlind) || 1}/${Number(summary.bigBlind)}` : '1/2'),
             heroCards: normalized?.heroCards || [],
-            board: normalized?.board || liveRow.community_cards || [],
+            board: normalized?.board || liveRow.community_cards || liveRow.board || [],
             heroPosition: normalized?.heroPosition || 'BTN',
-            pot: Number(liveRow.pot_total) || 0,
+            pot: Number(summary.potTotal || summary.pot || 0) || 0,
             participantUserId: user.id,
           };
           handObj.drillHref = buildDrillHrefForHand(handObj, null);
@@ -211,7 +212,7 @@ export default async function handler(req, res) {
         ].join(',');
         const { data: liveRows } = await supabase
           .from('hand_history')
-          .select('id, table_id, club_id, hand_number, game_variant, stakes, players, community_cards, actions, pot_total, winners, completed_at, created_at')
+          .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
           .or(filter)
           .order('created_at', { ascending: false })
           .limit(20);
@@ -219,16 +220,17 @@ export default async function handler(req, res) {
         for (const row of liveRows || []) {
           if (!isUserParticipantInHandRow(row, user.id)) continue;
           const normalized = normalizeClubArenaHand(row, user.id);
+          const summary = row.summary && typeof row.summary === 'object' ? row.summary : {};
           const item = {
             id: String(normalized?.id || row.id),
             site: 'Club Arena Live Table',
-            gameType: row.game_variant || 'Cash',
-            stakes: row.stakes || '1/2',
+            gameType: row.game_variant || summary.format || 'Cash',
+            stakes: summary.stakes || (summary.bigBlind ? `${Number(summary.smallBlind) || 1}/${Number(summary.bigBlind)}` : '1/2'),
             heroCards: normalized?.heroCards || [],
-            board: normalized?.board || row.community_cards || [],
+            board: normalized?.board || row.community_cards || row.board || [],
             heroPosition: normalized?.heroPosition || 'BTN',
-            pot: Number(row.pot_total) || 0,
-            createdAt: row.completed_at || row.created_at,
+            pot: Number(summary.potTotal || summary.pot || 0) || 0,
+            createdAt: row.created_at,
             participantUserId: user.id,
           };
           item.drillHref = buildDrillHrefForHand(item, null);

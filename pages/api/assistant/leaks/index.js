@@ -14,8 +14,10 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { availabilityFailure, persistedResult } from '../../../../src/lib/personal-assistant/persistenceContract';
-import { leakStatusPersistenceFields, leakTypeSlug, normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
+import leakRecord, { leakStatusPersistenceFields, leakTypeSlug, normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
+
+export const SUPPORTED_LEAK_CATALOG = leakRecord;
 
 let _supabase = null;
 function getSupabase() {
