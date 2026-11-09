@@ -233,6 +233,30 @@ export const PARTNER_BADGES = [
     altText: 'Texas Card Room Benchmark: Smarter.Poker Directory',
   },
   {
+    id: 'badge-award-vegas',
+    title: 'Las Vegas Strip & Clark County Room Benchmark Badge',
+    description: 'For Las Vegas casino poker rooms featured in the US Live Poker Room Rake & Vegas Market Guide.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-vegas',
+    targetUrl: 'https://smarter.poker/poker-rooms/guides/las-vegas-nevada',
+    altText: 'Las Vegas Room Benchmark: Smarter.Poker Directory',
+  },
+  {
+    id: 'badge-award-florida',
+    title: 'Florida Card Room & Series Benchmark Badge',
+    description: 'For South Florida and Tampa Bay poker rooms featured in the Florida Poker Rooms & Market Strategy Guide.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-florida',
+    targetUrl: 'https://smarter.poker/poker-rooms/guides/south-florida-miami-hollywood',
+    altText: 'Florida Room Benchmark: Smarter.Poker Directory',
+  },
+  {
+    id: 'badge-award-california',
+    title: 'California Flat-Drop Card Room Benchmark Badge',
+    description: 'For Los Angeles and Bay Area card rooms featured in the California Flat-Drop Strategy Guide.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-california',
+    targetUrl: 'https://smarter.poker/poker-rooms/guides/los-angeles-california',
+    altText: 'California Room Benchmark: Smarter.Poker Directory',
+  },
+  {
     id: 'badge-award-cpa',
     title: 'Form W-2G & Schedule C Tax Ledger Badge (For CPAs)',
     description: 'For gaming CPA firms, tax attorneys, and financial advisors linking to the free Form W-2G poker session tax ledger.',
@@ -300,6 +324,34 @@ export const STREAM_CHAT_COMMANDS = [
     title: 'Poker Bankroll Risk Of Ruin & Variance Command (!winrate)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=winrate&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/poker-winrate-calculator',
+  },
+  {
+    id: 'cmd-plo',
+    command: '!plo',
+    title: 'Pot-Limit Omaha Max Raise (3x + Trail + Pot) Command (!plo)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=plo&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/plo-bet-calculator',
+  },
+  {
+    id: 'cmd-rake',
+    command: '!rake',
+    title: 'Live Cash Game Rake Cap Vs. Time Collection Command (!rake)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rake&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/rake-calculator',
+  },
+  {
+    id: 'cmd-3bet',
+    command: '!3bet',
+    title: 'Solver-Approved IP/OOP 3-Bet & 4-Bet Sizing Command (!3bet)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=3bet&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/3bet-calculator',
+  },
+  {
+    id: 'cmd-rule',
+    command: '!rule',
+    title: 'Official Poker TDA & RROP Floor Rulings Command (!rule)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rule&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/rules',
   },
 ];
 
@@ -623,72 +675,107 @@ export default function WebmasterEmbedPortal() {
             </div>
           </section>
 
-          {/* Twitch & YouTube Streamer Nightbot / StreamElements Chatbot Commands */}
-          <section aria-labelledby="streamer-bot-heading" style={{ marginTop: '48px' }}>
-            <h2 id="streamer-bot-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
-              Twitch & YouTube Streamer Chatbot Commands
+          {/* Twitch, YouTube & Kick Streamer Chatbot Commands */}
+          <section aria-labelledby="streamer-commands-heading" style={{ marginTop: '48px' }}>
+            <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
+              Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
             </h2>
             <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
-              Poker Streamers And Vloggers Can Add Real-Time Poker Math Commands To Nightbot, StreamElements, Or Fossabot In 10 Seconds. Every Response Includes Direct Canonical Attribution To Smarter.Poker Solvers.
+              Add Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, PLO Max Bet Math, And Official TDA Floor Rulings Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
-              {STREAM_CHAT_COMMANDS.map((item) => {
-                const isCmdCopied = copiedId === item.id;
+              {STREAM_CHAT_COMMANDS.map((cmdItem) => {
+                const isCmdCopied = copiedId === cmdItem.id;
                 return (
                   <article
-                    key={item.id}
+                    key={cmdItem.id}
                     style={{
                       background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(168, 85, 247, 0.25)',
-                      borderRadius: '12px',
-                      padding: '18px',
+                      border: '1px solid rgba(168, 85, 247, 0.24)',
+                      borderRadius: '14px',
+                      padding: '20px',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#c084fc', fontFamily: 'monospace' }}>
-                        {item.command}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          background: 'rgba(168, 85, 247, 0.16)',
+                          border: '1px solid rgba(168, 85, 247, 0.4)',
+                          color: '#d8b4fe',
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          fontSize: '0.92rem',
+                        }}
+                      >
+                        {cmdItem.command}
                       </span>
+                      <Link
+                        href={cmdItem.toolUrl}
+                        style={{ fontSize: '0.8rem', color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}
+                      >
+                        Open Tool &rarr;
+                      </Link>
+                    </div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 10px 0', color: '#f8fafc' }}>
+                      {cmdItem.title}
+                    </h3>
+                    <div style={{ position: 'relative' }}>
+                      <textarea
+                        readOnly
+                        value={cmdItem.nightbot}
+                        aria-label={`Nightbot Command Syntax for ${cmdItem.command}`}
+                        style={{
+                          width: '100%',
+                          height: '58px',
+                          background: '#06060c',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '8px',
+                          padding: '8px 10px',
+                          color: '#e9d5ff',
+                          fontFamily: 'monospace',
+                          fontSize: '0.78rem',
+                          resize: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
                       <button
                         type="button"
                         onClick={() => {
                           if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                            navigator.clipboard.writeText(item.nightbot);
-                            setCopiedId(item.id);
+                            navigator.clipboard.writeText(cmdItem.nightbot);
+                            setCopiedId(cmdItem.id);
                             setTimeout(() => setCopiedId(null), 2500);
                           }
                         }}
                         style={{
+                          marginTop: '8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
                           background: isCmdCopied ? '#059669' : '#7e22ce',
                           color: '#fff',
                           border: 0,
                           borderRadius: '6px',
-                          padding: '5px 10px',
+                          padding: '6px 12px',
                           fontSize: '0.78rem',
                           fontWeight: 600,
                           cursor: 'pointer',
                         }}
                       >
-                        {isCmdCopied ? 'Copied!' : 'Copy Nightbot Command'}
+                        {isCmdCopied ? (
+                          <>
+                            <Check size={13} /> Copied Nightbot Syntax!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} /> Copy Nightbot Command
+                          </>
+                        )}
                       </button>
                     </div>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.8)', margin: '0 0 10px 0' }}>
-                      {item.title}
-                    </p>
-                    <pre
-                      style={{
-                        margin: 0,
-                        padding: '8px 10px',
-                        background: '#06060c',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '6px',
-                        color: '#d8b4fe',
-                        fontSize: '0.76rem',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-all',
-                      }}
-                    >
-                      {item.nightbot}
-                    </pre>
                   </article>
                 );
               })}
@@ -790,7 +877,6 @@ export default function WebmasterEmbedPortal() {
               </a>
             </div>
           </section>
-
           {/* Frequently Asked Questions */}
           <section
             aria-label="Frequently Asked Questions"

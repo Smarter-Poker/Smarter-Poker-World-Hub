@@ -232,11 +232,13 @@ Smarter.Poker Casino Operations Team`,
     emailSubjectTemplate: 'Open CC-BY 4.0 Quantitative Poker Datasets & Browser ICM/GTO Solvers For {{target}}',
     emailBodyTemplate: `Hi {{target}} Officers & Faculty,
 
-For students researching imperfect-information game theory, Malmuth-Harville ICM, or Monte Carlo equity simulation, Smarter.Poker has released our 2026 Open Quantitative Poker Data Catalog under Creative Commons CC-BY 4.0, along with a public 19-tool Model Context Protocol (MCP) server:
+For students researching imperfect-information game theory, Malmuth-Harville ICM, or Monte Carlo equity simulation, Smarter.Poker has released our 2026 Open Quantitative Poker Data Catalog under Creative Commons CC-BY 4.0, along with a public 26-tool Model Context Protocol (MCP) server:
 
 Open Dataset Catalog (Schema.org / Zenodo / CITATION.cff): https://smarter.poker/api/datasets/catalog
 Empirical Research Library (15 Studies): https://smarter.poker/research
 169 Starting Hand GTO Preflop Encyclopedia: https://smarter.poker/learn/hands
+Official Poker Rules & TDA Floor Rulings (30 Rules): https://smarter.poker/rules
+Poker Variants & Mixed Games Hub (15 Games): https://smarter.poker/games
 
 Feel free to include our open dataset catalog in your club resources or course reading list.
 

@@ -20,130 +20,146 @@ const styles = {
         flexDirection: 'column',
         height: '100%',
         minHeight: '500px',
-        background: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%)',
-        borderRadius: 0,
+        background: 'radial-gradient(circle at 50% 24%, rgba(56,146,177,.24), transparent 36%), linear-gradient(135deg, #122732 0%, #071019 47%, #102833 100%)',
+        borderRadius: 12,
         overflow: 'hidden',
         border: '1px solid rgba(120,205,238,.48)',
-        boxShadow: 'inset 0 1px rgba(255,255,255,.18), inset 0 -18px 38px rgba(0,0,0,.42), 0 18px 42px rgba(0,0,0,.48)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.18), inset 0 -18px 38px rgba(0,0,0,.42), 0 18px 42px rgba(0,0,0,.55)',
     },
 
     // Scenario/Question area (top 60%)
     questionArea: {
-        flex: '1 1 60%',
+        flex: '1 1 55%',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '32px 24px',
+        padding: 'clamp(18px, 4vw, 32px) clamp(14px, 3vw, 24px)',
     },
 
     levelBadge: {
-        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-        color: '#000',
+        background: 'linear-gradient(180deg, rgba(245,158,11,0.22), rgba(180,83,9,0.28))',
+        border: '1px solid rgba(251,191,36,0.55)',
+        color: '#fbbf24',
         padding: '6px 16px',
-        borderRadius: 0,
-        fontSize: '14px',
-        fontWeight: '700',
+        borderRadius: 999,
+        fontSize: '13px',
+        fontWeight: '800',
+        letterSpacing: '1px',
+        textTransform: 'uppercase',
         marginBottom: '16px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.45)',
     },
 
     questionBox: {
-        background: 'linear-gradient(135deg, #1e3a5f, #0f2847)',
-        border: '2px solid #3b82f6',
-        borderRadius: 0,
-        padding: '24px 32px',
-        maxWidth: '600px',
+        background: 'linear-gradient(180deg, rgba(18,34,46,0.96) 0%, rgba(6,13,20,0.98) 100%)',
+        border: '1px solid rgba(112,230,255,0.48)',
+        borderRadius: 12,
+        padding: 'clamp(18px, 3.5vw, 26px) clamp(16px, 4vw, 32px)',
+        maxWidth: '680px',
         width: '100%',
         textAlign: 'center',
+        boxShadow: '0 14px 36px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.16), 0 0 22px rgba(0,212,255,0.14)',
     },
 
     scenarioText: {
-        color: '#94a3b8',
+        color: '#8ed8eb',
         fontSize: '14px',
+        fontWeight: '700',
+        letterSpacing: '0.4px',
         marginBottom: '12px',
         lineHeight: '1.5',
     },
 
     questionText: {
-        color: '#fff',
-        fontSize: '20px',
-        fontWeight: '600',
+        color: '#f8fafc',
+        fontSize: 'clamp(17px, 2.6vw, 21px)',
+        fontWeight: '800',
         lineHeight: '1.4',
+        textShadow: '0 2px 4px rgba(0,0,0,0.65)',
     },
 
     // Answer buttons (bottom 40%)
     answersArea: {
         flex: '0 0 auto',
-        padding: '24px',
-        background: 'rgba(0,0,0,0.3)',
+        padding: 'clamp(14px, 3vw, 24px)',
+        background: 'linear-gradient(180deg, rgba(12,24,38,0.88) 0%, rgba(4,9,16,0.96) 100%)',
+        borderTop: '1px solid rgba(56,189,248,0.28)',
     },
 
     answersGrid: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
         gap: '12px',
-        maxWidth: '600px',
+        maxWidth: '680px',
         margin: '0 auto',
     },
 
     answerButton: {
-        background: 'linear-gradient(135deg, #1e3a5f, #0f2847)',
-        border: '2px solid #3b82f6',
-        borderRadius: 0,
-        padding: '16px 20px',
-        color: '#fff',
-        fontSize: '16px',
-        fontWeight: '500',
+        background: 'linear-gradient(180deg, #1b3b52 0%, #0d2334 56%, #071420 100%)',
+        border: '1px solid rgba(112,230,255,0.38)',
+        borderRadius: 12,
+        padding: '15px 18px',
+        color: '#f8fafc',
+        fontSize: '15px',
+        fontWeight: '700',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'all 0.18s ease',
         textAlign: 'left',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
+        boxShadow: 'inset 0 2px rgba(255,255,255,0.18), inset 0 -4px rgba(0,0,0,0.35), 0 8px 15px rgba(0,0,0,0.48)',
+        textShadow: '0 1px 2px rgba(0,0,0,0.75)',
     },
 
     answerButtonHover: {
-        background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-        transform: 'scale(1.02)',
+        background: 'linear-gradient(180deg, #1aa2ff 0%, #0879ef 56%, #004aa8 100%)',
+        border: '1px solid rgba(186,230,253,0.75)',
+        transform: 'translateY(-1px) scale(1.01)',
     },
 
     answerButtonCorrect: {
-        background: 'linear-gradient(135deg, #16a34a, #15803d)',
-        border: '2px solid #22c55e',
+        background: 'linear-gradient(180deg, #14df75 0%, #00ad4e 56%, #006d30 100%)',
+        border: '1px solid #86efac',
     },
 
     answerButtonWrong: {
-        background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-        border: '2px solid #ef4444',
+        background: 'linear-gradient(180deg, #ff4b52 0%, #f00819 56%, #a5000b 100%)',
+        border: '1px solid #fca5a5',
     },
 
     answerButtonSelected: {
-        background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-        border: '2px solid #a855f7',
+        background: 'linear-gradient(180deg, #fbbf24 0%, #d97706 56%, #92400e 100%)',
+        border: '1px solid #fde68a',
     },
 
     answerLetter: {
         width: '28px',
         height: '28px',
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.2)',
+        borderRadius: '8px',
+        background: 'rgba(0,0,0,0.42)',
+        border: '1px solid rgba(255,255,255,0.22)',
+        color: '#70e6ff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: '700',
-        fontSize: '14px',
+        fontWeight: '900',
+        fontSize: '13px',
+        flexShrink: 0,
     },
 
     // Progress bar
     progressBar: {
-        height: '4px',
-        background: '#1e293b',
+        height: '5px',
+        background: '#050c14',
         width: '100%',
     },
 
     progressFill: {
         height: '100%',
-        background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
+        background: 'linear-gradient(90deg, #1599c5, #63edff)',
+        boxShadow: '0 0 10px #44dfff',
         transition: 'width 0.3s ease',
     },
 
@@ -243,8 +259,53 @@ export default function GTOQuestionCard({
         return opts;
     }, [question?.options, questionNumber]);
 
+    const playCardSound = (type) => {
+        try {
+            if (typeof window === 'undefined') return;
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return;
+            const ctx = new Ctx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            const now = ctx.currentTime;
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(2480, now);
+                osc.frequency.setValueAtTime(3120, now + 0.03);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'correct') {
+                osc.frequency.setValueAtTime(660, now);
+                osc.frequency.setValueAtTime(880, now + 0.09);
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+                osc.start(now);
+                osc.stop(now + 0.24);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(330, now);
+                osc.frequency.setValueAtTime(220, now + 0.14);
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                osc.start(now);
+                osc.stop(now + 0.28);
+            }
+            setTimeout(() => { try { ctx.close(); } catch { /* noop */ } }, 400);
+        } catch { /* non-blocking */ }
+    };
+
+    useEffect(() => {
+        if (!showFeedback || !feedbackResult) return;
+        playCardSound(feedbackResult === 'correct' ? 'correct' : 'wrong');
+    }, [showFeedback, feedbackResult]);
+
     const handleSelect = (optionId) => {
         if (showFeedback) return; // Disable during feedback
+        playCardSound('click');
         setSelectedId(optionId);
         onAnswer?.(optionId);
     };
