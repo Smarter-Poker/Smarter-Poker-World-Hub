@@ -117,11 +117,8 @@ test('a photo opens over the conversation, never in another tab or browser', () 
     // Leaving the app to look at a picture loses the thread, the scroll
     // position and the draft.
     assert.equal(/window\.open/.test(bubble), false, 'no surface may send a photo to a new tab');
-    assert.match(bubble, /createPortal/);
-    assert.match(bubble, /aria-modal="true"/);
-    assert.match(bubble, /aria-label="Close Photo"/);
     assert.match(bubble, /onClick=\{e => \{ e\.stopPropagation\(\); setViewing\(true\); \}\}/);
-    // Escape closes it and the page behind stops scrolling while it is open.
-    assert.match(bubble, /event\.key === 'Escape'/);
-    assert.match(bubble, /document\.body\.style\.overflow = 'hidden'/);
+    // The dialog itself is MediaViewer's; messenger-viewer-gestures pins its
+    // behaviour, and this only pins that the thread opens it.
+    assert.match(bubble, /<MediaViewer /);
 });

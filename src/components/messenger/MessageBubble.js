@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import MediaViewer, { ATTACHMENT_ATTRIBUTE } from './MediaViewer';
 import { defaultTheme } from './MessengerTheme';
 import { Avatar } from './Avatar';
 import { Phone, PhoneMissed, Video } from 'lucide-react';
@@ -161,18 +161,7 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
     useEffect(() => { setFailed(false); setViewing(false); }, [media?.url]);
     // A photo opens over the conversation, never in a new tab or another
     // browser: leaving the app to look at a picture loses the thread, the
-    // scroll position and the draft. Escape or a tap outside closes it.
-    useEffect(() => {
-        if (!viewing || typeof document === 'undefined') return undefined;
-        const close = event => { if (event.key === 'Escape') setViewing(false); };
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        document.addEventListener('keydown', close);
-        return () => {
-            document.removeEventListener('keydown', close);
-            document.body.style.overflow = previousOverflow;
-        };
-    }, [viewing]);
+    // scroll position and the draft. MediaViewer owns everything after that.
     if (!media) return null;
 
     const caption = media.caption
@@ -246,6 +235,7 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                 loading="lazy"
                 onError={() => setFailed(true)}
                 onClick={e => { e.stopPropagation(); setViewing(true); }}
+                {...{ [ATTACHMENT_ATTRIBUTE]: media.url }}
                 style={{
                     maxWidth: media.kind === 'gif' ? 260 : '100%',
                     maxHeight: media.kind === 'gif' ? 260 : 280,
@@ -253,37 +243,7 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                 }}
             />
             {caption}
-            {viewing && typeof document !== 'undefined' && createPortal(
-                <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label={label}
-                    onClick={() => setViewing(false)}
-                    style={{
-                        position: 'fixed', inset: 0, zIndex: 2147483000,
-                        background: 'rgba(0,0,0,0.92)', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', padding: 16,
-                    }}
-                >
-                    <img
-                        src={media.url}
-                        alt={label}
-                        onClick={e => e.stopPropagation()}
-                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }}
-                    />
-                    <button
-                        type="button"
-                        aria-label="Close Photo"
-                        onClick={e => { e.stopPropagation(); setViewing(false); }}
-                        style={{
-                            position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12,
-                            width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                            background: 'rgba(255,255,255,0.14)', color: 'white', fontSize: 22, lineHeight: 1,
-                        }}
-                    >×</button>
-                </div>,
-                document.body,
-            )}
+            {viewing && <MediaViewer url={media.url} label={label} onClose={() => setViewing(false)} />}
         </span>
     );
 }
