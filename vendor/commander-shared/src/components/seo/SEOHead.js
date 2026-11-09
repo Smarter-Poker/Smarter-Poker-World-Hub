@@ -37,6 +37,9 @@ export function toJsonLdDocument(jsonLd) {
 /**
  * Normalize a canonical path or URL to a clean, query-free, hash-free,
  * zero-trailing-slash (except root '/') https://smarter.poker URL.
+ * Watch pages on /hub/reels?id=<id> and /hub/lives?id=<id> retain their
+ * canonical ?id=<id> parameter so each watch page self-canonicalizes
+ * rather than collapsing onto the feed browse page.
  */
 export function normalizeCanonicalUrl(canonicalTarget) {
     if (!canonicalTarget || typeof canonicalTarget !== 'string') return undefined;
@@ -45,11 +48,24 @@ export function normalizeCanonicalUrl(canonicalTarget) {
     const rawUrl = trimmed.startsWith('http')
         ? trimmed
         : `${SITE_URL}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+    const withoutHash = rawUrl.split('#')[0];
     const withoutHashOrQuery = rawUrl.split('#')[0].split('?')[0];
     if (withoutHashOrQuery === `${SITE_URL}/` || withoutHashOrQuery === SITE_URL) {
         return `${SITE_URL}/`;
     }
-    return withoutHashOrQuery.replace(/\/+$/, '');
+    const baseCanonical = withoutHashOrQuery.replace(/\/+$/, '');
+    if (
+        (baseCanonical === `${SITE_URL}/hub/reels` || baseCanonical === `${SITE_URL}/hub/lives`) &&
+        withoutHash.includes('?')
+    ) {
+        const queryString = withoutHash.slice(withoutHash.indexOf('?') + 1);
+        const params = new URLSearchParams(queryString);
+        const watchId = params.get('id')?.trim();
+        if (watchId && /^[A-Za-z0-9_-]{1,128}$/.test(watchId)) {
+            return `${baseCanonical}?id=${encodeURIComponent(watchId)}`;
+        }
+    }
+    return baseCanonical;
 }
 
 export default function SEOHead({

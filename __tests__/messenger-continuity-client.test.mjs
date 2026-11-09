@@ -234,34 +234,10 @@ test('an obsolete receipt retains a queued explicit saved intent for manual retr
 
 // TYPING IS THE INTENT (2026-11-09). A draft used to reach the account only
 // when the person pressed a button, so a banner offering that button sat over
-// the composer for as long as anyone was writing. The controller now sends it
-// on its own once typing stops.
-test('a draft reaches the account on its own shortly after typing stops', async () => {
-    mock.timers.enable({ apis: ['setTimeout'] });
-    try {
-        const { controller, calls } = setup();
-        controller.edit(conversation, 'draft', { text: 'Half a thou', replyToId: null });
-        controller.edit(conversation, 'draft', { text: 'Half a thought', replyToId: null });
-        assert.equal(calls.length, 0, 'nothing is sent mid-keystroke');
-        mock.timers.tick(2500);
-        await tick(); await tick();
-        assert.equal(calls.length, 1, 'one write, after the typing settles');
-        assert.equal(calls[0].field, 'draft');
-        assert.equal(calls[0].value.text, 'Half a thought');
-        assert.equal(controller.state(conversation).draft.dirty, false);
-    } finally { mock.timers.reset(); }
-});
-
-test('the automatic draft sync leaves a conflict for the person and never resends a clean draft', async () => {
-    const { controller, calls } = setup();
-    controller.state(conversation).draft = { text: 'Mine', replyToId: null, revision: 1, dirty: true, conflict: true };
-    assert.equal(controller.syncDraft(conversation), false);
-    assert.equal(calls.length, 0);
-
-    const clean = setup();
-    assert.equal(clean.controller.syncDraft(conversation), false);
-    assert.equal(clean.calls.length, 0);
-});
+// the composer for as long as anyone was writing. The save itself was never
+// the missing part: both surfaces already debounce a draft write, and the
+// deployed behaviour is proved end to end by messenger-draft-autosave-live.
+// What these pin is that nothing asks the person to press anything.
 
 test('the composer is never asked to save a draft', () => {
     const status = fs.readFileSync(new URL('../src/components/messenger/ContinuityStatus.js', import.meta.url), 'utf8');

@@ -110,6 +110,9 @@ test('the watch page renders on the server from the gated catalog and 404s anyth
     assert.match(WATCH_PAGE, /commandPlayer\('pauseVideo'\)/);
     assert.match(WATCH_PAGE, /commandPlayer\('seekTo', \[tracking\.resumeSeconds, true\]\)/);
     assert.match(WATCH_PAGE, /ogImage=\{videoThumbnailUrl\(video\)\}/);
+    assert.match(WATCH_PAGE, /property="og:video"/);
+    assert.match(WATCH_PAGE, /property="og:video:secure_url"/);
+    assert.match(WATCH_PAGE, /<Link href=\{libraryHref\} rel="nofollow"/);
 });
 
 test('the library links, shares and lists the watch pages', () => {

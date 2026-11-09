@@ -94,11 +94,15 @@ export default function SEOHead(props) {
     } else if (pathname === '/hub/club-arena') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/club-arena.md';
     } else if (pathname === '/hub/reels' || pathname === '/hub/social-media') {
-      resolvedMarkdownUrl = 'https://smarter.poker/hub/reels.md';
+      if (!props.noindex && (!cleanCanon || !cleanCanon.includes('?id='))) {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/reels.md';
+      }
     } else if (pathname === '/hub/preflop-charts') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub/preflop-charts.md';
     } else if (pathname === '/hub/video-library') {
-      resolvedMarkdownUrl = 'https://smarter.poker/hub/video-library.md';
+      if (!props.noindex && (!cleanCanon || !cleanCanon.includes('/hub/video-library/watch/'))) {
+        resolvedMarkdownUrl = 'https://smarter.poker/hub/video-library.md';
+      }
     } else if (pathname === '/hub') {
       resolvedMarkdownUrl = 'https://smarter.poker/hub.md';
     } else if (pathname === '/hub/bankroll-manager') {

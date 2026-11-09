@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import MediaViewer, { ATTACHMENT_ATTRIBUTE } from './MediaViewer';
 import { defaultTheme } from './MessengerTheme';
 import { Avatar } from './Avatar';
 import { Phone, PhoneMissed, Video } from 'lucide-react';
@@ -7,7 +7,7 @@ import AccountingInvoiceCard from './AccountingInvoiceCard';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
-import { parseMessageMedia, isMediaMessage } from '../../lib/messenger/messageMedia.mjs';
+import { parseMessageMedia, isMediaMessage, mediaThumbnailUrl } from '../../lib/messenger/messageMedia.mjs';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
@@ -158,21 +158,14 @@ LinkPreviewCard.displayName = 'LinkPreviewCard';
 export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
     const [failed, setFailed] = useState(false);
     const [viewing, setViewing] = useState(false);
-    useEffect(() => { setFailed(false); setViewing(false); }, [media?.url]);
+    // The thread draws a fitted copy; `fitted` drops to the original if the
+    // render service cannot produce one, so a transform outage costs a little
+    // bandwidth rather than the picture.
+    const [fitted, setFitted] = useState(true);
+    useEffect(() => { setFailed(false); setViewing(false); setFitted(true); }, [media?.url]);
     // A photo opens over the conversation, never in a new tab or another
     // browser: leaving the app to look at a picture loses the thread, the
-    // scroll position and the draft. Escape or a tap outside closes it.
-    useEffect(() => {
-        if (!viewing || typeof document === 'undefined') return undefined;
-        const close = event => { if (event.key === 'Escape') setViewing(false); };
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        document.addEventListener('keydown', close);
-        return () => {
-            document.removeEventListener('keydown', close);
-            document.body.style.overflow = previousOverflow;
-        };
-    }, [viewing]);
+    // scroll position and the draft. MediaViewer owns everything after that.
     if (!media) return null;
 
     const caption = media.caption
@@ -237,15 +230,18 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
     }
 
     const label = media.kind === 'gif' ? 'GIF' : 'Photo Attachment';
+    const threadSrc = fitted ? (mediaThumbnailUrl(media.url, { kind: media.kind }) || media.url) : media.url;
     return (
         <span>
             {forwarded}
             <img
-                src={media.url}
+                src={threadSrc}
                 alt={label}
                 loading="lazy"
-                onError={() => setFailed(true)}
+                decoding="async"
+                onError={() => { if (threadSrc !== media.url) setFitted(false); else setFailed(true); }}
                 onClick={e => { e.stopPropagation(); setViewing(true); }}
+                {...{ [ATTACHMENT_ATTRIBUTE]: media.url }}
                 style={{
                     maxWidth: media.kind === 'gif' ? 260 : '100%',
                     maxHeight: media.kind === 'gif' ? 260 : 280,
@@ -253,37 +249,7 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                 }}
             />
             {caption}
-            {viewing && typeof document !== 'undefined' && createPortal(
-                <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label={label}
-                    onClick={() => setViewing(false)}
-                    style={{
-                        position: 'fixed', inset: 0, zIndex: 2147483000,
-                        background: 'rgba(0,0,0,0.92)', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', padding: 16,
-                    }}
-                >
-                    <img
-                        src={media.url}
-                        alt={label}
-                        onClick={e => e.stopPropagation()}
-                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }}
-                    />
-                    <button
-                        type="button"
-                        aria-label="Close Photo"
-                        onClick={e => { e.stopPropagation(); setViewing(false); }}
-                        style={{
-                            position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12,
-                            width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                            background: 'rgba(255,255,255,0.14)', color: 'white', fontSize: 22, lineHeight: 1,
-                        }}
-                    >×</button>
-                </div>,
-                document.body,
-            )}
+            {viewing && <MediaViewer url={media.url} label={label} onClose={() => setViewing(false)} />}
         </span>
     );
 }

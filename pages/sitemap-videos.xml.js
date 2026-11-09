@@ -48,9 +48,15 @@ async function fetchPokerVideos() {
         rows.push(...page);
         if (page.length < PAGE_SIZE) break;
     }
+    const seen = new Set();
     return rows
         .map(normaliseVideoRow)
-        .filter(video => isVideoLibraryVideoAllowed(video) && isCuratedFeedVideo(video));
+        .filter(video => {
+            if (!video?.videoId || seen.has(video.videoId)) return false;
+            if (!isVideoLibraryVideoAllowed(video) || !isCuratedFeedVideo(video)) return false;
+            seen.add(video.videoId);
+            return true;
+        });
 }
 
 function buildVideoSitemapXml(videos) {
@@ -65,9 +71,9 @@ export async function getServerSideProps({ req, res }) {
     try {
         const videos = await fetchPokerVideos();
         res.setHeader('Content-Type', 'text/xml');
-        res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=21600');
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
         sendSitemapXmlResponse(req, res, buildVideoSitemapXml(videos), {
-            cacheControl: 'public, s-maxage=3600, stale-while-revalidate=21600',
+            cacheControl: 'public, s-maxage=300, stale-while-revalidate=1800',
         });
         return { props: {} };
     } catch (error) {

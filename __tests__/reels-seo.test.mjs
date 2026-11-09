@@ -58,3 +58,11 @@ test('feed metadata makes no video claim', () => {
     assert.equal(data.canonical, '/hub/reels');
     assert.equal(data.schema, null);
 });
+test('Reel watch pages preserve ?id= canonical and emit og:video player tags', () => {
+    const page = read('../pages/hub/reels.js');
+    const sharedSeo = read('../vendor/commander-shared/src/components/seo/SEOHead.js');
+    assert.match(page, /property="og:video"/);
+    assert.match(page, /property="og:video:secure_url"/);
+    assert.match(page, /property="og:video:type"/);
+    assert.match(sharedSeo, /baseCanonical === `\$\{SITE_URL\}\/hub\/reels`/);
+});
