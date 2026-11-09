@@ -315,6 +315,41 @@ export default function HomeGamesByCity({
             }).replace(/</g, '\\u003c'),
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: [
+                {
+                  '@type': 'Question',
+                  name: `How Do I Request A Seat In A ${cityTitle}, ${stateCode} Poker Home Game?`,
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: `Select Any Listed ${cityTitle} Home Game Card Above To View Its Typical Stakes, Game Variant, And Schedule, Then Click Request A Seat To Message The Verified Local Host Directly.`,
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: `Are Home Game Locations In ${cityTitle}, ${stateCode} Private?`,
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: `Yes. Exact Residential Street Addresses In ${cityTitle} Are Never Published On Public Directory Pages And Are Disclosed Only To Players Whose RSVP Seat Request Is Approved By The Host.`,
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: `What Free Tools Can ${cityTitle} Home Game Hosts Use?`,
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: `Hosts In ${cityTitle}, ${stateCode} Can Use Smarter.Poker's Free Tournament Blind Structure Calculator (https://smarter.poker/tools/blind-structure-calculator) And Multi-Way Side Pot Calculator (https://smarter.poker/tools/side-pot-calculator) To Run Their Games Smoothly.`,
+                  },
+                },
+              ],
+            }).replace(/</g, '\\u003c'),
+          }}
+        />
       </Head>
 
       <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />
@@ -363,6 +398,18 @@ export default function HomeGamesByCity({
                 className="inline-flex items-center px-5 py-2.5 rounded-lg border border-[#334155] hover:border-[#8B5CF6] text-white font-medium text-sm transition-colors"
               >
                 All {stateName} Games
+              </Link>
+              <Link
+                href="/tools/blind-structure-calculator"
+                className="inline-flex items-center px-4 py-2.5 rounded-lg border border-[#334155] hover:border-[#C4B5FD] text-[#C4B5FD] font-medium text-sm transition-colors"
+              >
+                Blind Structure Calculator
+              </Link>
+              <Link
+                href="/tools/side-pot-calculator"
+                className="inline-flex items-center px-4 py-2.5 rounded-lg border border-[#334155] hover:border-[#C4B5FD] text-[#C4B5FD] font-medium text-sm transition-colors"
+              >
+                Side Pot Calculator
               </Link>
             </div>
           </header>

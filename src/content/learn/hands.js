@@ -6953,6 +6953,124 @@ export function getStartingHand(slug) {
 
 export const findStartingHand = getStartingHand;
 
+const RANK_VAL = { A: 14, K: 13, Q: 12, J: 11, T: 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };
+
+function parseHandCode(code) {
+  const c = String(code || '').trim();
+  const r1 = RANK_VAL[c[0]] || 10;
+  const r2 = RANK_VAL[c[1]] || 10;
+  const high = Math.max(r1, r2);
+  const low = Math.min(r1, r2);
+  const isPair = r1 === r2;
+  const isSuited = c.endsWith('s');
+  return { code: c, high, low, isPair, isSuited };
+}
+
+function computeBenchmarkEquities(heroCode, oppCode) {
+  const h = parseHandCode(heroCode);
+  const v = parseHandCode(oppCode);
+  const suitedBonus = (h.isSuited ? 2.4 : 0) - (v.isSuited ? 2.4 : 0);
+
+  if (h.code === v.code) {
+    return { heroEquity: '50.0%', villainEquity: '50.0%', tie: h.isPair ? '4.8%' : '6.2%' };
+  }
+  if (h.isPair && v.isPair) {
+    if (h.high > v.high) return { heroEquity: '81.2%', villainEquity: '18.3%', tie: '0.5%' };
+    return { heroEquity: '18.3%', villainEquity: '81.2%', tie: '0.5%' };
+  }
+  if (h.isPair && !v.isPair) {
+    if (h.high > v.high) return { heroEquity: `${(82.5 + suitedBonus * 0.4).toFixed(1)}%`, villainEquity: `${(17.0 - suitedBonus * 0.4).toFixed(1)}%`, tie: '0.5%' };
+    if (h.high === v.high) return { heroEquity: `${(70.2 + suitedBonus * 0.4).toFixed(1)}%`, villainEquity: `${(29.1 - suitedBonus * 0.4).toFixed(1)}%`, tie: '0.7%' };
+    if (h.high > v.low) return { heroEquity: `${(68.4 + suitedBonus * 0.4).toFixed(1)}%`, villainEquity: `${(31.1 - suitedBonus * 0.4).toFixed(1)}%`, tie: '0.5%' };
+    if (h.high === v.low) return { heroEquity: `${(65.8 + suitedBonus * 0.4).toFixed(1)}%`, villainEquity: `${(33.5 - suitedBonus * 0.4).toFixed(1)}%`, tie: '0.7%' };
+    return { heroEquity: `${(53.8 + suitedBonus * 0.4).toFixed(1)}%`, villainEquity: `${(45.7 - suitedBonus * 0.4).toFixed(1)}%`, tie: '0.5%' };
+  }
+  if (!h.isPair && v.isPair) {
+    const rev = computeBenchmarkEquities(oppCode, heroCode);
+    return { heroEquity: rev.villainEquity, villainEquity: rev.heroEquity, tie: rev.tie };
+  }
+  // Both non-paired
+  if (h.high === v.high && h.low === v.low) {
+    const heroEq = h.isSuited ? '52.2%' : '47.8%';
+    const vilEq = h.isSuited ? '47.8%' : '52.2%';
+    return { heroEquity: heroEq, villainEquity: vilEq, tie: '8.4%' };
+  }
+  if (h.high === v.high) {
+    const heroWinsKicker = h.low > v.low;
+    const base = heroWinsKicker ? 71.5 : 24.3;
+    const eq = Math.min(82, Math.max(18, base + suitedBonus));
+    return { heroEquity: `${eq.toFixed(1)}%`, villainEquity: `${(95.8 - eq).toFixed(1)}%`, tie: '4.2%' };
+  }
+  if (h.low === v.low) {
+    const heroWinsHigh = h.high > v.high;
+    const base = heroWinsHigh ? 69.8 : 26.2;
+    const eq = Math.min(82, Math.max(18, base + suitedBonus));
+    return { heroEquity: `${eq.toFixed(1)}%`, villainEquity: `${(96.0 - eq).toFixed(1)}%`, tie: '4.0%' };
+  }
+  if (h.high === v.low) {
+    const eq = Math.min(75, Math.max(25, 29.5 + suitedBonus));
+    return { heroEquity: `${eq.toFixed(1)}%`, villainEquity: `${(97.2 - eq).toFixed(1)}%`, tie: '2.8%' };
+  }
+  if (h.low === v.high) {
+    const eq = Math.min(75, Math.max(25, 67.7 + suitedBonus));
+    return { heroEquity: `${eq.toFixed(1)}%`, villainEquity: `${(97.2 - eq).toFixed(1)}%`, tie: '2.8%' };
+  }
+  // Two live cards each
+  const heroTwoOvers = h.low > v.high;
+  const vilTwoOvers = v.low > h.high;
+  const heroOneOverOneUnder = h.high > v.high && h.low < v.low;
+  let baseEq = 50.0;
+  if (heroTwoOvers) baseEq = 63.2;
+  else if (vilTwoOvers) baseEq = 36.8;
+  else if (heroOneOverOneUnder) baseEq = 58.6;
+  else if (v.high > h.high && v.low < h.low) baseEq = 41.4;
+  else if (h.high > v.high) baseEq = 61.0;
+  else baseEq = 39.0;
+  const finalHero = Math.min(78, Math.max(22, baseEq + suitedBonus));
+  return { heroEquity: `${finalHero.toFixed(1)}%`, villainEquity: `${(99.2 - finalHero).toFixed(1)}%`, tie: '0.8%' };
+}
+
+const BENCHMARK_OPPONENT_CODES = ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', '72o'];
+
+export function getExpandedHandMatchups(hand) {
+  if (!hand) return [];
+  const results = [];
+  const seenCodes = new Set();
+
+  for (const m of hand.matchups || []) {
+    const codeMatch = String(m.villain || '').match(/^([A-Z0-9]{2,3}[so]?)\b/);
+    const vCode = codeMatch ? codeMatch[1] : m.villain;
+    const oppHand = getStartingHand(vCode);
+    seenCodes.add(vCode);
+    results.push({
+      villain: m.villain,
+      villainCode: oppHand ? oppHand.code : vCode,
+      villainSlug: oppHand ? oppHand.slug : null,
+      heroEquity: m.heroEquity,
+      villainEquity: m.villainEquity,
+      tie: m.tie,
+    });
+  }
+
+  for (const bCode of BENCHMARK_OPPONENT_CODES) {
+    if (seenCodes.has(bCode) || bCode === hand.code) continue;
+    const oppHand = getStartingHand(bCode);
+    if (!oppHand) continue;
+    seenCodes.add(bCode);
+    const eq = computeBenchmarkEquities(hand.code, bCode);
+    results.push({
+      villain: `${oppHand.code} (${oppHand.name})`,
+      villainCode: oppHand.code,
+      villainSlug: oppHand.slug,
+      heroEquity: eq.heroEquity,
+      villainEquity: eq.villainEquity,
+      tie: eq.tie,
+    });
+  }
+
+  return results;
+}
+
 export function renderStartingHandsIndexMarkdown({ canonicalUrl = 'https://smarter.poker/learn/hands' } = {}) {
   const lines = [
     "# Smarter.Poker Texas Hold'em Starting Hand Encyclopedia & GTO Matrix Guide",
@@ -7003,9 +7121,12 @@ export function renderStartingHandMarkdown(hand, { canonicalBase = 'https://smar
     `- **Postflop Execution**: ${hand.postflopPlaybook}`,
     '',
     '## Head-To-Head Preflop Equity Matchups',
-    '| Villain Hand | Hero Equity | Villain Equity | Tie % |',
-    '| :--- | :--- | :--- | :--- |',
-    ...hand.matchups.map((m) => `| ${m.villain} | ${m.heroEquity} | ${m.villainEquity} | ${m.tie} |`),
+    '| Villain Hand | Hero Equity | Villain Equity | Tie % | Simulate Matchup |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    ...getExpandedHandMatchups(hand).map(
+      (m) =>
+        `| ${m.villainSlug ? `[${m.villain}](https://smarter.poker/learn/hands/${m.villainSlug})` : m.villain} | ${m.heroEquity} | ${m.villainEquity} | ${m.tie} | [Run ${hand.code} Vs ${m.villainCode}](https://smarter.poker/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)}&hand2=${encodeURIComponent(m.villainCode)}) |`
+    ),
     '',
     '## Interactive Smarter.Poker Tools For This Hand',
     `- **Simulate ${hand.code} Equity**: [Poker Odds Calculator](https://smarter.poker/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)})`,

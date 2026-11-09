@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 355,
+    "dependencyFiles": 354,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 352,
@@ -19,14 +19,14 @@
     "persistenceFiles": 79,
     "realtimeFiles": 6,
     "tests": 172,
-    "markerCandidates": 342,
-    "possibleUnwiredFunctions": 398,
+    "markerCandidates": 341,
+    "possibleUnwiredFunctions": 396,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 227,
     "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
-    "markerDocumentedFollowUp": 106,
+    "markerDocumentedFollowUp": 105,
     "functionPhaseReview": 0
   },
   "games": [
@@ -4634,7 +4634,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -5939,7 +5938,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -6349,7 +6347,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -6606,7 +6603,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -6928,7 +6924,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -8479,7 +8474,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -9871,7 +9865,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -10511,7 +10504,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -10787,7 +10779,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -11123,7 +11114,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -12498,7 +12488,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -13361,7 +13350,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -13757,7 +13745,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -16569,7 +16556,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -16853,7 +16839,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -17413,7 +17398,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -17838,7 +17822,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -18107,7 +18090,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -18407,7 +18389,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -48530,7 +48511,6 @@
         "src/lib/authUtils.js",
         "src/lib/broadcastSync.js",
         "src/lib/headerStats.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/supabase.js",
         "src/stores/toastStore.js"
@@ -48571,7 +48551,7 @@
       "functions": [
         {
           "name": "UnreadProvider",
-          "line": 25,
+          "line": 24,
           "references": 6,
           "exported": true,
           "defaultExport": false,
@@ -48587,7 +48567,7 @@
         },
         {
           "name": "refreshCounts",
-          "line": 65,
+          "line": 64,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -48595,7 +48575,7 @@
         },
         {
           "name": "refreshUnread",
-          "line": 83,
+          "line": 82,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -48603,7 +48583,7 @@
         },
         {
           "name": "refreshNotifications",
-          "line": 84,
+          "line": 83,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -48611,7 +48591,7 @@
         },
         {
           "name": "scheduleNotifRefresh",
-          "line": 101,
+          "line": 100,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -50142,92 +50122,6 @@
         "hasMediaPermissionGrant"
       ],
       "markers": []
-    },
-    {
-      "file": "src/lib/messenger/liveInvite.mjs",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [
-        {
-          "name": "encodeLiveInvite",
-          "line": 22,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "parseLiveInvite",
-          "line": 36,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "isLiveInvite",
-          "line": 29,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "liveInviteHref",
-          "line": 48,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        }
-      ],
-      "possibleUnwiredFunctions": [
-        "encodeLiveInvite",
-        "liveInviteHref"
-      ],
-      "markers": [
-        {
-          "kind": "FALLBACK",
-          "line": 47,
-          "excerpt": "/** Where tapping this invite should go, with a safe fallback. */",
-          "disposition": "runtime-resilience-fallback",
-          "review": "documented-follow-up",
-          "followUpPhase": 15,
-          "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-        }
-      ]
     },
     {
       "file": "src/lib/ownProfile.js",
@@ -64971,10 +64865,6 @@
     },
     {
       "from": "src/hooks/useUnreadCount.jsx",
-      "to": "src/lib/messenger/liveInvite.mjs"
-    },
-    {
-      "from": "src/hooks/useUnreadCount.jsx",
       "to": "src/lib/push/enrollment-nudge.mjs"
     },
     {
@@ -74105,7 +73995,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -74987,7 +74876,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -75357,7 +75245,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -75708,7 +75595,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -76050,7 +75936,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -76823,7 +76708,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -77516,7 +77400,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -77991,7 +77874,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -78337,7 +78219,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -78692,7 +78573,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -79501,7 +79381,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -80109,7 +79988,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -80452,7 +80330,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -81858,7 +81735,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -82254,7 +82130,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -82642,7 +82517,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -83046,7 +82920,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -83388,7 +83261,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -83734,7 +83606,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -86028,7 +85899,6 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/ownProfile.js",
         "src/lib/push-client.js",
         "src/lib/push/enrollment-nudge.mjs",
@@ -87620,7 +87490,6 @@
         "src/lib/authUtils.js",
         "src/lib/broadcastSync.js",
         "src/lib/headerStats.js",
-        "src/lib/messenger/liveInvite.mjs",
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -88167,16 +88036,6 @@
       "tests": [
         "__tests__/training-surface-inventory-classifier.test.mjs"
       ]
-    },
-    {
-      "file": "src/lib/messenger/liveInvite.mjs",
-      "reachableFiles": [
-        "src/lib/messenger/liveInvite.mjs"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": []
     },
     {
       "file": "src/lib/ownProfile.js",
@@ -92157,16 +92016,6 @@
         "kind": "FALLBACK",
         "line": 24,
         "excerpt": "*   3. /hub/venues/<group-uuid> — the fallback surface. Phase 41 taught",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/messenger/liveInvite.mjs",
-        "kind": "FALLBACK",
-        "line": 47,
-        "excerpt": "/** Where tapping this invite should go, with a safe fallback. */",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
         "followUpPhase": 15,
@@ -96753,45 +96602,6 @@
         ]
       },
       {
-        "file": "src/lib/messenger/liveInvite.mjs",
-        "name": "encodeLiveInvite",
-        "line": 22,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "__tests__/correction-accounting-display.test.mjs",
-          "__tests__/credit-change-accounting-display.test.mjs",
-          "__tests__/one-reader-per-sentinel.law.test.mjs",
-          "src/components/social/GoLiveModal.jsx",
-          "src/components/social/LiveViewerList.jsx"
-        ]
-      },
-      {
-        "file": "src/lib/messenger/liveInvite.mjs",
-        "name": "liveInviteHref",
-        "line": 48,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "__tests__/correction-accounting-display.test.mjs",
-          "__tests__/credit-change-accounting-display.test.mjs",
-          "__tests__/one-reader-per-sentinel.law.test.mjs",
-          "src/components/messenger/MessageBubble.js",
-          "src/components/notifications/HubNotificationsFeed.jsx",
-          "src/hooks/useUnreadCount.jsx"
-        ]
-      },
-      {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "decideNudge",
         "line": 91,
@@ -97021,12 +96831,16 @@
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
           "pages/tools/bankroll-calculator.js",
+          "pages/tools/blind-structure-calculator.js",
           "pages/tools/bounty-calculator.js",
           "pages/tools/embeds.js",
+          "pages/tools/index.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges/index.js",
           "pages/tools/push-fold-calculator.js",
+          "pages/tools/side-pot-calculator.js",
+          "pages/tools/spr-calculator.js",
           "src/lib/seo/summarySchema.js"
         ]
       },
@@ -101675,16 +101489,6 @@
         "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
       },
       {
-        "file": "src/lib/messenger/liveInvite.mjs",
-        "kind": "FALLBACK",
-        "line": 47,
-        "excerpt": "/** Where tapping this invite should go, with a safe fallback. */",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
         "line": 49,
@@ -106265,45 +106069,6 @@
         ]
       },
       {
-        "file": "src/lib/messenger/liveInvite.mjs",
-        "name": "encodeLiveInvite",
-        "line": 22,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "__tests__/correction-accounting-display.test.mjs",
-          "__tests__/credit-change-accounting-display.test.mjs",
-          "__tests__/one-reader-per-sentinel.law.test.mjs",
-          "src/components/social/GoLiveModal.jsx",
-          "src/components/social/LiveViewerList.jsx"
-        ]
-      },
-      {
-        "file": "src/lib/messenger/liveInvite.mjs",
-        "name": "liveInviteHref",
-        "line": 48,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "__tests__/correction-accounting-display.test.mjs",
-          "__tests__/credit-change-accounting-display.test.mjs",
-          "__tests__/one-reader-per-sentinel.law.test.mjs",
-          "src/components/messenger/MessageBubble.js",
-          "src/components/notifications/HubNotificationsFeed.jsx",
-          "src/hooks/useUnreadCount.jsx"
-        ]
-      },
-      {
         "file": "src/lib/push/enrollment-nudge.mjs",
         "name": "decideNudge",
         "line": 91,
@@ -106533,12 +106298,16 @@
           "pages/hub/training/icm-calculator.js",
           "pages/hub/video-library.js",
           "pages/tools/bankroll-calculator.js",
+          "pages/tools/blind-structure-calculator.js",
           "pages/tools/bounty-calculator.js",
           "pages/tools/embeds.js",
+          "pages/tools/index.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges/index.js",
           "pages/tools/push-fold-calculator.js",
+          "pages/tools/side-pot-calculator.js",
+          "pages/tools/spr-calculator.js",
           "src/lib/seo/summarySchema.js"
         ]
       },

@@ -1478,6 +1478,252 @@ export const COMPARE_PAGES = [
     productLinks: ['smarterTraining'],
     glossary: ['GTO', 'Equity', 'Range'],
   },
+
+  // 26 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-holdem-resources-calculator',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs HoldemResources Calculator',
+    h1: 'Smarter.Poker Vs HoldemResources Calculator',
+    description:
+      'Compare Smarter.Poker And HoldemResources Calculator: Free Browser ICM, Push-Fold And PKO Bounty Calculators Versus Desktop Tournament Equilibrium Software.',
+    summary: p(
+      'HoldemResources Calculator Is A Subscription Desktop Application For Windows, Mac And Linux That Solves Multi-Table Tournament ICM, PKO Bounty And Future Game Simulation Trees. Smarter.Poker Provides A Free Browser-Native Malmuth-Harville ICM Calculator, Push-Fold Nash Charts, A PKO Bounty Equity Calculator And 107 Interactive Training Drills With Zero Installation.',
+      ['hrcSite', 'spIcmCalculator', 'spTraining', 'spHome']
+    ),
+    intro: p(
+      'Tournament Grinders Regularly Evaluate Whether They Need A Paid Desktop ICM Solver Or Instant Browser Calculators. Here Is How Smarter.Poker And HoldemResources Calculator Compare Across Features And Pricing.',
+      ['hrcSite', 'spIcmCalculator', 'spHome']
+    ),
+    table: {
+      caption: 'Smarter.Poker And HoldemResources Calculator, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'holdemResources'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where HoldemResources Calculator Stands Out',
+        bullets: [
+          p('HoldemResources Calculator Computes Multi-Way Preflop Nash Equilibrium Ranges And Future Game Simulation (FGS) Across Multiple Blind Levels On Desktop.', ['hrcSite']),
+          p('HoldemResources Calculator Supports Batch Hand History Imports For Reviewing Tournament Push-Fold Decisions.', ['hrcSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Offers Free Instant Browser Calculators For Tournament ICM, PKO Bounties And Short-Stack Push-Fold Charts On Desktop And Mobile.', ['spIcmCalculator', 'spTraining', 'spHome']),
+          p('Smarter.Poker Includes 107 Interactive GTO Training Drills And Free Hand History Uploads Without A Paid Software License.', ['spTraining', 'spHandHistory', 'spHome']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Can I Calculate Final Table ICM And PKO Bounties For Free On Smarter.Poker?',
+        a: p('Yes. While HoldemResources Calculator Requires A Desktop Subscription After Its Trial, Smarter.Poker Provides Free Browser ICM And PKO Bounty Calculators.', ['hrcSite', 'spIcmCalculator', 'spHome']),
+      },
+    ],
+    related: ['smarter-poker-vs-icmizer', 'best-gto-poker-trainers', 'smarter-poker-vs-piosolver'],
+    productLinks: ['smarterTraining'],
+    glossary: ['ICM', 'Equity', 'Range'],
+  },
+
+  // 27 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-flopzilla',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs Flopzilla: Range And Equity Tools',
+    h1: 'Smarter.Poker Vs Flopzilla: Range And Equity Tools',
+    description:
+      'Smarter.Poker Compared With Flopzilla: Free Browser 13x13 GTO Ranges, Multiway Equity And Pot Odds Calculators Versus Windows Range Filtering Software.',
+    summary: p(
+      'Flopzilla Is A $25 Windows Desktop Program Built For Filtering Hand-Versus-Range And Range-Versus-Board Hit Frequencies. Smarter.Poker Provides Free Web-Based Multiway Equity Calculators For Hold\'em And Omaha (PLO4, PLO5 And PLO6), Interactive 13x13 GTO Preflop Range Matrices And 107 Coaching Drills On Any Device.',
+      ['flopzillaSite', 'spOddsCalculator', 'spSolutions', 'spTraining', 'spHome']
+    ),
+    intro: p(
+      'Visualizing How Ranges Hit Flop Textures And Computing Multiway Equity Are Core Study Habits. Here Is How Smarter.Poker And Flopzilla Compare For Modern Players.',
+      ['flopzillaSite', 'spOddsCalculator', 'spHome']
+    ),
+    table: {
+      caption: 'Smarter.Poker And Flopzilla, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'flopzilla'],
+      columns: TRAINER_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Flopzilla Stands Out',
+        bullets: [
+          p('Flopzilla Breaks Down Exact Flop Hit Frequencies (Top Pair, Flush Draws, Gutshots) With Interactive Combo Pie Charts On Windows.', ['flopzillaSite']),
+          p('Flopzilla Includes FlopzillaPro For Multiway Range-Versus-Range Matrix Comparisons.', ['flopzillaSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Runs Directly In Any Mobile Or Desktop Browser On Mac, iPhone, iPad And Android Without Requiring Windows.', ['spOddsCalculator', 'spSolutions', 'spHome']),
+          p('Smarter.Poker Combines Multiway Hold\'em And PLO4/PLO5/PLO6 Equity Calculators With 100BB 6-Max GTO Preflop Charts Free Of Charge.', ['spOddsCalculator', 'spSolutions', 'spHome']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Does Flopzilla Run Natively On iPhone Or Android?',
+        a: p('Flopzilla Is Windows Desktop Software, Whereas Smarter.Poker Provides Browser-Native Equity And Range Tools Across All Mobile And Desktop Devices.', ['flopzillaSite', 'spOddsCalculator', 'spHome']),
+      },
+    ],
+    related: ['smarter-poker-vs-equilab', 'best-gto-poker-trainers', 'smarter-poker-vs-piosolver'],
+    productLinks: ['smarterTraining'],
+    glossary: ['Equity', 'Range', 'Pot Odds'],
+  },
+
+  // 28 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'wynn-vs-venetian-poker-las-vegas',
+    kind: 'versus',
+    title: 'Wynn Vs Venetian Poker Room Las Vegas',
+    h1: 'Wynn Vs Venetian Poker Room Las Vegas',
+    description:
+      'Wynn Las Vegas And The Venetian Poker Rooms Side By Side: Table Counts, Cash Game Stakes, Tournament Series, Streaming Studios And Strip Amenities.',
+    summary: p(
+      'Wynn Las Vegas And The Venetian Are The Two Premier North Strip Tournament And Cash Game Destinations. Wynn Las Vegas Poker Room Operates 28 Tables At Encore And Hosts The Wynn Millions And WPT World Championship, While The Venetian Poker Room Features 50 Tables At The Grand Canal Shoppes With Its DeepStack Extravaganza And Streaming Studio.',
+      ['wynnSite', 'venetianSite', 'spHome']
+    ),
+    intro: p(
+      'Located Directly Across Sands Avenue From One Another On The North Las Vegas Strip, Both Rooms Attract Massive Tournament Fields And Year-Round Cash Action. Here Is How They Compare.',
+      ['wynnSite', 'venetianSite']
+    ),
+    table: {
+      caption: 'Wynn Las Vegas And The Venetian Poker Rooms, ' + CHECKED_LABEL,
+      products: ['wynn', 'venetian'],
+      columns: VENUE_VERSUS_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Wynn Las Vegas Stands Out',
+        bullets: [
+          p('Wynn Las Vegas Poker Room Hosts Flagship High-Guarantee Championships Including The Wynn Millions And WPT World Championship At Encore.', ['wynnSite']),
+          p('Wynn Las Vegas Poker Room Is Renowned For Deep-Stacked $2/$5 And $5/$10 No-Limit Hold\'em And Pot-Limit Omaha Action.', ['wynnSite']),
+        ],
+      },
+      {
+        heading: 'Where The Venetian Stands Out',
+        bullets: [
+          p('The Venetian Poker Room Operates 50 Dedicated Tables Inside The Grand Canal Shoppes, Making It The Largest Room On The Las Vegas Strip.', ['venetianSite']),
+          p('The Venetian Poker Room Features A Dedicated Poker Streaming Studio And Runs Year-Round DeepStack Extravaganza Tournament Series.', ['venetianSite']),
+        ],
+      },
+      {
+        heading: 'Live Las Vegas Discovery On Smarter.Poker',
+        paragraphs: [
+          p('Players Visiting The Strip Can Compare Live Venues, Tournament Calendars And Room Amenities Across Nevada Using Smarter.Poker Poker Near Me.', ['spPokerNearMe', 'spHome']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Which North Strip Poker Room Has More Tables?',
+        a: p('The Venetian Poker Room Has 50 Dedicated Tables Compared To 28 Tables At Wynn Las Vegas Poker Room.', ['venetianSite', 'wynnSite']),
+      },
+    ],
+    related: ['bellagio-vs-aria-poker', 'best-poker-rooms-in-las-vegas', 'best-poker-rooms-in-florida'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Straddle', 'Waitlist'],
+  },
+
+  // 29 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'borgata-vs-parx-poker',
+    kind: 'versus',
+    title: 'Borgata Vs Parx Poker Room Comparison',
+    h1: 'Borgata Vs Parx Poker Room Comparison',
+    description:
+      'Borgata In Atlantic City And Parx Casino In Pennsylvania Compared: Table Counts, Cash Game Stakes, Big Stax And Borgata Open Series And Amenities.',
+    summary: p(
+      'Borgata Poker Room In Atlantic City, New Jersey And Parx Casino Poker Room In Bensalem, Pennsylvania Are The Two Flagship Poker Hubs Of The Northeast Corridor. Borgata Operates Over 50 Tables With Full MGM Resort Amenities, While Parx Features 48 Tables, Famous Tuesday High-Stakes Action And The Big Stax Tournament Series.',
+      ['borgataSite', 'parxSite', 'spHome']
+    ),
+    intro: p(
+      'Players In New York, New Jersey And Philadelphia Regularly Choose Between Heading To The Atlantic City Boardwalk Region Or Bucks County. Here Is How The Two Rooms Compare Side By Side.',
+      ['borgataSite', 'parxSite']
+    ),
+    table: {
+      caption: 'Borgata And Parx Casino Poker Rooms, ' + CHECKED_LABEL,
+      products: ['borgata', 'parx'],
+      columns: VENUE_VERSUS_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Borgata Poker Room Stands Out',
+        bullets: [
+          p('Borgata Poker Room Operates Over 50 Dedicated Tables And Serves As The Undisputed Poker Capital Of Atlantic City.', ['borgataSite']),
+          p('Borgata Poker Room Integrates With MGM Rewards For Hotel Suites, Fine Dining And Resort Comps.', ['borgataSite']),
+        ],
+      },
+      {
+        heading: 'Where Parx Casino Stands Out',
+        bullets: [
+          p('Parx Casino Poker Room Features 48 Tables Located Conveniently Off Interstate 95 Just North Of Philadelphia.', ['parxSite']),
+          p('Parx Casino Poker Room Hosts The Popular Big Stax Tournament Series And Deep-Stacked Midweek Pot-Limit Omaha And No-Limit Games.', ['parxSite']),
+        ],
+      },
+      {
+        heading: 'Tracking East Coast Poker Rooms',
+        paragraphs: [
+          p('Use Smarter.Poker Poker Near Me To Browse East Coast Cardrooms, Series Schedules And Venue Details Across New Jersey, Pennsylvania And Maryland.', ['spPokerNearMe', 'spHome']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Are Both Borgata And Parx Poker Rooms Open 24 Hours?',
+        a: p('Yes, Both Borgata Poker Room And Parx Casino Poker Room Operate 24 Hours Daily.', ['borgataSite', 'parxSite']),
+      },
+    ],
+    related: ['best-poker-rooms-in-las-vegas', 'best-poker-rooms-near-major-airports', 'best-poker-rooms-in-florida'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Comp', 'Waitlist'],
+  },
+
+  // 30 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'best-poker-rooms-in-florida',
+    kind: 'best-of',
+    title: 'Best Poker Rooms In Florida',
+    h1: 'Best Poker Rooms In Florida',
+    description:
+      'Compare The Top Poker Rooms In Florida: Seminole Hard Rock Hollywood And Bestbet Jacksonville On Tables, WPT Series, Cash Games And Amenities.',
+    summary: p(
+      'Florida Is One Of The Premier Year-Round Live Poker Destinations In The United States. Leading Venues Include Seminole Hard Rock Hollywood Poker Room With 45 Tables And Major World Poker Tour Championships At The Guitar Hotel, And Bestbet Jacksonville Poker Room With Over 60 Tables And A Dedicated Broadcast Studio.',
+      ['seminoleHardRockSite', 'bestbetJaxSite', 'spHome']
+    ),
+    intro: p(
+      'From South Florida Resort Championships To North Florida High-Action Cardrooms, Here Is How Two Of Florida\'s Largest Poker Venues Compare On Tables, Stakes And Tournaments.',
+      ['seminoleHardRockSite', 'bestbetJaxSite']
+    ),
+    table: {
+      caption: 'Top Florida Poker Rooms Compared, ' + CHECKED_LABEL,
+      products: ['seminoleHardRock', 'bestbetJax'],
+      columns: VENUE_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Choosing Between South And North Florida Poker',
+        bullets: [
+          p('For Major WPT Resort Festivals And South Florida PLO Action: Seminole Hard Rock Hollywood Poker Room Offers 45 Tables Inside The Iconic Guitar Hotel Complex.', ['seminoleHardRockSite']),
+          p('For 60+ Tables And Livestreamed Cash Games In North Florida: Bestbet Jacksonville Poker Room Features Daily Tournaments, WPT Stops And A Dedicated Broadcast Studio.', ['bestbetJaxSite']),
+          p('For Statewide Live Poker Discovery: Browse All Florida Cardrooms And Schedules On Smarter.Poker Poker Near Me.', ['spPokerNearMe']),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How Many Tables Do Seminole Hard Rock Hollywood And Bestbet Jacksonville Have?',
+        a: p('Seminole Hard Rock Hollywood Poker Room Operates 45 Tables, While Bestbet Jacksonville Poker Room Operates Over 60 Tables.', ['seminoleHardRockSite', 'bestbetJaxSite']),
+      },
+    ],
+    related: ['best-poker-rooms-in-las-vegas', 'best-poker-rooms-in-texas', 'wynn-vs-venetian-poker-las-vegas'],
+    productLinks: ['clubCommander'],
+    glossary: ['Rake', 'Straddle', 'Waitlist'],
+  },
 ];
 
 /**

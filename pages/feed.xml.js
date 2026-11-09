@@ -9,6 +9,7 @@
 import { LESSONS, LEARN_MODIFIED, lessonPath } from '../src/content/learn/lessons.js';
 import { COMPARE_PAGES, AS_OF as COMPARE_AS_OF, comparePath } from '../src/content/compare/pages.js';
 import { GLOSSARY_TERMS, glossaryTermPath } from '../src/content/glossary/terms.js';
+import { RESEARCH_REPORTS } from '../src/content/research/reports.js';
 import { SITE_URL, sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
 import { xmlEscape } from '../src/lib/videoLibraryWatch.mjs';
 
@@ -97,6 +98,13 @@ const FEATURE_ITEMS = [
 
 const TOOL_ITEMS = [
     {
+        title: 'Free Poker Tools, GTO Solvers & Math Calculators Directory',
+        link: `${SITE_URL}/tools`,
+        description: 'Master Directory Of 9 Interactive Poker Math Calculators, GTO Preflop Range Matrices, ICM Deal Solvers, And Bankroll Variance Engines.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
         title: 'Free Poker Odds & Equity Calculator',
         link: `${SITE_URL}/tools/poker-odds-calculator`,
         description: 'Calculate Exact Texas Holdem And Omaha Hand Equity, Outs, And Pot Odds Instantly.',
@@ -107,6 +115,62 @@ const TOOL_ITEMS = [
         title: 'Free ICM & Tournament Payout Calculator',
         link: `${SITE_URL}/tools/icm-calculator`,
         description: 'Compute Malmuth-Harville Independent Chip Model Tournament Equity And Final Table Deal Numbers.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Pot Odds, MDF & Hypergeometric Outs Calculator',
+        link: `${SITE_URL}/tools/pot-odds-calculator`,
+        description: 'Compute Exact Pot Odds Ratios, Required Calling Equity, Minimum Defense Frequency (MDF), And Turn/River Draw Probabilities.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Bankroll & Risk Of Ruin Calculator',
+        link: `${SITE_URL}/tools/bankroll-calculator`,
+        description: 'Compute Brownian Motion Risk Of Ruin Percentages And Required Buy-In Buffers Across Cash Games, PLO, And Tournaments.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Short-Stack Push/Fold Nash Equilibrium Chart Calculator',
+        link: `${SITE_URL}/tools/push-fold-calculator`,
+        description: 'Interactive 5BB To 20BB Short-Stack Jamming Ranges Across All Table Positions With Big Blind Ante Adjustments.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'PKO & Mystery Bounty Chip Equity Calculator',
+        link: `${SITE_URL}/tools/bounty-calculator`,
+        description: 'Convert Cash Knockout Bounties Into Tournament Chip-Equivalent Values And Bounty-Adjusted Calling Equity Thresholds.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Winrate Confidence Interval & Variance Calculator',
+        link: `${SITE_URL}/tools/poker-winrate-calculator`,
+        description: 'Compute 95% Winrate Confidence Intervals, Probability Of Loss Over Sample Size, And Minimum Hands Required For Statistical Proof.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Multi-Way All-In Side Pot Calculator',
+        link: `${SITE_URL}/tools/side-pot-calculator`,
+        description: 'Split Multi-Way All-In Main Pots, Side Pots, Dead Money, And Uncalled Bet Returns For 2 To 9 Players.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Tournament Blind Structure & Chip Distribution Generator',
+        link: `${SITE_URL}/tools/blind-structure-calculator`,
+        description: 'Build TDA-Compliant Tournament Blind Schedules, Color-Up Breaks, And Starting Chip Denomination Distributions.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator',
+        link: `${SITE_URL}/tools/spr-calculator`,
+        description: 'Compute Exact Flop SPR, Commitment Thresholds, And 1-Street, 2-Street, And 3-Street Geometric Bet Sizing Percentages.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
@@ -195,6 +259,17 @@ export function buildRssFeedXml() {
             category: 'Poker Platform Features',
             pubDate: learnDate,
         })),
+        ...RESEARCH_REPORTS.map((report) => {
+            const url = `${SITE_URL}/research/${report.slug}`;
+            return {
+                title: report.title,
+                link: url,
+                guid: url,
+                description: report.summary || report.subtitle || '',
+                category: 'Poker Industry Research',
+                pubDate: report.updated ? new Date(`${report.updated}T00:00:00Z`).toUTCString() : learnDate,
+            };
+        }),
         ...GLOSSARY_TERMS.map((term) => {
             const url = `${SITE_URL}${glossaryTermPath(term.slug)}`;
             return {

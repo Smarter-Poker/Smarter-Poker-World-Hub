@@ -384,6 +384,11 @@ export function renderHomeGameGeoMarkdown(cleanPath) {
     `- **National Home Games Index**: [${SITE}/hub/home-games/in](${SITE}/hub/home-games/in)`,
     '- **Host Address Privacy**: Exact Residential Addresses Are Never Exposed Publicly; Coordinates Are Jittered And Revealed Only To Confirmed RSVPs.',
     '',
+    '## Free Host & Table Calculators',
+    `- **[Tournament Blind Structure Calculator](${SITE}/tools/blind-structure-calculator)**: Build TDA-Compliant Home Game Blind Schedules And Chip Color Distributions.`,
+    `- **[Multi-Way Side Pot Calculator](${SITE}/tools/side-pot-calculator)**: Split Main Pots And Side Pots Instantly At The Table.`,
+    `- **[All Free Poker Tools & Solvers](${SITE}/tools)**: Complete Suite Of 9 Interactive Poker Calculators.`,
+    '',
   ].join('\n');
 }
 

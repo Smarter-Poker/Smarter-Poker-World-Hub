@@ -23,6 +23,7 @@ import { LESSONS, LEARN_CATEGORIES } from '../src/content/learn/lessons';
 import { LEARN_PATH, lessonPath, learnCategoryPath } from '../src/lib/learn/learnSite';
 import { STARTING_HANDS } from '../src/content/learn/hands';
 import { RESEARCH_REPORTS } from '../src/content/research/reports';
+import { VIDEO_LIBRARY_PLAYERS } from '../src/lib/videoLibraryPlayers.mjs';
 
 const SITE_URL = 'https://smarter.poker';
 const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -63,6 +64,7 @@ const learnPages = [
 const researchPages = [
   { path: '/research', priority: '0.85', changefreq: 'monthly' },
   ...RESEARCH_REPORTS.map((r) => ({ path: `/research/${r.slug}`, priority: '0.8', changefreq: 'monthly', lastmod: r.updated })),
+  ...VIDEO_LIBRARY_PLAYERS.map((p) => ({ path: p.path, priority: '0.75', changefreq: 'weekly' })),
 ];
 
 // ─── Static Pages ────────────────────────────────────────────────────────────
@@ -115,6 +117,8 @@ const staticPages = [
   { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
   { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/video-library/channels', priority: '0.8', changefreq: 'weekly' },
+  { path: '/hub/video-library/players', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/diamond-store', priority: '0.8', changefreq: 'weekly' },
   // Store tabs became real routes on 2026-08-25. VIP outranks the store front
   // page because it is the page that sells the subscription.
@@ -138,6 +142,7 @@ const staticPages = [
   { path: '/hub/poker-tools', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/training/icm-calculator', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/training/equity-calculator', priority: '0.8', changefreq: 'weekly' },
+  { path: '/tools', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/poker-odds-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/icm-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/pot-odds-calculator', priority: '0.9', changefreq: 'weekly' },
@@ -145,6 +150,9 @@ const staticPages = [
   { path: '/tools/push-fold-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/bounty-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/poker-winrate-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/side-pot-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/blind-structure-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/spr-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
   { path: '/freerolls', priority: '0.9', changefreq: 'daily' },

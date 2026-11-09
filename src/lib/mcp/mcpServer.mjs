@@ -24,7 +24,7 @@ import { calculateICM } from '../../engines/ICMCalculator.js';
 import { RFI } from '../../config/solverRanges.js';
 import { GLOSSARY_TERMS } from '../../content/glossary/terms.js';
 import { LESSONS, LEARN_CATEGORIES, trainingCta } from '../../content/learn/lessons.js';
-import { STARTING_HANDS, findStartingHand } from '../../content/learn/hands.js';
+import { STARTING_HANDS, findStartingHand, getExpandedHandMatchups } from '../../content/learn/hands.js';
 import { RESEARCH_REPORTS, findResearchReport } from '../../content/research/reports.js';
 import { TRAINING_LIBRARY } from '../../data/TRAINING_LIBRARY.js';
 import { SCHEMA_ROUTES } from '../seo/summarySchema.js';
@@ -441,6 +441,83 @@ export const MCP_TOOLS = [
           type: 'number',
           description: 'Chips required to call the all-in shove (default: 10000).',
           default: 10000,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_side_pots',
+    description: 'Calculate exact Multi-Way All-In Main Pot, Side Pots, and Uncalled Bet returns for 2 to 9 players plus dead money (blinds/antes/folded bets).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        contributions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              amount: { type: 'number' },
+              folded: { type: 'boolean' },
+            },
+            required: ['amount'],
+          },
+          description: 'Array of player chip contributions (e.g. [{"name":"Player 1","amount":2500},{"name":"Player 2","amount":6000},{"name":"Player 3","amount":12000}]).',
+        },
+        dead_money: {
+          type: 'number',
+          description: 'Optional dead money from blinds, antes, or folded players (default: 0).',
+          default: 0,
+        },
+      },
+      required: ['contributions'],
+    },
+  },
+  {
+    name: 'generate_blind_structure',
+    description: 'Generate a TDA-compliant poker tournament blind schedule and starting chip color distribution from starting stack, level duration, target hours, and ante format.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        starting_stack: {
+          type: 'number',
+          description: 'Starting tournament chip stack per player (default: 20000).',
+          default: 20000,
+        },
+        level_minutes: {
+          type: 'integer',
+          description: 'Duration of each blind level in minutes (default: 20).',
+          default: 20,
+        },
+        target_hours: {
+          type: 'number',
+          description: 'Target total tournament duration in hours (default: 4).',
+          default: 4,
+        },
+        ante_format: {
+          type: 'string',
+          enum: ['bba', 'none'],
+          description: 'Big Blind Ante ("bba") or No Ante ("none", default: "bba").',
+          default: 'bba',
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_spr_sizing',
+    description: 'Calculate exact Stack-To-Pot Ratio (SPR), Commitment Zone classification, and 1-street, 2-street, and 3-street Geometric Bet Sizing percentages.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        effective_stack: {
+          type: 'number',
+          description: 'Remaining effective stack size in chips or Big Blinds (default: 90).',
+          default: 90,
+        },
+        pot_size: {
+          type: 'number',
+          description: 'Current pot size on the flop or turn (default: 10).',
+          default: 10,
         },
       },
     },
@@ -1348,6 +1425,7 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
               text: JSON.stringify(
                 {
                   ...found,
+                  expanded_matchups: getExpandedHandMatchups(found),
                   canonical_url: `${base}/learn/hands/${found.slug}`,
                   markdown_url: `${base}/learn/hands/${found.slug}.md`,
                 },
@@ -1644,6 +1722,151 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 bounty_equity_discount_percent: equityDiscount,
                 interactive_calculator_url: `${base}/tools/bounty-calculator`,
                 markdown_url: `${base}/tools/bounty-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_side_pots': {
+      const rawContribs = Array.isArray(args?.contributions) ? args.contributions : [];
+      const deadMoney = Math.max(Number(args?.dead_money) || 0, 0);
+      const players = rawContribs
+        .map((p, idx) => ({
+          name: String(p?.name || `Player ${idx + 1}`).trim(),
+          amount: Math.max(Number(p?.amount) || 0, 0),
+          folded: Boolean(p?.folded),
+        }))
+        .filter((p) => p.amount > 0);
+
+      const liveAmounts = Array.from(
+        new Set(players.filter((p) => !p.folded).map((p) => p.amount))
+      ).sort((a, b) => a - b);
+
+      const pots = [];
+      let prevCap = 0;
+      for (let i = 0; i < liveAmounts.length; i += 1) {
+        const cap = liveAmounts[i];
+        const slice = cap - prevCap;
+        if (slice <= 0) continue;
+        let potTotal = i === 0 ? deadMoney : 0;
+        for (const p of players) {
+          const contrib = Math.max(0, Math.min(p.amount, cap) - prevCap);
+          potTotal += contrib;
+        }
+        const eligible = players.filter((p) => !p.folded && p.amount >= cap).map((p) => p.name);
+        if (eligible.length >= 2 || pots.length === 0) {
+          pots.push({
+            label: pots.length === 0 ? 'Main Pot' : `Side Pot ${pots.length}`,
+            cap_level: cap,
+            amount: potTotal,
+            eligible_players: eligible,
+          });
+          prevCap = cap;
+        }
+      }
+
+      const uncalled = [];
+      for (const p of players) {
+        if (p.amount > prevCap) {
+          uncalled.push({ player: p.name, returned_chips: p.amount - prevCap });
+        }
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                total_wagered: players.reduce((s, p) => s + p.amount, 0) + deadMoney,
+                pots,
+                uncalled_returns: uncalled,
+                interactive_calculator_url: `${base}/tools/side-pot-calculator`,
+                markdown_url: `${base}/tools/side-pot-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'generate_blind_structure': {
+      const startingStack = Math.max(Number(args?.starting_stack) || 20000, 1000);
+      const levelMinutes = Math.max(parseInt(args?.level_minutes, 10) || 20, 5);
+      const targetHours = Math.max(Number(args?.target_hours) || 4, 1);
+      const anteFormat = args?.ante_format === 'none' ? 'none' : 'bba';
+      const baseBlinds = [
+        [100, 200], [100, 300], [200, 400], [300, 600], [400, 800], [500, 1000],
+        [600, 1200], [800, 1600], [1000, 2000], [1500, 3000], [2000, 4000], [3000, 6000],
+        [4000, 8000], [5000, 10000], [6000, 12000], [8000, 16000], [10000, 20000], [15000, 30000],
+      ];
+      const scale = Math.max(1, Math.round(startingStack / 20000));
+      const levels = baseBlinds.map(([sb, bb], idx) => ({
+        level: idx + 1,
+        duration_minutes: levelMinutes,
+        small_blind: sb * scale,
+        big_blind: bb * scale,
+        big_blind_ante: anteFormat === 'bba' && idx >= 1 ? bb * scale : 0,
+      }));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                starting_stack: startingStack,
+                starting_big_blinds: Number((startingStack / levels[0].big_blind).toFixed(1)),
+                level_minutes: levelMinutes,
+                target_hours: targetHours,
+                ante_format: anteFormat,
+                schedule: levels,
+                interactive_calculator_url: `${base}/tools/blind-structure-calculator`,
+                markdown_url: `${base}/tools/blind-structure-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_spr_sizing': {
+      const effectiveStack = Math.max(Number(args?.effective_stack) || 90, 1);
+      const potSize = Math.max(Number(args?.pot_size) || 10, 1);
+      const spr = Number((effectiveStack / potSize).toFixed(2));
+      const geo1Pct = Number((spr * 100).toFixed(1));
+      const geo2Pct = Number((((Math.sqrt(1 + 2 * spr) - 1) / 2) * 100).toFixed(1));
+      const geo3Pct = Number((((Math.cbrt(1 + 2 * spr) - 1) / 2) * 100).toFixed(1));
+      const zone =
+        spr <= 3
+          ? 'Low SPR (<= 3.0) - Auto-Commit Zone'
+          : spr <= 7
+          ? 'Medium SPR (3.1 - 7.0) - Two-Street Geometric Zone'
+          : 'High SPR (> 7.0) - Deep Postflop Maneuverability Zone';
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                effective_stack: effectiveStack,
+                pot_size: potSize,
+                spr,
+                commitment_zone: zone,
+                one_street_geometric_pct: geo1Pct,
+                two_street_geometric_pct: geo2Pct,
+                three_street_geometric_pct: geo3Pct,
+                interactive_calculator_url: `${base}/tools/spr-calculator`,
+                markdown_url: `${base}/tools/spr-calculator.md`,
               },
               null,
               2
