@@ -209,11 +209,15 @@ test('Backlink & Dead-Tool Replacement Catalog maps legacy poker tools, director
   }
 });
 
-test('Open Dataset Catalog (/api/datasets/catalog) serves Schema.org DataCatalog, Zenodo metadata, CITATION.cff, and Wikipedia citations', () => {
+test('Open Dataset Catalog (/api/datasets/catalog) serves Schema.org DataCatalog, Zenodo metadata, CITATION.cff, provenance rights, and Wikipedia citations', () => {
   const payload = getDatasetCatalogPayload();
   assert.equal(payload.datasets_count, 15);
   assert.equal(payload.wikipedia_targets_count, WIKIPEDIA_CITATION_TARGETS.length);
   assert.ok(WIKIPEDIA_CITATION_TARGETS.length >= 6);
+  assert.ok(payload.provenance_and_redistribution_rights);
+  assert.ok(payload.provenance_and_redistribution_rights.included_first_party_scope.length >= 4);
+  assert.ok(payload.provenance_and_redistribution_rights.excluded_from_bulk_redistribution.length >= 2);
+  assert.ok(payload.provenance_and_redistribution_rights.wikipedia_editorial_compliance_policy.includes('WP:COI'));
 
   const zenodo = buildZenodoMetadata();
   assert.equal(zenodo.upload_type, 'dataset');

@@ -135,7 +135,7 @@ Smarter.Poker Engineering Team`,
   {
     id: 'cardroom-awards',
     todoItemNumber: 9,
-    title: 'Annual "2026 Top 50 US Live Poker Rooms" & Regional Cardroom Award Badges',
+    title: 'US Live Poker Room Directory & Regional Benchmark Attribution Badges',
     targetAudience: 'Poker Room Marketing Directors, Casino Resort Webmasters & Texas Card Club Owners',
     destinationUrl: 'https://smarter.poker/hub/poker-near-me',
     researchUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
@@ -146,16 +146,16 @@ Smarter.Poker Engineering Team`,
       '"las vegas" "poker room" "cash games" schedule',
       '"florida" "poker room" "high hand" promotions',
     ],
-    emailSubjectTemplate: 'Official 2026 Top US Live Poker Room Award Badge For {{target}}',
+    emailSubjectTemplate: 'Smarter.Poker Live Venue Directory Listing & Benchmark Badge For {{target}}',
     emailBodyTemplate: `Hi {{target}} Poker Room Management,
 
-Congratulations! Based on our 2026 US Live Poker Room Benchmark Report across 324+ verified venues, {{target}} has been recognized in our 2026 Live Poker Room Index.
+{{target}} is listed in the Smarter.Poker US Live Poker Room Directory (324+ tracked venues) and regional rake/tournament benchmark studies.
 
-Your team can display the official 2026 Smarter.Poker Award SVG Badge on your website footer or poker room promotions page using the verified HTML snippet below:
+If your team would like to link to your listing or display our Live Poker Room Index SVG Badge on your website footer or poker room information page, here is the zero-dependency HTML snippet:
 
-<a href="https://smarter.poker/hub/poker-near-me" target="_blank" rel="noopener" title="{{target}} - 2026 Top US Poker Room On Smarter.Poker"><img src="https://smarter.poker/api/seo/badge?type=award-top50" alt="2026 Top 50 US Poker Room: Smarter.Poker Official Award" height="28" /></a>
+<a href="https://smarter.poker/hub/poker-near-me" target="_blank" rel="noopener" title="{{target}} In The Smarter.Poker US Live Poker Room Directory"><img src="https://smarter.poker/api/seo/badge?type=award-top50" alt="US Live Poker Room Index: Smarter.Poker Directory" height="28" /></a>
 
-Full 2026 Industry Report: https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark
+US Rake & Jackpot Benchmark Study: https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark
 Club Commander Floor & Waitlist Platform: https://smarter.poker/features/club-commander-poker-room-management
 
 Best regards,
