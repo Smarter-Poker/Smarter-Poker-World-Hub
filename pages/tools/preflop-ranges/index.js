@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
 import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
@@ -27,6 +28,32 @@ const POSITIONS = [
   { id: 'BTN', name: 'The Button', abbrev: 'BTN', desc: 'Most profitable seat; opens widest range with guaranteed postflop position.' },
   { id: 'SB', name: 'Small Blind', abbrev: 'SB', desc: 'Blind vs blind dynamic; aggressive raise-or-fold strategy.' },
 ];
+
+/** The questions the page answers for the active position; the FAQPage node and the visible FAQ section read the same list. */
+function preflopRangeFaqs(posData, stats) {
+  return [
+    {
+      question: `What percentage of hands does ${posData.abbrev} open in 6-max 100BB GTO?`,
+      answer: `In standard 100BB 6-max cash play, ${posData.abbrev} opens ${stats.percent}% of hands weighted by action frequency, reaching up to ${stats.reach}% of all 1,326 card combinations.`,
+    },
+    {
+      question: 'What do the matrix colors indicate?',
+      answer: 'Green represents pure opening hands (100% frequency), teal and blue represent mixed frequency opens, and dark slate cells represent standard folds.',
+    },
+    {
+      question: 'Why do GTO preflop charts employ mixed strategies?',
+      answer: 'Mixed strategies prevent opponents from exploiting predictable frequencies and maintain optimal board coverage across varied postflop textures.',
+    },
+    {
+      question: 'How does table position influence preflop opening ranges in poker?',
+      answer: 'As position moves closer to the button, fewer opponents remain behind to wake up with premium hands, allowing players to open significantly wider ranges profitably.',
+    },
+    {
+      question: 'Can I export or print this GTO preflop matrix?',
+      answer: 'Yes. Use the print or export action to generate a clean, printer-friendly high-contrast 13x13 preflop chart for study and reference.',
+    },
+  ];
+}
 
 export default function PreflopRangeMatrixHub({
   initialPosition = 'UTG',
@@ -95,6 +122,8 @@ export default function PreflopRangeMatrixHub({
   const pageDesc = `Interactive 13x13 GTO Preflop Range Matrix For ${posData.name} (${posData.abbrev}). Explore Exact Opening Frequencies, Combos, And Mixed Strategies In 100BB 6-Max Poker.`;
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
 
+  const faqs = useMemo(() => preflopRangeFaqs(posData, stats), [posData, stats]);
+
   const schema = useMemo(() => {
     return hubProductSchema({
       path: canonicalPath,
@@ -107,28 +136,7 @@ export default function PreflopRangeMatrixHub({
         ['Poker Tools', '/tools/poker-odds-calculator'],
         ['Preflop Ranges', '/tools/preflop-ranges'],
       ],
-      faqs: [
-        {
-          question: `What percentage of hands does ${posData.abbrev} open in 6-max 100BB GTO?`,
-          answer: `In standard 100BB 6-max cash play, ${posData.abbrev} opens ${stats.percent}% of hands weighted by action frequency, reaching up to ${stats.reach}% of all 1,326 card combinations.`,
-        },
-        {
-          question: 'What do the matrix colors indicate?',
-          answer: 'Green represents pure opening hands (100% frequency), teal and blue represent mixed frequency opens, and dark slate cells represent standard folds.',
-        },
-        {
-          question: 'Why do GTO preflop charts employ mixed strategies?',
-          answer: 'Mixed strategies prevent opponents from exploiting predictable frequencies and maintain optimal board coverage across varied postflop textures.',
-        },
-        {
-          question: 'How does table position influence preflop opening ranges in poker?',
-          answer: 'As position moves closer to the button, fewer opponents remain behind to wake up with premium hands, allowing players to open significantly wider ranges profitably.',
-        },
-        {
-          question: 'Can I export or print this GTO preflop matrix?',
-          answer: 'Yes. Use the print or export action to generate a clean, printer-friendly high-contrast 13x13 preflop chart for study and reference.',
-        },
-      ],
+      faqs,
       howTo: {
         name: 'How To Read And Apply GTO Preflop Range Charts',
         description: 'Step-by-step instructions for reading 13x13 poker preflop matrices, interpreting opening frequencies, and executing mixed strategies.',
@@ -156,7 +164,7 @@ export default function PreflopRangeMatrixHub({
         ],
       },
     });
-  }, [posData, stats, pageDesc, canonicalPath]);
+  }, [posData, faqs, pageDesc, canonicalPath]);
 
   return (
     <>
@@ -707,6 +715,8 @@ export default function PreflopRangeMatrixHub({
               </Link>
             </div>
           </div>
+
+          <FaqSection faqs={faqs} />
 
           <CitationBacklinkBox
             title={`GTO Preflop Range Matrix: ${posData.name} (${posData.abbrev})`}

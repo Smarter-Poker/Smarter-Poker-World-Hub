@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const STANDARD_BET_SIZES = [
@@ -36,6 +37,24 @@ const COMMON_DRAWS = [
   { draw: 'Two Pair Drawing To Full House Or Trips To Quads', outs: 4, flopTurn: '8.5%', flopRiver: '16.5%', rule42: '16% / 8%' },
   { draw: 'Gutshot Straight Draw (Inside Straight)', outs: 4, flopTurn: '8.5%', flopRiver: '16.5%', rule42: '16% / 8%' },
   { draw: 'Pocket Pair Drawing To Set', outs: 2, flopTurn: '4.3%', flopRiver: '8.4%', rule42: '8% / 4%' },
+];
+
+const POT_ODDS_CALCULATOR_FAQS = [
+  {
+    question: 'How Do You Calculate Pot Odds And Break-Even Equity In Poker?',
+    answer:
+      'Divide The Call Amount By The Final Pot Size After Your Call: Required Equity = Call / (Current Pot + Opponent Bet + Your Call). A Half-Pot Bet (50% Pot) Offers 3:1 Pot Odds And Requires 25.0% Equity To Break Even.',
+  },
+  {
+    question: 'What Is Minimum Defense Frequency (MDF) In GTO Poker?',
+    answer:
+      'Minimum Defense Frequency Is The Percentage Of Your Range You Must Continue With (Call Or Raise) To Prevent An Opponent From Profitably Bluffing Any Two Cards: MDF = Pot / (Pot + Bet). Against A 50% Pot Bet, MDF Is 66.7%.',
+  },
+  {
+    question: 'How Does The Rule Of 4 And 2 Work For Poker Outs?',
+    answer:
+      'Multiply Your Unseen Outs By 4 On The Flop (When Going All-In With Two Cards To Come) Or By 2 On The Turn (With One Card To Come) To Estimate Your Percentage Chance Of Completing Your Draw.',
+  },
 ];
 
 export default function PotOddsCalculatorPage({
@@ -104,23 +123,7 @@ export default function PotOddsCalculatorPage({
         ['Poker Tools', '/tools/poker-odds-calculator'],
         ['Pot Odds & MDF Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Do You Calculate Pot Odds And Break-Even Equity In Poker?',
-          answer:
-            'Divide The Call Amount By The Final Pot Size After Your Call: Required Equity = Call / (Current Pot + Opponent Bet + Your Call). A Half-Pot Bet (50% Pot) Offers 3:1 Pot Odds And Requires 25.0% Equity To Break Even.',
-        },
-        {
-          question: 'What Is Minimum Defense Frequency (MDF) In GTO Poker?',
-          answer:
-            'Minimum Defense Frequency Is The Percentage Of Your Range You Must Continue With (Call Or Raise) To Prevent An Opponent From Profitably Bluffing Any Two Cards: MDF = Pot / (Pot + Bet). Against A 50% Pot Bet, MDF Is 66.7%.',
-        },
-        {
-          question: 'How Does The Rule Of 4 And 2 Work For Poker Outs?',
-          answer:
-            'Multiply Your Unseen Outs By 4 On The Flop (When Going All-In With Two Cards To Come) Or By 2 On The Turn (With One Card To Come) To Estimate Your Percentage Chance Of Completing Your Draw.',
-        },
-      ],
+      faqs: POT_ODDS_CALCULATOR_FAQS,
       steps: [
         {
           name: 'Enter Current Pot And Facing Bet Size',
@@ -356,6 +359,8 @@ export default function PotOddsCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={POT_ODDS_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Poker Pot Odds, Required Equity & MDF Calculator"

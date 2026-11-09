@@ -443,7 +443,7 @@ test('the routes are static, server rendered and never ship the corpus to the br
   assert.match(topic, /firstThatFits\(/, 'the title is fitted by the one place that decides');
 });
 
-test('the schema is an Article by the organization, part of the collection, with no author', () => {
+test('the schema is an Article authored and published by the organization, part of the collection, never by a person', () => {
   const topic = read('pages/learn/[topic].js');
   const index = read('pages/learn/index.js');
   const head = read('vendor/commander-shared/src/components/seo/SEOHead.js');
@@ -453,14 +453,16 @@ test('the schema is an Article by the organization, part of the collection, with
   assert.match(topic, /headline: lesson\.title/);
   assert.match(topic, /datePublished: LEARN_PUBLISHED/);
   assert.match(topic, /dateModified: LEARN_MODIFIED/);
+  assert.match(topic, /author: \{ '@id': ORGANIZATION_ID \}/, 'the organization is the author');
   assert.match(topic, /publisher: \{ '@id': ORGANIZATION_ID \}/);
   assert.match(topic, /isPartOf: \{\s*'@type': 'CollectionPage',\s*'@id': LEARN_COLLECTION_ID/);
   assert.match(topic, /'@type': 'BreadcrumbList'/);
   assert.match(index, /'@type': 'CollectionPage',\s*'@id': LEARN_COLLECTION_ID/);
   assert.match(index, /'@type': 'BreadcrumbList'/);
   for (const [name, src] of [['[topic]', topic], ['index', index]]) {
-    assert.doesNotMatch(src, /'@type': 'Person'|\bauthor\s*:/, `${name} invents no author`);
+    assert.doesNotMatch(src, /'@type': 'Person'/, `${name} invents no person`);
   }
+  assert.doesNotMatch(index, /\bauthor\s*:/, 'the collection page has no author');
   for (const d of [LEARN_PUBLISHED, LEARN_MODIFIED]) assert.match(d, /^\d{4}-\d{2}-\d{2}$/);
 });
 

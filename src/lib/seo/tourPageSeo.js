@@ -126,6 +126,31 @@ export function tourStopSchema(stops) {
   return out;
 }
 
+/**
+ * The questions a tour page answers. tourSchema() publishes them as a FAQPage
+ * and TourPageSummary renders them, from this one list, so the markup never
+ * claims a question the page does not show (structured data audit, 2026-11-09).
+ */
+export function tourFaqs({ code, name, stops }) {
+  const site = 'https://smarter.poker';
+  const path = tourCanonical(code);
+  const safeCode = String(code || '').trim().toUpperCase();
+  const label = (name || '').trim() || `${safeCode} Poker Tour`;
+  const stopCount = Array.isArray(stops) ? stops.length : 0;
+  return [
+    {
+      question: `Where Can I Find The ${label} Schedule?`,
+      answer: `The complete ${label} (${safeCode}) stop schedule, host casinos, buy-ins, and event dates are tracked on Smarter.Poker at ${site}${path}.`,
+    },
+    {
+      question: `How Many Upcoming Stops Are Listed For ${label}?`,
+      answer: stopCount > 0
+        ? `Smarter.Poker currently lists ${stopCount} scheduled tour ${stopCount === 1 ? 'stop' : 'stops'} for ${label}.`
+        : `Smarter.Poker tracks official stop announcements and series schedules for ${label} as they are released.`,
+    },
+  ];
+}
+
 export function tourSchema({ code, name, type, website, stops }) {
   const site = 'https://smarter.poker';
   const path = tourCanonical(code);
@@ -175,26 +200,11 @@ export function tourSchema({ code, name, type, website, stops }) {
     {
       '@type': 'FAQPage',
       '@id': `${site}${path}#faq`,
-      mainEntity: [
-        {
-          '@type': 'Question',
-          name: `Where Can I Find The ${label} Schedule?`,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: `The complete ${label} (${safeCode}) stop schedule, host casinos, buy-ins, and event dates are tracked on Smarter.Poker at ${site}${path}.`,
-          },
-        },
-        {
-          '@type': 'Question',
-          name: `How Many Upcoming Stops Are Listed For ${label}?`,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: Array.isArray(stops) && stops.length > 0
-              ? `Smarter.Poker currently lists ${stops.length} scheduled tour ${stops.length === 1 ? 'stop' : 'stops'} for ${label}.`
-              : `Smarter.Poker tracks official stop announcements and series schedules for ${label} as they are released.`,
-          },
-        },
-      ],
+      mainEntity: tourFaqs({ code, name, stops }).map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
     },
   ];
   return nodes;

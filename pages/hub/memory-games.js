@@ -26,44 +26,47 @@ import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import FaqSection from '../../src/components/seo/FaqSection';
 import PreflopReference from '../../src/components/seo/PreflopReference';
 
 // AEO phase 3 (2026-09-17). This module serves /hub/preflop-charts, which
 // pages/hub/preflop-charts.js re-exports, so the canonical and the schema
 // both name that route.
+const MEMORY_GAMES_FAQS = [
+  {
+    question: 'What are GTO preflop charts in poker?',
+    answer:
+      'GTO (Game Theory Optimal) preflop charts display mathematically balanced ranges for opening, 3-betting, 4-betting, and folding from each table position based on Nash equilibrium solver computations.',
+  },
+  {
+    question: 'Are Smarter.Poker preflop charts free to use?',
+    answer:
+      'Yes, Smarter.Poker provides free interactive GTO preflop charts and range drills for 6-max, 8-max, and 9-max cash games and tournaments across multiple stack depths.',
+  },
+  {
+    question: 'How do preflop ranges change by position?',
+    answer:
+      'As position moves closer to the button (from Under the Gun to the Button), opening ranges expand significantly because fewer opponents remain to act behind you, giving you positional advantage postflop.',
+  },
+  {
+    question: 'How do stack depths affect preflop strategy?',
+    answer:
+      'Shallow stacks (15-25bb) favor high-card equity and push/fold decisions, while deep stacks (100bb+) increase the implied odds value of suited connectors, pocket pairs, and suited aces.',
+  },
+  {
+    question: 'What is a push/fold chart in tournament poker?',
+    answer:
+      'A push/fold chart provides mathematically solved Nash equilibrium ranges for whether to go all-in or fold preflop when your stack depth falls below 15 big blinds, eliminating postflop disadvantage.',
+  },
+];
+
 const PREFLOP_SCHEMA = hubProductSchema({
   path: '/hub/preflop-charts',
   name: 'Smarter.Poker Preflop Range Lab',
   description:
     'Free Local Practice Against Authored Preflop Reference Ranges. Results Stay On The Page And Do Not Change Account Progress, Rank Or Rewards.',
   trail: [['Hub', '/hub'], ['Preflop Charts', '/hub/preflop-charts']],
-  faqs: [
-    {
-      question: 'What are GTO preflop charts in poker?',
-      answer:
-        'GTO (Game Theory Optimal) preflop charts display mathematically balanced ranges for opening, 3-betting, 4-betting, and folding from each table position based on Nash equilibrium solver computations.',
-    },
-    {
-      question: 'Are Smarter.Poker preflop charts free to use?',
-      answer:
-        'Yes, Smarter.Poker provides free interactive GTO preflop charts and range drills for 6-max, 8-max, and 9-max cash games and tournaments across multiple stack depths.',
-    },
-    {
-      question: 'How do preflop ranges change by position?',
-      answer:
-        'As position moves closer to the button (from Under the Gun to the Button), opening ranges expand significantly because fewer opponents remain to act behind you, giving you positional advantage postflop.',
-    },
-    {
-      question: 'How do stack depths affect preflop strategy?',
-      answer:
-        'Shallow stacks (15-25bb) favor high-card equity and push/fold decisions, while deep stacks (100bb+) increase the implied odds value of suited connectors, pocket pairs, and suited aces.',
-    },
-    {
-      question: 'What is a push/fold chart in tournament poker?',
-      answer:
-        'A push/fold chart provides mathematically solved Nash equilibrium ranges for whether to go all-in or fold preflop when your stack depth falls below 15 big blinds, eliminating postflop disadvantage.',
-    },
-  ],
+  faqs: MEMORY_GAMES_FAQS,
   howTo: {
     name: 'How To Practice And Memorize GTO Preflop Ranges In The Range Lab',
     description: 'Step-by-step instructions for drilling solver-backed preflop ranges across table positions and stack depths in the Smarter.Poker Preflop Range Lab.',
@@ -3409,6 +3412,7 @@ export default function MemoryGamesPage() {
     {/* The charts themselves, in words, for the reader and the engine that
         never run the lab above (AEO phase 3, 2026-09-19). */}
     <PreflopReference />
+    <FaqSection faqs={MEMORY_GAMES_FAQS} />
     </>
   );
 }

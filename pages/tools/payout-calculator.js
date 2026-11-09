@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const PAYOUT_STRUCTURE_PRESETS = [
@@ -89,6 +90,24 @@ const TDA_FIELD_BENCHMARK_TABLE = [
     firstPlaceShare: '16.5% To 18.5%',
     minCashMultiple: '1.60x To 2.00x Buy-In',
     bubbleFactorNote: 'Flat Early Tiers Followed By Exponential Final Table Escalation',
+  },
+];
+
+const PAYOUT_CALCULATOR_FAQS = [
+  {
+    question: 'What Percentage Of The Field Should Get Paid In A Poker Tournament?',
+    answer:
+      'Under Modern Tournament Directors Association (TDA) Standards, Between 12% And 15% Of Total Tournament Entries Receive A Cash Payout, With A Minimum Cash Equal To Roughly 1.6x To 2.0x The Initial Buy-In.',
+  },
+  {
+    question: 'How Much Should First Place Win In A Poker Tournament?',
+    answer:
+      'First Place Typically Receives 50% Of The Prize Pool In A 9-Player Single-Table Sit-And-Go, 30% To 35% In A 50-Entry Club Tournament, 25% In A 100-Entry Event, And 16% To 20% In Large 500+ Entry Multi-Table Tournaments.',
+  },
+  {
+    question: 'How Does The Payout Structure Affect ICM Bubble Factor?',
+    answer:
+      'Flatter Payout Structures (Top 20% Paid) Increase Money-Bubble Survival Pressure Because Min-Cashes Are Easier To Lock Up, Whereas Top-Heavy Structures (Top 10% Paid) Reduce Early ICM Distortion And Reward Aggressive Chip Accumulation For First Place.',
   },
 ];
 
@@ -199,23 +218,7 @@ export default function PayoutCalculatorPage({
         ['Poker Tools', '/tools'],
         ['Tournament Payout Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'What Percentage Of The Field Should Get Paid In A Poker Tournament?',
-          answer:
-            'Under Modern Tournament Directors Association (TDA) Standards, Between 12% And 15% Of Total Tournament Entries Receive A Cash Payout, With A Minimum Cash Equal To Roughly 1.6x To 2.0x The Initial Buy-In.',
-        },
-        {
-          question: 'How Much Should First Place Win In A Poker Tournament?',
-          answer:
-            'First Place Typically Receives 50% Of The Prize Pool In A 9-Player Single-Table Sit-And-Go, 30% To 35% In A 50-Entry Club Tournament, 25% In A 100-Entry Event, And 16% To 20% In Large 500+ Entry Multi-Table Tournaments.',
-        },
-        {
-          question: 'How Does The Payout Structure Affect ICM Bubble Factor?',
-          answer:
-            'Flatter Payout Structures (Top 20% Paid) Increase Money-Bubble Survival Pressure Because Min-Cashes Are Easier To Lock Up, Whereas Top-Heavy Structures (Top 10% Paid) Reduce Early ICM Distortion And Reward Aggressive Chip Accumulation For First Place.',
-        },
-      ],
+      faqs: PAYOUT_CALCULATOR_FAQS,
       howTo: {
         name: 'How To Generate A TDA Poker Tournament Payout Structure',
         description: pageDesc,
@@ -566,6 +569,8 @@ export default function PayoutCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={PAYOUT_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Poker Tournament Payout & Prize Pool Distribution Calculator"

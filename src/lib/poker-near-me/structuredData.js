@@ -190,11 +190,14 @@ export function buildSeriesDirectorySchema(series = [], totalCount = 0) {
       '@type': 'SpeakableSpecification',
       cssSelector: ['h1', 'p'],
     },
-    mainEntity: {
+    // An ItemList requires itemListElement; a directory rendered before its
+    // rows arrive publishes the page without a list rather than an empty one
+    // (structured data audit, 2026-11-09).
+    mainEntity: items.length > 0 ? {
       '@type': 'ItemList',
       numberOfItems: Number(totalCount) || series.length,
       itemListElement: items,
-    },
+    } : undefined,
   });
 }
 
@@ -286,10 +289,10 @@ export function buildDailyTournamentSchema(tournaments = [], generatedAt, option
       '@type': 'SpeakableSpecification',
       cssSelector: ['h1', 'p'],
     },
-    mainEntity: {
+    mainEntity: items.length > 0 ? {
       '@type': 'ItemList',
       numberOfItems: tournaments.length,
       itemListElement: items,
-    },
+    } : undefined,
   });
 }

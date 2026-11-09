@@ -14,6 +14,8 @@ import TourCard from '../../src/components/poker-series/TourCard';
 import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import FaqSection from '../../src/components/seo/FaqSection';
+import { normalizeJsonLdGraph } from '../../src/components/seo/SEOHead';
 import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
 import { faqSchema } from '../../src/lib/seo/hubPageSchema';
 import { serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
@@ -804,7 +806,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                 })}} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     '@context': 'https://schema.org',
-                    '@graph': [
+                    '@graph': normalizeJsonLdGraph([
                         datasetSchema({
                             path: '/hub/poker-tours',
                             name: 'Smarter.Poker Major Traveling Poker Tours & Circuits Dataset',
@@ -824,7 +826,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             },
                         },
                         faqSchema(POKER_TOURS_FAQS, '/hub/poker-tours'),
-                    ].filter(Boolean),
+                    ].filter(Boolean)),
                 }) }} />
 </Head>
 
@@ -1079,6 +1081,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             </section>
                         )}
 
+                        <FaqSection faqs={POKER_TOURS_FAQS} />
                         <HubPageSummary page="poker-tours" />
                     </main>
                 </div>

@@ -40,6 +40,8 @@ function seriesHydrationFixture() {
     '../../src/components/poker-near-me/PokerNearMeConsole': { PokerNearMeConsoleIcon: empty, PokerNearMePanelShell: ({ children, className }) => React.createElement('section', { className }, children) },
     '../../src/lib/poker-near-me/structuredData': { buildSeriesDirectorySchema: () => ({}), serializePokerJsonLd: JSON.stringify },
     '../../src/lib/seo/hubPageSchema': { datasetSchema: () => [], faqSchema: () => [] },
+    '../../src/components/seo/SEOHead': { __esModule: true, default: empty, normalizeJsonLdGraph: (graph) => graph },
+    '../../src/components/seo/FaqSection': empty,
   };
   const mod = { exports: {} };
   new Function('require', 'module', 'exports', code)(name => {

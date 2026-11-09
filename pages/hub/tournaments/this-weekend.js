@@ -17,7 +17,7 @@ import {
   DollarSign as DollarLuc,
 } from 'lucide-react';
 import useSWR from 'swr';
-import SEOHead from '../../../src/components/seo/SEOHead';
+import SEOHead, { normalizeJsonLdGraph } from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
@@ -27,6 +27,7 @@ import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../../src/lib/poker-near-me/structuredData';
 import { getWeekendDates } from '../../../src/lib/poker-near-me/weekendSchedule.mjs';
 import { datasetSchema, faqSchema } from '../../../src/lib/seo/hubPageSchema';
+import FaqSection from '../../../src/components/seo/FaqSection';
 
 const WEEKEND_TOURNAMENTS_FAQS = [
   {
@@ -195,7 +196,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
           dangerouslySetInnerHTML={{
             __html: serializePokerJsonLd({
               '@context': 'https://schema.org',
-              '@graph': [
+              '@graph': normalizeJsonLdGraph([
                 datasetSchema({
                   path: '/hub/tournaments/this-weekend',
                   name: 'Smarter.Poker Weekend Poker Tournaments Directory (Friday, Saturday & Sunday)',
@@ -217,7 +218,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
                   ],
                 }),
                 faqSchema(WEEKEND_TOURNAMENTS_FAQS, '/hub/tournaments/this-weekend'),
-              ].filter(Boolean),
+              ].filter(Boolean)),
             }),
           }}
         />
@@ -412,6 +413,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
               </div>
             </div>
           </section>
+          <FaqSection faqs={WEEKEND_TOURNAMENTS_FAQS} />
         </main>
 
         <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `

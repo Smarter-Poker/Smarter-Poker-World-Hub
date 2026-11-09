@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const SIDE_POT_BENCHMARKS = [
@@ -43,6 +44,24 @@ const SIDE_POT_BENCHMARKS = [
     sidePot1: '32BB (4 Players x 8BB Slice)',
     sidePot2: '21BB Side Pot 2 + 30BB Side Pot 3 + 20BB Uncalled',
     ruleNote: 'Dealer Resolves Highest Side Pot First Down To Main Pot',
+  },
+];
+
+const SIDE_POT_CALCULATOR_FAQS = [
+  {
+    question: 'How Do Side Pots Work In A Multi-Way All-In Poker Hand?',
+    answer:
+      'When Players Are All-In With Different Stack Sizes, Contributions Are Matched Dollar-For-Dollar Up To The Shortest Stack To Form The Main Pot. Remaining Deeper Stacks Continue Matching Each Subsequent Stack Tier Into Side Pot 1, Side Pot 2, And So On.',
+  },
+  {
+    question: 'Where Does Dead Money (Folded Blinds And Antes) Go In A Side Pot?',
+    answer:
+      'Under Official Tournament Directors Association (TDA) And Robert\'s Rules Of Poker, All Dead Money From Folded Blinds, Big Blind Antes, And Folded Street Bets Always Goes Into The Main Pot.',
+  },
+  {
+    question: 'Which Pot Is Awarded First At Showdown When There Are Side Pots?',
+    answer:
+      'Dealers Always Verify Hands And Award The Last (Highest) Side Pot First Between The Deepest Eligible Stacks Before Working Backward Down To The Main Pot.',
   },
 ];
 
@@ -132,23 +151,7 @@ export default function SidePotCalculatorPage({
         ['Poker Tools', '/tools'],
         ['Side Pot Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Do Side Pots Work In A Multi-Way All-In Poker Hand?',
-          answer:
-            'When Players Are All-In With Different Stack Sizes, Contributions Are Matched Dollar-For-Dollar Up To The Shortest Stack To Form The Main Pot. Remaining Deeper Stacks Continue Matching Each Subsequent Stack Tier Into Side Pot 1, Side Pot 2, And So On.',
-        },
-        {
-          question: 'Where Does Dead Money (Folded Blinds And Antes) Go In A Side Pot?',
-          answer:
-            'Under Official Tournament Directors Association (TDA) And Robert\'s Rules Of Poker, All Dead Money From Folded Blinds, Big Blind Antes, And Folded Street Bets Always Goes Into The Main Pot.',
-        },
-        {
-          question: 'Which Pot Is Awarded First At Showdown When There Are Side Pots?',
-          answer:
-            'Dealers Always Verify Hands And Award The Last (Highest) Side Pot First Between The Deepest Eligible Stacks Before Working Backward Down To The Main Pot.',
-        },
-      ],
+      faqs: SIDE_POT_CALCULATOR_FAQS,
       steps: [
         {
           name: 'Enter All-In Chip Commitments For Each Player',
@@ -430,6 +433,8 @@ export default function SidePotCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={SIDE_POT_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Poker Side Pot & Multi-Way All-In Payout Calculator"

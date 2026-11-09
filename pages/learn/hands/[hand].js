@@ -1,8 +1,14 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    /learn/hands/[hand] - INDIVIDUAL STARTING HAND STRATEGY GUIDE
    ═══════════════════════════════════════════════════════════════════════════
-   Statically generated Article + FAQPage + Quiz + BreadcrumbList +
+   Statically generated Article + FAQPage + BreadcrumbList +
    SpeakableSpecification page for each canonical Texas Hold'em starting hand.
+
+   Structured data audit (2026-11-09): the FAQPage questions are rendered on
+   the page through FaqSection from the same handFaqs() list the schema reads,
+   the Article names the publishing organization as its author, dateModified
+   never precedes datePublished, and the Quiz node is gone because the page
+   hosts no quiz.
 
    House style: Title Case, no em dashes.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -11,6 +17,7 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../../src/components/seo/FaqSection';
 import {
   SITE_URL,
   LEARN_URL,
@@ -32,7 +39,26 @@ export async function getStaticProps({ params }) {
   return { props: { hand } };
 }
 
-function handJsonLd(hand) {
+/** The day the starting hand encyclopedia was first published. */
+export const HANDS_PUBLISHED = '2026-10-01';
+/** A page cannot be modified before it was published. */
+export const HANDS_MODIFIED = LEARN_MODIFIED > HANDS_PUBLISHED ? LEARN_MODIFIED : HANDS_PUBLISHED;
+
+/** The questions a hand page answers; the FAQPage node and the visible FAQ section read the same list. */
+export function handFaqs(hand) {
+  return [
+    {
+      question: `What Is The Preflop Equity Of ${hand.name} (${hand.code})?`,
+      answer: `${hand.name} (${hand.code}) Ranks ${hand.preflopRank} Out Of 169 Starting Hands With ${hand.vsRandomEquity} Preflop Equity Against A Random Hand Across ${hand.combinations} Deck Combinations (${hand.probability}).`,
+    },
+    {
+      question: `How Should I Play ${hand.name} (${hand.code}) Facing A 3-Bet?`,
+      answer: hand.vs3Bet,
+    },
+  ];
+}
+
+export function handJsonLd(hand) {
   const path = handPath(hand.slug);
   const url = `${SITE_URL}${path}`;
   const ogImageUrl = `${SITE_URL}/api/og/tool-card?tool=preflop&title=${encodeURIComponent(`${hand.name} (${hand.code})`)}`;
@@ -46,9 +72,10 @@ function handJsonLd(hand) {
       url,
       mainEntityOfPage: { '@type': 'WebPage', '@id': url },
       inLanguage: 'en-US',
-      datePublished: '2026-10-01',
-      dateModified: LEARN_MODIFIED,
+      datePublished: HANDS_PUBLISHED,
+      dateModified: HANDS_MODIFIED,
       isAccessibleForFree: true,
+      author: { '@id': ORGANIZATION_ID },
       publisher: { '@id': ORGANIZATION_ID },
       image: {
         '@type': 'ImageObject',
@@ -65,44 +92,11 @@ function handJsonLd(hand) {
     {
       '@type': 'FAQPage',
       '@id': `${url}#faq`,
-      mainEntity: [
-        {
-          '@type': 'Question',
-          name: `What Is The Preflop Equity Of ${hand.name} (${hand.code})?`,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: `${hand.name} (${hand.code}) Ranks ${hand.preflopRank} Out Of 169 Starting Hands With ${hand.vsRandomEquity} Preflop Equity Against A Random Hand Across ${hand.combinations} Deck Combinations (${hand.probability}).`,
-          },
-        },
-        {
-          '@type': 'Question',
-          name: `How Should I Play ${hand.name} (${hand.code}) Facing A 3-Bet?`,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: hand.vs3Bet,
-          },
-        },
-      ],
-    },
-    {
-      '@type': 'Quiz',
-      '@id': `${url}#quiz`,
-      name: `${hand.name} (${hand.code}) GTO Strategy Assessment`,
-      about: {
-        '@type': 'Thing',
-        name: `${hand.name} (${hand.code}) Poker Strategy`,
-      },
-      hasPart: [
-        {
-          '@type': 'Question',
-          eduQuestionType: 'Multiple choice',
-          text: `How Many Deck Combinations Of ${hand.name} (${hand.code}) Exist In A 52-Card Deck?`,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: `${hand.combinations} Combinations (${hand.probability}).`,
-          },
-        },
-      ],
+      mainEntity: handFaqs(hand).map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
     },
     {
       '@type': 'BreadcrumbList',
@@ -285,6 +279,8 @@ export default function StartingHandDetailPage({ hand }) {
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={handFaqs(hand)} />
 
         <CitationBacklinkBox
           title={`How To Play ${hand.name} (${hand.code}) In Texas Hold'em`}

@@ -12,6 +12,39 @@ import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 // AEO phase 3 (2026-09-17): 3,386 server-rendered words and no structured
 // data. FinanceApplication is the honest category for a ledger.
+const BANKROLL_MANAGER_FAQS = [
+  {
+    question: 'How many buy-ins do I need for poker bankroll management?',
+    answer:
+      'For live cash games, standard bankroll management recommends 20 to 30 buy-ins for recreational players, and 50 to 100 buy-ins for professional players to absorb variance. For multi-table tournaments (MTTs), 100 to 200 buy-ins are standard due to higher variance.',
+  },
+  {
+    question: 'How does Smarter.Poker Bankroll Manager track sessions?',
+    answer:
+      'Smarter.Poker Bankroll Manager tracks cash games, tournaments, casino play, and home games with an immutable ledger. It calculates your hourly win rate, BB/100, ROI, total profit/loss, and variance analysis.',
+  },
+  {
+    question: 'Is the Smarter.Poker Bankroll Manager free to use?',
+    answer:
+      'Yes, Smarter.Poker Bankroll Manager is 100% free to use. You can log sessions, analyze leaks, export records, and visualize bankroll trends with zero subscription fees.',
+  },
+  {
+    question: 'What is risk of ruin in poker bankroll management?',
+    answer:
+      'Risk of ruin is the mathematical probability that you will lose your entire poker bankroll before reaching your financial target. The bankroll manager calculates your win rate and standard deviation to estimate safe stakes.',
+  },
+  {
+    question: 'What is the Kelly Criterion in poker bankroll management?',
+    answer:
+      'The Kelly Criterion calculates the mathematically optimal percentage of your bankroll to risk based on your edge and variance. Fractional Kelly (such as half-Kelly or quarter-Kelly) is standard for poker players to prevent severe drawdowns while maximizing long-term bankroll growth.',
+  },
+  {
+    question: 'How do bankroll requirements differ between cash games and tournaments?',
+    answer:
+      'Cash games require 20 to 50 buy-ins because variance is lower and you can leave a table whenever needed. Multi-table tournaments (MTTs) require 100 to 200 buy-ins due to massive field sizes and steep payout distributions where 85% of entrants finish outside the money.',
+  },
+];
+
 const BANKROLL_SCHEMA = hubProductSchema({
   path: '/hub/bankroll-manager',
   name: 'Smarter.Poker Bankroll Manager',
@@ -19,38 +52,7 @@ const BANKROLL_SCHEMA = hubProductSchema({
     'Bankroll Tracking For Poker Players: Log Sessions, Analyse Leaks, Track ROI And See Variance Over Time. Free To Use, No Real-Money Gambling.',
   applicationCategory: 'FinanceApplication',
   trail: [['Hub', '/hub'], ['Bankroll Manager', '/hub/bankroll-manager']],
-  faqs: [
-    {
-      question: 'How many buy-ins do I need for poker bankroll management?',
-      answer:
-        'For live cash games, standard bankroll management recommends 20 to 30 buy-ins for recreational players, and 50 to 100 buy-ins for professional players to absorb variance. For multi-table tournaments (MTTs), 100 to 200 buy-ins are standard due to higher variance.',
-    },
-    {
-      question: 'How does Smarter.Poker Bankroll Manager track sessions?',
-      answer:
-        'Smarter.Poker Bankroll Manager tracks cash games, tournaments, casino play, and home games with an immutable ledger. It calculates your hourly win rate, BB/100, ROI, total profit/loss, and variance analysis.',
-    },
-    {
-      question: 'Is the Smarter.Poker Bankroll Manager free to use?',
-      answer:
-        'Yes, Smarter.Poker Bankroll Manager is 100% free to use. You can log sessions, analyze leaks, export records, and visualize bankroll trends with zero subscription fees.',
-    },
-    {
-      question: 'What is risk of ruin in poker bankroll management?',
-      answer:
-        'Risk of ruin is the mathematical probability that you will lose your entire poker bankroll before reaching your financial target. The bankroll manager calculates your win rate and standard deviation to estimate safe stakes.',
-    },
-    {
-      question: 'What is the Kelly Criterion in poker bankroll management?',
-      answer:
-        'The Kelly Criterion calculates the mathematically optimal percentage of your bankroll to risk based on your edge and variance. Fractional Kelly (such as half-Kelly or quarter-Kelly) is standard for poker players to prevent severe drawdowns while maximizing long-term bankroll growth.',
-    },
-    {
-      question: 'How do bankroll requirements differ between cash games and tournaments?',
-      answer:
-        'Cash games require 20 to 50 buy-ins because variance is lower and you can leave a table whenever needed. Multi-table tournaments (MTTs) require 100 to 200 buy-ins due to massive field sizes and steep payout distributions where 85% of entrants finish outside the money.',
-    },
-  ],
+  faqs: BANKROLL_MANAGER_FAQS,
 });
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
@@ -144,6 +146,7 @@ import { sendGeofenceNotification } from '../../src/lib/geofencePush';
 import { getAccessToken } from '../../src/lib/authUtils';
 import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import FaqSection from '../../src/components/seo/FaqSection';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean SmarterPoker-style navigation (no emojis)
@@ -3247,6 +3250,7 @@ export default function BankrollManagerPage() {
         )}
       </AnimatePresence>
       {UpgradePopup}
+      <FaqSection faqs={BANKROLL_MANAGER_FAQS} />
       <HubPageSummary page="bankroll-manager" />
     </PageTransition >
   );

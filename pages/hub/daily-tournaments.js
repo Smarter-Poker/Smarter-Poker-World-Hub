@@ -3,7 +3,7 @@
  * Live data from venue_daily_tournaments — 324+ venues, 4,500+ records
  */
 
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead, { normalizeJsonLdGraph } from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace inline SVG + HTML entities
@@ -25,6 +25,7 @@ import { homeGameUrl } from '../../src/lib/home-games/urls';
 import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
 import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
 import { faqSchema } from '../../src/lib/seo/hubPageSchema';
+import FaqSection from '../../src/components/seo/FaqSection';
 
 const DAILY_TOURNAMENTS_FAQS = [
     {
@@ -421,7 +422,7 @@ export default function DailyTournaments() {
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(scheduleSchema) }} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     '@context': 'https://schema.org',
-                    '@graph': [
+                    '@graph': normalizeJsonLdGraph([
                         datasetSchema({
                             path: '/hub/daily-tournaments',
                             name: 'Smarter.Poker Daily Live Poker Tournaments Directory Dataset',
@@ -430,7 +431,7 @@ export default function DailyTournaments() {
                             variableMeasured: ['Tournament Buy-In', 'Guaranteed Prize Pool', 'Starting Chip Stack', 'Blind Level Duration'],
                         }),
                         faqSchema(DAILY_TOURNAMENTS_FAQS, '/hub/daily-tournaments'),
-                    ].filter(Boolean),
+                    ].filter(Boolean)),
                 }) }} />
 
             </SEOHead>
@@ -685,6 +686,7 @@ export default function DailyTournaments() {
 
                     
                 </div>
+                <FaqSection faqs={DAILY_TOURNAMENTS_FAQS} />
                 </main>
 
                 <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `

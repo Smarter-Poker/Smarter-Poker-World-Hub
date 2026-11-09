@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const PLO_PRESETS = [
@@ -104,6 +105,24 @@ const PLO_PREFLOP_PROGRESSION_TABLE = [
     maxPotBet: '114.0 BB Total (Caps 100 BB Stack)',
     resultingPotIfCalled: '201.5 BB All-In Pot',
     shortcutMath: '3 * 37.5 BB + 1.5 BB = 114.0 BB',
+  },
+];
+
+const PLO_BET_CALCULATOR_FAQS = [
+  {
+    question: 'How Do You Quickly Calculate A Maximum Pot-Sized Raise In PLO?',
+    answer:
+      'Use The Casino Dealer 3x Shortcut Formula: Multiply The Last Bet Facing You By 3, Then Add All Trailing Calls In Between And The Previous Pot Before Betting Started On This Street (Max Total Bet = 3 * Last Bet + Trail Calls + Previous Pot).',
+  },
+  {
+    question: 'What Is A Pot-Sized Open Raise From UTG In Pot-Limit Omaha?',
+    answer:
+      'In A Standard 2-Blind PLO Game (0.5 BB Small Blind And 1.0 BB Big Blind), A Pot-Sized Open From Under The Gun Equals 3.5 Big Blinds (3 * 1.0 BB Big Blind + 0.5 BB Small Blind). Each Limper Adds Exactly 1.0 BB To The Maximum Pot Raise.',
+  },
+  {
+    question: 'How Does Quartering Work In A Double-Board PLO Bomb Pot?',
+    answer:
+      'In A Double-Board Bomb Pot Where Half The Pot Is Awarded To Each Board, Holding The Nuts On Board 1 Only Guarantees 50% Equity Unless You Also Contest Board 2. If You Tie Board 1 And Lose Board 2, You Receive Only 25% Of The Pot (Quartered), Which Loses Money When Calling A Full-Pot River Bet.',
   },
 ];
 
@@ -219,23 +238,7 @@ export default function PloBetCalculatorPage({
         ['Poker Tools', '/tools'],
         ['PLO Max Bet & Bomb Pot Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Do You Quickly Calculate A Maximum Pot-Sized Raise In PLO?',
-          answer:
-            'Use The Casino Dealer 3x Shortcut Formula: Multiply The Last Bet Facing You By 3, Then Add All Trailing Calls In Between And The Previous Pot Before Betting Started On This Street (Max Total Bet = 3 * Last Bet + Trail Calls + Previous Pot).',
-        },
-        {
-          question: 'What Is A Pot-Sized Open Raise From UTG In Pot-Limit Omaha?',
-          answer:
-            'In A Standard 2-Blind PLO Game (0.5 BB Small Blind And 1.0 BB Big Blind), A Pot-Sized Open From Under The Gun Equals 3.5 Big Blinds (3 * 1.0 BB Big Blind + 0.5 BB Small Blind). Each Limper Adds Exactly 1.0 BB To The Maximum Pot Raise.',
-        },
-        {
-          question: 'How Does Quartering Work In A Double-Board PLO Bomb Pot?',
-          answer:
-            'In A Double-Board Bomb Pot Where Half The Pot Is Awarded To Each Board, Holding The Nuts On Board 1 Only Guarantees 50% Equity Unless You Also Contest Board 2. If You Tie Board 1 And Lose Board 2, You Receive Only 25% Of The Pot (Quartered), Which Loses Money When Calling A Full-Pot River Bet.',
-        },
-      ],
+      faqs: PLO_BET_CALCULATOR_FAQS,
       howTo: {
         name: 'How To Calculate Maximum Pot-Limit Bets And Double-Board Bomb Pot EV',
         description: pageDesc,
@@ -680,6 +683,8 @@ export default function PloBetCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={PLO_BET_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Pot-Limit Omaha (PLO) Max Bet & Double-Board Bomb Pot Calculator"

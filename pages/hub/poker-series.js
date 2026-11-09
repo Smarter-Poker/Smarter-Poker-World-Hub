@@ -31,6 +31,8 @@ const SERIES_PANEL_LIMIT = 12;
 import { buildSeriesDirectorySchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
 import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
 import { faqSchema } from '../../src/lib/seo/hubPageSchema';
+import { normalizeJsonLdGraph } from '../../src/components/seo/SEOHead';
+import FaqSection from '../../src/components/seo/FaqSection';
 
 const POKER_SERIES_FAQS = [
     {
@@ -777,7 +779,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd(directorySchema) }} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     '@context': 'https://schema.org',
-                    '@graph': [
+                    '@graph': normalizeJsonLdGraph([
                         datasetSchema({
                             path: '/hub/poker-series',
                             name: 'Smarter.Poker Live Poker Tournament Series Directory Dataset',
@@ -786,7 +788,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             variableMeasured: ['Series Date Range', 'Main Event Buy-In', 'Total Series Guarantee', 'Event Count'],
                         }),
                         faqSchema(POKER_SERIES_FAQS, '/hub/poker-series'),
-                    ].filter(Boolean),
+                    ].filter(Boolean)),
                 }) }} />
             </Head>
 
@@ -1268,6 +1270,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             </section>
                         )}
 
+                        <FaqSection faqs={POKER_SERIES_FAQS} />
                         <HubPageSummary page="poker-series" />
                 </main>
 

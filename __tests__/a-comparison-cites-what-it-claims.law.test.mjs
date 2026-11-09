@@ -16,8 +16,8 @@
  *     real <table> (or a step list for the how-to) and a Sources list with
  *     rel="nofollow noopener"
  *   - schema is Article + BreadcrumbList (+ ItemList on best-of pages),
- *     published by the site Organization; never Review, AggregateRating,
- *     Person or author
+ *     published and authored by the site Organization, with the page's
+ *     own share image; never Review, AggregateRating or a Person
  *   - related slugs, glossary terms and product links resolve
  *   - every route is in the sitemap
  *   - copy is Title Case with no em or en dashes, and titles fit a result
@@ -247,13 +247,13 @@ test('the play-credit disclosure says what Smarter.Poker is not', () => {
   assert.deepEqual(sourceKeysOf(PLAY_CREDIT_DISCLOSURE), ['spHome']);
 });
 
-test('schema is an Article by the site organization, never a review, a rating or a person', () => {
+test('schema is an Article authored and published by the site organization, never a review, a rating or a person', () => {
   const vendorSeo = read('vendor/commander-shared/src/components/seo/SEOHead.js');
   assert.ok(vendorSeo.includes(`'@id': '${ORGANIZATION_ID}'`), 'the publisher @id is the one the Organization node declares');
   assert.match(SLUG_PAGE, /jsonLd=\{\[schemas\.organization, \.\.\.compareJsonLd\(page\)\]\}/, 'the Organization node ships in the same graph');
   assert.match(INDEX_PAGE, /jsonLd=\{\[schemas\.organization, \.\.\.compareIndexJsonLd\(\)\]\}/);
 
-  const forbidden = /"@type":"(Review|AggregateRating|Rating|Person)"|"author"|"reviewRating"|"ratingValue"|"aggregateRating"/;
+  const forbidden = /"@type":"(Review|AggregateRating|Rating|Person)"|"reviewRating"|"ratingValue"|"aggregateRating"/;
   for (const page of COMPARE_PAGES) {
     const nodes = compareJsonLd(page);
     const json = JSON.stringify(nodes);
@@ -261,6 +261,8 @@ test('schema is an Article by the site organization, never a review, a rating or
     const article = nodes.find((node) => node['@type'] === 'Article');
     assert.ok(article, `${page.slug} is an Article`);
     assert.equal(article.publisher['@id'], ORGANIZATION_ID);
+    assert.deepEqual(article.author, { '@id': ORGANIZATION_ID }, `${page.slug} is authored by the organization, not a person`);
+    assert.equal(article.image, 'https://smarter.poker/images/og-card.jpg', `${page.slug} names the share image it serves`);
     assert.equal(article.dateModified, AS_OF, `${page.slug} was modified the day its facts were read`);
     assert.equal(article.headline, page.h1);
     assert.ok(nodes.some((node) => node['@type'] === 'BreadcrumbList'), `${page.slug} has a breadcrumb`);

@@ -15,10 +15,11 @@
    never reaches the browser. fallback is false, so a slug that is not in
    the module is a real 404.
 
-   Schema: an Article published by the Smarter.Poker organization, part of
-   the /learn CollectionPage, plus a BreadcrumbList. No author Person and
-   no byline: the programme has no named author yet, and inventing one is
-   not an option.
+   Schema: an Article authored and published by the Smarter.Poker
+   organization, part of the /learn CollectionPage, plus a BreadcrumbList.
+   No author Person and no byline: the programme has no named author yet,
+   and inventing one is not an option, so the organization that publishes
+   the lesson is also its author.
 
    Copy follows the house rule: Title Case, no em dashes.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -76,7 +77,7 @@ function lessonChartType(lesson) {
 }
 
 /** A lesson's JSON-LD: the Article and its breadcrumb trail. */
-function lessonSchema(lesson) {
+export function lessonSchema(lesson) {
   const url = `${SITE_URL}${lessonPath(lesson.slug)}`;
   const chartType = lessonChartType(lesson);
   const imageUrl = `${SITE_URL}/api/og/chart/${chartType}`;
@@ -109,6 +110,7 @@ function lessonSchema(lesson) {
         '@type': 'SpeakableSpecification',
         cssSelector: ['h1', 'article p:first-of-type'],
       },
+      author: { '@id': ORGANIZATION_ID },
       publisher: { '@id': ORGANIZATION_ID },
       isPartOf: {
         '@type': 'CollectionPage',

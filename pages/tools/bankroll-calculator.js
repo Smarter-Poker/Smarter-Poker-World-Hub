@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const VARIANCE_BENCHMARKS = [
@@ -22,6 +23,24 @@ const VARIANCE_BENCHMARKS = [
   { format: '5-Card Pot-Limit Omaha (PLO5 Deep)', stdDev: '165 BB/100', winrate: '5.0 BB/100', conservativeBr: '120 Buy-Ins', aggressiveBr: '70 Buy-Ins' },
   { format: 'Large-Field Multi-Table Tournaments (MTT)', stdDev: '180% ROI SD', winrate: '20% ROI', conservativeBr: '150 Buy-Ins', aggressiveBr: '100 Buy-Ins' },
   { format: 'Small-Field Daily Live Tournaments (<150 Entries)', stdDev: '110% ROI SD', winrate: '30% ROI', conservativeBr: '75 Buy-Ins', aggressiveBr: '50 Buy-Ins' },
+];
+
+const BANKROLL_CALCULATOR_FAQS = [
+  {
+    question: 'How Do You Calculate Risk Of Ruin In Poker?',
+    answer:
+      'Risk Of Ruin (RoR) Is Computed Using The Brownian Motion Formula RoR = exp(-2 * Winrate * Bankroll / Variance), Where Winrate And Standard Deviation Are Measured In Big Blinds Per 100 Hands (BB/100) And Bankroll Is Measured In Total Big Blinds.',
+  },
+  {
+    question: 'How Many Buy-Ins Do You Need For Cash Games Vs. PLO?',
+    answer:
+      'A Winning 6-Max No-Limit Hold\'em Player Typically Requires 25 To 45 Buy-Ins To Keep Risk Of Ruin Below 1%, Whereas Pot-Limit Omaha (PLO4 And PLO5) Players Require 60 To 120 Buy-Ins Due To Significantly Higher All-In Equity Variance.',
+  },
+  {
+    question: 'Why Do Multi-Table Tournaments Require Larger Bankrolls Than Cash Games?',
+    answer:
+      'Top-Heavy Tournament Payout Structures Concentrate Most Of The Prize Pool In The Top 3 Finishes, Requiring 100 To 150 Buy-Ins To Weather Standard Downswings Even With A 20% Return On Investment (ROI).',
+  },
 ];
 
 export default function BankrollCalculatorPage({
@@ -86,23 +105,7 @@ export default function BankrollCalculatorPage({
         ['Poker Tools', '/tools/poker-odds-calculator'],
         ['Bankroll & Risk Of Ruin Calculator', canonicalPath],
       ],
-      faqs: [
-        {
-          question: 'How Do You Calculate Risk Of Ruin In Poker?',
-          answer:
-            'Risk Of Ruin (RoR) Is Computed Using The Brownian Motion Formula RoR = exp(-2 * Winrate * Bankroll / Variance), Where Winrate And Standard Deviation Are Measured In Big Blinds Per 100 Hands (BB/100) And Bankroll Is Measured In Total Big Blinds.',
-        },
-        {
-          question: 'How Many Buy-Ins Do You Need For Cash Games Vs. PLO?',
-          answer:
-            'A Winning 6-Max No-Limit Hold\'em Player Typically Requires 25 To 45 Buy-Ins To Keep Risk Of Ruin Below 1%, Whereas Pot-Limit Omaha (PLO4 And PLO5) Players Require 60 To 120 Buy-Ins Due To Significantly Higher All-In Equity Variance.',
-        },
-        {
-          question: 'Why Do Multi-Table Tournaments Require Larger Bankrolls Than Cash Games?',
-          answer:
-            'Top-Heavy Tournament Payout Structures Concentrate Most Of The Prize Pool In The Top 3 Finishes, Requiring 100 To 150 Buy-Ins To Weather Standard Downswings Even With A 20% Return On Investment (ROI).',
-        },
-      ],
+      faqs: BANKROLL_CALCULATOR_FAQS,
       steps: [
         {
           name: 'Enter True Winrate (BB/100)',
@@ -289,6 +292,8 @@ export default function BankrollCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <FaqSection faqs={BANKROLL_CALCULATOR_FAQS} />
 
         <CitationBacklinkBox
           title="Poker Bankroll Management & Risk Of Ruin Calculator"
