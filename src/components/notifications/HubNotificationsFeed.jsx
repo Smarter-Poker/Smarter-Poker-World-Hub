@@ -48,6 +48,7 @@
  */
 
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { liveInviteHref } from '../../lib/messenger/liveInvite.mjs';
 import { persistNotificationReads } from '../../lib/notificationReads.mjs';
 import SEOHead from '../../components/seo/SEOHead';
 import { ThumbsUp, Heart, MessageCircle, AtSign, UserPlus, UserCheck, Eye, Radio, Spade, Bell, Share2, Star, Trophy, Banknote, ShieldCheck, Users, Megaphone, Gift, TrendingUp, Zap, Trash2, X } from 'lucide-react';
@@ -952,9 +953,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                                         navigate('/hub/lives'); return;
                                     }
                                     if (t === 'live_invite') {
-                                        const raw = (d.content || '').replace('[LIVE_INVITE]', '').trim();
-                                        if (raw) { navigate(`/hub/live/guest?${raw}`); return; }
-                                        navigate('/hub/lives'); return;
+                                        navigate(liveInviteHref(d.content || '')); return;
                                     }
                                     if (t === 'live_scheduled') { navigate('/hub/lives'); return; }
                                 }

@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import * as accounting from '../src/lib/accountingMessage.mjs';
 import * as messageMedia from '../src/lib/messenger/messageMedia.mjs';
+import * as liveInvite from '../src/lib/messenger/liveInvite.mjs';
+import * as callReceipt from '../src/lib/messenger/callReceipt.mjs';
 
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -59,6 +61,8 @@ const Bubble = compile('../src/components/messenger/MessageBubble.js', name => {
     if (name === './CashoutRequestActions') return { default: () => null, formatChips: String, __esModule: true };
     if (name === '../../lib/authUtils') return { getAccessToken: () => null, authedFetch: () => { throw new Error('unexpected fetch'); } };
     if (name === '../../lib/messenger/messageMedia.mjs') return messageMedia;
+    if (name === '../../lib/messenger/liveInvite.mjs') return liveInvite;
+    if (name === '../../lib/messenger/callReceipt.mjs') return callReceipt;
     if (name === './MediaViewer') return { default: () => null, ATTACHMENT_ATTRIBUTE: 'data-message-attachment', __esModule: true };
     return require(name);
 }, undefined, 'MessageBubble');

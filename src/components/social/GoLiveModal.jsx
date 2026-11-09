@@ -5,6 +5,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { encodeLiveInvite } from '../../lib/messenger/liveInvite.mjs';
 import { liveStreamService } from '../../services/LiveStreamService';
 import { EndStreamModal } from './EndStreamModal';
 import { LiveAnalyticsCard } from './LiveAnalyticsCard';
@@ -311,13 +312,13 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
       }
       const convId = convData.conversationId;
 
-      const inviteQs = `room=${streamId}&invite=${inviteCode}`;
+      const invite = { roomId: streamId, inviteCode: inviteCode };
       const res = await fetch('/api/messenger/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           conversationId: convId,
-          content: `[LIVE_INVITE]${inviteQs}`,
+          content: encodeLiveInvite(invite),
           message_type: 'text',
         }),
       });
@@ -1585,13 +1586,13 @@ export function GoLiveModal({
             if (!convResp.ok || !convData?.conversationId) {
               throw new Error(convData?.error || 'Could not open conversation');
             }
-            const inviteQs = `room=${newId}&invite=${newInviteCode}`;
+            const invite = { roomId: newId, inviteCode: newInviteCode };
             const sendResp = await fetch('/api/messenger/send-message', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify({
                 conversationId: convData.conversationId,
-                content: `[LIVE_INVITE]${inviteQs}`,
+                content: encodeLiveInvite(invite),
                 message_type: 'text',
               }),
             });

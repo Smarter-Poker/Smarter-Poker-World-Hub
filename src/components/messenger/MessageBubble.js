@@ -8,6 +8,8 @@ import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
 import { parseMessageMedia, isMediaMessage, mediaThumbnailUrl } from '../../lib/messenger/messageMedia.mjs';
+import { isLiveInvite, liveInviteHref } from '../../lib/messenger/liveInvite.mjs';
+import { isCallReceipt, parseCallReceipt } from '../../lib/messenger/callReceipt.mjs';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
@@ -1002,9 +1004,8 @@ export function MessageBubble({
                         // tappable Join card instead of raw "[LIVE_INVITE]room=…"
                         // text, so acceptance works from the message thread (not
                         // only the transient realtime toast).
-                        if (content.startsWith('[LIVE_INVITE]')) {
-                            const qs = content.replace('[LIVE_INVITE]', '').trim();
-                            const joinHref = `/hub/live/guest?${qs}`;
+                        if (isLiveInvite(content)) {
+                            const joinHref = liveInviteHref(content);
                             return (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
                                     <span style={{ fontSize: 24 }}>🎥</span>
@@ -1027,16 +1028,10 @@ export function MessageBubble({
                             );
                         }
 
-                        if (content.startsWith('[CALL_RECEIPT]')) {
-                            const raw = content.replace('[CALL_RECEIPT]', '');
-                            let receiptData = null;
-                            let legacyStr = null;
-                            try {
-                                receiptData = JSON.parse(raw);
-                            } catch (_) {
-                                legacyStr = raw.replace(/Video call/i, 'Video Call').replace(/Voice call/i, 'Voice Call');
-                            }
-                            const callData = receiptData || {};
+                        if (isCallReceipt(content)) {
+                            const receipt = parseCallReceipt(content);
+                            const legacyStr = receipt.legacy;
+                            const callData = receipt.legacy ? {} : receipt;
                             const callType = callData.type || 'voice';
                             const callDuration = callData.duration || 0;
                             const callStatus = callData.status || 'completed';
@@ -1110,7 +1105,7 @@ export function MessageBubble({
                     {(() => {
                         let content = message.content || message.text || '';
                         content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
-                        if (message.is_deleted || isMediaMessage(content) || content.startsWith('[CALL_RECEIPT]') || content.startsWith('[LIVE_INVITE]')) {
+                        if (message.is_deleted || isMediaMessage(content) || isCallReceipt(content) || isLiveInvite(content)) {
                             return null;
                         }
                         const urls = content.match(URL_REGEX);
