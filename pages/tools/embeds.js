@@ -87,6 +87,36 @@ const WIDGETS = [
     width: '100%',
     creditAnchor: 'Smarter.Poker Winrate & Hourly Earnings Calculator',
   },
+  {
+    id: 'side-pot-calculator',
+    title: 'Multi-Way All-In Main & Side Pot Calculator',
+    description: 'Slices multi-way all-in confrontations for up to 9 players into exact main pot and sequential side pots with dead money and uncalled bet returns.',
+    embedUrl: 'https://smarter.poker/tools/side-pot-calculator',
+    landerUrl: 'https://smarter.poker/tools/side-pot-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Multi-Way Side Pot Calculator',
+  },
+  {
+    id: 'blind-structure-calculator',
+    title: 'Tournament Blind Structure & Chip Distribution Generator',
+    description: 'Generates TDA-compliant home game and club tournament blind schedules, big blind ante progressions, color-up levels, and starting chip counts.',
+    embedUrl: 'https://smarter.poker/tools/blind-structure-calculator',
+    landerUrl: 'https://smarter.poker/tools/blind-structure-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Tournament Blind Structure Generator',
+  },
+  {
+    id: 'spr-calculator',
+    title: 'Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator',
+    description: 'Calculates effective Stack-To-Pot Ratio (SPR), commitment zones, and exact 1-street, 2-street, and 3-street geometric bet sizing percentages.',
+    embedUrl: 'https://smarter.poker/tools/spr-calculator',
+    landerUrl: 'https://smarter.poker/tools/spr-calculator',
+    height: 740,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker SPR & Geometric Sizing Calculator',
+  },
 ];
 
 export const PARTNER_BADGES = [

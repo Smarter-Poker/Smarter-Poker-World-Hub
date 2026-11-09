@@ -73,6 +73,27 @@ const SYNDICATED_CALCULATORS = [
     summary: 'Convert Live And Online Poker Winrates Between BB/100 Hands And Hourly Dollar Winrates ($/Hr).',
     badgeValue: 'BB/100 To $/Hr Converter',
   },
+  {
+    slug: 'side-pot-calculator',
+    title: 'Smarter.Poker Multi-Way All-In Main & Side Pot Calculator',
+    url: `${SITE_URL}/tools/side-pot-calculator`,
+    summary: 'Calculate Multi-Way All-In Main Pots, Side Pots, Dead Money, And Uncalled Bet Returns For 2 To 9 Players.',
+    badgeValue: 'Multi-Way Side Pot Solver',
+  },
+  {
+    slug: 'blind-structure-calculator',
+    title: 'Smarter.Poker Tournament Blind Structure & Chip Distribution Generator',
+    url: `${SITE_URL}/tools/blind-structure-calculator`,
+    summary: 'Generate TDA-Compliant Tournament Blind Schedules, Color-Up Breaks, And Starting Chip Denomination Breakdowns.',
+    badgeValue: 'TDA Blind Structure Engine',
+  },
+  {
+    slug: 'spr-calculator',
+    title: 'Smarter.Poker Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator',
+    url: `${SITE_URL}/tools/spr-calculator`,
+    summary: 'Compute Exact Flop SPR, Commitment Thresholds, And 1-Street, 2-Street, And 3-Street Geometric Bet Sizing Percentages.',
+    badgeValue: 'SPR & Geometric Bet Solver',
+  },
 ];
 
 export function buildResearchJsonFeed() {

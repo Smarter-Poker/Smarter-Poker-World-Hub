@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DAILY POKER HAND CHALLENGE - #SMARTERCASINOREALISM TABLE & COMMAND DECK
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .shell {
   --dc-obsidian: #020608;
   --dc-gunmetal: #101a20;
@@ -17,7 +21,7 @@
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.shell :is(h1, h2, h3, p, button, small, span) { text-transform: capitalize; }
+.shell :is(h1, h2, h3, p, button, small, span, a) { text-transform: capitalize; }
 
 .marquee {
   position: relative;
@@ -142,6 +146,44 @@
   color: #b5c4cb;
   font-size: 14px;
   line-height: 1.55;
+}
+
+.subpageNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.navPlate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #617783;
+  border-radius: 2px;
+  color: #e7f0f4;
+  background: linear-gradient(180deg, #1a2931 0%, #071016 55%, #101c23 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.18), inset 0 -2px rgba(0, 0, 0, 0.7);
+  font: 700 11px/1 var(--font-orbitron), "Arial Narrow", sans-serif;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.navPlateActive {
+  border-color: var(--dc-cyan);
+  color: #ffffff;
+  background: linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.24), 0 0 18px rgba(37, 200, 255, 0.22);
+}
+
+.navPlate:hover,
+.navPlate:focus-visible {
+  outline: 2px solid var(--dc-cyan);
+  outline-offset: 2px;
+  border-color: #ffffff;
+  color: #ffffff;
 }
 
 .clockBay {
@@ -417,6 +459,31 @@
   outline: 2px solid var(--dc-cyan) !important;
   outline-offset: 2px !important;
   box-shadow: inset 0 1px #fff, 0 0 20px rgba(37, 200, 255, 0.28) !important;
+}
+
+.actionKeys :global(kbd) {
+  border-radius: 2px !important;
+  border-color: #5d7681 !important;
+  background: #050c10 !important;
+  color: var(--dc-cyan) !important;
+}
+
+.feltTable :global([data-training-sign-in-prompt]) {
+  margin: 12px 10px 4px !important;
+  border: 1px solid var(--dc-cyan) !important;
+  border-left: 3px solid var(--dc-gold) !important;
+  border-radius: 2px !important;
+  background: linear-gradient(180deg, #101f27, #050d12) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.14), 0 10px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+.feltTable :global([data-training-sign-in-prompt] a) {
+  border: 1px solid var(--dc-cyan) !important;
+  border-radius: 2px !important;
+  background: linear-gradient(180deg, #166587, #062739) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.22), 0 0 16px rgba(37, 200, 255, 0.22) !important;
+  font-family: var(--font-orbitron), "Arial Narrow", sans-serif !important;
+  letter-spacing: 0.04em !important;
 }
 
 .pitRail {

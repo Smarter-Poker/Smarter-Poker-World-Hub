@@ -1,13 +1,13 @@
 /**
- * TRAINING CHALLENGES PAGE
+ * TRAINING CHALLENGES PAGE - #SMARTERCASINOREALISM COMMAND DECK
  * ═══════════════════════════════════════════════════════════════════════════
  * Historical weekly and monthly challenge definitions. Live settlement is
  * paused until challenges are derived from verified attempts.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-// TRAIN-CSS-TOKENS-BATCH5-5 — hex sweep batch 5: literals routed to --sp-* tokens
-// TRAIN-CSS-TOKENS-BATCH6-2 — hex sweep batch 6: extended palette literals routed
+// TRAIN-CSS-TOKENS-BATCH5-5 - hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-2 - hex sweep batch 6: extended palette literals routed
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -23,19 +23,12 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import casinoStyles from '../../../src/styles/training/challenges-casino.module.css';
 
-// TRAIN-CSS-MOTION-ADOPT-10 — durations routed through MOTION tokens matched to
-// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
-// framer-motion contract) while the CSS sweep still collapses them under
-// prefers-reduced-motion via the body.world-training override.
+// TRAIN-CSS-MOTION-ADOPT-10 - durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1).
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
-// TRAIN-WIRE-EMPTY-3e — adoption: shared empty-state primitive
 
-// BUG FIX (TRAIN-CHALLENGES-A11Y-1): SVG icon components replacing the page's
-// emoji set (header / sign-in / empty-state, weekly badge, monthly
-// badge, diamond reward, ✓ claimed badge). Emojis read inconsistently
-// across screen readers and don't theme via currentColor. Same surface-
-// specific a11y pattern as PR #320/#322/#324/#327/#328.
 const ICON_PROPS = {
   fill: 'none',
   stroke: 'currentColor',
@@ -76,6 +69,26 @@ function CalendarMonthIcon({ size = 14 }) {
     </svg>
   );
 }
+
+function SubpageNavigation() {
+  return (
+    <nav className={casinoStyles.subpageNav} aria-label="Daily Challenges Subpages">
+      <Link href="/hub/training/daily-challenge" className={casinoStyles.navPlate}>
+        Hand Of The Day
+      </Link>
+      <Link href="/hub/training/daily-goals" className={casinoStyles.navPlate}>
+        Daily Goals Vault
+      </Link>
+      <Link href="/hub/training/challenges" className={`${casinoStyles.navPlate} ${casinoStyles.navPlateActive}`}>
+        Weekly &amp; Monthly Goals
+      </Link>
+      <Link href="/hub/training" className={casinoStyles.navPlate}>
+        Training Arena
+      </Link>
+    </nav>
+  );
+}
+
 export default function ChallengesPage() {
   useTrainingBus('challenges');
   const [user, setUser] = useState(null);
@@ -88,7 +101,7 @@ export default function ChallengesPage() {
     return () => _c.abort();
   }, []);
 
-  // SWR-backed challenges fetch — only fires when user is known
+  // SWR-backed challenges fetch - only fires when user is known
   const swrKey = user ? `/api/training/challenges?userId=${user.id}` : null;
   const {
     data: swrData,
@@ -103,14 +116,14 @@ export default function ChallengesPage() {
           throw new Error(body?.error || 'Unable to load challenges');
         }
         return body.challenges.map((challenge) => ({
-        ...challenge,
-        title: challenge.title || challenge.name || 'Training Challenge',
-        description: challenge.description || 'Historical training challenge definition.',
-        period: challenge.period || challenge.challenge_type || 'weekly',
-        goal: Math.max(1, Number(challenge.goal ?? challenge.target_value ?? 1)),
-        progress: Math.max(0, Number(challenge.progress ?? 0)),
-        periodKey: challenge.periodKey || challenge.period_key || '',
-      }));
+          ...challenge,
+          title: challenge.title || challenge.name || 'Training Challenge',
+          description: challenge.description || 'Historical training challenge definition.',
+          period: challenge.period || challenge.challenge_type || 'weekly',
+          goal: Math.max(1, Number(challenge.goal ?? challenge.target_value ?? 1)),
+          progress: Math.max(0, Number(challenge.progress ?? 0)),
+          periodKey: challenge.periodKey || challenge.period_key || '',
+        }));
       })
   );
   const challenges = swrData || [];
@@ -127,17 +140,32 @@ export default function ChallengesPage() {
           description="Daily GTO Training Challenges On Smarter.Poker: A Short Set Of Hands Chosen From The Spots You Have Been Getting Wrong, Scored Against A Solver Baseline. Free To Play, And Nothing In It Is A Wager."
           canonical="/hub/training/challenges"
         />
-        <div style={styles.container}>
+        <div className={casinoStyles.shell}>
           <UniversalHeader pageDepth={2} />
-          <div className="sp-training-command sp-training-command--challenges sp-command-main" style={styles.content}>
-            <div style={styles.signInPrompt}>
-              {/* TRAIN-CHALLENGES-A11Y-1: SVG target replaces fontSize:48 */}
-              <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
+          <header className={`sp-command-header ${casinoStyles.marquee}`}>
+            <div className={casinoStyles.marqueeArtwork} aria-hidden="true" />
+            <div className={casinoStyles.marqueeContent}>
+              <div className={casinoStyles.titleBlock}>
+                <span className={casinoStyles.eyebrow}>Casino Realism Command · Verified Ledger</span>
+                <h1>
+                  <span style={{ display: 'inline-flex', color: '#25c8ff' }} aria-hidden>
+                    <TargetIcon size={32} />
+                  </span>
+                  Training Challenges
+                </h1>
+                <p>Review Historical Weekly And Monthly Challenge Definitions And Access Daily Solver Assignments.</p>
+                <SubpageNavigation />
+              </div>
+            </div>
+          </header>
+          <div className={`sp-training-command sp-training-command--challenges sp-command-main ${casinoStyles.commandDeck}`}>
+            <div className={casinoStyles.signInVault}>
+              <span style={{ display: 'inline-flex', color: '#25c8ff' }} aria-hidden>
                 <TargetIcon size={48} />
               </span>
               <h2>Sign In To Track Goals</h2>
               <p>Sign In To Review Challenge Availability And Historical Snapshots.</p>
-              <Link href="/auth/signup" style={styles.signInBtn}>
+              <Link href="/auth/signup" className={casinoStyles.primaryButton}>
                 Sign In
               </Link>
             </div>
@@ -148,286 +176,144 @@ export default function ChallengesPage() {
     );
   }
 
+  const weeklyCount = challenges.filter((c) => c.period === 'weekly').length;
+  const monthlyCount = challenges.filter((c) => c.period !== 'weekly').length;
+
   return (
     <>
-    <PageTransition>
-      <Head>
-        <title>Goals - Smarter.Poker</title>
-      </Head>
+      <PageTransition>
+        <Head>
+          <title>Goals - Smarter.Poker</title>
+        </Head>
 
-      <div style={styles.container}>
-        <UniversalHeader pageDepth={2} />
+        <div className={casinoStyles.shell}>
+          <UniversalHeader pageDepth={2} />
 
-        <div className="sp-training-command sp-training-command--challenges sp-command-main" style={styles.content}>
-          {/* Header */}
-          <div className="sp-command-header" style={styles.header}>
-            {/* TRAIN-CHALLENGES-A11Y-1: semantic h1 + SVG target icon */}
-            <h1 style={styles.title}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center', color: '#00E0FF' }}>
-                <TargetIcon size={26} />
-                Your Goals
-              </span>
-            </h1>
-            <p style={styles.subtitle}>Live Challenge Tracking And Rewards Are Paused Pending Verified Settlement</p>
-          </div>
-
-          <ErrorBanner
-            message={swrError ? 'Unable To Load Challenge Definitions.' : null}
-            onRetry={() => retryChallenges()}
-          />
-
-          {/* Loading */}
-          {loading ? (
-            <div role="status" aria-label="Loading challenges">
-              <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
+          <header className={`sp-command-header ${casinoStyles.marquee}`}>
+            <div className={casinoStyles.marqueeArtwork} aria-hidden="true" />
+            <div className={casinoStyles.marqueeContent}>
+              <div className={casinoStyles.titleBlock}>
+                <span className={casinoStyles.eyebrow}>Casino Realism Command · Verified Ledger</span>
+                <h1>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center', color: '#25c8ff' }}>
+                    <TargetIcon size={30} />
+                    Your Goals
+                  </span>
+                </h1>
+                <p>Live Challenge Tracking And Rewards Are Paused Pending Verified Settlement</p>
+                <SubpageNavigation />
+              </div>
             </div>
-          ) : challenges.length === 0 ? (
-            <TrainerEmptyState
-              variant="no-data"
-              title="No active goals right now"
-              message="Check back soon for new challenges!"
+          </header>
+
+          <div className={`sp-training-command sp-training-command--challenges sp-command-main ${casinoStyles.commandDeck}`}>
+            <section className={casinoStyles.telemetryBar} aria-label="Challenge Ledger Summary">
+              <div className={casinoStyles.telemetryCell}>
+                <span>Weekly Definitions</span>
+                <strong>{weeklyCount}</strong>
+                <small>Cataloged</small>
+              </div>
+              <div className={casinoStyles.telemetryCell}>
+                <span>Monthly Definitions</span>
+                <strong>{monthlyCount}</strong>
+                <small>Cataloged</small>
+              </div>
+              <div className={`${casinoStyles.telemetryCell} ${casinoStyles.telemetryGold}`}>
+                <span>Settlement State</span>
+                <strong>Paused</strong>
+                <small>Audit Lock</small>
+              </div>
+            </section>
+
+            <ErrorBanner
+              message={swrError ? 'Unable To Load Challenge Definitions.' : null}
+              onRetry={() => retryChallenges()}
             />
-          ) : (
-            <div className="sp-command-grid sp-command-grid--challenges" style={styles.challengeList}>
-              {challenges.map((challenge, i) => {
-                const progress = getProgressPercent(challenge);
-                const isWeekly = challenge.period === 'weekly';
 
-                return (
-                  <motion.div
-                    key={challenge.id}
-                    className="sp-command-card"
-                    style={{
-                      ...styles.challengeCard,
-                    }}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                  >
-                    {/* TRAIN-CHALLENGES-A11Y-1: SVG calendar icon replaces / .
-                        Period label remains the readable 'Weekly' / 'Monthly'. */}
-                    <div style={styles.typeBadge}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        {isWeekly ? <CalendarIcon size={12} /> : <CalendarMonthIcon size={12} />}
-                        {isWeekly ? 'Weekly' : 'Monthly'}
-                      </span>
-                    </div>
+            {/* Loading */}
+            {loading ? (
+              <div role="status" aria-label="Loading challenges">
+                <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
+              </div>
+            ) : challenges.length === 0 ? (
+              <TrainerEmptyState
+                variant="no-data"
+                title="No active goals right now"
+                message="Check back soon for new challenges!"
+              />
+            ) : (
+              <div className={`sp-command-grid sp-command-grid--challenges ${casinoStyles.challengeGrid}`}>
+                {challenges.map((challenge, i) => {
+                  const progress = getProgressPercent(challenge);
+                  const isWeekly = challenge.period === 'weekly';
 
-                    {/* Title */}
-                    <h3 style={styles.challengeTitle}>{challenge.title}</h3>
-                    <p style={styles.challengeDesc}>{challenge.description}</p>
-
-                    {/* Progress Bar */}
-                    <div style={styles.progressContainer}>
-                      {/* TRAIN-CHALLENGES-A11Y-1: progress now a proper progressbar */}
-                      <div
-                        style={styles.progressTrack}
-                        role="progressbar"
-                        aria-label={`${challenge.title} progress`}
-                        aria-valuenow={Math.round(progress)}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                      >
-                        <motion.div
-                          style={{
-                            ...styles.progressFill,
-                            background: 'linear-gradient(90deg, #00E0FF, #0099FF)',
-                          }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${progress}%` }}
-                          transition={{ duration: MOTION.slow, delay: i * 0.1 }}
-                        />
+                  return (
+                    <motion.div
+                      key={challenge.id}
+                      className={`sp-command-card ${casinoStyles.challengeCard} ${!isWeekly ? casinoStyles.challengeCardMonthly : ''}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                    >
+                      <div className={casinoStyles.cardHeader}>
+                        <div className={`${casinoStyles.typeBadge} ${!isWeekly ? casinoStyles.typeBadgeMonthly : ''}`}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            {isWeekly ? <CalendarIcon size={12} /> : <CalendarMonthIcon size={12} />}
+                            {isWeekly ? 'Weekly' : 'Monthly'}
+                          </span>
+                        </div>
+                        {challenge.periodKey && (
+                          <span className={casinoStyles.periodCode}>{challenge.periodKey}</span>
+                        )}
                       </div>
-                      <div style={styles.progressText}>
-                        {challenge.progress} / {challenge.goal}
-                      </div>
-                    </div>
 
-                    {/* Authority status — no reward or completion is inferred
-                        from retained browser-authored history. */}
-                    <div style={styles.rewardRow}>
-                      <span style={{ ...styles.inProgress, color: 'var(--sp-accent-amber)' }}>
-                        Tracking Paused
-                      </span>
-                      {Number(challenge.historicalProgress) > 0 && (
-                        <span style={styles.inProgress}>
-                          Historical Snapshot: {challenge.historicalProgress} / {challenge.goal}
+                      {/* Title */}
+                      <h3 className={casinoStyles.challengeTitle}>{challenge.title}</h3>
+                      <p className={casinoStyles.challengeDesc}>{challenge.description}</p>
+
+                      {/* Progress Bar */}
+                      <div className={casinoStyles.progressContainer}>
+                        <div
+                          className={casinoStyles.progressTrack}
+                          role="progressbar"
+                          aria-label={`${challenge.title} progress`}
+                          aria-valuenow={Math.round(progress)}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                        >
+                          <motion.div
+                            className={casinoStyles.progressFill}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                            transition={{ duration: MOTION.slow, delay: i * 0.1 }}
+                          />
+                        </div>
+                        <div className={casinoStyles.progressText}>
+                          {challenge.progress} / {challenge.goal}
+                        </div>
+                      </div>
+
+                      {/* Authority status */}
+                      <div className={casinoStyles.rewardRow}>
+                        <span className={casinoStyles.statusStamp}>
+                          Tracking Paused
                         </span>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
+                        {Number(challenge.historicalProgress) > 0 && (
+                          <span className={casinoStyles.snapshotStamp}>
+                            Historical Snapshot: {challenge.historicalProgress} / {challenge.goal}
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </PageTransition>
-    <ConnectionToast />
-      {/* Server rendered: measured on production this page returned
-          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      </PageTransition>
+      <ConnectionToast />
       <HubPageSummary page="training-challenges" as="h1" />
     </>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// STYLES
-// ═══════════════════════════════════════════════════════════════════════════
-
-const styles = {
-  container: {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: '#0a0a0a',
-    color: '#FFFFFF',
-  },
-  content: {
-    maxWidth: '600px',
-    margin: '0 auto',
-    padding: '80px 24px 40px',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '32px',
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: 700,
-    marginBottom: '8px',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: 'var(--sp-fg-muted)',
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: 'var(--sp-fg-muted)',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: 'var(--sp-fg-muted)',
-  },
-  emptyHint: {
-    fontSize: '13px',
-    color: 'var(--sp-fg-dim)',
-    marginTop: '8px',
-  },
-  signInPrompt: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: '#fff',
-  },
-  signInBtn: {
-    display: 'inline-block',
-    marginTop: '20px',
-    padding: '14px 32px',
-    background: 'linear-gradient(135deg, #FF6B35, #FF4444)',
-    borderRadius: '12px',
-    color: '#fff',
-    fontSize: '16px',
-    fontWeight: 600,
-    textDecoration: 'none',
-  },
-  challengeList: {
-    display: 'grid',
-    gap: '16px',
-  },
-  challengeCard: {
-    background: '#1a1a1a',
-    borderRadius: '16px',
-    padding: '20px',
-    border: '1px solid rgba(255,255,255,0.1)',
-  },
-  completeCard: {
-    border: '2px solid #31A24C',
-    boxShadow: '0 0 20px rgba(49, 162, 76, 0.2)',
-  },
-  claimedCard: {
-    opacity: 0.6,
-  },
-  typeBadge: {
-    display: 'inline-block',
-    padding: '4px 10px',
-    background: 'rgba(255,255,255,0.1)',
-    borderRadius: '8px',
-    fontSize: '12px',
-    fontWeight: 600,
-    color: 'var(--sp-fg-muted)',
-    marginBottom: '12px',
-  },
-  challengeTitle: {
-    fontSize: '18px',
-    fontWeight: 600,
-    margin: '0 0 6px 0',
-  },
-  challengeDesc: {
-    fontSize: '13px',
-    color: 'var(--sp-fg-muted)',
-    margin: '0 0 16px 0',
-  },
-  progressContainer: {
-    marginBottom: '16px',
-  },
-  progressTrack: {
-    width: '100%',
-    height: '8px',
-    background: 'rgba(255,255,255,0.1)',
-    borderRadius: '4px',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: '4px',
-  },
-  progressText: {
-    fontSize: '12px',
-    color: 'var(--sp-fg-muted)',
-    marginTop: '6px',
-    textAlign: 'right',
-  },
-  rewardRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  reward: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  rewardAmount: {
-    fontSize: '18px',
-    fontWeight: 700,
-    color: '#00E0FF',
-  },
-  claimBtn: {
-    padding: '10px 20px',
-    background: 'linear-gradient(135deg, #31A24C, #228B22)',
-    border: 'none',
-    borderRadius: '10px',
-    color: '#fff',
-    fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  claimedBadge: {
-    fontSize: '14px',
-    color: '#31A24C',
-    fontWeight: 600,
-  },
-  inProgress: {
-    fontSize: '13px',
-    color: 'var(--sp-fg-dim)',
-  },
-  actions: {
-    textAlign: 'center',
-    marginTop: '40px',
-  },
-  backButton: {
-    color: '#00E0FF',
-    textDecoration: 'none',
-    fontSize: '16px',
-  },
-};

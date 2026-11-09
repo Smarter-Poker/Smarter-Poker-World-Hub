@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 
 const SIDE_POT_BENCHMARKS = [
@@ -429,6 +430,16 @@ export default function SidePotCalculatorPage({
             </Link>
           </div>
         </section>
+
+        <CitationBacklinkBox
+          title="Poker Side Pot & Multi-Way All-In Payout Calculator"
+          canonicalUrl={canonicalUrl}
+          badgeType="gto"
+          badgeLabel="Multi-Way All-In Math"
+          badgeValue="Side Pot & Dead Money Solver"
+          summary="Interactive Multi-Way All-In Main Pot And Side Pot Calculator Supporting Up To 9 Players With Dead Money And Uncalled Overbet Returns."
+          slug="side-pot-calculator"
+        />
 
         <AiPromptLauncher
           title="Poker Side Pot & Multi-Way All-In Payout Calculator"

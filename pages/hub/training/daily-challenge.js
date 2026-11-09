@@ -1,5 +1,5 @@
 /**
- * Daily Training Challenge - Hand of the Day
+ * Daily Training Challenge - Hand of the Day (#SMARTERCASINOREALISM)
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 24: Daily canonical poker spot with server-authoritative grading and
  * streak tracking. One challenge per day, changes at midnight Central Time.
@@ -12,6 +12,7 @@
 // TRAIN-CSS-TOKENS-BATCH4-15 - hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-7 - gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
@@ -466,6 +467,17 @@ export default function DailyChallengePage() {
               <span className={styles.eyebrow} title={sourceBadge.title}>{sourceBadge.label} · One Seat · One Shot</span>
               <h1>Daily Challenge</h1>
               <p>Read The Table. Lock Your Decision. Review The Verified Result When You Are Ready.</p>
+              <nav className={styles.subpageNav} aria-label="Daily Challenges Subpages">
+                <Link href="/hub/training/daily-challenge" className={`${styles.navPlate} ${styles.navPlateActive}`}>
+                  Hand Of The Day
+                </Link>
+                <Link href="/hub/training/daily-goals" className={styles.navPlate}>
+                  Daily Goals Vault
+                </Link>
+                <Link href="/hub/training/challenges" className={styles.navPlate}>
+                  Weekly &amp; Monthly Goals
+                </Link>
+              </nav>
             </div>
             <div className={styles.clockBay}>
               <span>Table Resets</span>

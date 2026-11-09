@@ -1,5 +1,5 @@
 /**
- * DAILY GOALS - Micro-Challenge System
+ * DAILY GOALS - #SMARTERCASINOREALISM MICRO-CHALLENGE VAULT
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Auto-generated daily challenges (volume, accuracy, streaks, diversity)
  * with streak tracking, motivational badges, and Supabase persistence.
@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -22,13 +23,6 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import casinoStyles from '../../../src/styles/training/daily-goals-casino.module.css';
 
-
-// BUG FIX (TRAIN-DAILY-GOALS-A11Y-1): SVG icon components replacing the
-// seven emojis on the daily-goals surface (header crown/target, streak
-// flame, ← back, ✓ completion). Goal definitions get an `iconKind` field;
-// GoalIcon switches by kind. Legacy `icon` emoji string preserved for
-// back-compat. Same surface-specific a11y pattern as PR #320/#322/#324/
-// #327/#328/#329/#330/#331/#332/#333/#334.
 const ICON_PROPS = {
   fill: 'none',
   stroke: 'currentColor',
@@ -95,7 +89,7 @@ function generateGoals(sessionsParams) {
       target: 50,
       current: todayHands,
       type: 'count',
-      color: 'var(--sp-accent-blue)',
+      color: '#25c8ff',
       icon: '◆',
     },
     {
@@ -105,7 +99,7 @@ function generateGoals(sessionsParams) {
       target: 75,
       current: todayHands >= 10 ? Math.round((todayCorrect / todayHands) * 100) : 0,
       type: 'percent',
-      color: 'var(--sp-accent-green)',
+      color: '#39d59b',
       icon: '▲',
     },
     {
@@ -115,7 +109,7 @@ function generateGoals(sessionsParams) {
       target: 3,
       current: todaySessions.length,
       type: 'count',
-      color: 'var(--sp-accent-amber)',
+      color: '#f2b84b',
       icon: '⌁',
     },
     {
@@ -125,7 +119,7 @@ function generateGoals(sessionsParams) {
       target: 3,
       current: uniqueGames.size,
       type: 'count',
-      color: 'var(--sp-accent-purple)',
+      color: '#25c8ff',
       icon: '●',
     },
     {
@@ -135,7 +129,7 @@ function generateGoals(sessionsParams) {
       target: 90,
       current: bestAccuracy,
       type: 'percent',
-      color: 'var(--sp-accent-red)',
+      color: '#f2b84b',
       icon: '▲',
     },
   ];
@@ -151,15 +145,10 @@ export default function DailyGoalsPage() {
   const router = useRouter();
   useTrainingBus('daily-goals');
   const [loading, setLoading] = useState(true);
-  // `null` means the authenticated goal history has not been verified. A
-  // generated zero-progress goal set is valid only after a successful empty
-  // session response.
   const [data, setData] = useState(null);
-  const [dailyBonus, setDailyBonus] = useState(null); // { available, totalBonus, streakBonus, alreadyClaimed }
+  const [dailyBonus, setDailyBonus] = useState(null);
   const [fetchError, setFetchError] = useState(null);
   const [signedOut, setSignedOut] = useState(false);
-  // This zero is displayed only inside the success-gated branch below; a null
-  // bonus response never reaches that branch.
   const streakDays = Number(dailyBonus?.streakDays) || 0;
 
   const fetchData = useCallback(async () => {
@@ -222,57 +211,39 @@ export default function DailyGoalsPage() {
     <>
       <Head>
         <title>Daily Goals | Smarter.Poker Training</title>
-              <meta name="robots" content="noindex, nofollow" />
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div
-        className={`sp-training-journey sp-training-journey--daily-goals ${casinoStyles.shell}`}
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <div
-          className={`sp-journey-header ${casinoStyles.header}`}
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back To Training"
-            className={casinoStyles.backButton}
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-DAILY-GOALS-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div className={casinoStyles.headerCopy}>
-            {/* TRAIN-DAILY-GOALS-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Daily Goals</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Resets At Midnight</div>
+      <div className={`sp-training-journey sp-training-journey--daily-goals ${casinoStyles.shell}`}>
+        <div className={`sp-journey-header ${casinoStyles.header}`}>
+          <div className={casinoStyles.headerLead}>
+            <button
+              type="button"
+              aria-label="Back To Training"
+              className={casinoStyles.backButton}
+              onClick={() => router.push('/hub/training')}
+            >
+              <BackArrowIcon size={18} />
+            </button>
+            <div className={casinoStyles.headerCopy}>
+              <h1>Daily Goals</h1>
+              <div>Casino Realism Vault · Resets At Midnight</div>
+            </div>
           </div>
+
+          <nav className={casinoStyles.subpageNav} aria-label="Daily Challenges Subpages">
+            <Link href="/hub/training/daily-challenge" className={casinoStyles.navPlate}>
+              Hand Of The Day
+            </Link>
+            <Link href="/hub/training/daily-goals" className={`${casinoStyles.navPlate} ${casinoStyles.navPlateActive}`}>
+              Daily Goals Vault
+            </Link>
+            <Link href="/hub/training/challenges" className={casinoStyles.navPlate}>
+              Weekly &amp; Monthly Goals
+            </Link>
+          </nav>
         </div>
 
-        <div className={`sp-journey-main ${casinoStyles.main}`} style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={`sp-journey-main ${casinoStyles.main}`}>
           {loading && (
             <div style={{ padding: '20px 0' }} role="status" aria-label="Loading daily goals">
               <SkeletonLoader variant="rows" rows={4} />
@@ -280,18 +251,17 @@ export default function DailyGoalsPage() {
           )}
 
           {!loading && signedOut && (
-            <div className={casinoStyles.panel} role="status" style={{ padding: '18px 16px', marginBottom: 16 }}>
-              <strong style={{ display: 'block', color: 'var(--sp-fg)', marginBottom: 4 }}>
+            <div className={casinoStyles.panel} role="status" style={{ padding: '20px 18px', marginBottom: 16 }}>
+              <strong style={{ display: 'block', color: '#f2f7f9', fontSize: 16, marginBottom: 6 }}>
                 Sign In To View Daily Goals
               </strong>
-              <span style={{ color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.6 }}>
+              <span style={{ color: '#9cb0ba', fontSize: 13, lineHeight: 1.6, display: 'block' }}>
                 Goal Progress And Streaks Come From Your Verified Training Sessions.
               </span>
               <button
                 type="button"
                 className={casinoStyles.returnButton}
                 onClick={() => router.push('/auth/login?redirect=/hub/training/daily-goals')}
-                style={{ marginTop: 12, padding: '9px 14px' }}
               >
                 Sign In
               </button>
@@ -307,29 +277,18 @@ export default function DailyGoalsPage() {
 
           {!loading && !signedOut && !fetchError && data && dailyBonus && (
             <>
-              {/* Daily Bonus Status — currency copy is shown only for a
-                  persisted historical settlement receipt. */}
+              {/* Daily Bonus Status */}
               {dailyBonus?.settlementStatus === 'verified_completion_required' && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`${casinoStyles.panel} ${casinoStyles.bonusPanel}`}
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 12,
-                    background: 'linear-gradient(135deg, rgba(251,191,36,0.08), rgba(245,158,11,0.04))',
-                    border: '1px solid rgba(251,191,36,0.2)',
-                    marginBottom: 16,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
                 >
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#f2b84b' }}>
                       Daily Bonus Settlement Paused
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: '#a8bbc4', marginTop: 4 }}>
                       Goal Progress Is Live. No Daily-Goal Currency Is Promised Until Settlement Is Bound To A Verified Completion.
                     </div>
                   </div>
@@ -339,15 +298,9 @@ export default function DailyGoalsPage() {
                 <div
                   className={`${casinoStyles.panel} ${casinoStyles.claimedPanel}`}
                   style={{
-                    padding: '10px 16px',
-                    borderRadius: 10,
-                    background: 'rgba(34,197,94,0.06)',
-                    border: '1px solid rgba(34,197,94,0.15)',
-                    marginBottom: 16,
                     fontSize: 12,
-                    color: 'var(--sp-accent-green)',
-                    fontWeight: 600,
-                    textAlign: 'center',
+                    color: '#39d59b',
+                    fontWeight: 700,
                   }}
                 >
                   Daily Bonus Claimed - +{dailyBonus.diamondsAwarded || dailyBonus.totalBonus} Diamonds
@@ -355,30 +308,26 @@ export default function DailyGoalsPage() {
               )}
 
               {/* Header Summary */}
-              <div className={casinoStyles.summaryGrid} style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-                <div
-                  className={`${casinoStyles.panel} ${casinoStyles.summaryPanel}`}
-                  style={{
-                    flex: 1,
-                    padding: '20px',
-                    borderRadius: 16,
-                    background:
-                      data.completeCount === data.totalGoals
-                        ? 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(0,0,0,0.2))'
-                        : 'rgba(0,0,0,0.2)',
-                    border: `1px solid ${data.completeCount === data.totalGoals ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.05)'}`,
-                    textAlign: 'center',
-                  }}
-                >
-                  {/* TRAIN-DAILY-GOALS-A11Y-1: SVG crown/target replaces ★/◆ */}
-                  <div style={{ fontSize: 48, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: data.completeCount === data.totalGoals ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)' }} aria-hidden>
-                    {data.completeCount === data.totalGoals ? <CrownIcon size={48} /> : <TargetIcon size={48} />}
+              <div className={casinoStyles.summaryGrid}>
+                <div className={`${casinoStyles.panel} ${casinoStyles.summaryPanel}`}>
+                  <div
+                    style={{
+                      fontSize: 48,
+                      marginBottom: 8,
+                      display: 'inline-flex',
+                      justifyContent: 'center',
+                      color: data.completeCount === data.totalGoals ? '#39d59b' : '#25c8ff',
+                    }}
+                    aria-hidden
+                  >
+                    {data.completeCount === data.totalGoals ? <CrownIcon size={44} /> : <TargetIcon size={44} />}
                   </div>
                   <div
                     style={{
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: 900,
-                      color: data.completeCount === data.totalGoals ? 'var(--sp-accent-green)' : 'var(--sp-fg)',
+                      color: data.completeCount === data.totalGoals ? '#39d59b' : '#f2f7f9',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
                     }}
                     role="status"
                     aria-label={`${data.completeCount} of ${data.totalGoals} goals completed`}
@@ -387,48 +336,44 @@ export default function DailyGoalsPage() {
                   </div>
                   <div
                     style={{
-                      fontSize: 12,
-                      color: 'var(--sp-fg-muted)',
+                      fontSize: 11,
+                      color: '#8ca4b0',
                       textTransform: 'uppercase',
-                      letterSpacing: 1,
+                      letterSpacing: '0.1em',
                       marginTop: 4,
+                      fontWeight: 700,
                     }}
                   >
                     Goals Completed
                   </div>
                 </div>
+
                 {/* Streak */}
-                <div
-                  className={`${casinoStyles.panel} ${casinoStyles.streakPanel}`}
-                  style={{
-                    width: 100,
-                    padding: '20px 12px',
-                    borderRadius: 16,
-                    background: streakDays > 0 ? 'rgba(251,191,36,0.05)' : 'rgba(0,0,0,0.2)',
-                    border: `1px solid ${streakDays > 0 ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)'}`,
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {/* TRAIN-DAILY-GOALS-A11Y-1: SVG flame replaces ▲ */}
-                  <div style={{ fontSize: 24, color: streakDays > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)', display: 'inline-flex' }} aria-hidden>
-                    <FlameIcon size={24} />
+                <div className={`${casinoStyles.panel} ${casinoStyles.streakPanel}`}>
+                  <div
+                    style={{
+                      fontSize: 24,
+                      color: streakDays > 0 ? '#f2b84b' : '#6c8593',
+                      display: 'inline-flex',
+                      marginBottom: 4,
+                    }}
+                    aria-hidden
+                  >
+                    <FlameIcon size={26} />
                   </div>
                   <div
                     style={{
-                      fontSize: 20,
+                      fontSize: 24,
                       fontWeight: 900,
-                      color: streakDays > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
+                      color: streakDays > 0 ? '#f2b84b' : '#8ca4b0',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
                     }}
                     role="status"
                     aria-label={`${streakDays} day streak`}
                   >
                     {streakDays}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, color: '#8ca4b0', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
                     Day Streak
                   </div>
                 </div>
@@ -440,17 +385,8 @@ export default function DailyGoalsPage() {
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`${casinoStyles.panel} ${casinoStyles.completePanel}`}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 10,
-                    background:
-                      'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(251,191,36,0.08))',
-                    border: '1px solid rgba(34,197,94,0.2)',
-                    marginBottom: 16,
-                    textAlign: 'center',
-                  }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#39d59b' }}>
                     All Goals Complete For Today
                   </div>
                 </motion.div>
@@ -468,33 +404,17 @@ export default function DailyGoalsPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.1 }}
                       className={`${casinoStyles.goalPanel} ${isComplete ? casinoStyles.goalComplete : ''}`}
-                      style={{
-                        padding: '16px',
-                        borderRadius: 16,
-                        marginBottom: 12,
-                        background: isComplete ? `${g.color}15` : 'rgba(0,0,0,0.2)',
-                        border: `1px solid ${isComplete ? `${g.color}30` : 'rgba(255,255,255,0.05)'}`,
-                      }}
                     >
-                      <div
-                        className={casinoStyles.goalHeading}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: 12,
-                        }}
-                      >
+                      <div className={casinoStyles.goalHeading}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          {/* TRAIN-DAILY-GOALS-A11Y-1: SVG GoalIcon replaces emoji */}
-                          <div style={{ fontSize: 20, color: isComplete ? g.color : 'var(--sp-fg-muted)', display: 'inline-flex' }} aria-hidden>
+                          <div style={{ fontSize: 20, color: isComplete ? '#39d59b' : g.color, display: 'inline-flex' }} aria-hidden>
                             <GoalIcon kind={g.iconKind} size={20} />
                           </div>
                           <div
                             style={{
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: 700,
-                              color: isComplete ? '#fff' : 'var(--sp-fg)',
+                              color: isComplete ? '#ffffff' : '#eaf2f6',
                             }}
                           >
                             {g.label}
@@ -504,11 +424,12 @@ export default function DailyGoalsPage() {
                           style={{
                             fontSize: 14,
                             fontWeight: 800,
-                            color: isComplete ? g.color : 'var(--sp-fg-muted)',
+                            color: isComplete ? '#39d59b' : '#25c8ff',
+                            fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
                           }}
                         >
                           {g.current}{' '}
-                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg-dim)' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#8ca4b0' }}>
                             / {g.target}
                             {g.type === 'percent' ? '%' : ''}
                           </span>
@@ -517,12 +438,6 @@ export default function DailyGoalsPage() {
                       {/* Progress Bar */}
                       <div
                         className={casinoStyles.goalProgress}
-                        style={{
-                          height: 6,
-                          borderRadius: 3,
-                          background: 'rgba(255,255,255,0.05)',
-                          overflow: 'hidden',
-                        }}
                         role="progressbar"
                         aria-label={`${g.label} progress`}
                         aria-valuenow={Math.round(percent)}
@@ -533,12 +448,11 @@ export default function DailyGoalsPage() {
                           initial={{ width: 0 }}
                           animate={{ width: `${percent}%` }}
                           transition={{ duration: 1, ease: 'easeOut' }}
+                          className={casinoStyles.goalProgressFill}
                           style={{
-                            height: '100%',
                             background: isComplete
-                              ? g.color
-                              : `linear-gradient(90deg, ${g.color}66, ${g.color})`,
-                            borderRadius: 3,
+                              ? '#39d59b'
+                              : `linear-gradient(90deg, ${g.color}, #f2b84b)`,
                           }}
                         />
                       </div>
@@ -547,16 +461,18 @@ export default function DailyGoalsPage() {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           style={{
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: 700,
-                            color: g.color,
+                            color: '#39d59b',
                             marginTop: 8,
                             textAlign: 'right',
                             textTransform: 'uppercase',
-                            letterSpacing: 1,
+                            letterSpacing: '0.08em',
                           }}
                         >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckIcon size={12} />COMPLETED</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <CheckIcon size={12} />Completed
+                          </span>
                         </motion.div>
                       )}
                     </motion.div>
@@ -570,18 +486,6 @@ export default function DailyGoalsPage() {
                 className={casinoStyles.returnButton}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/hub/training')}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: 12,
-                  border: 'none',
-                  background: 'rgba(255,255,255,0.05)',
-                  color: 'var(--sp-fg)',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  marginTop: 12,
-                }}
               >
                 Back To Training
               </motion.button>
