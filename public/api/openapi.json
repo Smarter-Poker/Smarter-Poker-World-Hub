@@ -1551,6 +1551,21 @@
           "200": {
             "description": "Single-line plain-text or JSON chatbot response with canonical smarter.poker citation.",
             "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Streamer Chatbot Command Response",
+                    "value": {
+                      "ok": true,
+                      "command": "odds",
+                      "text": "Smarter.Poker Equity: AA vs KK = 81.9% vs 18.1% | Full Calculator: https://smarter.poker/tools/poker-odds-calculator"
+                    }
+                  }
+                }
+              },
               "text/plain": {
                 "schema": {
                   "type": "string"
@@ -1575,6 +1590,17 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Open Dataset Catalog Response",
+                    "value": {
+                      "ok": true,
+                      "datasets_count": 15,
+                      "wikipedia_targets_count": 9,
+                      "citation_url": "https://smarter.poker/research"
+                    }
+                  }
                 }
               }
             }
