@@ -8,7 +8,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import Link from 'next/link';
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
@@ -41,6 +41,7 @@ export async function getServerSideProps({ req, res, query }) {
 function researchIndexJsonLd() {
   const url = `${SITE_URL}${RESEARCH_BASE_PATH}`;
   return [
+    schemas.organization,
     {
       '@type': 'CollectionPage',
       '@id': `${url}#collection`,
@@ -49,7 +50,7 @@ function researchIndexJsonLd() {
         'First-Party Statistical Studies And Structured Datasets Covering US Live Poker Room Rake Caps, Daily Tournament Buy-In Fee Ratios, GTO Vs. Population Leak Frequencies, And Club Software Economics.',
       url,
       inLanguage: 'en-US',
-      dateModified: '2026-10-31',
+      dateModified: '2026-11-09',
       isAccessibleForFree: true,
       publisher: { '@id': ORGANIZATION_ID },
       speakable: {
@@ -68,7 +69,31 @@ function researchIndexJsonLd() {
       },
     },
     {
+      '@type': 'DataCatalog',
+      '@id': `${url}#datacatalog`,
+      name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
+      description:
+        'Public CC-BY 4.0 Catalog Of 15 Quantitative Poker Research Datasets, 169 Starting Hand Preflop Frequency Matrices, And 324+ US Live Cardroom Benchmarks.',
+      url,
+      inLanguage: 'en-US',
+      license: 'https://creativecommons.org/licenses/by/4.0/',
+      isAccessibleForFree: true,
+      publisher: { '@id': ORGANIZATION_ID },
+      sameAs: 'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+      dataset: RESEARCH_REPORTS.map((r) => ({
+        '@type': 'Dataset',
+        '@id': `${SITE_URL}${researchPath(r.slug)}#dataset`,
+        name: r.title,
+        description: r.summary,
+        url: `${SITE_URL}${researchPath(r.slug)}`,
+        license: 'https://creativecommons.org/licenses/by/4.0/',
+        isAccessibleForFree: true,
+        creator: { '@id': ORGANIZATION_ID },
+      })),
+    },
+    {
       '@type': 'BreadcrumbList',
+      '@id': `${url}#breadcrumb`,
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Smarter.Poker', item: `${SITE_URL}/` },
         { '@type': 'ListItem', position: 2, name: 'Poker Industry Research', item: url },

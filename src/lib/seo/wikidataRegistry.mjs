@@ -483,8 +483,22 @@ export function resolveToolWikidataLinks(toolKey) {
         links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
       }
     }
-  } else if (normalized.includes('preflop') || normalized.includes('range')) {
+  } else if (normalized.includes('preflop') || normalized.includes('range') || normalized.includes('3bet') || normalized.includes('spr')) {
     const keys = ['game-theory', 'texas-holdem', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('plo') || normalized.includes('omaha')) {
+    const keys = ['omaha-holdem', 'game-theory', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('payout') || normalized.includes('bounty') || normalized.includes('blind-structure') || normalized.includes('push-fold')) {
+    const keys = ['poker-tournament', 'prize-money', 'independent-chip-model', 'game-theory', 'texas-holdem', 'poker'];
     for (const k of keys) {
       if (WIKIDATA_ENTITIES[k]) {
         links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
@@ -497,8 +511,8 @@ export function resolveToolWikidataLinks(toolKey) {
         links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
       }
     }
-  } else if (normalized.includes('odds') || normalized.includes('calculator') || normalized.includes('equity')) {
-    const keys = ['texas-holdem', 'omaha-holdem', 'seven-card-stud', 'razz', 'monte-carlo-method', 'poker'];
+  } else if (normalized.includes('odds') || normalized.includes('calculator') || normalized.includes('equity') || normalized.includes('tools')) {
+    const keys = ['texas-holdem', 'omaha-holdem', 'seven-card-stud', 'razz', 'monte-carlo-method', 'game-theory', 'poker'];
     for (const k of keys) {
       if (WIKIDATA_ENTITIES[k]) {
         links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
