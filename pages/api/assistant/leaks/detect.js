@@ -24,6 +24,7 @@ import {
   toUserLeakPersistenceRow,
   generateLeakFix,
   LEAK_PATTERNS,
+  PATTERN_STAT_KEYS,
   patternIsMeasured,
   deviationFromRange,
   parseHandSummary,
