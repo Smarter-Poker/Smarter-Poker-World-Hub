@@ -652,11 +652,17 @@ test('explicit live verification rejects wrong revisions and broken sections wit
     const response = html => new Response(html, { headers: { 'content-type': 'text/html', 'cache-control': 'no-store' } });
     const fetchImpl = async (url, opts) => {
         calls.push([url, opts]);
-        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding');
+        return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding'
+            + '<div>Tournament.finish: 1,301 of 1,309 verified fixed (Fix: receipt &lt;safe&gt;)</div>'
+            + '<div>CriticalPage.midway_free_buy_missing: 2 of 2 verified fixed</div>');
     };
     try {
         const report = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl });
         assert.equal(report.playerTotals, 'rendered');
+        assert.deepEqual(report.alertFixes, [
+            { alertname: 'Tournament.finish', verified: 1301, total: 1309 },
+            { alertname: 'CriticalPage.midway_free_buy_missing', verified: 2, total: 2 },
+        ]);
         assert.equal(calls.length, 2);
         assert.ok(calls[1][0].startsWith('https://smarter.poker/api/digest/view?t='));
         assert.equal(calls[1][1].redirect, 'error');

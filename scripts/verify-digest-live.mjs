@@ -28,7 +28,9 @@ export async function verifyDigestLive({ day, expectedSha, fetchImpl = fetch }) 
         throw new Error('Top update cards out of order');
     }
     if (/Player totals could not be built|Report Unavailable|canceling statement|statement timeout/i.test(html)) throw new Error('A live report section failed');
-    return { day, revision: identity.version, deploymentId: identity.deploymentId, reportBytes: Buffer.byteLength(html), playerTotals: 'rendered', spins: 'rendered', freeBuyFunding: 'rendered', observedAt: new Date().toISOString() };
+    const alertFixes = [...html.matchAll(/>([A-Za-z][A-Za-z0-9_.-]*): ([\d,]+) of ([\d,]+) verified fixed(?:[^<]*)</g)]
+        .map(([, alertname, verified, total]) => ({ alertname, verified: Number(verified.replaceAll(',', '')), total: Number(total.replaceAll(',', '')) }));
+    return { day, revision: identity.version, deploymentId: identity.deploymentId, reportBytes: Buffer.byteLength(html), playerTotals: 'rendered', spins: 'rendered', freeBuyFunding: 'rendered', alertFixes, observedAt: new Date().toISOString() };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
