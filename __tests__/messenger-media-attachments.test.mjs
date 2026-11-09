@@ -14,6 +14,8 @@ import {
     isMediaMessage,
     isSafeMediaUrl,
     mediaPreviewLabel,
+    mediaThumbnailUrl,
+    isThumbnailUrl,
 } from '../src/lib/messenger/messageMedia.mjs';
 import { messengerPreviewText } from '../src/lib/messengerPreview.mjs';
 
@@ -124,4 +126,47 @@ test('a photo opens over the conversation, never in another tab or browser', () 
     // Escape closes it and the page behind stops scrolling while it is open.
     assert.match(bubble, /event\.key === 'Escape'/);
     assert.match(bubble, /document\.body\.style\.overflow = 'hidden'/);
+});
+
+// A THREAD PHOTO IS DRAWN SMALL, SO IT SHOULD ARRIVE SMALL (2026-11-09).
+// Measured on a real message: 1,209,873 bytes of 1080x2340 JPEG, displayed
+// 129 pixels wide. The same image fitted to width 560 is 96,180 bytes of WebP.
+test('a thread photo is requested at the size it is drawn, from our own storage only', () => {
+    const stored = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/messages/a/b.jpg';
+    const fitted = mediaThumbnailUrl(stored);
+    assert.match(fitted, /\/storage\/v1\/render\/image\/public\/social-media\/messages\/a\/b\.jpg\?width=560&quality=72$/);
+    assert.equal(isThumbnailUrl(fitted), true);
+    assert.equal(isThumbnailUrl(stored), false);
+});
+
+test('an animated GIF is never fitted, because a still frame is not a GIF', () => {
+    const stored = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/messages/a/b.gif';
+    assert.equal(mediaThumbnailUrl(stored, { kind: 'gif' }), stored);
+    assert.equal(mediaThumbnailUrl(stored, { kind: 'video' }), stored);
+    assert.equal(mediaThumbnailUrl(stored, { kind: 'audio' }), stored);
+});
+
+test('anything we do not host, and any unsafe or absurd request, is left alone or refused', () => {
+    const foreign = 'https://example.invalid/a.jpg';
+    assert.equal(mediaThumbnailUrl(foreign), foreign, 'a foreign host is not ours to transform');
+    const signed = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/sign/social-media/a.jpg?token=x';
+    assert.equal(mediaThumbnailUrl(signed), signed, 'only a public object URL is rewritten');
+    assert.equal(mediaThumbnailUrl('javascript:alert(1)'), null);
+    assert.equal(mediaThumbnailUrl(null), null);
+    const stored = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/a.jpg';
+    for (const bad of [{ width: 0 }, { width: 99999 }, { width: 1.5 }, { quality: 1 }, { quality: 300 }]) {
+        assert.equal(mediaThumbnailUrl(stored, bad), stored, `${JSON.stringify(bad)} must fall back to the original`);
+    }
+});
+
+test('the viewer loads the original, and a failed fit costs bandwidth not the picture', () => {
+    const bubble = readFileSync('src/components/messenger/MessageBubble.js', 'utf8');
+    // The thread draws the fitted copy.
+    assert.match(bubble, /const threadSrc = fitted \? \(mediaThumbnailUrl\(media\.url, \{ kind: media\.kind \}\) \|\| media\.url\) : media\.url;/);
+    assert.match(bubble, /src=\{threadSrc\}/);
+    // A fitted copy that will not load drops to the original before giving up.
+    assert.match(bubble, /if \(threadSrc !== media\.url\) setFitted\(false\); else setFailed\(true\);/);
+    // The viewer is never fitted: it fills the screen and may be zoomed.
+    const viewer = bubble.slice(bubble.indexOf('aria-modal="true"'));
+    assert.equal(/mediaThumbnailUrl/.test(viewer), false, 'the full-screen viewer must load the original');
 });

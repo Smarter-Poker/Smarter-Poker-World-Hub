@@ -7,7 +7,7 @@ import AccountingInvoiceCard from './AccountingInvoiceCard';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
-import { parseMessageMedia, isMediaMessage } from '../../lib/messenger/messageMedia.mjs';
+import { parseMessageMedia, isMediaMessage, mediaThumbnailUrl } from '../../lib/messenger/messageMedia.mjs';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
@@ -158,7 +158,11 @@ LinkPreviewCard.displayName = 'LinkPreviewCard';
 export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
     const [failed, setFailed] = useState(false);
     const [viewing, setViewing] = useState(false);
-    useEffect(() => { setFailed(false); setViewing(false); }, [media?.url]);
+    // The thread draws a fitted copy; `fitted` drops to the original if the
+    // render service cannot produce one, so a transform outage costs a little
+    // bandwidth rather than the picture.
+    const [fitted, setFitted] = useState(true);
+    useEffect(() => { setFailed(false); setViewing(false); setFitted(true); }, [media?.url]);
     // A photo opens over the conversation, never in a new tab or another
     // browser: leaving the app to look at a picture loses the thread, the
     // scroll position and the draft. Escape or a tap outside closes it.
@@ -237,14 +241,16 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
     }
 
     const label = media.kind === 'gif' ? 'GIF' : 'Photo Attachment';
+    const threadSrc = fitted ? (mediaThumbnailUrl(media.url, { kind: media.kind }) || media.url) : media.url;
     return (
         <span>
             {forwarded}
             <img
-                src={media.url}
+                src={threadSrc}
                 alt={label}
                 loading="lazy"
-                onError={() => setFailed(true)}
+                decoding="async"
+                onError={() => { if (threadSrc !== media.url) setFitted(false); else setFailed(true); }}
                 onClick={e => { e.stopPropagation(); setViewing(true); }}
                 style={{
                     maxWidth: media.kind === 'gif' ? 260 : '100%',
