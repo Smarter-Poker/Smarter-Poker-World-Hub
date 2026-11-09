@@ -1435,20 +1435,31 @@ async function readDetail(client, id, scope, sort, category, followedAuthorIds =
     // hidden tombstone can keep an old bookmark working without ever becoming
     // public again. The winner still passes every ordinary rights, audience,
     // topic, storage and availability gate below.
-    const { data: resolutionRows, error: resolutionError } = await client.rpc(
-        'resolve_social_reel_reference',
-        { p_reference_id: id },
-    );
+    // Run the initial direct lookup in parallel when id is already a UUID so
+    // unmerged canonical Reel watch pages save a database round-trip.
+    const isDirectUuid = UUID_RE.test(id);
+    const [{ data: resolutionRows, error: resolutionError }, initialLookup] = await Promise.all([
+        client.rpc('resolve_social_reel_reference', { p_reference_id: id }),
+        isDirectUuid
+            ? client
+                .from('social_reels')
+                .select(REEL_SELECT)
+                .or(`id.eq.${id},source_post_id.eq.${id}`)
+                .limit(20)
+            : Promise.resolve({ data: null, error: null }),
+    ]);
     if (resolutionError) throw resolutionError;
     const resolution = Array.isArray(resolutionRows) ? resolutionRows[0] : resolutionRows;
     const resolvedId = String(resolution?.canonical_reel_id || id).trim();
     if (!UUID_RE.test(resolvedId)) return { status: 'not_found', row: null };
 
-    const { data, error } = await client
-        .from('social_reels')
-        .select(REEL_SELECT)
-        .or(`id.eq.${resolvedId},source_post_id.eq.${resolvedId}`)
-        .limit(20);
+    const { data, error } = isDirectUuid && resolvedId === id
+        ? initialLookup
+        : await client
+            .from('social_reels')
+            .select(REEL_SELECT)
+            .or(`id.eq.${resolvedId},source_post_id.eq.${resolvedId}`)
+            .limit(20);
     if (error) throw error;
     const directRows = Array.isArray(data) ? data : [];
     if (!directRows.length) return { status: 'not_found', row: null };

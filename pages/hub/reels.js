@@ -2917,7 +2917,17 @@ export default function ReelsPage({ reelsListing = null, initialReel = null, ree
       <SEOHead title={watchMetadata.title} description={watchMetadata.description} canonical={watchMetadata.canonical} ogImage={watchMetadata.image || undefined} ogType={watchMetadata.schema ? 'video.other' : 'website'} />
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        {watchMetadata.schema ? <script key="reels-watch-video" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(watchMetadata.schema).replace(/</g, '\\u003c') }} /> : null}
+        {watchMetadata.schema ? (
+          <>
+            <meta key="og-video" property="og:video" content={watchMetadata.schema.embedUrl || watchMetadata.schema.contentUrl} />
+            <meta key="og-video-url" property="og:video:url" content={watchMetadata.schema.embedUrl || watchMetadata.schema.contentUrl} />
+            <meta key="og-video-secure-url" property="og:video:secure_url" content={watchMetadata.schema.embedUrl || watchMetadata.schema.contentUrl} />
+            <meta key="og-video-type" property="og:video:type" content={watchMetadata.schema.embedUrl ? 'text/html' : 'video/mp4'} />
+            <meta key="og-video-width" property="og:video:width" content="405" />
+            <meta key="og-video-height" property="og:video:height" content="720" />
+            <script key="reels-watch-video" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(watchMetadata.schema).replace(/</g, '\\u003c') }} />
+          </>
+        ) : null}
       </Head>
 
       {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
