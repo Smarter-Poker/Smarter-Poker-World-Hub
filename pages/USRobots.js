@@ -363,11 +363,14 @@ export default function USRobots() {
           --purple: #a78bfa;
           --pad-x:  80px;
           --pad-y:  90px;
-          --topbar: 54px;
+          /* Status-bar inset folded into the bar's own height (2026-11-09).
+             <body> does not carry the top inset, so each fixed bar owns it;
+             every consumer of --topbar then offsets correctly for free. */
+          --topbar: calc(54px + env(safe-area-inset-top, 0px));
           --navbar: 68px;
         }
         @media(max-width:768px){
-          :root { --pad-x:20px; --pad-y:70px; --topbar:48px; --navbar:62px; }
+          :root { --pad-x:20px; --pad-y:70px; --topbar:calc(48px + env(safe-area-inset-top, 0px)); --navbar:62px; }
         }
         @media(max-width:480px){
           :root { --pad-x:16px; --pad-y:64px; }
@@ -545,7 +548,7 @@ export default function USRobots() {
         .cta-note { font-size:10px; color:rgba(255,255,255,.3); line-height:1.8; }
 
         /* ── TOP BAR ── */
-        #topbar { position:fixed; top:0; left:0; right:0; height:var(--topbar); display:flex; align-items:center; padding:0 20px; background:linear-gradient(to bottom,rgba(0,0,0,.72),transparent); z-index:1000; gap:10px; }
+        #topbar { position:fixed; top:0; left:0; right:0; height:var(--topbar); box-sizing:border-box; display:flex; align-items:center; padding:0 20px; padding-top:env(safe-area-inset-top, 0px); background:linear-gradient(to bottom,rgba(0,0,0,.72),transparent); z-index:1000; gap:10px; }
         .tb-logo { font-family:'Orbitron',monospace; font-size:14px; font-weight:800; color:var(--cyan); letter-spacing:3px; text-shadow:0 0 20px rgba(0,212,255,.5); flex-shrink:0; }
         .tb-sep  { color:rgba(255,255,255,.15); flex-shrink:0; }
         .tb-brand{ font-size:11px; color:rgba(255,255,255,.35); letter-spacing:1px; flex-shrink:0; }
@@ -566,7 +569,7 @@ export default function USRobots() {
         .slide-num { font-family:'Orbitron',monospace; font-size:10px; color:rgba(255,255,255,.4); letter-spacing:2px; min-width:40px; text-align:center; flex-shrink:0; }
 
         /* ── PROGRESS ── */
-        #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--cyan),#0a6fff,var(--purple)); transition:width .4s ease; z-index:2000; box-shadow:0 0 10px rgba(0,212,255,.6); }
+        #progress-bar { position:fixed; top:env(safe-area-inset-top, 0px); left:0; height:3px; background:linear-gradient(90deg,var(--cyan),#0a6fff,var(--purple)); transition:width .4s ease; z-index:2000; box-shadow:0 0 10px rgba(0,212,255,.6); }
       `}</style>
 
       {/* Progress bar */}
