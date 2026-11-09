@@ -31,6 +31,7 @@
  * ENOENT. Those tests could never run where the house rules say to run them.
  * They now decode with fileURLToPath.
  */
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';

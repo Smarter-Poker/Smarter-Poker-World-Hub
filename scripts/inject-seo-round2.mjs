@@ -5,6 +5,7 @@
  * Handles hub/commander/* pages and other pages skipped in round 1.
  */
 
+import { fileURLToPath } from 'node:url';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

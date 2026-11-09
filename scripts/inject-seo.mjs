@@ -8,6 +8,7 @@
  * Usage: node scripts/inject-seo.mjs
  */
 
+import { fileURLToPath } from 'node:url';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

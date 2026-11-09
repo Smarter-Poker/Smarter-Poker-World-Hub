@@ -3,6 +3,7 @@
  * Execute: node scripts/run-diamond-reward-migration.js
  */
 
+import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
