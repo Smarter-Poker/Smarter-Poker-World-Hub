@@ -140,7 +140,7 @@ export default function SEOHead({
             {jsonLd && (
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(toJsonLdDocument(jsonLd)) }}
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(toJsonLdDocument(jsonLd)).replace(/</g, '\\u003c') }}
                 />
             )}
 

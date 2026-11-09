@@ -11,12 +11,43 @@
  * and served from /images/og-poker-arena.jpg here.
  */
 import { useRouter } from 'next/router';
-import SharedSEOHead from '@smarter-poker/commander-shared/components/seo/SEOHead';
+import SharedSEOHead, { schemas } from '@smarter-poker/commander-shared/components/seo/SEOHead';
 import { productOgImage } from '../../lib/seo/productOgImage';
 
 export * from '@smarter-poker/commander-shared/components/seo/SEOHead';
 
 export { PRODUCT_OG_IMAGES, productOgImage } from '../../lib/seo/productOgImage';
+
+/**
+ * Normalize a JSON-LD graph array so that:
+ * 1. Child nodes inside @graph never carry a redundant @context key.
+ * 2. Any @graph that references https://smarter.poker/#organization or
+ *    https://smarter.poker/#website by @id includes the target entity node
+ *    when not already present in the array.
+ */
+export function normalizeJsonLdGraph(jsonLd) {
+  if (!Array.isArray(jsonLd)) return jsonLd;
+  const cleaned = jsonLd
+    .filter(Boolean)
+    .map((node) => {
+      if (node && typeof node === 'object' && !Array.isArray(node) && '@context' in node) {
+        const { '@context': _removedContext, ...rest } = node;
+        return rest;
+      }
+      return node;
+    });
+  const serialized = JSON.stringify(cleaned);
+  const hasOrgNode = cleaned.some((n) => n && n['@id'] === 'https://smarter.poker/#organization');
+  const hasWebsiteNode = cleaned.some((n) => n && n['@id'] === 'https://smarter.poker/#website');
+  const prefix = [];
+  if (!hasOrgNode && serialized.includes('https://smarter.poker/#organization')) {
+    prefix.push(schemas.organization);
+  }
+  if (!hasWebsiteNode && serialized.includes('https://smarter.poker/#website')) {
+    prefix.push(schemas.website);
+  }
+  return prefix.length > 0 ? [...prefix, ...cleaned] : cleaned;
+}
 
 function usePathname() {
   try {
@@ -71,7 +102,11 @@ export default function SEOHead(props) {
       pathname === '/tools/poker-winrate-calculator' ||
       pathname === '/tools/side-pot-calculator' ||
       pathname === '/tools/blind-structure-calculator' ||
-      pathname === '/tools/spr-calculator'
+      pathname === '/tools/spr-calculator' ||
+      pathname === '/tools/plo-bet-calculator' ||
+      pathname === '/tools/payout-calculator' ||
+      pathname === '/tools/rake-calculator' ||
+      pathname === '/tools/3bet-calculator'
     ) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
@@ -243,8 +278,10 @@ export default function SEOHead(props) {
     }
   }
 
+  const normalizedJsonLd = props.jsonLd ? normalizeJsonLdGraph(props.jsonLd) : props.jsonLd;
+
   return (
-    <SharedSEOHead {...props} ogImage={ogImage}>
+    <SharedSEOHead {...props} ogImage={ogImage} jsonLd={normalizedJsonLd}>
       {imageMetadata.type && <meta key="og-image-type" property="og:image:type" content={imageMetadata.type} />}
       {imageMetadata.width && <meta key="og-image-width" property="og:image:width" content={String(imageMetadata.width)} />}
       {imageMetadata.height && <meta key="og-image-height" property="og:image:height" content={String(imageMetadata.height)} />}

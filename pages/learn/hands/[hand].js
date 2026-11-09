@@ -8,7 +8,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import Link from 'next/link';
-import SEOHead from '../../../src/components/seo/SEOHead';
+import SEOHead, { schemas } from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import {
@@ -35,18 +35,28 @@ export async function getStaticProps({ params }) {
 function handJsonLd(hand) {
   const path = handPath(hand.slug);
   const url = `${SITE_URL}${path}`;
+  const ogImageUrl = `${SITE_URL}/api/og/tool-card?tool=preflop&title=${encodeURIComponent(`${hand.name} (${hand.code})`)}`;
   return [
+    schemas.organization,
     {
       '@type': 'Article',
       '@id': `${url}#article`,
       headline: `How To Play ${hand.name} (${hand.code}) In Texas Hold'em`,
       description: hand.summary,
       url,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
       inLanguage: 'en-US',
       datePublished: '2026-10-01',
       dateModified: LEARN_MODIFIED,
       isAccessibleForFree: true,
       publisher: { '@id': ORGANIZATION_ID },
+      image: {
+        '@type': 'ImageObject',
+        '@id': `${url}#primaryimage`,
+        url: ogImageUrl,
+        contentUrl: ogImageUrl,
+        caption: `How To Play ${hand.name} (${hand.code}) - Smarter.Poker GTO Strategy`,
+      },
       speakable: {
         '@type': 'SpeakableSpecification',
         cssSelector: ['h1', 'main p:first-of-type'],
@@ -54,6 +64,7 @@ function handJsonLd(hand) {
     },
     {
       '@type': 'FAQPage',
+      '@id': `${url}#faq`,
       mainEntity: [
         {
           '@type': 'Question',
@@ -75,6 +86,7 @@ function handJsonLd(hand) {
     },
     {
       '@type': 'Quiz',
+      '@id': `${url}#quiz`,
       name: `${hand.name} (${hand.code}) GTO Strategy Assessment`,
       about: {
         '@type': 'Thing',
@@ -94,6 +106,7 @@ function handJsonLd(hand) {
     },
     {
       '@type': 'BreadcrumbList',
+      '@id': `${url}#breadcrumb`,
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Smarter.Poker', item: `${SITE_URL}/` },
         { '@type': 'ListItem', position: 2, name: 'Poker Strategy Lessons', item: LEARN_URL },

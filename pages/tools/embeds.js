@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
@@ -412,41 +412,57 @@ export default function WebmasterEmbedPortal() {
     },
   ];
 
-  const EMBEDS_SCHEMA = hubProductSchema({
-    path: '/tools/embeds',
-    name: 'Smarter.Poker Webmaster Widgets & Embed Distribution Center',
-    description: 'Free embeddable poker widgets, odds calculators, ICM solvers, and GTO charts for poker webmasters, bloggers, and media sites.',
-    applicationCategory: 'WebApplication',
-    applicationSubCategory: 'DeveloperApplication',
-    trail: [
-      ['Hub', '/hub'],
-      ['Poker Tools', '/tools/poker-odds-calculator'],
-      ['Embed Widgets', '/tools/embeds'],
-    ],
-    faqs: EMBEDS_FAQS,
-    howTo: {
-      name: 'How To Embed Smarter.Poker Calculators On Your Website',
-      description: 'Step-by-step instructions for copying and embedding responsive poker widgets into WordPress, Ghost, Substack, or custom HTML sites.',
-      steps: [
-        {
-          name: 'Select A Poker Widget',
-          text: 'Choose between the Multiway Poker Odds Calculator, Tournament ICM Calculator, or GTO Preflop Range Matrix Hub.',
-        },
-        {
-          name: 'Copy The Responsive Iframe Snippet',
-          text: 'Click the Copy Code button to copy the clean, sandboxed iframe snippet with optimal responsive dimensions.',
-        },
-        {
-          name: 'Paste Into Your Website CMS Or HTML Template',
-          text: 'Paste the iframe snippet into your WordPress Custom HTML block, Webflow embed element, or static HTML template.',
-        },
-        {
-          name: 'Test Live Responsiveness Across Desktop And Mobile',
-          text: 'Preview your published page on mobile and desktop browsers to verify seamless touch interaction and automatic height scaling.',
-        },
+  const EMBEDS_SCHEMA = [
+    schemas.organization,
+    ...hubProductSchema({
+      path: '/tools/embeds',
+      name: 'Smarter.Poker Webmaster Widgets & Embed Distribution Center',
+      description: 'Free embeddable poker widgets, odds calculators, ICM solvers, and GTO charts for poker webmasters, bloggers, and media sites.',
+      applicationCategory: 'WebApplication',
+      applicationSubCategory: 'DeveloperApplication',
+      trail: [
+        ['Hub', '/hub'],
+        ['Poker Tools', '/tools/poker-odds-calculator'],
+        ['Embed Widgets', '/tools/embeds'],
       ],
+      faqs: EMBEDS_FAQS,
+      howTo: {
+        name: 'How To Embed Smarter.Poker Calculators On Your Website',
+        description: 'Step-by-step instructions for copying and embedding all 15 responsive poker calculators, SVG badges, and Nightbot stream commands into WordPress, Ghost, Substack, or custom HTML sites.',
+        steps: [
+          {
+            name: 'Select A Poker Widget Or Attribution Badge',
+            text: 'Choose from any of the 15 interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, or 3-Bet Sizing) or 15 SVG attribution badges.',
+          },
+          {
+            name: 'Copy The Responsive Iframe Or Badge Snippet',
+            text: 'Click the Copy Code button to copy the clean, sandboxed HTML5 iframe snippet or SVG badge with optimal responsive dimensions.',
+          },
+          {
+            name: 'Paste Into Your Website CMS Or HTML Template',
+            text: 'Paste the iframe snippet into your WordPress Custom HTML block, Webflow embed element, or static HTML template.',
+          },
+          {
+            name: 'Test Live Responsiveness Across Desktop And Mobile',
+            text: 'Preview your published page on mobile and desktop browsers to verify seamless touch interaction and automatic height scaling.',
+          },
+        ],
+      },
+    }),
+    {
+      '@type': 'ItemList',
+      '@id': 'https://smarter.poker/tools/embeds#widget-list',
+      name: 'Smarter.Poker Free Embeddable Poker Calculators & Solvers',
+      numberOfItems: WIDGETS.length,
+      itemListElement: WIDGETS.map((widget, idx) => ({
+        '@type': 'ListItem',
+        position: idx + 1,
+        name: widget.title,
+        description: widget.description,
+        url: widget.landerUrl,
+      })),
     },
-  });
+  ];
 
   return (
     <>
