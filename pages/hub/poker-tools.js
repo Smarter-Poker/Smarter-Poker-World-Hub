@@ -191,7 +191,11 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
         const handKeys = Object.keys(q)
             .filter(k => /^h\d+$/.test(k))
             .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
-        if (!qGame && handKeys.length === 0 && !q.board) return;
+        const aliasHandKeys = Object.keys(q)
+            .filter(k => /^hand\d+$/.test(k))
+            .sort((a, b) => Number(a.slice(4)) - Number(b.slice(4)));
+        const effectiveHandKeys = handKeys.length > 0 ? handKeys : aliasHandKeys;
+        if (!qGame && effectiveHandKeys.length === 0 && !q.board) return;
 
         const targetGame = qGame || game;
         if (qGame && qGame !== game) setGame(qGame);
@@ -208,8 +212,8 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
             return list;
         };
 
-        if (handKeys.length > 0) {
-            const parsedHands = handKeys.map(k => dedup(parseCardListFromParam(String(q[k] || '')), holeLimit));
+        if (effectiveHandKeys.length > 0) {
+            const parsedHands = effectiveHandKeys.map(k => dedup(parseCardListFromParam(String(q[k] || '')), holeLimit));
             while (parsedHands.length < 2) parsedHands.push([]);
             setHands(parsedHands);
         }

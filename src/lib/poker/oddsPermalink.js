@@ -11,10 +11,12 @@ const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '�
 
 export function parseCardListFromParam(raw) {
   if (!raw || typeof raw !== 'string') return [];
-  const tokens = raw
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean);
+  const tokens = raw.includes(',')
+    ? raw
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : raw.match(/(?:10|[2-9TJQKA])[shdc]/gi) || [];
   const out = [];
   for (const tok of tokens) {
     const m = tok.match(/^(10|[2-9TJQKA])([shdc])$/i);

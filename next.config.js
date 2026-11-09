@@ -1727,6 +1727,10 @@ const nextConfig = {
           destination: '/api/openapi',
         },
         {
+          source: '/api/seo/backlink-opportunities',
+          destination: '/api/ai/backlink-opportunities',
+        },
+        {
           source: '/compare.md',
           destination: '/api/compare-markdown?slug=index',
         },

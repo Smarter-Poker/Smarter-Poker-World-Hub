@@ -11,7 +11,7 @@
 // TRAIN-CSS-TOKENS-BATCH4-2 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH5-23 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -196,6 +196,41 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [icmView, setIcmView] = useState('calculator');
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query || {};
+    if (typeof q.stacks === 'string') {
+      const parsedStacks = q.stacks
+        .split(',')
+        .map((s) => Math.max(0, parseInt(s.trim(), 10) || 0))
+        .filter((n) => n > 0)
+        .slice(0, 9);
+      if (parsedStacks.length >= 2) {
+        setStacks(parsedStacks);
+      }
+    }
+    const rawPayouts = typeof q.payouts === 'string' ? q.payouts : typeof q.prizes === 'string' ? q.prizes : null;
+    if (rawPayouts) {
+      const parsedPrizes = rawPayouts
+        .split(',')
+        .map((p) => Math.max(0, parseFloat(p.trim()) || 0))
+        .filter((n) => n > 0)
+        .slice(0, 9);
+      if (parsedPrizes.length >= 1) {
+        const sum = parsedPrizes.reduce((acc, v) => acc + v, 0);
+        if (sum > 105 && !q.prizePool) {
+          setPrizePool(Math.round(sum));
+          setPrizes(parsedPrizes.map((v) => Math.round((v / sum) * 1000) / 10));
+        } else {
+          setPrizes(parsedPrizes);
+        }
+      }
+    }
+    if (q.prizePool !== undefined && Number(q.prizePool) > 0) {
+      setPrizePool(Math.round(Number(q.prizePool)));
+    }
+  }, [router.isReady]);
 
   // Update a single stack
   const updateStack = useCallback((idx, val) => {
