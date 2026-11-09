@@ -27,7 +27,17 @@ export async function verifyDigestLive({ day, expectedSha, fetchImpl = fetch }) 
     if (!(html.indexOf('Daily Update') < html.indexOf('Weekly Update') && html.indexOf('Weekly Update') < html.indexOf('Monthly Update'))) {
         throw new Error('Top update cards out of order');
     }
-    if (/Player totals could not be built|Report Unavailable|canceling statement|statement timeout/i.test(html)) throw new Error('A live report section failed');
+    const failure = /Player totals could not be built|Report Unavailable|canceling statement|statement timeout/i.exec(html);
+    if (failure) {
+        // Report only a maintained heading and error category, never HTML,
+        // player data, the signed URL or the server's raw error message.
+        const sections = ['Real Player Totals', 'Diamond Spins', 'Free Buy And Guarantee Funding'];
+        const section = sections.map(name => ({ name, at: html.lastIndexOf(name, failure.index) }))
+            .filter(({ at }) => at >= 0).sort((a, b) => b.at - a.at)[0]?.name || 'Unknown section';
+        const category = /timeout|canceling statement/i.test(failure[0]) ? 'Statement timeout'
+            : /Player totals/i.test(failure[0]) ? 'Player totals unavailable' : 'Report unavailable';
+        throw new Error(`A live report section failed: ${section} (${category})`);
+    }
     const alertFixes = [...html.matchAll(/>([A-Za-z][A-Za-z0-9_.-]*): ([\d,]+) of ([\d,]+) verified fixed(?:[^<]*)</g)]
         .map(([, alertname, verified, total]) => ({ alertname, verified: Number(verified.replaceAll(',', '')), total: Number(total.replaceAll(',', '')) }));
     return { day, revision: identity.version, deploymentId: identity.deploymentId, reportBytes: Buffer.byteLength(html), playerTotals: 'rendered', spins: 'rendered', freeBuyFunding: 'rendered', alertFixes, observedAt: new Date().toISOString() };

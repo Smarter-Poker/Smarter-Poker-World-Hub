@@ -671,7 +671,17 @@ test('explicit live verification rejects wrong revisions and broken sections wit
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: 'b'.repeat(40), fetchImpl }), /revision differs/);
         assert.equal(calls.length, 1, 'a wrong deployment never reads the report');
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url =>
-            url.endsWith('/api/health') ? Response.json({ version: sha }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding Report Unavailable') }), /section failed/);
+            url.endsWith('/api/health') ? Response.json({ version: sha }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding Report Unavailable private-server-detail ?t=private-link') }), error =>
+                error.message === 'A live report section failed: Free Buy And Guarantee Funding (Report unavailable)');
+        for (const [section, failure, category] of [
+            ['Real Player Totals', 'Player totals could not be built', 'Player totals unavailable'],
+            ['Diamond Spins', 'canceling statement due to statement timeout', 'Statement timeout'],
+        ]) {
+            const html = `Daily Update Weekly Update Monthly Update Free Buy And Guarantee Funding Real Player Totals Diamond Spins ${section} ${failure} private-server-detail`;
+            await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url =>
+                url.endsWith('/api/health') ? Response.json({ version: sha }) : response(html) }), error =>
+                    error.message === `A live report section failed: ${section} (${category})`);
+        }
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: async url => {
             if (url.endsWith('/api/health')) return Response.json({ version: sha });
             throw new Error(`network failure at ${url}`);
