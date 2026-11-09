@@ -1,0 +1,32 @@
+{
+  "_README": [
+    "Files with top-anchored bars that do NOT carry env(safe-area-inset-top),",
+    "and are allowed not to: bars below UniversalHeader, centred modals,",
+    "print stylesheets, dev-only banners, and decorative hairlines with no",
+    "tap target. The value is how many such blocks that file has.",
+    "A NEW path here, or a HIGHER count, fails CI — see",
+    "scripts/check-safe-area-top.mjs. Regenerate with --update, and say in",
+    "the PR why the new bar is exempt."
+  ],
+  "files": {
+    "pages/hub/news.js": 1,
+    "pages/hub/social-media/index.js": 2,
+    "pages/hub/social-pages/[pageId].js": 1,
+    "pages/hub/user/[username].js": 2,
+    "src/components/avatars/AvatarSelectorModal.jsx": 1,
+    "src/components/bankroll/TaxSummaryModal.jsx": 4,
+    "src/components/calls/CallScreen.jsx": 1,
+    "src/components/diamond-store/diamondStoreStyles.js": 1,
+    "src/components/navigation/WorldNavHeader.jsx": 2,
+    "src/components/poker/MultiTableView.jsx": 2,
+    "src/components/poker/PokerLobby.jsx": 2,
+    "src/components/tours/StopScheduleModal.js": 1,
+    "src/components/training/GodModeArena.jsx": 3,
+    "src/components/training/games/UniversalDynamicTable.jsx": 1,
+    "src/components/ui/HamburgerMenu.jsx": 1,
+    "src/components/ui/LocationEnableModal.jsx": 2,
+    "src/lib/hmr-reconnect-guard.js": 2,
+    "src/styles/worlds/poker-near-me.css": 1,
+    "src/styles/worlds/video-library.css": 3
+  }
+}

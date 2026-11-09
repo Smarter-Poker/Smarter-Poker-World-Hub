@@ -7,8 +7,16 @@
  *
  * Why this exists: see .agent/audits/2026-05-10-branch-protection-and-push-cascade.md
  *
+ * NOTE (2026-11-09): main is gated by a repository RULESET ("main: no
+ * rewinds"), not by classic branch protection, so the API this script reads
+ * answers 404 "Branch not protected". The list below is still the canonical
+ * record of which checks must gate main, and this script still auto-corrects
+ * if classic protection is ever switched back on — but the live gate is the
+ * ruleset, and a new required check has to be added there too.
+ *
  * Canonical state for this repo:
- *   - required_status_checks.contexts: ["Audit-marker registry vs. tree"]
+ *   - required_status_checks.contexts: ["Audit-marker registry vs. tree",
+ *                                        "Top bars own their safe-area inset"]
  *   - required_pull_request_reviews: null  (no review requirement)
  *   - enforce_admins: false  (admins can push directly when checks pass)
  *   - allow_force_pushes: false
@@ -28,7 +36,19 @@
 const REPO_OWNER = 'Smarter-Poker';
 const REPO_NAME = 'Smarter-Poker-World-Hub';
 const BRANCH = 'main';
-const REQUIRED_CHECK = 'Audit-marker registry vs. tree';
+// Checks that MUST gate main. Both are pure static scans with no network and
+// no install, so neither can flake main shut.
+//   Audit-marker ........ a registered token vanished from the source tree
+//   Safe-area top ....... a top bar lost (or never got) its status-bar inset,
+//                         or <body> grew one back. Added 2026-11-09, after the
+//                         landing page shipped untappable Sign Up / Sign In
+//                         buttons under the iPhone status bar.
+// A required check that never reports blocks every PR, so neither workflow may
+// ever carry a paths filter on `pull_request`.
+const REQUIRED_CHECKS = [
+  'Audit-marker registry vs. tree',
+  'Top bars own their safe-area inset',
+];
 
 const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const FIX_MODE = process.argv.includes('--fix');
@@ -46,7 +66,7 @@ const ghHeaders = {
 };
 
 const CANONICAL_PROTECTION = {
-  required_status_checks: { strict: false, contexts: [REQUIRED_CHECK] },
+  required_status_checks: { strict: false, contexts: [...REQUIRED_CHECKS] },
   enforce_admins: false,
   required_pull_request_reviews: null,
   restrictions: null,
@@ -82,8 +102,9 @@ function findRegressions(actual) {
   }
   if (actual.enforce_admins?.enabled) issues.push(`enforce_admins is true; should be false`);
   const contexts = actual.required_status_checks?.contexts || [];
-  if (!contexts.includes(REQUIRED_CHECK)) {
-    issues.push(`required_status_checks.contexts is missing "${REQUIRED_CHECK}" (got: ${JSON.stringify(contexts)})`);
+  const missing = REQUIRED_CHECKS.filter((c) => !contexts.includes(c));
+  if (missing.length > 0) {
+    issues.push(`required_status_checks.contexts is missing ${JSON.stringify(missing)} (got: ${JSON.stringify(contexts)})`);
   }
   if (actual.lock_branch?.enabled) issues.push(`lock_branch is true; should be false`);
   return issues;
