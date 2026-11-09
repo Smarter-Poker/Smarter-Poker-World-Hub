@@ -9,7 +9,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
@@ -208,10 +208,11 @@ export default function PokerToolsDirectoryPage() {
     });
 
     return [
+      schemas.organization,
       ...(Array.isArray(baseSchema) ? baseSchema : [baseSchema]),
       {
-        '@context': 'https://schema.org',
         '@type': 'ItemList',
+        '@id': 'https://smarter.poker/tools#tool-list',
         name: 'Smarter.Poker Interactive Poker Calculators & Solvers',
         itemListOrder: 'https://schema.org/ItemListOrderAscending',
         numberOfItems: INTERACTIVE_TOOLS.length,

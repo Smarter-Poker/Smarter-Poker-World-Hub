@@ -485,4 +485,49 @@ test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outre
   }
 });
 
+test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-result validation across backlink, dataset, and citation pages', async () => {
+  const sharedSeoSrc = read('vendor/commander-shared/src/components/seo/SEOHead.js');
+  assert.ok(
+    sharedSeoSrc.includes("JSON.stringify(toJsonLdDocument(jsonLd)).replace(/</g, '\\\\u003c')"),
+    'Shared SEOHead escapes < as \\u003c at the JSON-LD script boundary'
+  );
+
+  const hubSeoSrc = read('src/components/seo/SEOHead.js');
+  assert.ok(hubSeoSrc.includes('export function normalizeJsonLdGraph(jsonLd)'), 'World Hub SEOHead defines normalizeJsonLdGraph');
+  for (const calcPath of ['/tools/plo-bet-calculator', '/tools/payout-calculator', '/tools/rake-calculator', '/tools/3bet-calculator']) {
+    assert.ok(hubSeoSrc.includes(`pathname === '${calcPath}'`), `SEOHead auto-resolves markdownUrl for ${calcPath}`);
+  }
+
+  const researchSlugSrc = read('pages/research/[slug].js');
+  assert.ok(researchSlugSrc.includes('schemas.organization'), 'research/[slug].js includes Organization node in @graph');
+  assert.ok(researchSlugSrc.includes('includedInDataCatalog'), 'research/[slug].js links Dataset to DataCatalog');
+  assert.ok(researchSlugSrc.includes('variableMeasured: report.table.columns'), 'research/[slug].js declares variableMeasured');
+  assert.ok(researchSlugSrc.includes('name="citation_title"'), 'research/[slug].js emits Google Scholar citation_title meta tag');
+  assert.ok(researchSlugSrc.includes('name="citation_publication_date"'), 'research/[slug].js emits citation_publication_date meta tag');
+  assert.ok(researchSlugSrc.includes('name="dc.identifier"'), 'research/[slug].js emits Dublin Core dc.identifier meta tag');
+
+  const researchIndexSrc = read('pages/research/index.js');
+  assert.ok(researchIndexSrc.includes('schemas.organization'), 'research/index.js includes Organization node in @graph');
+  assert.ok(researchIndexSrc.includes("'@type': 'DataCatalog'"), 'research/index.js includes DataCatalog node in @graph');
+
+  const embedsSrc = read('pages/tools/embeds.js');
+  assert.ok(embedsSrc.includes('schemas.organization'), 'tools/embeds.js includes Organization node in @graph');
+  assert.ok(embedsSrc.includes("'@id': 'https://smarter.poker/tools/embeds#widget-list'"), 'tools/embeds.js includes ItemList of 15 widgets');
+
+  for (const noRedundantCtxFile of ['pages/tools/index.js', 'pages/features/index.js']) {
+    const fileSrc = read(noRedundantCtxFile);
+    assert.ok(!fileSrc.includes("'@context': 'https://schema.org'"), `${noRedundantCtxFile} child graph nodes do not redeclare @context`);
+  }
+
+  const catalogJsonLd = buildDataCatalogJsonLd();
+  assert.equal(catalogJsonLd.inLanguage, 'en-US');
+  assert.equal(catalogJsonLd.sameAs, 'https://github.com/Smarter-Poker/smarter-poker-open-datasets');
+  assert.equal(catalogJsonLd.dataset[0].distribution.length, 3, 'Each dataset in DataCatalog exposes HTML, Markdown, and JSON distributions');
+
+  const { resolveToolWikidataLinks } = await import('../src/lib/seo/wikidataRegistry.mjs');
+  assert.ok(resolveToolWikidataLinks('/tools/plo-bet-calculator').some((u) => u.includes('Q649282')), 'PLO tool resolves Omaha Holdem Q649282');
+  assert.ok(resolveToolWikidataLinks('/tools/payout-calculator').some((u) => u.includes('Q1156823')), 'Payout tool resolves Prize Money Q1156823');
+  assert.ok(resolveToolWikidataLinks('/tools/3bet-calculator').some((u) => u.includes('Q131476')), '3-Bet tool resolves Game Theory Q131476');
+});
+
 

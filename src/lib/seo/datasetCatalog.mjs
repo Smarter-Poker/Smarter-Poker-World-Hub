@@ -192,21 +192,42 @@ export function buildDataCatalogJsonLd() {
     name: study.title,
     description: study.summary,
     url: `https://smarter.poker/research/${study.slug}`,
+    inLanguage: 'en-US',
     datePublished: study.publishedDate,
     dateModified: study.modifiedDate,
+    temporalCoverage: '2026',
     license: 'https://creativecommons.org/licenses/by/4.0/',
     isAccessibleForFree: true,
-    keywords: [study.category, 'Poker Research', 'Smarter.Poker Dataset'],
+    keywords: [study.category, 'Poker Research', 'Smarter.Poker Dataset', study.shortTitle],
+    sameAs: 'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
     creator: {
       '@type': 'Organization',
+      '@id': 'https://smarter.poker/#organization',
       name: 'Smarter.Poker Research Division',
       url: 'https://smarter.poker',
+    },
+    publisher: {
+      '@type': 'Organization',
+      '@id': 'https://smarter.poker/#organization',
+      name: 'Smarter.Poker',
+      url: 'https://smarter.poker',
+    },
+    includedInDataCatalog: {
+      '@type': 'DataCatalog',
+      '@id': 'https://smarter.poker/api/datasets/catalog#datacatalog',
+      name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
+      url: 'https://smarter.poker/research',
     },
     distribution: [
       {
         '@type': 'DataDownload',
         encodingFormat: 'text/html',
         contentUrl: `https://smarter.poker/research/${study.slug}`,
+      },
+      {
+        '@type': 'DataDownload',
+        encodingFormat: 'text/markdown',
+        contentUrl: `https://smarter.poker/research/${study.slug}.md`,
       },
       {
         '@type': 'DataDownload',
@@ -229,10 +250,13 @@ export function buildDataCatalogJsonLd() {
     description:
       'Public CC-BY 4.0 catalog of 15 quantitative poker research datasets, 169 starting hand preflop frequency matrices, and 324+ US live cardroom benchmarks.',
     url: 'https://smarter.poker/research',
+    inLanguage: 'en-US',
     license: 'https://creativecommons.org/licenses/by/4.0/',
     isAccessibleForFree: true,
+    sameAs: 'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
     publisher: {
       '@type': 'Organization',
+      '@id': 'https://smarter.poker/#organization',
       name: 'Smarter.Poker',
       url: 'https://smarter.poker',
     },

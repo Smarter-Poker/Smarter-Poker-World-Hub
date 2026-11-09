@@ -9,7 +9,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import Link from 'next/link';
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import { SITE_URL, ORGANIZATION_ID } from '../../src/lib/learn/learnSite.js';
@@ -48,7 +48,9 @@ export async function getServerSideProps({ req, res, params, query }) {
 function reportJsonLd(report) {
   const path = researchPath(report.slug);
   const url = `${SITE_URL}${path}`;
+  const ogImageUrl = `${SITE_URL}/api/og/tool-card?tool=research&title=${encodeURIComponent(report.shortTitle)}`;
   return [
+    schemas.organization,
     {
       '@type': 'Report',
       '@id': `${url}#report`,
@@ -56,11 +58,27 @@ function reportJsonLd(report) {
       name: report.title,
       description: report.summary,
       url,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
       inLanguage: 'en-US',
       datePublished: report.publishedDate,
       dateModified: report.modifiedDate,
       isAccessibleForFree: true,
+      license: 'https://creativecommons.org/licenses/by/4.0/',
+      author: {
+        '@type': 'Organization',
+        '@id': ORGANIZATION_ID,
+        name: 'Smarter.Poker Research Division',
+        url: SITE_URL,
+      },
       publisher: { '@id': ORGANIZATION_ID },
+      image: {
+        '@type': 'ImageObject',
+        '@id': `${url}#primaryimage`,
+        url: ogImageUrl,
+        contentUrl: ogImageUrl,
+        caption: `${report.title} - Smarter.Poker Research`,
+      },
+      about: { '@id': `${url}#dataset` },
       speakable: {
         '@type': 'SpeakableSpecification',
         cssSelector: ['h1', 'main p:first-of-type'],
@@ -72,9 +90,23 @@ function reportJsonLd(report) {
       name: report.table.caption,
       description: report.summary,
       url,
+      inLanguage: 'en-US',
+      datePublished: report.publishedDate,
+      dateModified: report.modifiedDate,
+      temporalCoverage: '2026',
       license: 'https://creativecommons.org/licenses/by/4.0/',
       isAccessibleForFree: true,
+      keywords: [report.category, 'Poker Research', 'Smarter.Poker Dataset', report.shortTitle],
       creator: { '@id': ORGANIZATION_ID },
+      publisher: { '@id': ORGANIZATION_ID },
+      includedInDataCatalog: {
+        '@type': 'DataCatalog',
+        '@id': `${SITE_URL}${RESEARCH_BASE_PATH}#datacatalog`,
+        name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
+        url: `${SITE_URL}${RESEARCH_BASE_PATH}`,
+      },
+      sameAs: 'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+      variableMeasured: report.table.columns,
       distribution: [
         {
           '@type': 'DataDownload',
@@ -86,10 +118,16 @@ function reportJsonLd(report) {
           encodingFormat: 'text/markdown',
           contentUrl: `${url}.md`,
         },
+        {
+          '@type': 'DataDownload',
+          encodingFormat: 'application/json',
+          contentUrl: `${SITE_URL}/api/datasets/catalog?slug=${report.slug}`,
+        },
       ],
     },
     {
       '@type': 'FAQPage',
+      '@id': `${url}#faq`,
       mainEntity: report.faq.map((item) => ({
         '@type': 'Question',
         name: item.q,
@@ -101,6 +139,7 @@ function reportJsonLd(report) {
     },
     {
       '@type': 'BreadcrumbList',
+      '@id': `${url}#breadcrumb`,
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Smarter.Poker', item: `${SITE_URL}/` },
         { '@type': 'ListItem', position: 2, name: 'Poker Industry Research', item: `${SITE_URL}${RESEARCH_BASE_PATH}` },
@@ -113,6 +152,7 @@ function reportJsonLd(report) {
 export default function ResearchReportDetailPage({ report }) {
   const path = researchPath(report.slug);
   const url = `${SITE_URL}${path}`;
+  const ogImageUrl = `${SITE_URL}/api/og/tool-card?tool=research&title=${encodeURIComponent(report.shortTitle)}`;
   const others = RESEARCH_REPORTS.filter((r) => r.slug !== report.slug);
 
   return (
@@ -121,8 +161,20 @@ export default function ResearchReportDetailPage({ report }) {
         title={report.shortTitle}
         description={report.summary}
         canonical={path}
+        ogImage={ogImageUrl}
+        ogType="article"
         jsonLd={reportJsonLd(report)}
-      />
+      >
+        <meta key="citation-title" name="citation_title" content={report.title} />
+        <meta key="citation-author" name="citation_author" content="Smarter.Poker Research Division" />
+        <meta key="citation-institution" name="citation_technical_report_institution" content="Smarter Software Inc." />
+        <meta key="citation-pub-date" name="citation_publication_date" content={report.publishedDate} />
+        <meta key="citation-online-date" name="citation_online_date" content={report.modifiedDate} />
+        <meta key="citation-public-url" name="citation_public_url" content={url} />
+        <meta key="citation-language" name="citation_language" content="en" />
+        <meta key="dc-identifier" name="dc.identifier" content={url} />
+        <meta key="dc-rights" name="dc.rights" content="https://creativecommons.org/licenses/by/4.0/" />
+      </SEOHead>
 
       <main style={{ maxWidth: 920, margin: '0 auto', padding: '40px 20px 80px' }}>
         <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>

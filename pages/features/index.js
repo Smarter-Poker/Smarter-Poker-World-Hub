@@ -209,7 +209,6 @@ export const WORLD_HUB_TOOLS_DIRECTORY = [
 
 export default function FeaturesIndexPage() {
   const collectionSchema = {
-    '@context': 'https://schema.org',
     '@type': 'CollectionPage',
     '@id': 'https://smarter.poker/features#page',
     url: 'https://smarter.poker/features',
@@ -238,8 +237,8 @@ export default function FeaturesIndexPage() {
   };
 
   const breadcrumbsSchema = {
-    '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
+    '@id': 'https://smarter.poker/features#breadcrumb',
     itemListElement: [
       {
         '@type': 'ListItem',
