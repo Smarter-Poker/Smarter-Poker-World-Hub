@@ -28,10 +28,10 @@ function compiled(path, dependencies, globals = {}) {
 const contracts = compiled('../src/contracts/orb4_syndicate.ts', { zod: require('zod') });
 
 function fixture(options = {}) {
-  const queries = [], warnings = [];
+  const queries = [], warnings = [], clients = [], rpcs = [];
   let reads = 0, authCalls = 0;
   const result = Object.hasOwn(options, 'result') ? options.result : { data: [], error: null };
-  const db = { from(table) {
+  const db = { async rpc(name, args) { rpcs.push({ name, args }); return options.rpcResult || { data: { success: true, union: { id: unionId }, eco_terms_effective_from: '2026-11-16T08:00:00Z' }, error: null }; }, from(table) {
     const query = { table, filters: [] };
     queries.push(query);
     const chain = {
@@ -56,14 +56,14 @@ function fixture(options = {}) {
       authCalls++;
       return options.invalidAuth ? { user: null, error: new Error('expired') } : { user: { id: userId }, error: null };
     } },
-    '../../../src/lib/supabaseServerClient': { createClient: () => db },
+    '../../../src/lib/supabaseServerClient': { createClient: (...args) => { clients.push(args); return db; } },
     '../../../src/lib/apiRateLimit': { LIMITS: { write: {} }, applyRateLimit(req, res) {
       if (options.rateLimited) { res.status(429).json({ success: false }); return false; }
       return true;
     } },
     '../../../src/contracts/orb4_syndicate': contracts,
     '../../../src/lib/club-arena/idempotency': {
-      checkIdempotency() { assert.fail('A read must not acquire a mutation idempotency key'); },
+      checkIdempotency() { if (options.mutation) return false; assert.fail('A read must not acquire a mutation idempotency key'); },
       cacheResponse() { assert.fail('A read must not cache a mutation response'); },
     },
     '../../../src/lib/apiErrorHandler': { reportApiError(error) { warnings.push(error); } },
@@ -71,7 +71,7 @@ function fixture(options = {}) {
     process: { env: { SUPABASE_SERVICE_ROLE_KEY: 'local-fixture-placeholder', NODE_ENV: 'production' } },
     console: { warn: (...args) => warnings.push(args) },
   }).default;
-  return { queries, warnings, get reads() { return reads; }, get authCalls() { return authCalls; },
+  return { queries, warnings, clients, rpcs, get reads() { return reads; }, get authCalls() { return authCalls; },
     async run(overrides = {}) {
       const req = { method: 'POST', headers: { authorization: 'Bearer local-fixture' }, body: { action: 'list_leave', unionId }, ...overrides };
       const res = { code: null, body: null, status(code) { this.code = code; return this; }, json(body) { this.body = JSON.parse(JSON.stringify(body)); return this; } };
@@ -147,5 +147,38 @@ test('method, auth, input validation and rate limits remain ahead of leave reads
     assert.equal((await f.run(request)).code, status);
     assert.equal(f.reads, 0);
     assert.equal(f.queries.length, 0);
+  }
+});
+
+test('owner settings use one authenticated atomic patch and preserve server effective date', async () => {
+  const f = fixture({ mutation: true, admin: false, owner: true });
+  const patch = { eco_cash_enabled: true, eco_cash_rate: 0.1, eco_tournament_enabled: true, eco_tournament_rate: 0.1 };
+  const res = await f.run({ body: { action: 'update_settings', unionId, settings: patch } });
+  assert.equal(res.code, 200);
+  assert.equal(res.body.eco_terms_effective_from, '2026-11-16T08:00:00Z');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.rpcs)), [{ name: 'fn_union_patch_settings', args: {
+    p_union_id: unionId, p_settings: patch, p_name: null, p_description: null,
+  } }]);
+  assert.equal(f.clients.at(-1)[2].global.headers.Authorization, 'Bearer local-fixture');
+  assert.ok(f.queries.every(q => q.columns), 'no direct settings update');
+});
+
+for (const settings of [{ eco_cash_rate: '0.1' }, { eco_tournament_rate: Infinity }, { eco_cash_rate: -1 }, { eco_tournament_rate: 1.1 }, { eco_cash_enabled: 'true' }]) {
+  test(`invalid ECO settings are rejected before the owner patch: ${JSON.stringify(settings)}`, async () => {
+    const f = fixture({ mutation: true, admin: false, owner: true });
+    assert.equal((await f.run({ body: { action: 'update_settings', unionId, settings } })).code, 400);
+    assert.equal(f.rpcs.length, 0);
+  });
+}
+
+test('database owner refusal and unknown patch outcome cannot acknowledge success', async () => {
+  for (const [rpcResult, status] of [
+    [{ data: null, error: { code: '42501' } }, 403],
+    [{ data: null, error: { code: '22023' } }, 400],
+    [{ data: { success: true }, error: null }, 500],
+  ]) {
+    const f = fixture({ mutation: true, admin: false, owner: true, rpcResult });
+    assert.equal((await f.run({ body: { action: 'update_settings', unionId, settings: { shared_player_pool: false } } })).code, status);
+    assert.equal(f.rpcs.length, 1);
   }
 });

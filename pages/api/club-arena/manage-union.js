@@ -285,13 +285,26 @@ export default async function handler(req, res) {
 
         if (Object.keys(updates || {}).length === 0) return res.status(400).json({ success: false, error: 'Nothing to update' });
 
-        const { error } = await getSupabase()
-          .from('unions')
-          .update(updates)
-          .eq('id', unionId);
-
-        if (error) throw error;
-        return res.status(200).json({ success: true });
+        // The database locks the current settings and merges this patch. Keep
+        // the authenticated owner identity through the RPC instead of replacing
+        // the complete JSON with a stale form or impersonating an actor ID.
+        const ownerClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { global: { headers: { Authorization: `Bearer ${token}` } },
+            auth: { persistSession: false, autoRefreshToken: false } }
+        );
+        const { data, error } = await ownerClient.rpc('fn_union_patch_settings', {
+          p_union_id: unionId, p_settings: updates.settings || {},
+          p_name: updates.name ?? null, p_description: updates.description ?? null,
+        });
+        if (error) {
+          if (error.code === '42501') return res.status(403).json({ success: false, error: 'Only union owner can update settings' });
+          if (error.code === '22023') return res.status(400).json({ success: false, error: 'Union settings are invalid' });
+          throw error;
+        }
+        if (data?.success !== true || !data.union) throw new Error('Union settings receipt is unavailable');
+        return res.status(200).json(data);
       }
 
       // ═══════════════════════════════════════════════════════════
