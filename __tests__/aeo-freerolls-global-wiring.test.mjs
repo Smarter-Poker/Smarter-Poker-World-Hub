@@ -10,16 +10,11 @@ import { buildIndexNowPayload } from '../src/lib/seo/indexNowPing.mjs';
 const ROOT = process.cwd();
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
-test('STATIC_PAGES sitemap includes /freerolls and /hub/freerolls with daily priority', () => {
+test('STATIC_PAGES sitemap includes canonical /freerolls with daily priority', () => {
   const freerollsEntry = STATIC_PAGES.find((p) => p.path === '/freerolls');
   assert.ok(freerollsEntry, 'Must include /freerolls in STATIC_PAGES');
   assert.equal(freerollsEntry.priority, '0.9');
   assert.equal(freerollsEntry.changefreq, 'daily');
-
-  const hubFreerollsEntry = STATIC_PAGES.find((p) => p.path === '/hub/freerolls');
-  assert.ok(hubFreerollsEntry, 'Must include /hub/freerolls in STATIC_PAGES');
-  assert.equal(hubFreerollsEntry.priority, '0.9');
-  assert.equal(hubFreerollsEntry.changefreq, 'daily');
 
   const compareEntry = COMPARE_PAGES.find((p) => p.path === '/compare');
   assert.ok(compareEntry, 'COMPARE_PAGES must include root /compare');
