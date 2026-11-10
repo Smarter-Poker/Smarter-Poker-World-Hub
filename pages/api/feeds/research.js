@@ -7,7 +7,7 @@
  * for Smarter.Poker's 15 first-party poker industry research studies and 8
  * interactive solver calculators.
  *
- * Every feed item includes `content_html` with embedded canonical dofollow
+ * Every feed item includes `content_html` with embedded canonical attribution
  * `<a href="https://smarter.poker/...">` attribution links and SVG Authority
  * Badges so newsletter digests, RSS/JSON aggregators, and AI RAG pipelines
  * preserve canonical backlinks to Smarter.Poker automatically.

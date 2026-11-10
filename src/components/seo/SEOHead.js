@@ -318,13 +318,13 @@ export default function SEOHead(props) {
   }
 
   // Auto-resolve calendarUrl for known routes that serve clean .ics calendar feeds
+  const cleanCanonForCal = typeof props.canonical === 'string' && props.canonical.startsWith('http')
+    ? props.canonical.replace(/\/$/, '')
+    : typeof props.canonical === 'string' && props.canonical.startsWith('/')
+    ? `https://smarter.poker${props.canonical.replace(/\/$/, '')}`
+    : null;
   let resolvedCalendarUrl = calendarUrl;
   if (!resolvedCalendarUrl && typeof pathname === 'string') {
-    const cleanCanonForCal = typeof props.canonical === 'string' && props.canonical.startsWith('http')
-      ? props.canonical.replace(/\/$/, '')
-      : typeof props.canonical === 'string' && props.canonical.startsWith('/')
-      ? `https://smarter.poker${props.canonical.replace(/\/$/, '')}`
-      : null;
     if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
       resolvedCalendarUrl = 'https://smarter.poker/freerolls.ics';
     } else if (pathname === '/hub/tours/[code]' || /^\/hub\/tours\/[^/]+$/.test(pathname)) {
@@ -374,6 +374,15 @@ export default function SEOHead(props) {
           type="application/feed+json"
           title="Smarter.Poker Research & Tools JSON Feed"
           href="https://smarter.poker/api/feeds/research"
+        />
+      )}
+      {!props.noindex && cleanCanonForCal && (
+        <link
+          key="alternate-oembed"
+          rel="alternate"
+          type="application/json+oembed"
+          title="Smarter.Poker oEmbed Profile"
+          href={`https://smarter.poker/api/seo/oembed?url=${encodeURIComponent(cleanCanonForCal)}&format=json`}
         />
       )}
       {!props.noindex && (
