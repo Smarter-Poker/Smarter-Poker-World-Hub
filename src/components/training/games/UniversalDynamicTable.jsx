@@ -52,6 +52,11 @@ import {
     resolveClubArenaTableBox,
     seatPodPx,
 } from '../../../lib/training/clubArenaTableGeometry.mjs';
+import {
+    parseStakesToBlinds,
+    computeClubArenaParityState,
+    evaluateCustomRaiseSizing,
+} from '../../../lib/training/clubArenaTableParity';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -1865,9 +1870,14 @@ function UniversalDynamicTable({
     // Club Arena 4-Color Deck, Felt Theme & BB/Chips Display Mode (persisted in localStorage)
     const [fourColorDeck, setFourColorDeck] = React.useState(false);
     const [feltTheme, setFeltTheme] = React.useState('carbon');
-    const [displayMode, setDisplayMode] = React.useState('bb'); // 'bb' | 'chips' (1 BB = 100 Chips)
+    const [displayMode, setDisplayMode] = React.useState('bb'); // 'bb' | 'chips' (honors hand stakes or 100/BB)
     const [sliderSizingBb, setSliderSizingBb] = React.useState(null);
+    const [chosenRaiseInfo, setChosenRaiseInfo] = React.useState(null);
     const [heroActionFlight, setHeroActionFlight] = React.useState(null);
+    const activeStakesInfo = useMemo(
+        () => parseStakesToBlinds(question?.scenario?.stakes || trainerConfig?.stakes),
+        [question?.scenario?.stakes, trainerConfig?.stakes]
+    );
     useEffect(() => {
         try {
             if (typeof window === 'undefined') return;
@@ -1909,12 +1919,20 @@ function UniversalDynamicTable({
         const num = Number(bbAmount);
         if (!Number.isFinite(num)) return unit ? '0 BB' : '0';
         if (displayMode === 'chips') {
-            const chips = Math.round(num * 100);
+            const rawChips = num * activeStakesInfo.chipMultiplier;
+            if (activeStakesInfo.hasExplicitStakes) {
+                const rounded = Math.round((rawChips + Number.EPSILON) * 100) / 100;
+                const chipStr = Number.isInteger(rounded)
+                    ? String(rounded)
+                    : rounded.toFixed(2).replace(/\.?0+$/, '');
+                return unit ? `${chipStr} CHIPS` : chipStr;
+            }
+            const chips = Math.round(rawChips);
             return unit ? `${chips.toLocaleString()} CHIPS` : chips.toLocaleString();
         }
         const formatted = Number.isInteger(num) ? String(num) : num.toFixed(1).replace(/\.0$/, '');
         return unit ? `${formatted} BB` : formatted;
-    }, [displayMode]);
+    }, [displayMode, activeStakesInfo]);
 
     // H2: Memoize mode bar tabs to prevent re-creates on every render
     const MODE_TABS = useMemo(() => [
@@ -1930,6 +1948,8 @@ function UniversalDynamicTable({
         if (questionNumber !== prevQRef.current) {
             prevQRef.current = questionNumber;
             setActiveMode('trainer');
+            setSliderSizingBb(null);
+            setChosenRaiseInfo(null);
         }
     }, [questionNumber, question?.gameId]);
 
@@ -3907,9 +3927,28 @@ function UniversalDynamicTable({
                                     </button>
                                 );
                             })}
+                            <span
+                                data-training-stakes-badge="true"
+                                data-stakes-label={activeStakesInfo.stakesLabel}
+                                data-big-blind={String(activeStakesInfo.bigBlind)}
+                                data-small-blind={String(activeStakesInfo.smallBlind)}
+                                data-has-explicit-stakes={activeStakesInfo.hasExplicitStakes ? 'true' : 'false'}
+                                style={{
+                                    padding: '2px 7px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                                    background: 'rgba(56, 189, 248, 0.1)',
+                                    color: '#7dd3fc',
+                                }}
+                            >
+                                {`STAKES: ${activeStakesInfo.stakesLabel}`}
+                            </span>
                             <button
                                 type="button"
                                 data-pot-display-mode-toggle="true"
+                                data-display-toggle-source="toolbar"
                                 data-display-mode={displayMode}
                                 aria-label="Toggle BB or Chips Display Mode"
                                 title="Click to toggle stacks and pot between BB and Chips (Club Arena 1:1)"
@@ -3925,7 +3964,7 @@ function UniversalDynamicTable({
                                     color: '#fbbf24',
                                 }}
                             >
-                                {displayMode === 'chips' ? 'CHIPS (100/BB)' : 'UNITS: BB'}
+                                {displayMode === 'chips' ? `CHIPS (${activeStakesInfo.stakesLabel})` : 'UNITS: BB'}
                             </button>
                         </div>
 
@@ -4374,9 +4413,13 @@ function UniversalDynamicTable({
                                     </div>
                                     <div
                                         data-seat-stack-display="true"
+                                        data-display-toggle-source="seat-stack"
+                                        data-seat-is-hero={isHero ? 'true' : 'false'}
                                         data-display-mode={displayMode}
+                                        data-stack-bb={String(stackSize)}
                                         role="button"
                                         tabIndex={0}
+                                        aria-label={`${seatLabel} Stack Toggle BB or Chips`}
                                         onClick={toggleDisplayMode}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' || e.key === ' ') {
@@ -4900,8 +4943,18 @@ function UniversalDynamicTable({
                         data-training-pot={displayPot}
                         data-club-arena-pot-pill="true"
                         data-pot-display-mode-toggle="true"
+                        data-display-toggle-source="pot-pill"
                         data-display-mode={displayMode}
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Pot Pill Toggle BB or Chips"
                         onClick={toggleDisplayMode}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                toggleDisplayMode(e);
+                            }
+                        }}
                         title="Click to toggle between BB and Chips (Club Arena 1:1)"
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -5194,13 +5247,27 @@ function UniversalDynamicTable({
                     || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh')
                 ).toLowerCase();
                 const isPotLimit = currentVariant.startsWith('plo') || (heroCards?.length || 2) >= 4;
-                const callBb = Math.max(0, Number(scenario?.villainBet) || 0);
+                const callBb = Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0);
                 const basePotBb = Math.max(1.5, Number(displayPot) || 1.5);
+                const parityState = computeClubArenaParityState({
+                    variant: currentVariant,
+                    street: streetLabel.toLowerCase(),
+                    potBb: basePotBb,
+                    heroPosition: scenario?.heroPosition || 'BTN',
+                    heroStackBb: Number(heroStack) || 100,
+                    heroCommittedBb: Number(scenario?.heroCommittedBb || 0),
+                    facingBetBb: callBb,
+                    previousBetBb: Number(scenario?.previousBetBb || 0),
+                    lastFullRaiseIncrementBb: scenario?.lastFullRaiseIncrementBb ?? null,
+                    heroAlreadyActedOnStreet: Boolean(scenario?.heroAlreadyActedOnStreet),
+                    seats: scenario?.seats || null,
+                    stakes: scenario?.stakes || trainerConfig?.stakes,
+                });
                 const potLimitMaxBb = Number((basePotBb + 2 * callBb).toFixed(1));
                 const maxRaiseBb = isPotLimit
                     ? Math.min(Number(heroStack) || 100, potLimitMaxBb)
                     : (Number(heroStack) || 100);
-                const minRaiseBb = Math.max(1, Math.min(maxRaiseBb, callBb > 0 ? callBb * 2 : 2));
+                const minRaiseBb = Math.max(1, Math.min(maxRaiseBb, callBb > 0 ? parityState.minRaiseToBb : 2));
 
                 const aggressiveOptions = (displayOptions || []).slice(0, 9).map((opt, idx) => {
                     const id = opt?.id || String.fromCharCode(97 + idx);
@@ -5258,6 +5325,13 @@ function UniversalDynamicTable({
                         data-club-arena-raise-panel="true"
                         data-pot-limit-enforced={isPotLimit ? 'true' : 'false'}
                         data-pot-limit-max-bb={isPotLimit ? String(potLimitMaxBb) : ''}
+                        data-parity-reopens-action={parityState.reopensAction ? 'true' : 'false'}
+                        data-parity-min-raise-bb={String(minRaiseBb)}
+                        data-parity-max-raise-bb={String(maxRaiseBb)}
+                        data-parity-min-raise-chips={String(parityState.minRaiseToChips)}
+                        data-parity-max-raise-chips={String(parityState.maxRaiseToChips)}
+                        data-parity-main-pot-bb={String(parityState.mainPotBb)}
+                        data-parity-side-pot-count={String(parityState.sidePots.length)}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -5314,7 +5388,28 @@ function UniversalDynamicTable({
                                 type="button"
                                 data-club-arena-raise-confirm="true"
                                 data-matched-action-id={matchedAggressiveOpt.id}
-                                onClick={() => handleAnswerWithGrouping(matchedAggressiveOpt.id)}
+                                data-chosen-sizing-bb={String(effectiveSliderBb)}
+                                data-graded-sizing-bb={String(matchedAggressiveOpt.bb)}
+                                onClick={() => {
+                                    const customEval = evaluateCustomRaiseSizing({
+                                        chosenSizingBb: effectiveSliderBb,
+                                        gradedOption: {
+                                            id: matchedAggressiveOpt.id,
+                                            label: matchedAggressiveOpt.label,
+                                            sizingBb: matchedAggressiveOpt.bb,
+                                        },
+                                        minRaiseToBb: minRaiseBb,
+                                        maxRaiseToBb: maxRaiseBb,
+                                        potBb: basePotBb,
+                                        callBb,
+                                        variant: currentVariant,
+                                        street: streetLabel.toLowerCase(),
+                                        stakes: scenario?.stakes || trainerConfig?.stakes,
+                                        brainEvaluation: scenario?.brainEvaluation,
+                                    });
+                                    setChosenRaiseInfo(customEval);
+                                    handleAnswerWithGrouping(matchedAggressiveOpt.id);
+                                }}
                                 style={{
                                     padding: '3px 10px',
                                     borderRadius: 6,
@@ -5864,6 +5959,8 @@ function UniversalDynamicTable({
                                 </button>
                                 <button
                                     data-training-display-mode-toggle="true"
+                                    data-display-toggle-source="settings"
+                                    data-display-mode={displayMode}
                                     onClick={toggleDisplayMode}
                                     style={{
                                         ...styles.settingsBtn,
@@ -5871,7 +5968,7 @@ function UniversalDynamicTable({
                                         borderColor: displayMode === 'chips' ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)',
                                     }}
                                 >
-                                    {displayMode === 'chips' ? '◆ Stack & Pot Units: CHIPS (100/BB)' : '◆ Stack & Pot Units: Big Blinds (BB)'}
+                                    {displayMode === 'chips' ? `◆ Stack & Pot Units: CHIPS (${activeStakesInfo.stakesLabel})` : '◆ Stack & Pot Units: Big Blinds (BB)'}
                                 </button>
                                 {onExit && (
                                     <button onClick={onExit} style={{ ...styles.settingsBtn, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}>
@@ -6147,6 +6244,41 @@ function UniversalDynamicTable({
                                     ✓ Correct Answer: {options.find(o => o.id === effectiveCorrectAnswer)?.text || effectiveCorrectAnswer}
                                 </span>
                             )}
+                        </div>
+                    )}
+
+                    {/* Club Arena Custom Sizing Disclosure (Chosen Size vs Graded Node Size + Exact-Size Feedback) */}
+                    {chosenRaiseInfo && (
+                        <div
+                            data-custom-sizing-disclosure="true"
+                            data-chosen-raise-bb={String(chosenRaiseInfo.chosenSizingBb)}
+                            data-chosen-raise-chips={String(chosenRaiseInfo.chosenSizingChips)}
+                            data-graded-raise-bb={String(chosenRaiseInfo.gradedSizingBb)}
+                            data-graded-raise-chips={String(chosenRaiseInfo.gradedSizingChips)}
+                            data-graded-option-label={chosenRaiseInfo.gradedOptionLabel}
+                            data-exact-size-ev-bb={String(chosenRaiseInfo.exactSizeEvEstimateBb)}
+                            style={{
+                                width: '100%',
+                                padding: '6px 10px',
+                                borderRadius: 8,
+                                background: 'rgba(251, 191, 36, 0.08)',
+                                border: '1px solid rgba(251, 191, 36, 0.35)',
+                                fontSize: 12,
+                                color: '#fde68a',
+                                lineHeight: 1.45,
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, fontWeight: 800 }}>
+                                <span>
+                                    Chosen Size: {formatTableAmount(chosenRaiseInfo.chosenSizingBb)} ({chosenRaiseInfo.potFractionPct}% Pot)
+                                </span>
+                                <span>
+                                    Graded Reference Node: {chosenRaiseInfo.gradedOptionLabel} ({formatTableAmount(chosenRaiseInfo.gradedSizingBb)})
+                                </span>
+                            </div>
+                            <div style={{ marginTop: 3, color: '#e2e8f0', fontWeight: 600 }}>
+                                {chosenRaiseInfo.exactSizeVerdict}
+                            </div>
                         </div>
                     )}
 

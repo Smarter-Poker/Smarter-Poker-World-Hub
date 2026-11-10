@@ -18,6 +18,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES, glossaryTermPath } from '../../../src/content/glossary/terms';
+import { authedFetch } from '../../../src/lib/authUtils';
 // TRAIN-WIRE-EMPTY-3c — adoption: shared empty-state primitive
 
 
@@ -85,6 +86,20 @@ export default function GlossaryPage() {
       const saved = localStorage.getItem('glossary-favorites');
       if (saved) setFavorites(new Set(JSON.parse(saved)));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records?tool_id=glossary&limit=5')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const latest = Array.isArray(json?.records)
+          ? json.records.find((r) => Array.isArray(r?.payload?.favorites))
+          : null;
+        if (latest) {
+          setFavorites(new Set(latest.payload.favorites));
+          try {
+            localStorage.setItem('glossary-favorites', JSON.stringify(latest.payload.favorites));
+          } catch (_) {}
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // EventBus listener
@@ -99,9 +114,21 @@ export default function GlossaryPage() {
     const next = new Set(favorites);
     next.has(term) ? next.delete(term) : next.add(term);
     setFavorites(next);
+    const list = [...next];
     try {
-      localStorage.setItem('glossary-favorites', JSON.stringify([...next]));
+      localStorage.setItem('glossary-favorites', JSON.stringify(list));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tool_id: 'glossary',
+        record_type: 'favorites_snapshot',
+        title: `Glossary Favorites (${list.length})`,
+        summary: `Toggled ${term}`,
+        payload: { favorites: list },
+      }),
+    }).catch(() => {});
   };
 
   const filtered = TERMS.filter((t) => {

@@ -27,6 +27,18 @@ import {
 import {
   buildCustomTrainingArenaHref,
 } from '../src/lib/training/customTrainingLaunchContract.mjs';
+import {
+  parseStakesToBlinds,
+  convertBbToTableChips,
+  formatTableDisplayUnit,
+  computeMainAndSidePots,
+  computeClubArenaParityState,
+  applyClubArenaAction,
+  evaluateCustomRaiseSizing,
+} from '../src/lib/training/clubArenaTableParity.js';
+import {
+  analyzeVerifiedTrainingWeaknesses,
+} from '../src/lib/training/weaknessAnalysis.mjs';
 
 const ROOT = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -443,10 +455,10 @@ test('Train This Hand resolves strictly from server storage, enforces participan
 
   // 7. Phase 2 Upgrades: Equity Calculator PLO4/PLO5/PLO6 2-hole+3-board evaluator, Custom Drill Builder variants, and Hand Lab Brain Panel
   const plo5Href = buildCustomTrainingArenaHref(
-    { format: 'cash', variant: 'plo5', streets: ['flop'] },
-    'drill-builder',
+    { format: 'cash', variant: 'plo5', streets: ['flop'], positions: ['BB'] },
+    'weakness-scanner',
   );
-  assert.equal(plo5Href, '/hub/training/arena/cash-005?level=1&source=drill-builder&variant=plo5');
+  assert.equal(plo5Href, '/hub/training/arena/cash-005?level=1&source=weakness-scanner&variant=plo5&street=flop&position=BB');
 
   const equityApi = read('pages/api/training/equity.js');
   assert.match(equityApi, /function bestOmaha5/);
@@ -455,6 +467,7 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   const equityCalcUi = read('pages/hub/training/equity-calculator.js');
   assert.match(equityCalcUi, /data-equity-variant-selector="true"/);
   assert.match(equityCalcUi, /data-equity-brain-panel="true"/);
+  assert.match(equityCalcUi, /data-equity-seq=/);
 
   const drillBuilderUi = read('pages/hub/training/drill-builder.js');
   assert.match(drillBuilderUi, /data-drill-variant-selector="true"/);
@@ -470,6 +483,12 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   assert.match(universalTable, /data-club-arena-preset=/);
   assert.match(universalTable, /data-club-arena-raise-confirm="true"/);
   assert.match(universalTable, /data-pot-display-mode-toggle="true"/);
+  assert.match(universalTable, /data-display-toggle-source="toolbar"/);
+  assert.match(universalTable, /data-display-toggle-source="pot-pill"/);
+  assert.match(universalTable, /data-display-toggle-source="seat-stack"/);
+  assert.match(universalTable, /data-display-toggle-source="settings"/);
+  assert.match(universalTable, /data-training-stakes-badge="true"/);
+  assert.match(universalTable, /data-custom-sizing-disclosure="true"/);
   assert.match(universalTable, /data-club-arena-pot-pill="true"/);
   assert.match(universalTable, /data-club-arena-street-pot-pill="true"/);
   assert.match(universalTable, /data-seat-stack-display="true"/);
@@ -491,6 +510,13 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   const weaknessScannerUi = read('pages/hub/training/weakness-scanner.js');
   assert.match(weaknessScannerUi, /data-leak-brain-panel="true"/);
   assert.match(weaknessScannerUi, /data-fix-top-leak-cta="true"/);
+  assert.match(weaknessScannerUi, /data-leak-basis=/);
+  assert.match(weaknessScannerUi, /data-leak-sample-count=/);
+  assert.match(weaknessScannerUi, /data-leak-ev-loss-bb=/);
+  assert.match(weaknessScannerUi, /data-exploit-tendency-selector="true"/);
+
+  const spotTrainerUi = read('pages/hub/training/spot-trainer.js');
+  assert.match(spotTrainerUi, /data-pot-geometry-simulator="true"/);
 
   const flashcardsUi = read('pages/hub/training/flashcards.js');
   assert.match(flashcardsUi, /tool_id:\s*'flashcards'/);
@@ -500,7 +526,176 @@ test('Train This Hand resolves strictly from server storage, enforces participan
 
   const focusTimerUi = read('pages/hub/training/focus-timer.js');
   assert.match(focusTimerUi, /tool_id:\s*'focus-timer'/);
+  assert.match(focusTimerUi, /tool_id=focus-timer/);
 
   const sessionWarmupUi = read('pages/hub/training/session-warmup.js');
   assert.match(sessionWarmupUi, /tool_id:\s*'session-warmup'/);
+  assert.match(sessionWarmupUi, /tool_id=session-warmup/);
+
+  const sessionNotesUi = read('pages/hub/training/session-notes.js');
+  assert.match(sessionNotesUi, /tool_id:\s*'session-notes'/);
+  assert.match(sessionNotesUi, /tool_id=session-notes/);
+
+  const glossaryUi = read('pages/hub/training/glossary.js');
+  assert.match(glossaryUi, /tool_id:\s*'glossary'/);
+  assert.match(glossaryUi, /tool_id=glossary/);
+
+  const gtoNewsUi = read('pages/hub/training/gto-news.js');
+  assert.match(gtoNewsUi, /tool_id:\s*'gto-news'/);
+  assert.match(gtoNewsUi, /tool_id=gto-news/);
+});
+
+test('Decision-level Club Arena parity: short all-in reopening rules, pot-limit raise math, multiway side pots, stakes-aware chip units, and custom raise disclosure', () => {
+  // 1. Stakes-aware chip units (0.25/0.50 -> bigBlind = 0.50)
+  const parsedStakes = parseStakesToBlinds('0.25/0.50');
+  assert.equal(parsedStakes.hasExplicitStakes, true);
+  assert.equal(parsedStakes.smallBlind, 0.25);
+  assert.equal(parsedStakes.bigBlind, 0.5);
+  assert.equal(convertBbToTableChips(10, '0.25/0.50'), 5);
+  assert.equal(formatTableDisplayUnit(10, 'chips', '0.25/0.50'), '5 Chips');
+  assert.equal(formatTableDisplayUnit(10, 'bb', '0.25/0.50'), '10 BB');
+
+  // 2. Short all-in that does NOT reopen raising when hero already acted
+  // Hero opened to 3 BB, Villain A raised to 10 BB (full raise increment = 7 BB), Villain B shoved all-in for 14 BB (increment = 4 BB < 7 BB)
+  const shortAllInState = computeClubArenaParityState({
+    variant: 'nlh',
+    street: 'preflop',
+    stakes: '1/2',
+    potBb: 27,
+    heroPosition: 'BTN',
+    heroStackBb: 87,
+    heroCommittedBb: 3,
+    facingBetBb: 14,
+    previousBetBb: 10,
+    lastFullRaiseIncrementBb: 7,
+    heroAlreadyActedOnStreet: true,
+    seats: [
+      { position: 'BTN', stackRemainingBb: 87, committedBb: 3, allIn: false, folded: false },
+      { position: 'SB', stackRemainingBb: 90, committedBb: 10, allIn: false, folded: false },
+      { position: 'BB', stackRemainingBb: 0, committedBb: 14, allIn: true, folded: false },
+    ],
+  });
+  assert.equal(shortAllInState.isShortAllInRaise, true);
+  assert.equal(shortAllInState.reopensAction, false, 'Short all-in increment (4 BB < 7 BB) must not reopen raising for hero who already acted');
+  assert.deepEqual(shortAllInState.legalActions, ['fold', 'call']);
+  assert.equal(shortAllInState.callAmountBb, 11);
+
+  // Applying call transitions to next actor SB who still faces the 4 BB increment
+  const afterHeroCall = applyClubArenaAction(shortAllInState, { type: 'call' });
+  assert.equal(afterHeroCall.additionalPutInBb, 11);
+  assert.equal(afterHeroCall.submittedTotalBb, 14);
+  assert.equal(afterHeroCall.resultingStacks.BTN, 76);
+  assert.equal(afterHeroCall.nextActor, 'SB');
+
+  // 3. Pot-Limit raise facing a prior bet: maxRaiseToBb = potBeforeCall + 2 * callAmount + heroCommitted
+  const ploFacingBet = computeClubArenaParityState({
+    variant: 'plo5',
+    street: 'flop',
+    stakes: '0.25/0.50',
+    potBb: 12,
+    deadPotBb: 12,
+    heroPosition: 'BTN',
+    heroStackBb: 100,
+    heroCommittedBb: 0,
+    facingBetBb: 8,
+    previousBetBb: 0,
+    lastFullRaiseIncrementBb: 8,
+    heroAlreadyActedOnStreet: false,
+  });
+  assert.equal(ploFacingBet.isPotLimit, true);
+  assert.equal(ploFacingBet.minRaiseToBb, 16); // 8 + 8
+  assert.equal(ploFacingBet.maxRaiseToBb, 36); // currentPotBeforeCallBb (12 dead + 8 villain bet = 20) + 2 * 8 = 36 BB
+  assert.deepEqual(ploFacingBet.legalActions, ['fold', 'call', 'raise']);
+
+  // 4. Multiway split / main + side pot calculation
+  // Note: when 3 players commit 25, 60, and 60 (or 4 players commit 25, 60, 100, 100), all pots are contested
+  const pots = computeMainAndSidePots([
+    { position: 'SB', committedBb: 25, stackRemainingBb: 0, allIn: true, folded: false },
+    { position: 'BB', committedBb: 60, stackRemainingBb: 0, allIn: true, folded: false },
+    { position: 'UTG', committedBb: 100, stackRemainingBb: 20, allIn: false, folded: false },
+    { position: 'BTN', committedBb: 100, stackRemainingBb: 40, allIn: false, folded: false },
+  ]);
+  assert.equal(pots.totalPotBb, 285);
+  assert.equal(pots.mainPotBb, 100); // 25 * 4
+  assert.equal(pots.sidePots.length, 2);
+  assert.equal(pots.sidePots[0].amountBb, 105); // (60 - 25) * 3
+  assert.deepEqual(pots.sidePots[0].eligiblePositions, ['BB', 'UTG', 'BTN']);
+  assert.equal(pots.sidePots[1].amountBb, 80); // (100 - 60) * 2
+  assert.deepEqual(pots.sidePots[1].eligiblePositions, ['UTG', 'BTN']);
+
+  // 5. Custom raise sizing evaluation preserves chosen size and exposes graded reference size
+  const customSizing = evaluateCustomRaiseSizing({
+    chosenSizingBb: 9.5,
+    potBb: 12,
+    callBb: 0,
+    stakes: '0.25/0.50',
+    gradedOption: { id: 'c', text: 'Bet 8 BB (66% Pot)', sizingBb: 8, frequency: 45, ev: '1.25' },
+  });
+  assert.equal(customSizing.chosenSizingBb, 9.5);
+  assert.equal(customSizing.chosenSizingChips, 4.75);
+  assert.equal(customSizing.gradedOptionId, 'c');
+  assert.equal(customSizing.gradedSizingBb, 8);
+  assert.equal(customSizing.isExactMatch, false);
+  assert.match(customSizing.exactSizeVerdict, /9\.5 BB.*8 BB/i);
+});
+
+test('Personalized leak-to-drill loop identifies highest-EV-loss (variant, street, position) and targets Question #1', () => {
+  const analysis = analyzeVerifiedTrainingWeaknesses({
+    sessions: [
+      {
+        id: 'sess-plo5-1',
+        game_id: 'cash-005',
+        hands_played: 10,
+        correct_count: 4,
+        total_ev_loss: 8.4,
+        session_config: { variant: 'plo5', targetStreet: 'turn' },
+      },
+    ],
+    answers: [
+      { game_id: 'cash-005', variant: 'plo5', street: 'turn', position: 'BB', is_correct: false, ev_loss: 2.4 },
+      { game_id: 'cash-005', variant: 'plo5', street: 'turn', position: 'BB', is_correct: false, ev_loss: 2.1 },
+      { game_id: 'cash-005', variant: 'plo5', street: 'turn', position: 'BB', is_correct: false, ev_loss: 1.9 },
+      { game_id: 'cash-005', variant: 'plo5', street: 'turn', position: 'BB', is_correct: true, ev_loss: 0 },
+      { game_id: 'cash-001', variant: 'nlh', street: 'flop', position: 'BTN', is_correct: false, ev_loss: 0.4 },
+    ],
+  });
+
+  assert.ok(analysis.topSpotLeak, 'Expected topSpotLeak to be identified');
+  assert.equal(analysis.topSpotLeak.variant, 'plo5');
+  assert.equal(analysis.topSpotLeak.street, 'turn');
+  assert.equal(analysis.topSpotLeak.position, 'BB');
+  assert.equal(analysis.topSpotLeak.sampleCount, 4);
+  assert.equal(analysis.topSpotLeak.evLossBb, 6.4);
+  assert.equal(analysis.topSpotLeak.basis, 'verified-history');
+
+  const launchHref = buildCustomTrainingArenaHref(
+    {
+      gameId: analysis.topSpotLeak.gameId,
+      variant: analysis.topSpotLeak.variant,
+      streets: [analysis.topSpotLeak.street],
+      positions: [analysis.topSpotLeak.position],
+    },
+    'weakness-scanner',
+  );
+  assert.equal(
+    launchHref,
+    '/hub/training/arena/cash-005?level=1&source=weakness-scanner&variant=plo5&street=turn&position=BB',
+  );
+
+  // Verify curated batch generator produces a PLO5 BB turn question on Question #1
+  const [firstQuestion] = generateCuratedPokerConceptBatch({
+    gameId: 'cash-005',
+    level: 1,
+    count: 1,
+    gameConfig: {
+      variant: 'plo5',
+      targetPositions: ['BB'],
+    },
+    targetStreet: 'turn',
+  });
+  assert.equal(firstQuestion.scenario.variant, 'plo5');
+  assert.equal(firstQuestion.scenario.street, 'turn');
+  assert.equal(firstQuestion.scenario.heroPosition, 'BB');
+  assert.equal(firstQuestion.heroCards.length, 5);
+  assert.equal(firstQuestion.boardCards.length, 4);
 });

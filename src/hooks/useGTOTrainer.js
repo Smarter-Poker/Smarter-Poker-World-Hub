@@ -981,8 +981,18 @@ export default function useGTOTrainer(
         // raced the Arena's persistence effect, so the first question after a
         // Hub launch could be generated for the previous difficulty.
         params.set('difficulty', resolveDeliveryDifficulty(trainerConfig));
-        if (trainerConfig?.gameMode === 'street' && trainerConfig?.targetStreet) {
+        if (trainerConfig?.targetStreet) {
           params.set('targetStreet', trainerConfig.targetStreet);
+          params.set('gameMode', 'street');
+        }
+        const explicitTargetPosition = trainerConfig?.targetPositions || trainerConfig?.position;
+        if (explicitTargetPosition && String(explicitTargetPosition).toLowerCase() !== 'any') {
+          params.set(
+            'targetPositions',
+            Array.isArray(explicitTargetPosition)
+              ? explicitTargetPosition.join(',')
+              : String(explicitTargetPosition).toUpperCase(),
+          );
         }
         if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
           params.set('variant', String(trainerConfig.variant).toLowerCase());

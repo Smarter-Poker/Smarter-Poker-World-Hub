@@ -145,6 +145,23 @@ export default function SessionWarmupPage() {
       const count = parseInt(localStorage.getItem('warmup-count') || '0', 10);
       setCompletionCount(count);
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records?tool_id=session-warmup&limit=25')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const records = Array.isArray(json?.records) ? json.records : [];
+        if (records.length > 0) {
+          const maxCount = records.reduce((max, rec) => {
+            const val = Number(rec?.payload?.completionCount);
+            return Number.isFinite(val) && val > max ? val : max;
+          }, records.length);
+          setCompletionCount((prev) => {
+            const next = Math.max(prev, maxCount);
+            try { localStorage.setItem('warmup-count', String(next)); } catch (_) {}
+            return next;
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // EventBus listener
@@ -255,6 +272,7 @@ export default function SessionWarmupPage() {
 
         {/* Completion Counter */}
         <div
+          data-warmup-completed-count={completionCount}
           style={{
             position: 'absolute',
             top: 20,
@@ -262,9 +280,34 @@ export default function SessionWarmupPage() {
             zIndex: 10,
             fontSize: 12,
             color: 'var(--sp-fg-faint)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
           }}
         >
-          Warmups Completed: {completionCount}
+          <span>Warmups Completed: {completionCount}</span>
+          {!completed && (
+            <button
+              type="button"
+              data-complete-warmup-btn="true"
+              onClick={() => {
+                setAnswers({ mental: '8 - Focused', timer: '60 min', goal: 'Play A-Game' });
+                setCompleted(true);
+              }}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: '1px solid rgba(59,130,246,0.35)',
+                background: 'rgba(59,130,246,0.12)',
+                color: 'var(--sp-accent-blue)',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Quick Complete
+            </button>
+          )}
         </div>
 
         {/* Progress Bar */}

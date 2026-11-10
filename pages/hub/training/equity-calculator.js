@@ -653,6 +653,7 @@ export default function EquityCalculatorPage() {
   const router = useRouter();
   useTrainingBus('equity-calculator');
   const calcCountRef = useRef(0);
+  const calcSeqRef = useRef(0);
 
   // State
   const [variant, setVariant] = useState('holdem');
@@ -661,6 +662,7 @@ export default function EquityCalculatorPage() {
   const [boardCards, setBoardCards] = useState([]);
   const [results, setResults] = useState(null);
   const [horseBrainAnalysis, setHorseBrainAnalysis] = useState(null);
+  const [equitySeq, setEquitySeq] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -690,6 +692,7 @@ export default function EquityCalculatorPage() {
 
   // Switch variant
   const changeVariant = useCallback((nextVariant) => {
+    calcSeqRef.current += 1;
     const nextSpec = EQUITY_VARIANTS.find((v) => v.id === nextVariant) || EQUITY_VARIANTS[0];
     setVariant(nextSpec.id);
     setHands((prev) => prev.map((h) => h.slice(0, nextSpec.holeCount)));
@@ -700,6 +703,7 @@ export default function EquityCalculatorPage() {
 
   // Update hand for player
   const updateHand = useCallback((playerIdx, cards) => {
+    calcSeqRef.current += 1;
     setHands((prev) => {
       const next = [...prev];
       next[playerIdx] = cards;
@@ -711,6 +715,7 @@ export default function EquityCalculatorPage() {
 
   // Add/remove player
   const changePlayerCount = useCallback((count) => {
+    calcSeqRef.current += 1;
     setNumPlayers(count);
     setHands((prev) => {
       const next = [...prev];
@@ -723,6 +728,7 @@ export default function EquityCalculatorPage() {
 
   // Load preset
   const loadPreset = useCallback((preset) => {
+    calcSeqRef.current += 1;
     const presetVariant = preset.variant || 'holdem';
     setVariant(presetVariant);
     const newHands = preset.hands.map((h) => {
@@ -743,6 +749,7 @@ export default function EquityCalculatorPage() {
 
   // Clear all
   const clearAll = useCallback(() => {
+    calcSeqRef.current += 1;
     setHands([[], [], [], []]);
     setBoardCards([]);
     setResults(null);
@@ -753,6 +760,8 @@ export default function EquityCalculatorPage() {
   // Calculate equity
   const calculate = useCallback(async () => {
     if (!canCalculate) return;
+    calcSeqRef.current += 1;
+    const reqSeq = calcSeqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -766,20 +775,27 @@ export default function EquityCalculatorPage() {
           iterations: 5000,
         }),
       });
+      if (reqSeq !== calcSeqRef.current) return;
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
+      if (reqSeq !== calcSeqRef.current) return;
       if (data.success) {
         setResults(data.results);
         setHorseBrainAnalysis(data.horseBrainAnalysis || null);
+        setEquitySeq(reqSeq);
         calcCountRef.current += 1;
         busEmit.sessionEnd('equity-calculator');
       } else {
         setError(data.error || 'Calculation failed');
       }
     } catch (err) {
-      setError(err.message);
+      if (reqSeq === calcSeqRef.current) {
+        setError(err.message);
+      }
     } finally {
-      setLoading(false);
+      if (reqSeq === calcSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, [canCalculate, hands, numPlayers, boardCards, variant]);
 
@@ -1110,6 +1126,9 @@ export default function EquityCalculatorPage() {
           <AnimatePresence>
             {results && (
               <motion.div
+                data-equity-results-panel="true"
+                data-equity-seq={equitySeq}
+                data-equity-variant-result={variant}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}

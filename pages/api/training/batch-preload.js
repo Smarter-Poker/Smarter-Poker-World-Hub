@@ -504,7 +504,17 @@ export default async function handler(req, res) {
           const rows = targetStreet
               ? authorityEligibleRows.filter((row) => streetOfCachedRow(row) === targetStreet)
               : authorityEligibleRows;
-          const selectableRows = rows.filter((row) => (
+          const positionFilteredRows = Array.isArray(targetPositions) && targetPositions.length > 0
+              ? rows.filter((row) => {
+                  const heroPos = String(
+                      row?.question_data?.scenario?.heroPosition
+                      || row?.question_data?.scenario?.position
+                      || ''
+                  ).toUpperCase();
+                  return targetPositions.includes(heroPos);
+              })
+              : rows;
+          const selectableRows = positionFilteredRows.filter((row) => (
               trainingQuestionMatchesSelection(row?.question_data, attemptSelection)
           ));
           const fresh = seenIds.size > 0

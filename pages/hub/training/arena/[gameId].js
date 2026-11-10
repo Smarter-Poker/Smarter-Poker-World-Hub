@@ -145,16 +145,28 @@ export default function TrainingArenaPage() {
                 ? router.query.variant.trim().toLowerCase()
                 : '';
             const variant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(rawVariant) ? rawVariant : null;
+            const rawStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
+                ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
+                : '';
+            const targetStreet = ['preflop', 'flop', 'turn', 'river'].includes(rawStreet) ? rawStreet : null;
+            const rawPosition = typeof (router.query.position || router.query.targetPositions) === 'string'
+                ? String(router.query.position || router.query.targetPositions).trim().toUpperCase()
+                : '';
+            const targetPosition = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(rawPosition)
+                ? rawPosition
+                : null;
             const duelToken = typeof router.query.duelToken === 'string' && router.query.duelToken.trim()
                 ? router.query.duelToken.trim()
                 : null;
-            if (!baseConfig && !variant && !duelToken && !syncedHandId) {
+            if (!baseConfig && !variant && !targetStreet && !targetPosition && !duelToken && !syncedHandId) {
                 return { config: null, error: null };
             }
             return {
                 config: {
                     ...(baseConfig || {}),
                     ...(variant ? { variant } : {}),
+                    ...(targetStreet ? { targetStreet, gameMode: 'street' } : {}),
+                    ...(targetPosition ? { targetPositions: targetPosition, position: targetPosition } : {}),
                     ...(duelToken ? { duelToken } : {}),
                     ...(syncedHandId ? { syncedHandId } : {}),
                 },

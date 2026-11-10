@@ -134,14 +134,14 @@ export function resolveCustomTrainingLaunch(input = {}) {
   ].some((key) => input[key] !== undefined && input[key] !== null && input[key] !== '');
 
   if (CANONICAL_GAME_IDS.has(explicitGameId) && !hasFocusConfig) {
-    return Object.freeze({ gameId, custom: false, config: null, variant });
+    return Object.freeze({ gameId, custom: false, config: null, variant, street, position });
   }
 
   // The strict custom policy contract is postflop-only. Preflop requests must
   // launch the closest authored canonical curriculum instead of pretending a
   // generic postflop query can honor them.
   if (street === 'preflop' || (variant && variant !== 'nlh')) {
-    return Object.freeze({ gameId, custom: false, config: null, variant });
+    return Object.freeze({ gameId, custom: false, config: null, variant, street, position });
   }
 
   const config = normalizeCustomTrainingConfig({
@@ -156,7 +156,7 @@ export function resolveCustomTrainingLaunch(input = {}) {
     spotType,
     questionsCount: input.questionsCount || input.count || 25,
   });
-  return Object.freeze({ gameId, custom: true, config, variant });
+  return Object.freeze({ gameId, custom: true, config, variant, street, position });
 }
 
 export function buildCustomTrainingArenaHref(input = {}, source = 'training-tool') {
@@ -172,6 +172,13 @@ export function buildCustomTrainingArenaHref(input = {}, source = 'training-tool
       'street', 'handClass', 'boardTexture', 'spotType', 'questionsCount',
     ]) {
       params.set(key, String(launch.config[key]));
+    }
+  } else {
+    if (launch.street && launch.street !== 'all') {
+      params.set('street', launch.street);
+    }
+    if (launch.position && launch.position !== 'any') {
+      params.set('position', launch.position);
     }
   }
   return `/hub/training/arena/${launch.gameId}?${params.toString()}`;
